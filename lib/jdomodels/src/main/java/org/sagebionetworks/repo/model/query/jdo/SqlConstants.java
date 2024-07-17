@@ -816,6 +816,7 @@ public class SqlConstants {
 	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
 	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
+	public static final String DDL_SESSION_TOKEN				= "schema/SessionToken-ddl.sql";
 
 	// AuthenticatedOn
 	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";

@@ -2,39 +2,63 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
-import java.util.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_SESSION_TOKEN, constraints = "UNIQUE KEY `UNIQUE_SESSION_TOKEN` (`"+COL_SESSION_TOKEN_SESSION_TOKEN+"`)")
 public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken, DBOSessionToken> {
 	
-	private static TableMapping<DBOSessionToken> tableMapping = AutoTableMapping.create(DBOSessionToken.class);
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("principalId", COL_SESSION_TOKEN_PRINCIPAL_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("sessionToken", COL_SESSION_TOKEN_SESSION_TOKEN)
+	};
 	
-	@Field(name = COL_SESSION_TOKEN_PRINCIPAL_ID, primary = true, backupId = true)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
-	
-
-	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
 
 	@Override
 	public TableMapping<DBOSessionToken> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOSessionToken>() {
+			
+			@Override
+			public DBOSessionToken mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOSessionToken dbo = new DBOSessionToken();
+				dbo.setPrincipalId(rs.getLong(COL_SESSION_TOKEN_PRINCIPAL_ID));
+				dbo.setSessionToken(rs.getString(COL_SESSION_TOKEN_SESSION_TOKEN));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_SESSION_TOKEN;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_SESSION_TOKEN;
+			}
+			
+			@Override
+			public Class<? extends DBOSessionToken> getDBOClass() {
+				return DBOSessionToken.class;
+			}
+		};
 	}
 	
 	public Long getPrincipalId() {
@@ -77,11 +101,7 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
-		result = prime * result + ((sessionToken == null) ? 0 : sessionToken.hashCode());
-		return result;
+		return Objects.hash(principalId, sessionToken);
 	}
 
 	@Override
@@ -93,24 +113,12 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 		if (getClass() != obj.getClass())
 			return false;
 		DBOSessionToken other = (DBOSessionToken) obj;
-		if (principalId == null) {
-			if (other.principalId != null)
-				return false;
-		} else if (!principalId.equals(other.principalId))
-			return false;
-		if (sessionToken == null) {
-			if (other.sessionToken != null)
-				return false;
-		} else if (!sessionToken.equals(other.sessionToken))
-			return false;
-		return true;
+		return Objects.equals(principalId, other.principalId) && Objects.equals(sessionToken, other.sessionToken);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOSessionToken [principalId=" + principalId + ", sessionToken=" + sessionToken + "]";
 	}
-
-
 
 }
