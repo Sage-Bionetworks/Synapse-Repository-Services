@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,17 +75,17 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 				ProjectStat stat = projectStats[i];
 				long statId = idGenerator.generateNewId(IdType.PROJECT_STATS_ID);
 				String etag = UUID.randomUUID().toString();
-				long lastAccessed = stat.getLastAccessed().getTime();
+				Timestamp lastAccessed = new Timestamp(stat.getLastAccessed().getTime());
 				int parameterIndex = 1;
 				// insert parameters
 				ps.setLong(parameterIndex, statId);
 				ps.setLong(++parameterIndex, stat.getProjectId());
 				ps.setLong(++parameterIndex, stat.getUserId());
-				ps.setLong(++parameterIndex, lastAccessed);
+				ps.setTimestamp(++parameterIndex, lastAccessed);
 				ps.setString(++parameterIndex, etag);
 				// update parameters
-				ps.setLong(++parameterIndex, lastAccessed);
-				ps.setLong(++parameterIndex, lastAccessed);
+				ps.setTimestamp(++parameterIndex, lastAccessed);
+				ps.setTimestamp(++parameterIndex, lastAccessed);
 				ps.setString(++parameterIndex, etag);
 			}
 			

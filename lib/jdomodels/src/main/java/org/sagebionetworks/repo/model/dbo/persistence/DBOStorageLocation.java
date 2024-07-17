@@ -139,11 +139,11 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		this.etag = etag;
 	}
 
-	private StorageLocationSetting getData() {
+	public StorageLocationSetting getData() {
 		return data;
 	}
 
-	private void setData(StorageLocationSetting data) {
+	public void setData(StorageLocationSetting data) {
 		this.data = data;
 	}
 

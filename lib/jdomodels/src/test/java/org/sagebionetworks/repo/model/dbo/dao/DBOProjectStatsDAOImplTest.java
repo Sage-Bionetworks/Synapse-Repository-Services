@@ -77,23 +77,23 @@ public class DBOProjectStatsDAOImplTest {
 	public void testUpdateAndList() throws Exception {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 		// project 1
-		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
+		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(100_000));
 		projectStatsDao.updateProjectStat(projectStat);
 
 		// project 2
-		ProjectStat projectStat2 = new ProjectStat(projectId2, userId, new Date(1000));
+		ProjectStat projectStat2 = new ProjectStat(projectId2, userId, new Date(100_000));
 		// project 1 update
-		ProjectStat projectStat3 = new ProjectStat(projectId1, userId, new Date(2000));
+		ProjectStat projectStat3 = new ProjectStat(projectId1, userId, new Date(200_000));
 		projectStatsDao.updateProjectStat(projectStat2, projectStat3);
 
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(2, stats.size());
 		if (stats.get(0).getProjectId() == projectId1.longValue()) {
-			assertEquals(new Date(2000), stats.get(0).getLastAccessed());
-			assertEquals(new Date(1000), stats.get(1).getLastAccessed());
+			assertEquals(new Date(200_000), stats.get(0).getLastAccessed());
+			assertEquals(new Date(100_000), stats.get(1).getLastAccessed());
 		} else {
-			assertEquals(new Date(2000), stats.get(1).getLastAccessed());
-			assertEquals(new Date(1000), stats.get(0).getLastAccessed());
+			assertEquals(new Date(200_000), stats.get(1).getLastAccessed());
+			assertEquals(new Date(100_000), stats.get(0).getLastAccessed());
 		}
 	}
 	
@@ -102,16 +102,16 @@ public class DBOProjectStatsDAOImplTest {
 	 */
 	@Test 
 	public void testUpdateOlderDate(){
-		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(1000));
+		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(100_000));
 		projectStatsDao.updateProjectStat(insert);
 		// update with an older date
-		ProjectStat update = new ProjectStat(projectId1, userId, new Date(999));
+		ProjectStat update = new ProjectStat(projectId1, userId, new Date(99_000));
 		projectStatsDao.updateProjectStat(update);
 		// the first date should remain
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(1, stats.size());
 		// date should match the original date
-		assertEquals(new Date(1000), stats.get(0).getLastAccessed());
+		assertEquals(new Date(100_000), stats.get(0).getLastAccessed());
 	}
 	
 	/**
@@ -119,16 +119,16 @@ public class DBOProjectStatsDAOImplTest {
 	 */
 	@Test 
 	public void testUpdateNewerDate(){
-		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(1000));
+		ProjectStat insert = new ProjectStat(projectId1, userId, new Date(100_000));
 		projectStatsDao.updateProjectStat(insert);
 		// update with a newer date
-		ProjectStat update = new ProjectStat(projectId1, userId, new Date(1001));
+		ProjectStat update = new ProjectStat(projectId1, userId, new Date(100_001));
 		projectStatsDao.updateProjectStat(update);
 		// the first date should remain
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
 		assertEquals(1, stats.size());
 		// the new date should be applied
-		assertEquals(new Date(1001), stats.get(0).getLastAccessed());
+		assertEquals(new Date(100_001), stats.get(0).getLastAccessed());
 	}
 	
 	/**
@@ -139,7 +139,7 @@ public class DBOProjectStatsDAOImplTest {
 	public void testUpdateEtag() throws Exception {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 		// project 1
-		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
+		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(100_000));
 		projectStatsDao.updateProjectStat(projectStat);
 		
 		List<ProjectStat> stats = projectStatsDao.getProjectStatsForUser(userId);
@@ -148,7 +148,7 @@ public class DBOProjectStatsDAOImplTest {
 		assertNotNull(startStat.getEtag());
 		
 		// update the stat should update the etag.
-		projectStat = new ProjectStat(projectId1, userId, new Date(1001));
+		projectStat = new ProjectStat(projectId1, userId, new Date(100_001));
 		projectStatsDao.updateProjectStat(projectStat);
 		
 		stats = projectStatsDao.getProjectStatsForUser(userId);
@@ -162,7 +162,7 @@ public class DBOProjectStatsDAOImplTest {
 	public void testCascadeDeleteOnProject() throws Exception {
 		assertEquals(0, projectStatsDao.getProjectStatsForUser(userId).size());
 
-		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(1000));
+		ProjectStat projectStat = new ProjectStat(projectId1, userId, new Date(100_000));
 		projectStatsDao.updateProjectStat(projectStat);
 
 		assertEquals(1, projectStatsDao.getProjectStatsForUser(userId).size());

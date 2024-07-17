@@ -1,55 +1,77 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_LAST_ACCESSED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STAT_USER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_PROJECT_STAT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STAT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_PROJECT_STAT, constraints = { "unique key UNIQUE_PSTAT_PID_USER (" + COL_PROJECT_STAT_PROJECT_ID + ", "
-		+ COL_PROJECT_STAT_USER_ID + ")" })
 public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, DBOProjectStat> {
 
-	@Field(name = COL_PROJECT_STAT_ID, backupId = true, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_PROJECT_STAT_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("projectId", COL_PROJECT_STAT_PROJECT_ID),
+			new FieldColumn("userId", COL_PROJECT_STAT_USER_ID),
+			new FieldColumn("lastAccessed", COL_PROJECT_STAT_LAST_ACCESSED),
+			new FieldColumn("etag", COL_PROJECT_STAT_ETAG).withIsEtag(true),
+	};
+
 	private Long id;
-
-	@Field(name = COL_PROJECT_STAT_PROJECT_ID, nullable = false)
-	@ForeignKey(name = "PROJECT_STAT_PROJ_ID_FK", table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
 	private Long projectId;
-
-	@Field(name = COL_PROJECT_STAT_USER_ID, nullable = false)
-	@ForeignKey(name = "PROJECT_STAT_USR_ID_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long userId;
-
-	@Field(name = COL_PROJECT_STAT_LAST_ACCESSED, nullable = false)
 	private Date lastAccessed;
-	
-	@Field(name = COL_PROJECT_STAT_ETAG, etag = true, nullable = false)
 	private String etag;
-
-	private static TableMapping<DBOProjectStat> tableMapping = AutoTableMapping.create(DBOProjectStat.class);
 
 	@Override
 	public TableMapping<DBOProjectStat> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOProjectStat>() {
+			
+			@Override
+			public DBOProjectStat mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOProjectStat dbo = new DBOProjectStat();
+				dbo.setId(rs.getLong(COL_PROJECT_STAT_ID));
+				dbo.setProjectId(rs.getLong(COL_PROJECT_STAT_PROJECT_ID));
+				dbo.setUserId(rs.getLong(COL_PROJECT_STAT_USER_ID));
+				dbo.setLastAccessed(rs.getTimestamp(COL_PROJECT_STAT_LAST_ACCESSED));
+				dbo.setEtag(rs.getString(COL_PROJECT_STAT_ETAG));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_PROJECT_STAT;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_PROJECT_STAT;
+			}
+			
+			@Override
+			public Class<? extends DBOProjectStat> getDBOClass() {
+				return DBOProjectStat.class;
+			}
+		};
 	}
 
 	@Override
@@ -99,16 +121,7 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((lastAccessed == null) ? 0 : lastAccessed.hashCode());
-		result = prime * result
-				+ ((projectId == null) ? 0 : projectId.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
-		return result;
+		return Objects.hash(etag, id, lastAccessed, projectId, userId);
 	}
 
 	@Override
@@ -120,37 +133,15 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 		if (getClass() != obj.getClass())
 			return false;
 		DBOProjectStat other = (DBOProjectStat) obj;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (lastAccessed == null) {
-			if (other.lastAccessed != null)
-				return false;
-		} else if (!lastAccessed.equals(other.lastAccessed))
-			return false;
-		if (projectId == null) {
-			if (other.projectId != null)
-				return false;
-		} else if (!projectId.equals(other.projectId))
-			return false;
-		if (userId == null) {
-			if (other.userId != null)
-				return false;
-		} else if (!userId.equals(other.userId))
-			return false;
-		return true;
+		return Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Objects.equals(lastAccessed, other.lastAccessed) && Objects.equals(projectId, other.projectId)
+				&& Objects.equals(userId, other.userId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOProjectStat [id=" + id + ", projectId=" + projectId + ", userId=" + userId + ", lastAccessed=" + lastAccessed + "]";
+		return "DBOProjectStat [id=" + id + ", projectId=" + projectId + ", userId=" + userId + ", lastAccessed="
+				+ lastAccessed + ", etag=" + etag + "]";
 	}
 
 	@Override

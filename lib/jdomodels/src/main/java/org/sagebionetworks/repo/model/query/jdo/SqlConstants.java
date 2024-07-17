@@ -204,6 +204,7 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
 	public static final String COL_PROJECT_STAT_ETAG			= "ETAG";
+	public static final String DDL_PROJECT_STAT					= "schema/ProjectStat-ddl.sql";
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";

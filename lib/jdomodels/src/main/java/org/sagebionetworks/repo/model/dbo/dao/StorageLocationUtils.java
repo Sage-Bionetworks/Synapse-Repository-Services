@@ -28,13 +28,13 @@ public class StorageLocationUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	public static DBOStorageLocation convertDTOtoDBO(StorageLocationSetting setting) {
 		try {
 			DBOStorageLocation dbo = new DBOStorageLocation();
 			dbo.setId(setting.getStorageLocationId());
 			dbo.setDescription(setting.getDescription());
-			dbo.setUploadType(setting.getUploadType().name());
+			dbo.setUploadType(setting.getUploadType() != null ? setting.getUploadType().name() : null);
 			dbo.setEtag(setting.getEtag());
 			dbo.setJson(EntityFactory.createJSONStringForEntity(setting));
 			dbo.setDataHash(computeHash(setting));
@@ -55,37 +55,39 @@ public class StorageLocationUtils {
 			return new String(Hex.encodeHex(md5Bytes));
 		} catch (Exception e) {
 			throw new RuntimeException(e);
-		} 
+		}
 	}
-	
+
 	public static String sanitizeBaseKey(final String baseKey) {
 		return stripString(baseKey);
 	}
-	
+
 	public static String sanitizeEndpointUrl(final String endpointUrl) {
 		return stripString(endpointUrl);
 	}
-	
+
 	static String stripString(final String input) {
 		if (input == null) {
 			return null;
 		}
-		
+
 		// Remove any trailing slash and/or spaces
 		String sanitizedBaseKey = StringUtils.strip(input, "/ \t");
 
-		// Makes sure that the base key is set to null if empty (See SWC-5088 and PLFM-6057)
+		// Makes sure that the base key is set to null if empty (See SWC-5088 and
+		// PLFM-6057)
 		if (StringUtils.isBlank(sanitizedBaseKey)) {
 			sanitizedBaseKey = null;
 		}
-		
+
 		return sanitizedBaseKey;
 	}
-	
+
 	private static StorageLocationSetting copyNormalized(final StorageLocationSetting setting) {
 		try {
 			String json = EntityFactory.createJSONStringForEntity(setting);
-			StorageLocationSetting normalizedSetting = EntityFactory.createEntityFromJSONString(json, StorageLocationSetting.class);
+			StorageLocationSetting normalizedSetting = EntityFactory.createEntityFromJSONString(json,
+					StorageLocationSetting.class);
 			normalizedSetting.setStorageLocationId(null);
 			normalizedSetting.setEtag(null);
 			normalizedSetting.setCreatedOn(null);
@@ -95,5 +97,4 @@ public class StorageLocationUtils {
 		}
 	}
 
-	
 }
