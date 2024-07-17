@@ -829,6 +829,7 @@ public class SqlConstants {
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
+	public static final String DDL_TERMS_OF_USE_AGREEMENT				= "schema/TermsOfUseAgreement-ddl.sql";
 	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";
