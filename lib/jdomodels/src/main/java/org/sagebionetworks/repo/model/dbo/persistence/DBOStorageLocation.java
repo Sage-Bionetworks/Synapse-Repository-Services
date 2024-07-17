@@ -1,74 +1,110 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DATA_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_LOCATION_UPLOAD_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_STORAGE_LOCATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_LOCATION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.dao.StorageLocationUtils;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * descriptor of what's in a column of a participant data record
  */
-@Table(name = TABLE_STORAGE_LOCATION, constraints = {
-		"INDEX `CREATED_BY_DATA_HASH_INDEX` (`" + COL_STORAGE_LOCATION_CREATED_BY + "`, `" + COL_STORAGE_LOCATION_DATA_HASH + "`)" })
 public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLocation, DBOStorageLocation> {
 
-	@Field(name = COL_STORAGE_LOCATION_ID, backupId = true, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_STORAGE_LOCATION_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("description", COL_STORAGE_LOCATION_DESCRIPTION),
+			new FieldColumn("uploadType", COL_STORAGE_LOCATION_UPLOAD_TYPE),
+			new FieldColumn("etag", COL_PROJECT_SETTING_ETAG).withIsEtag(true),
+			new FieldColumn("json", COL_STORAGE_LOCATION_JSON),
+			new FieldColumn("dataHash", COL_STORAGE_LOCATION_DATA_HASH),
+			new FieldColumn("createdBy", COL_STORAGE_LOCATION_CREATED_BY),
+			new FieldColumn("createdOn", COL_STORAGE_LOCATION_CREATED_ON), };
+
 	private Long id;
-
-	@Field(name = COL_STORAGE_LOCATION_DESCRIPTION, varchar = 512)
 	private String description;
-
-	@Field(name = COL_STORAGE_LOCATION_UPLOAD_TYPE, nullable = false, sql = "DEFAULT 'NONE'")
-	private UploadType uploadType;
-
-	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
+	private String uploadType;
 	private String etag;
-
-	@Field(name = COL_STORAGE_LOCATION_DATA, serialized = "mediumblob")
+	@TemporaryCode(author = "john", comment = "replaced date with json")
 	private StorageLocationSetting data;
-
-	@Field(name = COL_STORAGE_LOCATION_DATA_HASH, varchar = 36, nullable = false)
+	private String json;
 	private String dataHash;
-
-	@Field(name = COL_STORAGE_LOCATION_CREATED_BY, nullable = false)
 	private Long createdBy;
-
-	@Field(name = COL_STORAGE_LOCATION_CREATED_ON, nullable = false)
 	private Date createdOn;
-
-	private static final TableMapping<DBOStorageLocation> TABLE_MAPPING = AutoTableMapping.create(DBOStorageLocation.class);
-	
-	private static final MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOStorageLocation> getTableMapping() {
-		return TABLE_MAPPING;
+		return new TableMapping<DBOStorageLocation>() {
+
+			@Override
+			public DBOStorageLocation mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOStorageLocation dbo = new DBOStorageLocation();
+				dbo.setId(rs.getLong(COL_STORAGE_LOCATION_ID));
+				dbo.setDescription(rs.getString(COL_STORAGE_LOCATION_DESCRIPTION));
+				dbo.setUploadType(rs.getString(COL_STORAGE_LOCATION_UPLOAD_TYPE));
+				dbo.setEtag(rs.getString(COL_PROJECT_SETTING_ETAG));
+				dbo.setJson(rs.getString(COL_PROJECT_SETTING_JSON));
+				dbo.setDataHash(rs.getString(COL_STORAGE_LOCATION_DATA_HASH));
+				dbo.setCreatedBy(rs.getLong(COL_STORAGE_LOCATION_CREATED_BY));
+				dbo.setCreatedOn(rs.getTimestamp(COL_STORAGE_LOCATION_CREATED_ON));
+				return dbo;
+			}
+
+			@Override
+			public String getTableName() {
+				return TABLE_STORAGE_LOCATION;
+			}
+
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+
+			@Override
+			public String getDDLFileName() {
+				return DDL_STORAGE_LOCATION;
+			}
+
+			@Override
+			public Class<? extends DBOStorageLocation> getDBOClass() {
+				return DBOStorageLocation.class;
+			}
+		};
 	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.STORAGE_LOCATION;
+	}
+
+	public String getJson() {
+		return json;
+	}
+
+	public void setJson(String json) {
+		this.json = json;
 	}
 
 	public Long getId() {
@@ -87,11 +123,11 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		this.description = description;
 	}
 
-	public UploadType getUploadType() {
+	public String getUploadType() {
 		return uploadType;
 	}
 
-	public void setUploadType(UploadType uploadType) {
+	public void setUploadType(String uploadType) {
 		this.uploadType = uploadType;
 	}
 
@@ -103,11 +139,11 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		this.etag = etag;
 	}
 
-	public StorageLocationSetting getData() {
+	private StorageLocationSetting getData() {
 		return data;
 	}
 
-	public void setData(StorageLocationSetting data) {
+	private void setData(StorageLocationSetting data) {
 		this.data = data;
 	}
 
@@ -137,17 +173,7 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((data == null) ? 0 : data.hashCode());
-		result = prime * result + ((dataHash == null) ? 0 : dataHash.hashCode());
-		result = prime * result + ((description == null) ? 0 : description.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((uploadType == null) ? 0 : uploadType.hashCode());
-		return result;
+		return Objects.hash(createdBy, createdOn, data, dataHash, description, etag, id, json, uploadType);
 	}
 
 	@Override
@@ -159,56 +185,46 @@ public class DBOStorageLocation implements MigratableDatabaseObject<DBOStorageLo
 		if (getClass() != obj.getClass())
 			return false;
 		DBOStorageLocation other = (DBOStorageLocation) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (data == null) {
-			if (other.data != null)
-				return false;
-		} else if (!data.equals(other.data))
-			return false;
-		if (dataHash == null) {
-			if (other.dataHash != null)
-				return false;
-		} else if (!dataHash.equals(other.dataHash))
-			return false;
-		if (description == null) {
-			if (other.description != null)
-				return false;
-		} else if (!description.equals(other.description))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (uploadType != other.uploadType)
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(data, other.data) && Objects.equals(dataHash, other.dataHash)
+				&& Objects.equals(description, other.description) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Objects.equals(json, other.json)
+				&& Objects.equals(uploadType, other.uploadType);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOStorageLocation [id=" + id + ", description=" + description + ", uploadType=" + uploadType
-				+ ", etag=" + etag + ", data=" + data + ", dataHash=" + dataHash + ", createdBy=" + createdBy
-				+ ", createdOn=" + createdOn + "]";
+				+ ", etag=" + etag + ", data=" + data + ", json=" + json + ", dataHash=" + dataHash + ", createdBy="
+				+ createdBy + ", createdOn=" + createdOn + "]";
 	}
 
 	@Override
 	public MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation> getTranslator() {
-		return MIGRATION_TRANSLATOR;
+		return new MigratableTableTranslation<DBOStorageLocation, DBOStorageLocation>() {
+
+			@Override
+			public DBOStorageLocation createDatabaseObjectFromBackup(DBOStorageLocation backup) {
+				if (backup.getData() != null) {
+					if (backup.getJson() != null) {
+						throw new IllegalArgumentException("Both 'data' and 'json' have values");
+					}
+					try {
+						backup.setJson(EntityFactory.createJSONStringForEntity(backup.getData()));
+						backup.setData(null);
+					} catch (JSONObjectAdapterException e) {
+						throw new RuntimeException(e);
+					}
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOStorageLocation createBackupFromDatabaseObject(DBOStorageLocation dbo) {
+				return dbo;
+			}
+
+		};
 	}
 
 	@Override

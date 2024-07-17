@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -13,27 +14,36 @@ import com.amazonaws.util.Md5Utils;
 public class StorageLocationUtils {
 
 	public static StorageLocationSetting convertDBOtoDTO(DBOStorageLocation dbo) {
-		StorageLocationSetting setting = dbo.getData();
-		setting.setStorageLocationId(dbo.getId());
-		setting.setDescription(dbo.getDescription());
-		setting.setUploadType(dbo.getUploadType());
-		setting.setEtag(dbo.getEtag());
-		setting.setCreatedBy(dbo.getCreatedBy());
-		setting.setCreatedOn(dbo.getCreatedOn());
-		return setting;
+		try {
+			StorageLocationSetting setting = EntityFactory.createEntityFromJSONString(dbo.getJson(),
+					StorageLocationSetting.class);
+			setting.setStorageLocationId(dbo.getId());
+			setting.setDescription(dbo.getDescription());
+			setting.setUploadType(UploadType.valueOf(dbo.getUploadType()));
+			setting.setEtag(dbo.getEtag());
+			setting.setCreatedBy(dbo.getCreatedBy());
+			setting.setCreatedOn(dbo.getCreatedOn());
+			return setting;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public static DBOStorageLocation convertDTOtoDBO(StorageLocationSetting setting) {
-		DBOStorageLocation dbo = new DBOStorageLocation();
-		dbo.setId(setting.getStorageLocationId());
-		dbo.setDescription(setting.getDescription());
-		dbo.setUploadType(setting.getUploadType());
-		dbo.setEtag(setting.getEtag());
-		dbo.setData(setting);
-		dbo.setDataHash(computeHash(setting));
-		dbo.setCreatedBy(setting.getCreatedBy());
-		dbo.setCreatedOn(setting.getCreatedOn());
-		return dbo;
+		try {
+			DBOStorageLocation dbo = new DBOStorageLocation();
+			dbo.setId(setting.getStorageLocationId());
+			dbo.setDescription(setting.getDescription());
+			dbo.setUploadType(setting.getUploadType().name());
+			dbo.setEtag(setting.getEtag());
+			dbo.setJson(EntityFactory.createJSONStringForEntity(setting));
+			dbo.setDataHash(computeHash(setting));
+			dbo.setCreatedBy(setting.getCreatedBy());
+			dbo.setCreatedOn(setting.getCreatedOn());
+			return dbo;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static String computeHash(final StorageLocationSetting setting) {

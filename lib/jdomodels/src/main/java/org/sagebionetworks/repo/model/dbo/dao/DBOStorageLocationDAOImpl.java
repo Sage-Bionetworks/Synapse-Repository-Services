@@ -137,7 +137,7 @@ public class DBOStorageLocationDAOImpl implements StorageLocationDAO, Initializi
 
 		// PFLM-5985
 		if (dbo.getUploadType() == null) {
-			dbo.setUploadType(UploadType.NONE);
+			dbo.setUploadType(UploadType.NONE.name());
 		}
 
 		dbo = basicDao.createNew(dbo);

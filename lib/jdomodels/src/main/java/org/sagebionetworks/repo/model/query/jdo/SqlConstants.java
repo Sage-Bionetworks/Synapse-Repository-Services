@@ -79,10 +79,11 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_DESCRIPTION		= "DESCRIPTION";
 	public static final String COL_STORAGE_LOCATION_UPLOAD_TYPE		= "UPLOAD_TYPE";
 	public static final String COL_STORAGE_LOCATION_ETAG			= "ETAG";
-	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
+	public static final String COL_STORAGE_LOCATION_JSON			= "JSON";
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
 	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
+	public static final String DDL_STORAGE_LOCATION					= "schema/StorageLocation-ddl.sql";
 	
 	// form processing
 	// FormGroup
