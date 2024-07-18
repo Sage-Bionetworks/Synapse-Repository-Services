@@ -902,6 +902,7 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_SUBMISSION_CREATED_ON = "CREATED_ON";
 	public static final String COL_VERIFICATION_SUBMISSION_SERIALIZED = "SERIALIZED";
 	public static final String FK_VERIFICATION_USER_GROUP_ID = "VERI_USER_GROUP_ID";
+	public static final String DDL_VERIFICATION_SUBMISSION = "schema/VerificationSubmission-ddl.sql";
 
 	
 	public static final String TABLE_VERIFICATION_STATE = "VERIFICATION_STATE";
@@ -914,12 +915,14 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_STATE_STATE = "STATE";
 	public static final String FK_VERIFICATION_STATE_VERIFICATION_ID = "VERI_STATE_VERI_ID";
 	public static final String FK_VERIFICATION_STATE_USER_ID = "VERI_STATE_USER_ID";
+	public static final String DDL_VERIFICATION_STATE = "schema/VerificationState-ddl.sql";
 	
 	public static final String TABLE_VERIFICATION_FILE = "VERIFICATION_FILE";
 	public static final String COL_VERIFICATION_FILE_VERIFICATION_ID = "VERIFICATION_ID";
 	public static final String COL_VERIFICATION_FILE_FILEHANDLEID = "FILE_HANDLE_ID";
 	public static final String FK_VERIFICATION_FILE_FILE_ID = "VERI_FILE_FILE_ID";
 	public static final String FK_VERIFICATION_FILE_VERIFICATION_ID = "VERI_FILE_VERI_ID";
+	public static final String DDL_VERIFICATION_FILE = "schema/VerificationFile-ddl.sql";
 
 	// Forum table
 	public static final String TABLE_FORUM = "FORUM";

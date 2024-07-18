@@ -1,58 +1,81 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_VERIFICATION_SUBMISSION_SERIALIZED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FK_VERIFICATION_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_VERIFICATION_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_VERIFICATION_SUBMISSION;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_VERIFICATION_SUBMISSION, constraints={"UNIQUE UNIQUE_VERIFICATION_BY_ON ("+COL_VERIFICATION_SUBMISSION_CREATED_BY+", "+COL_VERIFICATION_SUBMISSION_CREATED_ON+")"})
 public class DBOVerificationSubmission implements
 		MigratableDatabaseObject<DBOVerificationSubmission, DBOVerificationSubmission> {
 
-	@Field(name = COL_VERIFICATION_SUBMISSION_ID, backupId = true, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_VERIFICATION_SUBMISSION_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_VERIFICATION_SUBMISSION_ETAG).withIsEtag(true),
+			new FieldColumn("createdBy", COL_VERIFICATION_SUBMISSION_CREATED_BY),
+			new FieldColumn("createdOn", COL_VERIFICATION_SUBMISSION_CREATED_ON),
+			new FieldColumn("serialized", COL_VERIFICATION_SUBMISSION_SERIALIZED),
+	};
+
 	private Long id;
-	
-	@Field(name = COL_VERIFICATION_SUBMISSION_ETAG, etag = true, nullable = false)
 	private String etag;
-	
-	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_BY, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true, name = FK_VERIFICATION_USER_GROUP_ID)
 	private Long createdBy;
-	
-	@Field(name = COL_VERIFICATION_SUBMISSION_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createdOn;
-
-	@Field(name = COL_VERIFICATION_SUBMISSION_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
-
-	private static TableMapping<DBOVerificationSubmission> TABLE_MAPPING = AutoTableMapping.create(DBOVerificationSubmission.class);
 
 	private static final MigratableTableTranslation<DBOVerificationSubmission, DBOVerificationSubmission> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOVerificationSubmission> getTableMapping() {
-		return TABLE_MAPPING;
+		return new TableMapping<DBOVerificationSubmission>() {
+			
+			@Override
+			public DBOVerificationSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOVerificationSubmission dbo = new DBOVerificationSubmission();
+				dbo.setId(rs.getLong(COL_VERIFICATION_SUBMISSION_ID));
+				dbo.setEtag(rs.getString(COL_VERIFICATION_SUBMISSION_ETAG));
+				dbo.setCreatedBy(rs.getLong(COL_VERIFICATION_SUBMISSION_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(COL_VERIFICATION_SUBMISSION_CREATED_ON));
+				dbo.setSerialized(rs.getBytes(COL_VERIFICATION_SUBMISSION_SERIALIZED));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_VERIFICATION_SUBMISSION;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_VERIFICATION_SUBMISSION;
+			}
+			
+			@Override
+			public Class<? extends DBOVerificationSubmission> getDBOClass() {
+				return DBOVerificationSubmission.class; 
+			}
+		};
 	}
 
 	@Override
@@ -138,14 +161,15 @@ public class DBOVerificationSubmission implements
 		if (getClass() != obj.getClass())
 			return false;
 		DBOVerificationSubmission other = (DBOVerificationSubmission) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
-				&& Objects.equals(id, other.id) && Arrays.equals(serialized, other.serialized);
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Arrays.equals(serialized, other.serialized);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOVerificationSubmission [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", serialized=" + Arrays.toString(serialized) + "]";
+		return "DBOVerificationSubmission [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", serialized=" + Arrays.toString(serialized) + "]";
 	}
 
 }
