@@ -11,7 +11,7 @@ public class DBOPrincipalAliasTest {
 	private static DBOPrincipalAlias newDBO(String aliasDisplay, AliasEnum aliasType) {
 		DBOPrincipalAlias dbo = new DBOPrincipalAlias();
 		dbo.setAliasDisplay(aliasDisplay);
-		dbo.setAliasType(aliasType);
+		dbo.setAliasType(aliasType.name());
 		dbo.setAliasUnique(AliasUtils.getUniqueAliasName(aliasDisplay));
 		dbo.setEtag("000-111-222");
 		dbo.setId(1L);
