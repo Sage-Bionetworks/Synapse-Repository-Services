@@ -858,6 +858,7 @@ public class SqlConstants {
 	public static final String COL_NOTIFICATION_EMAIL_ETAG			= "ETAG";
 	public static final String COL_NOTIFICATION_EMAIL_PRINCIPAL_ID	= "PRINCIPAL_ID";
 	public static final String COL_NOTIFICATION_EMAIL_ALIAS_ID		= "ALIAS_ID";
+	public static final String DDL_NOTIFICATION_EMAIL				= "schema/NotificationEmail-ddl.sql";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION = "MEMBERSHIP_INVITATION_SUBMISSION";
