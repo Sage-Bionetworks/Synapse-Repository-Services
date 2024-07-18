@@ -70,6 +70,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 				V2DBOWikiPage dbo = new V2DBOWikiPage();
 				dbo.setId(rs.getLong(V2_COL_WIKI_ID));
 				dbo.setEtag(rs.getString(V2_COL_WIKI_ETAG));
+				dbo.setTitle(rs.getString(V2_COL_WIKI_TITLE));
 				dbo.setCreatedBy(rs.getLong(V2_COL_WIKI_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(V2_COL_WIKI_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(V2_COL_WIKI_MODIFIED_BY));

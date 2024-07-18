@@ -10,7 +10,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -141,11 +143,8 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
-		result = prime * result
-				+ ((ownerType == null) ? 0 : ownerType.hashCode());
-		result = prime * result
-				+ ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
+		result = prime * result + Arrays.hashCode(orderHint);
+		result = prime * result + Objects.hash(etag, ownerId, ownerType, rootWikiId);
 		return result;
 	}
 
@@ -158,19 +157,9 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		if (getClass() != obj.getClass())
 			return false;
 		V2DBOWikiOwner other = (V2DBOWikiOwner) obj;
-		if (ownerId == null) {
-			if (other.ownerId != null)
-				return false;
-		} else if (!ownerId.equals(other.ownerId))
-			return false;
-		if (ownerType != other.ownerType)
-			return false;
-		if (rootWikiId == null) {
-			if (other.rootWikiId != null)
-				return false;
-		} else if (!rootWikiId.equals(other.rootWikiId))
-			return false;
-		return true;
+		return Objects.equals(etag, other.etag) && Arrays.equals(orderHint, other.orderHint)
+				&& Objects.equals(ownerId, other.ownerId) && Objects.equals(ownerType, other.ownerType)
+				&& Objects.equals(rootWikiId, other.rootWikiId);
 	}
 	
 	

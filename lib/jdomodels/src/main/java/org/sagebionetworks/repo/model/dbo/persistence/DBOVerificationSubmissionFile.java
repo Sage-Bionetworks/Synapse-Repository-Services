@@ -22,7 +22,7 @@ public class DBOVerificationSubmissionFile implements
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("verificationId", COL_VERIFICATION_FILE_VERIFICATION_ID).withIsPrimaryKey(true).withIsBackupId(true),
-			new FieldColumn("fileHandleId", COL_VERIFICATION_FILE_FILEHANDLEID),
+			new FieldColumn("fileHandleId", COL_VERIFICATION_FILE_FILEHANDLEID).withHasFileHandleRef(true),
 	};
 
 	private Long verificationId;
@@ -37,7 +37,7 @@ public class DBOVerificationSubmissionFile implements
 				DBOVerificationSubmissionFile dbo = new DBOVerificationSubmissionFile();
 				dbo.setVerificationId(rs.getLong(COL_VERIFICATION_FILE_VERIFICATION_ID));
 				dbo.setFileHandleId(rs.getLong(COL_VERIFICATION_FILE_FILEHANDLEID));
-				return null;
+				return dbo;
 			}
 			
 			@Override

@@ -19,7 +19,7 @@ public class StorageLocationUtils {
 					StorageLocationSetting.class);
 			setting.setStorageLocationId(dbo.getId());
 			setting.setDescription(dbo.getDescription());
-			setting.setUploadType(UploadType.valueOf(dbo.getUploadType()));
+			setting.setUploadType(dbo.getUploadType() != null? UploadType.valueOf(dbo.getUploadType()): null);
 			setting.setEtag(dbo.getEtag());
 			setting.setCreatedBy(dbo.getCreatedBy());
 			setting.setCreatedOn(dbo.getCreatedOn());

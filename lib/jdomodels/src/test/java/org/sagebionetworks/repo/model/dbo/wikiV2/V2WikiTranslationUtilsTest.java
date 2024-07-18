@@ -240,7 +240,7 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(Arrays.equals(dto.getIdList().toArray(), listString.split(",")));
 		assertTrue(dto.getEtag().equals(dbo.getEtag()));
 		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
-		assertTrue(dto.getOwnerObjectType().equals(dbo.getOwnerType()));
+		assertTrue(dto.getOwnerObjectType().name().equals(dbo.getOwnerType()));
 	}
 	
 	@Test
@@ -257,7 +257,7 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(Arrays.equals(dto.getIdList().toArray(), listString.split(",")));
 		assertTrue(dto.getEtag().equals(dbo.getEtag()));
 		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
-		assertTrue(dto.getOwnerObjectType().equals(dbo.getOwnerType()));
+		assertTrue(dto.getOwnerObjectType().name().equals(dbo.getOwnerType()));
 	}
 	
 	@Test
@@ -273,7 +273,7 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(dto.getIdList() == null);
 		assertTrue(dto.getEtag().equals(dbo.getEtag()));
 		assertTrue(dto.getOwnerId().equals(dbo.getOwnerId().toString()));
-		assertTrue(dto.getOwnerObjectType().equals(dbo.getOwnerType()));
+		assertTrue(dto.getOwnerObjectType().name().equals(dbo.getOwnerType()));
 	}
 	
 	@Test
@@ -289,7 +289,7 @@ public class V2WikiTranslationUtilsTest {
 		assertTrue(dbo.getEtag().equals(dto.getEtag()));
 		assertTrue(dbo.getOwnerId().equals(Long.parseLong(dto.getOwnerId())));
 		assertTrue(dbo.getRootWikiId().equals(Long.parseLong("456")));
-		assertTrue(dbo.getOwnerType().equals(dto.getOwnerObjectType()));
+		assertTrue(dbo.getOwnerType().equals(dto.getOwnerObjectType().name()));
 	}
 	
 	@Test

@@ -33,7 +33,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("wikiId", V2_COL_WIKI_MARKDOWN_ID).withIsPrimaryKey(true).withIsBackupId(true),
-			new FieldColumn("fileHandleId", V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID),
+			new FieldColumn("fileHandleId", V2_COL_WIKI_MARKDOWN_FILE_HANDLE_ID).withHasFileHandleRef(true),
 			new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION_NUM).withIsPrimaryKey(true),
 			new FieldColumn("modifiedOn", V2_COL_WIKI_MARKDOWN_MODIFIED_ON),
 			new FieldColumn("modifiedBy", V2_COL_WIKI_MARKDOWN_MODIFIED_BY),

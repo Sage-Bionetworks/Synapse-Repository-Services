@@ -23,7 +23,7 @@ public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("wikiId", V2_COL_WIKI_ATTACHMENT_RESERVATION_ID).withIsPrimaryKey(true).withIsBackupId(true),
-			new FieldColumn("fileHandleId", V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID).withIsPrimaryKey(true),
+			new FieldColumn("fileHandleId", V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID).withIsPrimaryKey(true).withHasFileHandleRef(true),
 			new FieldColumn("timeStamp", V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP)
 	};
 

@@ -791,12 +791,6 @@ public class SqlConstants {
 	public static final String COL_CREDENTIAL_EXPIRES_ON    = "EXPIRES_ON";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 	
-	// Session token
-	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
-	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
-	public static final String DDL_SESSION_TOKEN				= "schema/SessionToken-ddl.sql";
-
 	// AuthenticatedOn
 	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";
 	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
