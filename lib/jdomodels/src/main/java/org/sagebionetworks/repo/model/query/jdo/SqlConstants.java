@@ -500,20 +500,6 @@ public class SqlConstants {
 	public static final String COL_TRASH_CAN_ETAG               = "ETAG";
 	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
 	
-	// The wiki page table
-	public static final String TABLE_WIKI_PAGE				= "WIKI_PAGE";
-	public static final String COL_WIKI_ID					= "ID";
-	public static final String COL_WIKI_ETAG				= "ETAG";
-	public static final String COL_WIKI_TITLE				= "TITLE";
-	public static final String COL_WIKI_CREATED_ON			= "CREATED_ON";
-	public static final String COL_WIKI_CREATED_BY			= "CREATED_BY";
-	public static final String COL_WIKI_MODIFIED_ON			= "MODIFIED_ON";
-	public static final String COL_WIKI_MODIFIED_BY			= "MODIFIED_BY";
-	public static final String COL_WIKI_PARENT_ID			= "PARENT_ID";
-	public static final String COL_WIKI_ROOT_ID				= "ROOT_ID";
-	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
-	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
-	
 	// Tracks changes messages that were broadcast by email.
 	public static final String TABLE_BROADCAST_MESSAGE				= "MESSAGE_BROADCAST";
 	public static final String COL_BROADCAST_MESSAGE_CHANGE_NUMBER	= "CHANGE_NUMBER";
@@ -651,13 +637,6 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_CONTEXT				= "CONTEXT";
 	public static final String DDL_ASYNCH_JOB_STATUS 				= "schema/AsynchJobStatus-ddl.sql";
 
-	// The wiki attachment table
-	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
-	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
-	public static final String COL_WIKI_ATTACHMENT_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
-	public static final String COL_WIKI_ATTACHMENT_FILE_NAME		= "FILE_NAME";
-	public static final String DDL_FILE_WIKI_ATTATCHMENT = "schema/WikiAttachments-ddl.sql";
-
 	// The wiki owners table
 	public static final String TABLE_WIKI_OWNERS					= "WIKI_OWNERS";
 	public static final String COL_WIKI_ONWERS_OWNER_ID				= "OWNER_ID";
@@ -679,7 +658,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_ROOT_ID				= "ROOT_ID";
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION		= "MARKDOWN_VERSION";
 	public static final String V2_COL_WIKI_ORDER_HINT			= "ORDER_HINT";
-	public static final String V2_DDL_FILE_WIKI_PAGE 			= "schema/v2-WikiPage-ddl.sql";
+	public static final String DDL_WIKI_PAGE	 				= "schema/WikiPage-ddl.sql";
 	
 	// The wiki markdown table
 	public static final String V2_TABLE_WIKI_MARKDOWN				= "V2_WIKI_MARKDOWN";
@@ -690,14 +669,14 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String V2_COL_WIKI_MARKDOWN_TITLE			= "TITLE";
 	public static final String V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST	= "ATTACHMENT_ID_LIST";
-	public static final String V2_DDL_FILE_WIKI_MARKDOWN 			= "schema/v2-WikiMarkdown-ddl.sql";
+	public static final String DDL_WIKI_MARKDOWN	 			= "schema/WikiMarkdown-ddl.sql";
 	
 	// The wiki attachments reservation table
 	public static final String V2_TABLE_WIKI_ATTACHMENT_RESERVATION					= "V2_WIKI_ATTACHMENT_RESERVATION";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_ID				= "WIKI_ID";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP 		= "TIME_STAMP";
-	public static final String V2_DDL_FILE_WIKI_ATTATCHMENT_RESERVATION				= "schema/v2-WikiAttachmentReservation-ddl.sql";
+	public static final String DDL_WIKI_ATTATCHMENT_RESERVATION						= "schema/WikiAttachmentReservation-ddl.sql";
 
 	// The wiki owners table
 	public static final String V2_TABLE_WIKI_OWNERS						= "V2_WIKI_OWNERS";
@@ -706,7 +685,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_ONWERS_ROOT_WIKI_ID			= "ROOT_WIKI_ID";
 	public static final String V2_COL_WIKI_OWNERS_ORDER_HINT			= "ORDER_HINT";
 	public static final String V2_COL_WIKI_OWNERS_ETAG					= "ETAG";
-	public static final String V2_DDL_FILE_WIKI_ONWERS					= "schema/v2-WikiOwners-ddl.sql";
+	public static final String DDL_WIKI_OWNERS							= "schema/WikiOwners-ddl.sql";
 	
 	// Download list  - deprecated
 	public static final String TABLE_DOWNLOAD_LIST 				= "DOWNLOAD_LIST";

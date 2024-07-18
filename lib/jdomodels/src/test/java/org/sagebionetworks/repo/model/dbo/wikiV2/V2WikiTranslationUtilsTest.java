@@ -233,7 +233,7 @@ public class V2WikiTranslationUtilsTest {
 		dbo.setOrderHint(listString.getBytes("UTF-8"));
 		dbo.setEtag("etag");
 		dbo.setOwnerId(new Long(456));
-		dbo.setOwnerType(ObjectType.EVALUATION);
+		dbo.setOwnerType(ObjectType.EVALUATION.name());
 		
 		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
 		
@@ -250,7 +250,7 @@ public class V2WikiTranslationUtilsTest {
 		dbo.setOrderHint(listString.getBytes("UTF-8"));
 		dbo.setEtag("etag");
 		dbo.setOwnerId(new Long(456));
-		dbo.setOwnerType(ObjectType.EVALUATION);
+		dbo.setOwnerType(ObjectType.EVALUATION.name());
 		
 		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
 		
@@ -266,7 +266,7 @@ public class V2WikiTranslationUtilsTest {
 		dbo.setOrderHint(null);
 		dbo.setEtag("etag");
 		dbo.setOwnerId(new Long(456));
-		dbo.setOwnerType(ObjectType.EVALUATION);
+		dbo.setOwnerType(ObjectType.EVALUATION.name());
 		
 		V2WikiOrderHint dto = V2WikiTranslationUtils.createWikiOrderHintDTOfromDBO(dbo);
 		

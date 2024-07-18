@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.wikiV2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_WIKI_PAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
@@ -14,16 +13,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_TITLE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -36,47 +35,74 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author hso
  *
  */
-@Table(name = V2_TABLE_WIKI_PAGE)
 public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage>, ObservableEntity {
-	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)
+	
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", V2_COL_WIKI_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", V2_COL_WIKI_ETAG).withIsEtag(true),
+			new FieldColumn("title", V2_COL_WIKI_TITLE),
+			new FieldColumn("createdBy", V2_COL_WIKI_CREATED_BY),
+			new FieldColumn("createdOn", V2_COL_WIKI_CREATED_ON),
+			new FieldColumn("modifiedBy", V2_COL_WIKI_MODIFIED_BY),
+			new FieldColumn("modifiedOn", V2_COL_WIKI_MODIFIED_ON),
+			new FieldColumn("parentId", V2_COL_WIKI_PARENT_ID),
+			new FieldColumn("rootId", V2_COL_WIKI_ROOT_ID),
+			new FieldColumn("markdownVersion", V2_COL_WIKI_MARKDOWN_VERSION),
+	};
+
 	private Long id;
-	
-	@Field(name = V2_COL_WIKI_ETAG, nullable = false, etag = true)
 	private String etag;
-	
-	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)
 	private String title;
-	
-	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)
-	@ForeignKey(name = "V2_WIKI_CREATED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
-	
-	@Field(name = V2_COL_WIKI_CREATED_ON, nullable = false)
 	private Long createdOn;
-	
-	@Field(name = V2_COL_WIKI_MODIFIED_BY, nullable = false)
-	@ForeignKey(name = "V2_WIKI_MODIFIED_BY_FK", table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long modifiedBy;
-	
-	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)
 	private Long modifiedOn;
-	
-	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true, isSelfForeignKey = true)
-	@ForeignKey(name = "V2_WIKI_PARENT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long parentId;
-	
-	@Field(name = V2_COL_WIKI_ROOT_ID, nullable = false)
-	@ForeignKey(name = "V2_WIKI_ROOT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long rootId;
-	
-	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION, nullable = false)
 	private Long markdownVersion;
-	
-	private static TableMapping<V2DBOWikiPage> tableMapping = AutoTableMapping.create(V2DBOWikiPage.class);
 	
 	@Override
 	public TableMapping<V2DBOWikiPage> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<V2DBOWikiPage>() {
+			
+			@Override
+			public V2DBOWikiPage mapRow(ResultSet rs, int rowNum) throws SQLException {
+				V2DBOWikiPage dbo = new V2DBOWikiPage();
+				dbo.setId(rs.getLong(V2_COL_WIKI_ID));
+				dbo.setEtag(rs.getString(V2_COL_WIKI_ETAG));
+				dbo.setCreatedBy(rs.getLong(V2_COL_WIKI_CREATED_BY));
+				dbo.setCreatedOn(rs.getLong(V2_COL_WIKI_CREATED_ON));
+				dbo.setModifiedBy(rs.getLong(V2_COL_WIKI_MODIFIED_BY));
+				dbo.setModifiedOn(rs.getLong(V2_COL_WIKI_MODIFIED_ON));
+				dbo.setParentId(rs.getLong(V2_COL_WIKI_PARENT_ID));
+				if(rs.wasNull()) {
+					dbo.setParentId(null);
+				}
+				dbo.setRootId(rs.getLong(V2_COL_WIKI_ROOT_ID));
+				dbo.setMarkdownVersion(rs.getLong(V2_COL_WIKI_MARKDOWN_VERSION));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return V2_TABLE_WIKI_PAGE;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_WIKI_PAGE;
+			}
+			
+			@Override
+			public Class<? extends V2DBOWikiPage> getDBOClass() {
+				return V2DBOWikiPage.class;
+			}
+		};
 	}
 
 	public Long getId() {
@@ -200,24 +226,8 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((markdownVersion == null) ? 0 : markdownVersion.hashCode());
-		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
-		result = prime * result
-				+ ((parentId == null) ? 0 : parentId.hashCode());
-		result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
-		result = prime * result + ((title == null) ? 0 : title.hashCode());
-		return result;
+		return Objects.hash(createdBy, createdOn, etag, id, markdownVersion, modifiedBy, modifiedOn, parentId, rootId,
+				title);
 	}
 
 	@Override
@@ -229,65 +239,19 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 		if (getClass() != obj.getClass())
 			return false;
 		V2DBOWikiPage other = (V2DBOWikiPage) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (markdownVersion == null) {
-			if (other.markdownVersion != null)
-				return false;
-		} else if (!markdownVersion.equals(other.markdownVersion))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
-			return false;
-		if (parentId == null) {
-			if (other.parentId != null)
-				return false;
-		} else if (!parentId.equals(other.parentId))
-			return false;
-		if (rootId == null) {
-			if (other.rootId != null)
-				return false;
-		} else if (!rootId.equals(other.rootId))
-			return false;
-		if (title == null) {
-			if (other.title != null)
-				return false;
-		} else if (!title.equals(other.title))
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Objects.equals(markdownVersion, other.markdownVersion)
+				&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
+				&& Objects.equals(parentId, other.parentId) && Objects.equals(rootId, other.rootId)
+				&& Objects.equals(title, other.title);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOWikiPage [id=" + id + ", etag=" + etag + ", title=" + title
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", parentId=" + parentId + ", markdownVersion=" + markdownVersion + "]";
+		return "V2DBOWikiPage [id=" + id + ", etag=" + etag + ", title=" + title + ", createdBy=" + createdBy
+				+ ", createdOn=" + createdOn + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", parentId=" + parentId + ", rootId=" + rootId + ", markdownVersion=" + markdownVersion + "]";
 	}
 	
 }
