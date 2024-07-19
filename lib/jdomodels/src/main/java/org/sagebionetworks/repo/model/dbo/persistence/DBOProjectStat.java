@@ -10,7 +10,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,7 +33,7 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 	private Long id;
 	private Long projectId;
 	private Long userId;
-	private Date lastAccessed;
+	private Long lastAccessed;
 	private String etag;
 
 	@Override
@@ -47,7 +46,7 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 				dbo.setId(rs.getLong(COL_PROJECT_STAT_ID));
 				dbo.setProjectId(rs.getLong(COL_PROJECT_STAT_PROJECT_ID));
 				dbo.setUserId(rs.getLong(COL_PROJECT_STAT_USER_ID));
-				dbo.setLastAccessed(rs.getTimestamp(COL_PROJECT_STAT_LAST_ACCESSED));
+				dbo.setLastAccessed(rs.getLong(COL_PROJECT_STAT_LAST_ACCESSED));
 				dbo.setEtag(rs.getString(COL_PROJECT_STAT_ETAG));
 				return dbo;
 			}
@@ -103,11 +102,11 @@ public class DBOProjectStat implements MigratableDatabaseObject<DBOProjectStat, 
 		this.userId = userId;
 	}
 
-	public Date getLastAccessed() {
+	public Long getLastAccessed() {
 		return lastAccessed;
 	}
 
-	public void setLastAccessed(Date lastAccessed) {
+	public void setLastAccessed(Long lastAccessed) {
 		this.lastAccessed = lastAccessed;
 	}
 

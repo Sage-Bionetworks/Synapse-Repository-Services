@@ -9,7 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -75,17 +75,17 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 				ProjectStat stat = projectStats[i];
 				long statId = idGenerator.generateNewId(IdType.PROJECT_STATS_ID);
 				String etag = UUID.randomUUID().toString();
-				Timestamp lastAccessed = new Timestamp(stat.getLastAccessed().getTime());
+				long lastAccessed = stat.getLastAccessed().getTime();
 				int parameterIndex = 1;
 				// insert parameters
 				ps.setLong(parameterIndex, statId);
 				ps.setLong(++parameterIndex, stat.getProjectId());
 				ps.setLong(++parameterIndex, stat.getUserId());
-				ps.setTimestamp(++parameterIndex, lastAccessed);
+				ps.setLong(++parameterIndex, lastAccessed);
 				ps.setString(++parameterIndex, etag);
 				// update parameters
-				ps.setTimestamp(++parameterIndex, lastAccessed);
-				ps.setTimestamp(++parameterIndex, lastAccessed);
+				ps.setLong(++parameterIndex, lastAccessed);
+				ps.setLong(++parameterIndex, lastAccessed);
 				ps.setString(++parameterIndex, etag);
 			}
 			
@@ -102,7 +102,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 		return Lists.transform(queryResult, new Function<DBOProjectStat, ProjectStat>() {
 			@Override
 			public ProjectStat apply(DBOProjectStat input) {
-				return new ProjectStat(input.getProjectId(), input.getUserId(), input.getLastAccessed(), input.getEtag());
+				return new ProjectStat(input.getProjectId(), input.getUserId(), new Date(input.getLastAccessed()), input.getEtag());
 			}
 		});
 	}
