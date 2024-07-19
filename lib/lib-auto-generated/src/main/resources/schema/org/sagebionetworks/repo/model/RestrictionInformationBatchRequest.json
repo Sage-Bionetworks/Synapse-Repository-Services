@@ -1,0 +1,15 @@
+{
+	"description": "A batch request to retrieve the information about restriction level on a list of restrict-able objects.",
+	"properties": {
+		"restrictableObjectType":{
+			"$ref": "org.sagebionetworks.repo.model.RestrictableObjectType"
+		},
+		"objectIds":{
+			"type": "array",
+			"description": "The list of IDs to request restriction information about.",
+			"items":{
+                "type":"string"
+            }
+		}
+	}
+}

@@ -1,0 +1,12 @@
+{
+	"description": "The information about restriction level on a list of restrict-able objects.",
+	"properties": {
+		"restrictionInformation": {
+			"type": "array",
+			"description": "The list of RestrictionInformationResponse for each of the object ids included in the request.",
+			"items": {
+                "$ref": "org.sagebionetworks.repo.model.RestrictionInformationResponse"
+            }
+		}
+	}
+}

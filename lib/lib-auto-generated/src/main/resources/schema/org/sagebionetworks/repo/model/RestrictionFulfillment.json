@@ -1,0 +1,22 @@
+{
+	"description": "Provides information about a restriction fulfillment for a user in the context of a restrictable object and access requirement",
+	"properties": {
+		"accessRequirementId": {
+			"description": "The id of the access requirement that applies",
+			"type": "integer"
+		},
+		"isApproved": {
+			"description": "True if the user has an approval for the access requirement or if they are the owner of the data. Note that this property does not take into account an access requirement exemption.",
+			"type": "boolean"
+		},
+		"isMet": {
+			"description": "True if the user meets the access requirement. Note that this property takes into account the access requirement exemption.",
+			"type": "boolean"
+		},
+		"isExempt": {
+			"description": "True if the user is a data contributor and meet the exemption criteria for the access requirement.",
+			"type": "boolean"
+		}
+		
+	}
+}
