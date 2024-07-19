@@ -86,11 +86,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	 */
 	@SuppressWarnings("rawtypes")
 	public static String loadSchemaSql(TableMapping mapping) throws IOException {
-		if (mapping instanceof AutoTableMapping) {
-			return ((AutoTableMapping) mapping).getDDL();
-		} else {
-			return loadSQLFromClasspath(mapping.getDDLFileName());
-		}
+		return loadSQLFromClasspath(mapping.getDDLFileName());
 	}
 
 	/**

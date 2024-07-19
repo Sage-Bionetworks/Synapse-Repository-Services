@@ -70,7 +70,8 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_PROJECT_ID	= "PROJECT_ID";
 	public static final String COL_PROJECT_SETTING_ETAG			= "ETAG";
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
-	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
+	public static final String COL_PROJECT_SETTING_JSON			= "JSON";
+	public static final String DDL_PROJECT_SETTING				= "schema/ProjectSettings-ddl.sql";
 
 	// The Upload Destination Location table
 	public static final String TABLE_STORAGE_LOCATION				= "STORAGE_LOCATION";
@@ -78,10 +79,11 @@ public class SqlConstants {
 	public static final String COL_STORAGE_LOCATION_DESCRIPTION		= "DESCRIPTION";
 	public static final String COL_STORAGE_LOCATION_UPLOAD_TYPE		= "UPLOAD_TYPE";
 	public static final String COL_STORAGE_LOCATION_ETAG			= "ETAG";
-	public static final String COL_STORAGE_LOCATION_DATA			= "DATA";
+	public static final String COL_STORAGE_LOCATION_JSON			= "JSON";
 	public static final String COL_STORAGE_LOCATION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_STORAGE_LOCATION_CREATED_BY		= "CREATED_BY";
 	public static final String COL_STORAGE_LOCATION_DATA_HASH		= "DATA_HASH";
+	public static final String DDL_STORAGE_LOCATION					= "schema/StorageLocation-ddl.sql";
 	
 	// form processing
 	// FormGroup
@@ -202,11 +204,13 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
 	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
 	public static final String COL_PROJECT_STAT_ETAG			= "ETAG";
+	public static final String DDL_PROJECT_STAT					= "schema/ProjectStat-ddl.sql";
 	
 	// Principal Prefix table
 	public static final String TABLE_PRINCIPAL_PREFIX 				= "PRINCIPAL_PREFIX";
 	public static final String COL_PRINCIPAL_PREFIX_TOKEN			= "TOKEN";
 	public static final String COL_PRINCIPAL_PREFIX_PRINCIPAL_ID 	= "PRINCIPAL_ID";
+	public static final String DDL_PRINCIPAL_PREFIX					= "schema/PrincipalPrefix-ddl.sql";
 
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT							= "ACCESS_REQUIREMENT";
@@ -429,7 +433,7 @@ public class SqlConstants {
     public static final String COL_CHALLENGE_PROJECT_ID 			= "PROJECT_ID";
     public static final String COL_CHALLENGE_PARTICIPANT_TEAM_ID  	= "TEAM_ID";
 	public static final String COL_CHALLENGE_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
-
+    public static final String DDL_CHALLENGE					    = "schema/Challenge-ddl.sql";
     // The CHALLENGE-TEAM table
     public static final String TABLE_CHALLENGE_TEAM        				= "CHALLENGE_TEAM";
     public static final String COL_CHALLENGE_TEAM_ID 					= "ID";
@@ -437,6 +441,7 @@ public class SqlConstants {
     public static final String COL_CHALLENGE_TEAM_TEAM_ID  				= "TEAM_ID";
     public static final String COL_CHALLENGE_TEAM_CHALLENGE_ID 			= "CHALLENGE_ID";
 	public static final String COL_CHALLENGE_TEAM_SERIALIZED_ENTITY		= "SERIALIZED_ENTITY";
+	public static final String DDL_CHALLENGE_TEAM						= "schema/ChallengeTeam-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
 	public static final String COL_ACL_ID          = "ID";
@@ -494,20 +499,6 @@ public class SqlConstants {
 	public static final String COL_TRASH_CAN_PRIORITY_PURGE     = "PRIORITY_PURGE";
 	public static final String COL_TRASH_CAN_ETAG               = "ETAG";
 	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
-	
-	// The wiki page table
-	public static final String TABLE_WIKI_PAGE				= "WIKI_PAGE";
-	public static final String COL_WIKI_ID					= "ID";
-	public static final String COL_WIKI_ETAG				= "ETAG";
-	public static final String COL_WIKI_TITLE				= "TITLE";
-	public static final String COL_WIKI_CREATED_ON			= "CREATED_ON";
-	public static final String COL_WIKI_CREATED_BY			= "CREATED_BY";
-	public static final String COL_WIKI_MODIFIED_ON			= "MODIFIED_ON";
-	public static final String COL_WIKI_MODIFIED_BY			= "MODIFIED_BY";
-	public static final String COL_WIKI_PARENT_ID			= "PARENT_ID";
-	public static final String COL_WIKI_ROOT_ID				= "ROOT_ID";
-	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
-	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
 	
 	// Tracks changes messages that were broadcast by email.
 	public static final String TABLE_BROADCAST_MESSAGE				= "MESSAGE_BROADCAST";
@@ -591,6 +582,7 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
 	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
 	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
+	public static final String DDL_BOUND_COLUMN_OWNER		 = "schema/BoundColumnOwner-ddl.sql";
 	
 	// Tracks the file handles associated with each table.
 	public static final String TABLE_TABLE_FILE_ASSOCIATION 	= "TABLE_FILE_ASSOCIATION";
@@ -645,13 +637,6 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_CONTEXT				= "CONTEXT";
 	public static final String DDL_ASYNCH_JOB_STATUS 				= "schema/AsynchJobStatus-ddl.sql";
 
-	// The wiki attachment table
-	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
-	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
-	public static final String COL_WIKI_ATTACHMENT_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
-	public static final String COL_WIKI_ATTACHMENT_FILE_NAME		= "FILE_NAME";
-	public static final String DDL_FILE_WIKI_ATTATCHMENT = "schema/WikiAttachments-ddl.sql";
-
 	// The wiki owners table
 	public static final String TABLE_WIKI_OWNERS					= "WIKI_OWNERS";
 	public static final String COL_WIKI_ONWERS_OWNER_ID				= "OWNER_ID";
@@ -673,7 +658,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_ROOT_ID				= "ROOT_ID";
 	public static final String V2_COL_WIKI_MARKDOWN_VERSION		= "MARKDOWN_VERSION";
 	public static final String V2_COL_WIKI_ORDER_HINT			= "ORDER_HINT";
-	public static final String V2_DDL_FILE_WIKI_PAGE 			= "schema/v2-WikiPage-ddl.sql";
+	public static final String DDL_WIKI_PAGE	 				= "schema/WikiPage-ddl.sql";
 	
 	// The wiki markdown table
 	public static final String V2_TABLE_WIKI_MARKDOWN				= "V2_WIKI_MARKDOWN";
@@ -684,14 +669,14 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_MARKDOWN_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String V2_COL_WIKI_MARKDOWN_TITLE			= "TITLE";
 	public static final String V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST	= "ATTACHMENT_ID_LIST";
-	public static final String V2_DDL_FILE_WIKI_MARKDOWN 			= "schema/v2-WikiMarkdown-ddl.sql";
+	public static final String DDL_WIKI_MARKDOWN	 			= "schema/WikiMarkdown-ddl.sql";
 	
 	// The wiki attachments reservation table
 	public static final String V2_TABLE_WIKI_ATTACHMENT_RESERVATION					= "V2_WIKI_ATTACHMENT_RESERVATION";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_ID				= "WIKI_ID";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP 		= "TIME_STAMP";
-	public static final String V2_DDL_FILE_WIKI_ATTATCHMENT_RESERVATION				= "schema/v2-WikiAttachmentReservation-ddl.sql";
+	public static final String DDL_WIKI_ATTATCHMENT_RESERVATION						= "schema/WikiAttachmentReservation-ddl.sql";
 
 	// The wiki owners table
 	public static final String V2_TABLE_WIKI_OWNERS						= "V2_WIKI_OWNERS";
@@ -700,7 +685,7 @@ public class SqlConstants {
 	public static final String V2_COL_WIKI_ONWERS_ROOT_WIKI_ID			= "ROOT_WIKI_ID";
 	public static final String V2_COL_WIKI_OWNERS_ORDER_HINT			= "ORDER_HINT";
 	public static final String V2_COL_WIKI_OWNERS_ETAG					= "ETAG";
-	public static final String V2_DDL_FILE_WIKI_ONWERS					= "schema/v2-WikiOwners-ddl.sql";
+	public static final String DDL_WIKI_OWNERS							= "schema/WikiOwners-ddl.sql";
 	
 	// Download list  - deprecated
 	public static final String TABLE_DOWNLOAD_LIST 				= "DOWNLOAD_LIST";
@@ -806,11 +791,6 @@ public class SqlConstants {
 	public static final String COL_CREDENTIAL_EXPIRES_ON    = "EXPIRES_ON";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 	
-	// Session token
-	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
-	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
-
 	// AuthenticatedOn
 	public static final String TABLE_AUTHENTICATED_ON					= "AUTHENTICATED_ON";
 	public static final String COL_AUTHENTICATED_ON_PRINCIPAL_ID		= "PRINCIPAL_ID";
@@ -822,6 +802,7 @@ public class SqlConstants {
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
+	public static final String DDL_TERMS_OF_USE_AGREEMENT				= "schema/TermsOfUseAgreement-ddl.sql";
 	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";
@@ -842,7 +823,7 @@ public class SqlConstants {
 	public static final String COL_PRINCIPAL_ALIAS_DISPLAY          = "ALIAS_DISPLAY";
 	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
 	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
-	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
+	public static final String DDL_PRINCIPAL_ALIAS					= "schema/PrincipalAlias-ddl.sql";
 
 	// this table tells which of a principal's aliases is their notification email
 	public static final String TABLE_NOTIFICATION_EMAIL				= "NOTIFICATION_EMAIL";
@@ -850,6 +831,7 @@ public class SqlConstants {
 	public static final String COL_NOTIFICATION_EMAIL_ETAG			= "ETAG";
 	public static final String COL_NOTIFICATION_EMAIL_PRINCIPAL_ID	= "PRINCIPAL_ID";
 	public static final String COL_NOTIFICATION_EMAIL_ALIAS_ID		= "ALIAS_ID";
+	public static final String DDL_NOTIFICATION_EMAIL				= "schema/NotificationEmail-ddl.sql";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION = "MEMBERSHIP_INVITATION_SUBMISSION";
@@ -885,6 +867,7 @@ public class SqlConstants {
 	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
 	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
 	public static final String COL_QUIZ_RESPONSE_PASSING_RECORD = "PASSING_RECORD";
+	public static final String DDL_QUIZ_RESPONSE				= "schema/QuizResponse-ddl.sql";
 	
 	public static final String TABLE_VERIFICATION_SUBMISSION = "VERIFICATION_SUBMISSION";
 	public static final String COL_VERIFICATION_SUBMISSION_ID = "ID";
@@ -893,6 +876,7 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_SUBMISSION_CREATED_ON = "CREATED_ON";
 	public static final String COL_VERIFICATION_SUBMISSION_SERIALIZED = "SERIALIZED";
 	public static final String FK_VERIFICATION_USER_GROUP_ID = "VERI_USER_GROUP_ID";
+	public static final String DDL_VERIFICATION_SUBMISSION = "schema/VerificationSubmission-ddl.sql";
 
 	
 	public static final String TABLE_VERIFICATION_STATE = "VERIFICATION_STATE";
@@ -905,12 +889,14 @@ public class SqlConstants {
 	public static final String COL_VERIFICATION_STATE_STATE = "STATE";
 	public static final String FK_VERIFICATION_STATE_VERIFICATION_ID = "VERI_STATE_VERI_ID";
 	public static final String FK_VERIFICATION_STATE_USER_ID = "VERI_STATE_USER_ID";
+	public static final String DDL_VERIFICATION_STATE = "schema/VerificationState-ddl.sql";
 	
 	public static final String TABLE_VERIFICATION_FILE = "VERIFICATION_FILE";
 	public static final String COL_VERIFICATION_FILE_VERIFICATION_ID = "VERIFICATION_ID";
 	public static final String COL_VERIFICATION_FILE_FILEHANDLEID = "FILE_HANDLE_ID";
 	public static final String FK_VERIFICATION_FILE_FILE_ID = "VERI_FILE_FILE_ID";
 	public static final String FK_VERIFICATION_FILE_VERIFICATION_ID = "VERI_FILE_VERI_ID";
+	public static final String DDL_VERIFICATION_FILE = "schema/VerificationFile-ddl.sql";
 
 	// Forum table
 	public static final String TABLE_FORUM = "FORUM";
@@ -999,6 +985,7 @@ public class SqlConstants {
 	public static final String TABLE_DOCKER_REPOSITORY_NAME = "DOCKER_REPOSITORY_NAME";
 	public static final String COL_DOCKER_REPOSITORY_OWNER_ID = "OWNER_ID";
 	public static final String COL_DOCKER_REPOSITORY_NAME = "REPOSITORY_NAME";
+	public static final String DDL_DOCKER_REPOSITORY_NAME = "schema/DockerRepositoryName-ddl.sql";
 	
 	// DockerCommit table
 	public static final String TABLE_DOCKER_COMMIT = "DOCKER_COMMIT";
@@ -1007,6 +994,7 @@ public class SqlConstants {
 	public static final String COL_DOCKER_COMMIT_TAG = "TAG";
 	public static final String COL_DOCKER_COMMIT_DIGEST = "DIGEST";
 	public static final String COL_DOCKER_COMMIT_CREATED_ON = "CREATED_ON";
+	public static final String DDL_DOCKER_COMMIT			= "schema/DockerCommit-ddl.sql";
 	
 	//ThrottleRules table
 	public static final String TABLE_THROTTLE_RULES = "THROTTLE_RULES";

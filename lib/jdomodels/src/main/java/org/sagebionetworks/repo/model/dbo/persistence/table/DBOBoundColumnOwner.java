@@ -2,15 +2,16 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_BOUND_COLUMN_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_OWNER;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -22,20 +23,49 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author jmhill
  *
  */
-@Table(name = TABLE_BOUND_COLUMN_OWNER)
 public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundColumnOwner, DBOBoundColumnOwner> {
 
-	private static TableMapping<DBOBoundColumnOwner> tableMapping = AutoTableMapping.create(DBOBoundColumnOwner.class);
-
-	@Field(name = COL_BOUND_OWNER_OBJECT_ID, nullable = false, primary=true, backupId = true)
-	private Long objectId;
 	
-	@Field(name = COL_BOUND_OWNER_ETAG, nullable = false, varchar = 256, etag=true)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+		new FieldColumn("objectId", COL_BOUND_OWNER_OBJECT_ID).withIsPrimaryKey(true).withIsBackupId(true),
+		new FieldColumn("etag", COL_BOUND_OWNER_ETAG).withIsEtag(true)
+	};
+
+	private Long objectId;
 	private String etag;
 	
 	@Override
 	public TableMapping<DBOBoundColumnOwner> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOBoundColumnOwner>() {
+			
+			@Override
+			public DBOBoundColumnOwner mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOBoundColumnOwner dbo = new DBOBoundColumnOwner();
+				dbo.setObjectId(rs.getLong(COL_BOUND_OWNER_OBJECT_ID));
+				dbo.setEtag(rs.getString(COL_BOUND_OWNER_ETAG));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_BOUND_COLUMN_OWNER;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_BOUND_COLUMN_OWNER;
+			}
+			
+			@Override
+			public Class<? extends DBOBoundColumnOwner> getDBOClass() {
+				return DBOBoundColumnOwner.class;
+			}
+		};
 	}
 
 	public Long getObjectId() {

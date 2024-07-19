@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class DBOProjectSettingsDAOImplChangeMessageTest {
 
@@ -43,10 +45,14 @@ public class DBOProjectSettingsDAOImplChangeMessageTest {
 		projectSetting.setSettingsType(ProjectSettingsType.upload);
 
 		dbo = new DBOProjectSetting();
-		dbo.setData(projectSetting);
+		try {
+			dbo.setJson(EntityFactory.createJSONStringForEntity(projectSetting));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		dbo.setId(projectSettingId);
 		dbo.setProjectId(projectId);
-		dbo.setType(ProjectSettingsType.upload);
+		dbo.setType(ProjectSettingsType.upload.name());
 		dbo.setEtag("etag");
 
 		Mockito.when(mockIdGenerator.generateNewId(IdType.PROJECT_SETTINGS_ID)).thenReturn(projectSettingId);

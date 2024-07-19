@@ -6,18 +6,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -29,47 +27,24 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
  * @author John
  *
  */
-@Table(name = TABLE_PRINCIPAL_ALIAS, constraints={CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE})
 public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalAlias, DBOPrincipalAlias>  {
 	
-	private static TableMapping<DBOPrincipalAlias> tableMapping = AutoTableMapping.create(DBOPrincipalAlias.class);
-	
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_PRINCIPAL_ALIAS_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_PRINCIPAL_ALIAS_ETAG).withIsEtag(true),
+			new FieldColumn("principalId", COL_PRINCIPAL_ALIAS_PRINCIPAL_ID),
+			new FieldColumn("aliasUnique", COL_PRINCIPAL_ALIAS_UNIQUE),
+			new FieldColumn("aliasDisplay", COL_PRINCIPAL_ALIAS_DISPLAY),
+			new FieldColumn("aliasType", COL_PRINCIPAL_ALIAS_TYPE),
+	};
 	private static final MigratableTableTranslation<DBOPrincipalAlias, DBOPrincipalAlias> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 	
-	/**
-	 * The primary key for this table.
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_ID, nullable = false, primary=true, backupId=true)
 	private Long id;
-	
-	@Field(name = COL_PRINCIPAL_ALIAS_ETAG, varchar = 500, etag = true, nullable = false)
 	private String etag;
-	
-	/**
-	 * The principal ID.
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_PRINCIPAL_ID, nullable = false)
-	@ForeignKey(table=TABLE_USER_GROUP, field=COL_USER_GROUP_ID ,cascadeDelete=true)
 	private Long principalId;
-	
-	/**
-	 * The unique version of the alias
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_UNIQUE, varchar = 500, nullable = false)
 	private String aliasUnique;
-	
-	/**
-	 * The display version of the alias.
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_DISPLAY, varchar = 500, nullable = false)
 	private String aliasDisplay;
-	
-	/**
-	 * The type of the alias.
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_TYPE, nullable = false)
-	private AliasEnum aliasType;
-	
+	private String aliasType;
 	/**
 	 * Has this alias been validated?
 	 */
@@ -78,7 +53,40 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 
 	@Override
 	public TableMapping<DBOPrincipalAlias> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOPrincipalAlias>() {
+			
+			@Override
+			public DBOPrincipalAlias mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOPrincipalAlias dbo = new DBOPrincipalAlias();
+				dbo.setId(rs.getLong(COL_PRINCIPAL_ALIAS_ID));
+				dbo.setEtag(rs.getNString(COL_PRINCIPAL_ALIAS_ETAG));
+				dbo.setPrincipalId(rs.getLong(COL_PRINCIPAL_ALIAS_PRINCIPAL_ID));
+				dbo.setAliasUnique(rs.getString(COL_PRINCIPAL_ALIAS_UNIQUE));
+				dbo.setAliasDisplay(rs.getString(COL_PRINCIPAL_ALIAS_DISPLAY));
+				dbo.setAliasType(rs.getString(COL_PRINCIPAL_ALIAS_TYPE));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_PRINCIPAL_ALIAS;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_PRINCIPAL_ALIAS;
+			}
+			
+			@Override
+			public Class<? extends DBOPrincipalAlias> getDBOClass() {
+				return DBOPrincipalAlias.class;
+			}
+		};
 	}
 
 	@Override
@@ -138,15 +146,15 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 		this.aliasDisplay = aliasDisplay;
 	}
 
-	public AliasEnum getAliasType() {
+	public String getAliasType() {
 		return aliasType;
 	}
 
-	public String getAliasTypeAsString() {
-		return aliasType.name();
+	public AliasEnum getAliasTypeAsEnum() {
+		return AliasEnum.valueOf(aliasType);
 	}
 	
-	public void setAliasType(AliasEnum aliasType) {
+	public void setAliasType(String aliasType) {
 		this.aliasType = aliasType;
 	}
 
@@ -168,21 +176,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result
-				+ ((aliasDisplay == null) ? 0 : aliasDisplay.hashCode());
-		result = prime * result
-				+ ((aliasType == null) ? 0 : aliasType.hashCode());
-		result = prime * result
-				+ ((aliasUnique == null) ? 0 : aliasUnique.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((principalId == null) ? 0 : principalId.hashCode());
-		result = prime * result
-				+ ((validated == null) ? 0 : validated.hashCode());
-		return result;
+		return Objects.hash(aliasDisplay, aliasType, aliasUnique, etag, id, principalId, validated);
 	}
 
 	@Override
@@ -194,47 +188,17 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 		if (getClass() != obj.getClass())
 			return false;
 		DBOPrincipalAlias other = (DBOPrincipalAlias) obj;
-		if (aliasDisplay == null) {
-			if (other.aliasDisplay != null)
-				return false;
-		} else if (!aliasDisplay.equals(other.aliasDisplay))
-			return false;
-		if (aliasType != other.aliasType)
-			return false;
-		if (aliasUnique == null) {
-			if (other.aliasUnique != null)
-				return false;
-		} else if (!aliasUnique.equals(other.aliasUnique))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (principalId == null) {
-			if (other.principalId != null)
-				return false;
-		} else if (!principalId.equals(other.principalId))
-			return false;
-		if (validated == null) {
-			if (other.validated != null)
-				return false;
-		} else if (!validated.equals(other.validated))
-			return false;
-		return true;
+		return Objects.equals(aliasDisplay, other.aliasDisplay) && Objects.equals(aliasType, other.aliasType)
+				&& Objects.equals(aliasUnique, other.aliasUnique) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Objects.equals(principalId, other.principalId)
+				&& Objects.equals(validated, other.validated);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOPrincipalAlias [id=" + id + ", etag=" + etag
-				+ ", principalId=" + principalId + ", aliasUnique="
-				+ aliasUnique + ", aliasDisplay=" + aliasDisplay
-				+ ", aliasType=" + aliasType + ", validated=" + validated + "]";
+		return "DBOPrincipalAlias [id=" + id + ", etag=" + etag + ", principalId=" + principalId + ", aliasUnique="
+				+ aliasUnique + ", aliasDisplay=" + aliasDisplay + ", aliasType=" + aliasType + ", validated="
+				+ validated + "]";
 	}
 	
 }

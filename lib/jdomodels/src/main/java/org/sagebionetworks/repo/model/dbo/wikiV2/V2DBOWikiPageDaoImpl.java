@@ -475,7 +475,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Create the root owner entry
 		V2DBOWikiOwner ownerEntry = new V2DBOWikiOwner();
 		ownerEntry.setOwnerId(new Long(ownerId));
-		ownerEntry.setOwnerType(ownerType);
+		ownerEntry.setOwnerType(ownerType.name());
 		ownerEntry.setRootWikiId(rootWikiId);
 		ownerEntry.setEtag(UUID.randomUUID().toString());
 		

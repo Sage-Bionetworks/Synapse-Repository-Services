@@ -19,7 +19,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.database.StreamingJdbcTemplate;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -368,9 +367,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	<T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
-		if (mapping instanceof AutoTableMapping) {
-			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
-		}
 		return new BeanPropertySqlParameterSource(toCreate);
 	}
 	

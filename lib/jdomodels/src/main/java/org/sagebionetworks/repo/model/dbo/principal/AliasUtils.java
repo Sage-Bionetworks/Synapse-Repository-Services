@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 
@@ -30,7 +29,7 @@ public class AliasUtils {
 		// convert the alias to a unique string
 		dbo.setAliasUnique(getUniqueAliasName(dto.getAlias()));
 		dbo.setAliasDisplay(dto.getAlias());
-		dbo.setAliasType(AliasEnum.valueOf(dto.getType().name()));
+		dbo.setAliasType(dto.getType().name());
 		dbo.setEtag(dto.getEtag());
 		dbo.setId(dto.getAliasId());
 		dbo.setPrincipalId(dto.getPrincipalId());
@@ -63,7 +62,7 @@ public class AliasUtils {
 		dto.setAliasId(dbo.getId());
 		dto.setEtag(dbo.getEtag());
 		dto.setPrincipalId(dbo.getPrincipalId());
-		dto.setType(AliasType.valueOf(dbo.getAliasType().name()));
+		dto.setType(AliasType.valueOf(dbo.getAliasType()));
 		return dto;
 	}
 	

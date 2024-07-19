@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJEC
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -101,7 +102,7 @@ public class DBOProjectStatsDAOImpl implements ProjectStatsDAO {
 		return Lists.transform(queryResult, new Function<DBOProjectStat, ProjectStat>() {
 			@Override
 			public ProjectStat apply(DBOProjectStat input) {
-				return new ProjectStat(input.getProjectId(), input.getUserId(), input.getLastAccessed(), input.getEtag());
+				return new ProjectStat(input.getProjectId(), input.getUserId(), new Date(input.getLastAccessed()), input.getEtag());
 			}
 		});
 	}

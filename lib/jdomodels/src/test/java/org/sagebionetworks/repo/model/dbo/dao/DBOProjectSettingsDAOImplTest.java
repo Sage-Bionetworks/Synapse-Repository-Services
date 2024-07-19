@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -136,12 +138,12 @@ public class DBOProjectSettingsDAOImplTest {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(null);
 		setting.setSettingsType(ProjectSettingsType.upload);
-		
+
 		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
 			// Call under test
 			projectSettingsDao.create(setting);
 		});
-		
+
 		assertEquals("projectId must be specified", ex.getMessage());
 	}
 
@@ -150,7 +152,7 @@ public class DBOProjectSettingsDAOImplTest {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId("123");
 		setting.setSettingsType(ProjectSettingsType.upload);
-		
+
 		Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			projectSettingsDao.create(setting);
@@ -162,12 +164,12 @@ public class DBOProjectSettingsDAOImplTest {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(null);
-		
+
 		InvalidModelException ex = Assertions.assertThrows(InvalidModelException.class, () -> {
 			// Call under test
 			projectSettingsDao.create(setting);
 		});
-		
+
 		assertEquals("settingsType must be specified", ex.getMessage());
 	}
 
@@ -201,20 +203,21 @@ public class DBOProjectSettingsDAOImplTest {
 		UploadDestinationListSetting setting = new UploadDestinationListSetting();
 		setting.setProjectId(projectId);
 		setting.setSettingsType(ProjectSettingsType.upload);
-		setting.setLocations(Lists.<Long> newArrayList());
+		setting.setLocations(Lists.<Long>newArrayList());
 		projectSettingsDao.create(setting);
-		
+
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			projectSettingsDao.create(setting);
 		});
-		
-		assertEquals("A project setting of type 'upload' for project " + projectId + " already exists.", ex.getMessage());
+
+		assertEquals("A project setting of type 'upload' for project " + projectId + " already exists.",
+				ex.getMessage());
 	}
 
 	@Test
 	public void testGetInheritedForEntity() {
-		
+
 		// Set up test by creating a linear folder hierarchy of 4 folders.
 		Node folderA = createNodeInstance(EntityType.folder, projectId);
 		folderA = nodeDao.createNewNode(folderA);
@@ -227,7 +230,7 @@ public class DBOProjectSettingsDAOImplTest {
 
 		Node folderD = createNodeInstance(EntityType.folder, folderC.getId());
 		folderD = nodeDao.createNewNode(folderD);
-		
+
 		// Create Project Settings on A and C.
 		UploadDestinationListSetting settingA = new UploadDestinationListSetting();
 		settingA.setProjectId(folderA.getId());
@@ -256,6 +259,30 @@ public class DBOProjectSettingsDAOImplTest {
 
 		result = projectSettingsDao.getInheritedProjectSetting(projectId, ProjectSettingsType.upload);
 		assertNull(result);
+	}
+
+	@Test
+	public void testDataTranslation() {
+		DBOProjectSetting dbo = new DBOProjectSetting();
+		dbo.setData(new UploadDestinationListSetting().setId("123").setProjectId("456"));
+		// call under test
+		DBOProjectSetting trans = new DBOProjectSetting().getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(
+				"{\"concreteType\":\"org.sagebionetworks.repo.model.project.UploadDestinationListSetting\",\"id\":\"123\",\"projectId\":\"456\"}",
+				trans.getJson());
+		assertNull(trans.getData());
+	}
+
+	@Test
+	public void testDataTranslationWithJSON() {
+		DBOProjectSetting dbo = new DBOProjectSetting();
+		dbo.setData(new UploadDestinationListSetting().setId("33"));
+		dbo.setJson("{}");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new DBOProjectSetting().getTranslator().createDatabaseObjectFromBackup(dbo);
+		}).getMessage();
+		assertEquals("Both 'data' and 'json' have values",message);
 	}
 
 	private static Node createNodeInstance(EntityType type, String parentId) {

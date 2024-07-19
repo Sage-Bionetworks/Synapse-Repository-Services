@@ -5,20 +5,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENG
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PARTICIPANT_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHALLENGE_SERIALIZED_ENTITY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_CHALLENGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHALLENGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -27,33 +23,56 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 /**
  * Mapping between groups and nodes.  Used to relate Teams to Challenges
  */
-@Table(name = TABLE_CHALLENGE, constraints = { 
-		"unique key UNIQUE_CHALL_PID ("+ COL_CHALLENGE_PROJECT_ID +")" })
 public class DBOChallenge implements MigratableDatabaseObject<DBOChallenge, DBOChallenge> {
-	@Field(name = COL_CHALLENGE_ID, backupId = true, primary = true, nullable = false)
+
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_CHALLENGE_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_CHALLENGE_ETAG).withIsEtag(true),
+			new FieldColumn("participantTeamId", COL_CHALLENGE_PARTICIPANT_TEAM_ID),
+			new FieldColumn("projectId", COL_CHALLENGE_PROJECT_ID),
+			new FieldColumn("serializedEntity", COL_CHALLENGE_SERIALIZED_ENTITY),
+	};
+
 	private Long id;
-	
-	@Field(name = COL_CHALLENGE_ETAG, backupId = false, primary = false, nullable = false, etag=true)
 	private String etag;
-	
-	// NOTE:  This is a FK to the TEAM table, not the USER_GROUP table, ensuring that the
-	// principal registered is a Team
-	@Field(name = COL_CHALLENGE_PARTICIPANT_TEAM_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_TEAM, field = COL_TEAM_ID, cascadeDelete = false)
 	private Long participantTeamId;
-	
-	@Field(name = COL_CHALLENGE_PROJECT_ID, backupId = false, primary = false, nullable = false)
-	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
 	private Long projectId;
-	
-	@Field(name=COL_CHALLENGE_SERIALIZED_ENTITY, blob = "mediumblob", backupId = false, primary = false, nullable = false)
 	private byte[] serializedEntity;
 	
-	private static TableMapping<DBOChallenge> tableMapping = AutoTableMapping.create(DBOChallenge.class);
 
 	@Override
 	public TableMapping<DBOChallenge> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOChallenge>() {
+			
+			@Override
+			public DBOChallenge mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOChallenge dbo = new DBOChallenge();
+				dbo.setId(rs.getLong(COL_CHALLENGE_ID));
+				dbo.setEtag(rs.getString(COL_CHALLENGE_ETAG));
+				dbo.setParticipantTeamId(rs.getLong(COL_CHALLENGE_PARTICIPANT_TEAM_ID));
+				dbo.setProjectId(rs.getLong(COL_CHALLENGE_PROJECT_ID));
+				dbo.setSerializedEntity(rs.getBytes(COL_CHALLENGE_SERIALIZED_ENTITY));
+				return dbo;
+			}
+			@Override public String getTableName() {
+				return TABLE_CHALLENGE;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_CHALLENGE;
+			}
+			
+			@Override
+			public Class<? extends DBOChallenge> getDBOClass() {
+				return DBOChallenge.class;
+			}
+		};
 	}
 
 

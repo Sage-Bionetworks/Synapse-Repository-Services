@@ -1,51 +1,77 @@
 package org.sagebionetworks.repo.model.dbo.wikiV2;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_WIKI_OWNERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_ROOT_WIKI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_OWNERS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_OWNERS_ORDER_HINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_OWNERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = V2_TABLE_WIKI_OWNERS, constraints = {"UNIQUE INDEX (`" + V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + "`)"})
 public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, V2DBOWikiOwner> {
 	
-	@Field(name = V2_COL_WIKI_ONWERS_OWNER_ID, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("ownerId", V2_COL_WIKI_ONWERS_OWNER_ID).withIsPrimaryKey(true),
+			new FieldColumn("ownerType", V2_COL_WIKI_ONWERS_OBJECT_TYPE).withIsPrimaryKey(true),
+			new FieldColumn("rootWikiId", V2_COL_WIKI_ONWERS_ROOT_WIKI_ID).withIsBackupId(true),
+			new FieldColumn("orderHint", V2_COL_WIKI_OWNERS_ORDER_HINT),
+			new FieldColumn("etag", V2_COL_WIKI_OWNERS_ETAG).withIsEtag(true),
+	};
+
 	private Long ownerId;
-	
-	@Field(name = V2_COL_WIKI_ONWERS_OBJECT_TYPE, primary = true, nullable = false)
-	private ObjectType ownerType;
-	
-	@Field(name = V2_COL_WIKI_ONWERS_ROOT_WIKI_ID, nullable = false, backupId = true)
-	@ForeignKey(name = "V2_WIKI_OWNER_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
+	private String ownerType;
 	private Long rootWikiId;
-	
-	@Field(name = V2_COL_WIKI_OWNERS_ORDER_HINT, type = "mediumblob", defaultNull = true)
 	private byte[] orderHint;
-	
-	@Field(name = V2_COL_WIKI_OWNERS_ETAG, nullable = false, etag = true)
 	private String etag;
-	
-	private static TableMapping<V2DBOWikiOwner> tableMapping = AutoTableMapping.create(V2DBOWikiOwner.class);
 	
 	@Override
 	public TableMapping<V2DBOWikiOwner> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<V2DBOWikiOwner>() {
+			
+			@Override
+			public V2DBOWikiOwner mapRow(ResultSet rs, int rowNum) throws SQLException {
+				V2DBOWikiOwner dbo = new V2DBOWikiOwner();
+				dbo.setOwnerId(rs.getLong(V2_COL_WIKI_ONWERS_OWNER_ID));
+				dbo.setOwnerType(rs.getString(V2_COL_WIKI_ONWERS_OBJECT_TYPE));
+				dbo.setRootWikiId(rs.getLong(V2_COL_WIKI_ONWERS_ROOT_WIKI_ID));
+				dbo.setOrderHint(rs.getBytes(V2_COL_WIKI_OWNERS_ORDER_HINT));
+				dbo.setEtag(rs.getString(V2_COL_WIKI_OWNERS_ETAG));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return V2_TABLE_WIKI_OWNERS;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_WIKI_OWNERS;
+			}
+			
+			@Override
+			public Class<? extends V2DBOWikiOwner> getDBOClass() {
+				return V2DBOWikiOwner.class;
+			}
+		};
 	}
 	
 	public Long getOwnerId() {
@@ -56,11 +82,11 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		this.ownerId = ownerId;
 	}
 	
-	public ObjectType getOwnerType() {
+	public String getOwnerType() {
 		return ownerType;
 	}
 	
-	public void setOwnerType(ObjectType ownerType) {
+	public void setOwnerType(String ownerType) {
 		this.ownerType = ownerType;
 	}
 	
@@ -117,11 +143,8 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
-		result = prime * result
-				+ ((ownerType == null) ? 0 : ownerType.hashCode());
-		result = prime * result
-				+ ((rootWikiId == null) ? 0 : rootWikiId.hashCode());
+		result = prime * result + Arrays.hashCode(orderHint);
+		result = prime * result + Objects.hash(etag, ownerId, ownerType, rootWikiId);
 		return result;
 	}
 
@@ -134,19 +157,9 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 		if (getClass() != obj.getClass())
 			return false;
 		V2DBOWikiOwner other = (V2DBOWikiOwner) obj;
-		if (ownerId == null) {
-			if (other.ownerId != null)
-				return false;
-		} else if (!ownerId.equals(other.ownerId))
-			return false;
-		if (ownerType != other.ownerType)
-			return false;
-		if (rootWikiId == null) {
-			if (other.rootWikiId != null)
-				return false;
-		} else if (!rootWikiId.equals(other.rootWikiId))
-			return false;
-		return true;
+		return Objects.equals(etag, other.etag) && Arrays.equals(orderHint, other.orderHint)
+				&& Objects.equals(ownerId, other.ownerId) && Objects.equals(ownerType, other.ownerType)
+				&& Objects.equals(rootWikiId, other.rootWikiId);
 	}
 	
 	

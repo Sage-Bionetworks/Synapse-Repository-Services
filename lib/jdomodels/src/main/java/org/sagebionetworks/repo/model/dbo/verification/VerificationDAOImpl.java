@@ -339,7 +339,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 			dbo.setNotes(notes);
 		}
 		
-		dbo.setState(dto.getState());
+		dbo.setState(dto.getState().name());
 		dbo.setVerificationId(verificationSubmissionId);
 		
 		return dbo;
@@ -361,7 +361,7 @@ public class VerificationDAOImpl implements VerificationDAO {
 			dto.setNotes(notes);
 		}
 		
-		dto.setState(dbo.getState());
+		dto.setState(VerificationStateEnum.valueOf(dbo.getState()));
 		
 		return dto;
 	}

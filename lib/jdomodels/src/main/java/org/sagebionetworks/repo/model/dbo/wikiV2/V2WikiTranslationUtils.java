@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -102,7 +103,7 @@ public class V2WikiTranslationUtils {
 		
 		V2WikiOrderHint dto = new V2WikiOrderHint();
 		dto.setOwnerId(dbo.getOwnerId().toString());
-		dto.setOwnerObjectType(dbo.getOwnerType());
+		dto.setOwnerObjectType(ObjectType.valueOf(dbo.getOwnerType()));
 		dto.setEtag(dbo.getEtag());
 		
 		// Set order hint
@@ -130,7 +131,7 @@ public class V2WikiTranslationUtils {
 		
 		V2DBOWikiOwner dbo = new V2DBOWikiOwner();
 		dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
-		dbo.setOwnerType(dto.getOwnerObjectType());
+		dbo.setOwnerType(dto.getOwnerObjectType().name());
 		dbo.setRootWikiId(Long.parseLong(rootWikiId));
 		dbo.setEtag(dto.getEtag());
 

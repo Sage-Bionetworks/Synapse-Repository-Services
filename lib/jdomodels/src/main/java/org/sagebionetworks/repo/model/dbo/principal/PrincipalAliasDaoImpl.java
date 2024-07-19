@@ -142,7 +142,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		// Convert to the DBO
 		DBOPrincipalAlias dbo = AliasUtils.createDBOFromDTO(dto);
 		// Validate the alias
-		dbo.getAliasType().validateAlias(dbo.getAliasDisplay());
+		dbo.getAliasTypeAsEnum().validateAlias(dbo.getAliasDisplay());
 		// Does this alias already exist?
 		PrincipalAlias current = findPrincipalWithAlias(dto.getAlias());
 		if(current != null){
@@ -155,7 +155,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			// this is a new alias
 			// If this is an alias type that only allows one alias per principal then first determine if the alias already exists
 			// for this type for this principal.
-			if(dbo.getAliasType().isOnePerPrincpal()){
+			if(dbo.getAliasTypeAsEnum().isOnePerPrincpal()){
 				// Note: The 'SELECT FOR UPDATE' at the beginning of this method protects against race conditions of concurrent updates.
 				List<PrincipalAlias> allOfTypeType = listPrincipalAliases(dbo.getPrincipalId(), dto.getType());
 				if(allOfTypeType.size() > 1){

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Date;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.repo.model.project.ExternalStorageLocationSetting;
@@ -49,10 +51,10 @@ public class DBOStorageLocationDAOImplTest {
 		locationSetting.setUrl("sftp://");
 		doTestCRUD(locationSetting);
 	}
-	
+
 	@Test
 	public void testGetWithNotFound() {
-		String message = assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, () -> {
 			storageLocationDAO.get(-123L);
 		}).getMessage();
 		assertEquals("Storage location setting: '-123' does not exist", message);
@@ -89,6 +91,30 @@ public class DBOStorageLocationDAOImplTest {
 		toDelete.add(id);
 
 		assertEquals(id, sameId);
+	}
+
+	@Test
+	public void testDataTranslation() {
+		DBOStorageLocation dbo = new DBOStorageLocation();
+		dbo.setData(new ExternalS3StorageLocationSetting().setBucket("someBucket"));
+		// call under test
+		DBOStorageLocation trans = new DBOStorageLocation().getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(
+				"{\"concreteType\":\"org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting\",\"bucket\":\"someBucket\"}",
+				trans.getJson());
+		assertNull(trans.getData());
+	}
+
+	@Test
+	public void testDataTranslationWithJSON() {
+		DBOStorageLocation dbo = new DBOStorageLocation();
+		dbo.setData(new ExternalS3StorageLocationSetting().setBucket("someBucket"));
+		dbo.setJson("{}");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			new DBOStorageLocation().getTranslator().createDatabaseObjectFromBackup(dbo);
+		}).getMessage();
+		assertEquals("Both 'data' and 'json' have values", message);
 	}
 
 	private StorageLocationSetting doTestCRUD(StorageLocationSetting locationSetting) throws Exception {
