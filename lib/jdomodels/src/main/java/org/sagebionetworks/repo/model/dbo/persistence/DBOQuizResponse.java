@@ -5,11 +5,11 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSING_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_RESPONSE_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_REVOKED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_SCORE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_QUIZ_RESPONSE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_QUIZ_RESPONSE;
 
@@ -22,12 +22,15 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
+import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse, DBOQuizResponse> {
-	
+
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_QUIZ_RESPONSE_ID).withIsPrimaryKey(true).withIsBackupId(true),
 			new FieldColumn("etag", COL_QUIZ_RESPONSE_ETAG).withIsEtag(true),
@@ -37,10 +40,9 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 			new FieldColumn("quizId", COL_QUIZ_RESPONSE_QUIZ_ID),
 			new FieldColumn("score", COL_QUIZ_RESPONSE_SCORE),
 			new FieldColumn("passed", COL_QUIZ_RESPONSE_PASSED),
-			new FieldColumn("serialized", COL_QUIZ_RESPONSE_SERIALIZED),
-			new FieldColumn("passingRecord", COL_QUIZ_RESPONSE_PASSING_RECORD),
-	};
-	
+			new FieldColumn("responseJson", COL_QUIZ_RESPONSE_RESPONSE_JSON),
+			new FieldColumn("passingJson", COL_QUIZ_RESPONSE_PASSING_JSON), };
+
 	private Long id;
 	private String etag;
 	private Long createdBy;
@@ -50,14 +52,14 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	private Long score;
 	private Boolean passed;
 	private byte[] serialized;
+	private String responseJson;
 	private byte[] passingRecord;
+	private String passingJson;
 
-	private static final BasicMigratableTableTranslation<DBOQuizResponse> TABLE_MIGRATION = new BasicMigratableTableTranslation<DBOQuizResponse>();
-	
 	@Override
 	public TableMapping<DBOQuizResponse> getTableMapping() {
 		return new TableMapping<DBOQuizResponse>() {
-			
+
 			@Override
 			public DBOQuizResponse mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOQuizResponse dbo = new DBOQuizResponse();
@@ -66,32 +68,32 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 				dbo.setCreatedBy(rs.getLong(COL_QUIZ_RESPONSE_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(COL_QUIZ_RESPONSE_CREATED_ON));
 				dbo.setRevokedOn(rs.getLong(COL_QUIZ_RESPONSE_REVOKED_ON));
-				if(rs.wasNull()) {
+				if (rs.wasNull()) {
 					dbo.setRevokedOn(null);
 				}
 				dbo.setQuizId(rs.getLong(COL_QUIZ_RESPONSE_QUIZ_ID));
 				dbo.setScore(rs.getLong(COL_QUIZ_RESPONSE_SCORE));
 				dbo.setPassed(rs.getBoolean(COL_QUIZ_RESPONSE_PASSED));
-				dbo.setSerialized(rs.getBytes(COL_QUIZ_RESPONSE_SERIALIZED));
-				dbo.setPassingRecord(rs.getBytes(COL_QUIZ_RESPONSE_PASSING_RECORD));
+				dbo.setResponseJson(rs.getString(COL_QUIZ_RESPONSE_RESPONSE_JSON));
+				dbo.setPassingJson(rs.getString(COL_QUIZ_RESPONSE_PASSING_JSON));
 				return dbo;
 			}
-			
+
 			@Override
 			public String getTableName() {
 				return TABLE_QUIZ_RESPONSE;
 			}
-			
+
 			@Override
 			public FieldColumn[] getFieldColumns() {
 				return FIELDS;
 			}
-			
+
 			@Override
 			public String getDDLFileName() {
 				return DDL_QUIZ_RESPONSE;
 			}
-			
+
 			@Override
 			public Class<? extends DBOQuizResponse> getDBOClass() {
 				return DBOQuizResponse.class;
@@ -106,7 +108,11 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 
 	@Override
 	public MigratableTableTranslation<DBOQuizResponse, DBOQuizResponse> getTranslator() {
-		return TABLE_MIGRATION;
+		return new MigrateFromXStreamToJSON<DBOQuizResponse>(
+				XStreamToJsonTranslator.builder().setFromName("serialized").setToName("responseJson")
+						.setDboType(getBackupClass()).setDtoType(QuizResponse.class).build(),
+				XStreamToJsonTranslator.builder().setFromName("passingRecord").setToName("passingJson")
+						.setDboType(getBackupClass()).setDtoType(PassingRecord.class).build());
 	}
 
 	@Override
@@ -120,7 +126,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	}
 
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 
@@ -131,7 +137,6 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	public void setId(Long id) {
 		this.id = id;
 	}
-	
 
 	public String getEtag() {
 		return etag;
@@ -205,6 +210,22 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		this.passingRecord = passingRecord;
 	}
 
+	public String getResponseJson() {
+		return responseJson;
+	}
+
+	public void setResponseJson(String responseJson) {
+		this.responseJson = responseJson;
+	}
+
+	public String getPassingJson() {
+		return passingJson;
+	}
+
+	public void setPassingJson(String passingJson) {
+		this.passingJson = passingJson;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -224,16 +245,17 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 			return false;
 		}
 		DBOQuizResponse other = (DBOQuizResponse) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
-				&& Objects.equals(id, other.id) && Objects.equals(passed, other.passed) && Arrays.equals(passingRecord, other.passingRecord)
-				&& Objects.equals(quizId, other.quizId) && Objects.equals(revokedOn, other.revokedOn) && Objects.equals(score, other.score)
-				&& Arrays.equals(serialized, other.serialized);
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
+				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Objects.equals(passed, other.passed) && Arrays.equals(passingRecord, other.passingRecord)
+				&& Objects.equals(quizId, other.quizId) && Objects.equals(revokedOn, other.revokedOn)
+				&& Objects.equals(score, other.score) && Arrays.equals(serialized, other.serialized);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOQuizResponse [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", revokedOn="
-				+ revokedOn + ", quizId=" + quizId + ", score=" + score + ", passed=" + passed + "]";
+		return "DBOQuizResponse [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", revokedOn=" + revokedOn + ", quizId=" + quizId + ", score=" + score + ", passed=" + passed + "]";
 	}
-	
+
 }

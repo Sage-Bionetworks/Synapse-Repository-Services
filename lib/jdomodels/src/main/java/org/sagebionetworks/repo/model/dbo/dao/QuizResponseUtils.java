@@ -1,43 +1,35 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 public class QuizResponseUtils {
-	
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(QuizResponse.class, PassingRecord.class).build();
-
 
 	public static void copyDtoToDbo(QuizResponse dto, PassingRecord passingRecord, DBOQuizResponse dbo) {
 		dbo.setId(dto.getId());
-		
+
 		if (dto.getCreatedBy() != null) {
 			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		}
-		
+
 		if (dto.getCreatedOn() != null) {
 			dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		}
-		
+
 		dbo.setQuizId(dto.getQuizId());
 		dbo.setPassed(passingRecord.getPassed());
 		dbo.setScore(passingRecord.getScore());
-		
-		try {
-			dbo.setPassingRecord(JDOSecondaryPropertyUtils.compressObject(X_STREAM, passingRecord));
-			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
+
+		dbo.setResponseJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto));
+		dbo.setPassingJson(JDOSecondaryPropertyUtils.createJSONFromObject(passingRecord));
+
 	}
-	
+
 	public static QuizResponse copyDboToDto(DBOQuizResponse dbo) {
 		QuizResponse dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId());
@@ -48,38 +40,27 @@ public class QuizResponseUtils {
 	}
 
 	public static PassingRecord extractPassingRecord(DBOQuizResponse dbo) {
-		PassingRecord passingRecord;
-		
-		try {
-			passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getPassingRecord());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-		
+		PassingRecord passingRecord = JDOSecondaryPropertyUtils.createObejctFromJSON(PassingRecord.class,
+				dbo.getPassingJson());
 		passingRecord.setResponseId(dbo.getId());
-		
-		if (dbo.getRevokedOn() != null) {			
+
+		if (dbo.getRevokedOn() != null) {
 			passingRecord.setRevokedOn(new Date(dbo.getRevokedOn()));
 			passingRecord.setRevoked(true);
 		} else {
 			passingRecord.setRevoked(false);
 		}
-		
+
 		if (passingRecord.getPassed() && !passingRecord.getRevoked()) {
 			passingRecord.setCertified(true);
 		} else {
 			passingRecord.setCertified(false);
 		}
-		
+
 		return passingRecord;
 	}
-	
-	public static QuizResponse copyFromSerializedField(DBOQuizResponse dbo) throws DatastoreException {
-		try {
-			return (QuizResponse)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerialized());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
 
+	public static QuizResponse copyFromSerializedField(DBOQuizResponse dbo) throws DatastoreException {
+		return JDOSecondaryPropertyUtils.createObejctFromJSON(QuizResponse.class, dbo.getResponseJson());
+	}
 }

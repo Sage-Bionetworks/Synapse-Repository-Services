@@ -865,8 +865,8 @@ public class SqlConstants {
 	public static final String COL_QUIZ_RESPONSE_QUIZ_ID = "QUIZ_ID";
 	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
 	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
-	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
-	public static final String COL_QUIZ_RESPONSE_PASSING_RECORD = "PASSING_RECORD";
+	public static final String COL_QUIZ_RESPONSE_RESPONSE_JSON = "RESPONSE_JSON";
+	public static final String COL_QUIZ_RESPONSE_PASSING_JSON = "PASSING_JSON";
 	public static final String DDL_QUIZ_RESPONSE				= "schema/QuizResponse-ddl.sql";
 	
 	public static final String TABLE_VERIFICATION_SUBMISSION = "VERIFICATION_SUBMISSION";
