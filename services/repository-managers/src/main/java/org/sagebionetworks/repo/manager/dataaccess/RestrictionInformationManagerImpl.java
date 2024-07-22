@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.EntityStateProvider;
@@ -27,12 +28,12 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class RestrictionInformationManagerImpl implements RestrictionInformationManager {
-
+	
 	@Autowired
 	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 	
 	@Autowired
-	private UsersEntityPermissionsDao usersEntityPermissionsDao;	
+	private UsersEntityPermissionsDao usersEntityPermissionsDao;
 	
 	@Override
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo,
@@ -57,20 +58,20 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 	
 	@Override
 	public RestrictionInformationBatchResponse getRestrictionInformationBatch(UserInfo userInfo, RestrictionInformationBatchRequest request) {
-		ValidateArgument.required(userInfo, "userInfo");
-		ValidateArgument.required(request, "request");
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.required(request, "The request");
 		ValidateArgument.requiredNotEmpty(request.getObjectIds(), "The objectIds");
+		ValidateArgument.requirement(request.getObjectIds().size() <= MAX_BATCH_SIZE, "The maximum number of allowed object ids is " + MAX_BATCH_SIZE + ".");
 		ValidateArgument.required(request.getRestrictableObjectType(), "The restrictableObjectType");
 		
 		switch (request.getRestrictableObjectType()) {
-		case ENTITY:
-			return getEntityRestrictionInformationBatchResponse(userInfo, request);
-		case TEAM:
-			return getTeamRestrictionInformationBatchResponse(userInfo, request);
-		default:
-			throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
-
-	}
+			case ENTITY:
+				return getEntityRestrictionInformationBatchResponse(userInfo, request);
+			case TEAM:
+				return getTeamRestrictionInformationBatchResponse(userInfo, request);
+			default:
+				throw new IllegalArgumentException("Unsupported type: " + request.getRestrictableObjectType());
+		}
 	}
 
 	RestrictionInformationBatchResponse getEntityRestrictionInformationBatchResponse(UserInfo userInfo, RestrictionInformationBatchRequest request) {
@@ -84,34 +85,9 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			
 			boolean isUserDataContributor = UserAccessRestrictionUtils.isUserDataContributor(permissionsState);
 			
-			RestrictionInformationResponse response = new RestrictionInformationResponse()
-				.setObjectId(KeyFactory.keyToString(objectId))
-				.setIsUserDataContributor(isUserDataContributor);
-				
-			// If there are no restrictions then the data is open and ARs are met.
-			if (restrictionStatus.getAccessRestrictions().isEmpty()) {
-				response
-					.setHasUnmetAccessRequirement(false)
-					.setRestrictionLevel(RestrictionLevel.OPEN)
-					.setRestrictionDetails(Collections.emptyList());
-			} else {
+			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(permissionsState, restrictionStatus);
 			
-				Set<Long> unmetARIdList = new HashSet<>(UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(permissionsState, restrictionStatus));
-				
-				List<RestrictionFulfillment> restrictionDetails = restrictionStatus.getAccessRestrictions().stream().map( userRequirementStatus -> new RestrictionFulfillment()
-					.setAccessRequirementId(userRequirementStatus.getRequirementId())
-					.setIsApproved(!userRequirementStatus.isUnmet())
-					.setIsExempt(UserAccessRestrictionUtils.isUserExempt(userRequirementStatus, isUserDataContributor))
-					.setIsMet(!unmetARIdList.contains(userRequirementStatus.getRequirementId()))
-				).collect(Collectors.toList());
-			
-				response
-					.setHasUnmetAccessRequirement(!unmetARIdList.isEmpty())
-					.setRestrictionLevel(restrictionStatus.getMostRestrictiveLevel())
-					.setRestrictionDetails(restrictionDetails);
-			}
-			
-			return response;
+			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
 			
 		}).collect(Collectors.toList());
 		
@@ -122,39 +98,43 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 		List<Long> objectIds = KeyFactory.stringToKey(request.getObjectIds());
 		
 		List<RestrictionInformationResponse> restrictionList = accessRestrictionStatusDao.getNonEntityStatus(objectIds, request.getRestrictableObjectType(), userInfo.getId()).stream().map( restrictionStatus -> {
+			// Does not apply for teams
+			boolean isUserDataContributor = false;
 			
-			RestrictionInformationResponse response = new RestrictionInformationResponse()
-					.setObjectId(restrictionStatus.getSubjectId().toString())
-					// Does not apply for teams
-					.setIsUserDataContributor(false);
-					
-			// If there are no restrictions then the team is open and ARs are met.
-			if (restrictionStatus.getAccessRestrictions().isEmpty()) {
-				response
-					.setHasUnmetAccessRequirement(false)
-					.setRestrictionLevel(RestrictionLevel.OPEN)
-					.setRestrictionDetails(Collections.emptyList());
-			} else {
+			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(restrictionStatus);
 			
-				Set<Long> unmetARIdList = new HashSet<>(UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(restrictionStatus));
-				
-				List<RestrictionFulfillment> restrictionDetails = restrictionStatus.getAccessRestrictions().stream().map(userRequirementStatus -> new RestrictionFulfillment()
-					.setAccessRequirementId(userRequirementStatus.getRequirementId())
-					.setIsApproved(!userRequirementStatus.isUnmet())
-					.setIsMet(!unmetARIdList.contains(userRequirementStatus.getRequirementId()))
-					// Does not apply for teams
-					.setIsExempt(false)
-				).collect(Collectors.toList());
-				
-				response
-					.setHasUnmetAccessRequirement(!unmetARIdList.isEmpty())
-					.setRestrictionLevel(restrictionStatus.getMostRestrictiveLevel())
-					.setRestrictionDetails(restrictionDetails);
-			}
+			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
 			
-			return response;
 		}).collect(Collectors.toList());
 		
 		return new RestrictionInformationBatchResponse().setRestrictionInformation(restrictionList);
+	}
+	
+	static RestrictionInformationResponse buildRestrictionInformationResponse(UsersRestrictionStatus restrictionStatus, boolean isUserDataContributor, Supplier<List<Long>> unmetArIdsSupplier) {
+		
+		RestrictionInformationResponse response = new RestrictionInformationResponse()
+				.setObjectId(restrictionStatus.getSubjectId())
+				.setIsUserDataContributor(isUserDataContributor);
+		
+		if (restrictionStatus.getAccessRestrictions().isEmpty()) {
+			return response
+				.setHasUnmetAccessRequirement(false)
+				.setRestrictionLevel(RestrictionLevel.OPEN)
+				.setRestrictionDetails(Collections.emptyList());
+		}
+		
+		Set<Long> unmetArIds = new HashSet<>(unmetArIdsSupplier.get());
+		
+		List<RestrictionFulfillment> restrictionDetails = restrictionStatus.getAccessRestrictions().stream().map(userRequirementStatus -> new RestrictionFulfillment()
+			.setAccessRequirementId(userRequirementStatus.getRequirementId())
+			.setIsApproved(!userRequirementStatus.isUnmet())
+			.setIsMet(!unmetArIds.contains(userRequirementStatus.getRequirementId()))
+			.setIsExempt(UserAccessRestrictionUtils.isUserExempt(userRequirementStatus, isUserDataContributor))
+		).collect(Collectors.toList());
+		
+		return response
+			.setHasUnmetAccessRequirement(!unmetArIds.isEmpty())
+			.setRestrictionLevel(restrictionStatus.getMostRestrictiveLevel())
+			.setRestrictionDetails(restrictionDetails);
 	}
 }

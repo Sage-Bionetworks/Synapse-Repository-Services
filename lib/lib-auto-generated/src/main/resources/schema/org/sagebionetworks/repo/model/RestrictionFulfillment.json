@@ -16,7 +16,6 @@
 		"isExempt": {
 			"description": "True if the user is a data contributor and meet the exemption criteria for the access requirement.",
 			"type": "boolean"
-		}
-		
+		}		
 	}
 }

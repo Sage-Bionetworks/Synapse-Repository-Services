@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 
 public interface RestrictionInformationManager {
 	
+	static final int MAX_BATCH_SIZE = 50;
+	
 	/**
 	 * Retrieve restriction information for a restrictable object
 	 * 

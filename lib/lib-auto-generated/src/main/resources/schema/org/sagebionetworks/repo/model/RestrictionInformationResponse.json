@@ -3,7 +3,7 @@
 	"properties": {
 		"objectId": {
 			"description": "The id of the restrictable object",
-			"type": "string"
+			"type": "integer"
 		},
 		"restrictionLevel":{
 			"$ref": "org.sagebionetworks.repo.model.RestrictionLevel",

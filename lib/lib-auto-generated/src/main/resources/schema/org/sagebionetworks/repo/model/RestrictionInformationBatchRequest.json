@@ -6,7 +6,7 @@
 		},
 		"objectIds":{
 			"type": "array",
-			"description": "The list of IDs to request restriction information about.",
+			"description": "The list of IDs to request restriction information about. Limited to a max of 50 object ids.",
 			"items":{
                 "type":"string"
             }

@@ -1,5 +1,22 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,22 +42,6 @@ import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 public class RestrictionInformationManagerImplUnitTest {
 
@@ -63,14 +64,20 @@ public class RestrictionInformationManagerImplUnitTest {
 	private Map<Long, UsersRestrictionStatus> mapIdToAccess = new LinkedHashMap<Long, UsersRestrictionStatus>();
 	private Map<Long, UserEntityPermissionsState> userEntityPermissionsState = new LinkedHashMap<Long,UserEntityPermissionsState>();
 
+	@Mock
+	private Supplier<List<Long>> mockUnmetArIdsSupplier;
+	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
+		entityIdAsLong = KeyFactory.stringToKey(TEST_ENTITY_ID);
+		teamIdAsLong = KeyFactory.stringToKey(TEST_PRINCIPAL_ID);
+		
+		userInfo = new UserInfo(false, teamIdAsLong);
+		
 		testEntity = new Node();
 		testEntity.setCreatedByPrincipalId(999L); // different from TEST_PRINCIPAL_ID
 		testEntity.setNodeType(EntityType.file);
-		entityIdAsLong = KeyFactory.stringToKey(TEST_ENTITY_ID);
-		teamIdAsLong = KeyFactory.stringToKey(TEST_PRINCIPAL_ID);
+		
 		userEntityPermissionsState.put(entityIdAsLong,
 				new UserEntityPermissionsState(entityIdAsLong)
 					.withHasUpdate(false)
@@ -142,7 +149,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
 				
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
-			.setObjectId(TEST_ENTITY_ID)
+			.setObjectId(entityIdAsLong)
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
 			.setRestrictionDetails(Collections.emptyList())
@@ -175,7 +182,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.OPEN)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(Collections.emptyList())
 		));
 		
@@ -209,7 +216,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_ENTITY_ID)
+				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -244,7 +251,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -280,7 +287,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_ENTITY_ID)
+				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
 		
@@ -314,7 +321,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
 		
@@ -344,7 +351,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_ENTITY_ID)
+				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -378,7 +385,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -411,7 +418,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_ENTITY_ID)
+				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -445,7 +452,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -476,7 +483,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_ENTITY_ID)
+				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(
 						new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false),
 						new RestrictionFulfillment().setAccessRequirementId(456L).setIsApproved(false).setIsExempt(false).setIsMet(false)
@@ -508,7 +515,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
-			.setObjectId(TEST_ENTITY_ID)
+			.setObjectId(entityIdAsLong)
 			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 			.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)));
 		
@@ -541,7 +548,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
 		
@@ -572,7 +579,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
 		
@@ -603,7 +610,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
-				.setObjectId(TEST_PRINCIPAL_ID)
+				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false),
 					new RestrictionFulfillment().setAccessRequirementId(456L).setIsApproved(false).setIsExempt(false).setIsMet(false)
@@ -628,7 +635,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
-			.setObjectId(TEST_PRINCIPAL_ID)
+			.setObjectId(teamIdAsLong)
 			.setRestrictionLevel(RestrictionLevel.OPEN)
 			.setRestrictionDetails(Collections.emptyList());
 				
@@ -649,6 +656,83 @@ public class RestrictionInformationManagerImplUnitTest {
 		}).getMessage();
 		
 		assertEquals("Could not fetch restriction information for object 123 of type TEAM", message);
+	}
+	
+	@Test
+	public void testGetRestrictionInformationBatchWithNoRequest() {
+		
+		RestrictionInformationBatchRequest request = null;
+		
+		String result = assertThrows(IllegalArgumentException.class, () ->  {			
+			arm.getRestrictionInformationBatch(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The request is required.", result);
+		
+	}
+	
+	@Test
+	public void testGetRestrictionInformationBatchWithNoUser() {
+		
+		RestrictionInformationBatchRequest request = new RestrictionInformationBatchRequest()
+			.setObjectIds(List.of("syn123"))
+			.setRestrictableObjectType(RestrictableObjectType.ENTITY);;
+		
+		String result = assertThrows(IllegalArgumentException.class, () ->  {			
+			arm.getRestrictionInformationBatch(null, request);
+		}).getMessage();
+		
+		assertEquals("The userInfo is required.", result);
+		
+	}
+	
+	@Test
+	public void testGetRestrictionInformationBatchWithNoRestrictableObjectType() {
+		
+		RestrictionInformationBatchRequest request = new RestrictionInformationBatchRequest()
+			.setObjectIds(List.of("syn123"))
+			.setRestrictableObjectType(null);
+		
+		String result = assertThrows(IllegalArgumentException.class, () ->  {			
+			arm.getRestrictionInformationBatch(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The restrictableObjectType is required.", result);
+		
+	}
+	
+	@Test
+	public void testGetRestrictionInformationBatchWithEmptyObjectIds() {
+		
+		RestrictionInformationBatchRequest request = new RestrictionInformationBatchRequest()
+			.setObjectIds(Collections.emptyList())
+			.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		
+		String result = assertThrows(IllegalArgumentException.class, () ->  {			
+			arm.getRestrictionInformationBatch(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The objectIds is required and must not be empty.", result);
+		
+	}
+	
+	@Test
+	public void testGetRestrictionInformationBatchWithTooManyObjectIds() {
+		
+		
+		RestrictionInformationBatchRequest request = new RestrictionInformationBatchRequest()
+			.setObjectIds(IntStream.range(0, RestrictionInformationManager.MAX_BATCH_SIZE + 1)
+				      .boxed()
+				      .map( i -> i.toString())
+				      .collect(Collectors.toList()))			
+			.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+		
+		String result = assertThrows(IllegalArgumentException.class, () ->  {			
+			arm.getRestrictionInformationBatch(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The maximum number of allowed object ids is 50.", result);
+		
 	}
 	
 	@Test
@@ -709,19 +793,19 @@ public class RestrictionInformationManagerImplUnitTest {
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(true)
-				.setObjectId("syn123")
+				.setObjectId(123L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(1234L).setIsApproved(true).setIsExempt(false).setIsMet(true))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(false)
-				.setObjectId("syn456")
+				.setObjectId(456L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(4567L).setIsApproved(false).setIsExempt(false).setIsMet(false))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(true)
-				.setObjectId("syn789")
+				.setObjectId(789L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(7890L).setIsApproved(false).setIsExempt(true).setIsMet(true)))
 		)); 
@@ -765,13 +849,13 @@ public class RestrictionInformationManagerImplUnitTest {
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(false)
-				.setObjectId("123")
+				.setObjectId(123L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(1234L).setIsApproved(true).setIsExempt(false).setIsMet(true))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(false)
-				.setObjectId("456")
+				.setObjectId(456L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(4567L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		)); 
@@ -782,5 +866,165 @@ public class RestrictionInformationManagerImplUnitTest {
 		
 		verify(mockRestrictionStatusDao).getNonEntityStatus(List.of(123L, 456L), RestrictableObjectType.TEAM, userInfo.getId());
 		
+	}
+	
+	@Test
+	public void testBuildRestrictionInformationResponseWithNoRestrictions() {
+		UsersRestrictionStatus restrictionStatus = new UsersRestrictionStatus()
+			.withSubjectId(123L)
+			.withRestrictionStatus(Collections.emptyList());
+		
+		boolean isUserDataContributor = false;
+		
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+			.setHasUnmetAccessRequirement(false)
+			.setIsUserDataContributor(isUserDataContributor)
+			.setObjectId(123L)
+			.setRestrictionDetails(Collections.emptyList())
+			.setRestrictionLevel(RestrictionLevel.OPEN);
+		
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		
+		assertEquals(expected, result);
+		
+		verifyZeroInteractions(mockUnmetArIdsSupplier);
+	}
+	
+	@Test
+	public void testBuildRestrictionInformationResponseWithRestrictions() {
+		UsersRestrictionStatus restrictionStatus = new UsersRestrictionStatus()
+			.withSubjectId(123L)
+			.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+					.withRequirementId(1L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(false)
+					.withIsUnmet(true),
+				new UsersRequirementStatus()
+					.withRequirementId(2L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(false)
+					.withIsUnmet(false)
+			));
+		
+		boolean isUserDataContributor = false;
+		
+		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L));
+		
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+			.setHasUnmetAccessRequirement(true)
+			.setIsUserDataContributor(isUserDataContributor)
+			.setObjectId(123L)
+			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+			.setRestrictionDetails(List.of(
+				new RestrictionFulfillment()
+					.setAccessRequirementId(1L)
+					.setIsApproved(false)
+					.setIsExempt(false)
+					.setIsMet(false),
+				new RestrictionFulfillment()
+					.setAccessRequirementId(2L)
+					.setIsApproved(true)
+					.setIsExempt(false)
+					.setIsMet(true)
+			));
+		
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		
+		assertEquals(expected, result);
+		
+		verify(mockUnmetArIdsSupplier).get();
+	}
+	
+	@Test
+	public void testBuildRestrictionInformationResponseWithRestrictionsAndExemptionsAndNotDataContributor() {
+		UsersRestrictionStatus restrictionStatus = new UsersRestrictionStatus()
+			.withSubjectId(123L)
+			.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+					.withRequirementId(1L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(false)
+					.withIsUnmet(true),
+				new UsersRequirementStatus()
+					.withRequirementId(2L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(true)
+					.withIsUnmet(true)
+			));
+		
+		boolean isUserDataContributor = false;
+		
+		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L, 2L));
+		
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+			.setHasUnmetAccessRequirement(true)
+			.setIsUserDataContributor(isUserDataContributor)
+			.setObjectId(123L)
+			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+			.setRestrictionDetails(List.of(
+				new RestrictionFulfillment()
+					.setAccessRequirementId(1L)
+					.setIsApproved(false)
+					.setIsExempt(false)
+					.setIsMet(false),
+				new RestrictionFulfillment()
+					.setAccessRequirementId(2L)
+					.setIsApproved(false)
+					.setIsExempt(false)
+					.setIsMet(false)
+			));
+		
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		
+		assertEquals(expected, result);
+		
+		verify(mockUnmetArIdsSupplier).get();
+	}
+	
+	@Test
+	public void testBuildRestrictionInformationResponseWithRestrictionsAndExemptionsAndDataContributor() {
+		UsersRestrictionStatus restrictionStatus = new UsersRestrictionStatus()
+			.withSubjectId(123L)
+			.withRestrictionStatus(List.of(
+				new UsersRequirementStatus()
+					.withRequirementId(1L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(false)
+					.withIsUnmet(true),
+				new UsersRequirementStatus()
+					.withRequirementId(2L)
+					.withRequirementType(AccessRequirementType.MANAGED_ATC)
+					.withIsExemptionEligible(true)
+					.withIsUnmet(true)
+			));
+		
+		boolean isUserDataContributor = true;
+		
+		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L));
+		
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+			.setHasUnmetAccessRequirement(true)
+			.setIsUserDataContributor(isUserDataContributor)
+			.setObjectId(123L)
+			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+			.setRestrictionDetails(List.of(
+				new RestrictionFulfillment()
+					.setAccessRequirementId(1L)
+					.setIsApproved(false)
+					.setIsExempt(false)
+					.setIsMet(false),
+				new RestrictionFulfillment()
+					.setAccessRequirementId(2L)
+					.setIsApproved(false)
+					.setIsExempt(true)
+					.setIsMet(true)
+			));
+		
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		
+		assertEquals(expected, result);
+		
+		verify(mockUnmetArIdsSupplier).get();
 	}
 }
