@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class SubmissionUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionStatus.class).build();
+	public static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionStatus.class).build();
 
 	/**
 	 * Copy a Submission data transfer object to a SubmissionDBO database object

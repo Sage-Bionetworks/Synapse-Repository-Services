@@ -1092,7 +1092,7 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_ID = 									"ID";
 	public static final String COL_OAUTH_CLIENT_NAME = 									"NAME";
 	public static final String COL_OAUTH_CLIENT_SECRET_HASH = 							"SECRET_HASH";
-	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"PROPERTIES";
+	public static final String COL_OAUTH_CLIENT_JSON =									"JSON";
 	public static final String COL_OAUTH_CLIENT_ETAG = 									"ETAG";
 	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"CREATED_BY";
 	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"CREATED_ON";
