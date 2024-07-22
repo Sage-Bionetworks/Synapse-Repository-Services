@@ -608,11 +608,11 @@ public class MigrationManagerImpl implements MigrationManager {
 		long rowCount = 0;
 		// Start reading the stream.
 		Iterable<MigratableDatabaseObject<?,?>> iterable = this.backupFileStream.readBackupFile(input, manifest.getAliasType());
-		MigrationType currentType = manifest.getPrimaryType().getMigrationType();
+		MigrationType currentType = MigrationType.valueOf(manifest.getPrimaryType().getMigrationType());
 		List<DatabaseObject<?>> currentBatch = new LinkedList<>();
 		for(MigratableDatabaseObject<?,?> rowToRestore: iterable) {
 			MigrationType rowType = rowToRestore.getMigratableTableType();
-			if(!this.migratableTableDao.isMigrationTypeRegistered(rowType)) {
+			if(!this.migratableTableDao.isMigrationTypeRegistered(rowType.name())) {
 				// ignore types that are not registered.
 				continue;
 			}
