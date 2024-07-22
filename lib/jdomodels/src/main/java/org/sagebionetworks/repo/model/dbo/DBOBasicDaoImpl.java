@@ -326,9 +326,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 	
 	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
-		if (mapping instanceof AutoTableMapping) {
-			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
-		}
 		return new BeanPropertySqlParameterSource(toCreate);
 	}
 

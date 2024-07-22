@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.ProjectSettingsType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -58,25 +60,21 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	private static final String SELECT_SETTINGS_BY_PROJECT = "SELECT * FROM " + TABLE_PROJECT_SETTING + " WHERE "
 			+ COL_PROJECT_SETTING_PROJECT_ID + " = ?";
 
-	private static final String SELECT_INHERITED_SETTING = "WITH RECURSIVE PATH (" + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", PROJECT_SETTING_ID, DISTANCE) AS" +
-			"(" +
-			"  SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", PS." + COL_PROJECT_SETTING_ID + ", 1 FROM " + TABLE_NODE + " AS N" +
-			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
-			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
-			"    WHERE N." + COL_NODE_ID + " = ?" +
-			"  UNION ALL" +
-			"  SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", PS." + COL_PROJECT_SETTING_ID + ", PATH.DISTANCE+1 FROM " + TABLE_NODE + " AS N" +
-			"    JOIN PATH ON (N." + COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" +
-			"    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + 
-			"       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" +
-			"    WHERE N." + COL_NODE_ID +" IS NOT NULL AND DISTANCE < " +NodeConstants.MAX_PATH_DEPTH_PLUS_ONE+
-			")" +
-			"SELECT PROJECT_SETTING_ID FROM PATH" +
-			"  WHERE PROJECT_SETTING_ID IS NOT NULL ORDER BY DISTANCE ASC" +
-			"  LIMIT 1;";
+	private static final String SELECT_INHERITED_SETTING = "WITH RECURSIVE PATH (" + COL_NODE_ID + ", "
+			+ COL_NODE_PARENT_ID + ", PROJECT_SETTING_ID, DISTANCE) AS" + "(" + "  SELECT N." + COL_NODE_ID + ", N."
+			+ COL_NODE_PARENT_ID + ", PS." + COL_PROJECT_SETTING_ID + ", 1 FROM " + TABLE_NODE + " AS N"
+			+ "    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING + " AS PS ON " + "       (N." + COL_NODE_ID + " = PS."
+			+ COL_PROJECT_SETTING_PROJECT_ID + " AND " + COL_PROJECT_SETTING_TYPE + " = ?)" + "    WHERE N."
+			+ COL_NODE_ID + " = ?" + "  UNION ALL" + "  SELECT N." + COL_NODE_ID + ", N." + COL_NODE_PARENT_ID + ", PS."
+			+ COL_PROJECT_SETTING_ID + ", PATH.DISTANCE+1 FROM " + TABLE_NODE + " AS N" + "    JOIN PATH ON (N."
+			+ COL_NODE_ID + " = PATH." + COL_NODE_PARENT_ID + ")" + "    LEFT OUTER JOIN " + TABLE_PROJECT_SETTING
+			+ " AS PS ON " + "       (N." + COL_NODE_ID + " = PS." + COL_PROJECT_SETTING_PROJECT_ID + " AND "
+			+ COL_PROJECT_SETTING_TYPE + " = ?)" + "    WHERE N." + COL_NODE_ID + " IS NOT NULL AND DISTANCE < "
+			+ NodeConstants.MAX_PATH_DEPTH_PLUS_ONE + ")" + "SELECT PROJECT_SETTING_ID FROM PATH"
+			+ "  WHERE PROJECT_SETTING_ID IS NOT NULL ORDER BY DISTANCE ASC" + "  LIMIT 1;";
 
 	private static final RowMapper<DBOProjectSetting> ROW_MAPPER = new DBOProjectSetting().getTableMapping();
-	
+
 	public DBOProjectSettingsDAOImpl() {
 	}
 
@@ -102,7 +100,8 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		try {
 			dbo = basicDao.createNew(dbo);
 		} catch (IllegalArgumentException e) {
-			// we want to catch the common case of an existing setting and tell the user nicely about that
+			// we want to catch the common case of an existing setting and tell the user
+			// nicely about that
 			if (e.getCause() instanceof DuplicateKeyException) {
 				throw new IllegalArgumentException("A project setting of type '" + dto.getSettingsType().name()
 						+ "' for project " + dto.getProjectId() + " already exists.");
@@ -131,8 +130,9 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 
 	@Override
 	public ProjectSetting get(String id) throws DatastoreException, NotFoundException {
-		DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-				new SinglePrimaryKeySqlParameterSource(id)).orElseThrow(()->new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, id)));
+		DBOProjectSetting projectSetting = basicDao
+				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id))
+				.orElseThrow(() -> new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, id)));
 		ProjectSetting dto = convertDboToDto(projectSetting);
 		return dto;
 	}
@@ -174,7 +174,7 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			throw new IllegalArgumentException(
 					"You cannot change the project id with the update project settings call. Create a new project settings instead");
 		}
-		if (!dbo.getType().equals(dto.getSettingsType())) {
+		if (!dbo.getType().equals(dto.getSettingsType().name())) {
 			throw new IllegalArgumentException(
 					"You cannot change the settings type with the update project settings call. Create a new project settings instead");
 		}
@@ -185,42 +185,56 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 			throw new ConflictingUpdateException(
 					"Project setting was updated since you last fetched it, retrieve it again and reapply the update.");
 		}
-		dbo.setData(dto);
+		try {
+			dbo.setJson(EntityFactory.createJSONStringForEntity(dto));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 		// Update with a new e-tag
 		dbo.setEtag(UUID.randomUUID().toString());
 
 		boolean success = basicDao.update(dbo);
 		if (!success)
 			throw new DatastoreException("Unsuccessful updating project setting in database.");
-		// re-get, so we don't clobber the object we put in the dbo directly with setData
+		// re-get, so we don't clobber the object we put in the dbo directly with
+		// setData
 		dbo = basicDao
 				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(dto.getId()))
 				.orElseThrow(() -> new NotFoundException(String.format(PROJECT_SETTINGS_DOES_NOT_EXIST, dto.getId())));
-		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo.getId().toString(), ObjectType.PROJECT_SETTING,
+				ChangeType.UPDATE);
 		return convertDboToDto(dbo);
 	}
 
 	private static void copyDtoToDbo(ProjectSetting dto, DBOProjectSetting dbo) {
 		if (dto.getProjectId() == null) {
 			throw new InvalidModelException("projectId must be specified");
-		}		
+		}
 		if (dto.getSettingsType() == null) {
 			throw new InvalidModelException("settingsType must be specified");
 		}
 		dbo.setId(dto.getId() != null ? KeyFactory.stringToKey(dto.getId()) : null);
 		dbo.setProjectId(KeyFactory.stringToKey(dto.getProjectId()));
-		dbo.setType(dto.getSettingsType());
+		dbo.setType(dto.getSettingsType().name());
 		dbo.setEtag(dto.getEtag());
-		dbo.setData(dto);
+		try {
+			dbo.setJson(EntityFactory.createJSONStringForEntity(dto));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private static ProjectSetting convertDboToDto(DBOProjectSetting dbo) {
-		ProjectSetting dto = dbo.getData();
-		dto.setId(dbo.getId().toString());
-		dto.setProjectId(KeyFactory.keyToString(dbo.getProjectId()));
-		dto.setSettingsType(dbo.getType());
-		dto.setEtag(dbo.getEtag());
-		return dto;
+		try {
+			ProjectSetting dto = EntityFactory.createEntityFromJSONString(dbo.getJson(), ProjectSetting.class);
+			dto.setId(dbo.getId().toString());
+			dto.setProjectId(KeyFactory.keyToString(dbo.getProjectId()));
+			dto.setSettingsType(ProjectSettingsType.valueOf(dbo.getType()));
+			dto.setEtag(dbo.getEtag());
+			return dto;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }

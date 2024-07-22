@@ -4,19 +4,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_NOTIFICATION_EMAIL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
@@ -28,38 +25,63 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author brucehoff
  *
  */
-@Table(name = TABLE_NOTIFICATION_EMAIL, constraints = { 
-		"unique key UNIQUE_NOTIFICATION_EMAIL_PRINCIPAL_ID ("+ COL_NOTIFICATION_EMAIL_PRINCIPAL_ID + ")",
-		"unique key UNIQUE_NOTIFICATION_EMAIL_ALIAS_ID ("+ COL_NOTIFICATION_EMAIL_ALIAS_ID + ")" 
-		})
 public class DBONotificationEmail implements MigratableDatabaseObject<DBONotificationEmail, DBONotificationEmail> {
-	private static TableMapping<DBONotificationEmail> tableMapping = AutoTableMapping.create(DBONotificationEmail.class);
+	
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_NOTIFICATION_EMAIL_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("etag", COL_NOTIFICATION_EMAIL_ETAG).withIsEtag(true),
+			new FieldColumn("principalId", COL_NOTIFICATION_EMAIL_PRINCIPAL_ID),
+			new FieldColumn("aliasId", COL_NOTIFICATION_EMAIL_ALIAS_ID),
+	};
+
 	/**
 	 * The primary key for this table.
 	 */
-	@Field(name = COL_NOTIFICATION_EMAIL_ID, nullable = false, primary=true, backupId=true)
 	private Long id;
-	
-	@Field(name = COL_NOTIFICATION_EMAIL_ETAG, etag = true, varchar = 500, nullable = false)
 	private String etag;
-	
 	/**
 	 * The principal ID.
 	 */
-	@Field(name = COL_NOTIFICATION_EMAIL_PRINCIPAL_ID, nullable = false)
-	@ForeignKey(table=TABLE_USER_GROUP, field=COL_USER_GROUP_ID ,cascadeDelete=true)
 	private Long principalId;
-	
 	/**
 	 * The principal alias ID.
 	 */
-	@Field(name = COL_NOTIFICATION_EMAIL_ALIAS_ID, nullable = false)
-	@ForeignKey(table=TABLE_PRINCIPAL_ALIAS, field=COL_PRINCIPAL_ALIAS_ID ,cascadeDelete=true)
 	private Long aliasId;
 	
 	@Override
 	public TableMapping<DBONotificationEmail> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBONotificationEmail>() {
+			
+			@Override
+			public DBONotificationEmail mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBONotificationEmail dbo = new DBONotificationEmail();
+				dbo.setId(rs.getLong(COL_NOTIFICATION_EMAIL_ID));
+				dbo.setEtag(rs.getString(COL_NOTIFICATION_EMAIL_ETAG));
+				dbo.setPrincipalId(rs.getLong(COL_NOTIFICATION_EMAIL_PRINCIPAL_ID));
+				dbo.setAliasId(rs.getLong(COL_NOTIFICATION_EMAIL_ALIAS_ID));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_NOTIFICATION_EMAIL;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_NOTIFICATION_EMAIL;
+			}
+			
+			@Override
+			public Class<? extends DBONotificationEmail> getDBOClass() {
+				return DBONotificationEmail.class;
+			}
+		};
 	}
 
 	@Override
@@ -121,14 +143,7 @@ public class DBONotificationEmail implements MigratableDatabaseObject<DBONotific
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((aliasId == null) ? 0 : aliasId.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((principalId == null) ? 0 : principalId.hashCode());
-		return result;
+		return Objects.hash(aliasId, etag, id, principalId);
 	}
 
 	@Override
@@ -140,29 +155,14 @@ public class DBONotificationEmail implements MigratableDatabaseObject<DBONotific
 		if (getClass() != obj.getClass())
 			return false;
 		DBONotificationEmail other = (DBONotificationEmail) obj;
-		if (aliasId == null) {
-			if (other.aliasId != null)
-				return false;
-		} else if (!aliasId.equals(other.aliasId))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (principalId == null) {
-			if (other.principalId != null)
-				return false;
-		} else if (!principalId.equals(other.principalId))
-			return false;
-		return true;
+		return Objects.equals(aliasId, other.aliasId) && Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id) && Objects.equals(principalId, other.principalId);
 	}
 
+	@Override
+	public String toString() {
+		return "DBONotificationEmail [id=" + id + ", etag=" + etag + ", principalId=" + principalId + ", aliasId="
+				+ aliasId + "]";
+	}
 	
-
 }

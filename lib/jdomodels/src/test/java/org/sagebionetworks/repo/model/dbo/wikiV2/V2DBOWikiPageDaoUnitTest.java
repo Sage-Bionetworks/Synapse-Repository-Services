@@ -208,6 +208,7 @@ public class V2DBOWikiPageDaoUnitTest {
 		V2DBOWikiOwner wikiOwner = new V2DBOWikiOwner();
 		wikiOwner.setRootWikiId(WIKI_ID);
 		wikiOwner.setOwnerId(OWNER_ID);
+		wikiOwner.setOwnerType(ObjectType.ENTITY.name());
 		
 		when(jdbcTemplate.query(eq("SELECT * FROM V2_WIKI_OWNERS WHERE ROOT_WIKI_ID = ?"),
 				(TableMapping<V2DBOWikiOwner>)any(TableMapping.class), eq(WIKI_ID))).
@@ -222,7 +223,7 @@ public class V2DBOWikiPageDaoUnitTest {
 		assertEquals(MigrationType.V2_WIKI_OWNERS, wikiOwnerDboCaptor.getValue().getMigratableTableType());
 		assertEquals(etag, wikiOwnerDboCaptor.getValue().getEtag());
 		assertEquals(OWNER_ID, wikiOwnerDboCaptor.getValue().getOwnerId());
-		assertEquals(ObjectType.ENTITY, wikiOwnerDboCaptor.getValue().getOwnerType());
+		assertEquals(ObjectType.ENTITY.name(), wikiOwnerDboCaptor.getValue().getOwnerType());
 
 		verify(transactionalMessenger).sendMessageAfterCommit(messageToSendCaptor.capture());
 		assertEquals(ChangeType.UPDATE, messageToSendCaptor.getValue().getChangeType());

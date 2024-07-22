@@ -1,56 +1,85 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_DATA;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_SETTING_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_PROJECT_SETTING;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_SETTING;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
-import org.sagebionetworks.repo.model.dbo.Field;
-import org.sagebionetworks.repo.model.dbo.ForeignKey;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * descriptor of what's in a column of a participant data record
  */
-@Table(name = TABLE_PROJECT_SETTING, constraints = { "unique key UNIQUE_PSID_TYPE (" + COL_PROJECT_SETTING_PROJECT_ID + ", "
-		+ COL_PROJECT_SETTING_TYPE + ")" })
 public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSetting, DBOProjectSetting> {
 
-	@Field(name = COL_PROJECT_SETTING_ID, backupId = true, primary = true, nullable = false)
+	private static FieldColumn[] FIELDS = new FieldColumn[] {
+			new FieldColumn("id", COL_PROJECT_SETTING_ID).withIsPrimaryKey(true).withIsBackupId(true),
+			new FieldColumn("projectId", COL_PROJECT_SETTING_PROJECT_ID),
+			new FieldColumn("type", COL_PROJECT_SETTING_TYPE),
+			new FieldColumn("etag", COL_PROJECT_SETTING_ETAG).withIsEtag(true),
+			new FieldColumn("json", COL_PROJECT_SETTING_JSON),
+			};
+
 	private Long id;
-
-	@Field(name = COL_PROJECT_SETTING_PROJECT_ID, nullable = false)
-	@ForeignKey(table = TABLE_NODE, field = COL_NODE_ID, cascadeDelete = true)
 	private Long projectId;
-
-	@Field(name = COL_PROJECT_SETTING_TYPE, nullable = false, varchar = 256)
-	private ProjectSettingsType type;
-
-	@Field(name = COL_PROJECT_SETTING_ETAG, etag = true, nullable = false)
+	private String type;
 	private String etag;
-
-	@Field(name = COL_PROJECT_SETTING_DATA, serialized = "mediumblob")
+	@TemporaryCode (author = "john", comment="Replaced by json and will be removed.")
 	private ProjectSetting data;
+	private String json;
 
-	private static TableMapping<DBOProjectSetting> tableMapping = AutoTableMapping.create(DBOProjectSetting.class);
 
 	@Override
 	public TableMapping<DBOProjectSetting> getTableMapping() {
-		return tableMapping;
+		return new TableMapping<DBOProjectSetting>() {
+			
+			@Override
+			public DBOProjectSetting mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOProjectSetting dbo = new DBOProjectSetting();
+				dbo.setId(rs.getLong(COL_PROJECT_SETTING_ID));
+				dbo.setProjectId(rs.getLong(COL_PROJECT_SETTING_PROJECT_ID));
+				dbo.setType(rs.getString(COL_PROJECT_SETTING_TYPE));
+				dbo.setEtag(rs.getString(COL_PROJECT_SETTING_ETAG));
+				dbo.setJson(rs.getString(COL_PROJECT_SETTING_JSON));
+				return dbo;
+			}
+			
+			@Override
+			public String getTableName() {
+				return TABLE_PROJECT_SETTING;
+			}
+			
+			@Override
+			public FieldColumn[] getFieldColumns() {
+				return FIELDS;
+			}
+			
+			@Override
+			public String getDDLFileName() {
+				return DDL_PROJECT_SETTING;
+			}
+			
+			@Override
+			public Class<? extends DBOProjectSetting> getDBOClass() {
+				return DBOProjectSetting.class;
+			}
+		};
 	}
 
 	@Override
@@ -74,11 +103,11 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 		this.projectId = projectId;
 	}
 
-	public ProjectSettingsType getType() {
+	public String getType() {
 		return type;
 	}
 
-	public void setType(ProjectSettingsType type) {
+	public void setType(String type) {
 		this.type = type;
 	}
 
@@ -90,24 +119,27 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 		this.etag = etag;
 	}
 
+	@Deprecated
 	public ProjectSetting getData() {
 		return data;
 	}
 
+	@Deprecated
 	public void setData(ProjectSetting data) {
 		this.data = data;
 	}
 
+	public String getJson() {
+		return json;
+	}
+
+	public void setJson(String json) {
+		this.json = json;
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((data == null) ? 0 : data.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
-		result = prime * result + ((type == null) ? 0 : type.hashCode());
-		return result;
+		return Objects.hash(data, etag, id, json, projectId, type);
 	}
 
 	@Override
@@ -119,39 +151,42 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 		if (getClass() != obj.getClass())
 			return false;
 		DBOProjectSetting other = (DBOProjectSetting) obj;
-		if (data == null) {
-			if (other.data != null)
-				return false;
-		} else if (!data.equals(other.data))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (projectId == null) {
-			if (other.projectId != null)
-				return false;
-		} else if (!projectId.equals(other.projectId))
-			return false;
-		if (type != other.type)
-			return false;
-		return true;
+		return Objects.equals(data, other.data) && Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Objects.equals(json, other.json) && Objects.equals(projectId, other.projectId)
+				&& Objects.equals(type, other.type);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOProjectSettings [id=" + id + ", projectId=" + projectId + ", type=" + type + ", etag=" + etag + ", data=" + data + "]";
+		return "DBOProjectSetting [id=" + id + ", projectId=" + projectId + ", type=" + type + ", etag=" + etag
+				+ ", data=" + data + ", json=" + json + "]";
 	}
 
 	@Override
 	public MigratableTableTranslation<DBOProjectSetting, DBOProjectSetting> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOProjectSetting>();
+		return new MigratableTableTranslation<DBOProjectSetting, DBOProjectSetting>() {
+			
+			@Override
+			public DBOProjectSetting createDatabaseObjectFromBackup(DBOProjectSetting backup) {
+				if(backup.getData() != null) {
+					if(backup.getJson() != null) {
+						throw new IllegalArgumentException("Both 'data' and 'json' have values");
+					}
+					try {
+						backup.setJson(EntityFactory.createJSONStringForEntity(backup.getData()));
+						backup.setData(null);
+					} catch (JSONObjectAdapterException e) {
+						throw new RuntimeException(e);
+					}
+				}
+				return backup;
+			}
+			
+			@Override
+			public DBOProjectSetting createBackupFromDatabaseObject(DBOProjectSetting dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override
@@ -165,7 +200,7 @@ public class DBOProjectSetting implements MigratableDatabaseObject<DBOProjectSet
 	}
 
 	@Override
-	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
+	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
 		return null;
 	}
 }

@@ -19,10 +19,6 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
-			"name": "SESSION_TOKEN",
-			"description": "TODO: Auto-generated description"
-		},
-		{
 			"name": "AUTHENTICATED_ON",
 			"description": "User authenticated date"
 		},

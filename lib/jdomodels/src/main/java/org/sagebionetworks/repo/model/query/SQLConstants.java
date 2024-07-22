@@ -44,10 +44,11 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_ROUND_ROUND_END		= "ROUND_END";
 	public static final String COL_EVALUATION_ROUND_LIMITS			= "LIMITS";
 	
-	public static final String TABLE_EVALUATION_SUBMISSIONS = "EVALUATION_SUBMISSIONS";
-	public static final String COL_EVALUATION_SUBMISSIONS_ID = "ID";
-	public static final String COL_EVALUATION_SUBMISSIONS_ETAG  = "ETAG";
-	public static final String COL_EVALUATION_SUBMISSIONS_EVAL_ID = "EVAL_ID";
+	public static final String TABLE_EVALUATION_SUBMISSIONS			= "EVALUATION_SUBMISSIONS";
+	public static final String COL_EVALUATION_SUBMISSIONS_ID		= "ID";
+	public static final String COL_EVALUATION_SUBMISSIONS_ETAG 		= "ETAG";
+	public static final String COL_EVALUATION_SUBMISSIONS_EVAL_ID	= "EVAL_ID";
+	public static final String DDL_EVALUATION_SUBMISSIONS			= "schema/evaluation/EvaluationSubmissions-ddl.sql";
 	
 	// Submission table constants
 	public static final String DDL_FILE_SUBMISSION				= "schema/evaluation/Submission-ddl.sql";
@@ -68,12 +69,13 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_DOCKER_REPO_NAME 	= "DOCKER_REPO_NAME";
 	
 	// Submission contributor
-	public static final String TABLE_SUBMISSION_CONTRIBUTOR		= "SUBMISSION_CONTRIBUTOR";
-	public static final String COL_SUBMISSION_CONTRIBUTOR_ID	= "ID";
-	public static final String COL_SUBMISSION_CONTRIBUTOR_ETAG	= "ETAG";
+	public static final String TABLE_SUBMISSION_CONTRIBUTOR				= "SUBMISSION_CONTRIBUTOR";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_ID			= "ID";
+	public static final String COL_SUBMISSION_CONTRIBUTOR_ETAG			= "ETAG";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_SUBMISSION_ID	= "SUBMISSION_ID";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_PRINCIPAL_ID	= "PRINCIPAL_ID";
 	public static final String COL_SUBMISSION_CONTRIBUTOR_CREATED_ON	= "CREATED_ON";
+	public static final String DDL_SUBMISSION_CONTRIBUTOR				= "schema/evaluation/SubmissionContributor-ddl.sql";
 	
 	// SubmissionStatus table constants
 	public static final String DDL_FILE_SUBSTATUS				= "schema/evaluation/SubmissionStatus-ddl.sql";
