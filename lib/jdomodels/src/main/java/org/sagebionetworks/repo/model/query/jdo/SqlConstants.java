@@ -511,7 +511,7 @@ public class SqlConstants {
 	public static final String COL_CM_ID					= "ID";
 	public static final String COL_CM_NAME					= "NAME";
 	public static final String COL_CM_HASH					= "HASH";
-	public static final String COL_CM_BYTES					= "BYTES";
+	public static final String COL_CM_JSON					= "JSON";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
 	// Table transaction tracking.

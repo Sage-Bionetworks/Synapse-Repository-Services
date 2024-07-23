@@ -4,9 +4,11 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,8 +24,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -482,6 +487,17 @@ public class DBOColumnModelImplTest {
 		ColumnModel rootResult = columnModelDao.createColumnModel(root);
 		ColumnModel rootResult2 = columnModelDao.createColumnModel(root);
 		assertEquals(rootResult, rootResult2);
+	}
+	@Test
+	public void testMigrationXStreamToJson() throws IOException {
+		ColumnModel dto = new ColumnModel().setId("123").setName("foo");
+		DBOColumnModel dbo = new DBOColumnModel();
+		dbo.setBytes(JDOSecondaryPropertyUtils
+				.compressObject(UnmodifiableXStream.builder().allowTypes(ColumnModel.class).build(), dto));
+		// call under test
+		DBOColumnModel translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(translated.getBytes());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(dto), translated.getJson());
 	}
 
 }

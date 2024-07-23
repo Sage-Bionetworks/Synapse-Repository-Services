@@ -18,12 +18,12 @@ import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.ValidateArgument;
@@ -49,22 +49,18 @@ public class ColumnModelUtils {
 	 * @return
 	 */
 	public static DBOColumnModel createDBOFromDTO(ColumnModel dto, int maxEnumValues) {
-		try {
-			// First normalize the DTO
-			ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
-			String hash = calculateHash(normal);
-			// Create the bytes
-			DBOColumnModel dbo = new DBOColumnModel();
-			dbo.setBytes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, normal));
-			dbo.setName(normal.getName());
-			dbo.setHash(hash);
-			if(dto.getId() != null){
-				dbo.setId(Long.parseLong(dto.getId()));
-			}
-			return dbo;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+		// First normalize the DTO
+		ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
+		String hash = calculateHash(normal);
+		// Create the bytes
+		DBOColumnModel dbo = new DBOColumnModel();
+		dbo.setJson(JDOSecondaryPropertyUtils.createJSONFromObject(normal));
+		dbo.setName(normal.getName());
+		dbo.setHash(hash);
+		if (dto.getId() != null) {
+			dbo.setId(Long.parseLong(dto.getId()));
 		}
+		return dbo;
 	}
 	
 	/**
@@ -72,17 +68,13 @@ public class ColumnModelUtils {
 	 * @param dbo
 	 * @return
 	 */
-	public static ColumnModel createDTOFromDBO(DBOColumnModel dbo){
-		if(dbo == null) throw new IllegalArgumentException("DBOColumnModel cannot be null");
-		if(dbo.getId() == null) throw new IllegalArgumentException("DBOColumnModel.id cannot be null");
-		try {
-			// First read the bytes.
-			ColumnModel model = (ColumnModel) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getBytes());
-			model.setId(Long.toString(dbo.getId()));
-			return model;
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+	public static ColumnModel createDTOFromDBO(DBOColumnModel dbo) {
+		ValidateArgument.required(dbo, "DBOColumnModel");
+		ValidateArgument.required(dbo.getId(), "DBOColumnModel.id");
+		// First read the bytes.
+		ColumnModel model = JDOSecondaryPropertyUtils.createObejctFromJSON(ColumnModel.class, dbo.getJson());
+		model.setId(Long.toString(dbo.getId()));
+		return model;
 	}
 	
 	/**
