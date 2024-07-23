@@ -84,6 +84,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -5584,6 +5586,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public RestrictionInformationResponse getRestrictionInformation(RestrictionInformationRequest request) throws SynapseException {
 		ValidateArgument.required(request, "request");
 		return postJSONEntity(getRepoEndpoint(), "/restrictionInformation", request, RestrictionInformationResponse.class);
+	}
+
+	@Override
+	public RestrictionInformationBatchResponse getRestrictionInformationBatch(RestrictionInformationBatchRequest request)
+			throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), "/restrictionInformation/batch", request, RestrictionInformationBatchResponse.class);
 	}
 
 	@Override

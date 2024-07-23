@@ -10,10 +10,92 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UserAccessRestrictionUtilsTest {
 
+	@Test
+	public void testIsUserDataContributor() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(true)
+                .withHasDelete(true);
+		
+		// Call under test
+		assertTrue(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}
+	
+	@Test
+	public void testIsUserDataContributorWithNoUpdate() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(false)
+                .withHasDelete(true);
+		
+		// Call under test
+		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}	
+
+	@Test
+	public void testIsUserDataContributorWithNoDelete() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(true)
+                .withHasDelete(false);
+		
+		// Call under test
+		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}	
+
+	@Test
+	public void testIsUserDataContributorWithNoDeleteAndNoUpdate() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(false)
+                .withHasDelete(false);
+		
+		// Call under test
+		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}
+	
+	@Test
+	public void testIsUserExempt() {
+		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(true);
+        
+		boolean isUserDataContributor = true;
+		
+		assertTrue(UserAccessRestrictionUtils.isUserExempt(reqStatus, isUserDataContributor));
+		
+	}
+	
+	@Test
+	public void testIsUserExemptWithNotExemptionEligible() {
+		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(false);
+        
+		boolean isUserDataContributor = true;
+		
+		assertFalse(UserAccessRestrictionUtils.isUserExempt(reqStatus, isUserDataContributor));
+		
+	}
+	
+	@Test
+	public void testIsUserExemptWithNotDataContributor() {
+		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(true);
+        
+		boolean isUserDataContributor = false;
+		
+		assertFalse(UserAccessRestrictionUtils.isUserExempt(reqStatus, isUserDataContributor));
+		
+	}
+	
+	@Test
+	public void testIsUserExemptWithNotDataContributAndNotExemptionEligible() {
+		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(false);
+        
+		boolean isUserDataContributor = false;
+		
+		assertFalse(UserAccessRestrictionUtils.isUserExempt(reqStatus, isUserDataContributor));
+		
+	}	
+	
     @Test
     public void testDoesUserHaveUnmetAccessRestrictionsForEntityWithNullPermissions(){
         UsersRestrictionStatus usersRequirementStatus = new UsersRestrictionStatus().withSubjectId(1l)

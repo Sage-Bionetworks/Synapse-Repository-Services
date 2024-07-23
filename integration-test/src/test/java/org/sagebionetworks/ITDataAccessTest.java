@@ -41,6 +41,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.RestrictionFulfillment;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
@@ -243,6 +246,28 @@ public class ITDataAccessTest {
 		} catch (SynapseBadRequestException e) {
 			// as expected
 		}
+		
+		RestrictionInformationBatchResponse expectedRestrictionBatch = new RestrictionInformationBatchResponse().setRestrictionInformation(List.of(
+			new RestrictionInformationResponse()
+				.setObjectId(KeyFactory.stringToKey(project.getId()))
+				.setHasUnmetAccessRequirement(false)
+				.setIsUserDataContributor(true)
+				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+				.setRestrictionDetails(List.of(
+					new RestrictionFulfillment()
+						.setAccessRequirementId(managedAR.getId())
+						.setIsApproved(true)
+						.setIsExempt(false)
+						.setIsMet(true)
+				))
+		));
+		
+		RestrictionInformationBatchResponse restrictionInfoBatch = synapse.getRestrictionInformationBatch(new RestrictionInformationBatchRequest()
+				.setRestrictableObjectType(RestrictableObjectType.ENTITY)
+				.setObjectIds(List.of(project.getId()))
+		);
+		
+		assertEquals(expectedRestrictionBatch, restrictionInfoBatch);
 
 		RequestInterface renewal = synapse.getRequestForUpdate(managedAR.getId().toString());
 		assertNotNull(renewal);
@@ -281,6 +306,40 @@ public class ITDataAccessTest {
 			.setName(UUID.randomUUID().toString());
 		
 		folder = synapse.createEntity(folder);
+		
+		expectedRestrictionBatch = new RestrictionInformationBatchResponse().setRestrictionInformation(List.of(
+			new RestrictionInformationResponse()
+				.setObjectId(KeyFactory.stringToKey(project.getId()))
+				.setHasUnmetAccessRequirement(true)
+				.setIsUserDataContributor(true)
+				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+				.setRestrictionDetails(List.of(
+					new RestrictionFulfillment()
+						.setAccessRequirementId(managedAR.getId())
+						.setIsApproved(false)
+						.setIsExempt(false)
+						.setIsMet(false)
+				)),
+			new RestrictionInformationResponse()
+				.setObjectId(KeyFactory.stringToKey(folder.getId()))
+				.setHasUnmetAccessRequirement(true)
+				.setIsUserDataContributor(true)
+				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
+				.setRestrictionDetails(List.of(
+					new RestrictionFulfillment()
+						.setAccessRequirementId(managedAR.getId())
+						.setIsApproved(false)
+						.setIsExempt(false)
+						.setIsMet(false)
+				))
+		));
+		
+		restrictionInfoBatch = synapse.getRestrictionInformationBatch(new RestrictionInformationBatchRequest()
+				.setRestrictableObjectType(RestrictableObjectType.ENTITY)
+				.setObjectIds(List.of(project.getId(), folder.getId()))
+		);
+		
+		assertEquals(expectedRestrictionBatch, restrictionInfoBatch);
 		
 		now = Instant.now();
 		

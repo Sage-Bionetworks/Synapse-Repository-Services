@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -277,6 +279,22 @@ public class DataAccessController {
 		@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 		@RequestBody RestrictionInformationRequest request) throws NotFoundException {
 		return serviceProvider.getDataAccessService().getRestrictionInformation(userId, request);
+	}
+	
+	/**
+	 * Retrieve restriction information on a batch of restrictable object, limited to a maxiumum of 50 object ids
+	 * 
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.RESTRICTION_INFORMATION + "/batch", method = RequestMethod.POST)
+	public @ResponseBody RestrictionInformationBatchResponse getRestrictionInformationBatch(
+		@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+		@RequestBody RestrictionInformationBatchRequest request) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getRestrictionInformationBatch(userId, request);
 	}
 
 	/**

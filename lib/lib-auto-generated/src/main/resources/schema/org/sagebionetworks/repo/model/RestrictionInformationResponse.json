@@ -1,6 +1,10 @@
 {
 	"description": "The information about restriction level on a restrict-able object.",
 	"properties": {
+		"objectId": {
+			"description": "The id of the restrictable object",
+			"type": "integer"
+		},
 		"restrictionLevel":{
 			"$ref": "org.sagebionetworks.repo.model.RestrictionLevel",
 			"description": "Restriction level on a restrict-able object."
@@ -8,6 +12,17 @@
 		"hasUnmetAccessRequirement":{
 			"type": "boolean",
 			"description": "True if user has at least one unmet access requirement on this restrict-able object; false otherwise."
+		},
+		"isUserDataContributor": {
+			"description": "True if the user is considered a data contributor, e.g. has update and delete permissions on the data. Applies only to ENTITY restrictable objects.",
+			"type": "boolean"
+		},
+		"restrictionDetails": {
+			"type": "array",
+			"description": "The list of restriction fulfillment information for each access requirement that applies to the restrictable object.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.RestrictionFulfillment"
+			}
 		}
 	}
 }

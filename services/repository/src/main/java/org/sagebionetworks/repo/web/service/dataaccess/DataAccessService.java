@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service.dataaccess;
 
+import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -43,10 +45,13 @@ public interface DataAccessService {
 
 	RestrictionInformationResponse getRestrictionInformation(Long userId, RestrictionInformationRequest request);
 
+	RestrictionInformationBatchResponse getRestrictionInformationBatch(Long userId, RestrictionInformationBatchRequest request);
+	
 	OpenSubmissionPage getOpenSubmissions(Long userId, String nextPageToken);
 
 	SubmissionSearchResponse searchSubmissions(Long userId, SubmissionSearchRequest request);
 
 	Submission getSubmission(Long userId, String submissionId);
+
 
 }
