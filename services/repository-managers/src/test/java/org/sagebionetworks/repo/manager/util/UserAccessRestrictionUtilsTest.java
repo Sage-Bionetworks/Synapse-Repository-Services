@@ -34,6 +34,26 @@ public class UserAccessRestrictionUtilsTest {
 		
 		// Call under test
 		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}	
+
+	@Test
+	public void testIsUserDataContributorWithNoDelete() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(true)
+                .withHasDelete(false);
+		
+		// Call under test
+		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
+	}	
+
+	@Test
+	public void testIsUserDataContributorWithNoDeleteAndNoUpdate() {
+		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
+				.withHasUpdate(false)
+                .withHasDelete(false);
+		
+		// Call under test
+		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
 	}
 	
 	@Test
@@ -47,7 +67,7 @@ public class UserAccessRestrictionUtilsTest {
 	}
 	
 	@Test
-	public void testIsUserExemptWithNoExemptionEligible() {
+	public void testIsUserExemptWithNotExemptionEligible() {
 		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(false);
         
 		boolean isUserDataContributor = true;
@@ -67,14 +87,14 @@ public class UserAccessRestrictionUtilsTest {
 	}
 	
 	@Test
-	public void testIsUserDataContributorWithNoDelete() {
-		UserEntityPermissionsState userEntityPermissions = new UserEntityPermissionsState(1L)
-				.withHasUpdate(true)
-                .withHasDelete(false);
+	public void testIsUserExemptWithNotDataContributAndNotExemptionEligible() {
+		UsersRequirementStatus reqStatus = new UsersRequirementStatus().withIsExemptionEligible(false);
+        
+		boolean isUserDataContributor = false;
 		
-		// Call under test
-		assertFalse(UserAccessRestrictionUtils.isUserDataContributor(userEntityPermissions));
-	}
+		assertFalse(UserAccessRestrictionUtils.isUserExempt(reqStatus, isUserDataContributor));
+		
+	}	
 	
     @Test
     public void testDoesUserHaveUnmetAccessRestrictionsForEntityWithNullPermissions(){
