@@ -342,7 +342,7 @@ public class MigratableTableDAOImplAutowireTest {
 	@Test
 	public void testAllMigrationTypesRegistered() {
 		for (MigrationType t: MigrationType.values()) {
-			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t));
+			assertTrue(migratableTableDAO.isMigrationTypeRegistered(t.name()));
 		}
 	}
 	
@@ -881,10 +881,17 @@ public class MigratableTableDAOImplAutowireTest {
 	
 	@Test
 	public void testGetTypeData() {
-		TypeData expected = new TypeData().setMigrationType(MigrationType.NODE)
+		TypeData expected = new TypeData().setMigrationType(MigrationType.NODE.name())
 				.setBackupIdColumnName(DMLUtils.getBackupIdColumnName(new DBONode().getTableMapping()).getColumnName());
 		TypeData result = this.migratableTableDAO.getTypeData(MigrationType.NODE);
 		assertEquals(expected, result);
 	}
-	
+
+	@Test
+	public void testIsMigrationType() {
+		// call under test
+		assertTrue(migratableTableDAO.isMigrationTypeRegistered(MigrationType.NODE.name()));
+		assertFalse(migratableTableDAO.isMigrationTypeRegistered("foo"));
+	}
+
 }

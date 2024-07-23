@@ -92,13 +92,7 @@ public interface MigratableTableDAO  {
 	 */
 	public <T> T runWithKeyChecksIgnored(Callable<T> call) throws Exception;
 	
-	/**
-	 * Checks if the migration type has been registered
-	 * @param type
-	 * @return
-	 */
-	public boolean isMigrationTypeRegistered(MigrationType type);
-	
+	public boolean isMigrationTypeRegistered(String type);
 	/**
 	 * List all non-restricted foreign keys in the schema.
 	 * @return

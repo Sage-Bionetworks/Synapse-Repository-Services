@@ -44,22 +44,22 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
- * This is a generic dao like DBOBasicDao that provides data migration functions for individual tables.
+ * This is a generic dao like DBOBasicDao that provides data migration functions
+ * for individual tables.
+ * 
  * @author John
  *
  */
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
-	
+
 	private static final String REFERENCED_TABLE_NAME = "REFERENCED_TABLE_NAME";
 	private static final String TABLE_NAME = "TABLE_NAME";
 	private static final String DELETE_RULE = "DELETE_RULE";
 	private static final String CONSTRAINT_NAME = "CONSTRAINT_NAME";
 
-	private static final String SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS = 
-			"SELECT CONSTRAINT_NAME, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME"
-			+ " FROM information_schema.REFERENTIAL_CONSTRAINTS "
-			+ "WHERE"
+	private static final String SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS = "SELECT CONSTRAINT_NAME, DELETE_RULE, TABLE_NAME, REFERENCED_TABLE_NAME"
+			+ " FROM information_schema.REFERENTIAL_CONSTRAINTS " + "WHERE"
 			+ " DELETE_RULE != 'RESTRICT' AND UNIQUE_CONSTRAINT_SCHEMA = ?";
 
 	private static final String SET_FOREIGN_KEY_CHECKS = "SET FOREIGN_KEY_CHECKS = ?";
@@ -72,11 +72,12 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private StackConfiguration stackConfiguration;
 
 	@Autowired
-	public MigratableTableDAOImpl(@Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+	public MigratableTableDAOImpl(@Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate,
+			StackConfiguration stackConfiguration) {
 		this.jdbcTemplate = jdbcTemplate;
 		this.stackConfiguration = stackConfiguration;
 	}
-	
+
 	/**
 	 * Injected via Spring
 	 */
@@ -87,7 +88,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 */
 	@Deprecated
 	private List<Long> userGroupIdsExemptFromDeletion;
-	
+
 	/**
 	 * Injected via Spring
 	 */
@@ -99,7 +100,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public List<MigratableDatabaseObject> getDatabaseObjectRegister() {
 		return Collections.unmodifiableList(this.databaseObjectRegister);
 	}
-
 
 	/**
 	 * Injected via Spring
@@ -119,65 +119,71 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	private Map<MigrationType, String> checksumTableSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> batchChecksumSqlMap = new HashMap<>();
 	private Map<MigrationType, String> migrationTypeCountSqlMap = new HashMap<MigrationType, String>();
-	
+
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
-	
+
 	private List<MigrationType> rootTypes = new LinkedList<MigrationType>();
-	
+
 	private Set<MigrationType> registeredMigrationTypes = new HashSet<MigrationType>();
-	
+
 	/**
 	 * We cache the mapping for each object type.
 	 */
 	private Map<Class<? extends DatabaseObject>, MigrationType> classToMapping = new HashMap<Class<? extends DatabaseObject>, MigrationType>();
-	
+
 	private Map<MigrationType, MigratableDatabaseObject> typeTpObject = new LinkedHashMap<MigrationType, MigratableDatabaseObject>();
-	
+
 	/**
 	 * Called when this bean is ready.
 	 */
 	public void initialize() {
 		// Make sure we have a table for all registered objects
-		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
+		if (databaseObjectRegister == null)
+			throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 
-		// Create the schema for each 
+		// Create the schema for each
 		// This index is used to validate the order of migration.
 		int lastIndex = 0;
-		for(MigratableDatabaseObject dbo: databaseObjectRegister){
+		for (MigratableDatabaseObject dbo : databaseObjectRegister) {
 			// Root objects are registered here.
 			boolean isRoot = true;
 			registerObject(dbo, isRoot);
 			// Validate that the backupId column meets the criteria.
 			validateBackupColumn(dbo.getTableMapping());
 			// What is the index of this type
-			int typeIndex= typeIndex(dbo.getMigratableTableType());
-			if(typeIndex < lastIndex) throw new IllegalArgumentException("The order of the primary MigrationType must match the order for the MigrationType enumeration.  Type:  "+dbo.getMigratableTableType().name()+" is out of order");
+			int typeIndex = typeIndex(dbo.getMigratableTableType());
+			if (typeIndex < lastIndex)
+				throw new IllegalArgumentException(
+						"The order of the primary MigrationType must match the order for the MigrationType enumeration.  Type:  "
+								+ dbo.getMigratableTableType().name() + " is out of order");
 			lastIndex = typeIndex;
 		}
-		
+
 		// Change must always be last
-		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
-			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
+		if (!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])) {
+			throw new IllegalArgumentException("The migration type: " + MigrationType.CHANGE
+					+ " must always be last since it migration triggers asynchronous message processing of the stack");
 		}
 	}
 
-	
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#mapSecondaryTablesToPrimaryGroups()
+	 * 
+	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#
+	 * mapSecondaryTablesToPrimaryGroups()
 	 */
 	@Override
-	public Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups(){
+	public Map<String, Set<String>> mapSecondaryTablesToPrimaryGroups() {
 		Map<String, Set<String>> results = new HashMap<>();
-		for(MigratableDatabaseObject migratable: databaseObjectRegister) {
+		for (MigratableDatabaseObject migratable : databaseObjectRegister) {
 			List<MigratableDatabaseObject> secondaryTypes = migratable.getSecondaryTypes();
-			if(secondaryTypes != null) {
-				Set<String> primaryGroupNames = new HashSet<>(secondaryTypes.size()+1);
+			if (secondaryTypes != null) {
+				Set<String> primaryGroupNames = new HashSet<>(secondaryTypes.size() + 1);
 				// Add the primary table to the group
 				primaryGroupNames.add(migratable.getTableMapping().getTableName().toUpperCase());
 				// Add each secondary type to the map
-				for(MigratableDatabaseObject secondary: secondaryTypes) {
+				for (MigratableDatabaseObject secondary : secondaryTypes) {
 					String secondaryName = secondary.getTableMapping().getTableName().toUpperCase();
 					// add this secondary to the primary group
 					primaryGroupNames.add(secondaryName);
@@ -188,32 +194,40 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		return results;
 	}
 
-
 	/**
-	 * What is the index of this type in the enumeration?
-	 * This is used to determine if the order of primary types is different than the enumeration order.
+	 * What is the index of this type in the enumeration? This is used to determine
+	 * if the order of primary types is different than the enumeration order.
+	 * 
 	 * @param type
 	 * @return
 	 */
-	private int typeIndex(MigrationType type){
-		for(int i=0; i<MigrationType.values().length; i++){
-			if(MigrationType.values()[i].equals(type)) return i;
+	private int typeIndex(MigrationType type) {
+		for (int i = 0; i < MigrationType.values().length; i++) {
+			if (MigrationType.values()[i].equals(type))
+				return i;
 		}
-		throw new IllegalArgumentException("Did not find type: "+type);
+		throw new IllegalArgumentException("Did not find type: " + type);
 	}
+
 	/**
 	 * Register a MigratableDatabaseObject with this DAO.
+	 * 
 	 * @param dbo
 	 */
 	@SuppressWarnings("unchecked")
 	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
-		if(dbo == null) throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
-		if(dbo instanceof AutoIncrementDatabaseObject<?>) throw new IllegalArgumentException("AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "+dbo.getClass().getName());
+		if (dbo == null)
+			throw new IllegalArgumentException("MigratableDatabaseObject cannot be null");
+		if (dbo instanceof AutoIncrementDatabaseObject<?>)
+			throw new IllegalArgumentException(
+					"AUTO_INCREMENT tables cannot be migrated.  Please use the ID generator instead for DBO: "
+							+ dbo.getClass().getName());
 		TableMapping mapping = dbo.getTableMapping();
 		DMLUtils.validateMigratableTableMapping(mapping);
 		MigrationType type = dbo.getMigratableTableType();
 
-		if(type == null) throw new IllegalArgumentException("MigrationType was null for class: "+dbo.getClass().getName());
+		if (type == null)
+			throw new IllegalArgumentException("MigrationType was null for class: " + dbo.getClass().getName());
 		// Build up the SQL cache.
 		String deleteByRange = DMLUtils.createDeleteByBackupIdRange(mapping);
 		deleteByRangeMap.put(type, deleteByRange);
@@ -222,7 +236,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		maxSqlMap.put(type, mx);
 		String mi = DMLUtils.createGetMinByBackupKeyStatement(mapping);
-		minSqlMap.put(type,  mi);
+		minSqlMap.put(type, mi);
 		String mtc = DMLUtils.createGetMinMaxByBackupKeyStatement(mapping);
 		migrationTypeCountSqlMap.put(type, mtc);
 		String sumCrc = DMLUtils.createSelectChecksumStatement(mapping);
@@ -233,60 +247,60 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		this.batchChecksumSqlMap.put(type, batchChecksumSql);
 		// Does this type have an etag?
 		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
-		if(etag != null){
+		if (etag != null) {
 			validateEtagColumn(mapping.getTableName(), etag.getColumnName());
 			etagColumns.put(type, etag);
 		}
 		FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
 		this.backupIdColumns.put(type, backupId);
-		
+
 		String backupRangeSql = DMLUtils.getBackupRangeBatch(mapping);
 		this.backupSqlRangeMap.put(type, backupRangeSql);
 
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
 		if (typeTpObject.containsKey(type)) {
-			throw new IllegalArgumentException("Each DBO should have its own MigrationType. Found duplicated type for: "+dbo.getClass().getName());
+			throw new IllegalArgumentException("Each DBO should have its own MigrationType. Found duplicated type for: "
+					+ dbo.getClass().getName());
 		}
 		this.typeTpObject.put(type, dbo);
 		// The batch insert or update sql
 		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
 		this.insertOrUpdateSqlMap.put(type, sql);
 		// If this object has a sub table then register the sub table as well
-		if(dbo.getSecondaryTypes() != null){
+		if (dbo.getSecondaryTypes() != null) {
 			Iterator<MigratableDatabaseObject> it = dbo.getSecondaryTypes().iterator();
-			while(it.hasNext()){
+			while (it.hasNext()) {
 				registerObject(it.next(), false);
 			}
 		}
-		if(isRoot){
+		if (isRoot) {
 			this.rootTypes.add(type);
 		}
-		
+
 		registeredMigrationTypes.add(dbo.getMigratableTableType());
 
 	}
 
 	private void validateEtagColumn(String tableName, String columnName) {
-		String query =
-				"SELECT IS_NULLABLE \n" +
-				"FROM INFORMATION_SCHEMA.COLUMNS \n" +
-				"WHERE TABLE_NAME = ? \n" +
-				"AND COLUMN_NAME = ? \n";
+		String query = "SELECT IS_NULLABLE \n" + "FROM INFORMATION_SCHEMA.COLUMNS \n" + "WHERE TABLE_NAME = ? \n"
+				+ "AND COLUMN_NAME = ? \n";
 		try {
 			String isNullable = jdbcTemplate.queryForObject(query, String.class, tableName, columnName);
 			if (!"NO".equals(isNullable)) {
-				throw new IllegalArgumentException("etag column " + columnName + " must be NOT NULL for table " + tableName);
+				throw new IllegalArgumentException(
+						"etag column " + columnName + " must be NOT NULL for table " + tableName);
 			}
-		} catch (EmptyResultDataAccessException e){
-			throw new IllegalStateException("Could not find row for table="+tableName + " columnName="+columnName , e);
+		} catch (EmptyResultDataAccessException e) {
+			throw new IllegalStateException("Could not find row for table=" + tableName + " columnName=" + columnName,
+					e);
 		}
 	}
-	
+
 	/**
-	 * All backupIds columns of primary tables must have a uniqueness constraint (primary key or unique key).
-	 * If a non-unique column were allowed as a backupId there there would be data lost during
-	 * migration.  See: PLFM-2512.
+	 * All backupIds columns of primary tables must have a uniqueness constraint
+	 * (primary key or unique key). If a non-unique column were allowed as a
+	 * backupId there there would be data lost during migration. See: PLFM-2512.
 	 * 
 	 * Note: This requirement does NOT extend to secondary tables.
 	 * 
@@ -295,56 +309,51 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	 * @param mapping
 	 */
 	public void validateBackupColumn(TableMapping mapping) {
-		String backupColumnName = DMLUtils.getBackupIdColumnName(mapping)
-				.getColumnName();
+		String backupColumnName = DMLUtils.getBackupIdColumnName(mapping).getColumnName();
 		String sql = DMLUtils.getBackupUniqueValidation(mapping);
-		List<String> names = jdbcTemplate.query(sql,
-				new RowMapper<String>() {
-					@Override
-					public String mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						return rs.getString("Key_name");
-					}
-				});
+		List<String> names = jdbcTemplate.query(sql, new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString("Key_name");
+			}
+		});
 		if (names.isEmpty()) {
 			throw new IllegalArgumentException(
 					"BackupId columns must have a uniqueness constraint.  Could not find such a constraint for table: "
-							+ mapping.getTableName()
-							+ " column: "
-							+ backupColumnName);
+							+ mapping.getTableName() + " column: " + backupColumnName);
 		}
 		if (log.isDebugEnabled()) {
-			log.debug("The following uniqueness constraint were found for table: "
-					+ mapping.getTableName() + ":");
+			log.debug("The following uniqueness constraint were found for table: " + mapping.getTableName() + ":");
 			log.debug("\t" + names.toString());
 		}
-		
+
 		sql = DMLUtils.getColumnDataType(mapping.getTableName(), backupColumnName);
-		
+
 		String dataType = jdbcTemplate.queryForObject(sql, String.class);
-		
+
 		if (!"bigint".equalsIgnoreCase(dataType)) {
-			throw new IllegalArgumentException("Backup columns must be of \"bigint\" type. Found " + dataType + " for table: " 
-					+ mapping.getTableName()
-					+ " column: "
-					+ backupColumnName);
+			throw new IllegalArgumentException("Backup columns must be of \"bigint\" type. Found " + dataType
+					+ " for table: " + mapping.getTableName() + " column: " + backupColumnName);
 		}
 	}
-	
-	
+
 	@Override
 	public long getCount(MigrationType type) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		if (type == null)
+			throw new IllegalArgumentException("type cannot be null");
 		String countSql = this.countSqlMap.get(type);
-		if(countSql == null) throw new IllegalArgumentException("Cannot find count SQL for "+type);
+		if (countSql == null)
+			throw new IllegalArgumentException("Cannot find count SQL for " + type);
 		return jdbcTemplate.queryForObject(countSql, Long.class);
 	}
-	
+
 	@Override
 	public long getMaxId(MigrationType type) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		if (type == null)
+			throw new IllegalArgumentException("type cannot be null");
 		String maxSql = this.maxSqlMap.get(type);
-		if(maxSql == null) throw new IllegalArgumentException("Cannot find max SQL for "+type);
+		if (maxSql == null)
+			throw new IllegalArgumentException("Cannot find max SQL for " + type);
 		Long res = jdbcTemplate.queryForObject(maxSql, Long.class);
 		if (res == null) {
 			return 0;
@@ -355,9 +364,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	public long getMinId(MigrationType type) {
-		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		if (type == null)
+			throw new IllegalArgumentException("type cannot be null");
 		String minSql = this.minSqlMap.get(type);
-		if(minSql == null) throw new IllegalArgumentException("Cannot find min SQL for "+type);
+		if (minSql == null)
+			throw new IllegalArgumentException("Cannot find min SQL for " + type);
 		Long res = jdbcTemplate.queryForObject(minSql, Long.class);
 		if (res == null) {
 			return 0;
@@ -369,36 +380,41 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	<T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping mapping) {
 		return new BeanPropertySqlParameterSource(toCreate);
 	}
-	
+
 	/**
 	 * Get the type for a class.
+	 * 
 	 * @param clazz
 	 * @return
 	 */
-	private MigrationType getTypeForClass(Class<? extends DatabaseObject> clazz){
-		if(clazz == null) throw new IllegalArgumentException("Class cannot be null");
+	private MigrationType getTypeForClass(Class<? extends DatabaseObject> clazz) {
+		if (clazz == null)
+			throw new IllegalArgumentException("Class cannot be null");
 		MigrationType type = this.classToMapping.get(clazz);
-		if(type == null) throw new IllegalArgumentException("Cannot find the Type for Class: "+clazz.getName());
+		if (type == null)
+			throw new IllegalArgumentException("Cannot find the Type for Class: " + clazz.getName());
 		return type;
 	}
-	
+
 	private String getBatchBackupRangeSql(MigrationType type) {
 		String sql = this.backupSqlRangeMap.get(type);
-		if(sql == null) {
-			throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
+		if (sql == null) {
+			throw new IllegalArgumentException("Cannot find the batch backup SQL for type: " + type);
 		}
 		return sql;
 	}
-	
-	private String getInsertOrUpdateSql(MigrationType type){
+
+	private String getInsertOrUpdateSql(MigrationType type) {
 		String sql = this.insertOrUpdateSqlMap.get(type);
-		if(sql == null) throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: "+type);
+		if (sql == null)
+			throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: " + type);
 		return sql;
 	}
-	
-	private MigratableDatabaseObject getMigratableObject(MigrationType type){
+
+	private MigratableDatabaseObject getMigratableObject(MigrationType type) {
 		MigratableDatabaseObject ob = this.typeTpObject.get(type);
-		if(ob == null) throw new IllegalArgumentException("Cannot find the MigratableDatabaseObject for type: "+type);
+		if (ob == null)
+			throw new IllegalArgumentException("Cannot find the MigratableDatabaseObject for type: " + type);
 		return ob;
 	}
 
@@ -411,14 +427,16 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	public List<MigrationType> getPrimaryMigrationTypes() {
 		return rootTypes;
 	}
-		
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#runWithForeignKeyIgnored(java.util.concurrent.Callable)
+	 * 
+	 * @see org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO#
+	 * runWithForeignKeyIgnored(java.util.concurrent.Callable)
 	 */
 	@Override
 	public <T> T runWithKeyChecksIgnored(Callable<T> call) {
-		try{
+		try {
 			// unconditionally turn off foreign key checks.
 			setGlobalKeyChecks(false);
 			try {
@@ -426,19 +444,20 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
-		}finally{
+		} finally {
 			// unconditionally turn on foreign key checks.
 			setGlobalKeyChecks(true);
 		}
 	}
-	
+
 	/**
 	 * Helper to enable/disable foreign keys.
+	 * 
 	 * @param enabled
 	 */
 	private void setGlobalKeyChecks(boolean enabled) {
 		int value;
-		if(enabled){
+		if (enabled) {
 			// trun it on.
 			value = 1;
 		} else {
@@ -448,7 +467,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		jdbcTemplate.update(SET_FOREIGN_KEY_CHECKS, value);
 		jdbcTemplate.update(SET_UNIQUE_KEY_CHECKS, value);
 	}
-
 
 	@Override
 	public String getChecksumForIdRange(MigrationType type, String salt, long minId, long maxId) {
@@ -471,7 +489,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 			return cs.toString();
 		}
 	}
-	
+
 	@Override
 	public String getChecksumForType(MigrationType type) {
 		String sql = this.checksumTableSqlMap.get(type);
@@ -497,11 +515,6 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 
 	@Override
-	public boolean isMigrationTypeRegistered(MigrationType type) {
-		return this.registeredMigrationTypes.contains(type);
-	}
-
-	@Override
 	public List<ForeignKeyInfo> listNonRestrictedForeignKeys() {
 		String schema = stackConfiguration.getRepositoryDatabaseSchemaName();
 		return jdbcTemplate.query(SQL_SELECT_NONRESTRICTED_FOREIGN_KEYS, new RowMapper<ForeignKeyInfo>() {
@@ -514,9 +527,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				info.setTableName(rs.getString(TABLE_NAME));
 				info.setReferencedTableName(rs.getString(REFERENCED_TABLE_NAME));
 				return info;
-			}}, schema);
+			}
+		}, schema);
 	}
-	
+
 	@Override
 	public Iterable<MigratableDatabaseObject<?, ?>> streamDatabaseObjects(MigrationType type, Long minimumId,
 			Long maximumId, Long batchSize) {
@@ -526,14 +540,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		Map<String, Object> parameters = new HashMap<>(4);
 		parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
 		parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
-		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql, parameters, batchSize);
+		return new QueryStreamIterable<MigratableDatabaseObject<?, ?>>(namedTemplate, object.getTableMapping(), sql,
+				parameters, batchSize);
 	}
 
 	@Override
 	@MigrationWriteTransaction
 	public List<Long> createOrUpdate(final MigrationType type, final List<DatabaseObject<?>> batch) {
 		ValidateArgument.required(batch, "batch");
-		if(batch.isEmpty()) {
+		if (batch.isEmpty()) {
 			return new LinkedList<>();
 		}
 		// Foreign Keys must be ignored for this operation.
@@ -548,15 +563,16 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String sql = getInsertOrUpdateSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		int index = 0;
-		for(DatabaseObject<?> databaseObject: batch) {
-			SqlParameterSource parameterSource = getSqlParameterSource(databaseObject, databaseObject.getTableMapping());
-			
+		for (DatabaseObject<?> databaseObject : batch) {
+			SqlParameterSource parameterSource = getSqlParameterSource(databaseObject,
+					databaseObject.getTableMapping());
+
 			namedParameters[index] = parameterSource;
-			
+
 			Long id = extractBackupId(type, parameterSource);
-			
+
 			createOrUpdateIds.add(id);
-			
+
 			index++;
 		}
 		// execute the batch
@@ -564,11 +580,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		namedTemplate.batchUpdate(sql, namedParameters);
 		return createOrUpdateIds;
 	}
-	
+
 	Long extractBackupId(MigrationType type, SqlParameterSource parameterSource) {
 		FieldColumn backupIdColumn = this.backupIdColumns.get(type);
 		Object obj = parameterSource.getValue(backupIdColumn.getFieldName());
-		if(!(obj instanceof Long)) {
+		if (!(obj instanceof Long)) {
 			throw new IllegalArgumentException("Cannot get backup ID for type : " + type);
 		}
 		return (Long) obj;
@@ -577,10 +593,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	@Override
 	@MigrationWriteTransaction
 	public int deleteByRange(final TypeData type, final long minimumId, final long maximumId) {
-		ValidateArgument.required(type,"MigrationType");
+		ValidateArgument.required(type, "MigrationType");
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
-			String deleteSQLTemplate = this.deleteByRangeMap.get(type.getMigrationType());
+			String deleteSQLTemplate = this.deleteByRangeMap.get(MigrationType.valueOf(type.getMigrationType()));
 			String sql = String.format(deleteSQLTemplate, type.getBackupIdColumnName());
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			Map<String, Object> parameters = new HashMap<>(2);
@@ -597,7 +613,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		final IdRangeBuilder builder = new IdRangeBuilder(optimalNumberOfRows);
 		String sql = getPrimaryCardinalitySql(migrationType);
 		// need to use a streaming template for this case.
-		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(new StreamingJdbcTemplate(jdbcTemplate.getDataSource()));
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(
+				new StreamingJdbcTemplate(jdbcTemplate.getDataSource()));
 		Map<String, Object> parameters = new HashMap<>(2);
 		parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
 		parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
@@ -610,13 +627,15 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 				long primaryRowId = rs.getLong(1);
 				long cardinality = rs.getLong(2);
 				builder.addRow(primaryRowId, cardinality);
-			}});
+			}
+		});
 		// The build collates the results
 		return builder.collateResults();
 	}
 
 	/**
 	 * Get the SQL for a primary cardinality.
+	 * 
 	 * @param primaryType
 	 * @return
 	 */
@@ -625,8 +644,8 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		TableMapping primaryMapping = primaryObject.getTableMapping();
 		List<TableMapping<?>> secondaryMapping = new LinkedList<>();
 		List<MigratableDatabaseObject> secondaryTypes = primaryObject.getSecondaryTypes();
-		if(secondaryTypes != null) {
-			for(MigratableDatabaseObject secondary: secondaryTypes) {
+		if (secondaryTypes != null) {
+			for (MigratableDatabaseObject secondary : secondaryTypes) {
 				secondaryMapping.add(secondary.getTableMapping());
 			}
 		}
@@ -661,13 +680,23 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 
 	@Override
 	public TypeData getTypeData(MigrationType type) {
-		return new TypeData().setMigrationType(type).setBackupIdColumnName(
+		return new TypeData().setMigrationType(type.name()).setBackupIdColumnName(
 				DMLUtils.getBackupIdColumnName(getMigratableObject(type).getTableMapping()).getColumnName());
 	}
 
 	@Override
 	public List<MigratableDatabaseObject> getAllMigratableTypes() {
 		return this.typeTpObject.values().stream().collect(Collectors.toList());
+	}
+
+	@Override
+	public boolean isMigrationTypeRegistered(String type) {
+		try {
+			MigrationType migrationType = MigrationType.valueOf(type);
+			return this.registeredMigrationTypes.contains(migrationType);
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
 	}
 
 }

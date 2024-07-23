@@ -411,7 +411,7 @@ public class MigrationManagerImplAutowireTest {
 		
 		BackupManifest manifest = new BackupManifest()
 			.setAliasType(BackupAliasType.TABLE_NAME)
-			.setPrimaryType(new TypeData().setMigrationType(MigrationType.PRINCIPAL).setBackupIdColumnName("ID"))
+			.setPrimaryType(new TypeData().setMigrationType(MigrationType.PRINCIPAL.name()).setBackupIdColumnName("ID"))
 			.setBatchSize(batchSize)
 			.setMaximumId(minId)
 			.setMaximumId(maxId);
