@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.migration.ForeignKeyInfo;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
@@ -82,6 +83,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -220,8 +222,8 @@ public class MigrationManagerImplTest {
 		
 		backupKey = "backupkey";
 		
-		nodeTypeData = new TypeData().setMigrationType(MigrationType.NODE).setBackupIdColumnName("ID");
-		revisionTypeData = new TypeData().setMigrationType(MigrationType.NODE_REVISION).setBackupIdColumnName("OWNER_NODE_ID");
+		nodeTypeData = new TypeData().setMigrationType(MigrationType.NODE.name()).setBackupIdColumnName("ID");
+		revisionTypeData = new TypeData().setMigrationType(MigrationType.NODE_REVISION.name()).setBackupIdColumnName("OWNER_NODE_ID");
 		
 		manifest = new BackupManifest().setBatchSize(batchSize).setPrimaryType(nodeTypeData).setAliasType(backupAlias)
 				.setMaximumId(100L).setMinimumId(10L).setSecondaryTypes(Arrays.asList(revisionTypeData));
@@ -555,8 +557,8 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testRestoreStreamBatchByType() {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		
 		batchSize = 1000L;
 		manifest.setBatchSize(batchSize);
@@ -586,8 +588,8 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testRestoreStreamBatchBySize() throws IOException {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		
 		manifest.setBatchSize(1L);
 		// call under test
@@ -612,8 +614,8 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testRestoreStreamWithNullMaxid() {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		
 		manifest.setMaximumId(null);
 		
@@ -635,8 +637,8 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testRestoreStreamWithNullMinId() {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		
 		manifest.setMinimumId(null);
 		
@@ -659,7 +661,7 @@ public class MigrationManagerImplTest {
 	public void testRestoreStreamPrimaryNotRegistered() {
 		MigrationType primaryType = MigrationType.NODE;
 		// primary not registered
-		when(mockDao.isMigrationTypeRegistered(primaryType)).thenReturn(false);
+		when(mockDao.isMigrationTypeRegistered(primaryType.name())).thenReturn(false);
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
 		assertNotNull(response);
@@ -672,9 +674,9 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testRestoreStreamSecondaryNotRegistered() throws IOException {
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
 		// secondary not registered.
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(false);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(false);
 
 		// call under test
 		RestoreTypeResponse response = manager.restoreStream(mockInputStream, manifest);
@@ -741,7 +743,28 @@ public class MigrationManagerImplTest {
 		verify(mockS3Client).getObject(new GetObjectRequest(MigrationManagerImpl.backupBucket, manifestKey));
 		verify(objectStream).close();
 	}
-	
+
+	@Test
+	public void testGetManifestWithS3ManifestWithOldFile() throws Exception {
+		when(mockS3Client.doesObjectExist(any(), any())).thenReturn(true);
+
+		String manifestJSON = TestUtils.loadFromClasspath("manifest-test.json");
+		S3Object mockS3Object = Mockito.mock(S3Object.class);
+		S3ObjectInputStream objectStream = Mockito.spy(new S3ObjectInputStream(new StringInputStream(
+				manifestJSON), null));
+		
+		when(mockS3Object.getObjectContent()).thenReturn(objectStream);
+		when(mockS3Client.getObject(any())).thenReturn(mockS3Object);
+		String manifestKey = MigrationManagerImpl.createManifestKey(restoreTypeRequest.getBackupFileKey());
+		// Call under test
+		BackupManifest manifest = manager.getManifest(restoreTypeRequest);
+		assertNotNull(manifest);
+		
+		verify(mockS3Client).doesObjectExist(MigrationManagerImpl.backupBucket, manifestKey);
+		verify(mockS3Client).getObject(new GetObjectRequest(MigrationManagerImpl.backupBucket, manifestKey));
+		verify(objectStream).close();
+	}
+
 	@Test
 	public void testRestoreRequestNoRange() throws IOException {
 		when(mockS3Client.doesObjectExist(any(), any())).thenReturn(false);
@@ -750,8 +773,8 @@ public class MigrationManagerImplTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
 		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		when(mockDao.getTypeData(MigrationType.NODE)).thenReturn(nodeTypeData);
 		when(mockDao.getTypeData(MigrationType.NODE_REVISION)).thenReturn(revisionTypeData);
 		
@@ -783,7 +806,7 @@ public class MigrationManagerImplTest {
 		when(mockUser.isAdmin()).thenReturn(true);
 		when(mockBackupFileStream.readBackupFile(any(), any())).thenReturn(allObjects);
 		when(mockDao.getObjectForType(any())).thenReturn(new DBONode());
-		when(mockDao.isMigrationTypeRegistered(any())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(anyString())).thenReturn(true);
 		when(mockDao.getTypeData(MigrationType.NODE)).thenReturn(nodeTypeData);
 		when(mockDao.getTypeData(MigrationType.NODE_REVISION)).thenReturn(revisionTypeData);
 		
@@ -908,8 +931,8 @@ public class MigrationManagerImplTest {
 		verify(mockDao).deleteByRange(nodeTypeData, minimumId, maximumId);
 		// should delete the secondary
 		verify(mockDao).deleteByRange(revisionTypeData, minimumId, maximumId);
-		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE);
-		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE_REVISION);
+		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE.name());
+		verify(mockDao).isMigrationTypeRegistered(MigrationType.NODE_REVISION.name());
 	}
 	
 	@Test
@@ -953,8 +976,8 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testDeleteByRangeWithNotRegisteredPrimary() {
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(false);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(false);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(true);
 		
 		long minimumId = 3L;
 		long maximumId = 45L;
@@ -969,8 +992,8 @@ public class MigrationManagerImplTest {
 	
 	@Test
 	public void testDeleteByRangeWithNotRegisteredSecondary() {
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE)).thenReturn(true);
-		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION)).thenReturn(false);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE.name())).thenReturn(true);
+		when(mockDao.isMigrationTypeRegistered(MigrationType.NODE_REVISION.name())).thenReturn(false);
 		long minimumId = 3L;
 		long maximumId = 45L;
 		manifest.setMinimumId(minimumId);
