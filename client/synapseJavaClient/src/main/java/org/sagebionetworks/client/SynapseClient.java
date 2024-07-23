@@ -58,6 +58,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResponseMessage;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
+import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.Team;
@@ -3366,6 +3368,15 @@ public interface SynapseClient extends BaseClient {
 	 */
 	RestrictionInformationResponse getRestrictionInformation(RestrictionInformationRequest request) throws SynapseException;
 
+	/**
+	 * Retrieve the restriction information for a batch of restrictable objects.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	RestrictionInformationBatchResponse getRestrictionInformationBatch(RestrictionInformationBatchRequest request) throws SynapseException;
+	
 	/**
 	 * Retrieve the information about submitted Submissions.
 	 * @param nextPageToken
