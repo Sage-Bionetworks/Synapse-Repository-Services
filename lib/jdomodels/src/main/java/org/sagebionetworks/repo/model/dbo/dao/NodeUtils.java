@@ -37,7 +37,6 @@ public class NodeUtils {
 	
 	public static final String ROOT_ENTITY_ID = StackConfigurationSingleton.singleton().getRootFolderEntityId();
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(Reference.class).build();
 
 	/**
 	 * Used to update an existing object
@@ -95,7 +94,7 @@ public class NodeUtils {
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
 		rev.setItems(writeItemsToJson(dto.getItems()));
-		rev.setReference(compressReference(dto.getReference()));
+		rev.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getReference()));
 		rev.setIsSearchEnabled(dto.getIsSearchEnabled());
 		rev.setDefiningSQL(dto.getDefiningSQL());
 	}
@@ -133,19 +132,6 @@ public class NodeUtils {
 	}
 
 	/**
-	 * Convert the passed reference to a compressed (zip) byte array
-	 * @param dto
-	 * @return the compressed reference
-	 */
-	public static byte[] compressReference(Reference dto) {
-		try {
-			return JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto);
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-	
-	/**
 	 * Translate a Node to DBONode.
 	 * @param dto
 	 * @return
@@ -182,7 +168,7 @@ public class NodeUtils {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
-		dbo.setReference(compressReference(dto.getReference()));
+		dbo.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getReference()));
 		dbo.setItems(writeItemsToJson(dto.getItems()));
 		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
 		dbo.setDefiningSQL(dto.getDefiningSQL());
@@ -299,12 +285,7 @@ public class NodeUtils {
 		if(rev.getActivityId() != null) {
 			dto.setActivityId(rev.getActivityId().toString());
 		} 
-		
-		try {
-			dto.setReference((Reference) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, rev.getReference()));
-		} catch (IOException e) {
-			throw new IllegalArgumentException(e);
-		}
+		dto.setReference(JDOSecondaryPropertyUtils.createObejctFromJSON(Reference.class, rev.getReferenceJson()));
 		if(rev.getColumnModelIds() != null){
 			dto.setColumnModelIds(createIdListFromBytes(rev.getColumnModelIds()));
 		}

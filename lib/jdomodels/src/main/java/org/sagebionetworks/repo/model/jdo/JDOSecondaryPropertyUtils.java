@@ -65,29 +65,38 @@ public class JDOSecondaryPropertyUtils {
 	}
 	
 	/**
-	 * Wraps a call to {@link EntityFactory#createEntityFromJSONString(String, Class)}
-	 * with check exceptions thrown as {@link RuntimeException}.
+	 * Wraps a call to
+	 * {@link EntityFactory#createEntityFromJSONString(String, Class)} with check
+	 * exceptions thrown as {@link RuntimeException}.
+	 * 
 	 * @param <T>
 	 * @param type
 	 * @param json
 	 * @return
 	 */
 	public static <T extends JSONEntity> T createObejctFromJSON(Class<? extends T> type, String json) {
+		if (json == null) {
+			return null;
+		}
 		try {
 			return EntityFactory.createEntityFromJSONString(json, type);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Wraps a call to {@link EntityFactory#createJSONStringForEntity(JSONEntity)}
 	 * with checked exceptions thrown as {@link RuntimeException}
+	 * 
 	 * @param <T>
 	 * @param object
 	 * @return
 	 */
 	public static <T extends JSONEntity> String createJSONFromObject(T object) {
+		if (object == null) {
+			return null;
+		}
 		try {
 			return EntityFactory.createJSONStringForEntity(object);
 		} catch (JSONObjectAdapterException e) {

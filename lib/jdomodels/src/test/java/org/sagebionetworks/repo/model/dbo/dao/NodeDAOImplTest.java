@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -100,6 +102,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -5774,5 +5777,16 @@ public class NodeDAOImplTest {
 		assertNotNull(result.getPath());
 		assertEquals(827, result.getPath().length());
 	}
-	
+
+	@Test
+	public void testMigrationXStreamToJson() throws IOException {
+		Reference dto = new Reference().setTargetId("123");
+		DBORevision dbo = new DBORevision();
+		dbo.setReference(JDOSecondaryPropertyUtils
+				.compressObject(UnmodifiableXStream.builder().allowTypes(Reference.class).build(), dto));
+		// call under test
+		DBORevision translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(translated.getReference());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(dto), translated.getReferenceJson());
+	}	
 }

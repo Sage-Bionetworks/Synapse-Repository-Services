@@ -149,7 +149,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(bytes);
-		result = prime * result + Objects.hash(hash, id, name);
+		result = prime * result + Objects.hash(hash, id, json, name);
 		return result;
 	}
 
@@ -163,7 +163,13 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 			return false;
 		DBOColumnModel other = (DBOColumnModel) obj;
 		return Arrays.equals(bytes, other.bytes) && Objects.equals(hash, other.hash) && Objects.equals(id, other.id)
-				&& Objects.equals(name, other.name);
+				&& Objects.equals(json, other.json) && Objects.equals(name, other.name);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOColumnModel [id=" + id + ", name=" + name + ", hash=" + hash + ", bytes=" + Arrays.toString(bytes)
+				+ ", json=" + json + "]";
 	}
 
 }

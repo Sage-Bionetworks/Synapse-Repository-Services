@@ -39,7 +39,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
 	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
 	public static final String COL_REVISION_USER_ANNOS_JSON	= "USER_ANNOTATIONS";
-	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";
+	public static final String COL_REVISION_REF_JSON		= "REFERENCE_JSON";
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";

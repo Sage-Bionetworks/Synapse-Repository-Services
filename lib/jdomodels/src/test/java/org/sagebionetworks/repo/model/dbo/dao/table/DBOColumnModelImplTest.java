@@ -488,6 +488,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel rootResult2 = columnModelDao.createColumnModel(root);
 		assertEquals(rootResult, rootResult2);
 	}
+
 	@Test
 	public void testMigrationXStreamToJson() throws IOException {
 		ColumnModel dto = new ColumnModel().setId("123").setName("foo");

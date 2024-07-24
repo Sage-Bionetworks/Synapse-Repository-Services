@@ -378,7 +378,7 @@ public class NodeUtilsTest {
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, dbo.getRevisionNumber());
 		assertEquals(dto.getVersionComment(), dbo.getComment());
 		assertEquals(new Long(123), dbo.getOwner());
-		assertNotNull(dbo.getReference());
+		assertNotNull(dbo.getReferenceJson());
 		assertEquals(
 				"[{\"entityId\":\"syn555\",\"versionNumber\":2},{\"entityId\":\"syn777\",\"versionNumber\":4}]",
 				dbo.getItems());
