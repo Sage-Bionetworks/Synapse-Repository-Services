@@ -104,7 +104,7 @@ public class TableEntityManagerImpl implements TableEntityManager {
 	/**
 	 * See PLFM-4774
 	 */
-	public static final long MAXIMUM_VERSIONS_PER_TABLE = 30*1000;
+	public static final long MAXIMUM_VERSIONS_PER_TABLE = 45_000;
 	
 	/**
 	 * See: PLFM-5456
