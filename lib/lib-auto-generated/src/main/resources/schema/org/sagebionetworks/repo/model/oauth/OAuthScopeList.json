@@ -1,0 +1,11 @@
+{
+ 	"properties": {
+		"list":{
+			"type": "array",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.oauth.OAuthScope"
+			}
+		}
+	}
+}
+

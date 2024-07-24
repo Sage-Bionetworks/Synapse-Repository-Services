@@ -1122,8 +1122,8 @@ public class SqlConstants {
 	public static final String COL_OAUTH_REFRESH_TOKEN_NAME =							"NAME";
 	public static final String COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CLIENT_ID =						"CLIENT_ID";
-	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPES =							"SCOPES";
-	public static final String COL_OAUTH_REFRESH_TOKEN_CLAIMS =							"CLAIMS";
+	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPES_JSON =					"SCOPES_JSON";
+	public static final String COL_OAUTH_REFRESH_TOKEN_CLAIMS_JSON =					"CLAIMS_JSON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_LAST_USED =						"LAST_USED";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CREATED_ON =						"CREATED_ON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON =					"MODIFIED_ON";

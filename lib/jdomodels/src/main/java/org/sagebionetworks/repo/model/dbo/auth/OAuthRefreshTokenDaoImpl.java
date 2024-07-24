@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OAuthScopeList;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -124,6 +125,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	public static DBOOAuthRefreshToken refreshTokenDtoToDbo(OAuthRefreshTokenInformation dto) {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
+		dbo.setScopesJson(JDOSecondaryPropertyUtils.createJSONFromListOfObjects(dto.getScopes()));
 		try {
 			dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getScopes()));
 			dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto.getClaims()));

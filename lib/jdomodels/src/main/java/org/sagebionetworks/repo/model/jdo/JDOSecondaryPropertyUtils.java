@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -99,6 +100,17 @@ public class JDOSecondaryPropertyUtils {
 		}
 		try {
 			return EntityFactory.createJSONStringForEntity(object);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static <T extends JSONEntity> String createJSONFromListOfObjects(List<T> object) {
+		if (object == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.writeToJSONArrayString(object);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}

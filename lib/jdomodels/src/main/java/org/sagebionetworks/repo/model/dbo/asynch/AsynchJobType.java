@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
 import org.sagebionetworks.StackConfigurationSingleton;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
@@ -90,26 +89,6 @@ public enum AsynchJobType {
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
 
-	// since both request and response alias to the same name, we must create
-	// separate XStream instances for request and response.
-	private static final UnmodifiableXStream REQUEST_X_STREAM;
-	private static final UnmodifiableXStream RESPONSE_X_STREAM;
-
-	static {
-		UnmodifiableXStream.Builder requestXStreamBuilder = UnmodifiableXStream.builder();
-		requestXStreamBuilder.allowTypeHierarchy(AsynchronousRequestBody.class);
-		UnmodifiableXStream.Builder responseXStreamBuilder = UnmodifiableXStream.builder();
-		responseXStreamBuilder.allowTypeHierarchy(AsynchronousResponseBody.class);
-
-		for (AsynchJobType type : values()) {
-			requestXStreamBuilder.alias(type.name(), type.requestClass);
-			responseXStreamBuilder.alias(type.name(), type.responseClass);
-		}
-
-		REQUEST_X_STREAM = requestXStreamBuilder.build();
-		RESPONSE_X_STREAM = responseXStreamBuilder.build();
-	}
-
 	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass,
 			Class<? extends AsynchronousResponseBody> responseClass) {
 		this.requestClass = requestClass;
@@ -142,22 +121,6 @@ public enum AsynchJobType {
 
 	public Class<? extends AsynchronousResponseBody> getResponseClass() {
 		return this.responseClass;
-	}
-
-	/**
-	 *
-	 * @return XStream used for serializing/deserializing AsynchronousRequestBody
-	 */
-	public static UnmodifiableXStream getRequestXStream() {
-		return REQUEST_X_STREAM;
-	}
-
-	/**
-	 *
-	 * @return XStream used for serializing/deserializing AsynchronousResponseBody
-	 */
-	public static UnmodifiableXStream getResponseXStream() {
-		return RESPONSE_X_STREAM;
 	}
 
 	/**
