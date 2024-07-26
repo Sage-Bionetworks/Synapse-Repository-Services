@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.dbo;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class EvaluationBackup {
 	private Long id;
@@ -14,9 +15,17 @@ public class EvaluationBackup {
 	private byte[] submissionInstructions;
 	private byte[] submissionReceiptMessage;
 	private byte[] quota;
+	private String quotaJson;
 	private Long startTimestamp;
 	private Long endTimestamp;
 	
+	
+	public String getQuotaJson() {
+		return quotaJson;
+	}
+	public void setQuotaJson(String quotaJson) {
+		this.quotaJson = quotaJson;
+	}
 	public Long getId() {
 		return id;
 	}
@@ -102,19 +111,12 @@ public class EvaluationBackup {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((contentSource == null) ? 0 : contentSource.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result + ((endTimestamp == null) ? 0 : endTimestamp.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + Arrays.hashCode(quota);
-		result = prime * result + ((startTimestamp == null) ? 0 : startTimestamp.hashCode());
-		result = prime * result + status;
 		result = prime * result + Arrays.hashCode(submissionInstructions);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
+		result = prime * result + Objects.hash(contentSource, createdOn, eTag, endTimestamp, id, name, ownerId,
+				quotaJson, startTimestamp, status);
 		return result;
 	}
 	@Override
@@ -126,57 +128,14 @@ public class EvaluationBackup {
 		if (getClass() != obj.getClass())
 			return false;
 		EvaluationBackup other = (EvaluationBackup) obj;
-		if (contentSource == null) {
-			if (other.contentSource != null)
-				return false;
-		} else if (!contentSource.equals(other.contentSource))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (!Arrays.equals(description, other.description))
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (endTimestamp == null) {
-			if (other.endTimestamp != null)
-				return false;
-		} else if (!endTimestamp.equals(other.endTimestamp))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (ownerId == null) {
-			if (other.ownerId != null)
-				return false;
-		} else if (!ownerId.equals(other.ownerId))
-			return false;
-		if (!Arrays.equals(quota, other.quota))
-			return false;
-		if (startTimestamp == null) {
-			if (other.startTimestamp != null)
-				return false;
-		} else if (!startTimestamp.equals(other.startTimestamp))
-			return false;
-		if (status != other.status)
-			return false;
-		if (!Arrays.equals(submissionInstructions, other.submissionInstructions))
-			return false;
-		if (!Arrays.equals(submissionReceiptMessage, other.submissionReceiptMessage))
-			return false;
-		return true;
+		return Objects.equals(contentSource, other.contentSource) && Objects.equals(createdOn, other.createdOn)
+				&& Arrays.equals(description, other.description) && Objects.equals(eTag, other.eTag)
+				&& Objects.equals(endTimestamp, other.endTimestamp) && Objects.equals(id, other.id)
+				&& Objects.equals(name, other.name) && Objects.equals(ownerId, other.ownerId)
+				&& Arrays.equals(quota, other.quota) && Objects.equals(quotaJson, other.quotaJson)
+				&& Objects.equals(startTimestamp, other.startTimestamp) && status == other.status
+				&& Arrays.equals(submissionInstructions, other.submissionInstructions)
+				&& Arrays.equals(submissionReceiptMessage, other.submissionReceiptMessage);
 	}
 	@Override
 	public String toString() {
