@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -28,7 +30,9 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
 import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OAuthScopeList;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 
@@ -149,19 +153,19 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		this.clientId = clientId;
 	}
 
-	private byte[] getScopes() {
+	public byte[] getScopes() {
 		return this.scopes;
 	}
 
-	private void setScopes(byte[] scopes) {
+	public void setScopes(byte[] scopes) {
 		this.scopes = scopes;
 	}
 
-	private byte[] getClaims() {
+	public byte[] getClaims() {
 		return claims;
 	}
 
-	private void setClaims(byte[] claims) {
+	public void setClaims(byte[] claims) {
 		this.claims = claims;
 	}
 
@@ -259,13 +263,48 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		return MigrationType.OAUTH_REFRESH_TOKEN;
 	}
 	
+	public static UnmodifiableXStream XSTREAM = UnmodifiableXStream.builder()
+			.allowTypes(List.class, OAuthScope.class, OIDCClaimsRequest.class).build();
+	
 	@Override
 	public MigratableTableTranslation<DBOOAuthRefreshToken, DBOOAuthRefreshToken> getTranslator() {
-		return new MigrateFromXStreamToJSON<DBOOAuthRefreshToken>(
-				XStreamToJsonTranslator.builder().setFromName("scopes").setToName("scopseJson")
-						.setDboType(getBackupClass()).setDtoType(OAuthScopeList.class).build(),
-				XStreamToJsonTranslator.builder().setFromName("claims").setToName("claimsJson")
-						.setDboType(getBackupClass()).setDtoType(OIDCClaimsRequest.class).build());
+		return new MigratableTableTranslation<DBOOAuthRefreshToken, DBOOAuthRefreshToken>() {
+
+			@Override
+			public DBOOAuthRefreshToken createDatabaseObjectFromBackup(DBOOAuthRefreshToken backup) {
+				try {
+					if (backup.getScopes() != null) {
+						if (backup.getScopesJson() != null) {
+							throw new IllegalArgumentException(
+									String.format("Both '%s' and '%s' are not null", "scopes", "scopesJson"));
+						}
+						List<OAuthScope> scopes = (List<OAuthScope>) JDOSecondaryPropertyUtils.decompressObject(XSTREAM,
+								backup.getScopes());
+						backup.setScopesJson(
+								JDOSecondaryPropertyUtils.createJSONFromObject(new OAuthScopeList().setList(scopes)));
+						backup.setScopes(null);
+					}
+					if (backup.getClaims() != null) {
+						if (backup.getClaimsJson() != null) {
+							throw new IllegalArgumentException(
+									String.format("Both '%s' and '%s' are not null", "claims", "claimsJson"));
+						}
+						OIDCClaimsRequest claim = (OIDCClaimsRequest) JDOSecondaryPropertyUtils
+								.decompressObject(XSTREAM, backup.getClaims());
+						backup.setClaimsJson(JDOSecondaryPropertyUtils.createJSONFromObject(claim));
+						backup.setClaims(null);
+					}
+					return backup;
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+			@Override
+			public DBOOAuthRefreshToken createBackupFromDatabaseObject(DBOOAuthRefreshToken dbo) {
+				return dbo;
+			}
+		};
 	}
 
 

@@ -104,15 +104,5 @@ public class JDOSecondaryPropertyUtils {
 			throw new RuntimeException(e);
 		}
 	}
-
-	public static <T extends JSONEntity> String createJSONFromListOfObjects(List<T> object) {
-		if (object == null) {
-			return null;
-		}
-		try {
-			return EntityFactory.writeToJSONArrayString(object);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-	}
+	
 }

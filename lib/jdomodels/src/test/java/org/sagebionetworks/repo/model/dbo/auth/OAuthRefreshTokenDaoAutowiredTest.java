@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
+import org.sagebionetworks.repo.model.oauth.OAuthScopeList;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
@@ -60,8 +61,6 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 	private static final String SECTOR_IDENTIFIER_URI = "https://client.uri.com/path/to/json/file";
 
 	private static final String userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
-
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().build();
 
 	private static final Long ONE_HOUR_MILLIS = 1000L * 60 * 60;
 	private static final Long ONE_DAY_MILLIS = ONE_HOUR_MILLIS * 24;
@@ -213,14 +212,14 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
 		dbo.setName(UUID.randomUUID().toString());
 		dbo.setId(11111L);
-		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(X_STREAM, Arrays.asList(OAuthScope.modify, OAuthScope.authorize)));
+		dbo.setScopesJson(JDOSecondaryPropertyUtils.createJSONFromObject(new OAuthScopeList().setList(Arrays.asList(OAuthScope.modify, OAuthScope.authorize))));
 		Map<String, OIDCClaimsRequestDetails> idTokenClaims = new HashMap<>();
 		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
 		detail.setEssential(true);
 		idTokenClaims.put(OIDCClaimName.userid.name(), detail);
 		OIDCClaimsRequest claims = new OIDCClaimsRequest();
 		claims.setId_token(idTokenClaims);
-		dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(X_STREAM, claims));
+		dbo.setClaimsJson(JDOSecondaryPropertyUtils.createJSONFromObject(claims));
 		dbo.setClientId(888888L);
 		dbo.setPrincipalId(999999L);
 		dbo.setModifiedOn(new Timestamp(System.currentTimeMillis()));
@@ -473,5 +472,74 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis() - ONE_YEAR_MILLIS));
 		// Call under test
 		assertFalse(oauthRefreshTokenDao.isTokenActive(token.getTokenId(), HALF_YEAR_DAYS));
+	}
+	
+	@Test
+	public void testMigrationXStreamToJson() throws IOException {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		Map<String, OIDCClaimsRequestDetails> idTokenClaims = new HashMap<>();
+		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
+		detail.setEssential(true);
+		idTokenClaims.put(OIDCClaimName.userid.name(), detail);
+		OIDCClaimsRequest claims = new OIDCClaimsRequest();
+		claims.setId_token(idTokenClaims);
+		token.setClaims(claims);
+		
+		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
+		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, token.getScopes()));
+		dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, claims));
+
+		// call under test
+		DBOOAuthRefreshToken translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(translated.getScopes());
+		assertNull(translated.getClaims());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(new OAuthScopeList().setList(token.getScopes())), translated.getScopesJson());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(claims), translated.getClaimsJson());
+	}
+
+	@Test
+	public void testMigrationXStreamToJsonWithScopeAndScopJsonSet() throws IOException {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		Map<String, OIDCClaimsRequestDetails> idTokenClaims = new HashMap<>();
+		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
+		detail.setEssential(true);
+		idTokenClaims.put(OIDCClaimName.userid.name(), detail);
+		OIDCClaimsRequest claims = new OIDCClaimsRequest();
+		claims.setId_token(idTokenClaims);
+		token.setClaims(claims);
+		
+		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
+		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, token.getScopes()));
+		dbo.setScopesJson("should not be set");
+		dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, claims));
+
+		String message = assertThrows(RuntimeException.class, () -> {
+			// call under test
+			dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		}).getMessage();
+		assertEquals("Both 'scopes' and 'scopesJson' are not null",message);
+	}
+
+	@Test
+	public void testMigrationXStreamToJsonWithClaimAndClaimJsonSet() throws IOException {
+		OAuthRefreshTokenInformation token = createRefreshToken(new Date(System.currentTimeMillis()));
+		Map<String, OIDCClaimsRequestDetails> idTokenClaims = new HashMap<>();
+		OIDCClaimsRequestDetails detail = new OIDCClaimsRequestDetails();
+		detail.setEssential(true);
+		idTokenClaims.put(OIDCClaimName.userid.name(), detail);
+		OIDCClaimsRequest claims = new OIDCClaimsRequest();
+		claims.setId_token(idTokenClaims);
+		token.setClaims(claims);
+
+		DBOOAuthRefreshToken dbo = new DBOOAuthRefreshToken();
+		dbo.setScopes(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, token.getScopes()));
+		dbo.setClaims(JDOSecondaryPropertyUtils.compressObject(DBOOAuthRefreshToken.XSTREAM, claims));
+		dbo.setClaimsJson("should not be set");
+
+		String message = assertThrows(RuntimeException.class, () -> {
+			// call under test
+			dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		}).getMessage();
+		assertEquals("Both 'claims' and 'claimsJson' are not null", message);
 	}
 }
