@@ -191,6 +191,32 @@ public class ObjectSchemaUtilsTest {
 	}
 
 	@Test
+	public void testTranslateObjectSchemaToJsonSchemaWithArrayWithUniqueItems() {
+		ObjectSchema objectSchema = new ObjectSchemaImpl();
+		ObjectSchema items = new ObjectSchemaImpl();
+
+		objectSchema.setType(TYPE.ARRAY);
+		objectSchema.setItems(items);
+		objectSchema.setId("MOCK_ID");
+		objectSchema.setUniqueItems(true);
+
+		items.setType(TYPE.STRING);
+
+		doReturn(Type.array).when(util).translateObjectSchemaTypeToJsonSchemaType(any(TYPE.class));
+		doReturn(false).when(util).isSelfReferencing(any(ObjectSchema.class));
+
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.array);
+		expected.setItems(new OpenApiJsonSchema().setType(Type.string));
+		expected.setUniqueItems(true);
+
+		// call under test
+		assertEquals(expected, util.translateObjectSchemaToJsonSchema(objectSchema));
+		verify(util).translateObjectSchemaTypeToJsonSchemaType(TYPE.ARRAY);
+	}
+
+
+	@Test
 	public void testTranslateObjectSchemaToJsonSchemaWithEnumType() {
 		ObjectSchema objectSchema = new ObjectSchemaImpl();
 		EnumValue[] enumValues = {
@@ -420,6 +446,20 @@ public class ObjectSchemaUtilsTest {
 		// call under test
 		OpenApiJsonSchema result = util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID");
 		assertTrue(result.getDescription().equals("MOCK_DESCRIPTION"));
+	}
+
+	@Test
+	public void testTranslateObjectSchemaPropertyToJsonSchemaSetsUniqueItemsWhenPresent() throws JSONObjectAdapterException {
+		ObjectSchema objectSchema;
+		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
+		objectSchema = new ObjectSchemaImpl(adpater);
+		objectSchema.setType(TYPE.OBJECT);
+		objectSchema.setUniqueItems(true);
+
+		Mockito.doNothing().when(util).populateSchemaForObjectType(any(), any(), any());
+		// call under test
+		OpenApiJsonSchema result = util.translateObjectSchemaPropertyToJsonSchema(objectSchema, "MOCK_ID");
+		assertTrue(result.getUniqueItems().equals(true));
 	}
 	
 	@Test
