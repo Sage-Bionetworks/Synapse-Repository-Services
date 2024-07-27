@@ -59,7 +59,7 @@ public class EvaluationTranslationUtilTest {
 		backup.setOwnerId(999l);
 		backup.setSubmissionInstructions("foo".getBytes("UTF-8"));
 		backup.setSubmissionReceiptMessage("bar".getBytes("UTF-8"));
-		backup.setQuota((new String("evaluation quota info goes here")).getBytes());
+		backup.setQuotaJson("{}");
 		backup.setStartTimestamp(System.currentTimeMillis());
 		backup.setEndTimestamp(System.currentTimeMillis()+1000L);
 		// Create the dbo
