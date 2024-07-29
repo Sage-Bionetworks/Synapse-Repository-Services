@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_BYTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_COLUMN_MODEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
@@ -11,13 +11,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
+import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 
 /**
  * Database Object (DBO) for the Table Column Model.
@@ -30,13 +33,14 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 		new FieldColumn("id", COL_CM_ID, true).withIsBackupId(true),
 		new FieldColumn("name", COL_CM_NAME),
 		new FieldColumn("hash", COL_CM_HASH),
-		new FieldColumn("bytes", COL_CM_BYTES),
+		new FieldColumn("json", COL_CM_JSON),
 	};
 	
 	private Long id;
 	private String name;
 	private String hash;
 	private byte[] bytes;
+	private String json;
 
 	@Override
 	public TableMapping<DBOColumnModel> getTableMapping() {
@@ -47,10 +51,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 				model.setId(rs.getLong(COL_CM_ID));
 				model.setName(rs.getString(COL_CM_NAME));
 				model.setHash(rs.getString(COL_CM_HASH));
-				java.sql.Blob blob = rs.getBlob(COL_CM_BYTES);
-				if(blob != null){
-					model.setBytes(blob.getBytes(1, (int) blob.length()));
-				}
+				model.setJson(rs.getString(COL_CM_JSON));
 				return model;
 			}
 
@@ -114,11 +115,20 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 		return MigrationType.COLUMN_MODEL;
 	}
 
-	@Override
-	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOColumnModel>();
+	public String getJson() {
+		return json;
 	}
 
+	public void setJson(String json) {
+		this.json = json;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
+		return new MigrateFromXStreamToJSON<DBOColumnModel>(
+				XStreamToJsonTranslator.builder().setFromName("bytes").setToName("json")
+						.setDboType(getBackupClass()).setDtoType(ColumnModel.class).build());
+	}
 	@Override
 	public Class<? extends DBOColumnModel> getBackupClass() {
 		return DBOColumnModel.class;
@@ -139,9 +149,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(bytes);
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((hash == null) ? 0 : hash.hashCode());
+		result = prime * result + Objects.hash(hash, id, json, name);
 		return result;
 	}
 
@@ -154,24 +162,14 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 		if (getClass() != obj.getClass())
 			return false;
 		DBOColumnModel other = (DBOColumnModel) obj;
-		if (!Arrays.equals(bytes, other.bytes))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (hash == null) {
-			if (other.hash != null)
-				return false;
-		} else if (!hash.equals(other.hash))
-			return false;
-		return true;
+		return Arrays.equals(bytes, other.bytes) && Objects.equals(hash, other.hash) && Objects.equals(id, other.id)
+				&& Objects.equals(json, other.json) && Objects.equals(name, other.name);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOColumnModel [id=" + id + ", name=" + name + ", hash=" + hash + ", bytes=" + Arrays.toString(bytes)
+				+ ", json=" + json + "]";
 	}
 
 }

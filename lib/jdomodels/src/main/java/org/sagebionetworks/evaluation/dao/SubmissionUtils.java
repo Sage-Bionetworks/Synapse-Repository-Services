@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class SubmissionUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionStatus.class).build();
 
 	/**
 	 * Copy a Submission data transfer object to a SubmissionDBO database object
@@ -172,22 +171,14 @@ public class SubmissionUtils {
 		
 		dto.setSubmissionAnnotations(null);
 		
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
+		dbo.setEntityJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto));
 		
 		// Put back the previous annotations
 		dto.setSubmissionAnnotations(currentAnnotations);
 	}
 	
 	public static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getSerializedEntity());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
+		return JDOSecondaryPropertyUtils.createObejctFromJSON(SubmissionStatus.class, dbo.getEntityJson());
 	}
 	
 }

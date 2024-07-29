@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -77,7 +78,7 @@ public class DBORevisionTest {
 		DBORevision rev = new DBORevision();
 		rev.setOwner(node.getId());
 		rev.setRevisionNumber(new Long(1));
-		rev.setReference(null);
+		rev.setReferenceJson(null);
 		rev.setComment(null);
 		rev.setLabel(""+rev.getRevisionNumber());
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -95,8 +96,7 @@ public class DBORevisionTest {
 		assertEquals(rev, clone);
 		// Update with some values
 		Reference ref = new Reference();
-		byte[] blob = NodeUtils.compressReference(ref);
-		clone.setReference(blob);
+		clone.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(ref));
 		clone.setComment("No comment!");
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);

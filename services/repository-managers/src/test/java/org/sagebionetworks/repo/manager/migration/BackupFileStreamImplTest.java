@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,10 +31,14 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationFileType;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProvider;
 import org.sagebionetworks.repo.model.dbo.migration.MigrationTypeProviderImpl;
@@ -46,11 +54,20 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import com.amazonaws.util.StringInputStream;
 import com.google.common.collect.Lists;
 
+@ExtendWith(MockitoExtension.class)
 public class BackupFileStreamImplTest {
 	
 	private MigrationTypeProvider typeProvider;
 
 	private BackupFileStreamImpl backupFileStream;
+	private BackupFileStreamImpl backupFileStreamSpy;
+	
+	@Mock
+	private MigratableDatabaseObject<DBONode, DBONode> mockDatabaseObject;
+	
+	@Mock
+	private MigratableTableTranslation<DBONode, DBONode> mockTranslator;
+	
 	
 	ByteArrayOutputStream byteArrayOutputStream;
 	ZipOutputStream zipOutputStream;
@@ -120,6 +137,7 @@ public class BackupFileStreamImplTest {
 				new DBOAccessControlList(), new DBOResourceAccess(), new DBOResourceAccessType(), new DBOCredential()));
 		
 		this.backupFileStream = new BackupFileStreamImpl(typeProvider);
+		this.backupFileStreamSpy = Mockito.spy(backupFileStream);
 		
 	}
 	
@@ -513,20 +531,35 @@ public class BackupFileStreamImplTest {
 	
 	@Test
 	public void testReadFileFromStream() throws Exception {
+		doReturn(new DBOCredential().getTranslator()).when(backupFileStreamSpy).getCachedTranslator(any());
 		BackupAliasType aliasType = BackupAliasType.TABLE_NAME;
 		MigrationType type = MigrationType.CREDENTIAL;
 		StringWriter writer = new StringWriter();
-		backupFileStream.writeBatchToStream(credentials, type, aliasType, writer);
+		backupFileStreamSpy.writeBatchToStream(credentials, type, aliasType, writer);
 		String xml = writer.toString();
 		
 		StringInputStream input = new StringInputStream(xml);
 		int index = 0;
 		String fileName = BackupFileStreamImpl.createFileName(MigrationType.CREDENTIAL, index);
 		// Call under test
-		Optional<List<MigratableDatabaseObject<?, ?>>> results = backupFileStream.readFileFromStream(input, backupAliasType, fileName);
+		Optional<List<MigratableDatabaseObject<?, ?>>> results = backupFileStreamSpy.readFileFromStream(input, backupAliasType, fileName);
 		assertNotNull(results.get());
 		assertEquals(2, results.get().size());
 		assertEquals(credentialTwo, results.get().get(1));
+		// Called once on the write and another on the read.
+		verify(backupFileStreamSpy, times(2)).getCachedTranslator(new DBOCredential());
 	}
+	
+	@Test
+	public void testGetCachedTranslator() {
+		when(mockDatabaseObject.getTranslator()).thenReturn(mockTranslator);
+		// call under test
+		MigratableTableTranslation<DBONode, DBONode> trans =  backupFileStream.getCachedTranslator(mockDatabaseObject);
+		MigratableTableTranslation<DBONode, DBONode> trans1 =  backupFileStream.getCachedTranslator(mockDatabaseObject);
+		verify(mockDatabaseObject).getTranslator();
+		assertEquals(trans, mockTranslator);
+		assertEquals(trans1, mockTranslator);
+	}
+	
 	
 }

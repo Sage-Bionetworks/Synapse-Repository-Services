@@ -17,7 +17,7 @@ public class DBOConstants {
 	public static final String PARAM_EVALUATION_SUB_INSTRUCT_MSG 	= "submissionInstructionsMessage";
 	public static final String PARAM_EVALUATION_SUB_RECEIPT_MSG		= "submissionReceiptMessage";
 	public static final String PARAM_EVALUATION_SUBMISSIONS_ETAG 	= "submissionsEtag";
-	public static final String PARAM_EVALUATION_QUOTA				= "quota";
+	public static final String PARAM_EVALUATION_QUOTA_JSON			= "quotaJson";
 	public static final String PARAM_EVALUATION_START_TIMESTAMP		= "startTimestamp";
 	public static final String PARAM_EVALUATION_END_TIMESTAMP		= "endTimestamp";
 
@@ -53,7 +53,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBSTATUS_ANNOTATIONS			= "annotations";
 	public static final String PARAM_SUBSTATUS_SCORE 				= "score";
 	public static final String PARAM_SUBSTATUS_MODIFIED_ON 			= "modifiedOn";
-	public static final String PARAM_SUBSTATUS_SERIALIZED_ENTITY 	= "serializedEntity";
+	public static final String PARAM_SUBSTATUS_ENITTY_JSON		 	= "entityJson";
 	public static final long SUBSTATUS_INITIAL_VERSION_NUMBER 		= 0L;
 	
 	// SubmissionFile

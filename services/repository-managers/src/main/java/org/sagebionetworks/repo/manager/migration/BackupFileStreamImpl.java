@@ -8,9 +8,11 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -42,10 +44,12 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	private static final String FILE_NAME_TEMPLATE = "%1$s.%2$d.json";
 
 	private final MigrationTypeProvider typeProvider;
+	private final Map<MigratableDatabaseObject<?, ?>, MigratableTableTranslation<?,?>> translatorCache;
 	
 	@Autowired
 	public BackupFileStreamImpl(MigrationTypeProvider typeProvider) {
 		this.typeProvider = typeProvider;
+		this.translatorCache = new HashMap<>();
 	}
 
 	/*
@@ -223,7 +227,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 	<D extends DatabaseObject<D>, B> void writeBatchToStream(List<MigratableDatabaseObject<?, ?>> currentBatch,
 			MigrationType currentType, BackupAliasType backupAliasType, Writer writer) throws IOException {
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(currentType);
-		MigratableTableTranslation<D,B> translator = mdo.getTranslator();
+		MigratableTableTranslation<D, B> translator = getCachedTranslator(mdo);
 		
 		// translate to the backup objects
 		List<B> backupObjects = new LinkedList<>();
@@ -234,6 +238,20 @@ public class BackupFileStreamImpl implements BackupFileStream {
 
 		typeProvider.writeObjects(backupAliasType, currentType,  backupObjects, writer);
 		writer.flush();
+	}
+
+	/**
+	 * Get the cached translator for the given database object.
+	 * @param <D>
+	 * @param <B>
+	 * @param mdo
+	 * @return
+	 */
+	<D extends DatabaseObject<D>, B> MigratableTableTranslation<D, B> getCachedTranslator(
+			MigratableDatabaseObject<D, B> mdo) {
+		MigratableTableTranslation<D, B> translator = (MigratableTableTranslation<D, B>) translatorCache
+				.computeIfAbsent(mdo, MigratableDatabaseObject::getTranslator);
+		return translator;
 	}
 
 	/**
@@ -284,7 +302,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 		}
 		// Lookup the object for the type.
 		MigratableDatabaseObject<D, B> mdo = typeProvider.getObjectForType(type);
-		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
+		MigratableTableTranslation<D, B> translator = getCachedTranslator(mdo);
 
 		Optional<List<B>> backupObjects = typeProvider.readObjects(mdo.getBackupClass(), backupAliasType, input,
 				MigrationFileType.fromFileName(fileName));

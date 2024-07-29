@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.List;
@@ -8,14 +7,12 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class EvaluationDBOUtil {
 
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypes(SubmissionQuota.class).build();
 
 	/**
 	 * Copy a EvaluationDBO database object to a Evaluation data transfer object
@@ -46,17 +43,12 @@ public class EvaluationDBOUtil {
 			dbo.setSubmissionReceiptMessage(dto.getSubmissionReceiptMessage().getBytes());
 		}
 		if (dto.getQuota() != null) {
-			try {
-				SubmissionQuota quota = dto.getQuota();
-				dbo.setQuota(JDOSecondaryPropertyUtils.compressObject(X_STREAM, quota));
-				Long startTime = quota.getFirstRoundStart()==null ? null : quota.getFirstRoundStart().getTime();
-				dbo.setStartTimestamp(startTime);
-				dbo.setEndTimestamp(getEndTimeOrNull(startTime, quota.getRoundDurationMillis(), quota.getNumberOfRounds()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
+			SubmissionQuota quota = dto.getQuota();
+			dbo.setQuotaJson(JDOSecondaryPropertyUtils.createJSONFromObject(quota));
+			Long startTime = quota.getFirstRoundStart() == null ? null : quota.getFirstRoundStart().getTime();
+			dbo.setStartTimestamp(startTime);
+			dbo.setEndTimestamp(getEndTimeOrNull(startTime, quota.getRoundDurationMillis(), quota.getNumberOfRounds()));
 		}
-		
 		verifyEvaluationDBO(dbo);
 	}
 	
@@ -116,13 +108,7 @@ public class EvaluationDBOUtil {
 				throw new DatastoreException(e);
 			}
 		}
-		if (dbo.getQuota() != null) {
-			try {
-				dto.setQuota((SubmissionQuota)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getQuota()));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		dto.setQuota(JDOSecondaryPropertyUtils.createObejctFromJSON(SubmissionQuota.class, dbo.getQuotaJson()));
 	}
 	
 	public static void copyDbosToDtos(List<EvaluationDBO> dbos, List<Evaluation> dtos) throws DatastoreException {

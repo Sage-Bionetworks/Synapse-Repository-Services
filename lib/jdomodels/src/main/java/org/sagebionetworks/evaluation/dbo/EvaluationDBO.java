@@ -8,7 +8,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_E
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_QUOTA;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_QUOTA_JSON;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
@@ -20,26 +20,31 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_QUOTA;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_QUOTA_JSON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_START_TIMESTAMP;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 
+import java.io.IOException;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.SubmissionQuota;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -59,7 +64,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
 			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG),
-			new FieldColumn(PARAM_EVALUATION_QUOTA, COL_EVALUATION_QUOTA),
+			new FieldColumn(PARAM_EVALUATION_QUOTA_JSON, COL_EVALUATION_QUOTA_JSON),
 			new FieldColumn(PARAM_EVALUATION_START_TIMESTAMP, COL_EVALUATION_START_TIMESTAMP),
 			new FieldColumn(PARAM_EVALUATION_END_TIMESTAMP, COL_EVALUATION_END_TIMESTAMP)
 	};
@@ -87,10 +92,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				if (blob != null) {
 					eval.setSubmissionReceiptMessage(blob.getBytes(1, (int) blob.length()));
 				}
-				blob = rs.getBlob(COL_EVALUATION_QUOTA);
-				if (blob != null) {
-					eval.setQuota(blob.getBytes(1, (int) blob.length()));
-				}
+				eval.setQuotaJson(rs.getString(COL_EVALUATION_QUOTA_JSON));
 				eval.setStartTimestamp(rs.getLong(COL_EVALUATION_START_TIMESTAMP));
 				if (rs.wasNull()) {
 					eval.setStartTimestamp(null);
@@ -130,9 +132,16 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private byte[] submissionInstructionsMessage;
 	private byte[] submissionReceiptMessage;
 	private byte[] quota;
+	private String quotaJson;
 	private Long startTimestamp;
 	private Long endTimestamp;
 	
+	public String getQuotaJson() {
+		return quotaJson;
+	}
+	public void setQuotaJson(String quotaJson) {
+		this.quotaJson = quotaJson;
+	}
 	public Long getId() {
 		return id;
 	}
@@ -250,25 +259,19 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				+ Arrays.toString(description) + ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage) + ", submissionReceiptMessage="
-				+ Arrays.toString(submissionReceiptMessage) + ", quota=" + Arrays.toString(quota) + ", startTimestamp="
-				+ startTimestamp + ", endTimestamp=" + endTimestamp + "]";
+				+ Arrays.toString(submissionReceiptMessage) + ", quota=" + Arrays.toString(quota) + ", quotaJson="
+				+ quotaJson + ", startTimestamp=" + startTimestamp + ", endTimestamp=" + endTimestamp + "]";
 	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((contentSource == null) ? 0 : contentSource.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + Arrays.hashCode(description);
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result + ((endTimestamp == null) ? 0 : endTimestamp.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + Arrays.hashCode(quota);
-		result = prime * result + ((startTimestamp == null) ? 0 : startTimestamp.hashCode());
 		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
+		result = prime * result + Objects.hash(contentSource, createdOn, eTag, endTimestamp, id, name, ownerId,
+				quotaJson, startTimestamp);
 		return result;
 	}
 	@Override
@@ -280,71 +283,41 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		if (getClass() != obj.getClass())
 			return false;
 		EvaluationDBO other = (EvaluationDBO) obj;
-		if (contentSource == null) {
-			if (other.contentSource != null)
-				return false;
-		} else if (!contentSource.equals(other.contentSource))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (!Arrays.equals(description, other.description))
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (endTimestamp == null) {
-			if (other.endTimestamp != null)
-				return false;
-		} else if (!endTimestamp.equals(other.endTimestamp))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (name == null) {
-			if (other.name != null)
-				return false;
-		} else if (!name.equals(other.name))
-			return false;
-		if (ownerId == null) {
-			if (other.ownerId != null)
-				return false;
-		} else if (!ownerId.equals(other.ownerId))
-			return false;
-		if (!Arrays.equals(quota, other.quota))
-			return false;
-		if (startTimestamp == null) {
-			if (other.startTimestamp != null)
-				return false;
-		} else if (!startTimestamp.equals(other.startTimestamp))
-			return false;
-		if (!Arrays.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
-			return false;
-		if (!Arrays.equals(submissionReceiptMessage, other.submissionReceiptMessage))
-			return false;
-		return true;
+		return Objects.equals(contentSource, other.contentSource) && Objects.equals(createdOn, other.createdOn)
+				&& Arrays.equals(description, other.description) && Objects.equals(eTag, other.eTag)
+				&& Objects.equals(endTimestamp, other.endTimestamp) && Objects.equals(id, other.id)
+				&& Objects.equals(name, other.name) && Objects.equals(ownerId, other.ownerId)
+				&& Arrays.equals(quota, other.quota) && Objects.equals(quotaJson, other.quotaJson)
+				&& Objects.equals(startTimestamp, other.startTimestamp)
+				&& Arrays.equals(submissionInstructionsMessage, other.submissionInstructionsMessage)
+				&& Arrays.equals(submissionReceiptMessage, other.submissionReceiptMessage);
 	}
+	
+	public static UnmodifiableXStream XSTREAM = UnmodifiableXStream.builder().allowTypes(SubmissionQuota.class).build();
+
 	@Override
 	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
 		
 		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
 
 			@Override
-			public EvaluationDBO createDatabaseObjectFromBackup(
-					EvaluationBackup backup) {
-				EvaluationDBO dbo =   EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
-				// fill out start and end time stamps
-				Evaluation dto = new Evaluation();
-				EvaluationDBOUtil.copyDboToDto(dbo, dto);
-				EvaluationDBOUtil.copyDtoToDbo(dto, dbo);
-				
-				return dbo;
+			public EvaluationDBO createDatabaseObjectFromBackup(EvaluationBackup backup) {
+				EvaluationDBO dbo = EvaluationTranslationUtil.createDatabaseObjectFromBackup(backup);
+				try {
+					if (dbo.getQuota() != null) {
+						if (dbo.getQuotaJson() != null) {
+							throw new IllegalArgumentException(
+									String.format("Both '%s' and '%s' are not null", "quota", "quotaJson"));
+						}
+					}
+					SubmissionQuota quota = (SubmissionQuota) JDOSecondaryPropertyUtils.decompressObject(XSTREAM,
+							dbo.getQuota());
+					dbo.setQuotaJson(JDOSecondaryPropertyUtils.createJSONFromObject(quota));
+					dbo.setQuota(null);
+					return dbo;
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 			@Override

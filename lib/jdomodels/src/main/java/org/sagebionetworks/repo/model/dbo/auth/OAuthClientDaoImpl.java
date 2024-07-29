@@ -16,7 +16,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,7 +25,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -107,27 +105,9 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
-	// Note, we do not serialize fields which are 'broken out' ino their own column in DBOAuthClient
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
-			.allowTypes(OAuthClient.class)
-			.omitField(OAuthClient.class, "client_id")
-			.omitField(OAuthClient.class, "createdBy")
-			.omitField(OAuthClient.class, "createdOn")
-			.omitField(OAuthClient.class, "etag")
-			.omitField(OAuthClient.class, "modifiedOn")
-			.omitField(OAuthClient.class, "sector_identifier")
-			.omitField(OAuthClient.class, "client_name")
-			.omitField(OAuthClient.class, "verified")
-			.build();
-
 	// Note, this drop the 'secretHash' fields, which is not part of the DTO
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {
-		OAuthClient dto;
-		try {
-			dto = (OAuthClient)JDOSecondaryPropertyUtils.decompressObject(X_STREAM, dbo.getProperties());
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		OAuthClient dto = JDOSecondaryPropertyUtils.createObejctFromJSON(OAuthClient.class, dbo.getJson());
 		dto.setClient_id(dbo.getId().toString());
 		dto.setClient_name(dbo.getName());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
@@ -142,11 +122,7 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	// Note, the returned value has no 'secretHash' field, which is managed separately
 	public static DBOOAuthClient clientDtoToDbo(OAuthClient dto) {
 		DBOOAuthClient dbo = new DBOOAuthClient();
-		try {
-			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(X_STREAM, dto));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		dbo.setJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto));
 		dbo.setId(Long.parseLong(dto.getClient_id()));
 		dbo.setName(dto.getClient_name());
 		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));

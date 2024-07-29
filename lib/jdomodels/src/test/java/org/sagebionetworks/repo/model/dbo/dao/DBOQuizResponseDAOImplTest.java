@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,6 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
@@ -252,5 +257,20 @@ public class DBOQuizResponseDAOImplTest {
 		
 	}
 	
-
+	@Test
+	public void testMigrationXStreamToJson() throws IOException {
+		QuizResponse dto = createDTO(userId, 1L);
+		PassingRecord passingRecord = createPassingRecord(userId, 1L, dto.getId(), true, 10L);
+		DBOQuizResponse dbo = new DBOQuizResponse();
+		dbo.setSerialized(JDOSecondaryPropertyUtils
+				.compressObject(UnmodifiableXStream.builder().allowTypes(QuizResponse.class).build(), dto));
+		dbo.setPassingRecord(JDOSecondaryPropertyUtils
+				.compressObject(UnmodifiableXStream.builder().allowTypes(PassingRecord.class).build(), passingRecord));
+		// call under test
+		DBOQuizResponse translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(translated.getSerialized());
+		assertNull(translated.getPassingRecord());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(dto), translated.getResponseJson());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(passingRecord), translated.getPassingJson());
+	}
 }

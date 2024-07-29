@@ -39,7 +39,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_COMMENT			= "COMMENT";
 	public static final String COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB = "ENTITY_PROPERTY_ANNOTATIONS";
 	public static final String COL_REVISION_USER_ANNOS_JSON	= "USER_ANNOTATIONS";
-	public static final String COL_REVISION_REF_BLOB		= "REFERENCE";
+	public static final String COL_REVISION_REF_JSON		= "REFERENCE_JSON";
 	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
@@ -511,7 +511,7 @@ public class SqlConstants {
 	public static final String COL_CM_ID					= "ID";
 	public static final String COL_CM_NAME					= "NAME";
 	public static final String COL_CM_HASH					= "HASH";
-	public static final String COL_CM_BYTES					= "BYTES";
+	public static final String COL_CM_JSON					= "JSON";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
 	// Table transaction tracking.
@@ -865,8 +865,8 @@ public class SqlConstants {
 	public static final String COL_QUIZ_RESPONSE_QUIZ_ID = "QUIZ_ID";
 	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
 	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
-	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
-	public static final String COL_QUIZ_RESPONSE_PASSING_RECORD = "PASSING_RECORD";
+	public static final String COL_QUIZ_RESPONSE_RESPONSE_JSON = "RESPONSE_JSON";
+	public static final String COL_QUIZ_RESPONSE_PASSING_JSON = "PASSING_JSON";
 	public static final String DDL_QUIZ_RESPONSE				= "schema/QuizResponse-ddl.sql";
 	
 	public static final String TABLE_VERIFICATION_SUBMISSION = "VERIFICATION_SUBMISSION";
@@ -1092,7 +1092,7 @@ public class SqlConstants {
 	public static final String COL_OAUTH_CLIENT_ID = 									"ID";
 	public static final String COL_OAUTH_CLIENT_NAME = 									"NAME";
 	public static final String COL_OAUTH_CLIENT_SECRET_HASH = 							"SECRET_HASH";
-	public static final String COL_OAUTH_CLIENT_PROPERTIES = 							"PROPERTIES";
+	public static final String COL_OAUTH_CLIENT_JSON =									"JSON";
 	public static final String COL_OAUTH_CLIENT_ETAG = 									"ETAG";
 	public static final String COL_OAUTH_CLIENT_CREATED_BY = 							"CREATED_BY";
 	public static final String COL_OAUTH_CLIENT_CREATED_ON = 							"CREATED_ON";
@@ -1122,8 +1122,8 @@ public class SqlConstants {
 	public static final String COL_OAUTH_REFRESH_TOKEN_NAME =							"NAME";
 	public static final String COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID =					"PRINCIPAL_ID";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CLIENT_ID =						"CLIENT_ID";
-	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPES =							"SCOPES";
-	public static final String COL_OAUTH_REFRESH_TOKEN_CLAIMS =							"CLAIMS";
+	public static final String COL_OAUTH_REFRESH_TOKEN_SCOPES_JSON =					"SCOPES_JSON";
+	public static final String COL_OAUTH_REFRESH_TOKEN_CLAIMS_JSON =					"CLAIMS_JSON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_LAST_USED =						"LAST_USED";
 	public static final String COL_OAUTH_REFRESH_TOKEN_CREATED_ON =						"CREATED_ON";
 	public static final String COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON =					"MODIFIED_ON";

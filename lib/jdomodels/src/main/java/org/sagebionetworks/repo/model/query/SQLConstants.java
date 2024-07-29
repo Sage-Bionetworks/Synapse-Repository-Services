@@ -30,7 +30,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_CONTENT_SOURCE 	= "CONTENT_SOURCE";
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
-	public static final String COL_EVALUATION_QUOTA				= "QUOTA";
+	public static final String COL_EVALUATION_QUOTA_JSON		= "QUOTA_JSON";
 	public static final String COL_EVALUATION_START_TIMESTAMP		= "START_TIMESTAMP";
 	public static final String COL_EVALUATION_END_TIMESTAMP		= "END_TIMESTAMP";
 
@@ -87,7 +87,7 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
 	public static final String COL_SUBSTATUS_ANNOTATIONS		= "ANNOTATIONS";
-	public static final String COL_SUBSTATUS_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
+	public static final String COL_SUBSTATUS_ENTITY_JSON		= "ENTITY_JSON";
 	
 	// SubmissionFile table constants
 	public static final String DDL_FILE_SUBFILE					= "schema/evaluation/SubmissionFile-ddl.sql";

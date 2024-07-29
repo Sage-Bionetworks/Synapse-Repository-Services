@@ -36,7 +36,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
@@ -117,6 +117,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
 import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageToSend;
@@ -185,7 +186,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_REVISION = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_ACTIVITY_ID
 			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_DESCRIPTION + " = ?, " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS 
-			+ " = ?, " + COL_REVISION_REF_BLOB + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
+			+ " = ?, " + COL_REVISION_REF_JSON + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
 	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
@@ -325,7 +326,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_NUMBER + ", R." + COL_REVISION_ACTIVITY_ID + ", R." + COL_REVISION_DESCRIPTION + ", R." + COL_REVISION_LABEL + ", R."
 			+ COL_REVISION_COMMENT + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_COLUMN_MODEL_IDS + ", R." + COL_REVISION_SCOPE_IDS
-			+ ", R." + COL_REVISION_REF_BLOB + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
+			+ ", R." + COL_REVISION_REF_JSON + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
 			+ ", R." + COL_REVISION_DEFINING_SQL;
 	
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS + " FROM " + TABLE_NODE
@@ -980,7 +981,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long newFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getFileHandleId());
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
-		byte[] newReferences = NodeUtils.compressReference(updatedNode.getReference());
+		String newReferences = JDOSecondaryPropertyUtils.createJSONFromObject(updatedNode.getReference());
 		String items = NodeUtils.writeItemsToJson(updatedNode.getItems());
 		Boolean searchEnabled = updatedNode.getIsSearchEnabled();
 		String definingSQL = updatedNode.getDefiningSQL();

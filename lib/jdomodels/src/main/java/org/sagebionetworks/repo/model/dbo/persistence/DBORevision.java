@@ -13,14 +13,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -29,15 +28,14 @@ import java.util.Objects;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.AnnotationUtils;
+import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
+import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * The DatabaseObject for Revision.
@@ -50,8 +48,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	
 	public static final Log LOG = LogFactory.getLog(DBORevision.class);
 
-	static final MigratableTableTranslation<DBORevision, DBORevision> TRANSLATOR = new BasicMigratableTableTranslation<>();
-	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		// This is a sub-table of node, so it gets backed up with nodes using the node ids
 		// so its backup ID is the owner.
@@ -68,7 +64,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("scopeIds", COL_REVISION_SCOPE_IDS),
 		new FieldColumn("items", COL_REVISION_ITEMS),
 		new FieldColumn("entityPropertyAnnotations", COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB),
-		new FieldColumn("reference", COL_REVISION_REF_BLOB),
+		new FieldColumn("referenceJson", COL_REVISION_REF_JSON),
 		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON),
 		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
 		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL)
@@ -122,6 +118,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private String items;
 	private byte[] entityPropertyAnnotations;
 	private byte[] reference;
+	private String referenceJson;
 	private String userAnnotationsJSON;
 	private Boolean isSearchEnabled;
 	private String definingSQL;
@@ -183,6 +180,12 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.activityId = activityId;
 	}
 	
+	public String getReferenceJson() {
+		return referenceJson;
+	}
+	public void setReferenceJson(String referenceJson) {
+		this.referenceJson = referenceJson;
+	}
 	public byte[] getColumnModelIds() {
 		return columnModelIds;
 	}
@@ -260,7 +263,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	}
 	@Override
 	public MigratableTableTranslation<DBORevision, DBORevision> getTranslator() {
-		return TRANSLATOR;
+		return new MigrateFromXStreamToJSON<DBORevision>(
+				XStreamToJsonTranslator.builder().setFromName("reference").setToName("referenceJson")
+						.setDboType(getBackupClass()).setDtoType(Reference.class).build());
 	}
 	
 	@Override
@@ -279,22 +284,24 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!(obj instanceof DBORevision)) {
+		if (obj == null)
 			return false;
-		}
+		if (getClass() != obj.getClass())
+			return false;
 		DBORevision other = (DBORevision) obj;
 		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
 				&& Objects.equals(comment, other.comment) && Objects.equals(definingSQL, other.definingSQL)
 				&& Objects.equals(description, other.description)
 				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
-				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(isSearchEnabled, other.isSearchEnabled)
-				&& Objects.equals(items, other.items) && Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
+				&& Objects.equals(fileHandleId, other.fileHandleId)
+				&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(items, other.items)
+				&& Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
-				&& Arrays.equals(reference, other.reference) && Objects.equals(revisionNumber, other.revisionNumber)
-				&& Arrays.equals(scopeIds, other.scopeIds) && Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
+				&& Arrays.equals(reference, other.reference) && Objects.equals(referenceJson, other.referenceJson)
+				&& Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds)
+				&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
 	@Override
@@ -305,18 +312,20 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(reference);
 		result = prime * result + Arrays.hashCode(scopeIds);
-		result = prime * result + Objects.hash(activityId, comment, definingSQL, description, fileHandleId, isSearchEnabled, items, label,
-				modifiedBy, modifiedOn, owner, revisionNumber, userAnnotationsJSON);
+		result = prime * result
+				+ Objects.hash(activityId, comment, definingSQL, description, fileHandleId, isSearchEnabled, items,
+						label, modifiedBy, modifiedOn, owner, referenceJson, revisionNumber, userAnnotationsJSON);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId + ", label=" + label
-				+ ", comment=" + comment + ", description=" + description + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds) + ", scopeIds="
-				+ Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations="
-				+ Arrays.toString(entityPropertyAnnotations) + ", reference=" + Arrays.toString(reference) + ", userAnnotationsJSON="
+		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
+				+ ", label=" + label + ", comment=" + comment + ", description=" + description + ", modifiedBy="
+				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds="
+				+ Arrays.toString(columnModelIds) + ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items
+				+ ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", reference="
+				+ Arrays.toString(reference) + ", referenceJson=" + referenceJson + ", userAnnotationsJSON="
 				+ userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + "]";
 	}
 }

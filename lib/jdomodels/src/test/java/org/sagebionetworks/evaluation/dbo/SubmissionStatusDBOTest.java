@@ -102,7 +102,7 @@ public class SubmissionStatusDBOTest {
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.0);
-        status.setSerializedEntity("foo".getBytes());
+        status.setEntityJson("{}");
         status.setAnnotations("{}");
         
         // Create it
@@ -138,7 +138,7 @@ public class SubmissionStatusDBOTest {
         status.setVersion(1L);
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
-        status.setSerializedEntity("foo".getBytes());
+        status.setEntityJson("{}");
         
         // Create it
         SubmissionStatusDBO clone = dboBasicDao.createNew(status);

@@ -3,9 +3,11 @@ package org.sagebionetworks.evaluation.dao;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -26,11 +28,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -343,5 +347,21 @@ public class SubmissionStatusDAOImplTest {
     	assertEquals(subStatusDTO, subStatusDTOclone);
     	assertEquals(subStatusDBO, subStatusDBOclone);
     }
+	@Test
+	public void testMigrationXStreamToJson() throws IOException {
+        SubmissionStatus dto = new SubmissionStatus();
+		dto.setModifiedOn(new Date());
+		dto.setId("123");
+		dto.setStatus(SubmissionStatusEnum.RECEIVED);
+		dto.setScore(0.1);
+		dto.setAnnotations(TestUtils.createDummyAnnotations());
 
+		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
+		dbo.setSerializedEntity(JDOSecondaryPropertyUtils
+				.compressObject(UnmodifiableXStream.builder().allowTypes(SubmissionStatus.class).build(), dto));
+		// call under test
+		SubmissionStatusDBO translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertNull(translated.getSerializedEntity());
+		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(dto), translated.getEntityJson());
+	}
 }

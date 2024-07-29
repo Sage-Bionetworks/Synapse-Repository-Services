@@ -23,11 +23,7 @@ public class JDORevisionUtils {
 		}
 
 		copy.setUserAnnotationsJSON(toCopy.getUserAnnotationsJSON());
-		// Make a copy of the references byte array
-		if(toCopy.getReference() != null){
-			// Make a copy of the references.
-			copy.setReference(Arrays.copyOf(toCopy.getReference(), toCopy.getReference().length));
-		}
+		copy.setReferenceJson(toCopy.getReferenceJson());
 		// do not copy over Activity id!
 		// copy the file handle
 		if(toCopy.getFileHandleId() != null){

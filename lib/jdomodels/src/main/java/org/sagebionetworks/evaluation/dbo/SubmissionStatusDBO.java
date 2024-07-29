@@ -2,18 +2,18 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_ANNOTATIONS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_ENITTY_JSON;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_ETAG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_MODIFIED_ON;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SCORE;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_STATUS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ENTITY_JSON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SCORE;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
@@ -26,12 +26,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.migration.MigrateFromXStreamToJSON;
+import org.sagebionetworks.repo.model.dbo.migration.XStreamToJsonTranslator;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -41,8 +43,6 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO> {
 	
-	private static final MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<SubmissionStatusDBO>();
-
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn(PARAM_SUBSTATUS_ETAG, COL_SUBSTATUS_ETAG).withIsEtag(true),
@@ -51,27 +51,24 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			new FieldColumn(PARAM_SUBSTATUS_STATUS, COL_SUBSTATUS_STATUS),
 			new FieldColumn(PARAM_SUBSTATUS_ANNOTATIONS, COL_SUBSTATUS_ANNOTATIONS),
 			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE),
-			new FieldColumn(PARAM_SUBSTATUS_SERIALIZED_ENTITY, COL_SUBSTATUS_SERIALIZED_ENTITY)
+			new FieldColumn(PARAM_SUBSTATUS_ENITTY_JSON, COL_SUBSTATUS_ENTITY_JSON)
 			};
 	
-	private static final TableMapping<SubmissionStatusDBO> TABLE_MAPPER = new TableMapping<SubmissionStatusDBO>() {
-		// Map a result set to this object
-		public SubmissionStatusDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
-			SubmissionStatusDBO sub = new SubmissionStatusDBO();
-			sub.setId(rs.getLong(COL_SUBMISSION_ID));
-			sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
-			sub.setVersion(rs.getLong(COL_SUBSTATUS_VERSION));
-			sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
-			sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
-			sub.setAnnotations(rs.getString(COL_SUBSTATUS_ANNOTATIONS));
-			Double score = rs.getDouble(COL_SUBSTATUS_SCORE);
-			sub.setScore(rs.wasNull() ? null : score);
-			java.sql.Blob blob = rs.getBlob(COL_SUBSTATUS_SERIALIZED_ENTITY);
-			if(blob != null){
-				sub.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
-			}
-			return sub;
-		}
+			private static final TableMapping<SubmissionStatusDBO> TABLE_MAPPER = new TableMapping<SubmissionStatusDBO>() {
+				// Map a result set to this object
+				public SubmissionStatusDBO mapRow(ResultSet rs, int rowNum) throws SQLException {
+					SubmissionStatusDBO sub = new SubmissionStatusDBO();
+					sub.setId(rs.getLong(COL_SUBMISSION_ID));
+					sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
+					sub.setVersion(rs.getLong(COL_SUBSTATUS_VERSION));
+					sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
+					sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
+					sub.setAnnotations(rs.getString(COL_SUBSTATUS_ANNOTATIONS));
+					Double score = rs.getDouble(COL_SUBSTATUS_SCORE);
+					sub.setScore(rs.wasNull() ? null : score);
+					sub.setEntityJson(rs.getString(COL_SUBSTATUS_ENTITY_JSON));
+					return sub;
+				}
 
 		public String getTableName() {
 			return TABLE_SUBSTATUS;
@@ -102,7 +99,14 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	private String annotations;
 	private Double score;
 	private byte[] serializedEntity;
+	private String entityJson;
 
+	public String getEntityJson() {
+		return entityJson;
+	}
+	public void setEntityJson(String entityJson) {
+		this.entityJson = entityJson;
+	}
 	public Long getId() {
 		return id;
 	}
@@ -177,8 +181,9 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	
 	@Override
 	public MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO> getTranslator() {
-		return MIGRATION_TRANSLATOR;
-	}
+		return new MigrateFromXStreamToJSON<SubmissionStatusDBO>(
+				XStreamToJsonTranslator.builder().setFromName("serializedEntity").setToName("entityJson")
+						.setDboType(getBackupClass()).setDtoType(SubmissionStatus.class).build());	}
 	@Override
 	public Class<? extends SubmissionStatusDBO> getBackupClass() {
 		return SubmissionStatusDBO.class;
@@ -197,32 +202,30 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(serializedEntity);
-		result = prime * result + Objects.hash(annotations, eTag, id, modifiedOn, score, status, version);
+		result = prime * result + Objects.hash(annotations, eTag, entityJson, id, modifiedOn, score, status, version);
 		return result;
 	}
 	
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		SubmissionStatusDBO other = (SubmissionStatusDBO) obj;
 		return Objects.equals(annotations, other.annotations) && Objects.equals(eTag, other.eTag)
-				&& Objects.equals(id, other.id) && Objects.equals(modifiedOn, other.modifiedOn)
-				&& Objects.equals(score, other.score) && Arrays.equals(serializedEntity, other.serializedEntity)
-				&& status == other.status && Objects.equals(version, other.version);
+				&& Objects.equals(entityJson, other.entityJson) && Objects.equals(id, other.id)
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(score, other.score)
+				&& Arrays.equals(serializedEntity, other.serializedEntity) && status == other.status
+				&& Objects.equals(version, other.version);
 	}
 	@Override
 	public String toString() {
 		return "SubmissionStatusDBO [id=" + id + ", eTag=" + eTag + ", version=" + version + ", modifiedOn="
 				+ modifiedOn + ", status=" + status + ", annotations=" + annotations + ", score=" + score
-				+ ", serializedEntity=" + Arrays.toString(serializedEntity) + "]";
+				+ ", serializedEntity=" + Arrays.toString(serializedEntity) + ", entityJson=" + entityJson + "]";
 	}
 	
 }
