@@ -84,10 +84,11 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(objectId);
 			
 			boolean isUserDataContributor = UserAccessRestrictionUtils.isUserDataContributor(permissionsState);
+			boolean userHasDownload = permissionsState.hasDownload();
 			
 			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(permissionsState, restrictionStatus);
 			
-			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
+			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, unmetArIdsSupplier);
 			
 		}).collect(Collectors.toList());
 		
@@ -100,21 +101,23 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 		List<RestrictionInformationResponse> restrictionList = accessRestrictionStatusDao.getNonEntityStatus(objectIds, request.getRestrictableObjectType(), userInfo.getId()).stream().map( restrictionStatus -> {
 			// Does not apply for teams
 			boolean isUserDataContributor = false;
+			boolean userHasDownload = false;
 			
 			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(restrictionStatus);
 			
-			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
+			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, unmetArIdsSupplier);
 			
 		}).collect(Collectors.toList());
 		
 		return new RestrictionInformationBatchResponse().setRestrictionInformation(restrictionList);
 	}
 	
-	static RestrictionInformationResponse buildRestrictionInformationResponse(UsersRestrictionStatus restrictionStatus, boolean isUserDataContributor, Supplier<List<Long>> unmetArIdsSupplier) {
+	static RestrictionInformationResponse buildRestrictionInformationResponse(UsersRestrictionStatus restrictionStatus, boolean isUserDataContributor, boolean userHasDownload, Supplier<List<Long>> unmetArIdsSupplier) {
 		
 		RestrictionInformationResponse response = new RestrictionInformationResponse()
 				.setObjectId(restrictionStatus.getSubjectId())
-				.setIsUserDataContributor(isUserDataContributor);
+				.setIsUserDataContributor(isUserDataContributor)
+				.setUserHasDownloadPermission(userHasDownload);
 		
 		if (restrictionStatus.getAccessRestrictions().isEmpty()) {
 			return response

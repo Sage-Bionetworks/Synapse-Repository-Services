@@ -152,6 +152,7 @@ public class RestrictionInformationManagerImplUnitTest {
 			.setObjectId(entityIdAsLong)
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
+			.setUserHasDownloadPermission(true)
 			.setRestrictionDetails(Collections.emptyList())
 			.setRestrictionLevel(RestrictionLevel.OPEN);
 		
@@ -159,6 +160,47 @@ public class RestrictionInformationManagerImplUnitTest {
 		
 		assertEquals(expected, info);
 		
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+	}
+
+	@Test
+	public void testGetRestrictionInformationWithZeroARForEntityNoDownload() {
+		UsersRestrictionStatus touStatus = new UsersRestrictionStatus()
+				.withSubjectId(entityIdAsLong)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(Collections.emptyList());
+
+		mapIdToAccess.put(entityIdAsLong, touStatus);
+
+		userEntityPermissionsState.put(
+			entityIdAsLong,
+			new UserEntityPermissionsState(entityIdAsLong)
+				.withHasUpdate(false)
+				.withHasRead(true)
+				.withHasDelete(false)
+				.withHasDownload(false)
+		);
+
+		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
+
+		RestrictionInformationRequest request = new RestrictionInformationRequest();
+		request.setObjectId(TEST_ENTITY_ID);
+		request.setRestrictableObjectType(RestrictableObjectType.ENTITY);
+
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+				.setObjectId(entityIdAsLong)
+				.setHasUnmetAccessRequirement(false)
+				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
+				.setRestrictionDetails(Collections.emptyList())
+				.setRestrictionLevel(RestrictionLevel.OPEN);
+
+		RestrictionInformationResponse info = arm.getRestrictionInformation(userInfo, request);
+
+		assertEquals(expected, info);
+
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
 	}
@@ -182,6 +224,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.OPEN)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(Collections.emptyList())
 		));
@@ -216,6 +259,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -251,6 +295,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -287,6 +332,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
@@ -321,6 +367,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
@@ -351,6 +398,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -385,6 +433,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -418,6 +467,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -452,6 +502,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -483,6 +534,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(entityIdAsLong)
 				.setRestrictionDetails(List.of(
 						new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false),
@@ -515,6 +567,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
+			.setUserHasDownloadPermission(true)
 			.setObjectId(entityIdAsLong)
 			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 			.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)));
@@ -548,6 +601,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(false)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(true).setIsExempt(false).setIsMet(true)))
 		));
@@ -579,6 +633,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
 		));
@@ -610,6 +665,7 @@ public class RestrictionInformationManagerImplUnitTest {
 				.setHasUnmetAccessRequirement(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(teamIdAsLong)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment().setAccessRequirementId(123L).setIsApproved(false).setIsExempt(false).setIsMet(false),
@@ -635,6 +691,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(false)
+			.setUserHasDownloadPermission(false)
 			.setObjectId(teamIdAsLong)
 			.setRestrictionLevel(RestrictionLevel.OPEN)
 			.setRestrictionDetails(Collections.emptyList());
@@ -760,6 +817,12 @@ public class RestrictionInformationManagerImplUnitTest {
 				new UsersRequirementStatus().withRequirementId(7890L).withIsUnmet(true).withRequirementType(AccessRequirementType.MANAGED_ATC).withIsExemptionEligible(true))
 			));
 		
+		// No ARs, no download access
+		mapIdToAccess.put(321L, new UsersRestrictionStatus()
+				.withSubjectId(321L)
+				.withUserId(userInfo.getId())
+				.withRestrictionStatus(Collections.emptyList()));
+		
 		// Data contributor
 		userEntityPermissionsState.put(123L,
 				new UserEntityPermissionsState(123L)
@@ -783,39 +846,56 @@ public class RestrictionInformationManagerImplUnitTest {
 					.withHasDelete(true)
 					.withHasDownload(true));
 		
+		userEntityPermissionsState.put(321L,
+				new UserEntityPermissionsState(321L)
+						.withHasUpdate(false)
+						.withHasRead(true)
+						.withHasDelete(false)
+						.withHasDownload(false));
+
 		when(mockRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(userEntityPermissionsState);
 		
 		RestrictionInformationBatchRequest request = new RestrictionInformationBatchRequest()
-			.setObjectIds(List.of("syn123", "syn456", "789")).setRestrictableObjectType(RestrictableObjectType.ENTITY);
+			.setObjectIds(List.of("syn123", "syn456", "789", "syn321")).setRestrictableObjectType(RestrictableObjectType.ENTITY);
 		
 		RestrictionInformationBatchResponse expected = new RestrictionInformationBatchResponse().setRestrictionInformation(List.of(
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(true)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(123L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(1234L).setIsApproved(true).setIsExempt(false).setIsMet(true))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(456L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(4567L).setIsApproved(false).setIsExempt(false).setIsMet(false))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(true)
+				.setUserHasDownloadPermission(true)
 				.setObjectId(789L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
-				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(7890L).setIsApproved(false).setIsExempt(true).setIsMet(true)))
-		)); 
+				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(7890L).setIsApproved(false).setIsExempt(true).setIsMet(true))),
+			new RestrictionInformationResponse()
+				.setHasUnmetAccessRequirement(false)
+				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
+				.setObjectId(321L)
+				.setRestrictionLevel(RestrictionLevel.OPEN)
+				.setRestrictionDetails(Collections.emptyList())
+		));
 		
 		RestrictionInformationBatchResponse response = arm.getRestrictionInformationBatch(userInfo, request);
 		
 		assertEquals(expected, response);
 		
-		verify(mockRestrictionStatusDao).getEntityStatusAsMap(List.of(123L, 456L, 789L), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(123L, 456L, 789L));
+		verify(mockRestrictionStatusDao).getEntityStatusAsMap(List.of(123L, 456L, 789L, 321L), userInfo.getId(), userInfo.getGroups());
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(123L, 456L, 789L, 321L));
 		
 	}
 	
@@ -849,12 +929,14 @@ public class RestrictionInformationManagerImplUnitTest {
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(123L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(1234L).setIsApproved(true).setIsExempt(false).setIsMet(true))),
 			new RestrictionInformationResponse()
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(false)
+				.setUserHasDownloadPermission(false)
 				.setObjectId(456L)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(new RestrictionFulfillment().setAccessRequirementId(4567L).setIsApproved(false).setIsExempt(false).setIsMet(false)))
@@ -875,18 +957,44 @@ public class RestrictionInformationManagerImplUnitTest {
 			.withRestrictionStatus(Collections.emptyList());
 		
 		boolean isUserDataContributor = false;
+		boolean userHasDownload = false;
 		
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(false)
 			.setIsUserDataContributor(isUserDataContributor)
+			.setUserHasDownloadPermission(userHasDownload)
 			.setObjectId(123L)
 			.setRestrictionDetails(Collections.emptyList())
 			.setRestrictionLevel(RestrictionLevel.OPEN);
 		
-		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, mockUnmetArIdsSupplier);
 		
 		assertEquals(expected, result);
 		
+		verifyZeroInteractions(mockUnmetArIdsSupplier);
+	}
+	
+	@Test
+	public void testBuildRestrictionInformationResponseWithNoRestrictionsAndDownload() {
+		UsersRestrictionStatus restrictionStatus = new UsersRestrictionStatus()
+				.withSubjectId(123L)
+				.withRestrictionStatus(Collections.emptyList());
+
+		boolean isUserDataContributor = false;
+		boolean userHasDownload = true;
+
+		RestrictionInformationResponse expected = new RestrictionInformationResponse()
+				.setHasUnmetAccessRequirement(false)
+				.setIsUserDataContributor(isUserDataContributor)
+				.setUserHasDownloadPermission(userHasDownload)
+				.setObjectId(123L)
+				.setRestrictionDetails(Collections.emptyList())
+				.setRestrictionLevel(RestrictionLevel.OPEN);
+
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, mockUnmetArIdsSupplier);
+
+		assertEquals(expected, result);
+
 		verifyZeroInteractions(mockUnmetArIdsSupplier);
 	}
 	
@@ -908,12 +1016,14 @@ public class RestrictionInformationManagerImplUnitTest {
 			));
 		
 		boolean isUserDataContributor = false;
+		boolean userHasDownload = false;
 		
 		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L));
 		
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(true)
 			.setIsUserDataContributor(isUserDataContributor)
+			.setUserHasDownloadPermission(userHasDownload)
 			.setObjectId(123L)
 			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 			.setRestrictionDetails(List.of(
@@ -929,7 +1039,7 @@ public class RestrictionInformationManagerImplUnitTest {
 					.setIsMet(true)
 			));
 		
-		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, mockUnmetArIdsSupplier);
 		
 		assertEquals(expected, result);
 		
@@ -954,12 +1064,14 @@ public class RestrictionInformationManagerImplUnitTest {
 			));
 		
 		boolean isUserDataContributor = false;
+		boolean userHasDownload = false;
 		
 		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L, 2L));
 		
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(true)
 			.setIsUserDataContributor(isUserDataContributor)
+			.setUserHasDownloadPermission(userHasDownload)
 			.setObjectId(123L)
 			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 			.setRestrictionDetails(List.of(
@@ -975,7 +1087,7 @@ public class RestrictionInformationManagerImplUnitTest {
 					.setIsMet(false)
 			));
 		
-		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, mockUnmetArIdsSupplier);
 		
 		assertEquals(expected, result);
 		
@@ -1000,12 +1112,14 @@ public class RestrictionInformationManagerImplUnitTest {
 			));
 		
 		boolean isUserDataContributor = true;
+		boolean userHasDownload = false;
 		
 		when(mockUnmetArIdsSupplier.get()).thenReturn(List.of(1L));
 		
 		RestrictionInformationResponse expected = new RestrictionInformationResponse()
 			.setHasUnmetAccessRequirement(true)
 			.setIsUserDataContributor(isUserDataContributor)
+			.setUserHasDownloadPermission(userHasDownload)
 			.setObjectId(123L)
 			.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 			.setRestrictionDetails(List.of(
@@ -1021,7 +1135,7 @@ public class RestrictionInformationManagerImplUnitTest {
 					.setIsMet(true)
 			));
 		
-		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, mockUnmetArIdsSupplier);
+		RestrictionInformationResponse result = RestrictionInformationManagerImpl.buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, userHasDownload, mockUnmetArIdsSupplier);
 		
 		assertEquals(expected, result);
 		

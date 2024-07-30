@@ -17,6 +17,10 @@
 			"description": "True if the user is considered a data contributor, e.g. has update and delete permissions on the data. Applies only to ENTITY restrictable objects.",
 			"type": "boolean"
 		},
+		"userHasDownloadPermission": {
+			"description": "True if the user has download permission on the data. Applies only to ENTITY restrictable objects.",
+			"type": "boolean"
+		},
 		"restrictionDetails": {
 			"type": "array",
 			"description": "The list of restriction fulfillment information for each access requirement that applies to the restrictable object.",

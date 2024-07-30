@@ -252,6 +252,7 @@ public class ITDataAccessTest {
 				.setObjectId(KeyFactory.stringToKey(project.getId()))
 				.setHasUnmetAccessRequirement(false)
 				.setIsUserDataContributor(true)
+				.setUserHasDownloadPermission(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
@@ -312,6 +313,7 @@ public class ITDataAccessTest {
 				.setObjectId(KeyFactory.stringToKey(project.getId()))
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(true)
+				.setUserHasDownloadPermission(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
@@ -324,6 +326,7 @@ public class ITDataAccessTest {
 				.setObjectId(KeyFactory.stringToKey(folder.getId()))
 				.setHasUnmetAccessRequirement(true)
 				.setIsUserDataContributor(true)
+				.setUserHasDownloadPermission(true)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
