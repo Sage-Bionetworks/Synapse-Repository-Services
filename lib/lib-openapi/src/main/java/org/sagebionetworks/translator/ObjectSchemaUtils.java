@@ -118,7 +118,9 @@ public class ObjectSchemaUtils {
 		if (items != null) {
 			populateSchemaForArrayType(jsonSchema, items, objectSchema.getId());
 		}
-
+		if (objectSchema.getUniqueItems()) {
+			jsonSchema.setUniqueItems(objectSchema.getUniqueItems());
+		}
 		if (objectSchema.getDescription() != null) {
 			jsonSchema.setDescription(objectSchema.getDescription());
 		}
@@ -184,6 +186,9 @@ public class ObjectSchemaUtils {
 			OpenApiJsonSchema schema = new OpenApiJsonSchema();
 			if (property.getDescription() != null) {
 				schema.setDescription(property.getDescription());
+			}
+			if (property.getUniqueItems()) {
+				schema.setUniqueItems(property.getUniqueItems());
 			}
 
 			switch (propertyType) {
