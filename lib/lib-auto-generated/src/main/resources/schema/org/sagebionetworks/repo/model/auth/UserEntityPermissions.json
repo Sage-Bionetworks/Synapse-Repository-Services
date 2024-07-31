@@ -73,6 +73,10 @@
 		"isEntityOpenData": {
 			"type": "boolean",
 			"description": "Returns true if the Entity's DateType equals 'OPEN_DATA', indicating that the data is safe to be released to the public. "
+		},
+		"isDataContributor": {
+			"type": "boolean",
+			"description": "True if the user is considered a data contributor, e.g. has update and delete permissions on the data."
 		}
 	}
 }

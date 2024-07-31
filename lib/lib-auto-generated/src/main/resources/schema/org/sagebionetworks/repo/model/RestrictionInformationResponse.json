@@ -13,13 +13,9 @@
 			"type": "boolean",
 			"description": "True if user has at least one unmet access requirement on this restrict-able object; false otherwise."
 		},
-		"isUserDataContributor": {
-			"description": "True if the user is considered a data contributor, e.g. has update and delete permissions on the data. Applies only to ENTITY restrictable objects.",
-			"type": "boolean"
-		},
-		"userHasDownloadPermission": {
-			"description": "True if the user has download permission on the data. Applies only to ENTITY restrictable objects.",
-			"type": "boolean"
+		"userEntityPermissions": {
+			"description": "The user's permissions on the entity. Applies only to ENTITY restrictable objects.",
+			"$ref": "org.sagebionetworks.repo.model.auth.UserEntityPermissions"
 		},
 		"restrictionDetails": {
 			"type": "array",
