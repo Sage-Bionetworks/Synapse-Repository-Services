@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.RestrictionInformationResponse;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UserBundle;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -247,12 +248,13 @@ public class ITDataAccessTest {
 			// as expected
 		}
 		
+		UserEntityPermissions expectedUserEntityPermissions = getExpectedPermissions(Long.valueOf(userId));
+		
 		RestrictionInformationBatchResponse expectedRestrictionBatch = new RestrictionInformationBatchResponse().setRestrictionInformation(List.of(
 			new RestrictionInformationResponse()
 				.setObjectId(KeyFactory.stringToKey(project.getId()))
 				.setHasUnmetAccessRequirement(false)
-				.setIsUserDataContributor(true)
-				.setUserHasDownloadPermission(true)
+				.setUserEntityPermissions(expectedUserEntityPermissions)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
@@ -308,12 +310,17 @@ public class ITDataAccessTest {
 		
 		folder = synapse.createEntity(folder);
 		
+		UserEntityPermissions expectedUserEntityPermissionsForProject = getExpectedPermissions(Long.valueOf(userId))
+				.setCanDownload(false);
+		UserEntityPermissions expectedUserEntityPermissionsForFolder = getExpectedPermissions(Long.valueOf(userId))
+				.setCanDownload(false)
+				.setCanEnableInheritance(true);
+		
 		expectedRestrictionBatch = new RestrictionInformationBatchResponse().setRestrictionInformation(List.of(
 			new RestrictionInformationResponse()
 				.setObjectId(KeyFactory.stringToKey(project.getId()))
 				.setHasUnmetAccessRequirement(true)
-				.setIsUserDataContributor(true)
-				.setUserHasDownloadPermission(true)
+				.setUserEntityPermissions(expectedUserEntityPermissionsForProject)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
@@ -325,8 +332,7 @@ public class ITDataAccessTest {
 			new RestrictionInformationResponse()
 				.setObjectId(KeyFactory.stringToKey(folder.getId()))
 				.setHasUnmetAccessRequirement(true)
-				.setIsUserDataContributor(true)
-				.setUserHasDownloadPermission(true)
+				.setUserEntityPermissions(expectedUserEntityPermissionsForFolder)
 				.setRestrictionLevel(RestrictionLevel.CONTROLLED_BY_ACT)
 				.setRestrictionDetails(List.of(
 					new RestrictionFulfillment()
@@ -961,4 +967,29 @@ public class ITDataAccessTest {
 	}
 	
 
+	private UserEntityPermissions getExpectedPermissions(Long ownerPrincipalId) {
+		UserEntityPermissions permissions = new UserEntityPermissions();
+		
+		permissions
+			.setOwnerPrincipalId(ownerPrincipalId)
+			.setCanView(true)
+			.setCanEdit(true)
+			.setCanMove(true)
+			.setCanAddChild(true)
+			.setCanCertifiedUserEdit(true)
+			.setCanCertifiedUserAddChild(true)
+			.setIsCertifiedUser(true)
+			.setCanChangePermissions(true)
+			.setCanChangeSettings(true)
+			.setCanDelete(true)
+			.setCanDownload(true)
+			.setCanUpload(true)
+			.setCanEnableInheritance(false)
+			.setCanPublicRead(false)
+			.setCanModerate(true)
+			.setIsCertificationRequired(true)
+			.setIsEntityOpenData(false)
+			.setIsDataContributor(true);
+		return permissions;
+	}
 }
