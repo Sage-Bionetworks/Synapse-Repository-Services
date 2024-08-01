@@ -24,13 +24,13 @@
 			"description": "The ID of the Synapse object to receive events of. The objectId will be required by the user at create/update."
 		},
 		"objectType": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
+			"$ref": "org.sagebionetworks.repo.model.webhook.SynapseObjectType",
 			"description": "Which type of Synapse object is associated with the Webhook. The objectType will be required by the user at create/update."
 		},
 		"eventTypes": {
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType"
+				"$ref": "org.sagebionetworks.repo.model.webhook.SynapseEventType"
 			},
 			"uniqueItems": true,
 			"description": "The set of event types to subscribe to."

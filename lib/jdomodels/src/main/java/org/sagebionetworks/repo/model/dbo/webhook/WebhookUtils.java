@@ -5,9 +5,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.json.JSONArray;
+import org.sagebionetworks.repo.model.webhook.SynapseEventType;
+import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookEventType;
-import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 
 public class WebhookUtils {
@@ -19,7 +19,7 @@ public class WebhookUtils {
 			.setCreatedOn(new Date(dbo.getCreatedOn().getTime()))
 			.setModifiedOn(new Date(dbo.getModifiedOn().getTime()))
 			.setObjectId(dbo.getObjectId().toString())
-			.setObjectType(WebhookObjectType.valueOf(dbo.getObjectType()))
+			.setObjectType(SynapseObjectType.valueOf(dbo.getObjectType()))
 			.setEventTypes(eventsFromJson(dbo.getEventTypes()))
 			.setInvokeEndpoint(dbo.getInvokeEndpoint())
 			.setIsEnabled(dbo.getIsEnabled())
@@ -27,17 +27,17 @@ public class WebhookUtils {
 			.setVerificationMsg(dbo.getVerificationMessage());
 	}
 	
-	public static String eventsToJson(Set<WebhookEventType> events) {
+	public static String eventsToJson(Set<SynapseEventType> events) {
 		return new JSONArray(events).toString();
 	}
 	
-	public static Set<WebhookEventType> eventsFromJson(String json) {
+	public static Set<SynapseEventType> eventsFromJson(String json) {
 		JSONArray jsonArray = new JSONArray(json);
 		
-		Set<WebhookEventType> events = new TreeSet<>();
+		Set<SynapseEventType> events = new TreeSet<>();
 		
 		jsonArray.forEach( element -> {
-			events.add(WebhookEventType.valueOf((String) element));
+			events.add(SynapseEventType.valueOf((String) element));
 		});
 		
 		return events;

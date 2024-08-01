@@ -6,13 +6,13 @@
 				"description": "The id of the Synapse object to receive events of."
 			},
 			"objectType": {
-				"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
+				"$ref": "org.sagebionetworks.repo.model.webhook.SynapseObjectType",
 				"description": "Which type of Synapse object is associated with the Webhook."
 			},
 			"eventTypes": {
 				"type": "array",
 				"items": {
-					"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType"
+					"$ref": "org.sagebionetworks.repo.model.webhook.SynapseEventType"
 				},
 				"uniqueItems": true,
 				"description": "The list of event types to subscribe to."

@@ -107,6 +107,12 @@ public class WebhookManagerImpl implements WebhookManager {
 			.setPage(page)
 			.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
 	}
+	
+	@Override
+	public void processWebhookMessage(WebhookMessage message) {
+		// TODO Auto-generated method stub
+		
+	}
 
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
 		

@@ -1,0 +1,16 @@
+{
+	"description": "A special webhook event that is sent to verify a webhook",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEvent"
+		}
+	],
+	"properties": {
+		"webhookId": {
+			"type": "string"
+		},
+		"verificationCode": {
+			"type": "string"
+		}
+	}
+}

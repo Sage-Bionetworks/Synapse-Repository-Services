@@ -17,8 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookEventType;
-import org.sagebionetworks.repo.model.webhook.WebhookObjectType;
+import org.sagebionetworks.repo.model.webhook.SynapseEventType;
+import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -49,16 +49,16 @@ public class WebhookDaoImplTest {
 	public void testCreateWebhook() {
 		CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
 			.setObjectId("123")
-			.setObjectType(WebhookObjectType.ENTITY)
-			.setEventTypes(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE))
+			.setObjectType(SynapseObjectType.ENTITY)
+			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
 			.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 			.setIsEnabled(true);
 			
 		Webhook expected = new Webhook()
 			.setCreatedBy(userId.toString())
 			.setObjectId("123")
-			.setObjectType(WebhookObjectType.ENTITY)
-			.setEventTypes(new TreeSet<>(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE)))
+			.setObjectType(SynapseObjectType.ENTITY)
+			.setEventTypes(new TreeSet<>(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE)))
 			.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 			.setIsEnabled(true);
 		
@@ -86,8 +86,8 @@ public class WebhookDaoImplTest {
 	public void testUpdateWebhook() throws InterruptedException {
 		CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
 			.setObjectId("123")
-			.setObjectType(WebhookObjectType.ENTITY)
-			.setEventTypes(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE))
+			.setObjectType(SynapseObjectType.ENTITY)
+			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
 			.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 			.setIsEnabled(true);
 		
@@ -103,11 +103,11 @@ public class WebhookDaoImplTest {
 		Thread.sleep(50L);
 		
 		// Call under test
-		Webhook updated = webhookDao.updateWebhook(webhook.getId(), request.setEventTypes(Set.of(WebhookEventType.DELETE)));
+		Webhook updated = webhookDao.updateWebhook(webhook.getId(), request.setEventTypes(Set.of(SynapseEventType.DELETE)));
 		
 		assertNotEquals(webhook, updated);
 		
-		webhook.setEventTypes(Set.of(WebhookEventType.DELETE)).setModifiedOn(updated.getModifiedOn());
+		webhook.setEventTypes(Set.of(SynapseEventType.DELETE)).setModifiedOn(updated.getModifiedOn());
 		
 		assertEquals(webhook, updated);
 		
@@ -129,8 +129,8 @@ public class WebhookDaoImplTest {
 		
 		CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
 			.setObjectId("123")
-			.setObjectType(WebhookObjectType.ENTITY)
-			.setEventTypes(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE))
+			.setObjectType(SynapseObjectType.ENTITY)
+			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
 			.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 			.setIsEnabled(true);
 			
@@ -146,8 +146,8 @@ public class WebhookDaoImplTest {
 		
 		CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
 			.setObjectId("123")
-			.setObjectType(WebhookObjectType.ENTITY)
-			.setEventTypes(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE))
+			.setObjectType(SynapseObjectType.ENTITY)
+			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
 			.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 			.setIsEnabled(true);
 			
@@ -168,8 +168,8 @@ public class WebhookDaoImplTest {
 		for (int i=0; i<10; i++) {
 			CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
 				.setObjectId(String.valueOf(i))
-				.setObjectType(WebhookObjectType.ENTITY)
-				.setEventTypes(Set.of(WebhookEventType.CREATE, WebhookEventType.UPDATE))
+				.setObjectType(SynapseObjectType.ENTITY)
+				.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
 				.setInvokeEndpoint("https://my.webhook.endpoint/callme")
 				.setIsEnabled(true);
 				

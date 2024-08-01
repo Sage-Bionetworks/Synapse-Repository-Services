@@ -151,6 +151,9 @@
 		<ref bean="diskMonitorTrigger"/>
 		<ref bean="expiredAccessTokensWorkerTrigger"/>
 		
+		<!-- Webhooks -->
+		<ref bean="webhookMessageWorkerTrigger"/>
+		
 	</util:list>
 
 	<bean id="mainScheduler"

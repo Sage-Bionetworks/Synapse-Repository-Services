@@ -1,26 +1,26 @@
 {
 	"description": "A webhook event in Synapse containing information about a change that has occured.",
+	"type": "interface",
 	"properties": {
+		"concreteType":{
+			"type": "string"
+		},
 		"eventId": {
 			"type": "string",
 			"description": "An ID associated with this WebhookEvent."
-		},
-		"objectId": {
-			"type": "string",
-			"description": "The ID of the object in Synapse the user would like to receive events for. Currently, support for is enabled for entities, with future plans to support other objects in Synapse as well."
-		},
-		"objectType": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
-			"description": "Which type is Synapse object is associated with the Webhook."
-		},
-		"eventType": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType",
-			"description": "Which type of event has occured."
 		},
 		"eventTimestamp": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The timestamp when the event occurred, in ISO 8601 format."
+		},
+		"webhookId": {
+			"type": "string",
+			"description": "The id of the webhook that this event is destined to"
+		},
+		"webhookOwnerId": {
+			"type": "string",
+			"description": "The id of the user that owns the webhook"
 		}
 	}
 }
