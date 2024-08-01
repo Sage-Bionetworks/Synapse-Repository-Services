@@ -1,0 +1,29 @@
+{
+	"description": "Request used to create or update a webhook",
+		"properties": {			
+			"objectId": {
+				"type": "string",
+				"description": "The id of the Synapse object to receive events of."
+			},
+			"objectType": {
+				"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
+				"description": "Which type of Synapse object is associated with the Webhook."
+			},
+			"eventTypes": {
+				"type": "array",
+				"items": {
+					"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType"
+				},
+				"uniqueItems": true,
+				"description": "The list of event types to subscribe to."
+			},
+			"invokeEndpoint": {
+				"type": "string",
+				"description": "The webhook endpoint where the events will be sent to. Must be 255 Characters or less."
+			},
+			"isEnabled": {
+				"type": "boolean",
+				"description": "True if the webhook should be enabled. If false no events will be pushed to the endpoint."
+			}
+		}
+}

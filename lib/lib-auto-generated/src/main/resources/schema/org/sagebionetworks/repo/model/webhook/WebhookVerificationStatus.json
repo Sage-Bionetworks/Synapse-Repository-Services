@@ -1,0 +1,22 @@
+{
+    "description": "JSON enum for the verification status of a Webhook.",
+    "type": "string",
+    "enum": [
+        {
+            "name": "PENDING",
+            "description": "The Webhook has been created, but is not verified."
+        },
+		{
+			"name": "FAILED",
+			"description": "The Webhook verification failed."
+		},
+        {
+            "name": "REVOKED",
+            "description": "The Webhook verification was revoked."
+        },
+        {
+            "name": "VERIFIED",
+            "description": "The Webhook has been created and verified succesfully."
+        }
+    ]
+}

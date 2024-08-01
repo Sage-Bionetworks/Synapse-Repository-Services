@@ -14,7 +14,7 @@
 			"description": "Which type is Synapse object is associated with the Webhook."
 		},
 		"eventType": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.EventType",
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType",
 			"description": "Which type of event has occured."
 		},
 		"eventTimestamp": {

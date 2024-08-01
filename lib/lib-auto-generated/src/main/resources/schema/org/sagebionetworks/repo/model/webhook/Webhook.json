@@ -1,41 +1,13 @@
 {
 	"description": "An object that serves as registration for a Synapse user to receive events for the specified event.",
 	"properties": {
-		"webhookId": {
+		"id": {
 			"type": "string",
 			"description": "The ID associated with the Webhook. This field is issued by Synapse and cannot be changed by the user."
 		},
-		"objectId": {
+		"createdBy": {
 			"type": "string",
-			"description": "The ID of the Synapse object to receive events of. The objectId will be required by the user at create/update."
-		},
-		"objectType": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
-			"description": "Which type of Synapse object is associated with the Webhook. The objectType will be required by the user at create/update."
-		},
-		"userId": {
-			"type": "string",
-			"description": "The ID of the Synapse user who has registered to receive this webhook event. The userId will be issued by Synapse and cannot be changed."
-		},
-		"invokeEndpoint": {
-			"type": "string",
-			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 255 Characters or less. The invokeEndpoint will be required by the user at create/update."
-		},
-		"isVerified": {
-			"type": "boolean",
-			"description": "True if Synapse has confirmed the validity of the Webhook invokeEndpoint. False if Synapse has determined the invokeEndpoint is invalid. This field is issued by Synapse and cannot be changed by the user."
-		},
-		"isWebhookEnabled": {
-			"type": "boolean",
-			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused. This field will default to true unless otherwise specified by the user."
-		},
-		"isAuthenticationEnabled": {
-			"type": "boolean",
-			"description": "True if the Synapse user has opted in to require authorization to receive the webhook invocation POST request. In this case, a JWT token will be included in the invocation. False otherwise: no authorization will be required and no JWT token included in the invocation. This field will default to true unless otherwise specified by the user."
-		},
-		"etag": {
-			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an Webhook is updated it is used to detect when a client's current representation of an Webhook is out-of-date."
+			"description": "The ID of the user that created this webhook."
 		},
 		"createdOn": {
 			"type": "string",
@@ -47,13 +19,36 @@
 			"format": "date-time",
 			"description": "The date this webhook was last modified."
 		},
-		"createdBy": {
+		"objectId": {
 			"type": "string",
-			"description": "The ID of the user that created this webhook."
+			"description": "The ID of the Synapse object to receive events of. The objectId will be required by the user at create/update."
 		},
-		"modifiedBy": {
+		"objectType": {
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookObjectType",
+			"description": "Which type of Synapse object is associated with the Webhook. The objectType will be required by the user at create/update."
+		},
+		"eventTypes": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.webhook.WebhookEventType"
+			},
+			"uniqueItems": true,
+			"description": "The set of event types to subscribe to."
+		},
+		"invokeEndpoint": {
 			"type": "string",
-			"description": "The ID of the user that last modified this webhook."
+			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 255 Characters or less. The invokeEndpoint will be required by the user at create/update."
+		},
+		"isEnabled": {
+			"type": "boolean",
+			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused. This field will default to true unless otherwise specified by the user."
+		},
+		"verificationStatus": {
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus"
+		},
+		"verificationMsg": {
+			"type": "string",
+			"description": "A message describing the reason of the verification status"
 		}
 	}
 }
