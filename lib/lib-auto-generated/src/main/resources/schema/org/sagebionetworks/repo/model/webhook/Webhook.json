@@ -44,7 +44,8 @@
 			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused. This field will default to true unless otherwise specified by the user."
 		},
 		"verificationStatus": {
-			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus"
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus",
+			"description": "The verification status, until VERIFIED the webhook won't receive synapse events. Only a verification event will be received by the webhook."
 		},
 		"verificationMsg": {
 			"type": "string",

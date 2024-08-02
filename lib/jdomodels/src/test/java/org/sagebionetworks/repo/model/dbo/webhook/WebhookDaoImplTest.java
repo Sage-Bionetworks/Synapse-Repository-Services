@@ -14,11 +14,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
-import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.SynapseEventType;
 import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
+import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,6 +46,33 @@ public class WebhookDaoImplTest {
 	@AfterEach
 	public void after() {
 		webhookDao.truncateAll();
+	}
+	
+	@ParameterizedTest
+	@EnumSource(SynapseObjectType.class)
+	public void testSynapseObjectTypeEnum(SynapseObjectType type) {
+		// Verifies that the SynapseObjectType enum is a subset of the ObjectType
+		ObjectType.valueOf(type.name());
+	}
+	
+	@ParameterizedTest
+	@EnumSource(WebhookVerificationStatus.class)
+	public void testStatusFromString(WebhookVerificationStatus status) {
+		assertEquals(status, WebhookDaoImpl.statusFromString(status.name()));
+	}
+	
+	@Test
+	public void testStatusFromStringWithNullInput() {
+		assertEquals(WebhookVerificationStatus.PENDING, WebhookDaoImpl.statusFromString(null));
+	}
+
+	@Test
+	public void testEventsToJsonRoundTrip() {
+		Set<SynapseEventType> events = new TreeSet<>(List.of(SynapseEventType.UPDATE, SynapseEventType.DELETE, SynapseEventType.CREATE));
+		
+		String result = WebhookDaoImpl.eventsToJson(events);
+		
+		assertEquals(events, WebhookDaoImpl.eventsFromJson(result));
 	}
 	
 	@Test

@@ -1,7 +1,7 @@
 package org.sagebionetworks.webhook.workers;
 
 import org.sagebionetworks.repo.manager.webhook.WebhookManager;
-import org.sagebionetworks.repo.manager.webhook.WebhookMessage;
+import org.sagebionetworks.repo.model.webhook.WebhookMessage;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;

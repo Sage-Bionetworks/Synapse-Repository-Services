@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.manager.webhook;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
-import org.sagebionetworks.repo.manager.UserManager;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -11,34 +16,50 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookEvent;
+import org.sagebionetworks.repo.model.webhook.WebhookMessage;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationEvent;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
+
+@Service
 public class WebhookManagerImpl implements WebhookManager {
+	
+	private static final String MESSAGE_QUEUE_NAME = "WEBHOOK_MESSAGE";
+	private static final int VERIFICATION_CODE_LENGHT = 6;
+	private static final int VERIFICATION_CODE_TTL_SECONDS = 10 * 60;
 
-	@Autowired
 	private WebhookDao webhookDao;
+	
+	private AmazonSQSClient sqsClient;
 
-	@Autowired
 	private AccessControlListDAO aclDao;
+	
+	private String queueUrl;
 
+	public WebhookManagerImpl(WebhookDao webhookDao, AmazonSQSClient sqsClient, AccessControlListDAO aclDao) {
+		this.webhookDao = webhookDao;
+		this.sqsClient = sqsClient;
+		this.aclDao = aclDao;
+	}
+	
 	@Autowired
-	private UserManager userManager;
-
-	@Autowired
-	private Clock clock;
-
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
+	public void configureMessageQueueUrl(StackConfiguration config) {
+		 queueUrl = sqsClient.getQueueUrl(config.getQueueName(MESSAGE_QUEUE_NAME)).getQueueUrl();
+	}
 
 	@WriteTransaction
 	@Override
@@ -47,7 +68,7 @@ public class WebhookManagerImpl implements WebhookManager {
 
 		Webhook webhook = webhookDao.createWebhook(userInfo.getId(), request);
 		
-		// TODO enqueue a message to perform endpoint validation
+		generateAndSendVerificationCode(webhook);
 		
 		return webhook;
 	}
@@ -75,7 +96,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		Webhook updated = webhookDao.updateWebhook(webhookId, request);
 		
 		if (!current.getInvokeEndpoint().equals(updated.getInvokeEndpoint())) {
-			// TODO set PENDING verification status and enqueue a message to perform endpoint validation
+			generateAndSendVerificationCode(updated);
 		}
 		
 		return updated;
@@ -110,10 +131,45 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@Override
 	public void processWebhookMessage(WebhookMessage message) {
-		// TODO Auto-generated method stub
-		
+		// TODO 
 	}
-
+	
+	void generateAndSendVerificationCode(Webhook webhook) {
+		String verificationCode = RandomStringUtils.randomAlphanumeric(VERIFICATION_CODE_LENGHT);
+		Instant now = Instant.now();
+		Instant expiresOn = now.plus(VERIFICATION_CODE_TTL_SECONDS, ChronoUnit.SECONDS);
+		
+		webhookDao.setVerificationCode(webhook.getId(), verificationCode, expiresOn);
+		
+		publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), new WebhookVerificationEvent()
+			.setEventId(UUID.randomUUID().toString())
+			.setEventTimestamp(Date.from(now))
+			.setVerificationCode(verificationCode)
+			.setWebhookOwnerId(webhook.getCreatedBy())
+			.setWebhookId(webhook.getId())
+		);
+	}
+	
+	void publishWebhookEvent(String webhookId, String webhookEndpoint, WebhookEvent event) {
+		String messageJson;
+		
+		try {
+		
+			WebhookMessage message = new WebhookMessage()
+				.setWebhookId(webhookId)
+				.setEndpoint(webhookEndpoint)
+				.setIsVerificationMessage(event instanceof WebhookVerificationEvent)
+				.setMessageBody(EntityFactory.createJSONStringForEntity(event));
+			
+			messageJson = EntityFactory.createJSONStringForEntity(message);
+		
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException(e);
+		}
+		
+		sqsClient.sendMessage(new SendMessageRequest(queueUrl, messageJson));
+	}
+	
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
 		
 		ValidateArgument.required(userInfo, "The userInfo");
@@ -125,7 +181,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.required(request.getIsEnabled(), "isEnabled");
 		
 		// TODO endpoint URL validation
-
+		
 		AuthorizationUtils.disallowAnonymous(userInfo);
 
 		if (!userInfo.isAdmin()) {

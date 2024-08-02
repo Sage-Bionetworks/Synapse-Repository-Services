@@ -10,26 +10,36 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MSG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_VERIFICATION;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
+import org.json.JSONArray;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.SynapseEventType;
+import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -48,7 +58,45 @@ public class WebhookDaoImpl implements WebhookDao {
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	
-	private static final RowMapper<DBOWebhook> ROW_MAPPER = new DBOWebhook().getTableMapping();
+	private static final RowMapper<Webhook> WEBHOOK_ROW_MAPPER = (rs, rowNum) -> new Webhook()
+		.setId(rs.getString(COL_WEBHOOK_ID))
+		.setCreatedBy(rs.getString(COL_WEBHOOK_CREATED_BY))
+		.setCreatedOn(new Date(rs.getTimestamp(COL_WEBHOOK_CREATED_ON).getTime()))
+		.setModifiedOn(new Date(rs.getTimestamp(COL_WEBHOOK_MODIFIED_ON).getTime()))
+		.setObjectId(rs.getString(COL_WEBHOOK_OBJECT_ID))
+		.setObjectType(SynapseObjectType.valueOf(rs.getString(COL_WEBHOOK_OBJECT_TYPE)))
+		.setEventTypes(eventsFromJson(rs.getString(COL_WEBHOOK_EVENT_TYPES)))
+		.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT))
+		.setIsEnabled(rs.getBoolean(COL_WEBHOOK_IS_ENABLED))
+		.setVerificationStatus(statusFromString(rs.getString(COL_WEBHOOK_VERIFICATION_STATUS)))
+		.setVerificationMsg(rs.getString(COL_WEBHOOK_VERIFICATION_MSG));
+	
+	static WebhookVerificationStatus statusFromString(String status) {
+		if (status == null) {
+			return WebhookVerificationStatus.PENDING;
+		}
+		return WebhookVerificationStatus.valueOf(status);
+	}
+	
+	static String eventsToJson(Set<SynapseEventType> events) {
+		return new JSONArray(events).toString();
+	}
+	
+	static Set<SynapseEventType> eventsFromJson(String json) {
+		JSONArray jsonArray = new JSONArray(json);
+		
+		Set<SynapseEventType> events = new TreeSet<>();
+		
+		jsonArray.forEach( element -> {
+			events.add(SynapseEventType.valueOf((String) element));
+		});
+		
+		return events;
+	}
+
+	private static final String SELECT_WITH_STATUS = "SELECT W.*, V." + COL_WEBHOOK_VERIFICATION_STATUS + ", V." + COL_WEBHOOK_VERIFICATION_MSG 
+			+ " FROM " + TABLE_WEBHOOK + " W JOIN " + TABLE_WEBHOOK_VERIFICATION + " V"
+			+ " ON (W." + COL_WEBHOOK_ID + " = V." + COL_WEBHOOK_VERIFICATION_ID + ") ";
 
 	@Override
 	@WriteTransaction
@@ -64,11 +112,9 @@ public class WebhookDaoImpl implements WebhookDao {
 			.setEtag(UUID.randomUUID().toString())
 			.setObjectId(KeyFactory.stringToKey(request.getObjectId()))
 			.setObjectType(request.getObjectType().name())
-			.setEventTypes(WebhookUtils.eventsToJson(request.getEventTypes()))
+			.setEventTypes(eventsToJson(request.getEventTypes()))
 			.setInvokeEndpoint(request.getInvokeEndpoint())
-			.setIsEnabled(request.getIsEnabled())
-			.setVerificationStatus(WebhookVerificationStatus.PENDING.name())
-			.setVerificationMessage(null);
+			.setIsEnabled(request.getIsEnabled());
 		
 		try {
 			dbo = dboBasicDao.createNew(dbo);
@@ -80,15 +126,25 @@ public class WebhookDaoImpl implements WebhookDao {
 			throw e;
 		}
 		
-		String id = dbo.getId().toString();
+		dboBasicDao.createNew(new DBOWebhookVerification()
+			.setWebhookId(dbo.getId())
+			.setModifiedOn(Timestamp.from(now))
+			.setEtag(UUID.randomUUID().toString())
+			.setStatus(WebhookVerificationStatus.PENDING.name())
+		);
 		
-		return getWebhook(id).orElseThrow(() -> new IllegalStateException("A webhook with id " + id + " does not exist."));
+		return getWebhook(dbo.getId().toString()).orElseThrow(() -> new IllegalStateException("The webhook was not created."));
 	}
-
+	
 	@Override
 	public Optional<Webhook> getWebhook(String webhookId) {
-		return dboBasicDao.getObjectByPrimaryKey(DBOWebhook.class, new SinglePrimaryKeySqlParameterSource(webhookId))
-			.map(WebhookUtils::translateDboToDto);
+		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_ID + "=?";
+		
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(sql, WEBHOOK_ROW_MAPPER, webhookId));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override
@@ -108,7 +164,7 @@ public class WebhookDaoImpl implements WebhookDao {
 			jdbcTemplate.update(sql, 
 				request.getObjectId(), 
 				request.getObjectType().name(), 
-				WebhookUtils.eventsToJson(request.getEventTypes()), 
+				eventsToJson(request.getEventTypes()), 
 				request.getIsEnabled(), 
 				request.getInvokeEndpoint(),
 				webhookId
@@ -128,12 +184,24 @@ public class WebhookDaoImpl implements WebhookDao {
 
 	@Override
 	public List<Webhook> listUserWebhooks(Long userId, long limit, long offset) {
-		String sql = "SELECT * FROM " + TABLE_WEBHOOK + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? ORDER BY " + COL_WEBHOOK_CREATED_ON + " LIMIT ? OFFSET ?";
+		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? ORDER BY " + COL_WEBHOOK_CREATED_ON + " LIMIT ? OFFSET ?";
 		
-		return jdbcTemplate.query(sql, ROW_MAPPER, userId, limit, offset).stream()
-			.map(WebhookUtils::translateDboToDto)
-			.collect(Collectors.toList());
+		return jdbcTemplate.query(sql, WEBHOOK_ROW_MAPPER, userId, limit, offset);
 	}	
+	
+	@Override
+	@WriteTransaction
+	public void setVerificationCode(String webhookId, String verificationCode, Instant expiresOn) {
+		String sql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " 
+			+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
+			+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
+			+ COL_WEBHOOK_VERIFICATION_CODE + "=?,"
+			+ COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON + "=?,"
+			+ COL_WEBHOOK_VERIFICATION_STATUS + "=?"
+			+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
+		
+		jdbcTemplate.update(sql, verificationCode, expiresOn, WebhookVerificationStatus.PENDING.name(), webhookId);		
+	}
 	
 	@Override
 	public void truncateAll() {

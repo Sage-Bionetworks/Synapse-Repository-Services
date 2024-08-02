@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.webhook;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,7 +15,7 @@ public interface WebhookDao {
 	 * @return
 	 */
 	Webhook createWebhook(Long userId, CreateOrUpdateWebhookRequest request);
-
+		
 	/**
 	 * 
 	 * @param webhookId
@@ -44,6 +45,13 @@ public interface WebhookDao {
 	 */
 	List<Webhook> listUserWebhooks(Long userId, long limit, long offset);
 
+	/**
+	 * 
+	 * @param verificationCode
+	 * @param expiresOn
+	 */
+	void setVerificationCode(String webhookId, String verificationCode, Instant expiresOn);
+	
 	/**
 	 * Truncate all Webhook data.
 	 */

@@ -7,6 +7,10 @@
             "description": "The Webhook has been created, but is not verified."
         },
 		{
+			"name": "CODE_SENT",
+			"description": "A verification code was sent to the endpoint."
+		},
+		{
 			"name": "FAILED",
 			"description": "The Webhook verification failed."
 		},

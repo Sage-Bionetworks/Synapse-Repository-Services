@@ -3,15 +3,13 @@ package org.sagebionetworks.repo.model.dbo.webhook;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_EVENT_TYPES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_INVOKE_ENDPOINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_IS_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_EVENT_TYPES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MSG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WEBHOOK;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
 
@@ -40,23 +38,18 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 	private String eventTypes;
 	private String invokeEndpoint;
 	private Boolean isEnabled;
-	private String verificationStatus;
-	private String verificationMessage;
-	
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_WEBHOOK_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_WEBHOOK_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_WEBHOOK_CREATED_BY),
 		new FieldColumn("createdOn", COL_WEBHOOK_CREATED_ON),
-		new FieldColumn("modifiedOn", COL_WEBHOOK_MODIFIED_ON), 
+		new FieldColumn("modifiedOn", COL_WEBHOOK_MODIFIED_ON),
 		new FieldColumn("objectId", COL_WEBHOOK_OBJECT_ID),
 		new FieldColumn("objectType", COL_WEBHOOK_OBJECT_TYPE),
 		new FieldColumn("eventTypes", COL_WEBHOOK_EVENT_TYPES),
 		new FieldColumn("invokeEndpoint", COL_WEBHOOK_INVOKE_ENDPOINT),
-		new FieldColumn("isEnabled", COL_WEBHOOK_IS_ENABLED),
-		new FieldColumn("verificationStatus", COL_WEBHOOK_VERIFICATION_STATUS),
-		new FieldColumn("verificationMessage", COL_WEBHOOK_VERIFICATION_MSG)
+		new FieldColumn("isEnabled", COL_WEBHOOK_IS_ENABLED)
 	};
 
 	@Override
@@ -75,8 +68,6 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 				dbo.setEventTypes(rs.getString(COL_WEBHOOK_EVENT_TYPES));
 				dbo.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT));
 				dbo.setIsEnabled(rs.getBoolean(COL_WEBHOOK_IS_ENABLED));
-				dbo.setVerificationStatus(rs.getString(COL_WEBHOOK_VERIFICATION_STATUS));
-				dbo.setVerificationMessage(rs.getString(COL_WEBHOOK_VERIFICATION_MSG));
 				return dbo;
 			}
 
@@ -139,39 +130,39 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 	public String getEtag() {
 		return etag;
 	}
-	
+
 	public DBOWebhook setEtag(String etag) {
 		this.etag = etag;
 		return this;
 	}
-	
+
 	public Long getCreatedBy() {
 		return createdBy;
 	}
-	
+
 	public DBOWebhook setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
 		return this;
 	}
-	
+
 	public Timestamp getCreatedOn() {
 		return createdOn;
 	}
-	
+
 	public DBOWebhook setCreatedOn(Timestamp createdOn) {
 		this.createdOn = createdOn;
 		return this;
 	}
-	
+
 	public Timestamp getModifiedOn() {
 		return modifiedOn;
 	}
-	
+
 	public DBOWebhook setModifiedOn(Timestamp modifiedOn) {
 		this.modifiedOn = modifiedOn;
 		return this;
 	}
-	
+
 	public Long getObjectId() {
 		return objectId;
 	}
@@ -189,11 +180,11 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 		this.objectType = objectType;
 		return this;
 	}
-	
+
 	public String getEventTypes() {
 		return eventTypes;
 	}
-	
+
 	public DBOWebhook setEventTypes(String eventTypes) {
 		this.eventTypes = eventTypes;
 		return this;
@@ -211,34 +202,15 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 	public Boolean getIsEnabled() {
 		return isEnabled;
 	}
-	
+
 	public DBOWebhook setIsEnabled(Boolean isEnabled) {
 		this.isEnabled = isEnabled;
-		return this;
-	}
-	
-	public String getVerificationStatus() {
-		return verificationStatus;
-	}
-	
-	public DBOWebhook setVerificationStatus(String verificationStatus) {
-		this.verificationStatus = verificationStatus;
-		return this;
-	}
-	
-	public String getVerificationMessage() {
-		return verificationMessage;
-	}
-	
-	public DBOWebhook setVerificationMessage(String verificationMessage) {
-		this.verificationMessage = verificationMessage;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, etag, eventTypes, id, invokeEndpoint, isEnabled, modifiedOn, objectId, objectType,
-				verificationMessage, verificationStatus);
+		return Objects.hash(createdBy, createdOn, etag, eventTypes, id, invokeEndpoint, isEnabled, modifiedOn, objectId, objectType);
 	}
 
 	@Override
@@ -254,16 +226,14 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 				&& Objects.equals(eventTypes, other.eventTypes) && Objects.equals(id, other.id)
 				&& Objects.equals(invokeEndpoint, other.invokeEndpoint) && Objects.equals(isEnabled, other.isEnabled)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(objectId, other.objectId)
-				&& Objects.equals(objectType, other.objectType) && Objects.equals(verificationMessage, other.verificationMessage)
-				&& Objects.equals(verificationStatus, other.verificationStatus);
+				&& Objects.equals(objectType, other.objectType);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOWebhook [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", modifiedOn="
 				+ modifiedOn + ", objectId=" + objectId + ", objectType=" + objectType + ", eventTypes=" + eventTypes + ", invokeEndpoint="
-				+ invokeEndpoint + ", isEnabled=" + isEnabled + ", verificationStatus=" + verificationStatus + ", verificationMessage="
-				+ verificationMessage + "]";
+				+ invokeEndpoint + ", isEnabled=" + isEnabled + "]";
 	}
 
 }
