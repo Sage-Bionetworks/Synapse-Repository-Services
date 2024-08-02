@@ -59,6 +59,15 @@ public interface EntityAuthorizationManager {
 	
 
 	/**
+	 * Get a bundle of all the permission that the user has on a single entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @param stateProvider
+	 * @return
+	 */
+	UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId, EntityStateProvider stateProvider);
+	
+	/**
 	 * Can the user create an entity within the given parent and of the given entity type?
 	 * @param parentId
 	 * @param entityCreateType

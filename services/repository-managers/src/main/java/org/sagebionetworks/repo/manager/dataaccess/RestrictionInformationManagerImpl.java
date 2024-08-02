@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.entity.EntityStateProvider;
 import org.sagebionetworks.repo.manager.entity.LazyEntityStateProvider;
 import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -34,6 +36,9 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 	
 	@Autowired
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
+
+	@Autowired
+	private EntityAuthorizationManager entityAuthorizationManager;
 	
 	@Override
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo,
@@ -83,11 +88,11 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 			UsersRestrictionStatus restrictionStatus = stateProvider.getRestrictionStatus(objectId);
 			UserEntityPermissionsState permissionsState = stateProvider.getPermissionsState(objectId);
 			
-			boolean isUserDataContributor = UserAccessRestrictionUtils.isUserDataContributor(permissionsState);
+			UserEntityPermissions permissions = entityAuthorizationManager.getUserPermissionsForEntity(userInfo, KeyFactory.keyToString(objectId), stateProvider);
 			
 			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(permissionsState, restrictionStatus);
 			
-			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
+			return buildRestrictionInformationResponse(restrictionStatus, permissions, unmetArIdsSupplier);
 			
 		}).collect(Collectors.toList());
 		
@@ -99,22 +104,22 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 		
 		List<RestrictionInformationResponse> restrictionList = accessRestrictionStatusDao.getNonEntityStatus(objectIds, request.getRestrictableObjectType(), userInfo.getId()).stream().map( restrictionStatus -> {
 			// Does not apply for teams
-			boolean isUserDataContributor = false;
+			UserEntityPermissions permissions = null;
 			
 			Supplier<List<Long>> unmetArIdsSupplier = () -> UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForNonEntity(restrictionStatus);
 			
-			return buildRestrictionInformationResponse(restrictionStatus, isUserDataContributor, unmetArIdsSupplier);
+			return buildRestrictionInformationResponse(restrictionStatus, permissions, unmetArIdsSupplier);
 			
 		}).collect(Collectors.toList());
 		
 		return new RestrictionInformationBatchResponse().setRestrictionInformation(restrictionList);
 	}
 	
-	static RestrictionInformationResponse buildRestrictionInformationResponse(UsersRestrictionStatus restrictionStatus, boolean isUserDataContributor, Supplier<List<Long>> unmetArIdsSupplier) {
+	static RestrictionInformationResponse buildRestrictionInformationResponse(UsersRestrictionStatus restrictionStatus, UserEntityPermissions userEntityPermissions, Supplier<List<Long>> unmetArIdsSupplier) {
 		
 		RestrictionInformationResponse response = new RestrictionInformationResponse()
 				.setObjectId(restrictionStatus.getSubjectId())
-				.setIsUserDataContributor(isUserDataContributor);
+				.setUserEntityPermissions(userEntityPermissions);
 		
 		if (restrictionStatus.getAccessRestrictions().isEmpty()) {
 			return response
@@ -125,6 +130,9 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 		
 		Set<Long> unmetArIds = new HashSet<>(unmetArIdsSupplier.get());
 		
+		// Permissions will be null if the restricted object is not an entity
+		boolean isUserDataContributor = userEntityPermissions != null && userEntityPermissions.getIsDataContributor();
+
 		List<RestrictionFulfillment> restrictionDetails = restrictionStatus.getAccessRestrictions().stream().map(userRequirementStatus -> new RestrictionFulfillment()
 			.setAccessRequirementId(userRequirementStatus.getRequirementId())
 			.setIsApproved(!userRequirementStatus.isUnmet())
