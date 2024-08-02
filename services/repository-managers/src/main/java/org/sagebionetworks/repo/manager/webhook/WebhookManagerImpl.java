@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.webhook;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -15,15 +17,18 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookEvent;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationEvent;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -72,12 +77,12 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		return webhook;
 	}
-
-	@Override
-	public Webhook getWebhook(UserInfo userInfo, String webhookId) {
+	
+	Webhook getWebhook(UserInfo userInfo, String webhookId, boolean forUpdate) {
 		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.requiredNotBlank(webhookId, "The webhookId");
 		
-		Webhook webhook = getWebhookOrThrow(webhookId);
+		Webhook webhook = webhookDao.getWebhook(webhookId, forUpdate).orElseThrow(() -> new NotFoundException("A webhook with the given id does not exist."));
 
 		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, webhook.getCreatedBy())) {
 			throw new UnauthorizedException("You are not authorized to access this resource.");
@@ -86,12 +91,20 @@ public class WebhookManagerImpl implements WebhookManager {
 		return webhook;
 	}
 
+	@Override
+	public Webhook getWebhook(UserInfo userInfo, String webhookId) {
+		boolean forUpdate = false;
+		return getWebhook(userInfo, webhookId, forUpdate);
+	}
+
 	@WriteTransaction
 	@Override
 	public Webhook updateWebhook(UserInfo userInfo, String webhookId, CreateOrUpdateWebhookRequest request) {
 		validateCreateOrUpdateRequest(userInfo, request);
 		
-		Webhook current = getWebhook(userInfo, webhookId);
+		boolean forUpdate = true;
+		
+		Webhook current = getWebhook(userInfo, webhookId, forUpdate);
 
 		Webhook updated = webhookDao.updateWebhook(webhookId, request);
 		
@@ -105,14 +118,57 @@ public class WebhookManagerImpl implements WebhookManager {
 	@WriteTransaction
 	@Override
 	public void deleteWebhook(UserInfo userInfo, String webhookId) {
-		webhookDao.deleteWebhook(getWebhook(userInfo, webhookId).getId());
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.requiredNotBlank(webhookId, "The webhookId");
+		
+		boolean forUpdate = true;
+		
+		Webhook webhook = getWebhook(userInfo, webhookId, forUpdate);
+		
+		webhookDao.deleteWebhook(webhook.getId());
 	}
 
 	@WriteTransaction
 	@Override
-	public Webhook verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request) {
+	public VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request) {
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.required(webhookId, "The webhookId");
+		ValidateArgument.required(request, "The request");
+		ValidateArgument.requiredNotBlank(request.getVerificationCode(), "The verificationCode");
+
+		boolean forUpdate = true;
 		
-		return getWebhookOrThrow(webhookId);
+		Webhook webhook = getWebhook(userInfo, webhookId, forUpdate);
+		
+		if (WebhookVerificationStatus.VERIFIED.equals(webhook.getVerificationStatus())) {
+			throw new IllegalArgumentException("The webhook is already verified.");
+		}
+		
+		if (WebhookVerificationStatus.FAILED.equals(webhook.getVerificationStatus())) {
+			throw new IllegalArgumentException("The webhook validation failed.");
+		}
+				
+		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhookId);
+						
+		String verificationMessage = null;
+		WebhookVerificationStatus newStatus = null;
+		
+		if (Instant.now().isAfter(verification.getCodeExpiresOn().toInstant())) {
+			newStatus = WebhookVerificationStatus.FAILED;
+			verificationMessage = "The provided verification code has expired.";
+		} else if (request.getVerificationCode().equals(verification.getCode())) {
+			newStatus = WebhookVerificationStatus.VERIFIED;
+			verificationMessage = null;
+		} else {
+			newStatus = WebhookVerificationStatus.CODE_SENT;
+			verificationMessage = "The provided verification code is invalid.";
+		}
+		
+		webhookDao.setWebhookVerificationStatus(webhookId, newStatus, verificationMessage);
+		
+		return new VerifyWebhookResponse()
+			.setIsValid(WebhookVerificationStatus.VERIFIED.equals(newStatus))
+			.setInvalidReason(verificationMessage);
 	}
 
 	@Override
@@ -139,7 +195,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		Instant now = Instant.now();
 		Instant expiresOn = now.plus(VERIFICATION_CODE_TTL_SECONDS, ChronoUnit.SECONDS);
 		
-		webhookDao.setVerificationCode(webhook.getId(), verificationCode, expiresOn);
+		webhookDao.setWebhookVerificationCode(webhook.getId(), verificationCode, expiresOn);
 		
 		publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), new WebhookVerificationEvent()
 			.setEventId(UUID.randomUUID().toString())
@@ -177,11 +233,19 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.required(request.getObjectId(), "The objectId");
 		ValidateArgument.required(request.getObjectType(), "The objectType");
 		ValidateArgument.requiredNotEmpty(request.getEventTypes(), "The eventTypes");
-		ValidateArgument.requiredNotBlank(request.getInvokeEndpoint(), "The invokeEndpoint");
+		ValidateArgument.validUrl(request.getInvokeEndpoint(), "The invokeEndpoint");
 		ValidateArgument.required(request.getIsEnabled(), "isEnabled");
-		
-		// TODO endpoint URL validation
-		
+
+		try {
+			URI uri = URI.create(request.getInvokeEndpoint());
+			URI uriNormalized = new URI("https", uri.getHost(), uri.getPath(), null);
+			
+			ValidateArgument.requirement(uri.equals(uriNormalized), "The invokedEndpoint only supports https and cannot contain a port, query or fragment");
+			
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("The invoke endpoint is invalid.");
+		}
+				
 		AuthorizationUtils.disallowAnonymous(userInfo);
 
 		if (!userInfo.isAdmin()) {
@@ -189,9 +253,4 @@ public class WebhookManagerImpl implements WebhookManager {
 		}
 	}
 	
-	private Webhook getWebhookOrThrow(String webhookId) {
-		ValidateArgument.required(webhookId, "The webhookId");
-		return webhookDao.getWebhook(webhookId).orElseThrow(() -> new NotFoundException("A webhook with the given id does not exist."));
-	}
-
 }

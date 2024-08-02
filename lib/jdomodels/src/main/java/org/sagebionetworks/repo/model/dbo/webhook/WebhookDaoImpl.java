@@ -133,12 +133,12 @@ public class WebhookDaoImpl implements WebhookDao {
 			.setStatus(WebhookVerificationStatus.PENDING.name())
 		);
 		
-		return getWebhook(dbo.getId().toString()).orElseThrow(() -> new IllegalStateException("The webhook was not created."));
+		return getWebhook(dbo.getId().toString(), false).orElseThrow(() -> new IllegalStateException("The webhook was not created."));
 	}
 	
 	@Override
-	public Optional<Webhook> getWebhook(String webhookId) {
-		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_ID + "=?";
+	public Optional<Webhook> getWebhook(String webhookId, boolean forUpdate) {
+		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_ID + "=?" + (forUpdate ? " FOR UPDATE" : "");
 		
 		try {
 			return Optional.of(jdbcTemplate.queryForObject(sql, WEBHOOK_ROW_MAPPER, webhookId));
@@ -173,7 +173,7 @@ public class WebhookDaoImpl implements WebhookDao {
 			throw new IllegalArgumentException(MSG_DUPLICATE_OBJECT_ENDPOINT);
 		}
 		
-		return getWebhook(webhookId).orElseThrow(() -> new IllegalStateException("A webhook with id " + webhookId + " does not exist."));
+		return getWebhook(webhookId, false).orElseThrow(() -> new IllegalStateException("The webhook was not updated."));
 	}
 
 	@Override
@@ -187,11 +187,17 @@ public class WebhookDaoImpl implements WebhookDao {
 		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? ORDER BY " + COL_WEBHOOK_CREATED_ON + " LIMIT ? OFFSET ?";
 		
 		return jdbcTemplate.query(sql, WEBHOOK_ROW_MAPPER, userId, limit, offset);
-	}	
+	}
+	
+	@Override
+	public DBOWebhookVerification getWebhookVerification(String webhookId) {
+		return dboBasicDao.getObjectByPrimaryKey(DBOWebhookVerification.class, new SinglePrimaryKeySqlParameterSource(webhookId))
+				.orElseThrow(() -> new IllegalStateException("A webhook with id " + webhookId + " does not exist."));
+	}
 	
 	@Override
 	@WriteTransaction
-	public void setVerificationCode(String webhookId, String verificationCode, Instant expiresOn) {
+	public DBOWebhookVerification setWebhookVerificationCode(String webhookId, String verificationCode, Instant expiresOn) {
 		String sql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " 
 			+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
 			+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
@@ -200,7 +206,25 @@ public class WebhookDaoImpl implements WebhookDao {
 			+ COL_WEBHOOK_VERIFICATION_STATUS + "=?"
 			+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
 		
-		jdbcTemplate.update(sql, verificationCode, expiresOn, WebhookVerificationStatus.PENDING.name(), webhookId);		
+		jdbcTemplate.update(sql, verificationCode, expiresOn, WebhookVerificationStatus.PENDING.name(), webhookId);
+		
+		return getWebhookVerification(webhookId);
+	}
+	
+	@Override
+	@WriteTransaction
+	public DBOWebhookVerification setWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String message) {
+	
+		String sql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " 
+				+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
+				+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
+				+ COL_WEBHOOK_VERIFICATION_STATUS + "=?,"
+				+ COL_WEBHOOK_VERIFICATION_MSG + "=?"
+				+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
+			
+			jdbcTemplate.update(sql, status.name(), message, webhookId);
+		
+		return getWebhookVerification(webhookId);
 	}
 	
 	@Override

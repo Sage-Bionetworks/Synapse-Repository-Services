@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
 
@@ -59,7 +60,7 @@ public interface WebhookManager {
 	 * @param request
 	 * @return
 	 */
-	Webhook verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request);
+	VerifyWebhookResponse verifyWebhook(UserInfo userInfo, String webhookId, VerifyWebhookRequest request);
 
 	/**
 	 * List all webhookIds for a Synapse user.
