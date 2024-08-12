@@ -33,12 +33,12 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @Service
 public class WebhookManagerImpl implements WebhookManager {
@@ -53,12 +53,15 @@ public class WebhookManagerImpl implements WebhookManager {
 
 	private AccessControlListDAO aclDao;
 	
+	private Clock clock;
+	
 	private String queueUrl;
 
-	public WebhookManagerImpl(WebhookDao webhookDao, AmazonSQSClient sqsClient, AccessControlListDAO aclDao) {
+	public WebhookManagerImpl(WebhookDao webhookDao, AmazonSQSClient sqsClient, AccessControlListDAO aclDao, Clock clock) {
 		this.webhookDao = webhookDao;
 		this.sqsClient = sqsClient;
 		this.aclDao = aclDao;
+		this.clock = clock;
 	}
 	
 	@Autowired
@@ -140,27 +143,21 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		Webhook webhook = getWebhook(userInfo, webhookId, forUpdate);
 		
-		if (WebhookVerificationStatus.VERIFIED.equals(webhook.getVerificationStatus())) {
-			throw new IllegalArgumentException("The webhook is already verified.");
-		}
-		
-		if (WebhookVerificationStatus.FAILED.equals(webhook.getVerificationStatus())) {
-			throw new IllegalArgumentException("The webhook validation failed.");
-		}
+		ValidateArgument.requirement(WebhookVerificationStatus.CODE_SENT.equals(webhook.getVerificationStatus()), "Cannot verify the webhook at this time.");
 				
 		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhookId);
 						
-		String verificationMessage = null;
 		WebhookVerificationStatus newStatus = null;
+		String verificationMessage = null;
 		
-		if (Instant.now().isAfter(verification.getCodeExpiresOn().toInstant())) {
+		if (clock.now().after(verification.getCodeExpiresOn())) {
 			newStatus = WebhookVerificationStatus.FAILED;
 			verificationMessage = "The provided verification code has expired.";
 		} else if (request.getVerificationCode().equals(verification.getCode())) {
 			newStatus = WebhookVerificationStatus.VERIFIED;
 			verificationMessage = null;
 		} else {
-			newStatus = WebhookVerificationStatus.CODE_SENT;
+			newStatus = webhook.getVerificationStatus();
 			verificationMessage = "The provided verification code is invalid.";
 		}
 		
@@ -187,19 +184,21 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@Override
 	public void processWebhookMessage(WebhookMessage message) {
-		// TODO 
+		// TODO This should be invoked by a worker and a message sent to the endpoint
 	}
 	
 	void generateAndSendVerificationCode(Webhook webhook) {
 		String verificationCode = RandomStringUtils.randomAlphanumeric(VERIFICATION_CODE_LENGHT);
-		Instant now = Instant.now();
-		Instant expiresOn = now.plus(VERIFICATION_CODE_TTL_SECONDS, ChronoUnit.SECONDS);
+		Date now = clock.now();
+		Instant expiresOn = now.toInstant().plus(VERIFICATION_CODE_TTL_SECONDS, ChronoUnit.SECONDS);
 		
 		webhookDao.setWebhookVerificationCode(webhook.getId(), verificationCode, expiresOn);
 		
+		// Note that we publish directly to the message queue as part of the create/update transaction
+		// since if this fails we want to rollback
 		publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), new WebhookVerificationEvent()
 			.setEventId(UUID.randomUUID().toString())
-			.setEventTimestamp(Date.from(now))
+			.setEventTimestamp(now)
 			.setVerificationCode(verificationCode)
 			.setWebhookOwnerId(webhook.getCreatedBy())
 			.setWebhookId(webhook.getId())
@@ -212,7 +211,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		try {
 		
 			WebhookMessage message = new WebhookMessage()
-				.setWebhookId(webhookId)
+				.setWebhookId(event.getWebhookId())
 				.setEndpoint(webhookEndpoint)
 				.setIsVerificationMessage(event instanceof WebhookVerificationEvent)
 				.setMessageBody(EntityFactory.createJSONStringForEntity(event));
@@ -223,7 +222,7 @@ public class WebhookManagerImpl implements WebhookManager {
 			throw new IllegalStateException(e);
 		}
 		
-		sqsClient.sendMessage(new SendMessageRequest(queueUrl, messageJson));
+		sqsClient.sendMessage(queueUrl, messageJson);
 	}
 	
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
@@ -235,17 +234,17 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.requiredNotEmpty(request.getEventTypes(), "The eventTypes");
 		ValidateArgument.validUrl(request.getInvokeEndpoint(), "The invokeEndpoint");
 		ValidateArgument.required(request.getIsEnabled(), "isEnabled");
-
+		
 		try {
 			URI uri = URI.create(request.getInvokeEndpoint());
 			URI uriNormalized = new URI("https", uri.getHost(), uri.getPath(), null);
-			
+						
 			ValidateArgument.requirement(uri.equals(uriNormalized), "The invokedEndpoint only supports https and cannot contain a port, query or fragment");
 			
 		} catch (URISyntaxException e) {
 			throw new IllegalArgumentException("The invoke endpoint is invalid.");
 		}
-				
+		
 		AuthorizationUtils.disallowAnonymous(userInfo);
 
 		if (!userInfo.isAdmin()) {

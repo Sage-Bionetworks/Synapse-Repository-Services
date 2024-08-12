@@ -306,12 +306,13 @@ public class WebhookDaoImplTest {
 		assertEquals(expected, verification);
 	}	
 	
-	@Test
-	public void testSetWebhookVerificationStatus() {
+	@ParameterizedTest
+	@EnumSource(WebhookVerificationStatus.class)
+	public void testSetWebhookVerificationStatus(WebhookVerificationStatus status) {
 		
 		assertThrows(IllegalStateException.class, () -> {
 			// Call under test
-			webhookDao.setWebhookVerificationStatus("123", WebhookVerificationStatus.VERIFIED, "message");			
+			webhookDao.setWebhookVerificationStatus("123", status, "message");			
 		});
 					
 		Webhook webhook = webhookDao.createWebhook(userId, cuRequest);
@@ -323,11 +324,11 @@ public class WebhookDaoImplTest {
 			.setWebhookId(Long.valueOf(webhook.getId()))
 			.setCode(null)
 			.setCodeExpiresOn(null)
-			.setStatus(WebhookVerificationStatus.VERIFIED.name())
+			.setStatus(status.name())
 			.setMessage("message");
 		
 		// Call under test
-		verification = webhookDao.setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.VERIFIED, "message");
+		verification = webhookDao.setWebhookVerificationStatus(webhook.getId(), status, "message");
 		
 		assertNotNull(verification.getModifiedOn());
 		assertNotEquals(currentEtag, verification.getEtag());
