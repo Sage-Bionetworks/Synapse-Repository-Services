@@ -26,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -494,7 +495,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel dto = new ColumnModel().setId("123").setName("foo");
 		DBOColumnModel dbo = new DBOColumnModel();
 		dbo.setBytes(JDOSecondaryPropertyUtils
-				.compressObject(UnmodifiableXStream.builder().allowTypes(ColumnModel.class).build(), dto));
+				.compressObject(ColumnModelUtils.X_STREAM, dto));
 		// call under test
 		DBOColumnModel translated = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
 		assertNull(translated.getBytes());
