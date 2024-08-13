@@ -15,14 +15,14 @@ public class XStreamToJsonTranslator {
 	private final Field from;
 	private final Field to;
 
-	private XStreamToJsonTranslator(Class<? extends JSONEntity> dtoType, Class<? extends DatabaseObject<?>> dboType,
-			String fromName, String toName) {
+	private XStreamToJsonTranslator(UnmodifiableXStream xstream, Class<? extends JSONEntity> dtoType,
+			Class<? extends DatabaseObject<?>> dboType, String fromName, String toName) {
 		ValidateArgument.required(dboType, "dtoType");
 		ValidateArgument.required(dboType, "dboType");
 		ValidateArgument.required(fromName, "fromName");
 		ValidateArgument.required(toName, "toName");
 		try {
-			this.xStream = UnmodifiableXStream.builder().allowTypes(dtoType).build();
+			this.xStream = xstream != null ? xstream : UnmodifiableXStream.builder().allowTypes(dtoType).build();
 			this.from = dboType.getDeclaredField(fromName);
 			this.from.setAccessible(true);
 			this.to = dboType.getDeclaredField(toName);
@@ -65,6 +65,7 @@ public class XStreamToJsonTranslator {
 		private Class<? extends DatabaseObject<?>> dboType;
 		private String fromName;
 		private String toName;
+		private UnmodifiableXStream xstream;
 
 		public Builder setDtoType(Class<? extends JSONEntity> dtoType) {
 			this.dtoType = dtoType;
@@ -86,8 +87,13 @@ public class XStreamToJsonTranslator {
 			return this;
 		}
 
+		public Builder setXStream(UnmodifiableXStream xstream) {
+			this.xstream = xstream;
+			return this;
+		}
+
 		public XStreamToJsonTranslator build() {
-			return new XStreamToJsonTranslator(dtoType, dboType, fromName, toName);
+			return new XStreamToJsonTranslator(xstream, dtoType, dboType, fromName, toName);
 		}
 	}
 }

@@ -37,7 +37,7 @@ import com.google.common.collect.Lists;
  *
  */
 public class ColumnModelUtils {
-	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
+	public static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.alias("ColumnModel", ColumnModel.class)
 			.alias("ColumnType", ColumnType.class)
 			.alias("ColumnChange", ColumnChange.class)
