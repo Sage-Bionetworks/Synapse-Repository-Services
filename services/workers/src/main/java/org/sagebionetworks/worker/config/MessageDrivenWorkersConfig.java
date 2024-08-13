@@ -14,6 +14,7 @@ import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
 import org.sagebionetworks.table.worker.TableSnapshotWorker;
 import org.sagebionetworks.table.worker.UpdateQueryCacheWorker;
+import org.sagebionetworks.webhook.workers.WebhookMessageWorker;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -207,6 +208,29 @@ public class MessageDrivenWorkersConfig {
 				)
 				.withRepeatInterval(934)
 				.withStartDelay(578)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean webhookMessageWorkerTrigger(WebhookMessageWorker webhookMessageWorker) {
+
+		String queueName = stackConfig.getQueueName("WEBHOOK_MESSAGE");
+		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, webhookMessageWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("webhookMessageWorker")
+						.withSemaphoreMaxLockCount(10)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(10)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(true)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(976)
+				.withStartDelay(1045)
 				.build();
 	}
 }

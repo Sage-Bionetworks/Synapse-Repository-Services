@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.webhook;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 
 public interface WebhookDao {
 
@@ -12,28 +15,22 @@ public interface WebhookDao {
 	 * @param webhook
 	 * @return
 	 */
-	Webhook createWebhook(Webhook webhook);
-
+	Webhook createWebhook(Long userId, CreateOrUpdateWebhookRequest request);
+		
 	/**
 	 * 
 	 * @param webhookId
+	 * @param forUpdate
 	 * @return
 	 */
-	Webhook getWebhook(String webhookId);
-
-	/**
-	 * 
-	 * @param webhookId
-	 * @return
-	 */
-	Webhook getWebhookForUpdate(String webhookId);
-
+	Optional<Webhook> getWebhook(String webhookId, boolean forUpdate);
+	
 	/**
 	 * 
 	 * @param webhook
 	 * @return
 	 */
-	Webhook updateWebhook(Webhook webhook);
+	Webhook updateWebhook(String webhookId, CreateOrUpdateWebhookRequest request);
 
 	/**
 	 * 
@@ -52,15 +49,31 @@ public interface WebhookDao {
 
 	/**
 	 * 
-	 * @param objectId
-	 * @param webhookObjectType
+	 * @param webhookId
 	 * @return
 	 */
-	List<Webhook> listVerifiedAndEnabledWebhooksForObject(String objectId, ObjectType objectType);
-
+	DBOWebhookVerification getWebhookVerification(String webhookId);
+	
+	/**
+	 * 
+	 * @param verificationCode
+	 * @param expiresOn
+	 */
+	DBOWebhookVerification setWebhookVerificationCode(String webhookId, String verificationCode, Instant expiresOn);
+	
+	/**
+	 * 
+	 * @param webhookId
+	 * @param status
+	 * @param message
+	 * @return
+	 */
+	DBOWebhookVerification setWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String message);
+	
 	/**
 	 * Truncate all Webhook data.
 	 */
 	void truncateAll();
+
 
 }

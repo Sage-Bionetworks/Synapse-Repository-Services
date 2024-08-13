@@ -448,7 +448,7 @@
 		},
 		{
 			"name": "WEBHOOK_VERIFICATION",
-			"description": "Table that stores WebhookVerifications for Webhooks."
+			"description": "Table that stores Webhooks verification data"
 		},
 		{
 			"name": "CHANGE",

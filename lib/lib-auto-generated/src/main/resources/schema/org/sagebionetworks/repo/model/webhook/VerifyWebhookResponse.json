@@ -1,13 +1,9 @@
 {
 	"description": "The request body of VerifyWebhookResponse.",
 	"properties": {
-		"webhookId": {
-			"type": "string",
-			"description": "The ID associated with the Webhook."
-		},
 		"isValid": {
 			"type": "boolean",
-			"description": "True if the state of the Webhook after verification is 'isVerified=true', false if the state after verification is 'isVerified=false."
+			"description": "True if the webhook was successfully validated."
 		},
 		"invalidReason": {
 			"type": "string",

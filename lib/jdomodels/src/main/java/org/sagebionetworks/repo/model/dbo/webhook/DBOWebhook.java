@@ -3,15 +3,13 @@ package org.sagebionetworks.repo.model.dbo.webhook;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_EVENT_TYPES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_INVOKE_ENDPOINT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_IS_AUTHENTICATION_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_IS_WEBHOOK_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_IS_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WEBHOOK;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
 
@@ -31,44 +29,28 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebhook> {
 
 	private Long id;
-	private Long objectId;
-	private String objectType;
-	private Long userId;
-	private String invokeEndpoint;
-	private boolean isWebhookEnabled;
-	private boolean isAuthenticationEnabled;
 	private String etag;
+	private Long createdBy;
 	private Timestamp createdOn;
 	private Timestamp modifiedOn;
-	private Long createdBy;
-	private Long modifiedBy;
-
-	public static final String FIELD_COLUMN_ID = "id";
-	public static final String FIELD_COLUMN_ETAG = "etag";
-	public static final String FIELD_COLUMN_OBJECT_ID = "objectId";
-	public static final String FIELD_COLUMN_OBJECT_TYPE = "objectType";
-	public static final String FIELD_COLUMN_USER_ID = "userId";
-	public static final String FIELD_COLUMN_INVOKE_ENDPOINT = "invokeEndpoint";
-	public static final String FIELD_COLUMN_IS_WEBHOOK_ENABLED = "isWebhookEnabled";
-	public static final String FIELD_COLUMN_IS_AUTHENTICATION_ENABLED = "isAuthenticationEnabled";
-	public static final String FIELD_COLUMN_CREATED_BY = "createdBy";
-	public static final String FIELD_COLUMN_MODIFIED_BY = "modifiedBy";
-	public static final String FIELD_COLUMN_CREATED_ON = "createdOn";
-	public static final String FIELD_COLUMN_MODIFIED_ON = "modifiedOn";
+	private Long objectId;
+	private String objectType;
+	private String eventTypes;
+	private String invokeEndpoint;
+	private Boolean isEnabled;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn(FIELD_COLUMN_ID, COL_WEBHOOK_ID, true).withIsBackupId(true),
-			new FieldColumn(FIELD_COLUMN_ETAG, COL_WEBHOOK_ETAG).withIsEtag(true),
-			new FieldColumn(FIELD_COLUMN_OBJECT_ID, COL_WEBHOOK_OBJECT_ID),
-			new FieldColumn(FIELD_COLUMN_OBJECT_TYPE, COL_WEBHOOK_OBJECT_TYPE),
-			new FieldColumn(FIELD_COLUMN_USER_ID, COL_WEBHOOK_USER_ID),
-			new FieldColumn(FIELD_COLUMN_INVOKE_ENDPOINT, COL_WEBHOOK_INVOKE_ENDPOINT),
-			new FieldColumn(FIELD_COLUMN_IS_WEBHOOK_ENABLED, COL_WEBHOOK_IS_WEBHOOK_ENABLED),
-			new FieldColumn(FIELD_COLUMN_IS_AUTHENTICATION_ENABLED, COL_WEBHOOK_IS_AUTHENTICATION_ENABLED),
-			new FieldColumn(FIELD_COLUMN_CREATED_BY, COL_WEBHOOK_CREATED_BY),
-			new FieldColumn(FIELD_COLUMN_MODIFIED_BY, COL_WEBHOOK_MODIFIED_BY),
-			new FieldColumn(FIELD_COLUMN_CREATED_ON, COL_WEBHOOK_CREATED_ON),
-			new FieldColumn(FIELD_COLUMN_MODIFIED_ON, COL_WEBHOOK_MODIFIED_ON) };
+		new FieldColumn("id", COL_WEBHOOK_ID, true).withIsBackupId(true),
+		new FieldColumn("etag", COL_WEBHOOK_ETAG).withIsEtag(true),
+		new FieldColumn("createdBy", COL_WEBHOOK_CREATED_BY),
+		new FieldColumn("createdOn", COL_WEBHOOK_CREATED_ON),
+		new FieldColumn("modifiedOn", COL_WEBHOOK_MODIFIED_ON),
+		new FieldColumn("objectId", COL_WEBHOOK_OBJECT_ID),
+		new FieldColumn("objectType", COL_WEBHOOK_OBJECT_TYPE),
+		new FieldColumn("eventTypes", COL_WEBHOOK_EVENT_TYPES),
+		new FieldColumn("invokeEndpoint", COL_WEBHOOK_INVOKE_ENDPOINT),
+		new FieldColumn("isEnabled", COL_WEBHOOK_IS_ENABLED)
+	};
 
 	@Override
 	public TableMapping<DBOWebhook> getTableMapping() {
@@ -77,17 +59,15 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 			public DBOWebhook mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOWebhook dbo = new DBOWebhook();
 				dbo.setId(rs.getLong(COL_WEBHOOK_ID));
-				dbo.setObjectId(rs.getLong(COL_WEBHOOK_OBJECT_ID));
-				dbo.setObjectType(rs.getString(COL_WEBHOOK_OBJECT_TYPE));
-				dbo.setUserId(rs.getLong(COL_WEBHOOK_USER_ID));
-				dbo.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT));
-				dbo.setIsWebhookEnabled(rs.getBoolean(COL_WEBHOOK_IS_WEBHOOK_ENABLED));
-				dbo.setIsAuthenticationEnabled(rs.getBoolean(COL_WEBHOOK_IS_AUTHENTICATION_ENABLED));
 				dbo.setEtag(rs.getString(COL_WEBHOOK_ETAG));
 				dbo.setCreatedBy(rs.getLong(COL_WEBHOOK_CREATED_BY));
-				dbo.setModifiedBy(rs.getLong(COL_WEBHOOK_MODIFIED_BY));
 				dbo.setCreatedOn(rs.getTimestamp(COL_WEBHOOK_CREATED_ON));
 				dbo.setModifiedOn(rs.getTimestamp(COL_WEBHOOK_MODIFIED_ON));
+				dbo.setObjectId(rs.getLong(COL_WEBHOOK_OBJECT_ID));
+				dbo.setObjectType(rs.getString(COL_WEBHOOK_OBJECT_TYPE));
+				dbo.setEventTypes(rs.getString(COL_WEBHOOK_EVENT_TYPES));
+				dbo.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT));
+				dbo.setIsEnabled(rs.getBoolean(COL_WEBHOOK_IS_ENABLED));
 				return dbo;
 			}
 
@@ -142,128 +122,118 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 		return id;
 	}
 
-	public void setId(Long id) {
+	public DBOWebhook setId(Long id) {
 		this.id = id;
-	}
-
-	public Long getObjectId() {
-		return objectId;
-	}
-
-	public void setObjectId(Long objectId) {
-		this.objectId = objectId;
-	}
-
-	public String getObjectType() {
-		return objectType;
-	}
-
-	public void setObjectType(String objectType) {
-		this.objectType = objectType;
-	}
-
-	public Long getUserId() {
-		return userId;
-	}
-
-	public void setUserId(Long userId) {
-		this.userId = userId;
-	}
-
-	public String getInvokeEndpoint() {
-		return invokeEndpoint;
-	}
-
-	public void setInvokeEndpoint(String invokeEndpoint) {
-		this.invokeEndpoint = invokeEndpoint;
-	}
-
-	public boolean getIsWebhookEnabled() {
-		return isWebhookEnabled;
-	}
-
-	public void setIsWebhookEnabled(boolean isWebhookEnabled) {
-		this.isWebhookEnabled = isWebhookEnabled;
-	}
-
-	public boolean getIsAuthenticationEnabled() {
-		return isAuthenticationEnabled;
-	}
-
-	public void setIsAuthenticationEnabled(boolean isAuthenticationEnabled) {
-		this.isAuthenticationEnabled = isAuthenticationEnabled;
+		return this;
 	}
 
 	public String getEtag() {
 		return etag;
 	}
 
-	public void setEtag(String etag) {
+	public DBOWebhook setEtag(String etag) {
 		this.etag = etag;
-	}
-
-	public Timestamp getCreatedOn() {
-		return createdOn;
-	}
-
-	public void setCreatedOn(Timestamp createdOn) {
-		this.createdOn = createdOn;
-	}
-
-	public Timestamp getModifiedOn() {
-		return modifiedOn;
-	}
-
-	public void setModifiedOn(Timestamp modifiedOn) {
-		this.modifiedOn = modifiedOn;
+		return this;
 	}
 
 	public Long getCreatedBy() {
 		return createdBy;
 	}
 
-	public void setCreatedBy(Long createdBy) {
+	public DBOWebhook setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
+		return this;
 	}
 
-	public Long getModifiedBy() {
-		return modifiedBy;
+	public Timestamp getCreatedOn() {
+		return createdOn;
 	}
 
-	public void setModifiedBy(Long modifiedBy) {
-		this.modifiedBy = modifiedBy;
+	public DBOWebhook setCreatedOn(Timestamp createdOn) {
+		this.createdOn = createdOn;
+		return this;
+	}
+
+	public Timestamp getModifiedOn() {
+		return modifiedOn;
+	}
+
+	public DBOWebhook setModifiedOn(Timestamp modifiedOn) {
+		this.modifiedOn = modifiedOn;
+		return this;
+	}
+
+	public Long getObjectId() {
+		return objectId;
+	}
+
+	public DBOWebhook setObjectId(Long objectId) {
+		this.objectId = objectId;
+		return this;
+	}
+
+	public String getObjectType() {
+		return objectType;
+	}
+
+	public DBOWebhook setObjectType(String objectType) {
+		this.objectType = objectType;
+		return this;
+	}
+
+	public String getEventTypes() {
+		return eventTypes;
+	}
+
+	public DBOWebhook setEventTypes(String eventTypes) {
+		this.eventTypes = eventTypes;
+		return this;
+	}
+
+	public String getInvokeEndpoint() {
+		return invokeEndpoint;
+	}
+
+	public DBOWebhook setInvokeEndpoint(String invokeEndpoint) {
+		this.invokeEndpoint = invokeEndpoint;
+		return this;
+	}
+
+	public Boolean getIsEnabled() {
+		return isEnabled;
+	}
+
+	public DBOWebhook setIsEnabled(Boolean isEnabled) {
+		this.isEnabled = isEnabled;
+		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, etag, id, invokeEndpoint, isAuthenticationEnabled, isWebhookEnabled,
-				modifiedBy, modifiedOn, objectId, objectType, userId);
+		return Objects.hash(createdBy, createdOn, etag, eventTypes, id, invokeEndpoint, isEnabled, modifiedOn, objectId, objectType);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof DBOWebhook)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		DBOWebhook other = (DBOWebhook) obj;
-		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
-				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(invokeEndpoint, other.invokeEndpoint)
-				&& isAuthenticationEnabled == other.isAuthenticationEnabled
-				&& isWebhookEnabled == other.isWebhookEnabled && Objects.equals(modifiedBy, other.modifiedBy)
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
+				&& Objects.equals(eventTypes, other.eventTypes) && Objects.equals(id, other.id)
+				&& Objects.equals(invokeEndpoint, other.invokeEndpoint) && Objects.equals(isEnabled, other.isEnabled)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(objectId, other.objectId)
-				&& Objects.equals(objectType, other.objectType) && Objects.equals(userId, other.userId);
+				&& Objects.equals(objectType, other.objectType);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOWebhook [id=" + id + ", objectId=" + objectId + ", objectType=" + objectType + ", userId=" + userId
-				+ ", invokeEndpoint=" + invokeEndpoint + ", isWebhookEnabled=" + isWebhookEnabled
-				+ ", isAuthenticationEnabled=" + isAuthenticationEnabled + ", etag=" + etag + ", createdOn=" + createdOn
-				+ ", modifiedOn=" + modifiedOn + ", createdBy=" + createdBy + ", modifiedBy=" + modifiedBy + "]";
+		return "DBOWebhook [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", modifiedOn="
+				+ modifiedOn + ", objectId=" + objectId + ", objectType=" + objectType + ", eventTypes=" + eventTypes + ", invokeEndpoint="
+				+ invokeEndpoint + ", isEnabled=" + isEnabled + "]";
 	}
 
 }

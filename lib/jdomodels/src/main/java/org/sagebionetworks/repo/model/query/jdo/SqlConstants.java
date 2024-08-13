@@ -1273,37 +1273,30 @@ public class SqlConstants {
 	public static final String COL_TWO_FA_STATUS_ENABLED =								"ENABLED";	
 
 	
-	// The webhook table
+	// The webhook tables
 	public static final String TABLE_WEBHOOK = 											"WEBHOOK";
-	public static final String COL_WEBHOOK_ID = 										"WEBHOOK_ID";
-	public static final String COL_WEBHOOK_OBJECT_ID = 									"OBJECT_ID";
-	public static final String COL_WEBHOOK_OBJECT_TYPE = 								"OBJECT_TYPE";
-	public static final String COL_WEBHOOK_USER_ID = 									"USER_ID";
-	public static final String COL_WEBHOOK_INVOKE_ENDPOINT = 							"INVOKE_ENDPOINT";
-	public static final String COL_WEBHOOK_IS_WEBHOOK_ENABLED = 						"IS_WEBHOOK_ENABLED";
-	public static final String COL_WEBHOOK_IS_AUTHENTICATION_ENABLED = 					"IS_AUTHENTICATION_ENABLED";
+	public static final String COL_WEBHOOK_ID = 										"ID";
 	public static final String COL_WEBHOOK_ETAG = 										"ETAG";
 	public static final String COL_WEBHOOK_CREATED_BY = 								"CREATED_BY";
-	public static final String COL_WEBHOOK_MODIFIED_BY = 								"MODIFIED_BY";
 	public static final String COL_WEBHOOK_CREATED_ON = 								"CREATED_ON";
 	public static final String COL_WEBHOOK_MODIFIED_ON = 								"MODIFIED_ON";
-	public static final String DDL_FILE_WEBHOOK = 										"schema/Webhook-ddl.sql";
+	public static final String COL_WEBHOOK_OBJECT_ID = 									"OBJECT_ID";
+	public static final String COL_WEBHOOK_OBJECT_TYPE = 								"OBJECT_TYPE";
+	public static final String COL_WEBHOOK_EVENT_TYPES = 								"EVENT_TYPES";
+	public static final String COL_WEBHOOK_INVOKE_ENDPOINT = 							"INVOKE_ENDPOINT";
+	public static final String COL_WEBHOOK_IS_ENABLED =			 						"IS_ENABLED";
+	public static final String DDL_FILE_WEBHOOK = 										"schema/webhook/Webhook-ddl.sql";
 	
-	// The webhook verification table
-	public static final String TABLE_WEBHOOK_VERIFICATION = 							"WEBHOOK_VERIFICATION";
-	public static final String COL_WEBHOOK_VERIFICATION_ID = 							"VERIFICATION_ID";
-	public static final String COL_WEBHOOK_VERIFICATION_WEBHOOK_ID = 					"WEBHOOK_ID";
-	public static final String COL_WEBHOOK_VERIFICATION_CODE = 							"VERIFICATION_CODE";
-	public static final String COL_WEBHOOK_VERIFICATION_EXPIRES_ON =                    "EXPIRES_ON";
-	public static final String COL_WEBHOOK_VERIFICATION_ATTEMPTS =                      "ATTEMPTS";
-	public static final String COL_WEBHOOK_VERIFICATION_STATE =                      	"STATE";
-	public static final String COL_WEBHOOK_VERIFICATION_ETAG = 							"ETAG";
-	public static final String COL_WEBHOOK_VERIFICATION_CREATED_ON =                    "CREATED_ON";
-	public static final String COL_WEBHOOK_VERIFICATION_MODIFIED_ON =                   "MODIFIED_ON";
-	public static final String COL_WEBHOOK_VERIFICATION_CREATED_BY =                    "CREATED_BY";
-	public static final String COL_WEBHOOK_VERIFICATION_MODIFIED_BY =                   "MODIFIED_BY";
-	public static final String DDL_FILE_WEBHOOK_VERIFICATION =                          "schema/WebhookVerification-ddl.sql";
-
+	public static final String TABLE_WEBHOOK_VERIFICATION =								"WEBHOOK_VERIFICATION";
+	public static final String COL_WEBHOOK_VERIFICATION_ID =							"WEBHOOK_ID";
+	public static final String COL_WEBHOOK_VERIFICATION_ETAG =							"ETAG";
+	public static final String COL_WEBHOOK_VERIFICATION_CREATED_ON =					"CREATED_ON";
+	public static final String COL_WEBHOOK_VERIFICATION_MODIFIED_ON =					"MODIFIED_ON";
+	public static final String COL_WEBHOOK_VERIFICATION_STATUS = 						"STATUS";
+	public static final String COL_WEBHOOK_VERIFICATION_MSG =   						"MESSAGE";
+	public static final String COL_WEBHOOK_VERIFICATION_CODE =   						"CODE";
+	public static final String COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON =				"CODE_EXPIRES_ON";
+	public static final String DDL_FILE_WEBHOOK_VERIFICATION =							"schema/webhook/Webhook-Verification-ddl.sql";
 	
 	
 	// This seems to be the name of the id column for all tables.

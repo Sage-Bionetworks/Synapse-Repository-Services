@@ -1,0 +1,10 @@
+{
+	"description": "The supported synapse object types for a Webhook",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ENTITY",
+			"description": "Entity type"
+		}
+	]
+}

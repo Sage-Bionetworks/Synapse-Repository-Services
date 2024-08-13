@@ -3,15 +3,15 @@
 	"type": "string",
 	"enum": [
 		{
-			"name": "create",
+			"name": "CREATE",
 			"description": "A create has occurred."
 		},
 		{
-			"name": "update",
+			"name": "UPDATE",
 			"description": "An update has occurred."
 		},
 		{
-			"name": "delete",
+			"name": "DELETE",
 			"description": "A delete has occurred."
 		}
 	]
