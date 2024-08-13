@@ -126,8 +126,8 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 	@Override
 	public MigratableTableTranslation<DBOColumnModel, DBOColumnModel> getTranslator() {
 		return new MigrateFromXStreamToJSON<DBOColumnModel>(
-				XStreamToJsonTranslator.builder().setFromName("bytes").setToName("json")
-						.setDboType(getBackupClass()).setDtoType(ColumnModel.class).build());
+				XStreamToJsonTranslator.builder().setXStream(ColumnModelUtils.X_STREAM).setFromName("bytes")
+						.setToName("json").setDboType(getBackupClass()).setDtoType(ColumnModel.class).build());
 	}
 	@Override
 	public Class<? extends DBOColumnModel> getBackupClass() {
