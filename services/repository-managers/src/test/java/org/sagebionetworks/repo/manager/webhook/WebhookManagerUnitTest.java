@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.webhook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,10 +52,9 @@ import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookEvent;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
-import org.sagebionetworks.repo.model.webhook.WebhookSynapseEvent;
-import org.sagebionetworks.repo.model.webhook.WebhookVerificationEvent;
+import org.sagebionetworks.repo.model.webhook.WebhookSynapseEventMessage;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -97,7 +95,7 @@ public class WebhookManagerUnitTest {
 	private String queueUrl;
 	
 	@Captor
-	private ArgumentCaptor<WebhookEvent> eventCaptor;
+	private ArgumentCaptor<WebhookMessage> eventCaptor;
 	
 	@Captor
 	private ArgumentCaptor<String> stringCaptor;
@@ -538,7 +536,7 @@ public class WebhookManagerUnitTest {
 		Date now = new Date();
 		
 		when(mockClock.now()).thenReturn(now);
-		doNothing().when(webhookManager).publishWebhookEvent(any(), any(), any());		
+		doNothing().when(webhookManager).publishWebhookEvent(any());		
 		
 		// Call under test
 		webhookManager.generateAndSendVerificationCode(webhook);
@@ -550,71 +548,51 @@ public class WebhookManagerUnitTest {
 		assertEquals(6, generatedCode.length());
 		assertTrue(StringUtils.isAlphanumeric(generatedCode));
 		
-		verify(webhookManager).publishWebhookEvent(eq(webhook.getId()), eq(webhook.getInvokeEndpoint()), eventCaptor.capture());
+		verify(webhookManager).publishWebhookEvent(eventCaptor.capture());
 		
-		WebhookEvent sentEvent = eventCaptor.getValue();
-		
-		assertNotNull(sentEvent.getEventId());
-		
-		assertEquals(new WebhookVerificationEvent()
-			.setEventId(sentEvent.getEventId())
+		WebhookMessage sentEvent = eventCaptor.getValue();
+				
+		assertEquals(new WebhookVerificationMessage()
 			.setVerificationCode(generatedCode)
 			.setWebhookId(webhook.getId())
 			.setEventTimestamp(now)
-			.setWebhookOwnerId(userInfo.getId().toString()), sentEvent
+			.setWebhookOwnerId(userInfo.getId().toString())
+			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint()), sentEvent
 		);
 	}
 	
 	@Test
 	public void testPublishWebhookEventWithSynapseEvent() throws JSONObjectAdapterException {
 		
-		WebhookEvent event = new WebhookSynapseEvent()
-			.setEventId("abc")
+		WebhookMessage event = new WebhookSynapseEventMessage()
 			.setEventTimestamp(new Date())
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId("123")
 			.setObjectType(SynapseObjectType.ENTITY)
-			.setWebhookId(webhook.getId());
-		
-		WebhookMessage expectedMessage = new WebhookMessage()
-			.setEndpoint(webhook.getInvokeEndpoint())
 			.setWebhookId(webhook.getId())
-			.setIsVerificationMessage(false)
-			.setMessageBody(EntityFactory.createJSONStringForEntity(event));
-				
+			.setWebhookOwnerId(webhook.getCreatedBy())
+			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint());
+						
 		// Call under test
-		webhookManager.publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), event);
+		webhookManager.publishWebhookEvent(event);
 		
-		verify(mockSqsClient).sendMessage(eq(queueUrl), stringCaptor.capture());
-		
-		String messageBody = stringCaptor.getValue();
-		
-		assertEquals(expectedMessage, EntityFactory.createEntityFromJSONString(messageBody, WebhookMessage.class));
+		verify(mockSqsClient).sendMessage(queueUrl, EntityFactory.createJSONStringForEntity(event));
 	}
 	
 	@Test
 	public void testPublishWebhookEventWithVerificationEvent() throws JSONObjectAdapterException {
 		
-		WebhookEvent event = new WebhookVerificationEvent()
-			.setEventId("abc")
+		WebhookMessage event = new WebhookVerificationMessage()
 			.setEventTimestamp(new Date())
 			.setWebhookId(webhook.getId())
+			.setWebhookOwnerId(webhook.getCreatedBy())
+			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
 			.setVerificationCode("abcd");
-		
-		WebhookMessage expectedMessage = new WebhookMessage()
-			.setEndpoint(webhook.getInvokeEndpoint())
-			.setWebhookId(webhook.getId())
-			.setIsVerificationMessage(true)
-			.setMessageBody(EntityFactory.createJSONStringForEntity(event));
-				
+						
 		// Call under test
-		webhookManager.publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), event);
+		webhookManager.publishWebhookEvent(event);
 		
-		verify(mockSqsClient).sendMessage(eq(queueUrl), stringCaptor.capture());
-		
-		String messageBody = stringCaptor.getValue();
-		
-		assertEquals(expectedMessage, EntityFactory.createEntityFromJSONString(messageBody, WebhookMessage.class));
+		verify(mockSqsClient).sendMessage(queueUrl, EntityFactory.createJSONStringForEntity(event));
 	}
 	
 	@Test
@@ -679,14 +657,14 @@ public class WebhookManagerUnitTest {
 		
 		VerifyWebhookResponse expectedResult = new VerifyWebhookResponse()
 			.setIsValid(false)
-			.setInvalidReason("The provided verification code has expired.");
+			.setInvalidReason("The verification code has expired.");
 			
 		// Call under test
 		VerifyWebhookResponse result = webhookManager.verifyWebhook(userInfo, webhook.getId(), new VerifyWebhookRequest().setVerificationCode("abcdef"));
 		
 		assertEquals(expectedResult, result);
 		
-		verify(mockWebhookDao).setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.FAILED, "The provided verification code has expired.");
+		verify(mockWebhookDao).setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.FAILED, "The verification code has expired.");
 	}
 	
 	@Test

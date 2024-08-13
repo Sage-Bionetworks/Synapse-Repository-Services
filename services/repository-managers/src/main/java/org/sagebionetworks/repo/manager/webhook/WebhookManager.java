@@ -72,9 +72,9 @@ public interface WebhookManager {
 	ListUserWebhooksResponse listUserWebhooks(UserInfo userInfo, ListUserWebhooksRequest request);
 	
 	/**
-	 * Process the given webhook message to send and HTTP request to the included endpoint
+	 * Process the given message, sending an http request to the included endpoint
 	 * 
-	 * @param message
+	 * @param event
 	 */
 	void processWebhookMessage(WebhookMessage message);
 }

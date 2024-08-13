@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.sagebionetworks.StackConfiguration;
@@ -25,9 +24,8 @@ import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookEvent;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
-import org.sagebionetworks.repo.model.webhook.WebhookVerificationEvent;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -152,7 +150,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		if (clock.now().after(verification.getCodeExpiresOn())) {
 			newStatus = WebhookVerificationStatus.FAILED;
-			verificationMessage = "The provided verification code has expired.";
+			verificationMessage = "The verification code has expired.";
 		} else if (request.getVerificationCode().equals(verification.getCode())) {
 			newStatus = WebhookVerificationStatus.VERIFIED;
 			verificationMessage = null;
@@ -184,7 +182,8 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@Override
 	public void processWebhookMessage(WebhookMessage message) {
-		// TODO This should be invoked by a worker and a message sent to the endpoint
+		// TODO Auto-generated method stub
+		System.out.println(message);
 	}
 	
 	void generateAndSendVerificationCode(Webhook webhook) {
@@ -196,28 +195,20 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		// Note that we publish directly to the message queue as part of the create/update transaction
 		// since if this fails we want to rollback
-		publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), new WebhookVerificationEvent()
-			.setEventId(UUID.randomUUID().toString())
+		publishWebhookEvent(new WebhookVerificationMessage()
 			.setEventTimestamp(now)
 			.setVerificationCode(verificationCode)
 			.setWebhookOwnerId(webhook.getCreatedBy())
 			.setWebhookId(webhook.getId())
+			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
 		);
 	}
 	
-	void publishWebhookEvent(String webhookId, String webhookEndpoint, WebhookEvent event) {
+	void publishWebhookEvent(WebhookMessage event) {
 		String messageJson;
 		
 		try {
-		
-			WebhookMessage message = new WebhookMessage()
-				.setWebhookId(event.getWebhookId())
-				.setEndpoint(webhookEndpoint)
-				.setIsVerificationMessage(event instanceof WebhookVerificationEvent)
-				.setMessageBody(EntityFactory.createJSONStringForEntity(event));
-			
-			messageJson = EntityFactory.createJSONStringForEntity(message);
-		
+			messageJson = EntityFactory.createJSONStringForEntity(event);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}

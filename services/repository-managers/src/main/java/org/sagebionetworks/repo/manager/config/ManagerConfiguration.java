@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.manager.config;
 
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Redirect;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

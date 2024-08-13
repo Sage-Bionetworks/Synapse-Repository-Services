@@ -25,7 +25,7 @@ public class WebhookMessageWorker implements TypedMessageDrivenRunner<WebhookMes
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message, WebhookMessage convertedMessage) throws RecoverableMessageException, Exception {
-		manager.processWebhookMessage(convertedMessage);		
+		manager.processWebhookMessage(convertedMessage);
 	}
 
 }

@@ -1,0 +1,14 @@
+{
+	"description": "A special webhook message that is sent to verify a webhook",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookMessage"
+		}
+	],
+	"properties": {
+		"verificationCode": {
+			"type": "string",
+			"description": "The verification code that shall be used to verify the webhook. Expires after 10 minutes."
+		}
+	}
+}
