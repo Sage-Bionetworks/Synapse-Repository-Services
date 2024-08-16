@@ -786,7 +786,7 @@ public class WebhookManagerUnitTest {
 		String entityId = "123456";
 		Date eventTimestamp = new Date();		
 		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(456L, 123L));		
+		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityPathIds(entityId);		
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
 				
@@ -811,7 +811,7 @@ public class WebhookManagerUnitTest {
 		String entityId = "123456";
 		Date eventTimestamp = new Date();		
 		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(456L, 123L));		
+		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityPathIds(entityId);		
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));	
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(false);
 				
