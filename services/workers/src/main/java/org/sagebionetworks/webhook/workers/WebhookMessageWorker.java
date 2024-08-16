@@ -1,6 +1,6 @@
 package org.sagebionetworks.webhook.workers;
 
-import org.sagebionetworks.repo.manager.webhook.WebhookManager;
+import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.worker.TypedMessageDrivenRunner;
@@ -12,10 +12,10 @@ import com.amazonaws.services.sqs.model.Message;
 @Service
 public class WebhookMessageWorker implements TypedMessageDrivenRunner<WebhookMessage> {
 
-	private WebhookManager manager;
+	private WebhookMessageDispatcher dispatcher;
 	
-	public WebhookMessageWorker(WebhookManager manager) {
-		this.manager = manager;
+	public WebhookMessageWorker(WebhookMessageDispatcher dispatcher) {
+		this.dispatcher = dispatcher;
 	}
 
 	@Override
@@ -25,7 +25,7 @@ public class WebhookMessageWorker implements TypedMessageDrivenRunner<WebhookMes
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message, WebhookMessage convertedMessage) throws RecoverableMessageException, Exception {
-		manager.processWebhookMessage(convertedMessage);
+		dispatcher.dispatchMessage(convertedMessage);
 	}
 
 }

@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.config;
 
 import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner.DEFAULT_BATCH_SIZE;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCConfig;
 import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
@@ -248,6 +251,14 @@ public class ManagerConfiguration {
 	@Bean
 	public ExecutorService cachedThreadPool() {
 		return Executors.newCachedThreadPool();
+	}
+	
+	@Bean
+	public HttpClient webhookHttpClient() {
+		return HttpClient.newBuilder()
+			.connectTimeout(WebhookMessageDispatcher.REQUEST_TIMEOUT)
+			.followRedirects(Redirect.NEVER)
+			.build();
 	}
 	
 }

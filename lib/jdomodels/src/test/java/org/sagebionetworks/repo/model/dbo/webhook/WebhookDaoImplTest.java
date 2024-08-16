@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -244,6 +245,37 @@ public class WebhookDaoImplTest {
 		
 		assertEquals(expected.subList(0, 5), webhookDao.listUserWebhooks(userId, 5, 0));
 		assertEquals(expected.subList(5, 10), webhookDao.listUserWebhooks(userId, 5, 5));
+	}
+	
+	@Test
+	public void testListWebhooksForObjectIds() {
+		assertTrue(webhookDao.listWebhooksForObjectIds(List.of(1L, 2L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 10, 0).isEmpty());
+		
+		List<Long> objectIds = new ArrayList<>();
+		List<Webhook> webhooks = new ArrayList<>();
+		
+		for (int i=0; i<10; i++) {
+			Long objectId = (long) i;
+			objectIds.add(objectId);
+			webhooks.add(webhookDao.createWebhook(userId, cuRequest.setObjectId(objectId.toString())));
+		}
+		
+		// Initially no results since the webhook is not verified
+		assertEquals(Collections.emptyList(), webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.CREATE, 10, 0));
+		
+		// Verifies all the webhooks
+		webhooks.forEach(webhook -> {
+			webhookDao.setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.VERIFIED, null);
+			webhook.setVerificationStatus(WebhookVerificationStatus.VERIFIED);
+		});
+		
+		assertEquals(webhooks, webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.CREATE, 10, 0));
+		assertEquals(webhooks.subList(0, 5), webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.CREATE, 5, 0));
+		assertEquals(webhooks.subList(5, 10), webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.CREATE, 5, 5));
+		
+		// No webhook with delete
+		assertEquals(Collections.emptyList(), webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.DELETE, 10, 0));
+		
 	}
 
 	@Test

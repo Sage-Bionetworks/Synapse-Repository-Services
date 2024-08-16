@@ -20,6 +20,7 @@ import org.sagebionetworks.snapshot.workers.writers.ObjectRecordWriter;
 import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
 import org.sagebionetworks.table.worker.TableIndexWorker;
 import org.sagebionetworks.table.worker.TableViewWorker;
+import org.sagebionetworks.webhook.workers.WebhookChangeMessageWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStack;
@@ -237,6 +238,29 @@ public class ChangeMessageWorkersConfig {
 			)
 			.withRepeatInterval(2007)
 			.withStartDelay(256)
+			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean webhookChangeMessageWorkerTrigger(WebhookChangeMessageWorker webhookChangeMessageWorker) {
+		
+		String queueName = stackConfig.getQueueName("WEBHOOK_CHANGES");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, webhookChangeMessageWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("webhookChangeMessageWorker")
+				.withSemaphoreMaxLockCount(8)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(60)
+				.withMaxThreadsPerMachine(3)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(false)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(1532)
+			.withStartDelay(1236)
 			.build();
 	}
 

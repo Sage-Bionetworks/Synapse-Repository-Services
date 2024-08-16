@@ -154,6 +154,7 @@
 		
 		<!-- Webhooks -->
 		<ref bean="webhookMessageWorkerTrigger"/>
+		<ref bean="webhookChangeMessageWorkerTrigger"/>
 		
 	</util:list>
 

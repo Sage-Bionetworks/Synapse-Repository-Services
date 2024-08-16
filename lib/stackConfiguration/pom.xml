@@ -173,6 +173,10 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-ssm</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-apigatewayv2</artifactId>>
+		</dependency>
 	</dependencies>
 
 	<properties>

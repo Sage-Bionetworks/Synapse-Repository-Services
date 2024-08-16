@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.manager.webhook;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookMessage;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 
 /**
  * A manager for servicing Webhooks
@@ -70,11 +71,19 @@ public interface WebhookManager {
 	 * @return
 	 */
 	ListUserWebhooksResponse listUserWebhooks(UserInfo userInfo, ListUserWebhooksRequest request);
+		
+	/**
+	 * Process the given change message in order to dispatch the supported changes to the subscribed webhooks
+	 * 
+	 * @param change
+	 */
+	void processChangeMessage(ChangeMessage change);
 	
 	/**
-	 * Process the given message, sending an http request to the included endpoint
 	 * 
-	 * @param event
+	 * @param webhookId
+	 * @param status
+	 * @param verificationMessage
 	 */
-	void processWebhookMessage(WebhookMessage message);
+	void updateWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String verificationMessage);
 }
