@@ -233,7 +233,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	void processEntityChange(SynapseEventType eventType, Date timestamp, String entityId) {		
-		List<Long> pathIds = getEntityPathIds(entityId);
+		List<Long> pathIds = getEntityActualPathIds(entityId);
 		
 		if (pathIds.isEmpty()) {
 			return;
@@ -264,7 +264,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		}
 	}
 	
-	List<Long> getEntityPathIds(String entityId) {
+	List<Long> getEntityActualPathIds(String entityId) {
 		Iterator<Long> pathIterator;
 		
 		try {
@@ -294,7 +294,7 @@ public class WebhookManagerImpl implements WebhookManager {
 				Long trashedNodeId = pathIterator.next();
 				
 				trashCanDao.getTrashedEntity(KeyFactory.keyToString(trashedNodeId)).ifPresent(trashedEntity -> {
-					List<Long> trashedNodeOriginalPathIds = getEntityPathIds(trashedEntity.getOriginalParentId()); 
+					List<Long> trashedNodeOriginalPathIds = getEntityActualPathIds(trashedEntity.getOriginalParentId()); 
 					pathIds.addAll(trashedNodeOriginalPathIds);
 				});
 
