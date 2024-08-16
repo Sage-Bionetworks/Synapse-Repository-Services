@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
+import java.util.EnumSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,10 +32,16 @@ public class WebhookMessageDispatcher {
 	
 	public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
 	
-	private static final String HEADER_WEBHOOK_ID = "X-Synapse-WebhookId";
-	private static final String HEADER_WEBHOOK_OWNER_ID = "X-Synapse-WebhookOwnerId";
-	private static final String HEADER_WEBHOOK_MESSAGE_TYPE = "X-Synapse-WebhookMessageType";
-	private static final BodyHandler<Void> DISCARDING_BODY_HANDLER = BodyHandlers.discarding();
+	static final String HEADER_WEBHOOK_ID = "X-Synapse-WebhookId";
+	static final String HEADER_WEBHOOK_OWNER_ID = "X-Synapse-WebhookOwnerId";
+	static final String HEADER_WEBHOOK_MESSAGE_TYPE = "X-Synapse-WebhookMessageType";
+	static final BodyHandler<Void> DISCARDING_BODY_HANDLER = BodyHandlers.discarding();
+	static final EnumSet<HttpStatus> ACCEPTED_HTTP_STATUS = EnumSet.of(
+		HttpStatus.OK, 
+		HttpStatus.ACCEPTED, 
+		HttpStatus.CREATED, 
+		HttpStatus.NO_CONTENT
+	);
 	
 	private WebhookManager webhookManager;
 	private HttpClient webhookHttpClient;
@@ -80,7 +87,7 @@ public class WebhookMessageDispatcher {
 		if (WebhookVerificationMessage.class.equals(messageType)) {
 			handleWebhookVerificationResponse(webhookId, httpStatus, exception);
 		} else {
-			handleWebhookSynapseChangeResponse(webhookId, httpStatus, exception);
+			handleWebhookSynapseEventResponse(webhookId, httpStatus, exception);
 		}
 	}
 	
@@ -95,9 +102,9 @@ public class WebhookMessageDispatcher {
 		} else if (status == null) {			
 			newStatus = WebhookVerificationStatus.FAILED;
 			verificationMessage = "The request to the webhook endpoint failed with no response.";
-		} else if (!status.is2xxSuccessful()) {
+		} else if (!ACCEPTED_HTTP_STATUS.contains(status)) {
 			newStatus = WebhookVerificationStatus.FAILED;
-			verificationMessage = "The request to the webhook endpoint failed with status " + status.value();
+			verificationMessage = "The request to the webhook endpoint failed with status " + status.value() + ".";
 		} else {
 			newStatus = WebhookVerificationStatus.CODE_SENT;
 			verificationMessage = "A verification code was sent to the webhook endpoint.";
@@ -106,7 +113,7 @@ public class WebhookMessageDispatcher {
 		webhookManager.updateWebhookVerificationStatus(webhookId, newStatus, verificationMessage);
 	}
 	
-	void handleWebhookSynapseChangeResponse(String webhookId, HttpStatus status, Throwable exception) {
+	void handleWebhookSynapseEventResponse(String webhookId, HttpStatus status, Throwable exception) {
 		// TODO Keep track of the failures and eventually revoke the verification
 	}
 	

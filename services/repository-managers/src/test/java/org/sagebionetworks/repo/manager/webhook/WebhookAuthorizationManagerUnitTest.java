@@ -31,7 +31,7 @@ import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 
 @ExtendWith(MockitoExtension.class)
-public class WebhookAuthorizationManagerTest {
+public class WebhookAuthorizationManagerUnitTest {
 	
 	@Mock
 	private UserManager mockUserManager;
