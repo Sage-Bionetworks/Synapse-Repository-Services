@@ -17,6 +17,11 @@ import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
  */
 public interface WebhookManager {
 
+	String MSG_ATTR_WEBHOOK_MESSAGE_TYPE = "WebhookMessageType";
+	String MSG_ATTR_WEBHOOK_ID = "WebhookId";
+	String MSG_ATTR_WEBHOOK_ENDPOINT = "WebhookEndpoint";
+	String MSG_ATTR_WEBHOOK_OWNER_ID = "WebhookOwnerId";
+
 	/**
 	 * Create a new Webhook object.
 	 * 

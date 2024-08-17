@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -49,6 +50,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @Service
 public class WebhookManagerImpl implements WebhookManager {	
@@ -59,6 +62,15 @@ public class WebhookManagerImpl implements WebhookManager {
 	private static final int VERIFICATION_CODE_TTL_SECONDS = 10 * 60;
 	private static final long WEBHOOK_FETCH_PAGE_SIZE = 1_000;
 	private static final Duration CHANGE_MESSAGE_MAX_AGE = Duration.ofHours(1);
+	
+	static Map<String, MessageAttributeValue> mapMessageAttributes(Class<? extends WebhookMessage> messageClass, Webhook webhook) {
+		return Map.of(
+			WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint()),
+			WebhookManager.MSG_ATTR_WEBHOOK_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+			WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE, new MessageAttributeValue().withDataType("String").withStringValue(WebhookMessageType.forClass(messageClass).name())
+		);
+	}
 	
 	private WebhookDao webhookDao;
 	
@@ -252,14 +264,11 @@ public class WebhookManagerImpl implements WebhookManager {
 				continue;
 			}
 			
-			publishWebhookMessage(new WebhookSynapseEventMessage()
+			publishWebhookMessage(webhook, new WebhookSynapseEventMessage()
 				.setEventTimestamp(timestamp)
 				.setEventType(eventType)
 				.setObjectId(entityId)
 				.setObjectType(SynapseObjectType.ENTITY)
-				.setWebhookId(webhook.getId())
-				.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
-				.setWebhookOwnerId(webhook.getCreatedBy())
 			);
 		}
 	}
@@ -321,16 +330,13 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		// Note that we publish directly to the message queue as part of the create/update transaction
 		// since if this fails we want to rollback
-		publishWebhookMessage(new WebhookVerificationMessage()
+		publishWebhookMessage(webhook, new WebhookVerificationMessage()
 			.setEventTimestamp(now)
 			.setVerificationCode(verificationCode)
-			.setWebhookOwnerId(webhook.getCreatedBy())
-			.setWebhookId(webhook.getId())
-			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
 		);
 	}
 	
-	void publishWebhookMessage(WebhookMessage event) {
+	void publishWebhookMessage(Webhook webhook, WebhookMessage event) {
 		String messageJson;
 		
 		try {
@@ -338,7 +344,13 @@ public class WebhookManagerImpl implements WebhookManager {
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}
-		sqsClient.sendMessage(queueUrl, messageJson);
+		
+		sqsClient.sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(messageJson)
+				.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook))
+		);
 	}
 	
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {

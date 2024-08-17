@@ -216,7 +216,6 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean webhookMessageWorkerTrigger(WebhookMessageWorker webhookMessageWorker) {
 
 		String queueName = stackConfig.getQueueName("WEBHOOK_MESSAGE");
-		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(webhookMessageWorker);
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
@@ -227,7 +226,7 @@ public class MessageDrivenWorkersConfig {
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)
-						.withWorker(worker)
+						.withWorker(webhookMessageWorker)
 						.build()
 				)
 				.withRepeatInterval(2064)

@@ -10,20 +10,20 @@ import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.util.EnumSet;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.webhook.WebhookMessage;
-import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+
+import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 
 @Service
 public class WebhookMessageDispatcher {
@@ -35,7 +35,9 @@ public class WebhookMessageDispatcher {
 	static final String HEADER_WEBHOOK_ID = "X-Synapse-WebhookId";
 	static final String HEADER_WEBHOOK_OWNER_ID = "X-Synapse-WebhookOwnerId";
 	static final String HEADER_WEBHOOK_MESSAGE_TYPE = "X-Synapse-WebhookMessageType";
+	
 	static final BodyHandler<Void> DISCARDING_BODY_HANDLER = BodyHandlers.discarding();
+	
 	static final EnumSet<HttpStatus> ACCEPTED_HTTP_STATUS = EnumSet.of(
 		HttpStatus.OK, 
 		HttpStatus.ACCEPTED, 
@@ -57,37 +59,44 @@ public class WebhookMessageDispatcher {
 		userAgent = "Synapse-Webhook/" + config.getStackInstance();
 	}
 	
-	public void dispatchMessage(WebhookMessage message) {
-		HttpRequest request;
+	public void dispatchMessage(Message message) throws URISyntaxException {
+		Map<String, MessageAttributeValue> messageAttributes = message.getMessageAttributes();
 		
-		Class<? extends WebhookMessage> messageType = message.getClass();
+		String webhookId = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_ID).getStringValue();
+		String webhookOwnerId = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID).getStringValue();
+		String webhookEndpoint = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT).getStringValue();
+		String messageTypeString = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE).getStringValue();
 		
-		try {
-			request = HttpRequest.newBuilder(new URI(message.getWebhookInvokeEndpoint()))
-				.timeout(REQUEST_TIMEOUT)
-				.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-				.header(HttpHeaders.USER_AGENT, userAgent)
-				.header(HEADER_WEBHOOK_ID, message.getWebhookId())
-				.header(HEADER_WEBHOOK_OWNER_ID, message.getWebhookOwnerId())
-				.header(HEADER_WEBHOOK_MESSAGE_TYPE, messageType.getSimpleName())
-				.POST(BodyPublishers.ofString(EntityFactory.createJSONStringForEntity(message)))
-				.build();
-		} catch (URISyntaxException | JSONObjectAdapterException e) {
-			throw new IllegalStateException(e);
-		}
+		WebhookMessageType messageType = WebhookMessageType.valueOf(messageTypeString);
+		
+		HttpRequest request = HttpRequest.newBuilder(new URI(webhookEndpoint))
+			.timeout(REQUEST_TIMEOUT)
+			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+			.header(HttpHeaders.USER_AGENT, userAgent)
+			.header(HEADER_WEBHOOK_ID, webhookId)
+			.header(HEADER_WEBHOOK_OWNER_ID, webhookOwnerId)
+			.header(HEADER_WEBHOOK_MESSAGE_TYPE, messageTypeString)
+			.POST(BodyPublishers.ofString(message.getBody()))
+			.build();
 		
 		webhookHttpClient.sendAsync(request, DISCARDING_BODY_HANDLER)
-			.whenComplete((response, exception) -> handleResponse(messageType, message.getWebhookId(), response, exception));
+			.whenComplete((response, exception) -> handleResponse(messageType, webhookId, response, exception));
 	}
 	
-	void handleResponse(Class<? extends WebhookMessage> messageType, String webhookId, HttpResponse<Void> response, Throwable exception) {
+	void handleResponse(WebhookMessageType messageType, String webhookId, HttpResponse<Void> response, Throwable exception) {
 		// Since we discard the response, we only care about the status code if any
 		HttpStatus httpStatus = response != null ? HttpStatus.resolve(response.statusCode()) : null;
 		
-		if (WebhookVerificationMessage.class.equals(messageType)) {
+		switch (messageType) {
+		case Verification:
 			handleWebhookVerificationResponse(webhookId, httpStatus, exception);
-		} else {
+			break;
+		case SynapseEvent:
 			handleWebhookSynapseEventResponse(webhookId, httpStatus, exception);
+			break;
+		default:
+			LOG.warn("Unhandled response for message type " + messageType);
+			break;
 		}
 	}
 	

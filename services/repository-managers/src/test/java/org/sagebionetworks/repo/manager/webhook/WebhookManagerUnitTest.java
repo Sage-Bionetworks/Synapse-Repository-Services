@@ -18,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -66,8 +67,10 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookManagerUnitTest {
@@ -517,7 +520,7 @@ public class WebhookManagerUnitTest {
 		Date now = new Date();
 		
 		when(mockClock.now()).thenReturn(now);
-		doNothing().when(webhookManager).publishWebhookMessage(any());		
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any());		
 		
 		// Call under test
 		webhookManager.generateAndSendVerificationCode(webhook);
@@ -529,16 +532,14 @@ public class WebhookManagerUnitTest {
 		assertEquals(6, generatedCode.length());
 		assertTrue(StringUtils.isAlphanumeric(generatedCode));
 		
-		verify(webhookManager).publishWebhookMessage(eventCaptor.capture());
+		verify(webhookManager).publishWebhookMessage(eq(webhook), eventCaptor.capture());
 		
 		WebhookMessage sentEvent = eventCaptor.getValue();
 				
 		assertEquals(new WebhookVerificationMessage()
 			.setVerificationCode(generatedCode)
-			.setWebhookId(webhook.getId())
-			.setEventTimestamp(now)
-			.setWebhookOwnerId(userInfo.getId().toString())
-			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint()), sentEvent
+			.setEventTimestamp(now), 
+			sentEvent
 		);
 	}
 	
@@ -549,15 +550,22 @@ public class WebhookManagerUnitTest {
 			.setEventTimestamp(new Date())
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId("123")
-			.setObjectType(SynapseObjectType.ENTITY)
-			.setWebhookId(webhook.getId())
-			.setWebhookOwnerId(webhook.getCreatedBy())
-			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint());
+			.setObjectType(SynapseObjectType.ENTITY);
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(event);
-		
-		verify(mockSqsClient).sendMessage(queueUrl, EntityFactory.createJSONStringForEntity(event));
+		webhookManager.publishWebhookMessage(webhook, event);
+				
+		verify(mockSqsClient).sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageAttributes(Map.of(
+					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("SynapseEvent"),
+					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+				))
+		);
 	}
 	
 	@Test
@@ -565,15 +573,22 @@ public class WebhookManagerUnitTest {
 		
 		WebhookMessage event = new WebhookVerificationMessage()
 			.setEventTimestamp(new Date())
-			.setWebhookId(webhook.getId())
-			.setWebhookOwnerId(webhook.getCreatedBy())
-			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
 			.setVerificationCode("abcd");
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(event);
+		webhookManager.publishWebhookMessage(webhook, event);
 		
-		verify(mockSqsClient).sendMessage(queueUrl, EntityFactory.createJSONStringForEntity(event));
+		verify(mockSqsClient).sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageAttributes(Map.of(
+					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
+					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+				))
+		);
 	}
 	
 	@Test
@@ -796,19 +811,16 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
 				
-		doNothing().when(webhookManager).publishWebhookMessage(any());
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any());
 				
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
-		verify(webhookManager).publishWebhookMessage(new WebhookSynapseEventMessage()
+		verify(webhookManager).publishWebhookMessage(webhook, new WebhookSynapseEventMessage()
 			.setEventTimestamp(eventTimestamp)
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId(entityId)
 			.setObjectType(SynapseObjectType.ENTITY)
-			.setWebhookId(webhook.getId())
-			.setWebhookOwnerId(webhook.getCreatedBy())
-			.setWebhookInvokeEndpoint(webhook.getInvokeEndpoint())
 		);
 	}
 	
@@ -824,7 +836,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
-		verify(webhookManager, never()).publishWebhookMessage(any());
+		verify(webhookManager, never()).publishWebhookMessage(any(), any());
 	}
 	
 	@Test

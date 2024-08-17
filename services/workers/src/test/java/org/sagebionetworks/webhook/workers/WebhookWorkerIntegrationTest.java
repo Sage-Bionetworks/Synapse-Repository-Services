@@ -4,10 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.manager.webhook.WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE;
+import static org.sagebionetworks.repo.manager.webhook.WebhookManager.MSG_ATTR_WEBHOOK_ID;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -19,6 +22,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
+import org.sagebionetworks.repo.manager.webhook.WebhookMessageType;
 import org.sagebionetworks.repo.manager.webhook.WebhookManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -54,9 +58,11 @@ import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
 import com.amazonaws.services.apigatewayv2.model.Api;
 import com.amazonaws.services.apigatewayv2.model.GetApisRequest;
 import com.amazonaws.services.apigatewayv2.model.GetApisResult;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.GetQueueUrlRequest;
 import com.amazonaws.services.sqs.model.Message;
+import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -243,7 +249,11 @@ public class WebhookWorkerIntegrationTest {
 		List<T> polledMessages = new ArrayList<>();
 		
 		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
-			List<Message> messages = sqsClient.receiveMessage(apiTestQueueUrl).getMessages();
+			ReceiveMessageRequest request = new ReceiveMessageRequest(apiTestQueueUrl)
+				.withMaxNumberOfMessages(1)
+				.withMessageAttributeNames(MSG_ATTR_WEBHOOK_MESSAGE_TYPE, MSG_ATTR_WEBHOOK_ID);
+			
+			List<Message> messages = sqsClient.receiveMessage(request).getMessages();
 			
 			if (messages.isEmpty()) {
 				return Pair.create(false, null);
@@ -251,6 +261,21 @@ public class WebhookWorkerIntegrationTest {
 			
 			// Only one message by default
 			Message sqsMessage = messages.iterator().next();
+			
+			// The test webhook API gateway is configured to forward the special request headers as message attributes
+			// X-Synapse-WebhookId -> WebhookId
+			// X-Synapse-WebhookMessageType -> WebhookMessageType
+			Map<String, MessageAttributeValue> sqsMessageAttributes = sqsMessage.getMessageAttributes();
+			
+			// MessageType does not match
+			if (!WebhookMessageType.forClass(messageType).name().equals(sqsMessageAttributes.get(MSG_ATTR_WEBHOOK_MESSAGE_TYPE).getStringValue())) {
+				return Pair.create(false, null);
+			}
+			
+			// Webhook id does not match
+			if (!webhookId.equals(sqsMessageAttributes.get(MSG_ATTR_WEBHOOK_ID).getStringValue())) {
+				return Pair.create(false, null);
+			}
 			
 			T message;
 			
@@ -261,13 +286,11 @@ public class WebhookWorkerIntegrationTest {
 				return Pair.create(false, null);
 			}
 			
-			if (message.getWebhookId().equals(webhookId)) {
-				polledMessages.add(message);
-				sqsClient.deleteMessage(apiTestQueueUrl, sqsMessage.getReceiptHandle());
-				return Pair.create(filter == null || filter.test(polledMessages), null);
-			} else {
-				return Pair.create(false, null);
-			}
+			polledMessages.add(message);
+			
+			sqsClient.deleteMessage(apiTestQueueUrl, sqsMessage.getReceiptHandle());
+			
+			return Pair.create(filter == null || filter.test(polledMessages), null);
 			
 		});
 		

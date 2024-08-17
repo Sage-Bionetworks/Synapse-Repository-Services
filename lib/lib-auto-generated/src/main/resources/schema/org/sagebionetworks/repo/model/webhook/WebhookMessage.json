@@ -10,21 +10,6 @@
 			"format": "date-time",
 			"description": "The timestamp when the event occurred, in ISO 8601 format.",
 			"required": true
-		},
-		"webhookId": {
-			"type": "string",
-			"description": "The id of the webhook that this event is destined to.",
-			"required": true
-		},
-		"webhookOwnerId": {
-			"type": "string",
-			"description": "The id of the user that owns the webhook.",
-			"required": true
-		},
-		"webhookInvokeEndpoint": {
-			"type": "string",
-			"description": "The webhook destination endpoint.",
-			"required": true
 		}
 	}
 }

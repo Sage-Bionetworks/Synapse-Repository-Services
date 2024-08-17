@@ -1,5 +1,7 @@
 package org.sagebionetworks.workers.util.aws.message;
 
+import java.util.List;
+
 import org.sagebionetworks.util.progress.ProgressCallback;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -34,6 +36,15 @@ public interface MessageDrivenRunner {
 	 *             indicates to the container that the message should be
 	 *             returned to the queue for future processing.
 	 */
-	public void run(ProgressCallback progressCallback, Message message)
-			throws RecoverableMessageException, Exception;
+	void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception;
+	
+	/**
+	 * @return The message attribute names to be included in the Message, you can specify a list of
+	 *         attribute names to receive, or you can return allof the attributes by specifying All or
+	 *         .* in your request. You can also use all messageattributes starting with a prefix, for
+	 *         example bar.*. Default is null, e.g. no message attribute is included.
+	 */
+	default List<String> getMessageAttributeNames() {
+		return null;
+	}
 }
