@@ -148,7 +148,7 @@ public class PollingMessageReceiverImpl implements ProgressingRunner {
 	private Message pollForMessage(){
 		log.trace("Getting message for " + runner.getClass().getSimpleName());
 		ReceiveMessageRequest request = new ReceiveMessageRequest();
-		request.setAttributeNames(INCLUDED_ATTRIBUTES);
+		request.setMessageSystemAttributeNames(INCLUDED_ATTRIBUTES);
 		request.setMaxNumberOfMessages(1);
 		request.setQueueUrl(this.messageQueueUrl);
 		request.setVisibilityTimeout(this.messageVisibilityTimeoutSec);
@@ -156,6 +156,11 @@ public class PollingMessageReceiverImpl implements ProgressingRunner {
 		// the call will wait by holding on to a connection the connection pool,
 		// thus preventing other worker threads from checking for messages until this thread receives a message.
 		request.setWaitTimeSeconds(0);
+		
+		if (runner.getMessageAttributeNames() != null && !runner.getMessageAttributeNames().isEmpty()) {
+			request.withMessageAttributeNames(runner.getMessageAttributeNames());
+		}
+		
 		// Poll for one message.
 		ReceiveMessageResult results = this.amazonSQSClient.receiveMessage(request);
 	
