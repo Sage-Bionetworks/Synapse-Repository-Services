@@ -20,10 +20,6 @@
 
 	<bean id="awsSQSClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSQSClient" scope="singleton" />
-
-	<bean id="queueServiceDao" class="org.sagebionetworks.asynchronous.workers.sqs.QueueServiceDaoImpl">
-	    <property name="maxSQSRequestSize" value="10"/>
-	</bean>
 	
 	<!-- Setups a test message queue with associated dead letter queue. -->
 	<bean id="testMessageQueue1"
