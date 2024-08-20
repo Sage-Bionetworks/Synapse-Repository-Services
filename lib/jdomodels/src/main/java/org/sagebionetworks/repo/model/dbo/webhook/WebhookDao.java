@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.SynapseEventType;
+import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 
@@ -46,6 +48,17 @@ public interface WebhookDao {
 	 * @return
 	 */
 	List<Webhook> listUserWebhooks(Long userId, long limit, long offset);
+	
+	/**
+	 * 
+	 * @param ids
+	 * @param objectType
+	 * @param eventType
+	 * @param limit
+	 * @param offset
+	 * @return The list of webhooks that are subscribed to the given object ids for the given event type
+	 */
+	List<Webhook> listWebhooksForObjectIds(List<Long> ids, SynapseObjectType objectType, SynapseEventType eventType, long limit, long offset);
 
 	/**
 	 * 

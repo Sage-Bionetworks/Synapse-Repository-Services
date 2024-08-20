@@ -10,14 +10,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MSG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_VERIFICATION;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -187,6 +193,29 @@ public class WebhookDaoImpl implements WebhookDao {
 		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? ORDER BY " + COL_WEBHOOK_CREATED_ON + " LIMIT ? OFFSET ?";
 		
 		return jdbcTemplate.query(sql, WEBHOOK_ROW_MAPPER, userId, limit, offset);
+	}
+	
+	@Override
+	public List<Webhook> listWebhooksForObjectIds(List<Long> ids, SynapseObjectType objectType, SynapseEventType eventType, long limit, long offset) {
+		
+		String sql = SELECT_WITH_STATUS 
+			+ " WHERE " + COL_WEBHOOK_OBJECT_ID + " IN (" + String.join(",", Collections.nCopies(ids.size(), "?")) + ")"
+			+ " AND " + COL_WEBHOOK_OBJECT_TYPE + "=?"
+			+ " AND '" + eventType.name() + "' MEMBER OF(" + COL_WEBHOOK_EVENT_TYPES + ")"
+			+ " AND " + COL_WEBHOOK_IS_ENABLED + " IS TRUE"
+			+ " AND " + COL_WEBHOOK_VERIFICATION_STATUS + "=?"
+			+ " ORDER BY " + COL_WEBHOOK_ID
+			+ " LIMIT ? OFFSET ?";
+		
+		List<Object> queryParams = new ArrayList<>();
+		
+		queryParams.addAll(ids);
+		queryParams.add(objectType.name());
+		queryParams.add(WebhookVerificationStatus.VERIFIED.name());
+		queryParams.add(limit);
+		queryParams.add(offset);
+
+		return jdbcTemplate.query(sql, WEBHOOK_ROW_MAPPER, queryParams.toArray());
 	}
 	
 	@Override

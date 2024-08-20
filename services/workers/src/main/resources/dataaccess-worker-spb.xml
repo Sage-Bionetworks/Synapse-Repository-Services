@@ -127,8 +127,7 @@
 						<constructor-arg index="2">
 							<bean class="org.sagebionetworks.workers.util.aws.message.MessageDrivenWorkerStackConfiguration">
 								<property name="runner">
-									<bean class="org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter">
-										<constructor-arg ref="jsonObjectMapper"></constructor-arg>
+									<bean class="org.sagebionetworks.worker.JsonEntityDrivenRunnerAdapter">
 										<constructor-arg>
 											<bean class="org.sagebionetworks.dataaccess.workers.DataAccessSubmissionNotificationWorker"></bean>
 										</constructor-arg>

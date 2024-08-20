@@ -338,6 +338,29 @@ public class ConcurrentManagerImplTest {
 
 		verify(manager, never()).startWorkerJob(any(), anyInt(), any(), any());
 	}
+	
+	@Test
+	public void testPollForMessagesAndStartJobsWithMessageAttributes() {
+		when(mockAmazonSQSClient.receiveMessage(any(ReceiveMessageRequest.class)))
+				.thenReturn(new ReceiveMessageResult().withMessages(Collections.emptyList()));
+
+		when(mockWorker.getMessageAttributeNames()).thenReturn(List.of("All"));
+		
+		// call under test
+		List<WorkerJob> jobs = manager.pollForMessagesAndStartJobs(queueUrl, maxThreadCount, lockTimeoutSec,
+				mockWorker);
+		assertEquals(Collections.emptyList(), jobs);
+
+		verify(mockAmazonSQSClient).receiveMessage(new ReceiveMessageRequest()
+			.withQueueUrl(queueUrl)
+			.withWaitTimeSeconds(0)
+			.withMaxNumberOfMessages(maxThreadCount)
+			.withVisibilityTimeout(lockTimeoutSec)
+			.withMessageAttributeNames("All")
+		);
+
+		verify(manager, never()).startWorkerJob(any(), anyInt(), any(), any());
+	}
 
 	@Test
 	public void testPollForMessagesAndStartJobsWithMessages() {

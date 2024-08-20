@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -341,7 +342,7 @@ public class PollingMessageReceiverImplTest {
 		receiver.run(mockProgressCallback);
 
 		ReceiveMessageRequest expectedRequest = new ReceiveMessageRequest()
-			.withAttributeNames(Arrays.asList(MessageSystemAttributeName.ApproximateReceiveCount.toString()))
+			.withMessageSystemAttributeNames(Arrays.asList(MessageSystemAttributeName.ApproximateReceiveCount.toString()))
 			.withMaxNumberOfMessages(1)
 			.withVisibilityTimeout(messageVisibilityTimeoutSec)
 			.withWaitTimeSeconds(0)
@@ -353,6 +354,39 @@ public class PollingMessageReceiverImplTest {
 		verify(mockAmazonSQSClient, times(4)).deleteMessage(any(DeleteMessageRequest.class));
 		verify(mockProgressCallback, times(4)).addProgressListener(any(ProgressListener.class));
 		verify(mockProgressCallback, times(4)).removeProgressListener(any(ProgressListener.class));
+	}
+	
+	@Test
+	public void testRunnerShouldTerminateWithMessageAttributes() throws Exception {
+		
+		when(mockHasQueueUrl.getQueueUrl()).thenReturn(queueUrl);
+		when(mockAmazonSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).thenReturn(results, emptyResults);
+		PollingMessageReceiverImpl receiver = new PollingMessageReceiverImpl(
+				mockAmazonSQSClient, config);
+		
+		when(mockGate.canRun()).thenReturn(true, false);
+
+		when(mockRunner.getMessageAttributeNames()).thenReturn(List.of("All"));
+		
+		// call under test
+		receiver.run(mockProgressCallback);
+		
+		verify(mockRunner).run(any(ProgressCallback.class), any(Message.class));
+		
+		verify(mockAmazonSQSClient).receiveMessage(new ReceiveMessageRequest()
+			.withMessageSystemAttributeNames(Arrays.asList(MessageSystemAttributeName.ApproximateReceiveCount.toString()))
+			.withMessageAttributeNames("All")
+			.withMaxNumberOfMessages(1)
+			.withVisibilityTimeout(messageVisibilityTimeoutSec)
+			.withWaitTimeSeconds(0)
+			.withQueueUrl(queueUrl)
+		);
+		verify(mockAmazonSQSClient).deleteMessage(new DeleteMessageRequest()
+			.withQueueUrl(queueUrl)
+			.withReceiptHandle(message.getReceiptHandle())
+		);
+		verify(mockProgressCallback).addProgressListener(any(ProgressListener.class));
+		verify(mockProgressCallback).removeProgressListener(any(ProgressListener.class));	
 	}
 	
 	@Test

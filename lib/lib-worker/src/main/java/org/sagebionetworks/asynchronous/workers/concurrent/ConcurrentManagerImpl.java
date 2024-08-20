@@ -116,10 +116,19 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		ValidateArgument.requirement(messageVisibilityTimeoutSec >= 10,
 				"messageVisibilityTimeoutSec must be greater than or equals to 10.");
 
+		ReceiveMessageRequest request = new ReceiveMessageRequest()
+			.withQueueUrl(queueUrl)
+			.withWaitTimeSeconds(0)
+			.withMaxNumberOfMessages(maxNumberOfMessages)
+			.withVisibilityTimeout(messageVisibilityTimeoutSec); 
+		
+		if (worker.getMessageAttributeNames() != null && !worker.getMessageAttributeNames().isEmpty()) {
+			request.withMessageAttributeNames(worker.getMessageAttributeNames());
+		}
+		
 		// Poll for the requested number of messages.
-		List<Message> messages = amazonSQSClient.receiveMessage(new ReceiveMessageRequest().withQueueUrl(queueUrl)
-				.withWaitTimeSeconds(0).withMaxNumberOfMessages(maxNumberOfMessages)
-				.withVisibilityTimeout(messageVisibilityTimeoutSec)).getMessages();
+		List<Message> messages = amazonSQSClient.receiveMessage(request).getMessages();
+		
 		// For each message start a new job.
 		return messages.stream().map((message) -> {
 			return startWorkerJob(queueUrl, messageVisibilityTimeoutSec, worker, message);

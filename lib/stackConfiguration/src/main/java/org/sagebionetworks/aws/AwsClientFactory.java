@@ -5,6 +5,8 @@ import java.util.Map;
 
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
+import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2ClientBuilder;
 import com.amazonaws.services.appconfigdata.AWSAppConfigData;
 import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
@@ -247,5 +249,16 @@ public class AwsClientFactory {
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
 	}
-
+	
+	/**
+	 * 
+	 * @return An instance of the {@link AmazonApiGatewayV2} client using the synpase credential chain
+	 */
+	public static AmazonApiGatewayV2 createAnazonApiGatewayClient() {
+		return AmazonApiGatewayV2ClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+				.build();
+	}
+	
 }

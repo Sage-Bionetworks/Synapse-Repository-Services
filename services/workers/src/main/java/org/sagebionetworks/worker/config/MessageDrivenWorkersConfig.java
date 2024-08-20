@@ -15,6 +15,7 @@ import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
 import org.sagebionetworks.table.worker.TableSnapshotWorker;
 import org.sagebionetworks.table.worker.UpdateQueryCacheWorker;
 import org.sagebionetworks.webhook.workers.WebhookMessageWorker;
+import org.sagebionetworks.worker.JsonEntityDrivenRunnerAdapter;
 import org.sagebionetworks.worker.TypedMessageDrivenRunnerAdapter;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -51,7 +52,7 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean materializedViewSourceUpdateWorkerTrigger(MaterializedViewSourceUpdateWorker materializedViewSourceUpdateWorker) {
 		
 		String queueName = stackConfig.getQueueName("MATERIALIZED_VIEW_SOURCE_UPDATE");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, materializedViewSourceUpdateWorker);
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(materializedViewSourceUpdateWorker);
 		
 		return new WorkerTriggerBuilder()
 			.withStack(ConcurrentWorkerStack.builder()
@@ -146,7 +147,7 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean tableSnapshotWorkerTrigger(TableSnapshotWorker tableSnapshotWorker) {
 		
 		String queueName = stackConfig.getQueueName("TABLE_SNAPSHOTS");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, tableSnapshotWorker);
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(tableSnapshotWorker);
 		
 		return new WorkerTriggerBuilder()
 			.withStack(ConcurrentWorkerStack.builder()
@@ -169,7 +170,7 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean fileEventRecordWorkerTrigger(FileEventRecordWorker fileEventRecordWorker) {
 
 		String queueName = stackConfig.getQueueName("FILE_EVENT_RECORDS");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, fileEventRecordWorker);
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(fileEventRecordWorker);
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
@@ -192,7 +193,7 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean updateQueryCacheTrigger(UpdateQueryCacheWorker cacheWorker) {
 
 		String queueName = stackConfig.getQueueName("UPDATE_QUERY_CACHE");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, cacheWorker);
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(cacheWorker);
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
@@ -215,21 +216,20 @@ public class MessageDrivenWorkersConfig {
 	public SimpleTriggerFactoryBean webhookMessageWorkerTrigger(WebhookMessageWorker webhookMessageWorker) {
 
 		String queueName = stackConfig.getQueueName("WEBHOOK_MESSAGE");
-		MessageDrivenRunner worker = new TypedMessageDrivenRunnerAdapter<>(objectMapper, webhookMessageWorker);
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
 						.withSemaphoreLockKey("webhookMessageWorker")
-						.withSemaphoreMaxLockCount(10)
+						.withSemaphoreMaxLockCount(8)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-						.withMaxThreadsPerMachine(10)
+						.withMaxThreadsPerMachine(5)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)
-						.withWorker(worker)
+						.withWorker(webhookMessageWorker)
 						.build()
 				)
-				.withRepeatInterval(976)
+				.withRepeatInterval(2064)
 				.withStartDelay(1045)
 				.build();
 	}

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.webhook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -10,14 +9,17 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -35,16 +37,20 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
@@ -53,30 +59,37 @@ import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
 import org.sagebionetworks.repo.model.webhook.Webhook;
-import org.sagebionetworks.repo.model.webhook.WebhookEvent;
 import org.sagebionetworks.repo.model.webhook.WebhookMessage;
-import org.sagebionetworks.repo.model.webhook.WebhookSynapseEvent;
-import org.sagebionetworks.repo.model.webhook.WebhookVerificationEvent;
+import org.sagebionetworks.repo.model.webhook.WebhookSynapseEventMessage;
+import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookManagerUnitTest {
-
+	
 	@Mock
 	private WebhookDao mockWebhookDao;
-
-	@Mock
-	private AccessControlListDAO mockAclDao;
 	
 	@Mock
 	private AmazonSQSClient mockSqsClient;
+	
+	@Mock
+	private WebhookAuthorizationManager mockWebhookAuthorizationManager;
+	
+	@Mock
+	private NodeDAO mockNodeDao;
+	
+	@Mock
+	private TrashCanDao mockTrashDao;
 	
 	@Mock
 	private Clock mockClock;
@@ -97,7 +110,7 @@ public class WebhookManagerUnitTest {
 	private String queueUrl;
 	
 	@Captor
-	private ArgumentCaptor<WebhookEvent> eventCaptor;
+	private ArgumentCaptor<WebhookMessage> eventCaptor;
 	
 	@Captor
 	private ArgumentCaptor<String> stringCaptor;
@@ -123,14 +136,14 @@ public class WebhookManagerUnitTest {
 			.setIsEnabled(request.getIsEnabled())
 			.setVerificationStatus(WebhookVerificationStatus.PENDING);
 		
-		when(mockStackConfig.getQueueName("WEBHOOK_MESSAGE")).thenReturn("queuName");
+		when(mockStackConfig.getQueueName("WEBHOOK_MESSAGE")).thenReturn("queueName");
 		
 		queueUrl = "queueUrl";
 		
 		GetQueueUrlResult res = new GetQueueUrlResult();
 		res.setQueueUrl(queueUrl);
 		
-		when(mockSqsClient.getQueueUrl("queuName")).thenReturn(res);
+		when(mockSqsClient.getQueueUrl("queueName")).thenReturn(res);
 		
 		// This is automatically invoked by spring
 		webhookManager.configureMessageQueueUrl(mockStackConfig);
@@ -138,7 +151,7 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequest() {
-		when(mockAclDao.canAccess(userInfo, "123", ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		doReturn(AuthorizationStatus.authorized()).when(mockWebhookAuthorizationManager).getReadAuthorizationStatus(userInfo, SynapseObjectType.ENTITY, "123");
 				
 		// Call under test
 		webhookManager.validateCreateOrUpdateRequest(userInfo, request);
@@ -147,12 +160,27 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequestWithNoAccess() {
-		when(mockAclDao.canAccess(userInfo, "123", ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied("denied"));
+		doReturn(AuthorizationStatus.accessDenied("denied")).when(mockWebhookAuthorizationManager).getReadAuthorizationStatus(userInfo, SynapseObjectType.ENTITY, "123");
 				
-		assertThrows(UnauthorizedException.class, () -> {			
+		String result = assertThrows(UnauthorizedException.class, () -> {			
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		});
+		}).getMessage();
+		
+		assertEquals("denied", result);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(BOOTSTRAP_NODES.class)
+	public void testValidateCreateOrUpdateWebhookRequestWithUnsupportedEntity(BOOTSTRAP_NODES node) {
+		request.setObjectId(node.getId().toString());
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The specified object is not valid.", result);
 	}
 	
 	@Test
@@ -163,18 +191,6 @@ public class WebhookManagerUnitTest {
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		});
-		
-		verifyZeroInteractions(mockAclDao);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithAdmin() {
-		userInfo = new UserInfo(true, 123L);
-					
-		// Call under test
-		webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -188,8 +204,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The objectType is required.", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -203,8 +217,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The eventTypes is required and must not be empty.", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -218,8 +230,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The objectId is required.", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -233,8 +243,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("isEnabled is required.", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -248,8 +256,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokeEndpoint is not a valid url: null", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -263,8 +269,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokeEndpoint is not a valid url: https://not.valid", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -278,8 +282,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokeEndpoint is not a valid url: https://localhost/events", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -293,8 +295,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -308,8 +308,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -323,8 +321,6 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
-		
-		verifyZeroInteractions(mockAclDao);
 	}
 	
 	@Test
@@ -538,7 +534,7 @@ public class WebhookManagerUnitTest {
 		Date now = new Date();
 		
 		when(mockClock.now()).thenReturn(now);
-		doNothing().when(webhookManager).publishWebhookEvent(any(), any(), any());		
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any());		
 		
 		// Call under test
 		webhookManager.generateAndSendVerificationCode(webhook);
@@ -550,71 +546,63 @@ public class WebhookManagerUnitTest {
 		assertEquals(6, generatedCode.length());
 		assertTrue(StringUtils.isAlphanumeric(generatedCode));
 		
-		verify(webhookManager).publishWebhookEvent(eq(webhook.getId()), eq(webhook.getInvokeEndpoint()), eventCaptor.capture());
+		verify(webhookManager).publishWebhookMessage(eq(webhook), eventCaptor.capture());
 		
-		WebhookEvent sentEvent = eventCaptor.getValue();
-		
-		assertNotNull(sentEvent.getEventId());
-		
-		assertEquals(new WebhookVerificationEvent()
-			.setEventId(sentEvent.getEventId())
+		WebhookMessage sentEvent = eventCaptor.getValue();
+				
+		assertEquals(new WebhookVerificationMessage()
 			.setVerificationCode(generatedCode)
-			.setWebhookId(webhook.getId())
-			.setEventTimestamp(now)
-			.setWebhookOwnerId(userInfo.getId().toString()), sentEvent
+			.setEventTimestamp(now), 
+			sentEvent
 		);
 	}
 	
 	@Test
-	public void testPublishWebhookEventWithSynapseEvent() throws JSONObjectAdapterException {
+	public void testPublishWebhookMessageWithSynapseEvent() throws JSONObjectAdapterException {
 		
-		WebhookEvent event = new WebhookSynapseEvent()
-			.setEventId("abc")
+		WebhookMessage event = new WebhookSynapseEventMessage()
 			.setEventTimestamp(new Date())
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId("123")
-			.setObjectType(SynapseObjectType.ENTITY)
-			.setWebhookId(webhook.getId());
-		
-		WebhookMessage expectedMessage = new WebhookMessage()
-			.setEndpoint(webhook.getInvokeEndpoint())
-			.setWebhookId(webhook.getId())
-			.setIsVerificationMessage(false)
-			.setMessageBody(EntityFactory.createJSONStringForEntity(event));
-				
+			.setObjectType(SynapseObjectType.ENTITY);
+						
 		// Call under test
-		webhookManager.publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), event);
-		
-		verify(mockSqsClient).sendMessage(eq(queueUrl), stringCaptor.capture());
-		
-		String messageBody = stringCaptor.getValue();
-		
-		assertEquals(expectedMessage, EntityFactory.createEntityFromJSONString(messageBody, WebhookMessage.class));
+		webhookManager.publishWebhookMessage(webhook, event);
+				
+		verify(mockSqsClient).sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageAttributes(Map.of(
+					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("SynapseEvent"),
+					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+				))
+		);
 	}
 	
 	@Test
-	public void testPublishWebhookEventWithVerificationEvent() throws JSONObjectAdapterException {
+	public void testPublishWebhookMessageWithVerificationEvent() throws JSONObjectAdapterException {
 		
-		WebhookEvent event = new WebhookVerificationEvent()
-			.setEventId("abc")
+		WebhookMessage event = new WebhookVerificationMessage()
 			.setEventTimestamp(new Date())
-			.setWebhookId(webhook.getId())
 			.setVerificationCode("abcd");
-		
-		WebhookMessage expectedMessage = new WebhookMessage()
-			.setEndpoint(webhook.getInvokeEndpoint())
-			.setWebhookId(webhook.getId())
-			.setIsVerificationMessage(true)
-			.setMessageBody(EntityFactory.createJSONStringForEntity(event));
-				
+						
 		// Call under test
-		webhookManager.publishWebhookEvent(webhook.getId(), webhook.getInvokeEndpoint(), event);
+		webhookManager.publishWebhookMessage(webhook, event);
 		
-		verify(mockSqsClient).sendMessage(eq(queueUrl), stringCaptor.capture());
-		
-		String messageBody = stringCaptor.getValue();
-		
-		assertEquals(expectedMessage, EntityFactory.createEntityFromJSONString(messageBody, WebhookMessage.class));
+		verify(mockSqsClient).sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageAttributes(Map.of(
+					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
+					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+				))
+		);
 	}
 	
 	@Test
@@ -679,14 +667,14 @@ public class WebhookManagerUnitTest {
 		
 		VerifyWebhookResponse expectedResult = new VerifyWebhookResponse()
 			.setIsValid(false)
-			.setInvalidReason("The provided verification code has expired.");
+			.setInvalidReason("The verification code has expired.");
 			
 		// Call under test
 		VerifyWebhookResponse result = webhookManager.verifyWebhook(userInfo, webhook.getId(), new VerifyWebhookRequest().setVerificationCode("abcdef"));
 		
 		assertEquals(expectedResult, result);
 		
-		verify(mockWebhookDao).setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.FAILED, "The provided verification code has expired.");
+		verify(mockWebhookDao).setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.FAILED, "The verification code has expired.");
 	}
 	
 	@Test
@@ -767,6 +755,186 @@ public class WebhookManagerUnitTest {
 		assertEquals("The verificationCode is required and must not be the empty string.", result);
 		
 		verifyZeroInteractions(mockWebhookDao);
+	}
+	
+	
+	@Test
+	public void testProcessChangeMessage() {
+		Date now = new Date();
+		
+		when(mockClock.now()).thenReturn(now);
+
+		ChangeMessage change = new ChangeMessage()
+				.setObjectType(ObjectType.ENTITY)
+				.setObjectId("123")
+				.setTimestamp(now)
+				.setChangeType(ChangeType.UPDATE);
+		
+		doNothing().when(webhookManager).processEntityChange(SynapseEventType.UPDATE, change.getTimestamp(), change.getObjectId());
+						
+		// Call under test
+		webhookManager.processChangeMessage(change);
+		
+	}
+	
+	@Test
+	public void testProcessChangeMessageWithOldMessage() {
+		Date now = new Date();
+		
+		when(mockClock.now()).thenReturn(now);
+
+		Date changeTimestamp = Date.from(now.toInstant().minus(Duration.ofHours(1).plusSeconds(1))); 
+		ChangeMessage change = new ChangeMessage()
+				.setObjectType(ObjectType.ENTITY)
+				.setObjectId("123")
+				.setTimestamp(changeTimestamp)
+				.setChangeType(ChangeType.UPDATE);
+								
+		// Call under test
+		webhookManager.processChangeMessage(change);
+		
+		verify(webhookManager, never()).processEntityChange(any(), any(), any());
+		
+	}
+	
+	@Test
+	public void testProcessChangeMessageWithUnsupportedtype() {
+		Date now = new Date();
+		
+		when(mockClock.now()).thenReturn(now);
+
+		ChangeMessage change = new ChangeMessage()
+				.setObjectType(ObjectType.ACCESS_APPROVAL)
+				.setObjectId("123")
+				.setTimestamp(now)
+				.setChangeType(ChangeType.UPDATE);
+						
+		// Call under test
+		webhookManager.processChangeMessage(change);
+		
+		verify(webhookManager, never()).processEntityChange(any(), any(), any());
+		
+	}
+	
+	@Test
+	public void testProcessEntityChange() {
+		String entityId = "123456";
+		Date eventTimestamp = new Date();		
+		
+		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityActualPathIds(entityId);		
+		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
+		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
+				
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any());
+				
+		// Call under test
+		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
+		
+		verify(webhookManager).publishWebhookMessage(webhook, new WebhookSynapseEventMessage()
+			.setEventTimestamp(eventTimestamp)
+			.setEventType(SynapseEventType.CREATE)
+			.setObjectId(entityId)
+			.setObjectType(SynapseObjectType.ENTITY)
+		);
+	}
+	
+	@Test
+	public void testProcessEntityChangeWithNoMoreReadAccess() {		
+		String entityId = "123456";
+		Date eventTimestamp = new Date();		
+		
+		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityActualPathIds(entityId);		
+		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));	
+		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(false);
+				
+		// Call under test
+		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
+		
+		verify(webhookManager, never()).publishWebhookMessage(any(), any());
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithSingleNode() {
+		String entityId = "1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 1L));
+		
+		// Call under test
+		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithParentNode() {
+		String entityId = "1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 2L, 1L));
+		
+		// Call under test
+		assertEquals(List.of(2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithEntityInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
+		when(mockTrashDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn2")));
+		when(mockNodeDao.getEntityPathIds("syn2")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 3L, 2L));
+		
+		// Call under test
+		assertEquals(List.of(3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithProjectInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
+		when(mockTrashDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId(BOOTSTRAP_NODES.ROOT.getId().toString())));
+		
+		// Call under test
+		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithEntityRootInTrashcan() {
+		String entityId = "syn1";
+		
+		// The root of the entity is in the trash
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
+		when(mockTrashDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
+		
+		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 5L, 4L, 3L));
+		
+		// Call under test
+		assertEquals(List.of(5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithMultipleEntityRootInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
+		when(mockTrashDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
+		// The root of this node is also in the trash
+		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 4L, 3L));
+		when(mockTrashDao.getTrashedEntity("syn4")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn5")));
+		when(mockNodeDao.getEntityPathIds("syn5")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 6L, 5L));
+		
+		// Call under test
+		assertEquals(List.of(6L, 5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 		
 }

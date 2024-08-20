@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
-public class TypedMessageDriverRunnerAdapterTest {
+public class TypedMessageDrivenRunnerAdapterTest {
 	
 	@Mock
 	private ObjectMapper mockMapper;

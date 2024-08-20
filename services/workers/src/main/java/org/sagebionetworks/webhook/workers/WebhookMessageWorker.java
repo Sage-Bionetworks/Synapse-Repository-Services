@@ -1,31 +1,34 @@
 package org.sagebionetworks.webhook.workers;
 
-import org.sagebionetworks.repo.manager.webhook.WebhookManager;
-import org.sagebionetworks.repo.model.webhook.WebhookMessage;
+import java.util.List;
+
+import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
 import org.sagebionetworks.util.progress.ProgressCallback;
-import org.sagebionetworks.worker.TypedMessageDrivenRunner;
+import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.sqs.model.Message;
 
 @Service
-public class WebhookMessageWorker implements TypedMessageDrivenRunner<WebhookMessage> {
+public class WebhookMessageWorker implements MessageDrivenRunner {
 
-	private WebhookManager manager;
+	private static final List<String> ATTR_NAMES = List.of("All");
 	
-	public WebhookMessageWorker(WebhookManager manager) {
-		this.manager = manager;
+	private WebhookMessageDispatcher dispatcher;
+	
+	public WebhookMessageWorker(WebhookMessageDispatcher dispatcher) {
+		this.dispatcher = dispatcher;
 	}
-
+	
 	@Override
-	public Class<WebhookMessage> getObjectClass() {
-		return WebhookMessage.class;
+	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
+		dispatcher.dispatchMessage(message);
 	}
-
+	
 	@Override
-	public void run(ProgressCallback progressCallback, Message message, WebhookMessage convertedMessage) throws RecoverableMessageException, Exception {
-		manager.processWebhookMessage(convertedMessage);		
+	public List<String> getMessageAttributeNames() {
+		return ATTR_NAMES;
 	}
 
 }

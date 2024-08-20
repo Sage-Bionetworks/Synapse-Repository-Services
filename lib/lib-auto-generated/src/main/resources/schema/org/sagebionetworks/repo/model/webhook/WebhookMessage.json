@@ -1,17 +1,15 @@
 {
-	"description": "DTO for the webhook data that needs to be published to an endpoint",
+	"description": "Data transfer object for messages to be sent to webhook endpoints.",
+	"type": "interface",
 	"properties": {
-		"isVerificationMessage": {
-			"type": "boolean"
-		},
-		"messageBody": {
+		"concreteType":{
 			"type": "string"
 		},
-		"webhookId": {
-			"type": "string"	
-		},
-		"endpoint": {
-			"type": "string"
+		"eventTimestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The timestamp when the event occurred, in ISO 8601 format.",
+			"required": true
 		}
 	}
 }

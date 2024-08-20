@@ -3,7 +3,6 @@ package org.sagebionetworks.worker;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Adapter for a {@link TypedMessageDrivenRunner} that is driven by a message converted to the type T
+ * Adapter for a {@link TypedMessageDrivenRunner} that is driven by a message converted to the generic type T
  * 
  * @param <T>
  */

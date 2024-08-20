@@ -1,0 +1,22 @@
+{
+	"description": "A webhook message for an event in Synapse.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookMessage"
+		}
+	],
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The ID of the object affected by a change."
+		},
+		"objectType": {
+			"$ref": "org.sagebionetworks.repo.model.webhook.SynapseObjectType",
+			"description": "The synapse object type."
+		},
+		"eventType": {
+			"$ref": "org.sagebionetworks.repo.model.webhook.SynapseEventType",
+			"description": "The type of event that affected the synapse object."
+		}
+	}
+}
