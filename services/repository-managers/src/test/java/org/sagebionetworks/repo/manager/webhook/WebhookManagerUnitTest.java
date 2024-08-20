@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -167,6 +168,19 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("denied", result);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(BOOTSTRAP_NODES.class)
+	public void testValidateCreateOrUpdateWebhookRequestWithUnsupportedEntity(BOOTSTRAP_NODES node) {
+		request.setObjectId(node.getId().toString());
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("The specified object is not valid.", result);
 	}
 	
 	@Test
@@ -847,6 +861,8 @@ public class WebhookManagerUnitTest {
 		
 		// Call under test
 		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
@@ -857,6 +873,8 @@ public class WebhookManagerUnitTest {
 		
 		// Call under test
 		assertEquals(List.of(2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
@@ -869,6 +887,21 @@ public class WebhookManagerUnitTest {
 		
 		// Call under test
 		assertEquals(List.of(3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithProjectInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
+		when(mockTrashDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId(BOOTSTRAP_NODES.ROOT.getId().toString())));
+		
+		// Call under test
+		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
@@ -883,6 +916,8 @@ public class WebhookManagerUnitTest {
 		
 		// Call under test
 		assertEquals(List.of(5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
@@ -898,6 +933,8 @@ public class WebhookManagerUnitTest {
 		
 		// Call under test
 		assertEquals(List.of(6L, 5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
 		
 }

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
@@ -274,6 +275,10 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	List<Long> getEntityActualPathIds(String entityId) {
+		if (NodeUtils.isRootEntityId(entityId)) {
+			return Collections.emptyList();
+		}
+		
 		Iterator<Long> pathIterator;
 		
 		try {
@@ -362,6 +367,10 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.requiredNotEmpty(request.getEventTypes(), "The eventTypes");
 		ValidateArgument.validUrl(request.getInvokeEndpoint(), "The invokeEndpoint");
 		ValidateArgument.required(request.getIsEnabled(), "isEnabled");
+		
+		if (SynapseObjectType.ENTITY.equals(request.getObjectType()) && BOOTSTRAP_NODES.getAllBootstrapIds().contains(KeyFactory.stringToKey(request.getObjectId()))) {
+			throw new IllegalArgumentException("The specified object is not valid.");
+		}
 		
 		try {
 			URI uri = URI.create(request.getInvokeEndpoint());
