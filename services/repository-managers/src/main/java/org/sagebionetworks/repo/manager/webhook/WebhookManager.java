@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.webhook;
 
+import java.util.Optional;
+
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
@@ -17,10 +19,11 @@ import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
  */
 public interface WebhookManager {
 
-	String MSG_ATTR_WEBHOOK_MESSAGE_TYPE = "WebhookMessageType";
 	String MSG_ATTR_WEBHOOK_ID = "WebhookId";
 	String MSG_ATTR_WEBHOOK_ENDPOINT = "WebhookEndpoint";
 	String MSG_ATTR_WEBHOOK_OWNER_ID = "WebhookOwnerId";
+	String MSG_ATTR_WEBHOOK_MESSAGE_TYPE = "WebhookMessageType";
+	String MSG_ATTR_WEBHOOK_MESSAGE_ID = "WebhookMessageId";
 
 	/**
 	 * Create a new Webhook object.
@@ -87,8 +90,18 @@ public interface WebhookManager {
 	/**
 	 * 
 	 * @param webhookId
+	 * @param messageId
+	 * @return The verification status for the webhook with the given id that matches the given messageId
+	 */
+	Optional<WebhookVerificationStatus> getWebhookVerificationStatus(String webhookId, String messageId);
+	
+	/**
+	 * Updates the status of the webhook verification if the given messageId matches
+	 * 
+	 * @param webhookId
+	 * @param messageId
 	 * @param status
 	 * @param verificationMessage
 	 */
-	void updateWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String verificationMessage);
+	void updateWebhookVerificationStatus(String webhookId, String messageId, WebhookVerificationStatus status, String verificationMessage);
 }

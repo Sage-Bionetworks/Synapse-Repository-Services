@@ -1296,6 +1296,7 @@ public class SqlConstants {
 	public static final String COL_WEBHOOK_VERIFICATION_MSG =   						"MESSAGE";
 	public static final String COL_WEBHOOK_VERIFICATION_CODE =   						"CODE";
 	public static final String COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON =				"CODE_EXPIRES_ON";
+	public static final String COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID =				"CODE_MESSAGE_ID";
 	public static final String DDL_FILE_WEBHOOK_VERIFICATION =							"schema/webhook/Webhook-Verification-ddl.sql";
 	
 	

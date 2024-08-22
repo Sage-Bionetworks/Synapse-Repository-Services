@@ -1,21 +1,30 @@
 package org.sagebionetworks.repo.manager.webhook;
 
+import java.net.ConnectException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,104 +36,245 @@ import com.amazonaws.services.sqs.model.MessageAttributeValue;
 
 @Service
 public class WebhookMessageDispatcher {
-	
+
 	private static final Logger LOG = LogManager.getLogger(WebhookMessageDispatcher.class);
-	
+
 	public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
-	
-	static final String HEADER_WEBHOOK_ID = "X-Synapse-WebhookId";
-	static final String HEADER_WEBHOOK_OWNER_ID = "X-Synapse-WebhookOwnerId";
-	static final String HEADER_WEBHOOK_MESSAGE_TYPE = "X-Synapse-WebhookMessageType";
-	
+
+	private static final String HEADER_PREFIX = "X-Syn-Webhook-";
+	static final String HEADER_WEBHOOK_ID = HEADER_PREFIX + "Id";
+	static final String HEADER_WEBHOOK_MSG_ID = HEADER_PREFIX + "Message-Id";
+	static final String HEADER_WEBHOOK_OWNER_ID = HEADER_PREFIX + "Owner-Id";
+	static final String HEADER_WEBHOOK_MESSAGE_TYPE = HEADER_PREFIX + "Message-Type";
+
 	static final BodyHandler<Void> DISCARDING_BODY_HANDLER = BodyHandlers.discarding();
-	
+
 	static final EnumSet<HttpStatus> ACCEPTED_HTTP_STATUS = EnumSet.of(
 		HttpStatus.OK, 
 		HttpStatus.ACCEPTED, 
-		HttpStatus.CREATED, 
+		HttpStatus.CREATED,
 		HttpStatus.NO_CONTENT
 	);
-	
-	private WebhookManager webhookManager;
+
+	static final EnumSet<HttpStatus> RETRY_HTTP_STATUS = EnumSet.of(
+		HttpStatus.TOO_MANY_REQUESTS, 
+		HttpStatus.INTERNAL_SERVER_ERROR,
+		HttpStatus.BAD_GATEWAY, 
+		HttpStatus.SERVICE_UNAVAILABLE, 
+		HttpStatus.GATEWAY_TIMEOUT
+	);
+
+	private WebhookManager manager;
+	private WebhookMetricsTracker metricsTracker;
 	private HttpClient webhookHttpClient;
+	private Clock clock;
+
 	private String userAgent;
-	
-	public WebhookMessageDispatcher(WebhookManager webhookManager, HttpClient webhookHttpClient) {
-		this.webhookManager = webhookManager;
+
+	public WebhookMessageDispatcher(WebhookManager manager, WebhookMetricsTracker metricsTracker, HttpClient webhookHttpClient, Clock clock) {
+		this.manager = manager;
+		this.metricsTracker = metricsTracker;
 		this.webhookHttpClient = webhookHttpClient;
+		this.clock = clock;
 	}
-	
+
 	@Autowired
 	public void configure(StackConfiguration config) {
-		userAgent = "Synapse-Webhook/" + config.getStackInstance();
+		this.userAgent = "Synapse-Webhook/" + config.getStackInstance();
 	}
-	
-	public void dispatchMessage(Message message) throws URISyntaxException {
-		Map<String, MessageAttributeValue> messageAttributes = message.getMessageAttributes();
+
+	public void dispatchMessage(Message message) {
+
+		WebhookMessageAttributes attributes = new WebhookMessageAttributes(message.getMessageAttributes());
 		
-		String webhookId = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_ID).getStringValue();
-		String webhookOwnerId = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID).getStringValue();
-		String webhookEndpoint = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT).getStringValue();
-		String messageTypeString = messageAttributes.get(WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE).getStringValue();
+		if (attributes.isVerification()) {
+			// We need to make sure that the current committed verification matches the messageId and that the webhook exists
+			WebhookVerificationStatus status = manager.getWebhookVerificationStatus(attributes.getWebhookId(), attributes.getMessageId()).orElse(null);
+						
+			// Only PENDING and FAILED (in case of retry) verification can be processed by this worker
+			if (!WebhookVerificationStatus.PENDING.equals(status) && !WebhookVerificationStatus.FAILED.equals(status)) {
+				LOG.warn("Invalid verification message (WebhookId: {}, MessageId: {}, Status: {})", attributes.getWebhookId(), attributes.getMessageId(), status);
+				throw new RecoverableMessageException();
+			}
+		}
 		
-		WebhookMessageType messageType = WebhookMessageType.valueOf(messageTypeString);
-		
-		HttpRequest request = HttpRequest.newBuilder(new URI(webhookEndpoint))
+		HttpRequest request = HttpRequest.newBuilder(URI.create(attributes.getWebhookEndpoint()))
 			.timeout(REQUEST_TIMEOUT)
 			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.header(HttpHeaders.USER_AGENT, userAgent)
-			.header(HEADER_WEBHOOK_ID, webhookId)
-			.header(HEADER_WEBHOOK_OWNER_ID, webhookOwnerId)
-			.header(HEADER_WEBHOOK_MESSAGE_TYPE, messageTypeString)
+			.headers(attributes.toRequestHeaders())
 			.POST(BodyPublishers.ofString(message.getBody()))
 			.build();
 		
-		webhookHttpClient.sendAsync(request, DISCARDING_BODY_HANDLER)
-			.whenComplete((response, exception) -> handleResponse(messageType, webhookId, response, exception));
+		sendWebhookRequest(attributes, request);
+				
 	}
 	
-	void handleResponse(WebhookMessageType messageType, String webhookId, HttpResponse<Void> response, Throwable exception) {
-		// Since we discard the response, we only care about the status code if any
-		HttpStatus httpStatus = response != null ? HttpStatus.resolve(response.statusCode()) : null;
+	void sendWebhookRequest(WebhookMessageAttributes attributes, HttpRequest request) {
+		LOG.info("Sending {} request to {} (WebhookId: {}, MessageId: {})...", attributes.getMessageType(), attributes.getWebhookEndpoint(), attributes.getWebhookId(), attributes.getMessageId());
 		
-		switch (messageType) {
-		case Verification:
-			handleWebhookVerificationResponse(webhookId, httpStatus, exception);
-			break;
-		case SynapseEvent:
-			handleWebhookSynapseEventResponse(webhookId, httpStatus, exception);
-			break;
-		default:
-			LOG.warn("Unhandled response for message type " + messageType);
-			break;
+		long start = clock.currentTimeMillis();
+		
+		CompletableFuture<HttpResponse<Void>> asyncResponse = webhookHttpClient.sendAsync(request, DISCARDING_BODY_HANDLER);
+
+		metricsTracker.requestStarted(attributes.getWebhookId());
+		
+		final HttpResponse<Void> response;
+		
+		try {
+			// We wait for the response so that the worker controls the level of concurrency to avoid exhausting resources
+			response = asyncResponse.get(REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
+		} catch (Throwable ex) {
+			LOG.warn("The {} request (WebhookId: {}, MessageId: {}) failed exceptionally:", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), ex);
+			
+			metricsTracker.requestFailed(attributes.getWebhookId());
+			
+			updateVerificationStatus(attributes, false, null, ex);
+			
+			throw new RecoverableMessageException(ex);
+			
+		} finally {
+			metricsTracker.requestCompleted(attributes.getWebhookId(), clock.currentTimeMillis() - start);
+		}
+
+		HttpStatus status = HttpStatus.resolve(response.statusCode());
+		
+		if (ACCEPTED_HTTP_STATUS.contains(status)) {
+			updateVerificationStatus(attributes, true, response, null);
+			return;
+		}
+		
+		LOG.warn("The {} request (WebhookId: {}, MessageId: {}) failed with status: {}.", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), response.statusCode());
+		
+		metricsTracker.requestFailed(attributes.getWebhookId());
+		
+		updateVerificationStatus(attributes, false, response, null);
+		
+		if (RETRY_HTTP_STATUS.contains(status)) {
+			throw new RecoverableMessageException();
 		}
 	}
 	
-	void handleWebhookVerificationResponse(String webhookId, HttpStatus status, Throwable exception) {
-		WebhookVerificationStatus newStatus = null;
-		String verificationMessage = null;
+	void updateVerificationStatus(WebhookMessageAttributes attributes, boolean success, HttpResponse<Void> response, Throwable ex) {
 		
-		if (exception != null) {
-			LOG.error("Webhook {} verification request failed with exception: ", webhookId, exception);
-			newStatus = WebhookVerificationStatus.FAILED;
-			verificationMessage = "The request to the webhook endpoint failed.";
-		} else if (status == null) {			
-			newStatus = WebhookVerificationStatus.FAILED;
-			verificationMessage = "The request to the webhook endpoint failed with no response.";
-		} else if (!ACCEPTED_HTTP_STATUS.contains(status)) {
-			newStatus = WebhookVerificationStatus.FAILED;
-			verificationMessage = "The request to the webhook endpoint failed with status " + status.value() + ".";
-		} else {
+		if (!attributes.isVerification()) {
+			return;
+		}
+		
+		WebhookVerificationStatus newStatus;
+		String newMessage;
+		
+		if (success) {
 			newStatus = WebhookVerificationStatus.CODE_SENT;
-			verificationMessage = "A verification code was sent to the webhook endpoint.";
+			newMessage = "A code was sent to the webhook endpoint.";
+		} else {
+			newStatus = WebhookVerificationStatus.FAILED;
+			StringBuilder messageBuilder = new StringBuilder("The request to the webhook endpoint failed");
+
+			if (response != null) {
+				messageBuilder.append(" with status ").append(response.statusCode()).append(".");
+			} else if (ex != null) {
+				Throwable cause = ex;
+				if (ex instanceof ExecutionException) {
+					cause = ex.getCause();
+				}
+				
+				if (cause instanceof HttpConnectTimeoutException || cause instanceof ConnectException) {
+					messageBuilder.append(" (Reason: connection timeout).");
+				} else if (cause instanceof InterruptedException || cause instanceof TimeoutException || cause instanceof HttpTimeoutException) {
+					messageBuilder.append(" (Reason: request timeout).");
+				} else {
+					messageBuilder.append(" (Reason: unknown).");
+				}
+			} else {
+				messageBuilder.append(" (Reason: unknown).");
+			}
+			newMessage = messageBuilder.toString();			
 		}
 		
-		webhookManager.updateWebhookVerificationStatus(webhookId, newStatus, verificationMessage);
+		manager.updateWebhookVerificationStatus(attributes.getWebhookId(), attributes.getMessageId(), newStatus, newMessage);
 	}
-	
-	void handleWebhookSynapseEventResponse(String webhookId, HttpStatus status, Throwable exception) {
-		// TODO Keep track of the failures and eventually revoke the verification
+
+	static final class WebhookMessageAttributes {
+		
+		private final String messageId;
+		private final String webhookId;
+		private final WebhookMessageType messageType;
+		private final String webhookEndpoint;
+		private final String webhookOwnerId;
+		private final boolean isVerification;
+		
+		static String getMessageAttribute(Map<String, MessageAttributeValue> messageAttributes, String attributeName) {
+			MessageAttributeValue value = messageAttributes.get(attributeName);
+			
+			if (value == null || value.getStringValue() == null) {
+				throw new IllegalStateException("Could not find attribute: " + attributeName);
+			}
+			
+			return value.getStringValue();
+		}
+
+		protected WebhookMessageAttributes(Map<String, MessageAttributeValue> messageAttributes) {
+			this.messageId = getMessageAttribute(messageAttributes, WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_ID);
+			this.webhookId = getMessageAttribute(messageAttributes, WebhookManager.MSG_ATTR_WEBHOOK_ID);
+			this.webhookOwnerId = getMessageAttribute(messageAttributes, WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID);
+			this.webhookEndpoint = getMessageAttribute(messageAttributes, WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT);
+			this.messageType = WebhookMessageType.valueOf(getMessageAttribute(messageAttributes, WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_TYPE));
+			this.isVerification = WebhookMessageType.Verification.equals(this.messageType);
+		}
+
+		public String getMessageId() {
+			return messageId;
+		}
+
+		String getWebhookId() {
+			return webhookId;
+		}
+
+		WebhookMessageType getMessageType() {
+			return messageType;
+		}
+
+		String getWebhookEndpoint() {
+			return webhookEndpoint;
+		}
+
+		String getWebhookOwnerId() {
+			return webhookOwnerId;
+		}
+
+		boolean isVerification() {
+			return isVerification;
+		}
+		
+		String[] toRequestHeaders() {
+			return new String[] {
+				HEADER_WEBHOOK_ID, this.webhookId,
+				HEADER_WEBHOOK_MSG_ID, this.messageId,
+				HEADER_WEBHOOK_OWNER_ID, this.webhookOwnerId,
+				HEADER_WEBHOOK_MESSAGE_TYPE, this.messageType.name()
+			};
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(isVerification, messageId, messageType, webhookEndpoint, webhookId, webhookOwnerId);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof WebhookMessageAttributes)) {
+				return false;
+			}
+			WebhookMessageAttributes other = (WebhookMessageAttributes) obj;
+			return isVerification == other.isVerification && Objects.equals(messageId, other.messageId) && messageType == other.messageType
+					&& Objects.equals(webhookEndpoint, other.webhookEndpoint) && Objects.equals(webhookId, other.webhookId)
+					&& Objects.equals(webhookOwnerId, other.webhookOwnerId);
+		}
+
 	}
-	
 
 }

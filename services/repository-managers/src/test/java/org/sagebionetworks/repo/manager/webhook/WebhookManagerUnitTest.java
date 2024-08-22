@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -326,7 +327,7 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testCreateWebhook() {
 		doNothing().when(webhookManager).validateCreateOrUpdateRequest(userInfo, request);
-		doNothing().when(webhookManager).generateAndSendVerificationCode(webhook);
+		doReturn(webhook).when(webhookManager).generateAndSendVerificationCode(userInfo, webhook);
 		
 		when(mockWebhookDao.createWebhook(userInfo.getId(), request)).thenReturn(webhook);
 		
@@ -425,7 +426,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		assertEquals(webhook, webhookManager.updateWebhook(userInfo, webhook.getId(), request));
 		
-		verify(webhookManager, never()).generateAndSendVerificationCode(any());
+		verify(webhookManager, never()).generateAndSendVerificationCode(any(), any());
 	}
 	
 	@Test
@@ -435,7 +436,7 @@ public class WebhookManagerUnitTest {
 		Webhook updatedWebhook = new Webhook().setInvokeEndpoint(request.getInvokeEndpoint());
 		
 		doNothing().when(webhookManager).validateCreateOrUpdateRequest(userInfo, request);
-		doNothing().when(webhookManager).generateAndSendVerificationCode(updatedWebhook);
+		doReturn(updatedWebhook).when(webhookManager).generateAndSendVerificationCode(userInfo, updatedWebhook);
 		
 		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId(), true);
 		
@@ -532,12 +533,18 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testGenerateAndSendVerificationCode() {
 		Date now = new Date();
+		String messageId = "messageId";
 		
 		when(mockClock.now()).thenReturn(now);
-		doNothing().when(webhookManager).publishWebhookMessage(any(), any());		
+		when(mockWebhookDao.setWebhookVerificationCode(any(), any(), any())).thenReturn(new DBOWebhookVerification().setCodeMessageId(messageId));
+		
+		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId());
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any(), any());		
 		
 		// Call under test
-		webhookManager.generateAndSendVerificationCode(webhook);
+		Webhook updated = webhookManager.generateAndSendVerificationCode(userInfo, webhook);
+		
+		assertEquals(webhook, updated);
 		
 		verify(mockWebhookDao).setWebhookVerificationCode(eq(webhook.getId()), stringCaptor.capture(), eq(now.toInstant().plus(60 * 10, ChronoUnit.SECONDS)));
 		
@@ -545,20 +552,17 @@ public class WebhookManagerUnitTest {
 		
 		assertEquals(6, generatedCode.length());
 		assertTrue(StringUtils.isAlphanumeric(generatedCode));
-		
-		verify(webhookManager).publishWebhookMessage(eq(webhook), eventCaptor.capture());
-		
-		WebhookMessage sentEvent = eventCaptor.getValue();
 				
-		assertEquals(new WebhookVerificationMessage()
+		verify(webhookManager).publishWebhookMessage(webhook, new WebhookVerificationMessage()
 			.setVerificationCode(generatedCode)
 			.setEventTimestamp(now), 
-			sentEvent
+			messageId
 		);
 	}
 	
 	@Test
 	public void testPublishWebhookMessageWithSynapseEvent() throws JSONObjectAdapterException {
+		String messageId = "messageId";
 		
 		WebhookMessage event = new WebhookSynapseEventMessage()
 			.setEventTimestamp(new Date())
@@ -567,13 +571,14 @@ public class WebhookManagerUnitTest {
 			.setObjectType(SynapseObjectType.ENTITY);
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(webhook, event);
+		webhookManager.publishWebhookMessage(webhook, event, messageId);
 				
 		verify(mockSqsClient).sendMessage(
 			new SendMessageRequest()
 				.withQueueUrl(queueUrl)
 				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
 				.withMessageAttributes(Map.of(
+					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
 					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("SynapseEvent"),
 					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
 					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
@@ -584,19 +589,54 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testPublishWebhookMessageWithVerificationEvent() throws JSONObjectAdapterException {
+		String messageId = "messageId";
 		
 		WebhookMessage event = new WebhookVerificationMessage()
 			.setEventTimestamp(new Date())
 			.setVerificationCode("abcd");
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(webhook, event);
+		webhookManager.publishWebhookMessage(webhook, event, messageId);
 		
 		verify(mockSqsClient).sendMessage(
 			new SendMessageRequest()
 				.withQueueUrl(queueUrl)
 				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
 				.withMessageAttributes(Map.of(
+					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
+					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
+					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
+					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
+					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
+				))
+		);
+	}
+	
+	@Test
+	public void testPublishWebhookMessageWithSqsException() throws JSONObjectAdapterException {
+		String messageId = "messageId";
+		
+		RuntimeException ex = new RuntimeException("failed");
+		
+		when(mockSqsClient.sendMessage(any())).thenThrow(ex);
+		
+		WebhookMessage event = new WebhookVerificationMessage()
+			.setEventTimestamp(new Date())
+			.setVerificationCode("abcd");
+						
+		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {			
+			// Call under test
+			webhookManager.publishWebhookMessage(webhook, event, messageId);
+		}).getCause();
+		
+		assertEquals(ex, cause);
+		
+		verify(mockSqsClient).sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageAttributes(Map.of(
+					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
 					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
 					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
 					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
@@ -755,8 +795,7 @@ public class WebhookManagerUnitTest {
 		assertEquals("The verificationCode is required and must not be the empty string.", result);
 		
 		verifyZeroInteractions(mockWebhookDao);
-	}
-	
+	}	
 	
 	@Test
 	public void testProcessChangeMessage() {
@@ -825,7 +864,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
 				
-		doNothing().when(webhookManager).publishWebhookMessage(any(), any());
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any(), stringCaptor.capture());
 				
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
@@ -834,7 +873,8 @@ public class WebhookManagerUnitTest {
 			.setEventTimestamp(eventTimestamp)
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId(entityId)
-			.setObjectType(SynapseObjectType.ENTITY)
+			.setObjectType(SynapseObjectType.ENTITY),
+			stringCaptor.getValue()
 		);
 	}
 	
@@ -850,7 +890,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
-		verify(webhookManager, never()).publishWebhookMessage(any(), any());
+		verify(webhookManager, never()).publishWebhookMessage(any(), any(), any());
 	}
 	
 	@Test
@@ -936,5 +976,114 @@ public class WebhookManagerUnitTest {
 		
 		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
 	}
+	
+	@Test
+	public void testGetWebhookVerificationStatus() {
 		
+		when(mockWebhookDao.getWebhookVerificationStatus(webhook.getId(), "messageId")).thenReturn(Optional.of(WebhookVerificationStatus.VERIFIED));
+		
+		// Call under test
+		assertEquals(Optional.of(WebhookVerificationStatus.VERIFIED), webhookManager.getWebhookVerificationStatus(webhook.getId(), "messageId"));
+		
+	}
+	
+	@Test
+	public void testGetWebhookVerificationStatusWithNoWebhookId() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.getWebhookVerificationStatus(null, "messageId");
+		}).getMessage();
+		
+		assertEquals("The webhookId is required.", result);
+		
+		verifyZeroInteractions(mockWebhookDao);
+		
+	}
+	
+	@Test
+	public void testGetWebhookVerificationStatusWithNoMessageId() {
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.getWebhookVerificationStatus(webhook.getId(), null);
+		}).getMessage();
+		
+		assertEquals("The messageId is required.", result);
+		
+		verifyZeroInteractions(mockWebhookDao);
+		
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatus() {
+		
+		when(mockWebhookDao.getWebhook(webhook.getId(), true)).thenReturn(Optional.of(webhook));
+		
+		// Call under test
+		webhookManager.updateWebhookVerificationStatus(webhook.getId(), "messageId", WebhookVerificationStatus.VERIFIED, "some message");
+		
+		verify(mockWebhookDao).setWebhookVerificationStatusIfMessageIdMatch(webhook.getId(), "messageId", WebhookVerificationStatus.VERIFIED, "some message");
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatusWithWebhookNotFound() {
+		
+		when(mockWebhookDao.getWebhook(webhook.getId(), true)).thenReturn(Optional.empty());
+		
+		// Call under test
+		webhookManager.updateWebhookVerificationStatus(webhook.getId(), "messageId", WebhookVerificationStatus.VERIFIED, "some message");
+		
+		verifyNoMoreInteractions(mockWebhookDao);
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatusWithNoMessage() {
+		
+		when(mockWebhookDao.getWebhook(webhook.getId(), true)).thenReturn(Optional.of(webhook));
+		
+		// Call under test
+		webhookManager.updateWebhookVerificationStatus(webhook.getId(), "messageId", WebhookVerificationStatus.VERIFIED, null);
+		
+		verify(mockWebhookDao).setWebhookVerificationStatusIfMessageIdMatch(webhook.getId(), "messageId", WebhookVerificationStatus.VERIFIED, null);
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatusWithNoWebhookId() {
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.updateWebhookVerificationStatus(null, "messageId", WebhookVerificationStatus.VERIFIED, "some message");
+		}).getMessage();
+		
+		assertEquals("The webhookId is required.", result);
+		
+		verifyZeroInteractions(mockWebhookDao);
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatusWithNoMessageId() {
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.updateWebhookVerificationStatus(webhook.getId(), null, WebhookVerificationStatus.VERIFIED, "some message");
+		}).getMessage();
+		
+		assertEquals("The messageId is required.", result);
+		
+		verifyZeroInteractions(mockWebhookDao);
+	}
+	
+	@Test
+	public void testUpdateWebhookVerificationStatusWithNoStatus() {
+				
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.updateWebhookVerificationStatus(webhook.getId(), "messageId", null, "some message");
+		}).getMessage();
+		
+		assertEquals("The status is required.", result);
+		
+		verifyZeroInteractions(mockWebhookDao);
+	}
 }

@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.monitoring.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
 import org.sagebionetworks.repo.manager.monitoring.DiskMonitor;
 import org.sagebionetworks.repo.manager.monitoring.TempDiskProviderImpl;
+import org.sagebionetworks.repo.manager.webhook.WebhookMetricsTracker;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.springframework.context.annotation.Bean;
@@ -61,6 +62,16 @@ public class WorkersInfraConfig {
 				.withTargetMethod("collectMetrics")
 				.withRepeatInterval(30_000)
 				.withStartDelay(1313)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean webhookMetricsTrigger(WebhookMetricsTracker metricsTracker) {
+		return new SimpleTriggerBuilder()
+				.withTargetObject(metricsTracker)
+				.withTargetMethod("collectMetrics")
+				.withRepeatInterval(30_000)
+				.withStartDelay(1249)
 				.build();
 	}
 

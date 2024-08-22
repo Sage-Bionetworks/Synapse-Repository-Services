@@ -14,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
@@ -53,7 +55,7 @@ public class WebhookDaoImplTest {
 	private TransactionTemplate txTemplate;
 	private Long userId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	private Long otherUserId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-
+	
 	@BeforeEach
 	public void before() {
 		webhookDao.truncateAll();
@@ -290,6 +292,7 @@ public class WebhookDaoImplTest {
 				.setWebhookId(Long.valueOf(webhook.getId()))
 				.setCode(null)
 				.setCodeExpiresOn(null)
+				.setCodeMessageId(null)
 				.setStatus(WebhookVerificationStatus.PENDING.name())
 				.setMessage(null);
 		
@@ -313,6 +316,10 @@ public class WebhookDaoImplTest {
 		});
 					
 		Webhook webhook = webhookDao.createWebhook(userId, cuRequest);
+		
+		// Set some other status and message
+		webhookDao.setWebhookVerificationStatus(webhook.getId(), WebhookVerificationStatus.FAILED, "Failed");
+				
 		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhook.getId());
 		
 		String currentEtag = verification.getEtag();
@@ -330,21 +337,23 @@ public class WebhookDaoImplTest {
 		verification = webhookDao.setWebhookVerificationCode(webhook.getId(), "123456", expiration);
 		
 		assertNotNull(verification.getModifiedOn());
+		assertNotNull(verification.getCodeMessageId());
 		assertNotEquals(currentEtag, verification.getEtag());
 		
 		expected.setEtag(verification.getEtag());
 		expected.setModifiedOn(verification.getModifiedOn());
+		expected.setCodeMessageId(verification.getCodeMessageId());
 		
 		assertEquals(expected, verification);
-	}	
-	
+	}
+		
 	@ParameterizedTest
 	@EnumSource(WebhookVerificationStatus.class)
 	public void testSetWebhookVerificationStatus(WebhookVerificationStatus status) {
 		
 		assertThrows(IllegalStateException.class, () -> {
 			// Call under test
-			webhookDao.setWebhookVerificationStatus("123", status, "message");			
+			webhookDao.setWebhookVerificationStatus("123", status, "message");
 		});
 					
 		Webhook webhook = webhookDao.createWebhook(userId, cuRequest);
@@ -356,11 +365,14 @@ public class WebhookDaoImplTest {
 			.setWebhookId(Long.valueOf(webhook.getId()))
 			.setCode(null)
 			.setCodeExpiresOn(null)
+			.setCodeMessageId(null)
 			.setStatus(status.name())
 			.setMessage("message");
 		
 		// Call under test
-		verification = webhookDao.setWebhookVerificationStatus(webhook.getId(), status, "message");
+		webhookDao.setWebhookVerificationStatus(webhook.getId(), status, "message");
+		
+		verification = webhookDao.getWebhookVerification(webhook.getId());
 		
 		assertNotNull(verification.getModifiedOn());
 		assertNotEquals(currentEtag, verification.getEtag());
@@ -370,5 +382,84 @@ public class WebhookDaoImplTest {
 		
 		assertEquals(expected, verification);
 	}
+	
+	@Test
+	public void testGetWebhookVerificationStatus() {
+		String messageId = "messageId";
+		// Call under test
+		assertEquals(Optional.empty(), webhookDao.getWebhookVerificationStatus("123", messageId));
+		
+		Webhook webhook = webhookDao.createWebhook(userId, cuRequest);
+		
+		// Call under test
+		assertEquals(Optional.empty(), webhookDao.getWebhookVerificationStatus(webhook.getId(), messageId));
+		
+		messageId = webhookDao.setWebhookVerificationCode(webhook.getId(), "1234", Instant.now()).getCodeMessageId();
+		
+		// Call under test
+		assertEquals(Optional.of(WebhookVerificationStatus.PENDING), webhookDao.getWebhookVerificationStatus(webhook.getId(), messageId));
+	}
 
+	@ParameterizedTest
+	@EnumSource(WebhookVerificationStatus.class)
+	public void testSetWebhookVerificationStatusIfMessageIdMatch(WebhookVerificationStatus status) {
+		String messageId = "messageId";
+		
+		// Call under test
+		webhookDao.setWebhookVerificationStatusIfMessageIdMatch("123", messageId, status, "message");
+					
+		Webhook webhook = webhookDao.createWebhook(userId, cuRequest);
+		
+		Instant expiresOn = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+		
+		messageId = webhookDao.setWebhookVerificationCode(webhook.getId(), "12345", expiresOn).getCodeMessageId();
+		
+		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhook.getId());
+		
+		String currentEtag = verification.getEtag();
+				
+		DBOWebhookVerification expected = new DBOWebhookVerification()
+			.setWebhookId(Long.valueOf(webhook.getId()))
+			.setCode("12345")
+			.setCodeExpiresOn(Timestamp.from(expiresOn))
+			.setCodeMessageId(messageId)
+			.setStatus(status.name())
+			.setMessage("message");
+		
+		// Call under test
+		webhookDao.setWebhookVerificationStatusIfMessageIdMatch(webhook.getId(), messageId, status, "message");
+		
+		verification = webhookDao.getWebhookVerification(webhook.getId());
+		
+		assertNotNull(verification.getModifiedOn());
+		assertNotEquals(currentEtag, verification.getEtag());
+		
+		expected.setEtag(verification.getEtag());
+		expected.setModifiedOn(verification.getModifiedOn());
+		
+		assertEquals(expected, verification);
+
+		// Call under test
+		webhookDao.setWebhookVerificationStatusIfMessageIdMatch(webhook.getId(), "wrongMessageId", status, "message");
+		
+		// Makes sure nothing changed
+		assertEquals(verification, webhookDao.getWebhookVerification(webhook.getId()));
+	}
+
+	
+	@Test
+	public void testMapWebhookId() {
+		assertEquals(123L, WebhookDaoImpl.mapWebhookId("123"));
+	}
+	
+	@ParameterizedTest
+	@ValueSource(strings = {"123.0", "syn123", "abc"})
+	public void testMapWebhookIdWithInvalidId(String invalidId) {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			WebhookDaoImpl.mapWebhookId(invalidId);
+		}).getMessage();
+		
+		assertEquals("Invalid webhook id.", message);
+	}
+	
 }

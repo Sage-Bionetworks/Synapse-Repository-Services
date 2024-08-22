@@ -11,6 +11,8 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -47,6 +49,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -64,8 +67,9 @@ public class WebhookManagerImpl implements WebhookManager {
 	private static final long WEBHOOK_FETCH_PAGE_SIZE = 1_000;
 	private static final Duration CHANGE_MESSAGE_MAX_AGE = Duration.ofHours(1);
 	
-	static Map<String, MessageAttributeValue> mapMessageAttributes(Class<? extends WebhookMessage> messageClass, Webhook webhook) {
+	static Map<String, MessageAttributeValue> mapMessageAttributes(Class<? extends WebhookMessage> messageClass, Webhook webhook, String messageId) {
 		return Map.of(
+			WebhookManager.MSG_ATTR_WEBHOOK_MESSAGE_ID, new MessageAttributeValue().withDataType("String").withStringValue(messageId),
 			WebhookManager.MSG_ATTR_WEBHOOK_ENDPOINT, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint()),
 			WebhookManager.MSG_ATTR_WEBHOOK_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
 			WebhookManager.MSG_ATTR_WEBHOOK_OWNER_ID, new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
@@ -108,15 +112,13 @@ public class WebhookManagerImpl implements WebhookManager {
 
 		Webhook webhook = webhookDao.createWebhook(userInfo.getId(), request);
 		
-		generateAndSendVerificationCode(webhook);
-		
-		return webhook;
+		return generateAndSendVerificationCode(userInfo, webhook);
 	}
 	
 	Webhook getWebhook(UserInfo userInfo, String webhookId, boolean forUpdate) {
 		ValidateArgument.required(userInfo, "The userInfo");
 		ValidateArgument.requiredNotBlank(webhookId, "The webhookId");
-		
+				
 		Webhook webhook = webhookDao.getWebhook(webhookId, forUpdate).orElseThrow(() -> new NotFoundException("A webhook with the given id does not exist."));
 
 		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, webhook.getCreatedBy())) {
@@ -140,11 +142,11 @@ public class WebhookManagerImpl implements WebhookManager {
 		boolean forUpdate = true;
 		
 		Webhook current = getWebhook(userInfo, webhookId, forUpdate);
-
+		
 		Webhook updated = webhookDao.updateWebhook(webhookId, request);
 		
 		if (!current.getInvokeEndpoint().equals(updated.getInvokeEndpoint())) {
-			generateAndSendVerificationCode(updated);
+			return generateAndSendVerificationCode(userInfo, updated);
 		}
 		
 		return updated;
@@ -177,7 +179,7 @@ public class WebhookManagerImpl implements WebhookManager {
 		
 		ValidateArgument.requirement(WebhookVerificationStatus.CODE_SENT.equals(webhook.getVerificationStatus()), "Cannot verify the webhook at this time.");
 				
-		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhookId);
+		DBOWebhookVerification verification = webhookDao.getWebhookVerification(webhook.getId());
 						
 		WebhookVerificationStatus newStatus = null;
 		String verificationMessage = null;
@@ -193,7 +195,7 @@ public class WebhookManagerImpl implements WebhookManager {
 			verificationMessage = "The provided verification code is invalid.";
 		}
 		
-		webhookDao.setWebhookVerificationStatus(webhookId, newStatus, verificationMessage);
+		webhookDao.setWebhookVerificationStatus(webhook.getId(), newStatus, verificationMessage);
 		
 		return new VerifyWebhookResponse()
 			.setIsValid(WebhookVerificationStatus.VERIFIED.equals(newStatus))
@@ -201,14 +203,25 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	@Override
+	public Optional<WebhookVerificationStatus> getWebhookVerificationStatus(String webhookId, String messageId) {
+		ValidateArgument.required(webhookId, "The webhookId");
+		ValidateArgument.required(messageId, "The messageId");
+		return webhookDao.getWebhookVerificationStatus(webhookId, messageId);
+	}
+	
+	@Override
 	@WriteTransaction
-	public void updateWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String verificationMessage) {
+	public void updateWebhookVerificationStatus(String webhookId, String messageId, WebhookVerificationStatus status, String verificationMessage) {
 		ValidateArgument.required(webhookId, "The webhookId");
 		ValidateArgument.required(status, "The status");
+		ValidateArgument.required(messageId, "The messageId");
 		
 		// Lock the webhook
-		webhookDao.getWebhook(webhookId, true);
-		webhookDao.setWebhookVerificationStatus(webhookId, status, verificationMessage);
+		if (webhookDao.getWebhook(webhookId, true).isEmpty()) {
+			return;
+		}
+		
+		webhookDao.setWebhookVerificationStatusIfMessageIdMatch(webhookId, messageId, status, verificationMessage);
 	}
 
 	@Override
@@ -269,7 +282,8 @@ public class WebhookManagerImpl implements WebhookManager {
 				.setEventTimestamp(timestamp)
 				.setEventType(eventType)
 				.setObjectId(entityId)
-				.setObjectType(SynapseObjectType.ENTITY)
+				.setObjectType(SynapseObjectType.ENTITY),
+				UUID.randomUUID().toString()
 			);
 		}
 	}
@@ -326,22 +340,29 @@ public class WebhookManagerImpl implements WebhookManager {
 		return pathIds;
 	}
 	
-	void generateAndSendVerificationCode(Webhook webhook) {
+	Webhook generateAndSendVerificationCode(UserInfo userInfo, Webhook webhook) {
 		String verificationCode = RandomStringUtils.randomAlphanumeric(VERIFICATION_CODE_LENGHT);
 		Date now = clock.now();
 		Instant expiresOn = now.toInstant().plus(VERIFICATION_CODE_TTL_SECONDS, ChronoUnit.SECONDS);
 		
-		webhookDao.setWebhookVerificationCode(webhook.getId(), verificationCode, expiresOn);
+		String messageId = webhookDao.setWebhookVerificationCode(webhook.getId(), verificationCode, expiresOn).getCodeMessageId();
+		
+		Webhook updatedWebhook = getWebhook(userInfo, webhook.getId());
 		
 		// Note that we publish directly to the message queue as part of the create/update transaction
-		// since if this fails we want to rollback
+		// since if this fails we want to rollback.
+		// There is a chance that the message is received prior to the transaction being committed, in such
+		// case the worker wont find a status with the matching messageId and will retry
 		publishWebhookMessage(webhook, new WebhookVerificationMessage()
 			.setEventTimestamp(now)
-			.setVerificationCode(verificationCode)
-		);
+			.setVerificationCode(verificationCode), 
+			messageId
+		);		
+		
+		return updatedWebhook;
 	}
 	
-	void publishWebhookMessage(Webhook webhook, WebhookMessage event) {
+	void publishWebhookMessage(Webhook webhook, WebhookMessage event, String messageId) {
 		String messageJson;
 		
 		try {
@@ -350,12 +371,17 @@ public class WebhookManagerImpl implements WebhookManager {
 			throw new IllegalStateException(e);
 		}
 		
-		sqsClient.sendMessage(
-			new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(messageJson)
-				.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook))
-		);
+		try {
+			sqsClient.sendMessage(
+				new SendMessageRequest()
+					.withQueueUrl(queueUrl)
+					.withMessageBody(messageJson)
+					.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook, messageId))
+			);
+		} catch (Throwable e) {
+			// If we fail to send the message to the queue, give a chance to retry
+			throw new RecoverableMessageException(e);
+		}
 	}
 	
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
