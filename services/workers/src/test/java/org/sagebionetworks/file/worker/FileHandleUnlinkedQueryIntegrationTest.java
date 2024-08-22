@@ -133,7 +133,7 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		String marker = null;
 		
 		String bucketName = config.getStack() + ".filehandles.sagebase.org";
-		Date recent = Date.from(Instant.now().minus(10, ChronoUnit.HOURS));
+		Date recent = Date.from(Instant.now().minus(30, ChronoUnit.MINUTES));
 		
 		do {
 			
