@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -42,14 +43,34 @@ public class MigrationTypeProviderImpl implements MigrationTypeProvider {
 	}
 
 	@Override
-	public void writeObjects(BackupAliasType backupAliasType, MigrationType type, List<?> backupObjects, Writer writer) {
-		JavaJSONUtil.writeToJSON(backupObjects).ifPresent(a->{
-			try {
-				writer.append(a.toString(2));
-			} catch (JSONException | IOException e) {
-				throw new RuntimeException(e);
+	public void writeObjects(List<?> backupObjects, Writer writer) {
+		/*
+		 * Note we write each object to JSON separately to reduce memory spikes (see:
+		 * https://sagebionetworks.jira.com/browse/PLFM-8540 ). Also, we do not write
+		 * anything if the provided list is empty or contains no actual data.
+		 */
+		try {
+			if (!backupObjects.isEmpty()) {
+				boolean hasData = false;
+				for (Object o : backupObjects) {
+					Optional<JSONObject> option = JavaJSONUtil.writeToJSON(o);
+					if (option.isPresent()) {
+						if (!hasData) {
+							writer.append("[\n");
+						} else {
+							writer.append(",\n");
+						}
+						writer.append(option.get().toString(2));
+						hasData = true;
+					}
+				}
+				if (hasData) {
+					writer.append("]\n");
+				}
 			}
-		});
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
