@@ -236,7 +236,7 @@ public class BackupFileStreamImpl implements BackupFileStream {
 			backupObjects.add(backupObject);
 		}
 
-		typeProvider.writeObjects(backupAliasType, currentType,  backupObjects, writer);
+		typeProvider.writeObjects(backupObjects, writer);
 		writer.flush();
 	}
 
