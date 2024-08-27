@@ -65,15 +65,15 @@ public class WebhookMessageDispatcher {
 	);
 
 	private WebhookManager manager;
-	private WebhookMetricsTracker metricsTracker;
+	private WebhookMetricsCollector metricsCollector;
 	private HttpClient webhookHttpClient;
 	private Clock clock;
 
 	private String userAgent;
 
-	public WebhookMessageDispatcher(WebhookManager manager, WebhookMetricsTracker metricsTracker, HttpClient webhookHttpClient, Clock clock) {
+	public WebhookMessageDispatcher(WebhookManager manager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
 		this.manager = manager;
-		this.metricsTracker = metricsTracker;
+		this.metricsCollector = metricsCollector;
 		this.webhookHttpClient = webhookHttpClient;
 		this.clock = clock;
 	}
@@ -93,7 +93,7 @@ public class WebhookMessageDispatcher {
 						
 			// Only PENDING and FAILED (in case of retry) verification can be processed by this worker
 			if (!WebhookVerificationStatus.PENDING.equals(status) && !WebhookVerificationStatus.FAILED.equals(status)) {
-				LOG.warn("Invalid verification message (WebhookId: {}, MessageId: {}, Status: {})", attributes.getWebhookId(), attributes.getMessageId(), status);
+				LOG.warn("Invalid verification message (WebhookId: {}, MessageId: {}, Status: {}, Endpoint: {})", attributes.getWebhookId(), attributes.getMessageId(), status, attributes.getWebhookEndpoint());
 				throw new RecoverableMessageException();
 			}
 		}
@@ -114,8 +114,6 @@ public class WebhookMessageDispatcher {
 		long start = clock.currentTimeMillis();
 		
 		CompletableFuture<HttpResponse<Void>> asyncResponse = webhookHttpClient.sendAsync(request, DISCARDING_BODY_HANDLER);
-
-		metricsTracker.requestStarted(attributes.getWebhookId());
 		
 		final HttpResponse<Void> response;
 		
@@ -123,28 +121,26 @@ public class WebhookMessageDispatcher {
 			// We wait for the response so that the worker controls the level of concurrency to avoid exhausting resources
 			response = asyncResponse.get(REQUEST_TIMEOUT.getSeconds(), TimeUnit.SECONDS);
 		} catch (Throwable ex) {
-			LOG.warn("The {} request (WebhookId: {}, MessageId: {}) failed exceptionally:", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), ex);
+			LOG.warn("The {} request (WebhookId: {}, MessageId: {}, Endpoint: {}) failed exceptionally:", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), attributes.getWebhookEndpoint(), ex);
 			
-			metricsTracker.requestFailed(attributes.getWebhookId());
+			metricsCollector.requestCompleted(attributes.getWebhookId(), clock.currentTimeMillis() - start, true);
 			
 			updateVerificationStatus(attributes, false, null, ex);
 			
 			throw new RecoverableMessageException(ex);
-			
-		} finally {
-			metricsTracker.requestCompleted(attributes.getWebhookId(), clock.currentTimeMillis() - start);
-		}
+		} 
 
 		HttpStatus status = HttpStatus.resolve(response.statusCode());
 		
 		if (ACCEPTED_HTTP_STATUS.contains(status)) {
+			metricsCollector.requestCompleted(attributes.getWebhookId(), clock.currentTimeMillis() - start, false);
 			updateVerificationStatus(attributes, true, response, null);
 			return;
 		}
 		
-		LOG.warn("The {} request (WebhookId: {}, MessageId: {}) failed with status: {}.", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), response.statusCode());
-		
-		metricsTracker.requestFailed(attributes.getWebhookId());
+		LOG.warn("The {} request (WebhookId: {}, MessageId: {}, Endpoint: {}) failed with status: {}.", attributes.getMessageType(), attributes.getWebhookId(), attributes.getMessageId(), attributes.getWebhookEndpoint(), response.statusCode());
+
+		metricsCollector.requestCompleted(attributes.getWebhookId(), clock.currentTimeMillis() - start, true);
 		
 		updateVerificationStatus(attributes, false, response, null);
 		

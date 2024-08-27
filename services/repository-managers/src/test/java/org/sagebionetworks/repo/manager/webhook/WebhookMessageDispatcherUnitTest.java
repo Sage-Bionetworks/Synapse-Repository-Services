@@ -67,7 +67,7 @@ public class WebhookMessageDispatcherUnitTest {
 	private Clock mockClock;
 	
 	@Mock
-	private WebhookMetricsTracker mockMetricsTracker;
+	private WebhookMetricsCollector mockMetricsCollector;
 	
 	@Mock
 	private StackConfiguration mockConfig;
@@ -127,8 +127,7 @@ public class WebhookMessageDispatcherUnitTest {
 			.headers(new WebhookMessageAttributes(expectedMessageAttributes()).toRequestHeaders())
 			.POST(BodyPublishers.ofString("messageBody"))
 			.build();
-	}
-	
+	}	
 	
 	@Test
 	public void testDispatchMessage() {
@@ -201,7 +200,7 @@ public class WebhookMessageDispatcherUnitTest {
 			dispatcher.dispatchMessage(mockMessage);
 		}).getMessage());
 		
-		verifyZeroInteractions(mockManager, mockMetricsTracker);
+		verifyZeroInteractions(mockManager, mockMetricsCollector);
 	}
 	
 	@ParameterizedTest
@@ -220,11 +219,10 @@ public class WebhookMessageDispatcherUnitTest {
 		// Call under test
 		dispatcher.sendWebhookRequest(attributes, mockRequest);
 		
-		verify(mockMetricsTracker).requestStarted(webhook.getId());
-		verify(mockMetricsTracker).requestCompleted(webhook.getId(), 150);
+		verify(mockMetricsCollector).requestCompleted(webhook.getId(), 150, false);
 		verify(dispatcher).updateVerificationStatus(attributes, true, mockResponse, null);
 		
-		verifyNoMoreInteractions(mockMetricsTracker);
+		verifyNoMoreInteractions(mockMetricsCollector);
 	}
 		
 	@Test
@@ -247,13 +245,11 @@ public class WebhookMessageDispatcherUnitTest {
 		
 		assertEquals(ex, result.getCause());
 		
-		verify(mockMetricsTracker).requestStarted(webhook.getId());
-		verify(mockMetricsTracker).requestCompleted(webhook.getId(), 150);
-		verify(mockMetricsTracker).requestFailed(webhook.getId());
+		verify(mockMetricsCollector).requestCompleted(webhook.getId(), 150, true);
 		
 		verify(dispatcher).updateVerificationStatus(attributes, false, null, ex);
 		
-		verifyNoMoreInteractions(mockMetricsTracker);
+		verifyNoMoreInteractions(mockMetricsCollector);
 	}
 	
 	@ParameterizedTest
@@ -273,14 +269,12 @@ public class WebhookMessageDispatcherUnitTest {
 			// Call under test
 			dispatcher.sendWebhookRequest(attributes, mockRequest);
 		});
-		
-		verify(mockMetricsTracker).requestStarted(webhook.getId());
-		verify(mockMetricsTracker).requestCompleted(webhook.getId(), 150);
-		verify(mockMetricsTracker).requestFailed(webhook.getId());
+
+		verify(mockMetricsCollector).requestCompleted(webhook.getId(), 150, true);
 		
 		verify(dispatcher).updateVerificationStatus(attributes, false, mockResponse, null);
 		
-		verifyNoMoreInteractions(mockMetricsTracker);
+		verifyNoMoreInteractions(mockMetricsCollector);
 	}
 	
 	@ParameterizedTest
@@ -298,14 +292,12 @@ public class WebhookMessageDispatcherUnitTest {
 		
 		// Call under test
 		dispatcher.sendWebhookRequest(attributes, mockRequest);
-		
-		verify(mockMetricsTracker).requestStarted(webhook.getId());
-		verify(mockMetricsTracker).requestCompleted(webhook.getId(), 150);
-		verify(mockMetricsTracker).requestFailed(webhook.getId());
+
+		verify(mockMetricsCollector).requestCompleted(webhook.getId(), 150, true);
 		
 		verify(dispatcher).updateVerificationStatus(attributes, false, mockResponse, null);
 		
-		verifyNoMoreInteractions(mockMetricsTracker);
+		verifyNoMoreInteractions(mockMetricsCollector);
 	}
 	
 	@ParameterizedTest

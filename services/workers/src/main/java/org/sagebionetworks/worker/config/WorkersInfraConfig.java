@@ -1,5 +1,6 @@
 package org.sagebionetworks.worker.config;
 
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.commons.dbcp2.BasicDataSource;
@@ -14,7 +15,7 @@ import org.sagebionetworks.repo.manager.monitoring.ApplicationType;
 import org.sagebionetworks.repo.manager.monitoring.DataSourcePoolMonitor;
 import org.sagebionetworks.repo.manager.monitoring.DiskMonitor;
 import org.sagebionetworks.repo.manager.monitoring.TempDiskProviderImpl;
-import org.sagebionetworks.repo.manager.webhook.WebhookMetricsTracker;
+import org.sagebionetworks.repo.manager.webhook.WebhookMetricsCollector;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.springframework.context.annotation.Bean;
@@ -66,12 +67,12 @@ public class WorkersInfraConfig {
 	}
 	
 	@Bean
-	public SimpleTriggerFactoryBean webhookMetricsTrigger(WebhookMetricsTracker metricsTracker) {
+	public SimpleTriggerFactoryBean webhookMetricsTrigger(WebhookMetricsCollector metricsCollector) {
 		return new SimpleTriggerBuilder()
-				.withTargetObject(metricsTracker)
+				.withTargetObject(metricsCollector)
 				.withTargetMethod("collectMetrics")
-				.withRepeatInterval(30_000)
-				.withStartDelay(1249)
+				.withRepeatInterval(Duration.ofMinutes(5).toMillis())
+				.withStartDelay(Duration.ofMinutes(5).toMillis())
 				.build();
 	}
 

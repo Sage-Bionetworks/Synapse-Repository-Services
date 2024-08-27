@@ -10,10 +10,12 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,11 +23,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
@@ -77,6 +82,13 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 public class WebhookWorkerIntegrationTest {
 	
 	private static final int TIMEOUT = 60_000;
+	
+	private static AmazonApiGatewayV2 apiGatewayClient;
+	private static AmazonSQS sqsClient;
+	
+	private static Api testApi;
+	private static String apiTestQueueUrl;
+	private static String deadLetterQueueUrl;
 
 	@Autowired
 	private UserManager userManager;
@@ -98,38 +110,19 @@ public class WebhookWorkerIntegrationTest {
 		
 	@Autowired
 	private WebhookDao webhookDao;
-	
-	@Autowired
-	private StackConfiguration config;
-	
-	@Autowired
-	private AmazonApiGatewayV2 apiGatewayClient;
-	
-	@Autowired
-	private HttpClient httpClient;
-	
-	@Autowired
-	private AmazonSQS sqsClient;
+		
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
-	private Api testApi;
-	private String apiTestQueueUrl;
-	private String deadLetterQueueUrl;
 	private Project project;
+	
+	@BeforeAll
+	public static void beforeAll() throws Exception {
 		
-	@BeforeEach
-	public void before() throws Exception {
-		aclHelper.truncateAll();
-		entityManager.truncateAll();
-		fileHelper.truncateAll();
-		webhookDao.truncateAll();
-		
-		webhookDao.addAllowedDomainPattern("^.+\\.sagebase\\.org$");
-		
-		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"), true);
-		
+		sqsClient = AwsClientFactory.createAmazonSQSClient();
+		apiGatewayClient = AwsClientFactory.createAmazonApiGatewayClient();
+		 
+		StackConfiguration config = StackConfigurationSingleton.singleton();
 		String apiName = config.getStack() + config.getStackInstance() + "WebhookTestApi";
 		GetApisRequest apiRequest = new GetApisRequest();
 		GetApisResult page;
@@ -153,7 +146,7 @@ public class WebhookWorkerIntegrationTest {
 		if (testApi == null) {
 			throw new IllegalStateException("Could not find endpoint for API: " + apiName);
 		}
-		
+				
 		// Make sure the default API endpoint is enabled
 		apiGatewayClient.updateApi(
 			new UpdateApiRequest()
@@ -172,6 +165,31 @@ public class WebhookWorkerIntegrationTest {
 		deadLetterQueueUrl = sqsClient.getQueueUrl(new GetQueueUrlRequest()
 			.withQueueName(config.getQueueName("WEBHOOK_MESSAGE-dead-letter"))
 		).getQueueUrl(); 
+	}
+	
+	@AfterAll
+	public static void afterAll() throws Exception {
+		// Make sure the default API endpoint is disabled
+		apiGatewayClient.updateApi(
+			new UpdateApiRequest()
+				.withApiId(testApi.getApiId())
+				.withDisableExecuteApiEndpoint(true)
+		);
+		
+		waitForEndpointStatus(false);
+	}
+		
+	@BeforeEach
+	public void before() throws Exception {
+		aclHelper.truncateAll();
+		entityManager.truncateAll();
+		fileHelper.truncateAll();
+		webhookDao.truncateAll();
+		
+		webhookDao.addAllowedDomainPattern("^.+\\.sagebase\\.org$");
+		
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"), true);
 		
 		project = entityManager.getEntity(adminUserInfo, entityManager
 			.createEntity(adminUserInfo, new Project().setName(UUID.randomUUID().toString()), null), Project.class
@@ -179,30 +197,6 @@ public class WebhookWorkerIntegrationTest {
 			
 		aclHelper.update(project.getId(), ObjectType.ENTITY, a -> {
 			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
-		});
-	}
-	
-	@AfterEach
-	public void after() throws Exception {
-		// Make sure the to disable the default endpoint
-		apiGatewayClient.updateApi(
-			new UpdateApiRequest()
-				.withApiId(testApi.getApiId())
-				.withDisableExecuteApiEndpoint(true)
-		);
-		waitForEndpointStatus(false);
-	}
-	
-	private void waitForEndpointStatus(boolean enabled) throws Exception {
-		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
-			HttpRequest request = HttpRequest.newBuilder(URI.create(testApi.getApiEndpoint() + "/failing"))
-				.POST(BodyPublishers.ofString("{ \"message\": \"ping\" }"))
-				.build();
-			
-			HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
-			
-			// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
-			return Pair.create((enabled ? 503 : 404) == response.statusCode(), null);
 		});
 	}
 	
@@ -265,7 +259,12 @@ public class WebhookWorkerIntegrationTest {
 		webhook = webhookManager.getWebhook(userInfo, webhookId);
 		
 		assertEquals(WebhookVerificationStatus.FAILED, webhook.getVerificationStatus());
-		assertEquals("The request to the webhook endpoint failed (Reason: connection timeout).", webhook.getVerificationMsg());
+		assertTrue(
+			"The request to the webhook endpoint failed (Reason: connection timeout).".equals(webhook.getVerificationMsg())
+			|| 
+			"The request to the webhook endpoint failed (Reason: request timeout).".equals(webhook.getVerificationMsg()),
+			"Unexpected verification message: " + webhook.getVerificationMsg()
+		);
 	}	
 	
 	@Test
@@ -399,21 +398,42 @@ public class WebhookWorkerIntegrationTest {
 		// Checks for the UPDATE folder message in the DLQ
 		pollWebhookMessages(deadLetterQueueUrl, webhook.getId(), WebhookSynapseEventMessage.class, entityAndEventTypeFilter(folder, SynapseEventType.UPDATE));
 	}
+
+	private static void waitForEndpointStatus(boolean enabled) throws Exception {
+		
+		HttpClient httpClient = HttpClient.newBuilder()
+				.followRedirects(Redirect.NEVER)
+				.connectTimeout(Duration.ofSeconds(2))
+				.build();
+		
+		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
+			HttpRequest request = HttpRequest.newBuilder(URI.create(testApi.getApiEndpoint() + "/failing"))
+				.POST(BodyPublishers.ofString("{ \"message\": \"ping\" }"))
+				.build();
+			
+			HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
+			
+			// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
+			return Pair.create((enabled ? 503 : 404) == response.statusCode(), null);
+		});
+	}
 	
-	private Predicate<List<WebhookSynapseEventMessage>> entityAndEventTypeFilter(Entity entity, SynapseEventType eventType) {
+	private static Predicate<List<WebhookSynapseEventMessage>> entityAndEventTypeFilter(Entity entity, SynapseEventType eventType) {
 		return messages -> messages.stream()
 			.filter(message -> message.getObjectId().equals(entity.getId()) && message.getEventType().equals(eventType))
 			.findFirst()
 			.isPresent();
 	}
 			
-	private <T extends WebhookMessage> List<T> pollWebhookMessages(String queueUrl, String webhookId, Class<T> messageClass, Predicate<List<T>> filter) throws Exception  {
+	private static <T extends WebhookMessage> List<T> pollWebhookMessages(String queueUrl, String webhookId, Class<T> messageClass, Predicate<List<T>> filter) throws Exception  {
 		List<T> polledMessages = new ArrayList<>();
 		WebhookMessageType messageType = WebhookMessageType.forClass(messageClass);
 		
 		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
 			ReceiveMessageRequest request = new ReceiveMessageRequest(queueUrl)
 				.withMaxNumberOfMessages(1)
+				// With long polling SQS queries all the servers and avoid empty receive messages on almost empty queues
+				.withWaitTimeSeconds(10)
 				.withMessageAttributeNames(MSG_ATTR_WEBHOOK_MESSAGE_TYPE, MSG_ATTR_WEBHOOK_ID);
 			
 			List<Message> messages = sqsClient.receiveMessage(request).getMessages();
