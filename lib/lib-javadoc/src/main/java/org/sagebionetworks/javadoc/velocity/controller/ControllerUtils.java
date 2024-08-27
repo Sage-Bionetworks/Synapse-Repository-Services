@@ -1,11 +1,21 @@
 package org.sagebionetworks.javadoc.velocity.controller;
 
+import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
@@ -17,22 +27,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
-import com.sun.javadoc.AnnotationDesc;
-import com.sun.javadoc.AnnotationDesc.ElementValuePair;
-import com.sun.javadoc.AnnotationValue;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.FieldDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.ParamTag;
-import com.sun.javadoc.Parameter;
-import com.sun.javadoc.Type;
+import com.sun.source.doctree.DocCommentTree;
+import com.sun.source.doctree.DocTree;
+import com.sun.source.doctree.ParamTree;
+import com.sun.source.doctree.TextTree;
 
-import static org.sagebionetworks.repo.web.PathConstants.PATH_REGEX;
+import jdk.javadoc.doclet.DocletEnvironment;
 
 public class ControllerUtils {
 	
@@ -50,39 +54,45 @@ public class ControllerUtils {
 	
 	/**
 	 * Translate from a a controller class to a Controller model.
+	 * @param docletEnvironment 
 	 * 
-	 * @param classDoc
+	 * @param typeElement
 	 * @return
 	 */
-	public static ControllerModel translateToModel(ClassDoc classDoc){
+	public static ControllerModel translateToModel(DocletEnvironment docletEnvironment, TypeElement typeElement){
 		ControllerModel model = new ControllerModel();
 		// Setup the basic data
-		model.setName(classDoc.name());
-		model.setClassDescription(classDoc.getRawCommentText());
-		model.setFullClassName(classDoc.qualifiedName());
+		model.setName(typeElement.getSimpleName().toString());
+		model.setClassDescription(docletEnvironment.getElementUtils().getDocComment(typeElement));
+		model.setFullClassName(typeElement.getQualifiedName().toString());
 		// Map the annotations of the class
-		Map<String, Object> annotationMap = mapAnnotation(classDoc.annotations());
+		Map<String, Object> annotationMap = mapAnnotation(typeElement.getAnnotationMirrors());
 		// Get the display name and path if they exist
 		model.setDisplayName((String) annotationMap.get(CONTROLLER_INFO_DISPLAY_NAME));
 		model.setPath((String)annotationMap.get(CONTROLLER_INFO_PATH));
-    	Iterator<MethodDoc> methodIt = FilterUtils.requestMappingIterator(classDoc.methods());
+    	Iterator<ExecutableElement> methodIt = FilterUtils.requestMappingIterator(typeElement);
     	List<MethodModel> methods = new LinkedList<MethodModel>();
     	model.setMethods(methods);
     	while(methodIt.hasNext()){
-    		MethodDoc methodDoc = methodIt.next();
-    		MethodModel methodModel = translateMethod(methodDoc);
+    		ExecutableElement ExecutableElement = methodIt.next();
+    		MethodModel methodModel = translateMethod(docletEnvironment, ExecutableElement);
     		methods.add(methodModel);
     	}
 		return model;
 	}
 
-	public static MethodModel translateMethod(MethodDoc methodDoc) {
+	public static MethodModel translateMethod(DocletEnvironment docletEnvironment, ExecutableElement executableElement) {
 		MethodModel methodModel = new MethodModel();
 		// Process the method annotations.
-		processMethodAnnotations(methodDoc, methodModel);
+		processMethodAnnotations(docletEnvironment, executableElement, methodModel);
 		// Now process the parameters
-		processParameterAnnotations(methodDoc, methodModel);
-		methodModel.setDescription(methodDoc.commentText());
+		processParameterAnnotations(docletEnvironment, executableElement, methodModel);
+		DocCommentTree commentTree = docletEnvironment.getDocTrees().getDocCommentTree(executableElement);
+		if(commentTree != null) {
+			methodModel.setDescription(extractText(commentTree.getFullBody()));
+		}else {
+			methodModel.setDescription("");
+		}
 		String truncated = createTruncatedText(MAX_SHORT_DESCRIPTION_LENGTH, methodModel.getDescription());
 		methodModel.setShortDescription(truncated);
 		// remove regular expressions
@@ -119,47 +129,47 @@ public class ControllerUtils {
 		return builder.toString();
 	}
 	
-	private static void processParameterAnnotations(MethodDoc methodDoc, MethodModel methodModel) {
-		Parameter[] params = methodDoc.parameters();
+	private static void processParameterAnnotations(DocletEnvironment env, ExecutableElement executableElement, MethodModel methodModel) {
+		var params = executableElement.getParameters();
 		// Start with false here.  If we find the userId parameter this will be changed to true.
 		methodModel.setIsAuthenticationRequired(false);
 		Map<String, ParameterModel> paramMap = new HashMap<String, ParameterModel>();
         if(params != null){
-        	for(Parameter param: params){
-        		AnnotationDesc[] paramAnnos = param.annotations();
+        	for(VariableElement param: params){
+        		var paramAnnos = param.getAnnotationMirrors();
         		if(paramAnnos != null){
-        			for(AnnotationDesc ad: paramAnnos){
-        				String qualifiedName = ad.annotationType().qualifiedName();
+        			for(AnnotationMirror ad: paramAnnos){
+        				String qualifiedName = ad.getAnnotationType().toString();
         				Map<String, Object> annotationMap = mapAnnotation(ad);
-        				System.out.println(annotationMap);
         				if(RequestBody.class.getName().equals(qualifiedName)){
         					// Request body
-        					String schema = SchemaUtils.getEffectiveSchema(param.type().qualifiedTypeName());
+        					String schema = SchemaUtils.getEffectiveSchema(param.asType().toString());
         					if(schema != null){
-								Type paramType = param.type();
-								if (paramType.asParameterizedType() != null) {
-									Link paramLink = new Link("${" + paramType.qualifiedTypeName() + "}", paramType.simpleTypeName());
+								TypeMirror paramType = param.asType();
+								TypeElement paramElelmentType = env.getElementUtils().getTypeElement(paramType.toString());
+								if (!paramElelmentType.getTypeParameters().isEmpty()) {
+									Link paramLink = new Link("${" + paramType.toString() + "}", paramElelmentType.getSimpleName().toString());
 									methodModel.setRequestBody(paramLink);
 
 									List<Link> genericParameters = Lists.newArrayList();
-									for (Type type : paramType.asParameterizedType().typeArguments()) {
+									for (TypeParameterElement type : paramElelmentType.getTypeParameters()) {
 										Link link = new Link();
-										link.setHref("${" + type.qualifiedTypeName() + "}");
-										link.setDisplay(type.simpleTypeName());
+										link.setHref("${" + type.toString() + "}");
+										link.setDisplay(type.getSimpleName().toString());
 										genericParameters.add(link);
 									}
 									methodModel.setRequestBodyGenericParams(genericParameters.toArray(new Link[] {}));
 								} else {
-									Link paramLink = new Link("${" + param.type().qualifiedTypeName() + "}", param.typeName());
+									Link paramLink = new Link("${" + paramType.toString() + "}", paramElelmentType.getSimpleName().toString());
 									methodModel.setRequestBody(paramLink);
 								}
 							}
         				}else if(PathVariable.class.getName().equals(qualifiedName)){
         					// Path parameter
         					ParameterModel paramModel = new ParameterModel();
-        					paramModel.setName(param.name());
+        					paramModel.setName(param.toString());
         					methodModel.addPathVariable(paramModel);
-        					paramMap.put(param.name(), paramModel);
+        					paramMap.put(param.toString(), paramModel);
         				}else if(RequestParam.class.getName().equals(qualifiedName)){
         					// if this is the userId parameter then we do not show it,
         					// rather it means this method requires authentication.
@@ -172,11 +182,11 @@ public class ControllerUtils {
             					if(requestParameterValue != null){
             						paramModel.setName(requestParameterValue);
             					}else{
-            						paramModel.setName(param.name());
+            						paramModel.setName(param.getSimpleName().toString());
             					}
             					paramModel.setIsOptional(!(isRequired(annotationMap)));
             					methodModel.addParameter(paramModel);
-            					paramMap.put(param.name(), paramModel);
+            					paramMap.put(param.getSimpleName().toString(), paramModel);
         					}
         				} else if (RequestHeader.class.getName().equals(qualifiedName)) {
         					// if this is the authorization header we do not show it,
@@ -189,30 +199,42 @@ public class ControllerUtils {
         		}
         	}
         }
-        ParamTag[] paramTags = methodDoc.paramTags();
-        if(paramTags != null){
-        	for(ParamTag paramTag: paramTags){
-        		ParameterModel paramModel = paramMap.get(paramTag.parameterName());
-        		if(paramModel != null){
-        			paramModel.setDescription(paramTag.parameterComment());
+        
+        DocCommentTree docTree = env.getDocTrees().getDocCommentTree(executableElement);
+        if(docTree != null) {
+        	System.out.println(docTree);
+        	docTree.getBlockTags().stream().filter(t-> t instanceof ParamTree ).map(t->(ParamTree)t).forEach(t->{
+        		ParameterModel paramModel = paramMap.get(t.getName().toString());
+        		if(paramModel != null) {
+        			paramModel.setDescription(extractText(t.getDescription()));
         		}
-        	}
+        	});
         }
 		System.out.println(methodModel);
         // Lookup the parameter descriptions
 	}
+	
+    public static String extractText(List<? extends DocTree> tree) {
+        StringBuilder sb = new StringBuilder();
+        tree.forEach(t->{
+            if (t instanceof TextTree) {
+                sb.append(((TextTree) t).getBody());
+            }
+        });
+        return sb.toString();
+    }
 
-	private static void processMethodAnnotations(MethodDoc methodDoc,
+	private static void processMethodAnnotations(DocletEnvironment env, ExecutableElement executableElement,
 			MethodModel methodModel) {
-		AnnotationDesc[] annos = methodDoc.annotations();
+		var annos = executableElement.getAnnotationMirrors();
         if(annos != null){
-        	for (AnnotationDesc ad: annos) {
-        		String qualifiedName = ad.annotationType().qualifiedName();
+        	for (AnnotationMirror ad: annos) {
+        		String qualifiedName = ad.getAnnotationType().toString();
         		System.out.println(qualifiedName);
         	if (RequestMapping.class.getName().equals(qualifiedName)){
         			extractRequestMapping(methodModel, ad);
         		} else if (ResponseBody.class.getName().equals(qualifiedName)) {
-					extractResponseLink(methodDoc, methodModel);
+					extractResponseLink(env, executableElement, methodModel);
         		} else if (RequiredScope.class.getName().equals(qualifiedName)) {
         			extractRequiredScope(methodModel, ad);
         		}
@@ -220,15 +242,16 @@ public class ControllerUtils {
         }
 	}
 	
-	private static void extractRequiredScope(MethodModel methodModel, AnnotationDesc ad) {
+	private static void extractRequiredScope(MethodModel methodModel, AnnotationMirror ad) {
 		List<String> requiredScopes = new ArrayList<String>();
-		for (ElementValuePair evp : ad.elementValues()) {
-			for (AnnotationValue av : (AnnotationValue[])evp.value().value()) {
-				FieldDoc fieldDoc = (FieldDoc)av.value();
-				String name = fieldDoc.name();
-				requiredScopes.add(name);
+		ad.getElementValues().forEach((k,v)->{
+			if(v.getValue() != null) {
+				Collection<?> coll = (Collection<?>) v.getValue();
+				coll.forEach(s->{
+					requiredScopes.add(s.toString());
+				});
 			}
-		}
+		});
 		if (requiredScopes.isEmpty()) {
 			methodModel.setRequiredScopes(null);
 		} else {
@@ -236,25 +259,28 @@ public class ControllerUtils {
 		}
 	}	
 
-	private static void extractResponseLink(MethodDoc methodDoc, MethodModel methodModel) {
-		// this means there is a response body for this method.
-		Type returnType = methodDoc.returnType();
-		String schema = SchemaUtils.getEffectiveSchema(returnType.qualifiedTypeName());
-		if (schema == null) {
+	private static void extractResponseLink(DocletEnvironment env, ExecutableElement executableElement, MethodModel methodModel) {
+		TypeElement returnType = env.getElementUtils().getTypeElement(executableElement.getReturnType().toString());
+		if(returnType == null) {
 			return;
 		}
-
+		String schema = SchemaUtils.getEffectiveSchema(returnType.getQualifiedName().toString());
+		if(schema == null) {
+			return;
+		}
+		
 		Link responseLink = new Link();
-		responseLink.setHref("${" + returnType.qualifiedTypeName() + "}");
-		responseLink.setDisplay(returnType.simpleTypeName());
+		responseLink.setHref("${" + returnType.getQualifiedName().toString() + "}");
+		responseLink.setDisplay(returnType.getSimpleName().toString());
 		methodModel.setResponseBody(responseLink);
 
-		if (returnType.asParameterizedType() != null) {
+		if (!returnType.getTypeParameters().isEmpty()) {
 			List<Link> genericParameters = Lists.newArrayList();
-			for (Type type : returnType.asParameterizedType().typeArguments()) {
+			for (TypeParameterElement type : returnType.getTypeParameters()) {
+				TypeElement paramType = env.getElementUtils().getTypeElement(type.toString());
 				Link link = new Link();
-				link.setHref("${" + type.qualifiedTypeName() + "}");
-				link.setDisplay(type.simpleTypeName());
+				link.setHref("${" + paramType.getQualifiedName().toString() + "}");
+				link.setDisplay(paramType.getSimpleName().toString());
 				genericParameters.add(link);
 			}
 			methodModel.setResponseBodyGenericParams(genericParameters.toArray(new Link[] {}));
@@ -266,33 +292,28 @@ public class ControllerUtils {
 	 * @param methodModel
 	 * @param ad
 	 */
-	private static void extractRequestMapping(MethodModel methodModel, AnnotationDesc ad) {
-		for(ElementValuePair pair: ad.elementValues()){
-			String pairName = pair.element().qualifiedName();
-			if(REQUEST_MAPPING_VALUE.equals(pairName)){
-				String rawValue = pair.value().toString();
+	private static void extractRequestMapping(MethodModel methodModel, AnnotationMirror ad) {
+		ad.getElementValues().forEach((k,v)->{
+			if("value".equals(k.getSimpleName().toString())) {
+				String rawValue = v.getValue().toString();
 				if(rawValue!= null){
 		    		methodModel.setUrl(rawValue.substring(1, rawValue.length()-1));
 				}
-			}else if(REQUEST_MAPPING_METHOD.equals(pairName)){
-				String value = pair.value().toString();
-				if(value != null){
-					int inxed = RequestMethod.class.getName().length();
-					methodModel.setHttpType(value.substring(inxed+1));
-				}
+			}else if("method".equals(k.getSimpleName().toString())){
+				methodModel.setHttpType(v.getValue().toString());
 			}
-		}
+		});
 	}
 	
 	/**
 	 * Put all annotation value key pairs into a map for easier lookup.
-	 * @param annotations
+	 * @param list
 	 * @return
 	 */
-	public static Map<String, Object> mapAnnotation(AnnotationDesc[] annotations) {
+	public static Map<String, Object> mapAnnotation(List<? extends AnnotationMirror> list) {
 		Map<String, Object> map = new HashMap<String, Object>();
-		if(annotations != null){
-			for(AnnotationDesc anno: annotations){
+		if(list != null){
+			for(AnnotationMirror anno: list){
 				mapAnnotation(anno, map);
 			}
 		}
@@ -304,7 +325,7 @@ public class ControllerUtils {
 	 * @param ad
 	 * @return
 	 */
-	public static Map<String, Object> mapAnnotation(AnnotationDesc ad){
+	public static Map<String, Object> mapAnnotation(AnnotationMirror ad){
 		 Map<String, Object> map = new HashMap<String, Object>();
 		 mapAnnotation(ad, map);
 		 return map;
@@ -315,15 +336,11 @@ public class ControllerUtils {
 	 * @param ad
 	 * @param map
 	 */
-	public static void mapAnnotation(AnnotationDesc ad, Map<String, Object> map){
-		 ElementValuePair[] pairs = ad.elementValues();
-		 if(pairs != null){
-			 for(ElementValuePair evp: pairs){
-				 String name = evp.element().qualifiedName();
-				 Object value = evp.value().value();
-				 map.put(name, value);
-			 }
-		 }
+	public static void mapAnnotation(AnnotationMirror ad, Map<String, Object> map){
+		 var pairs = ad.getElementValues();
+		 pairs.forEach((k,v)->{
+			 map.put(ad.getAnnotationType().toString()+"."+ k.getSimpleName().toString(), v.getValue());
+		 });
 	}
 	/**
 	 * Check for the required annotation.

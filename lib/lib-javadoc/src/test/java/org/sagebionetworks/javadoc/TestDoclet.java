@@ -9,11 +9,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.sun.javadoc.DocErrorReporter;
 import com.sun.javadoc.LanguageVersion;
-import com.sun.javadoc.RootDoc;
+import jdk.javadoc.doclet.DocletEnvironment;
 
 public class TestDoclet {
 	
-	private static RootDoc lastRoot;
+	private static DocletEnvironment lastRoot;
 	/**
 	 * The main entry point of the Doclet
 	 * 
@@ -23,7 +23,7 @@ public class TestDoclet {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	public static boolean start(RootDoc root) throws Exception {
+	public static boolean start(DocletEnvironment root) throws Exception {
 		lastRoot = root;
 		return true;
 	}
@@ -32,8 +32,8 @@ public class TestDoclet {
 	 * This method can only called onces after a start.
 	 * @return
 	 */
-	public static RootDoc getLastRoot(){
-		RootDoc root = lastRoot;
+	public static DocletEnvironment getLastRoot(){
+		DocletEnvironment root = lastRoot;
 		// Clear the last root.
 		lastRoot = null;
 		return root;

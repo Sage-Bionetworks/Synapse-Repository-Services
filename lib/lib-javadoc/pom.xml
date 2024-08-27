@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
@@ -37,6 +38,10 @@
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -79,9 +84,11 @@
 		</dependency>
 	</dependencies>
 	<properties>
-		<!-- This file is used to provide classpath information to the test javadoc 
+		<!-- This file is used to provide classpath information to the test
+		javadoc 
 			tool -->
-		<auto.generated.classpath>${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
+		<auto.generated.classpath>
+			${project.build.directory}/gen/auto-generated-classpath.txt</auto.generated.classpath>
 		<test.javadoc.output.directory>${project.build.directory}/javadoc</test.javadoc.output.directory>
 
 		<jacoco.branch.minumum>0.40</jacoco.branch.minumum>
@@ -90,7 +97,8 @@
 	<build>
 		<resources>
 			<resource>
-				<!-- This will add the source files to the jar, which is needed for GWT 
+				<!-- This will add the source files to the jar, which is needed
+				for GWT 
 					compile. -->
 				<directory>src/main/resources</directory>
 			</resource>
@@ -112,7 +120,8 @@
 						</goals>
 						<configuration>
 							<excludeArtifactIds>tools</excludeArtifactIds>
-							<!-- We this plugin to generate a classpath file that can be used 
+							<!-- We this plugin to generate a classpath file
+							that can be used 
 								for javadoc testing. -->
 							<outputFile>${auto.generated.classpath}</outputFile>
 						</configuration>

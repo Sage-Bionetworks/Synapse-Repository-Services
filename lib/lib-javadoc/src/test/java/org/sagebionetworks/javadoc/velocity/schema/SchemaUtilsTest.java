@@ -30,10 +30,10 @@ import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.TYPE;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.Parameter;
-import com.sun.javadoc.Type;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.TypeMirror;
 
 public class SchemaUtilsTest {
 
@@ -59,20 +59,20 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testImplementsJSONEntityOrEnumWithJSONEntity(){
-		ClassDoc cd = JavadocMockUtils.createMockJsonEntity("org.example.SomeJSONEntity");
+		TypeElement cd = JavadocMockUtils.createMockJsonEntity("org.example.SomeJSONEntity");
 		assertTrue(SchemaUtils.implementsJSONEntityOrEnum(cd));
 	}
 
 	@Test
 	public void testImplementsJSONEntityOrEnumWithEnum(){
-		ClassDoc cd = JavadocMockUtils.createMockEnum("org.example.SomeEnum");
+		TypeElement cd = JavadocMockUtils.createMockEnum("org.example.SomeEnum");
 		assertTrue(SchemaUtils.implementsJSONEntityOrEnum(cd));
 	}
 	
 	@Test
 	public void testImplementsJSONEntityFalse(){
-		ClassDoc cd = JavadocMockUtils.createMockClassDoc("org.example.not.a.JSONEntity");
-		ClassDoc[] interfaces = JavadocMockUtils.createMockClassDocs(new String[]{"org.exmaple.some.interface"});
+		TypeElement cd = JavadocMockUtils.createMockTypeElement("org.example.not.a.JSONEntity");
+		TypeElement[] interfaces = JavadocMockUtils.createMockTypeElements(new String[]{"org.exmaple.some.interface"});
 		when(cd.interfaces()).thenReturn(interfaces);
 		assertFalse(SchemaUtils.implementsJSONEntityOrEnum(cd));
 	}
@@ -87,16 +87,16 @@ public class SchemaUtilsTest {
 	
 	@Test
 	public void testFindSchemaFiles(){
-		MethodDoc method = JavadocMockUtils.createMockMethodDoc("getSomething");
+		ExecutableElement method = JavadocMockUtils.createMockExecutableElement("getSomething");
 		// The return type and one parameter should be JSON entites
 		String returnName = VersionInfo.class.getName();
 		String paramOne = UserGroup.class.getName();
 		String paramTwo = Team.class.getName();
-		ClassDoc returnClass = JavadocMockUtils.createMockJsonEntity(returnName);
+		TypeElement returnClass = JavadocMockUtils.createMockJsonEntity(returnName);
 		Type retunType = JavadocMockUtils.createMockType(returnName, returnClass);
 		
 		// Add one parameter that is a JSONEntity and another that is not
-		ClassDoc paramTwoClass = JavadocMockUtils.createMockJsonEntity(paramTwo);
+		TypeElement paramTwoClass = JavadocMockUtils.createMockJsonEntity(paramTwo);
 		Type paramTwoType = JavadocMockUtils.createMockType(paramTwo, paramTwoClass);
 		Parameter[] params = new Parameter[]{
 				JavadocMockUtils.createMockParameter("paramOne", paramOne),

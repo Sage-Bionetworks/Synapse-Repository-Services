@@ -15,33 +15,33 @@ import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ContextFactoryImpl;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.RootDoc;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
+import jdk.javadoc.doclet.DocletEnvironment;
 
 public class CSVExampleContextGeneratorTest {
 
 	
-	private static RootDoc rootDoc;
-	private static ClassDoc exampleClassDoc;
-	private static Map<String, MethodDoc> methodMap;
+	private static DocletEnvironment DocletEnvironment;
+	private static TypeElement exampleTypeElement;
+	private static Map<String, ExecutableElement> methodMap;
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Lookup the test files.
-		rootDoc = JavaDocTestUtil.buildRootDoc("CSVExample.java");
-		assertNotNull(rootDoc);
-        Iterator<ClassDoc> exmples = FilterUtils.csvExampleIterator(rootDoc.classes());
+		DocletEnvironment = JavaDocTestUtil.buildDocletEnvironment("CSVExample.java");
+		assertNotNull(DocletEnvironment);
+        Iterator<TypeElement> exmples = FilterUtils.csvExampleIterator(DocletEnvironment.classes());
         assertNotNull(exmples);
         assertTrue(exmples.hasNext());
-        exampleClassDoc = exmples.next();
-        assertNotNull(exampleClassDoc);
+        exampleTypeElement = exmples.next();
+        assertNotNull(exampleTypeElement);
 	}
 	
 	@Test
 	public void testGenerateContext() throws Exception{
 		ContextFactoryImpl factory = new ContextFactoryImpl();
 		CSVExampleContextGenerator generator = new CSVExampleContextGenerator();
-		List<ClassContext> contextList = generator.generateContext(factory, rootDoc);
+		List<ClassContext> contextList = generator.generateContext(factory, DocletEnvironment);
 		assertNotNull(contextList);
 		assertEquals(1, contextList.size());
 		ClassContext context = contextList.get(0);

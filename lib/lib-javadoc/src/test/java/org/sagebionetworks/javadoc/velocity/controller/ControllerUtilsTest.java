@@ -16,37 +16,37 @@ import org.sagebionetworks.javadoc.JavaDocTestUtil;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 
 import com.google.common.collect.ImmutableSet;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.RootDoc;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
+import jdk.javadoc.doclet.DocletEnvironment;
 
 public class ControllerUtilsTest {
 	
-	private static RootDoc rootDoc;
-	private static ClassDoc controllerClassDoc;
-	private static Map<String, MethodDoc> methodMap;
+	private static DocletEnvironment DocletEnvironment;
+	private static TypeElement controllerTypeElement;
+	private static Map<String, ExecutableElement> methodMap;
 	
 	@BeforeAll
 	public static void beforeClass() throws Exception {
 		// Lookup the test files.
-		rootDoc = JavaDocTestUtil.buildRootDoc("ExampleController.java");
-		assertNotNull(rootDoc);
-        Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(rootDoc.classes());
+		DocletEnvironment = JavaDocTestUtil.buildDocletEnvironment("ExampleController.java");
+		assertNotNull(DocletEnvironment);
+        Iterator<TypeElement> contollers = FilterUtils.controllerIterator(DocletEnvironment.classes());
         assertNotNull(contollers);
         assertTrue(contollers.hasNext());
-        controllerClassDoc = contollers.next();
-        assertNotNull(controllerClassDoc);
-        methodMap = new HashMap<String, MethodDoc>();
-    	Iterator<MethodDoc> methodIt = FilterUtils.requestMappingIterator(controllerClassDoc.methods());
+        controllerTypeElement = contollers.next();
+        assertNotNull(controllerTypeElement);
+        methodMap = new HashMap<String, ExecutableElement>();
+    	Iterator<ExecutableElement> methodIt = FilterUtils.requestMappingIterator(controllerTypeElement.methods());
     	while(methodIt.hasNext()){
-    		MethodDoc methodDoc = methodIt.next();
-    		methodMap.put(methodDoc.name(), methodDoc);
+    		ExecutableElement ExecutableElement = methodIt.next();
+    		methodMap.put(ExecutableElement.name(), ExecutableElement);
     	}
 	}
 	
 	@Test
 	public void testTranslateToModel(){
-		ControllerModel model = ControllerUtils.translateToModel(controllerClassDoc);
+		ControllerModel model = ControllerUtils.translateToModel(controllerTypeElement);
 		assertNotNull(model);
 		System.out.println(model);
 		assertEquals("ExampleController", model.getName());
@@ -59,7 +59,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testTranslateMethod(){
-		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		ExecutableElement method = methodMap.get("getRowMetadataDelta");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -77,7 +77,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testTranslateMethodLink(){
-		MethodDoc method = methodMap.get("createCompetitionWikiPage");
+		ExecutableElement method = methodMap.get("createCompetitionWikiPage");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -88,7 +88,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testPathVariables(){
-		MethodDoc method = methodMap.get("createEntityWikiPage");
+		ExecutableElement method = methodMap.get("createEntityWikiPage");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -103,7 +103,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testPathVariablesWithRegEx(){
-		MethodDoc method = methodMap.get("pathIncludesRegEx");
+		ExecutableElement method = methodMap.get("pathIncludesRegEx");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -121,7 +121,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testPathVariablesWithStar(){
-		MethodDoc method = methodMap.get("pathIncludesStar");
+		ExecutableElement method = methodMap.get("pathIncludesStar");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -139,7 +139,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testParameters(){
-		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		ExecutableElement method = methodMap.get("getRowMetadataDelta");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -174,7 +174,7 @@ public class ControllerUtilsTest {
 
 	@Test
 	public void testAuthetincationNotRequired(){
-		MethodDoc method = methodMap.get("noAuthPathVariable");
+		ExecutableElement method = methodMap.get("noAuthPathVariable");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -184,7 +184,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testAuthenticationRequired(){
-		MethodDoc method = methodMap.get("getRowMetadataDelta");
+		ExecutableElement method = methodMap.get("getRowMetadataDelta");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -194,7 +194,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testAuthenticationRequiredViaHeader(){
-		MethodDoc method = methodMap.get("authorizedService");
+		ExecutableElement method = methodMap.get("authorizedService");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -204,7 +204,7 @@ public class ControllerUtilsTest {
 	
 	@Test
 	public void testInterface(){
-		MethodDoc method = methodMap.get("getInterface");
+		ExecutableElement method = methodMap.get("getInterface");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -215,7 +215,7 @@ public class ControllerUtilsTest {
 
 	@Test
 	public void testGenericReturn() {
-		MethodDoc method = methodMap.get("someGenericReturn");
+		ExecutableElement method = methodMap.get("someGenericReturn");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
@@ -228,7 +228,7 @@ public class ControllerUtilsTest {
 
 	@Test
 	public void testGenericParam() {
-		MethodDoc method = methodMap.get("someGenericParam");
+		ExecutableElement method = methodMap.get("someGenericParam");
 		assertNotNull(method);
 		// Now translate the message
 		MethodModel model = ControllerUtils.translateMethod(method);
