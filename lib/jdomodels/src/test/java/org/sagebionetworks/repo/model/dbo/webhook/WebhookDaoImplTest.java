@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -446,6 +447,25 @@ public class WebhookDaoImplTest {
 		assertEquals(verification, webhookDao.getWebhookVerification(webhook.getId()));
 	}
 
+	@Test
+	public void testGetAllowedDomainsPatterns() {
+		// Call under test
+		assertEquals(Collections.emptyList(), webhookDao.getAllowedDomainsPatterns());
+		
+		String pattern = "^.+endpoint\\.com$";
+		String matching = "my.endpoint.com";
+		
+		assertTrue(Pattern.matches(pattern, matching));
+		
+		webhookDao.addAllowedDomainPattern(pattern);
+		
+		List<String> result = webhookDao.getAllowedDomainsPatterns();
+		
+		// Call under test
+		assertEquals(List.of(pattern), result); 
+			
+		assertTrue(Pattern.matches(result.iterator().next(), matching));
+	}
 	
 	@Test
 	public void testMapWebhookId() {

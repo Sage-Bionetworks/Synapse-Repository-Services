@@ -3,6 +3,8 @@ package org.sagebionetworks.util;
 import java.util.Date;
 
 public interface Clock {
+	
+	long nanoTime();
 
 	long currentTimeMillis();
 

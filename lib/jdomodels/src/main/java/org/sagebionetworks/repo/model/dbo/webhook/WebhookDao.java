@@ -75,9 +75,11 @@ public interface WebhookDao {
 	 */
 	void setWebhookVerificationStatusIfMessageIdMatch(String webhookId, String codeMessageId, WebhookVerificationStatus status, String message);
 	
+	DBOWebhookAllowedDomain addAllowedDomainPattern(String pattern);
+	
+	List<String> getAllowedDomainsPatterns();
+	
 	void truncateAll();
-
-
 
 
 }

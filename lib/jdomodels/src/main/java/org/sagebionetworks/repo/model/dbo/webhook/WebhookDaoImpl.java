@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.webhook;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ALLOWED_DOMAIN_PATTERN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ETAG;
@@ -19,6 +20,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MSG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_ALLOWED_DOMAIN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_VERIFICATION;
 
 import java.sql.Timestamp;
@@ -299,8 +301,25 @@ public class WebhookDaoImpl implements WebhookDao {
 	}
 	
 	@Override
+	public List<String> getAllowedDomainsPatterns() {
+		return jdbcTemplate.queryForList("SELECT " + COL_WEBHOOK_ALLOWED_DOMAIN_PATTERN + " FROM " + TABLE_WEBHOOK_ALLOWED_DOMAIN, String.class);
+	}
+	
+	@Override
+	@WriteTransaction
+	public DBOWebhookAllowedDomain addAllowedDomainPattern(String pattern) {
+		DBOWebhookAllowedDomain dbo = new DBOWebhookAllowedDomain()
+			.setId(idGenerator.generateNewId(IdType.WEBHOOK_ALLOWED_DOMAIN_ID))
+			.setEtag(UUID.randomUUID().toString())
+			.setPattern(pattern);
+		
+		return dboBasicDao.createNew(dbo);
+	}
+	
+	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_WEBHOOK + " WHERE " + COL_WEBHOOK_ID + " > -1");
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_WEBHOOK_ALLOWED_DOMAIN);
 	}
 
 }

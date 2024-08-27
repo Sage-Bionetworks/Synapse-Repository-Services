@@ -111,8 +111,6 @@ public class WebhookMessageDispatcher {
 	}
 	
 	void sendWebhookRequest(WebhookMessageAttributes attributes, HttpRequest request) {
-		LOG.info("Sending {} request to {} (WebhookId: {}, MessageId: {})...", attributes.getMessageType(), attributes.getWebhookEndpoint(), attributes.getWebhookId(), attributes.getMessageId());
-		
 		long start = clock.currentTimeMillis();
 		
 		CompletableFuture<HttpResponse<Void>> asyncResponse = webhookHttpClient.sendAsync(request, DISCARDING_BODY_HANDLER);

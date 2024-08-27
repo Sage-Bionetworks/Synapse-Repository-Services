@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -56,6 +60,10 @@ import org.springframework.stereotype.Service;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
+import com.google.common.base.Ticker;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 @Service
 public class WebhookManagerImpl implements WebhookManager {	
@@ -66,6 +74,19 @@ public class WebhookManagerImpl implements WebhookManager {
 	private static final int VERIFICATION_CODE_TTL_SECONDS = 10 * 60;
 	private static final long WEBHOOK_FETCH_PAGE_SIZE = 1_000;
 	private static final Duration CHANGE_MESSAGE_MAX_AGE = Duration.ofHours(1);
+	private static final List<Pattern> DEFAULT_ALLOWED_DOMAINS = List.of(
+		compileDomainPattern("^.+\\.execute-api\\..+\\.amazonaws\\.com$").get()
+	);
+	static final Duration DOMAIN_CACHE_EXPIRATION = Duration.ofMinutes(5);
+	
+	static Optional<Pattern> compileDomainPattern(String regex) {
+		try {
+			return Optional.of(Pattern.compile(regex, Pattern.CASE_INSENSITIVE));
+		} catch (PatternSyntaxException e) {
+			LOG.warn("Skipping malformed domain pattern {}.", regex, e);
+			return Optional.empty();
+		}
+	}
 	
 	static Map<String, MessageAttributeValue> mapMessageAttributes(Class<? extends WebhookMessage> messageClass, Webhook webhook, String messageId) {
 		return Map.of(
@@ -87,9 +108,11 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	private NodeDAO nodeDao;
 	
-	private Clock clock;	
+	private Clock clock;
 	
 	private String queueUrl;
+	
+	private LoadingCache<Boolean, List<Pattern>> allowedDomainPatterns;
 	
 	public WebhookManagerImpl(WebhookDao webhookDao, TrashCanDao trashCanDao, AmazonSQSClient sqsClient, WebhookAuthorizationManager webhookAuthorizationManager, NodeDAO nodeDao, Clock clock) {
 		this.webhookDao = webhookDao;
@@ -98,11 +121,29 @@ public class WebhookManagerImpl implements WebhookManager {
 		this.webhookAuthorizationManager = webhookAuthorizationManager;
 		this.nodeDao = nodeDao;
 		this.clock = clock;
+		this.allowedDomainPatterns = CacheBuilder.newBuilder()
+			.ticker(new Ticker() {
+				@Override
+				public long read() {
+					return clock.nanoTime();
+				}
+			})
+			.expireAfterWrite(DOMAIN_CACHE_EXPIRATION)
+			.build(CacheLoader.from(this::loadAllowedDomainPatterns));
 	}
 	
 	@Autowired
 	public void configureMessageQueueUrl(StackConfiguration config) {
 		 queueUrl = sqsClient.getQueueUrl(config.getQueueName(MESSAGE_QUEUE_NAME)).getQueueUrl();
+	}
+	
+	List<Pattern> loadAllowedDomainPatterns() {
+		return Stream.concat(
+			DEFAULT_ALLOWED_DOMAINS.stream(), 
+			webhookDao.getAllowedDomainsPatterns().stream()
+				.map(WebhookManagerImpl::compileDomainPattern)
+				.flatMap(Optional::stream)
+		).collect(Collectors.toList());		
 	}
 
 	@WriteTransaction
@@ -115,19 +156,6 @@ public class WebhookManagerImpl implements WebhookManager {
 		return generateAndSendVerificationCode(userInfo, webhook);
 	}
 	
-	Webhook getWebhook(UserInfo userInfo, String webhookId, boolean forUpdate) {
-		ValidateArgument.required(userInfo, "The userInfo");
-		ValidateArgument.requiredNotBlank(webhookId, "The webhookId");
-				
-		Webhook webhook = webhookDao.getWebhook(webhookId, forUpdate).orElseThrow(() -> new NotFoundException("A webhook with the given id does not exist."));
-
-		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, webhook.getCreatedBy())) {
-			throw new UnauthorizedException("You are not authorized to access this resource.");
-		}
-		
-		return webhook;
-	}
-
 	@Override
 	public Webhook getWebhook(UserInfo userInfo, String webhookId) {
 		boolean forUpdate = false;
@@ -256,6 +284,19 @@ public class WebhookManagerImpl implements WebhookManager {
 			break;
 		}
 		
+	}
+	
+	Webhook getWebhook(UserInfo userInfo, String webhookId, boolean forUpdate) {
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.requiredNotBlank(webhookId, "The webhookId");
+				
+		Webhook webhook = webhookDao.getWebhook(webhookId, forUpdate).orElseThrow(() -> new NotFoundException("A webhook with the given id does not exist."));
+
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, webhook.getCreatedBy())) {
+			throw new UnauthorizedException("You are not authorized to access this resource.");
+		}
+		
+		return webhook;
 	}
 	
 	void processEntityChange(SynapseEventType eventType, Date timestamp, String entityId) {		
@@ -393,13 +434,17 @@ public class WebhookManagerImpl implements WebhookManager {
 		ValidateArgument.requiredNotEmpty(request.getEventTypes(), "The eventTypes");
 		ValidateArgument.validUrl(request.getInvokeEndpoint(), "The invokeEndpoint");
 		ValidateArgument.required(request.getIsEnabled(), "isEnabled");
+
+		AuthorizationUtils.disallowAnonymous(userInfo);
 		
 		if (SynapseObjectType.ENTITY.equals(request.getObjectType()) && BOOTSTRAP_NODES.getAllBootstrapIds().contains(KeyFactory.stringToKey(request.getObjectId()))) {
 			throw new IllegalArgumentException("The specified object is not valid.");
 		}
 		
+		URI uri = URI.create(request.getInvokeEndpoint());
+		
 		try {
-			URI uri = URI.create(request.getInvokeEndpoint());
+			
 			URI uriNormalized = new URI("https", uri.getHost(), uri.getPath(), null);
 						
 			ValidateArgument.requirement(uri.equals(uriNormalized), "The invokedEndpoint only supports https and cannot contain a port, query or fragment");
@@ -408,9 +453,12 @@ public class WebhookManagerImpl implements WebhookManager {
 			throw new IllegalArgumentException("The invoke endpoint is invalid.");
 		}
 		
-		AuthorizationUtils.disallowAnonymous(userInfo);
+		if (!allowedDomainPatterns.getUnchecked(true).stream().anyMatch(pattern -> pattern.matcher(uri.getHost()).matches())) {
+			throw new IllegalArgumentException("Unsupported invoke endpoint, please contact support for more information.");
+		}		
 
 		webhookAuthorizationManager.getReadAuthorizationStatus(userInfo, request.getObjectType(), request.getObjectId()).checkAuthorizationOrElseThrow();
 	}
+	
 	
 }

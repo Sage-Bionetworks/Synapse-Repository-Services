@@ -46,7 +46,7 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 		new FieldColumn("message", COL_WEBHOOK_VERIFICATION_MSG)
 	};
 	
-	private static final TableMapping<DBOWebhookVerification> TABLE_MAPPING = new TableMapping<DBOWebhookVerification>() {
+	private static final TableMapping<DBOWebhookVerification> TABLE_MAPPING = new TableMapping<>() {
 		@Override
 		public DBOWebhookVerification mapRow(ResultSet rs, int rowNum) throws SQLException {
 			DBOWebhookVerification dbo = new DBOWebhookVerification();
@@ -81,6 +81,8 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 			return DBOWebhookVerification.class;
 		}
 	};
+	
+	private static final BasicMigratableTableTranslation<DBOWebhookVerification> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOWebhookVerification> getTableMapping() {
@@ -94,7 +96,7 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 
 	@Override
 	public MigratableTableTranslation<DBOWebhookVerification, DBOWebhookVerification> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOWebhookVerification>();
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override

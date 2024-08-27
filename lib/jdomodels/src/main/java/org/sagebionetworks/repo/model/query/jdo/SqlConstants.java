@@ -1299,6 +1299,12 @@ public class SqlConstants {
 	public static final String COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID =				"CODE_MESSAGE_ID";
 	public static final String DDL_FILE_WEBHOOK_VERIFICATION =							"schema/webhook/Webhook-Verification-ddl.sql";
 	
+	public static final String TABLE_WEBHOOK_ALLOWED_DOMAIN =							"WEBHOOK_ALLOWED_DOMAIN";
+	public static final String COL_WEBHOOK_ALLOWED_DOMAIN_ID =							"ID";
+	public static final String COL_WEBHOOK_ALLOWED_DOMAIN_ETAG =						"ETAG";
+	public static final String COL_WEBHOOK_ALLOWED_DOMAIN_PATTERN =						"PATTERN";
+	public static final String DDL_FILE_WEBHOOK_ALLOWED_DOMAIN =						"schema/webhook/Webhook-Allowed-Domain-ddl.sql";
+	
 	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

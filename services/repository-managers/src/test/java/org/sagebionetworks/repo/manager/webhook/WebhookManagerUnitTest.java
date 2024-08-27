@@ -3,11 +3,13 @@ package org.sagebionetworks.repo.manager.webhook;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -22,14 +24,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
@@ -69,9 +76,9 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
+import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
@@ -124,7 +131,7 @@ public class WebhookManagerUnitTest {
 			.setObjectType(SynapseObjectType.ENTITY)
 			.setObjectId("123")
 			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE))
-			.setInvokeEndpoint("https://my.endpoint.org/events")
+			.setInvokeEndpoint("https://abc123.execute-api.us-east-1.amazonaws.com/events")
 			.setIsEnabled(true);
 		
 		webhook = new Webhook()
@@ -157,6 +164,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		
+		verify(mockWebhookDao).getAllowedDomainsPatterns();		
 	}
 	
 	@Test
@@ -169,8 +177,10 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("denied", result);
+		
+		verify(mockWebhookDao).getAllowedDomainsPatterns();
 	}
-	
+		
 	@ParameterizedTest
 	@EnumSource(BOOTSTRAP_NODES.class)
 	public void testValidateCreateOrUpdateWebhookRequestWithUnsupportedEntity(BOOTSTRAP_NODES node) {
@@ -182,6 +192,56 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The specified object is not valid.", result);
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
+	}
+		
+	@Test
+	public void testValidateCreateOrUpdateWebhookRequestWithUnsupportedDomain() {
+		
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookManagerImpl.DOMAIN_CACHE_EXPIRATION.minusSeconds(1).toNanos());
+				
+		request.setInvokeEndpoint("https://my.endpoint.com/events");
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("Unsupported invoke endpoint, please contact support for more information.", result);
+				
+		result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("Unsupported invoke endpoint, please contact support for more information.", result);
+		
+		// The two invocations only make one db call
+		verify(mockWebhookDao).getAllowedDomainsPatterns();
+		verifyZeroInteractions(mockWebhookAuthorizationManager);
+	}
+	
+	@Test
+	public void testValidateCreateOrUpdateWebhookRequestWithExpiredDomainCache() {
+		doReturn(AuthorizationStatus.authorized()).when(mockWebhookAuthorizationManager).getReadAuthorizationStatus(userInfo, SynapseObjectType.ENTITY, "123");		
+		when(mockWebhookDao.getAllowedDomainsPatterns()).thenReturn(Collections.emptyList(), List.of(".+endpoint\\.com"));
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookManagerImpl.DOMAIN_CACHE_EXPIRATION.plusSeconds(1).toNanos());
+				
+		request.setInvokeEndpoint("https://my.endpoint.com/events");
+		
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		}).getMessage();
+		
+		assertEquals("Unsupported invoke endpoint, please contact support for more information.", result);
+		
+		// Call under test, this time the domain is allowed
+		webhookManager.validateCreateOrUpdateRequest(userInfo, request);
+		
+		verify(mockWebhookDao, times(2)).getAllowedDomainsPatterns();
+		verifyNoMoreInteractions(mockWebhookAuthorizationManager);
 	}
 	
 	@Test
@@ -192,6 +252,8 @@ public class WebhookManagerUnitTest {
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		});
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
 	@Test
@@ -205,6 +267,8 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The objectType is required.", result);
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
 	@Test
@@ -218,6 +282,8 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The eventTypes is required and must not be empty.", result);
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
 	@Test
@@ -231,6 +297,8 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("The objectId is required.", result);
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
 	@Test
@@ -244,84 +312,36 @@ public class WebhookManagerUnitTest {
 		}).getMessage();
 		
 		assertEquals("isEnabled is required.", result);
+		
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithNoEndpoint() {
+	static Stream<Arguments> testValidateCreateOrUpdateWebhookRequestWithInvalidEndpoint() {
+		return Stream.of(
+			arguments(null, "The invokeEndpoint is not a valid url: null"),
+			arguments("https://not.valid", "The invokeEndpoint is not a valid url: https://not.valid"),
+			arguments("https://localhost/events", "The invokeEndpoint is not a valid url: https://localhost/events"),
+			arguments("http://my.webhook.org/events", "The invokedEndpoint only supports https and cannot contain a port, query or fragment"),
+			arguments("https://my.webhook.org/events?a=b", "The invokedEndpoint only supports https and cannot contain a port, query or fragment"),
+			arguments("https://my.webhook.org:533/events", "The invokedEndpoint only supports https and cannot contain a port, query or fragment"),
+			arguments("https://my.webhook.org/events#fragment", "The invokedEndpoint only supports https and cannot contain a port, query or fragment")
+		);
+	}
+	
+	@ParameterizedTest
+	@MethodSource
+	public void testValidateCreateOrUpdateWebhookRequestWithInvalidEndpoint(String invokeEndpoint, String expectedMessage) {
 		
-		request.setInvokeEndpoint(null);
+		request.setInvokeEndpoint(invokeEndpoint);
 			
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		}).getMessage();
 		
-		assertEquals("The invokeEndpoint is not a valid url: null", result);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithInvalidEndpoint() {
+		assertEquals(expectedMessage, result);
 		
-		request.setInvokeEndpoint("https://not.valid");
-			
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		}).getMessage();
-		
-		assertEquals("The invokeEndpoint is not a valid url: https://not.valid", result);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithLocalEndpoint() {
-		
-		request.setInvokeEndpoint("https://localhost/events");
-			
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		}).getMessage();
-		
-		assertEquals("The invokeEndpoint is not a valid url: https://localhost/events", result);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithQuery() {
-		
-		request.setInvokeEndpoint("https://my.webhook.org/events?a=b");
-			
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		}).getMessage();
-		
-		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithPort() {
-		
-		request.setInvokeEndpoint("https://my.webhook.org:533/events");
-			
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		}).getMessage();
-		
-		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
-	}
-	
-	@Test
-	public void testValidateCreateOrUpdateWebhookRequestWithFragment() {
-		
-		request.setInvokeEndpoint("https://my.webhook.org/events#fragment");
-			
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
-		}).getMessage();
-		
-		assertEquals("The invokedEndpoint only supports https and cannot contain a port, query or fragment", result);
+		verifyZeroInteractions(mockWebhookAuthorizationManager, mockWebhookDao);
 	}
 	
 	@Test
@@ -879,6 +899,20 @@ public class WebhookManagerUnitTest {
 	}
 	
 	@Test
+	public void testProcessEntityChangeWithEmptyPath() {
+		String entityId = "123456";
+		Date eventTimestamp = new Date();
+		
+		doReturn(Collections.emptyList()).when(webhookManager).getEntityActualPathIds(entityId);
+						
+		// Call under test
+		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
+		
+		verify(webhookManager, never()).publishWebhookMessage(any(), any(), any());
+		verifyZeroInteractions(mockWebhookDao, mockWebhookAuthorizationManager);
+	}
+	
+	@Test
 	public void testProcessEntityChangeWithNoMoreReadAccess() {		
 		String entityId = "123456";
 		Date eventTimestamp = new Date();		
@@ -975,6 +1009,16 @@ public class WebhookManagerUnitTest {
 		assertEquals(List.of(6L, 5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
 		
 		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithRootNode() {
+		String entityId = BOOTSTRAP_NODES.ROOT.getId().toString();
+				
+		// Call under test
+		assertEquals(Collections.emptyList(), webhookManager.getEntityActualPathIds(entityId));
+		
+		verifyZeroInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
@@ -1085,5 +1129,30 @@ public class WebhookManagerUnitTest {
 		assertEquals("The status is required.", result);
 		
 		verifyZeroInteractions(mockWebhookDao);
+	}
+	
+	@Test
+	public void testLoadAllowedDomainPatterns() {
+		
+		List<String> expected = List.of("^.+\\.execute-api\\..+\\.amazonaws\\.com$");
+		List<String> result = webhookManager.loadAllowedDomainPatterns().stream().map(Pattern::pattern).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
+		
+		verify(mockWebhookDao).getAllowedDomainsPatterns();
+	}
+	
+	@Test
+	public void testLoadAllowedDomainPatternsWithDatabaseList() {
+		
+		when(mockWebhookDao.getAllowedDomainsPatterns()).thenReturn(List.of("^.+zapier.com$", "\\jinvalid"));
+		
+		List<String> expected = List.of(
+			"^.+\\.execute-api\\..+\\.amazonaws\\.com$",
+			"^.+zapier.com$"
+		);
+		List<String> result = webhookManager.loadAllowedDomainPatterns().stream().map(Pattern::pattern).collect(Collectors.toList());
+		
+		assertEquals(expected, result);
 	}
 }

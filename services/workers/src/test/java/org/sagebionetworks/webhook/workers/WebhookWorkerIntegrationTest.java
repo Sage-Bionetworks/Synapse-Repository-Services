@@ -95,7 +95,7 @@ public class WebhookWorkerIntegrationTest {
 	
 	@Autowired
 	private WebhookManager webhookManager;
-	
+		
 	@Autowired
 	private WebhookDao webhookDao;
 	
@@ -116,14 +116,16 @@ public class WebhookWorkerIntegrationTest {
 	private Api testApi;
 	private String apiTestQueueUrl;
 	private String deadLetterQueueUrl;
-	private Project project;	
-	
+	private Project project;
+		
 	@BeforeEach
 	public void before() throws Exception {
 		aclHelper.truncateAll();
 		entityManager.truncateAll();
 		fileHelper.truncateAll();
 		webhookDao.truncateAll();
+		
+		webhookDao.addAllowedDomainPattern("^.+\\.sagebase\\.org$");
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"), true);
@@ -245,7 +247,7 @@ public class WebhookWorkerIntegrationTest {
 		
 		assertEquals(WebhookVerificationStatus.FAILED, webhook.getVerificationStatus());
 		assertEquals("The request to the webhook endpoint failed with status 503.", webhook.getVerificationMsg());
-				
+		
 		// Now update the webhook to a non existing endpoint
 		webhook = webhookManager.updateWebhook(userInfo, webhookId, new CreateOrUpdateWebhookRequest()
 			.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE, SynapseEventType.DELETE))
@@ -263,7 +265,7 @@ public class WebhookWorkerIntegrationTest {
 		webhook = webhookManager.getWebhook(userInfo, webhookId);
 		
 		assertEquals(WebhookVerificationStatus.FAILED, webhook.getVerificationStatus());
-		assertEquals("The request to the webhook endpoint failed (Connection timeout).", webhook.getVerificationMsg());
+		assertEquals("The request to the webhook endpoint failed (Reason: connection timeout).", webhook.getVerificationMsg());
 	}	
 	
 	@Test
@@ -350,6 +352,52 @@ public class WebhookWorkerIntegrationTest {
 			entityAndEventTypeFilter(file, SynapseEventType.CREATE))
 		);
 		
+	}
+	
+	@Test
+	public void testWebhookDeliveryFailure() throws Exception {
+		
+		// The entity create message goes through a topic, that might be slower than the direct sqs message of the webhook verification
+		Thread.sleep(3000);
+		
+		CreateOrUpdateWebhookRequest request = new CreateOrUpdateWebhookRequest()
+				.setEventTypes(Set.of(SynapseEventType.CREATE, SynapseEventType.UPDATE, SynapseEventType.DELETE))
+				.setIsEnabled(true)
+				.setObjectId(project.getId())
+				.setObjectType(SynapseObjectType.ENTITY)
+				.setInvokeEndpoint(testApi.getApiEndpoint() + "/events");
+		
+		Webhook webhook = webhookManager.createWebhook(userInfo, request);
+		
+		// Wait for the code to be sent
+		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
+			WebhookVerificationStatus status = webhookManager.getWebhook(userInfo, webhook.getId()).getVerificationStatus();
+			
+			return Pair.create(WebhookVerificationStatus.CODE_SENT.equals(status), null);
+		});
+		
+		// Extracts the code from the test queue
+		WebhookVerificationMessage verificationMessage = pollWebhookMessages(apiTestQueueUrl, webhook.getId(), WebhookVerificationMessage.class, null).iterator().next();
+		
+		// Verify the webhook
+		assertTrue(webhookManager.verifyWebhook(userInfo, webhook.getId(), new VerifyWebhookRequest().setVerificationCode(verificationMessage.getVerificationCode())).getIsValid());
+				
+		// Create a folder in the project
+		Folder folder = entityManager.getEntity(adminUserInfo, entityManager
+			.createEntity(adminUserInfo, new Folder().setName("folder").setParentId(project.getId()), null), Folder.class
+		);
+		
+		// Checks for the CREATE folder message
+		pollWebhookMessages(apiTestQueueUrl, webhook.getId(), WebhookSynapseEventMessage.class, entityAndEventTypeFilter(folder, SynapseEventType.CREATE));
+		
+		// Now emulates a failure in the webhook service by overriding its endpoint
+		webhookDao.updateWebhook(webhook.getId(), request.setInvokeEndpoint(testApi.getApiEndpoint() + "/failing"));
+		
+		// Updates the folder in the project
+		entityManager.updateEntity(adminUserInfo, folder.setName("folder updated"), false, null);
+		
+		// Checks for the UPDATE folder message in the DLQ
+		pollWebhookMessages(deadLetterQueueUrl, webhook.getId(), WebhookSynapseEventMessage.class, entityAndEventTypeFilter(folder, SynapseEventType.UPDATE));
 	}
 	
 	private Predicate<List<WebhookSynapseEventMessage>> entityAndEventTypeFilter(Entity entity, SynapseEventType eventType) {

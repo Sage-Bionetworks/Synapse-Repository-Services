@@ -72,9 +72,10 @@ public class WebhookMetricsTracker {
 				return;
 			}
 			
+			// TODO need synchronization on the data
 			collectedMetrics.add(profileData(METRIC_REQ_COUNT, webhookId).setValue(webhookData.totalCount));
 			collectedMetrics.add(profileData(METRIC_FAIL_COUNT, webhookId).setValue(webhookData.failureCount));
-			
+		
 			allRequests.setValue(allRequests.getValue() + webhookData.totalCount);
 			allFailed.setValue(allFailed.getValue() + webhookData.failureCount);
 			
