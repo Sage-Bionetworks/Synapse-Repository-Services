@@ -32,32 +32,18 @@ public class FilterUtils {
 	 */
 	public static Iterator<TypeElement> controllerIterator(DocletEnvironment docletEnvironment) {
 		Set<TypeElement> types = ElementFilter.typesIn(docletEnvironment.getIncludedElements());
-		types.forEach(t->{
+		types.forEach(t -> {
 			System.out.println(t.toString());
-			t.getAnnotationMirrors().forEach(m->{
-				System.out.println("\t"+m.toString());
+			t.getAnnotationMirrors().forEach(m -> {
+				System.out.println("\t" + m.toString());
 			});
-			System.out.println("annotation:"+ t.getAnnotation(ControllerInfo.class));
-			
+			System.out.println("annotation:" + t.getAnnotation(ControllerInfo.class));
+
 		});
-		
+
 		return types.stream().filter(e -> e.getAnnotation(ControllerInfo.class) != null)
 				.filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).collect(Collectors.toList())
 				.iterator();
-
-//		if(classes == null) throw new IllegalArgumentException("classes cannot be null");
-//		List<TypeElement> list = new LinkedList<TypeElement>();
-//		for(TypeElement TypeElement: classes){
-//            AnnotationMirror[] annos = TypeElement.annotations();
-//            if(annos != null){
-//            	for(AnnotationMirror ad: annos){
-//                    if(ControllerInfo.class.getName().equals(ad.annotationType().qualifiedName())){
-//                    	list.add(TypeElement);
-//                    }
-//            	}
-//            }
-//		}
-//		return list.iterator();
 	}
 
 	/**
@@ -74,27 +60,6 @@ public class FilterUtils {
 		return types.stream().filter(e -> e.getAnnotation(RequestMapping.class) != null)
 				.filter(e -> e.getAnnotation(Deprecated.class) == null).filter(e -> e instanceof ExecutableElement)
 				.map(e -> (ExecutableElement) e).collect(Collectors.toList()).iterator();
-//		List<ExecutableElement> list = new LinkedList<ExecutableElement>();
-//		for (ExecutableElement ExecutableElement : methods) {
-//			AnnotationMirror[] annos = ExecutableElement.annotations();
-//			if (annos != null) {
-//				boolean hasRequestMapping = false;
-//				boolean isDeprecated = false;
-//				for (AnnotationMirror ad : annos) {
-//					if (RequestMapping.class.getName().equals(ad.annotationType().qualifiedName())) {
-//
-//						hasRequestMapping = true;
-//					} else if (Deprecated.class.getName().equals(ad.annotationType().qualifiedName())) {
-//						isDeprecated = true;
-//					}
-//				}
-//				// Add methods that have the request mapping and are not Deprecated.
-//				if (hasRequestMapping && !isDeprecated) {
-//					list.add(ExecutableElement);
-//				}
-//			}
-//		}
-//		return list.iterator();
 	}
 
 	/**
@@ -110,18 +75,6 @@ public class FilterUtils {
 		return includedElements.stream().filter(e -> e.getAnnotation(CSVGeneratedExample.class) != null)
 				.filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).collect(Collectors.toList())
 				.iterator();
-//		List<TypeElement> list = new LinkedList<TypeElement>();
-//		for (TypeElement TypeElement : classes) {
-//			AnnotationMirror[] annos = TypeElement.annotations();
-//			if (annos != null) {
-//				for (AnnotationMirror ad : annos) {
-//					if (CSVGeneratedExample.class.getName().equals(ad.annotationType().qualifiedName())) {
-//						list.add(TypeElement);
-//					}
-//				}
-//			}
-//		}
-//		return list.iterator();
 	}
 
 }
