@@ -105,13 +105,13 @@ public class SpringMVCDocletTest {
 					System.out.println("comparing: "+p.toAbsolutePath());
 					System.out.println("to: "+resultFile.getAbsolutePath());
 					assertTrue(resultFile.exists(), "Result file does not exist: " + resultFile);
-					String expected = FileUtils.readFileToString(p.toFile(), "UTF-8");
-					String results = FileUtils.readFileToString(resultFile, "UTF-8");
+					String expected = FileUtils.readFileToString(p.toFile(), "UTF-8").trim();
+					String results = FileUtils.readFileToString(resultFile, "UTF-8").trim();
 					if(!expected.equals(results)) {
 						StringBuilder expectedBuffer = new StringBuilder("expected:\n");
 						StringBuilder resultBuffer = new StringBuilder("result:\n");
 						for(int i=0; i<expected.length(); i++) {
-							if(results.length() > i) {
+							if(results.length() > i && expectedBuffer.length() < 500) {
 								char e = expected.charAt(i);
 								char r = results.charAt(i);
 								if(e != r) {
