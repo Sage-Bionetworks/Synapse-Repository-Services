@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.manager.webhook.WebhookMetricsCollector.M
 import static org.sagebionetworks.repo.manager.webhook.WebhookMetricsCollector.WEBHOOK_ID_ALL;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -148,16 +149,25 @@ public class WebhookMetricsCollectorUnitTest {
 	public void testCollectMetricsWithMultipleThreads() throws InterruptedException {
 		when(mockClock.now()).thenReturn(timestamp);
 		
-		String webhookId = "123";
+		String webhookId1 = "123";
+		String webhookId2 = "456";
 		
 		ExecutorService service = Executors.newCachedThreadPool();
 		
 		for (int i=0; i<100; i++) {
 			boolean failed = i % 2 == 0;
 			service.submit(() -> {				
-				collector.requestCompleted(webhookId, failed ? 50 : 100, failed);
+				collector.requestCompleted(webhookId1, failed ? 50 : 100, failed);
 			});
 		}
+		
+		for (int i=0; i<50; i++) {
+			boolean failed = i % 2 == 0;
+			service.submit(() -> {				
+				collector.requestCompleted(webhookId2, failed ? 50 : 100, failed);
+			});
+		}
+		
 		for (int i=0; i<5; i++) {
 			service.submit(() -> collector.collectMetrics());
 		}
@@ -170,28 +180,44 @@ public class WebhookMetricsCollectorUnitTest {
 		
 		verify(mockMetricsClient, atLeastOnce()).addProfileData(captor.capture());
 		
-		double total = 0;
-		double failed = 0;
-		double runtime = 0;
-		
+		Map<String, Double> total = new HashMap<>();
+		Map<String, Double> failed = new HashMap<>();
+		Map<String, Double> runtime = new HashMap<>();
+				
 		for (List<ProfileData> sentData : captor.getAllValues()) {
 			for (ProfileData data : sentData) {
-				if (!data.getDimension().get("webhookId").equals(webhookId)) {
-					continue;
-				}
+				String webhookId = data.getDimension().get("webhookId");
 				if (data.getName().equals(METRIC_REQ_COUNT)) {
-					total += data.getValue();
+					total.merge(webhookId, data.getValue(), (oldValue, newValue) -> oldValue + newValue);
 				} else if (data.getName().equals(METRIC_FAIL_COUNT)) {
-					failed += data.getValue();
+					failed.merge(webhookId, data.getValue(), (oldValue, newValue) -> oldValue + newValue);
 				} else {
-					runtime += data.getMetricStats().getSum();
+					runtime.merge(webhookId, data.getMetricStats().getSum(), (oldValue, newValue) -> oldValue + newValue);
 				}
 			}
 		}
 		
-		assertEquals(100, total);
-		assertEquals(50, failed);
-		assertEquals(7500, runtime);
+		Map<String, Double> expectedTotal = Map.of(
+				webhookId1, 100.0,
+				webhookId2, 50.0,
+				"all", 150.0
+		);
+		
+		Map<String, Double> expectedFail = Map.of(
+			webhookId1, 50.0,
+			webhookId2, 25.0,
+			"all", 75.0
+		);
+		
+		Map<String, Double> expectedRuntime = Map.of(
+			webhookId1, 7500.0,
+			webhookId2, 3750.0,
+			"all", 11250.0
+		);
+				
+		assertEquals(expectedTotal, total);
+		assertEquals(expectedFail, failed);
+		assertEquals(expectedRuntime, runtime);
 		
 	}
 	
