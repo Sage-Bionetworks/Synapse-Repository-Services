@@ -5,10 +5,7 @@ import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,14 +19,12 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
-import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -99,27 +94,24 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	private WebhookDao webhookDao;
-	
-	private TrashCanDao trashCanDao;
+
+	private NodeManager nodeManager;
 	
 	private AmazonSQSClient sqsClient;
 	
 	private WebhookAuthorizationManager webhookAuthorizationManager;
-	
-	private NodeDAO nodeDao;
-	
+		
 	private Clock clock;
 	
 	private String queueUrl;
 	
 	private LoadingCache<Boolean, List<Pattern>> allowedDomainPatterns;
 	
-	public WebhookManagerImpl(WebhookDao webhookDao, TrashCanDao trashCanDao, AmazonSQSClient sqsClient, WebhookAuthorizationManager webhookAuthorizationManager, NodeDAO nodeDao, Clock clock) {
+	public WebhookManagerImpl(WebhookDao webhookDao, NodeManager nodeManager, AmazonSQSClient sqsClient, WebhookAuthorizationManager webhookAuthorizationManager, Clock clock) {
+		this.nodeManager = nodeManager;
 		this.webhookDao = webhookDao;
-		this.trashCanDao = trashCanDao;
 		this.sqsClient = sqsClient;
 		this.webhookAuthorizationManager = webhookAuthorizationManager;
-		this.nodeDao = nodeDao;
 		this.clock = clock;
 		this.allowedDomainPatterns = CacheBuilder.newBuilder()
 			.ticker(new Ticker() {
@@ -300,7 +292,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	}
 	
 	void processEntityChange(SynapseEventType eventType, Date timestamp, String entityId) {		
-		List<Long> pathIds = getEntityActualPathIds(entityId);
+		List<Long> pathIds = nodeManager.getEntityActualPathIds(entityId);
 		
 		if (pathIds.isEmpty()) {
 			return;
@@ -327,58 +319,6 @@ public class WebhookManagerImpl implements WebhookManager {
 				UUID.randomUUID().toString()
 			);
 		}
-	}
-	
-	List<Long> getEntityActualPathIds(String entityId) {
-		if (NodeUtils.isRootEntityId(entityId)) {
-			return Collections.emptyList();
-		}
-		
-		Iterator<Long> pathIterator;
-		
-		try {
-			// First gather all the entity ids in the hierarchy
-			pathIterator = nodeDao.getEntityPathIds(entityId).iterator();
-		} catch (NotFoundException e) {
-			// The node does not exists anymore, nothing we can do
-			return Collections.emptyList();
-		}
-		
-		// We skip the first id since it is the root node
-		pathIterator.next();
-		
-		if (!pathIterator.hasNext()) {
-			return Collections.emptyList();
-		}
-		
-		List<Long> pathIds = new ArrayList<>();
-		
-		// Fetch the root of the path first
-		Long rootId = pathIterator.next();
-				
-		// If the root of the hierarchy is the trashcan we need to obtain the original path
-		if (BOOTSTRAP_NODES.TRASH.getId().equals(rootId)) {
-			if (pathIterator.hasNext()) {
-				// This is the first node in the path that is in the trashcan
-				Long trashedNodeId = pathIterator.next();
-				
-				trashCanDao.getTrashedEntity(KeyFactory.keyToString(trashedNodeId)).ifPresent(trashedEntity -> {
-					List<Long> trashedNodeOriginalPathIds = getEntityActualPathIds(trashedEntity.getOriginalParentId()); 
-					pathIds.addAll(trashedNodeOriginalPathIds);
-				});
-
-				pathIds.add(trashedNodeId);
-			}
-		} else {
-			pathIds.add(rootId);
-		}
-		
-		// Add the rest of the path
-		while (pathIterator.hasNext()) {
-			pathIds.add(pathIterator.next());
-		}
-		
-		return pathIds;
 	}
 	
 	Webhook generateAndSendVerificationCode(UserInfo userInfo, Webhook webhook) {

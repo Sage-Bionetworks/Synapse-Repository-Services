@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager;
   
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +32,7 @@ import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
@@ -40,9 +44,9 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.dataaccess.AccessType;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.NameIdType;
@@ -81,6 +85,8 @@ public class NodeManagerImpl implements NodeManager {
 	private NodeDAO nodeDao;
 	@Autowired
 	private FileHandleDao fileHandleDao;
+	@Autowired
+	private TrashCanDao trashCanDao;
 	@Autowired
 	private EntityAuthorizationManager authorizationManager;	
 	@Autowired
@@ -858,6 +864,59 @@ public class NodeManagerImpl implements NodeManager {
 	@Override
 	public Optional<Long> findFirstBoundJsonSchema(Long nodeId) {
 		return nodeDao.getEntityIdOfFirstBoundSchema(nodeId);
+	}
+	
+	@Override
+	public List<Long> getEntityActualPathIds(String entityId) {
+		if (NodeUtils.isRootEntityId(entityId)) {
+			return Collections.emptyList();
+		}
+		
+		Iterator<Long> pathIterator;
+		
+		try {
+			// First gather all the entity ids in the hierarchy
+			pathIterator = nodeDao.getEntityPathIds(entityId).iterator();
+		} catch (NotFoundException e) {
+			// The node does not exists anymore, nothing we can do
+			return Collections.emptyList();
+		}
+		
+		// We skip the first id since it is the root node
+		pathIterator.next();
+		
+		if (!pathIterator.hasNext()) {
+			return Collections.emptyList();
+		}
+		
+		List<Long> pathIds = new ArrayList<>();
+		
+		// Fetch the root of the path first
+		Long rootId = pathIterator.next();
+				
+		// If the root of the hierarchy is the trashcan we need to obtain the original path
+		if (BOOTSTRAP_NODES.TRASH.getId().equals(rootId)) {
+			if (pathIterator.hasNext()) {
+				// This is the first node in the path that is in the trashcan
+				Long trashedNodeId = pathIterator.next();
+				
+				trashCanDao.getTrashedEntity(KeyFactory.keyToString(trashedNodeId)).ifPresent(trashedEntity -> {
+					List<Long> trashedNodeOriginalPathIds = getEntityActualPathIds(trashedEntity.getOriginalParentId()); 
+					pathIds.addAll(trashedNodeOriginalPathIds);
+				});
+
+				pathIds.add(trashedNodeId);
+			}
+		} else {
+			pathIds.add(rootId);
+		}
+		
+		// Add the rest of the path
+		while (pathIterator.hasNext()) {
+			pathIds.add(pathIterator.next());
+		}
+		
+		return pathIds;
 	}
 
 	@Override

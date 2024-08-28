@@ -44,6 +44,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
@@ -94,10 +95,7 @@ public class WebhookManagerUnitTest {
 	private WebhookAuthorizationManager mockWebhookAuthorizationManager;
 	
 	@Mock
-	private NodeDAO mockNodeDao;
-	
-	@Mock
-	private TrashCanDao mockTrashDao;
+	private NodeManager mockNodeManager;
 	
 	@Mock
 	private Clock mockClock;
@@ -880,7 +878,7 @@ public class WebhookManagerUnitTest {
 		String entityId = "123456";
 		Date eventTimestamp = new Date();		
 		
-		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityActualPathIds(entityId);		
+		doReturn(List.of(456L, 123L)).when(mockNodeManager).getEntityActualPathIds(entityId);		
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
 				
@@ -903,7 +901,7 @@ public class WebhookManagerUnitTest {
 		String entityId = "123456";
 		Date eventTimestamp = new Date();
 		
-		doReturn(Collections.emptyList()).when(webhookManager).getEntityActualPathIds(entityId);
+		doReturn(Collections.emptyList()).when(mockNodeManager).getEntityActualPathIds(entityId);
 						
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
@@ -917,7 +915,7 @@ public class WebhookManagerUnitTest {
 		String entityId = "123456";
 		Date eventTimestamp = new Date();		
 		
-		doReturn(List.of(456L, 123L)).when(webhookManager).getEntityActualPathIds(entityId);		
+		doReturn(List.of(456L, 123L)).when(mockNodeManager).getEntityActualPathIds(entityId);		
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));	
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(false);
 				
@@ -925,100 +923,6 @@ public class WebhookManagerUnitTest {
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
 		verify(webhookManager, never()).publishWebhookMessage(any(), any(), any());
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithSingleNode() {
-		String entityId = "1";
-		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 1L));
-		
-		// Call under test
-		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithParentNode() {
-		String entityId = "1";
-		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 2L, 1L));
-		
-		// Call under test
-		assertEquals(List.of(2L, 1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithEntityInTrashcan() {
-		String entityId = "syn1";
-		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
-		when(mockTrashDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn2")));
-		when(mockNodeDao.getEntityPathIds("syn2")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 3L, 2L));
-		
-		// Call under test
-		assertEquals(List.of(3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithProjectInTrashcan() {
-		String entityId = "syn1";
-		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
-		when(mockTrashDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId(BOOTSTRAP_NODES.ROOT.getId().toString())));
-		
-		// Call under test
-		assertEquals(List.of(1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithEntityRootInTrashcan() {
-		String entityId = "syn1";
-		
-		// The root of the entity is in the trash
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
-		when(mockTrashDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
-		
-		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 5L, 4L, 3L));
-		
-		// Call under test
-		assertEquals(List.of(5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithMultipleEntityRootInTrashcan() {
-		String entityId = "syn1";
-		
-		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
-		when(mockTrashDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
-		// The root of this node is also in the trash
-		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 4L, 3L));
-		when(mockTrashDao.getTrashedEntity("syn4")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn5")));
-		when(mockNodeDao.getEntityPathIds("syn5")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 6L, 5L));
-		
-		// Call under test
-		assertEquals(List.of(6L, 5L, 4L, 3L, 2L, 1L), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyNoMoreInteractions(mockNodeDao, mockTrashDao);
-	}
-	
-	@Test
-	public void testGetEntityActualPathIdsWithRootNode() {
-		String entityId = BOOTSTRAP_NODES.ROOT.getId().toString();
-				
-		// Call under test
-		assertEquals(Collections.emptyList(), webhookManager.getEntityActualPathIds(entityId));
-		
-		verifyZeroInteractions(mockNodeDao, mockTrashDao);
 	}
 	
 	@Test
