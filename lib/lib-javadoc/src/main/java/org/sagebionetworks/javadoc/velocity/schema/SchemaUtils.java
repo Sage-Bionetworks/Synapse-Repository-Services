@@ -6,6 +6,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.TypeMirror;
+
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.HasEffectiveSchema;
@@ -17,14 +23,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.server.ServerSideOnlyFactory;
 
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.VariableElement;
 import jdk.javadoc.doclet.DocletEnvironment;
-
-import javax.lang.model.type.NoType;
-import javax.lang.model.type.TypeMirror;
 
 public class SchemaUtils {
 	
@@ -62,7 +61,7 @@ public class SchemaUtils {
 			recursiveAddSubTypes(env, schemaMap, returnType);
 		}
 		method.getParameters().forEach(param -> {
-			TypeElement paramType = env.getElementUtils().getTypeElement(param.toString());
+			TypeElement paramType = env.getElementUtils().getTypeElement(param.asType().toString());
 			recursiveAddSubTypes(env, schemaMap, paramType);
 		});
 	}

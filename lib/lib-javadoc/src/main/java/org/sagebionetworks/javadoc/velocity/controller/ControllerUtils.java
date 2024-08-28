@@ -16,6 +16,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
+import javax.xml.stream.events.EndElement;
 
 import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
@@ -35,6 +36,9 @@ import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.doctree.DocTree;
 import com.sun.source.doctree.ParamTree;
 import com.sun.source.doctree.TextTree;
+import com.sun.source.doctree.StartElementTree;
+import com.sun.source.doctree.EndElementTree;
+import com.sun.source.doctree.AttributeTree;
 
 import jdk.javadoc.doclet.DocletEnvironment;
 
@@ -200,9 +204,9 @@ public class ControllerUtils {
         	}
         }
         
+        // Find the text associated with each method parameter
         DocCommentTree docTree = env.getDocTrees().getDocCommentTree(executableElement);
         if(docTree != null) {
-        	System.out.println(docTree);
         	docTree.getBlockTags().stream().filter(t-> t instanceof ParamTree ).map(t->(ParamTree)t).forEach(t->{
         		ParameterModel paramModel = paramMap.get(t.getName().toString());
         		if(paramModel != null) {
@@ -210,19 +214,46 @@ public class ControllerUtils {
         		}
         	});
         }
-		System.out.println(methodModel);
-        // Lookup the parameter descriptions
 	}
-	
-    public static String extractText(List<? extends DocTree> tree) {
-        StringBuilder sb = new StringBuilder();
-        tree.forEach(t->{
-            if (t instanceof TextTree) {
-                sb.append(((TextTree) t).getBody());
-            }
-        });
-        return sb.toString();
-    }
+
+	public static String extractText(List<? extends DocTree> tree) {
+		StringBuilder sb = new StringBuilder();
+		tree.forEach(t -> {
+			if (t instanceof TextTree) {
+				sb.append(((TextTree) t).getBody());
+			} else if (t instanceof StartElementTree) {
+				StartElementTree s = (StartElementTree) t;
+				extractStartElement(sb, s);
+			} else if (t instanceof EndElementTree) {
+				EndElementTree e = (EndElementTree) t;
+				extractEndElement(sb, e);
+			} else {
+				System.out.println("Unknown type: " + t.getClass().toString());
+			}
+		});
+		return sb.toString();
+	}
+
+	public static void extractEndElement(StringBuilder sb, EndElementTree e) {
+		sb.append("</");
+		sb.append(e.getName());
+		sb.append(">");
+	}
+
+	public static void extractStartElement(StringBuilder sb, StartElementTree s) {
+		sb.append("<");
+		sb.append(s.getName());
+
+		s.getAttributes().stream().filter(a -> a instanceof AttributeTree).map(a -> (AttributeTree) a)
+				.forEach(a -> {
+					sb.append(" ").append(a.getName().toString()).append("=\"").append(a.getValue())
+							.append("\"");
+				});
+		if (s.isSelfClosing()) {
+			sb.append("/");
+		}
+		sb.append(">");
+	}
 
 	private static void processMethodAnnotations(DocletEnvironment env, ExecutableElement executableElement,
 			MethodModel methodModel) {
@@ -230,7 +261,6 @@ public class ControllerUtils {
         if(annos != null){
         	for (AnnotationMirror ad: annos) {
         		String qualifiedName = ad.getAnnotationType().toString();
-        		System.out.println(qualifiedName);
         	if (RequestMapping.class.getName().equals(qualifiedName)){
         			extractRequestMapping(methodModel, ad);
         		} else if (ResponseBody.class.getName().equals(qualifiedName)) {
