@@ -57,7 +57,8 @@ public class SchemaUtils {
 		TypeMirror noType = env.getElementUtils().getTypeElement(NoType.class.getName()).asType();
 		
 		if(!env.getTypeUtils().isAssignable(method.getReturnType(), noType)) {
-			TypeElement returnType = env.getElementUtils().getTypeElement(method.getReturnType().toString());
+			TypeElement returnType = env.getElementUtils()
+					.getTypeElement(env.getTypeUtils().erasure(method.getReturnType()).toString());
 			recursiveAddSubTypes(env, schemaMap, returnType);
 		}
 		method.getParameters().forEach(param -> {

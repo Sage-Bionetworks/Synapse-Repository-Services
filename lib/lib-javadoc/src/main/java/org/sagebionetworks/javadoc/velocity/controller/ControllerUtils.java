@@ -15,6 +15,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.xml.stream.events.EndElement;
 
@@ -22,12 +23,14 @@ import org.jsoup.Jsoup;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -222,11 +225,9 @@ public class ControllerUtils {
 			if (t instanceof TextTree) {
 				sb.append(((TextTree) t).getBody());
 			} else if (t instanceof StartElementTree) {
-				StartElementTree s = (StartElementTree) t;
-				extractStartElement(sb, s);
+				sb.append((StartElementTree) t);
 			} else if (t instanceof EndElementTree) {
-				EndElementTree e = (EndElementTree) t;
-				extractEndElement(sb, e);
+				sb.append((EndElementTree) t);
 			} else {
 				System.out.println("Unknown type: " + t.getClass().toString());
 			}
@@ -234,26 +235,6 @@ public class ControllerUtils {
 		return sb.toString();
 	}
 
-	public static void extractEndElement(StringBuilder sb, EndElementTree e) {
-		sb.append("</");
-		sb.append(e.getName());
-		sb.append(">");
-	}
-
-	public static void extractStartElement(StringBuilder sb, StartElementTree s) {
-		sb.append("<");
-		sb.append(s.getName());
-
-		s.getAttributes().stream().filter(a -> a instanceof AttributeTree).map(a -> (AttributeTree) a)
-				.forEach(a -> {
-					sb.append(" ").append(a.getName().toString()).append("=\"").append(a.getValue())
-							.append("\"");
-				});
-		if (s.isSelfClosing()) {
-			sb.append("/");
-		}
-		sb.append(">");
-	}
 
 	private static void processMethodAnnotations(DocletEnvironment env, ExecutableElement executableElement,
 			MethodModel methodModel) {
@@ -278,7 +259,13 @@ public class ControllerUtils {
 			if(v.getValue() != null) {
 				Collection<?> coll = (Collection<?>) v.getValue();
 				coll.forEach(s->{
-					requiredScopes.add(s.toString());
+					String rawValue = s.toString();
+					if(rawValue.startsWith(OAuthScope.class.getName())) {
+						int i = OAuthScope.class.getName().toString().length();
+						requiredScopes.add(s.toString().substring(i+1));
+					}else {
+						requiredScopes.add(rawValue);
+					}
 				});
 			}
 		});
@@ -290,7 +277,9 @@ public class ControllerUtils {
 	}	
 
 	private static void extractResponseLink(DocletEnvironment env, ExecutableElement executableElement, MethodModel methodModel) {
-		TypeElement returnType = env.getElementUtils().getTypeElement(executableElement.getReturnType().toString());
+		// If the return type is a generic, erasure() will return the outside class.
+		TypeElement returnType = env.getElementUtils()
+				.getTypeElement(env.getTypeUtils().erasure(executableElement.getReturnType()).toString());
 		if(returnType == null) {
 			return;
 		}
@@ -303,17 +292,20 @@ public class ControllerUtils {
 		responseLink.setHref("${" + returnType.getQualifiedName().toString() + "}");
 		responseLink.setDisplay(returnType.getSimpleName().toString());
 		methodModel.setResponseBody(responseLink);
-
-		if (!returnType.getTypeParameters().isEmpty()) {
+		
+		if(executableElement.getReturnType() instanceof DeclaredType) {
+			DeclaredType returnDeclared = (DeclaredType) executableElement.getReturnType();
 			List<Link> genericParameters = Lists.newArrayList();
-			for (TypeParameterElement type : returnType.getTypeParameters()) {
-				TypeElement paramType = env.getElementUtils().getTypeElement(type.toString());
+			returnDeclared.getTypeArguments().forEach(a->{
+				TypeElement paramType = env.getElementUtils().getTypeElement(a.toString());
 				Link link = new Link();
 				link.setHref("${" + paramType.getQualifiedName().toString() + "}");
 				link.setDisplay(paramType.getSimpleName().toString());
 				genericParameters.add(link);
+			});
+			if(!genericParameters.isEmpty()) {
+				methodModel.setResponseBodyGenericParams(genericParameters.toArray(new Link[] {}));
 			}
-			methodModel.setResponseBodyGenericParams(genericParameters.toArray(new Link[] {}));
 		}
 	}
 
@@ -330,7 +322,14 @@ public class ControllerUtils {
 		    		methodModel.setUrl(rawValue.substring(1, rawValue.length()-1));
 				}
 			}else if("method".equals(k.getSimpleName().toString())){
-				methodModel.setHttpType(v.getValue().toString());
+				String rawValue = v.getValue().toString();
+				if(rawValue.startsWith(RequestMethod.class.getName())) {
+					int inxed = RequestMethod.class.getName().length();
+					methodModel.setHttpType(v.getValue().toString().substring(inxed+1));
+				}else {
+					methodModel.setHttpType(rawValue);
+				}
+
 			}
 		});
 	}

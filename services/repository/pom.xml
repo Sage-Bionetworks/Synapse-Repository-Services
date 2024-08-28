@@ -246,11 +246,8 @@
 								<artifactId>lib-javadoc</artifactId>
 								<version>${project.version}</version>
 							</docletArtifact>
-							<additionalparam>-verbose</additionalparam>
+							<additionalparam>-verbose,-d,${project.build.directory}/javadoc/restdocs,-authControllerName,org.sagebionetworks.auth.controller.AuthenticationController</additionalparam>
 							<useStandardDocletOptions>false</useStandardDocletOptions>
-							<destDir>${project.build.directory}/javadoc/restdocs</destDir>
-							<!-- This name is used to link to the authentication controller -->
-							<additionalJOption>-authControllerName org.sagebionetworks.auth.controller.AuthenticationController</additionalJOption>
 							<additionnalDependencies>
 								<additionnalDependency>
 									<groupId>org.sagebionetworks</groupId>
