@@ -107,6 +107,23 @@ public class SpringMVCDocletTest {
 					assertTrue(resultFile.exists(), "Result file does not exist: " + resultFile);
 					String expected = FileUtils.readFileToString(p.toFile(), "UTF-8");
 					String results = FileUtils.readFileToString(resultFile, "UTF-8");
+					if(!expected.equals(results)) {
+						StringBuilder expectedBuffer = new StringBuilder("expected:\n");
+						StringBuilder resultBuffer = new StringBuilder("result:\n");
+						for(int i=0; i<expected.length(); i++) {
+							if(results.length() > i) {
+								char e = expected.charAt(i);
+								char r = results.charAt(i);
+								if(e != r) {
+									expectedBuffer.append(e);
+									resultBuffer.append(r);
+								}
+							}
+						}
+						System.out.println(expectedBuffer);
+						System.out.println("------------------");
+						System.out.println(resultBuffer);
+					}
 					assertEquals(expected, results);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
