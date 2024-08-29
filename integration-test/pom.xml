@@ -15,7 +15,7 @@
 
 	<properties>
 		<jacoco.skip>true</jacoco.skip>
-		<tomcat-version>8.5.78</tomcat-version>
+		<tomcat-version>9.0.91</tomcat-version>
 		<!-- This is the context relative to localhost where the services-repository war will be deployed
 			Note that it is important that this matches the org.sagebionetworks.base.endpoint property configured in the lib-stackConfiguration
 			since the java client used by the integration tests will use that property to set the base endpoint where to send requests
