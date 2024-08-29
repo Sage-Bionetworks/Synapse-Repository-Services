@@ -5,6 +5,11 @@ import java.util.Date;
 public class DefaultClock implements Clock {
 
 	@Override
+	public long nanoTime() {
+		return System.nanoTime();
+	}
+	
+	@Override
 	public long currentTimeMillis() {
 		return System.currentTimeMillis();
 	}

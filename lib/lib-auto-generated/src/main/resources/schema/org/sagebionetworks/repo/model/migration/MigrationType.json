@@ -451,6 +451,10 @@
 			"description": "Table that stores Webhooks verification data"
 		},
 		{
+			"name": "WEBHOOK_ALLOWED_DOMAIN",
+			"description": "Table that stores allowed domain patterns for webhook endpoints"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

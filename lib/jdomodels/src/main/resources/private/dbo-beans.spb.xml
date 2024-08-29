@@ -179,6 +179,7 @@
 				<!-- Webhook table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookAllowedDomain"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -319,6 +320,7 @@
 				<!-- Webhook table -->
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookAllowedDomain"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

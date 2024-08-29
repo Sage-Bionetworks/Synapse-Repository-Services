@@ -254,7 +254,7 @@ public class AwsClientFactory {
 	 * 
 	 * @return An instance of the {@link AmazonApiGatewayV2} client using the synpase credential chain
 	 */
-	public static AmazonApiGatewayV2 createAnazonApiGatewayClient() {
+	public static AmazonApiGatewayV2 createAmazonApiGatewayClient() {
 		return AmazonApiGatewayV2ClientBuilder.standard()
 				.withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())

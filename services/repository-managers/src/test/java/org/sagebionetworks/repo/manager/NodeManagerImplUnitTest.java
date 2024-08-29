@@ -18,11 +18,14 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
@@ -50,15 +53,18 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.NameValidation;
@@ -85,6 +91,8 @@ public class NodeManagerImplUnitTest {
 	private EntityAuthorizationManager mockAuthManager;
 	@Mock
 	private AccessControlListDAO mockAclDao = null;
+	@Mock
+	private TrashCanDao mockTrashcanDao;
 	@Mock
 	private EntityBootstrapper mockEntityBootstrapper;
 	@Mock
@@ -1908,4 +1916,97 @@ public class NodeManagerImplUnitTest {
 		verify(mockNodeDao).getEntityPath(nodeId);
 	}
 	
+	@Test
+	public void testGetEntityActualPathIdsWithSingleNode() {
+		String entityId = "1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 1L));
+		
+		// Call under test
+		assertEquals(List.of(1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithParentNode() {
+		String entityId = "1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 2L, 1L));
+		
+		// Call under test
+		assertEquals(List.of(2L, 1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithEntityInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
+		when(mockTrashcanDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn2")));
+		when(mockNodeDao.getEntityPathIds("syn2")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 3L, 2L));
+		
+		// Call under test
+		assertEquals(List.of(3L, 2L, 1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithProjectInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 1L));
+		when(mockTrashcanDao.getTrashedEntity(entityId)).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId(BOOTSTRAP_NODES.ROOT.getId().toString())));
+		
+		// Call under test
+		assertEquals(List.of(1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithEntityRootInTrashcan() {
+		String entityId = "syn1";
+		
+		// The root of the entity is in the trash
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
+		when(mockTrashcanDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
+		
+		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 5L, 4L, 3L));
+		
+		// Call under test
+		assertEquals(List.of(5L, 4L, 3L, 2L, 1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithMultipleEntityRootInTrashcan() {
+		String entityId = "syn1";
+		
+		when(mockNodeDao.getEntityPathIds(entityId)).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 2L, 1L));
+		when(mockTrashcanDao.getTrashedEntity("syn2")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn3")));
+		// The root of this node is also in the trash
+		when(mockNodeDao.getEntityPathIds("syn3")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), BOOTSTRAP_NODES.TRASH.getId(), 4L, 3L));
+		when(mockTrashcanDao.getTrashedEntity("syn4")).thenReturn(Optional.of(new TrashedEntity().setOriginalParentId("syn5")));
+		when(mockNodeDao.getEntityPathIds("syn5")).thenReturn(List.of(BOOTSTRAP_NODES.ROOT.getId(), 6L, 5L));
+		
+		// Call under test
+		assertEquals(List.of(6L, 5L, 4L, 3L, 2L, 1L), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyNoMoreInteractions(mockNodeDao, mockTrashcanDao);
+	}
+	
+	@Test
+	public void testGetEntityActualPathIdsWithRootNode() {
+		String entityId = BOOTSTRAP_NODES.ROOT.getId().toString();
+				
+		// Call under test
+		assertEquals(Collections.emptyList(), nodeManager.getEntityActualPathIds(entityId));
+		
+		verifyZeroInteractions(mockNodeDao, mockTrashcanDao);
+	}
 }

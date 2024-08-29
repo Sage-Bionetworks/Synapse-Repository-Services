@@ -417,6 +417,13 @@ public interface NodeManager {
 	 */
 	public Optional<Long> findFirstBoundJsonSchema(Long nodeId);
 	
+	/**
+	 * @param entityId
+	 * @return The path for the entity with the given id ignoring the trashcan state of any entity along the path. 
+	 * The list will be ordered from root (up to the project level) to leaf (the entity itself)
+	 */
+	List<Long> getEntityActualPathIds(String entityId);
+	
 	public void truncateAll();
 
 }

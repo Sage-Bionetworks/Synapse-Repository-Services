@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.webhook;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MODIFIED_ON;
@@ -30,55 +31,62 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 	private Timestamp modifiedOn;
 	private String code;
 	private Timestamp codeExpiresOn;
+	private String codeMessageId;
 	private String status;
 	private String message;
 
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
+	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("webhookId", COL_WEBHOOK_VERIFICATION_ID, true).withIsBackupId(true),
 		new FieldColumn("etag", COL_WEBHOOK_VERIFICATION_ETAG).withIsEtag(true),
 		new FieldColumn("modifiedOn", COL_WEBHOOK_VERIFICATION_MODIFIED_ON),
 		new FieldColumn("code", COL_WEBHOOK_VERIFICATION_CODE),
 		new FieldColumn("codeExpiresOn", COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON),
+		new FieldColumn("codeMessageId", COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID),
 		new FieldColumn("status", COL_WEBHOOK_VERIFICATION_STATUS),
 		new FieldColumn("message", COL_WEBHOOK_VERIFICATION_MSG)
 	};
+	
+	private static final TableMapping<DBOWebhookVerification> TABLE_MAPPING = new TableMapping<>() {
+		@Override
+		public DBOWebhookVerification mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOWebhookVerification dbo = new DBOWebhookVerification();
+			dbo.setWebhookId(rs.getLong(COL_WEBHOOK_VERIFICATION_ID));
+			dbo.setEtag(rs.getString(COL_WEBHOOK_VERIFICATION_ETAG));
+			dbo.setModifiedOn(rs.getTimestamp(COL_WEBHOOK_VERIFICATION_MODIFIED_ON));
+			dbo.setCode(rs.getString(COL_WEBHOOK_VERIFICATION_CODE));
+			dbo.setCodeExpiresOn(rs.getTimestamp(COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON));
+			dbo.setCodeMessageId(rs.getString(COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID));
+			dbo.setStatus(rs.getString(COL_WEBHOOK_VERIFICATION_STATUS));
+			dbo.setMessage(rs.getString(COL_WEBHOOK_VERIFICATION_MSG));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_WEBHOOK_VERIFICATION;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_WEBHOOK_VERIFICATION;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOWebhookVerification> getDBOClass() {
+			return DBOWebhookVerification.class;
+		}
+	};
+	
+	private static final BasicMigratableTableTranslation<DBOWebhookVerification> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOWebhookVerification> getTableMapping() {
-		return new TableMapping<DBOWebhookVerification>() {
-			@Override
-			public DBOWebhookVerification mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOWebhookVerification dbo = new DBOWebhookVerification();
-				dbo.setWebhookId(rs.getLong(COL_WEBHOOK_VERIFICATION_ID));
-				dbo.setEtag(rs.getString(COL_WEBHOOK_VERIFICATION_ETAG));
-				dbo.setModifiedOn(rs.getTimestamp(COL_WEBHOOK_VERIFICATION_MODIFIED_ON));
-				dbo.setCode(rs.getString(COL_WEBHOOK_VERIFICATION_CODE));
-				dbo.setCodeExpiresOn(rs.getTimestamp(COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON));
-				dbo.setStatus(rs.getString(COL_WEBHOOK_VERIFICATION_STATUS));
-				
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_WEBHOOK_VERIFICATION;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_WEBHOOK_VERIFICATION;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOWebhookVerification> getDBOClass() {
-				return DBOWebhookVerification.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 
 	@Override
@@ -88,7 +96,7 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 
 	@Override
 	public MigratableTableTranslation<DBOWebhookVerification, DBOWebhookVerification> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOWebhookVerification>();
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override
@@ -150,6 +158,15 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 		this.codeExpiresOn = codeExpiresOn;
 		return this;
 	}
+	
+	public String getCodeMessageId() {
+		return codeMessageId;
+	}
+	
+	public DBOWebhookVerification setCodeMessageId(String messageId) {
+		this.codeMessageId = messageId;
+		return this;
+	}
 
 	public String getStatus() {
 		return status;
@@ -171,7 +188,7 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(code, codeExpiresOn, etag, modifiedOn, status, webhookId);
+		return Objects.hash(code, codeExpiresOn, codeMessageId, etag, message, modifiedOn, status, webhookId);
 	}
 
 	@Override
@@ -184,15 +201,16 @@ public class DBOWebhookVerification implements MigratableDatabaseObject<DBOWebho
 		}
 		DBOWebhookVerification other = (DBOWebhookVerification) obj;
 		return Objects.equals(code, other.code) && Objects.equals(codeExpiresOn, other.codeExpiresOn)
-				&& Objects.equals(etag, other.etag)
-				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(status, other.status)
-				&& Objects.equals(webhookId, other.webhookId);
+				&& Objects.equals(codeMessageId, other.codeMessageId) && Objects.equals(etag, other.etag)
+				&& Objects.equals(message, other.message) && Objects.equals(modifiedOn, other.modifiedOn)
+				&& Objects.equals(status, other.status) && Objects.equals(webhookId, other.webhookId);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOWebhookVerification [webhookId=" + webhookId + ", etag=" + etag + ", modifiedOn="
-				+ modifiedOn + ", code=" + code + ", codeExpiresOn=" + codeExpiresOn + ", status=" + status + "]";
+		return "DBOWebhookVerification [webhookId=" + webhookId + ", etag=" + etag + ", modifiedOn=" + modifiedOn + ", code=" + code
+				+ ", codeExpiresOn=" + codeExpiresOn + ", codeMessageId=" + codeMessageId + ", status=" + status + ", message=" + message
+				+ "]";
 	}
 
 }
