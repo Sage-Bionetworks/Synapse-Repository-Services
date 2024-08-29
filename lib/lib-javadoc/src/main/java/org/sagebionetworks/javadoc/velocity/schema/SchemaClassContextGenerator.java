@@ -5,11 +5,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.sun.javadoc.RootDoc;
 import org.apache.velocity.context.Context;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
-import org.sagebionetworks.javadoc.velocity.ContextFactory;
+import org.sagebionetworks.javadoc.velocity.ContextInput;
 import org.sagebionetworks.schema.ObjectSchema;
 
 /**
@@ -20,10 +19,10 @@ import org.sagebionetworks.schema.ObjectSchema;
 public class SchemaClassContextGenerator implements ClassContextGenerator{
 
 	@Override
-	public List<ClassContext> generateContext(ContextFactory factory, RootDoc root) throws Exception {
+	public List<ClassContext> generateContext(ContextInput input) throws Exception {
 		Map<String, ObjectSchema> schemaMap = new HashMap<String, ObjectSchema>();
 		// First find all of the JSONEntity names
-		SchemaUtils.findSchemaFiles(schemaMap, root);
+		SchemaUtils.findSchemaFiles(schemaMap, input.getDocletEnvironment());
 		
 		Map<String, List<TypeReference>> knownImplementaions = SchemaUtils.mapImplementationsToIntefaces(schemaMap);
         // Render each schema
@@ -34,12 +33,13 @@ public class SchemaClassContextGenerator implements ClassContextGenerator{
         	// Translate the schema to a model
         	ObjectSchemaModel model = SchemaUtils.translateToModel(schema, implementations);
         	// Create a context and add the model
-        	Context context = factory.createNewContext();
+        	Context context = input.getContextFactory().createNewContext();
         	context.put("model", model);
         	ClassContext classContext = new ClassContext(name, "schemaHTMLTemplate.html", context);
         	results.add(classContext);
         }
         return results;
 	}
+
 
 }

@@ -1,42 +1,37 @@
-package org.sagebionetworks.samples;
-import java.io.IOException;
-import java.util.List;
+package controller;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
+import java.io.IOException;
+
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
-import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.project.StorageLocationSetting;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.javadoc.testclasses.GenericList;
-import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.sagebionetworks.repo.web.RequiredScope;
-import static org.sagebionetworks.repo.model.oauth.OAuthScope.*;
 
 /**
  * Proin ornare ligula eu tellus tempus elementum. Aenean bibendum iaculis mi,
@@ -268,12 +263,11 @@ public class ExampleController {
 	@RequestMapping(value = "/void", method = RequestMethod.GET)
 	public @ResponseBody
 	void noParamsOrReturn() {
-		return null;
 	}
 
 	/**
 	 * Get getting an object that is an interface
-	 * Link to this controller <a href="${org.sagebionetworks.samples.ExampleController}">Example Controller</a>
+	 * Link to this controller <a href="${controller.ExampleController}">Example Controller</a>
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -328,7 +322,7 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/some/enum", method = RequestMethod.GET)
 	public @ResponseBody Long enumParam(
-			@RequestParam(value = ServiceConstants.DISCUSSION_FILTER_PARAM) DiscussionFilter filter) {
+			@RequestParam(value = "filter") DiscussionFilter filter) {
 		return null;
 	}
 	

@@ -6,6 +6,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.TypeMirror;
+
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.HasEffectiveSchema;
@@ -17,15 +23,11 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.schema.generator.EffectiveSchemaUtil;
 import org.sagebionetworks.server.ServerSideOnlyFactory;
 
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
-import com.sun.javadoc.Parameter;
-import com.sun.javadoc.RootDoc;
-import com.sun.javadoc.Type;
+import jdk.javadoc.doclet.DocletEnvironment;
 
 public class SchemaUtils {
 	
-	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	RootDoc root) {
+	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	DocletEnvironment root) {
 		// Add all know concrete classes from the Factory.
 		ServerSideOnlyFactory autoGen = new ServerSideOnlyFactory();
 		Iterator<String> keySet = autoGen.getKeySetIterator();
@@ -34,13 +36,13 @@ public class SchemaUtils {
 			ObjectSchema schema = SchemaUtils.getSchema(name);
 			SchemaUtils.recursiveAddTypes(schemaMap, name, schema);
 		}
-        Iterator<ClassDoc> contollers = FilterUtils.controllerIterator(root.classes());
+        Iterator<TypeElement> contollers = FilterUtils.controllerIterator(root);
         while(contollers.hasNext()){
-        	ClassDoc classDoc = contollers.next();
-        	Iterator<MethodDoc> methodIt = FilterUtils.requestMappingIterator(classDoc.methods());
+        	TypeElement typeElement = contollers.next();
+        	Iterator<ExecutableElement> methodIt = FilterUtils.requestMappingIterator(typeElement);
         	while(methodIt.hasNext()){
-        		MethodDoc methodDoc = methodIt.next();
-        		SchemaUtils.findSchemaFiles(schemaMap, methodDoc);
+        		ExecutableElement ExecutableElement = methodIt.next();
+        		SchemaUtils.findSchemaFiles(root, schemaMap, ExecutableElement);
         	}
         }
 	}
@@ -51,28 +53,24 @@ public class SchemaUtils {
 	 * @param set
 	 * @param method
 	 */
-	public static void findSchemaFiles(Map<String, ObjectSchema> schemaMap,	MethodDoc method) {
-		// A schema class can be used for the return type or a parameters
-		Type returnType = method.returnType();
-		ClassDoc returnClassDoc = returnType.asClassDoc();
-		if (returnClassDoc != null) {
-			// Get the full name
-			recursiveAddSubTypes(schemaMap, returnClassDoc);
+	public static void findSchemaFiles(DocletEnvironment env, Map<String, ObjectSchema> schemaMap,	ExecutableElement method) {
+		TypeMirror noType = env.getElementUtils().getTypeElement(NoType.class.getName()).asType();
+		
+		if(!env.getTypeUtils().isAssignable(method.getReturnType(), noType)) {
+			TypeElement returnType = env.getElementUtils()
+					.getTypeElement(env.getTypeUtils().erasure(method.getReturnType()).toString());
+			recursiveAddSubTypes(env, schemaMap, returnType);
 		}
-		// Apply the same test to all parameters
-		Parameter[] params = method.parameters();
-		if (params != null) {
-			for (Parameter param : params) {
-				ClassDoc paramClass = param.type().asClassDoc();
-				recursiveAddSubTypes(schemaMap, paramClass);
-			}
-		}
+		method.getParameters().forEach(param -> {
+			TypeElement paramType = env.getElementUtils().getTypeElement(param.asType().toString());
+			recursiveAddSubTypes(env, schemaMap, paramType);
+		});
 	}
 
-	private static void recursiveAddSubTypes(Map<String, ObjectSchema> schemaMap, ClassDoc paramClass) {
-		if (implementsJSONEntityOrEnum(paramClass)) {
+	private static void recursiveAddSubTypes(DocletEnvironment env, Map<String, ObjectSchema> schemaMap, TypeElement paramClass) {
+		if (implementsJSONEntityOrEnum(env, paramClass)) {
 			// Lookup the schema and add sub types.
-			recursiveAddTypes(schemaMap, paramClass.qualifiedName(), null);
+			recursiveAddTypes(schemaMap, paramClass.getQualifiedName().toString(), null);
 		}
 	}
 
@@ -168,25 +166,18 @@ public class SchemaUtils {
 	/**
 	 * Does the given class implement JSONEntity.
 	 * 
-	 * @param classDoc
+	 * @param TypeElement
 	 * @return
 	 */
-	public static boolean implementsJSONEntityOrEnum(ClassDoc classDoc) {
-		// primitives will not have a class and do not implement JSONEntity
-		if (classDoc == null)
+	public static boolean implementsJSONEntityOrEnum(DocletEnvironment env, TypeElement typeElement) {
+		if(typeElement == null) {
 			return false;
-		if (classDoc.isEnum()) {
-			return true;
 		}
-		ClassDoc[] interfaces = classDoc.interfaces();
-		if (interfaces != null) {
-			for (ClassDoc doc : interfaces) {
-				if (JSONEntity.class.getName().equals(doc.qualifiedName())) {
-					return true;
-				}
-			}
-		}
-		return false;
+        if (typeElement.getKind() == ElementKind.ENUM) {
+            return true;
+        }
+		TypeMirror jsonEntityType = env.getElementUtils().getTypeElement(JSONEntity.class.getName()).asType();
+		return env.getTypeUtils().isAssignable(typeElement.asType(), jsonEntityType);
 	}
 
 	/**
