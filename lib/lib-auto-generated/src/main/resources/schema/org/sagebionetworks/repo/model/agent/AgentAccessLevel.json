@@ -1,0 +1,19 @@
+{
+	"description": "Defines the level of data access that the agent will be given during a session.",
+	"name": "AgentAccessLevel",
+	"type": "string",
+	"enum": [
+		{
+			"name": "PUBLICLY_ACCESSIBLE",
+			"description": "The agent will only have access to ALL data that is already publicly available to anyone."
+		},
+		{
+			"name": "READ_YOUR_PRIVATE_DATA",
+			"description": "The agent will have access to ALL data in Synapse that you have 'read' access to.  The agent will also have access to ALL data that is publicly available."
+		},
+		{
+			"name": "WRITE_YOUR_PRIVATE_DATA",
+			"description": "Grant the agent permission to make data changes within Synapse on your behalf. Any change the agent makes will be attributed to you.  Under this level the Agent will also have access to ALL data in Synapse that you have 'read' access to.  The agent will also have access to ALL data that is publicly available."
+		}
+	]
+}
