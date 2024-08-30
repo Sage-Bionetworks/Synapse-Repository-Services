@@ -21,6 +21,10 @@
 		{
 			"name": "TWO_FA_REQUIRED",
 			"description": "Two factor authentication is required."
+		},
+		{
+			"name": "UNSUPPORTED_WEBHOOK_DOMAIN",
+			"description": "The webhook endpoint domain is not whitelisted."
 		}
 	]
 }
