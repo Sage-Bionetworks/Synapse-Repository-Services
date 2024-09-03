@@ -43,12 +43,12 @@ import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.WebhookDomainUnsupportedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -170,6 +170,21 @@ public class WebhookManagerImpl implements WebhookManager {
 		}
 		
 		return updated;
+	}
+	
+	@WriteTransaction
+	@Override
+	public Webhook sendNewVerficationCode(UserInfo userInfo, String webhookId) {
+		ValidateArgument.required(userInfo, "The userInfo");
+		ValidateArgument.required(webhookId, "The webhookId");
+		
+		boolean forUpdate = true;
+		
+		Webhook webhook = getWebhook(userInfo, webhookId, forUpdate);
+
+		ValidateArgument.requirement(!WebhookVerificationStatus.VERIFIED.equals(webhook.getVerificationStatus()), "The webhook is already verified.");
+		
+		return generateAndSendVerificationCode(userInfo, webhook);
 	}
 
 	@WriteTransaction
@@ -352,17 +367,12 @@ public class WebhookManagerImpl implements WebhookManager {
 			throw new IllegalStateException(e);
 		}
 		
-		try {
-			sqsClient.sendMessage(
-				new SendMessageRequest()
-					.withQueueUrl(queueUrl)
-					.withMessageBody(messageJson)
-					.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook, messageId))
-			);
-		} catch (Throwable e) {
-			// If we fail to send the message to the queue, give a chance to retry
-			throw new RecoverableMessageException(e);
-		}
+		sqsClient.sendMessage(
+			new SendMessageRequest()
+				.withQueueUrl(queueUrl)
+				.withMessageBody(messageJson)
+				.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook, messageId))
+		);
 	}
 	
 	void validateCreateOrUpdateRequest(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
@@ -393,9 +403,10 @@ public class WebhookManagerImpl implements WebhookManager {
 			throw new IllegalArgumentException("The invoke endpoint is invalid.");
 		}
 		
-		if (!allowedDomainPatterns.getUnchecked(true).stream().anyMatch(pattern -> pattern.matcher(uri.getHost()).matches())) {
-			throw new IllegalArgumentException("Unsupported invoke endpoint, please contact support for more information.");
-		}		
+		allowedDomainPatterns.getUnchecked(true).stream()
+			.filter(pattern -> pattern.matcher(uri.getHost()).matches())
+			.findFirst()
+			.orElseThrow(() -> new WebhookDomainUnsupportedException());
 
 		webhookAuthorizationManager.getReadAuthorizationStatus(userInfo, request.getObjectType(), request.getObjectId()).checkAuthorizationOrElseThrow();
 	}

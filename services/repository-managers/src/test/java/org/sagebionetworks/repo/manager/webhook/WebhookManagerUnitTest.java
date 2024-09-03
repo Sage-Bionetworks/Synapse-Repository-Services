@@ -48,13 +48,10 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
-import org.sagebionetworks.repo.model.dbo.trash.TrashCanDao;
 import org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification;
 import org.sagebionetworks.repo.model.dbo.webhook.WebhookDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -72,10 +69,10 @@ import org.sagebionetworks.repo.model.webhook.WebhookSynapseEventMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.WebhookDomainUnsupportedException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.GetQueueUrlResult;
@@ -197,18 +194,19 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequestWithUnsupportedDomain() {
 		
+		when(mockWebhookDao.getAllowedDomainsPatterns()).thenReturn(List.of(".+another\\.com", ".+yetanother\\.com"));
 		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookManagerImpl.DOMAIN_CACHE_EXPIRATION.minusSeconds(1).toNanos());
 				
 		request.setInvokeEndpoint("https://my.endpoint.com/events");
 		
-		String result = assertThrows(IllegalArgumentException.class, () -> {
+		String result = assertThrows(WebhookDomainUnsupportedException.class, () -> {
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		}).getMessage();
 		
 		assertEquals("Unsupported invoke endpoint, please contact support for more information.", result);
 				
-		result = assertThrows(IllegalArgumentException.class, () -> {
+		result = assertThrows(WebhookDomainUnsupportedException.class, () -> {
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		}).getMessage();
@@ -223,12 +221,12 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequestWithExpiredDomainCache() {
 		doReturn(AuthorizationStatus.authorized()).when(mockWebhookAuthorizationManager).getReadAuthorizationStatus(userInfo, SynapseObjectType.ENTITY, "123");		
-		when(mockWebhookDao.getAllowedDomainsPatterns()).thenReturn(Collections.emptyList(), List.of(".+endpoint\\.com"));
+		when(mockWebhookDao.getAllowedDomainsPatterns()).thenReturn(List.of(".+another\\.com"), List.of(".+endpoint\\.com", ".+another\\.com"));
 		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookManagerImpl.DOMAIN_CACHE_EXPIRATION.plusSeconds(1).toNanos());
 				
 		request.setInvokeEndpoint("https://my.endpoint.com/events");
 		
-		String result = assertThrows(IllegalArgumentException.class, () -> {
+		String result = assertThrows(WebhookDomainUnsupportedException.class, () -> {
 			// Call under test
 			webhookManager.validateCreateOrUpdateRequest(userInfo, request);
 		}).getMessage();
@@ -631,39 +629,6 @@ public class WebhookManagerUnitTest {
 	}
 	
 	@Test
-	public void testPublishWebhookMessageWithSqsException() throws JSONObjectAdapterException {
-		String messageId = "messageId";
-		
-		RuntimeException ex = new RuntimeException("failed");
-		
-		when(mockSqsClient.sendMessage(any())).thenThrow(ex);
-		
-		WebhookMessage event = new WebhookVerificationMessage()
-			.setEventTimestamp(new Date())
-			.setVerificationCode("abcd");
-						
-		Throwable cause = assertThrows(RecoverableMessageException.class, () -> {			
-			// Call under test
-			webhookManager.publishWebhookMessage(webhook, event, messageId);
-		}).getCause();
-		
-		assertEquals(ex, cause);
-		
-		verify(mockSqsClient).sendMessage(
-			new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
-				.withMessageAttributes(Map.of(
-					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
-					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
-					"WebhookId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getId()),
-					"WebhookOwnerId", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getCreatedBy()),
-					"WebhookEndpoint", new MessageAttributeValue().withDataType("String").withStringValue(webhook.getInvokeEndpoint())
-				))
-		);
-	}
-	
-	@Test
 	public void testVerifyWebhook() {
 		
 		webhook.setVerificationStatus(WebhookVerificationStatus.CODE_SENT);
@@ -814,6 +779,56 @@ public class WebhookManagerUnitTest {
 		
 		verifyZeroInteractions(mockWebhookDao);
 	}	
+	
+	@ParameterizedTest
+	@EnumSource(value = WebhookVerificationStatus.class, mode = Mode.EXCLUDE, names = {"VERIFIED"})
+	public void testSendNewVerificationCode(WebhookVerificationStatus status) {
+		webhook.setVerificationStatus(status);
+		
+		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId(), true);
+		doReturn(webhook).when(webhookManager).generateAndSendVerificationCode(userInfo, webhook);
+		
+		// Call under test
+		webhookManager.sendNewVerficationCode(userInfo, webhook.getId());
+	}
+	
+	@Test
+	public void testSendNewVerificationCodeWithVerifiedWebhook() {
+		webhook.setVerificationStatus(WebhookVerificationStatus.VERIFIED);
+		
+		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId(), true);
+		
+		String result =  assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.sendNewVerficationCode(userInfo, webhook.getId());
+		}).getMessage();
+		
+		assertEquals("The webhook is already verified.", result);
+	}
+	
+	@Test
+	public void testSendNewVerificationCodeWithNoUserInfo() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.sendNewVerficationCode(null, webhook.getId());
+		}).getMessage();
+		
+		assertEquals("The userInfo is required.", result);
+		
+		verify(webhookManager, never()).generateAndSendVerificationCode(any(), any());
+	}
+	
+	@Test
+	public void testSendNewVerificationCodeWithNoWebhookId() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.sendNewVerficationCode(userInfo, null);
+		}).getMessage();
+		
+		assertEquals("The webhookId is required.", result);
+		
+		verify(webhookManager, never()).generateAndSendVerificationCode(any(), any());
+	}
 	
 	@Test
 	public void testProcessChangeMessage() {
