@@ -65,7 +65,7 @@ public class DockerServiceImplTest {
 		ProfileData profileData = profileDataCaptor.getValue();
 
 		assertEquals("java.lang.RuntimeException "+message, profileData.getName());
-		assertEquals("org.sagebionetworks.repo.web.service.DockerService", profileData.getNamespace());
+		assertEquals("org.sagebionetworks.repo.service.DockerService", profileData.getNamespace());
 		assertEquals(1.0, profileData.getValue(), 1e-6);
 		assertEquals("Count", profileData.getUnit());
 		assertNotNull(profileData.getTimestamp());
