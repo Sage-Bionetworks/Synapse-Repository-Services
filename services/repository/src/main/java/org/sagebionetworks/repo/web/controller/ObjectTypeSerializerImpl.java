@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
  * @author jmhill
  * 
  */
+@Service
 public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");

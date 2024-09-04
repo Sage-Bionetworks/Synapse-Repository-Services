@@ -8,6 +8,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.service.PrefixCacheHelper;
 
 public class PrefixCacheHelperTest {
 

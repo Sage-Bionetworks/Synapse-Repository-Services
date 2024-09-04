@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.cloudmailin.Envelope;
 import org.sagebionetworks.repo.model.message.cloudmailin.Headers;
 import org.sagebionetworks.repo.model.message.cloudmailin.Message;
-import org.sagebionetworks.repo.web.service.MessageService;
+import org.sagebionetworks.repo.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

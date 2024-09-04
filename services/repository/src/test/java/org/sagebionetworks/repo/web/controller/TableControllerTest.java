@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.web.service.AsynchronousJobServices;
-import org.sagebionetworks.repo.web.service.ServiceProvider;
-import org.sagebionetworks.repo.web.service.table.TableServices;
+import org.sagebionetworks.repo.service.AsynchronousJobServices;
+import org.sagebionetworks.repo.service.ServiceProvider;
+import org.sagebionetworks.repo.service.table.TableServices;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TableControllerTest {
