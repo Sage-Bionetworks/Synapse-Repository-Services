@@ -363,6 +363,12 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
+import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -6235,4 +6241,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/validateDefiningSql", request, ValidateDefiningSqlResponse.class);
 	}
+	
+	@Override
+	public Webhook createWebhook(CreateOrUpdateWebhookRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), "/webhook", request, Webhook.class);
+	}
+
+	@Override
+	public Webhook getWebhook(String webhookId) throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), "/webhook/" + webhookId, Webhook.class);
+	}
+
+	@Override
+	public ListUserWebhooksResponse listWebhooks(ListUserWebhooksRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), "/webhook/list", request, ListUserWebhooksResponse.class);
+	}
+
+	@Override
+	public Webhook updateWebhook(String webhookId, CreateOrUpdateWebhookRequest request) throws SynapseException {
+		return putJSONEntity(getRepoEndpoint(), "/webhook/" + webhookId, request, Webhook.class);
+	}
+
+	@Override
+	public VerifyWebhookResponse verifyWebhook(String webhookId, VerifyWebhookRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), "/webhook/" + webhookId + "/verify", request, VerifyWebhookResponse.class);
+	}
+	
+	@Override
+	public Webhook generateWebhookVerificationCode(String webhookId) throws SynapseException {
+		return putJSONEntity(getRepoEndpoint(), "/webhook/" + webhookId + "/verificationCode", null, Webhook.class);
+	}
+
+	@Override
+	public void deleteWebhook(String webhookId) throws SynapseException {
+		deleteUri(getRepoEndpoint(), "/webhook/" + webhookId);
+	}
+	
+	
 }

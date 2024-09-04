@@ -1,5 +1,5 @@
 {
-	"description": "The response body of ListUserWebhooksResponse.",
+	"description": "Response body containing the list of webhook for a user.",
 	"properties": {
 		"page": {
 			"type": "array",

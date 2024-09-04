@@ -21,11 +21,11 @@
 		},
 		"objectId": {
 			"type": "string",
-			"description": "The ID of the Synapse object to receive events of. The objectId will be required by the user at create/update."
+			"description": "The ID of the Synapse object to receive events of."
 		},
 		"objectType": {
 			"$ref": "org.sagebionetworks.repo.model.webhook.SynapseObjectType",
-			"description": "Which type of Synapse object is associated with the Webhook. The objectType will be required by the user at create/update."
+			"description": "Which type of Synapse object the objectId is referring to."
 		},
 		"eventTypes": {
 			"type": "array",
@@ -37,11 +37,11 @@
 		},
 		"invokeEndpoint": {
 			"type": "string",
-			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 255 Characters or less. The invokeEndpoint will be required by the user at create/update."
+			"description": "The endpoint the Synapse user would like the webhook events sent to on invocation. Must be 255 Characters or less."
 		},
 		"isEnabled": {
 			"type": "boolean",
-			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused. This field will default to true unless otherwise specified by the user."
+			"description": "True if the Synapse user has selected to receive events. If the user sets to false, events will be temporalily paused."
 		},
 		"verificationStatus": {
 			"$ref": "org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus",

@@ -78,7 +78,7 @@ public interface WebhookManager {
 	 * @param webhookId
 	 * @return
 	 */
-	Webhook sendNewVerficationCode(UserInfo userInfo, String webhookId);
+	Webhook generateWebhookVerificationCode(UserInfo userInfo, String webhookId);
 
 	/**
 	 * List all webhookIds for a Synapse user.

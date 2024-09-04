@@ -4,15 +4,15 @@
 	"enum": [
 		{
 			"name": "CREATE",
-			"description": "A create has occurred."
+			"description": "A create event has occurred."
 		},
 		{
 			"name": "UPDATE",
-			"description": "An update has occurred."
+			"description": "An update event has occurred."
 		},
 		{
 			"name": "DELETE",
-			"description": "A delete has occurred."
+			"description": "A delete event has occurred."
 		}
 	]
 }
