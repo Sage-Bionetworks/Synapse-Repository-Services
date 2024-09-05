@@ -11,7 +11,8 @@
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
 	<context:annotation-config />
-    <context:component-scan base-package="org.sagebionetworks.repo" annotation-config="false"/>
+	<context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.repo.service" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
