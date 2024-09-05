@@ -1,0 +1,22 @@
+{
+	"description": "Information about a specific session (conversation) with an agent.  Each session is immutable.  You will need to start a new session if you wish to use a different access level or agentId.",
+	"properties": {
+		"sessionId": {
+			"type": "string",
+			"description": "The unique identifier for a conversation with an agent.  The sessionId issued by Synapse when the session is started.  The caller must provided this sessionId with each chat request to identify a specific conversation with an agent.  A sessionId can only be used by the user that created it."
+		},
+		"agentAccessLevel": {
+			"description": "Specifies the access level that the agent will have during this session only.",
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentAccessLevel"
+		},
+		"startedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this session was started."
+		},
+		"agentId": {
+			"type": "string",
+			"description": "Identifies that agent that will be used for this session.  The default value is null, which indicates that the default agent will be used."
+		}
+	}
+}

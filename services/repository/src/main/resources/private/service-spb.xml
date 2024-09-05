@@ -13,101 +13,25 @@
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
        ">
 
-	<context:annotation-config/>
-    <context:component-scan base-package="org.sagebionetworks.repo.web" annotation-config="false"/>
+	<context:annotation-config />
+	<context:component-scan
+		base-package="org.sagebionetworks.repo.web" annotation-config="false" />
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<!-- slightly misplaced here, as it is under the controller package, but services use it -->
+	
+	<!-- slightly misplaced here, as it is under the controller package, but 
+		services use it -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
-		
+
 	<bean id="jwtTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.JWTTypeSerializerImpl" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
 		Controller -->
-	<bean id="deadlockWatcher" class="org.sagebionetworks.repo.web.DeadlockWatcher" />
+	<bean id="deadlockWatcher"
+		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
 
-	<!-- The Service Provider -->
-	<bean id="serviceProvider" class="org.sagebionetworks.repo.web.service.ServiceProviderImpl" />
-	
-	<!-- Search Service -->
-	<bean id="searchService"
-		class="org.sagebionetworks.repo.web.service.SearchServiceImpl" />
 
-	<bean id="principalService"
-		class="org.sagebionetworks.repo.web.service.PrincipalServiceImpl" />
-
-	<!-- The Administration Service -->
-	<bean id="administrationService"
-		class="org.sagebionetworks.repo.web.service.AdministrationServiceImpl" />
-
-	<!-- The Entity Service -->
-	<bean id="entityService" class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
-	
-	<!-- The Messaging Service -->
-	<bean id="messageService" class="org.sagebionetworks.repo.web.service.MessageServiceImpl" />
-	
-	<!--Migration related beans  -->
-	<bean id="migrationService" class="org.sagebionetworks.repo.web.service.MigrationServiceImpl" />
-
-	<!-- The TrashService -->
-	<bean id="trashService"
-		class="org.sagebionetworks.repo.web.service.TrashServiceImpl" />
-
-	<!-- Translator between WikiPages and V2 WikiPages -->
-	<bean id="wikiModelTranslationHelper" class="org.sagebionetworks.repo.web.WikiModelTranslationHelper" />
-	
-	<!-- The Wiki Service -->
-	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
-
-	<bean id="tableServices" class="org.sagebionetworks.repo.web.service.table.TableServicesImpl" />
-
-	<bean id="logService" class="org.sagebionetworks.repo.web.service.LogServiceImpl" />
-
-	<bean id="projectSettingsService" class="org.sagebionetworks.repo.web.service.ProjectSettingsServiceImpl" />
-
-	<!-- The V2 Wiki Service -->
-	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
-	
-	<!-- The UserGroup Service -->
-	<bean id="userGroupService"
-		class="org.sagebionetworks.repo.web.service.UserGroupServiceImpl" />
-
-	<!-- The EntityBundle Service -->
-	<bean id="entityBundleService"
-		class="org.sagebionetworks.repo.web.service.EntityBundleServiceImpl" />
-
-	<!-- The Activity Service -->
-	<bean id="activityService"
-		class="org.sagebionetworks.repo.web.service.ActivityServiceImpl" />
-		
-	<!-- The Evaluation Service -->
-	<bean id="evaluationService"
-		class="org.sagebionetworks.repo.web.service.EvaluationServiceImpl" />
-
-	<!-- The DOI Service -->
-	<bean id="doiServiceV2" class="org.sagebionetworks.repo.web.service.DoiServiceV2Impl" />
-
-	<bean id="certifiedUserService" class="org.sagebionetworks.repo.web.service.CertifiedUserServiceImpl" />
-	
-	<bean id="asynchronousJobServices" class="org.sagebionetworks.repo.web.service.AsynchronousJobServicesImpl" />
-
-	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
-		
-	<bean id="challengeService" class="org.sagebionetworks.repo.web.service.ChallengeServiceImpl" />
-
-	<!-- The Subscription Service -->
-	<bean id="subscriptionService" class="org.sagebionetworks.repo.web.service.subscription.SubscriptionServiceImpl" />
-
-	<!-- The Subscription Service -->
-	<bean id="dockerService" class="org.sagebionetworks.repo.web.service.DockerServiceImpl" />
-
-	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
-
-	<bean id="dataAccessService"
-		class="org.sagebionetworks.repo.web.service.dataaccess.DataAccessServiceImpl"
-		scope="singleton" />
-	
 </beans>

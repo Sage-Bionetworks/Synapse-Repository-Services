@@ -20,8 +20,8 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.ProjectListTypeDeprecated;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.web.service.ServiceProvider;
-import org.sagebionetworks.repo.web.service.UserProfileService;
+import org.sagebionetworks.repo.service.ServiceProvider;
+import org.sagebionetworks.repo.service.UserProfileService;
 
 
 @ExtendWith(MockitoExtension.class)

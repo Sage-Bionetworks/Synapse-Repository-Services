@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.web.service.PrincipalServiceImpl;
+import org.sagebionetworks.repo.service.PrincipalServiceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class PrincipalServiceUnitTest {
