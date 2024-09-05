@@ -14,9 +14,7 @@ import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
-import org.springframework.stereotype.Service;
 
-@Service
 public class JWTTypeSerializerImpl implements JWTTypeSerializer {
 	
 	private static final String APPLICATION_TYPE = "application";

@@ -19,7 +19,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.stereotype.Service;
 
 /**
  * Utility for serializing/deserializing objects using the same HttpMessageConverters
@@ -28,7 +27,6 @@ import org.springframework.stereotype.Service;
  * @author jmhill
  * 
  */
-@Service
 public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
