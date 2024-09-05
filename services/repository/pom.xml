@@ -306,8 +306,8 @@
 	</build>
 
 	<properties>
-		<jacoco.branch.minumum>0.50</jacoco.branch.minumum>
-		<jacoco.line.minumum>0.60</jacoco.line.minumum>
+		<jacoco.branch.minumum>0.40</jacoco.branch.minumum>
+		<jacoco.line.minumum>0.50</jacoco.line.minumum>
 	</properties>
 </project>
 

@@ -1,0 +1,13 @@
+{
+	"description": "Information about a specific session (conversation) with an agent.  Each session is immutable.  You will need to start a new session if you wish to use a different access level or agentId.",
+	"properties": {
+		"agentAccessLevel": {
+			"description": "Required. Specifies the access level that the agent will have during this session only.",
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentAccessLevel"
+		},
+		"agentId": {
+			"type": "string",
+			"description": "Optional. Most users will not use this parameter.  If you are authorized to test experimental agents, provide the ID of the agent you wish to test."
+		}
+	}
+}

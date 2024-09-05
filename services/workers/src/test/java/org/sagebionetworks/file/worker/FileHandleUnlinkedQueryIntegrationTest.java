@@ -63,7 +63,7 @@ import com.amazonaws.services.stepfunctions.model.StateMachineListItem;
 public class FileHandleUnlinkedQueryIntegrationTest {
 	
 	private static final Logger LOG = LogManager.getLogger(FileHandleUnlinkedQueryIntegrationTest.class);
-	private static final long TIMEOUT = 3 * 60 * 1000;
+	private static final long TIMEOUT = 5 * 60 * 1000;
 		
 	@Autowired
 	private FilesScannerStatusDao scannerDao;

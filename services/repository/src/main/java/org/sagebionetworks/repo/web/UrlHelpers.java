@@ -1268,27 +1268,6 @@ public class UrlHelpers {
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
 
-	/**
-	 * Helper function to translate ids found in URLs to ids used by the system
-	 * <p>
-	 * 
-	 * Specifically we currently use the serialized system id url-encoded for
-	 * use in URLs
-	 * 
-	 * @param id
-	 * @return URL-decoded entity id
-	 */
-	public static String getEntityIdFromUriId(String id) {
-		String entityId = null;
-		try {
-			entityId = URLDecoder.decode(id, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return entityId;
-	}
 	
 	/**
 	 * Get the URL prefix from a request.

@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.docker.DockerRepository;
-import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.repo.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class DockerCommitControllerAutowiredTest extends AbstractAutowiredControllerTestBase {

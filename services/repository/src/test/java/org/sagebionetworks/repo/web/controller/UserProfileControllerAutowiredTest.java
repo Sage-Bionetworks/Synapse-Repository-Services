@@ -32,9 +32,9 @@ import org.sagebionetworks.repo.model.UserPreference;
 import org.sagebionetworks.repo.model.UserPreferenceBoolean;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
+import org.sagebionetworks.repo.service.EntityService;
+import org.sagebionetworks.repo.service.UserProfileService;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
