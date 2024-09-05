@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service.webhook;
+package org.sagebionetworks.repo.service.webhook;
 
 import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
 import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;

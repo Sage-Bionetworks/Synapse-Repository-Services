@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service.webhook;
+package org.sagebionetworks.repo.service.webhook;
 
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookManager;
