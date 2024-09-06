@@ -342,13 +342,28 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testCreateWebhook() {
+		when(mockWebhookDao.getUserWebhooksCountForUpdate(userInfo.getId())).thenReturn(0);
 		doNothing().when(webhookManager).validateCreateOrUpdateRequest(userInfo, request);
 		doReturn(webhook).when(webhookManager).generateAndSendVerificationCode(userInfo, webhook);
-		
+				
 		when(mockWebhookDao.createWebhook(userInfo.getId(), request)).thenReturn(webhook);
 		
 		// Call under test
 		assertEquals(webhook, webhookManager.createWebhook(userInfo, request));
+	}
+	
+	@Test
+	public void testCreateWebhookWithLimitReached() {
+		when(mockWebhookDao.getUserWebhooksCountForUpdate(userInfo.getId())).thenReturn(WebhookManagerImpl.USER_WEBHOOK_MAX_COUNT);
+		doNothing().when(webhookManager).validateCreateOrUpdateRequest(userInfo, request);
+		
+		assertEquals("Cannot create more than 25 webhooks.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			webhookManager.createWebhook(userInfo, request);
+		}).getMessage());
+		
+		verifyNoMoreInteractions(mockWebhookDao);
+		verify(webhookManager, never()).generateAndSendVerificationCode(any(), any());
 	}
 	
 	@Test	

@@ -22,6 +22,8 @@ public interface WebhookDao {
 
 	List<Webhook> listUserWebhooks(Long userId, long limit, long offset);
 	
+	int getUserWebhooksCountForUpdate(Long userId);
+	
 	/**
 	 * 
 	 * @param ids
@@ -32,6 +34,7 @@ public interface WebhookDao {
 	 * @return The list of webhooks that are subscribed to the given object ids for the given event type that are verified and enabled
 	 */
 	List<Webhook> listWebhooksForObjectIds(List<Long> ids, SynapseObjectType objectType, SynapseEventType eventType, long limit, long offset);
+	
 
 	DBOWebhookVerification getWebhookVerification(String webhookId);
 	
