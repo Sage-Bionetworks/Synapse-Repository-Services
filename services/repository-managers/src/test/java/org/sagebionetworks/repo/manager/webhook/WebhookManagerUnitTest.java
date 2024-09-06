@@ -782,35 +782,35 @@ public class WebhookManagerUnitTest {
 	
 	@ParameterizedTest
 	@EnumSource(value = WebhookVerificationStatus.class, mode = Mode.EXCLUDE, names = {"VERIFIED"})
-	public void testSendNewVerificationCode(WebhookVerificationStatus status) {
+	public void testGenerateWebhookVerificationCode(WebhookVerificationStatus status) {
 		webhook.setVerificationStatus(status);
 		
 		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId(), true);
 		doReturn(webhook).when(webhookManager).generateAndSendVerificationCode(userInfo, webhook);
 		
 		// Call under test
-		webhookManager.sendNewVerficationCode(userInfo, webhook.getId());
+		webhookManager.generateWebhookVerificationCode(userInfo, webhook.getId());
 	}
 	
 	@Test
-	public void testSendNewVerificationCodeWithVerifiedWebhook() {
+	public void testGenerateWebhookVerificationCodeWithVerifiedWebhook() {
 		webhook.setVerificationStatus(WebhookVerificationStatus.VERIFIED);
 		
 		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId(), true);
 		
 		String result =  assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			webhookManager.sendNewVerficationCode(userInfo, webhook.getId());
+			webhookManager.generateWebhookVerificationCode(userInfo, webhook.getId());
 		}).getMessage();
 		
 		assertEquals("The webhook is already verified.", result);
 	}
 	
 	@Test
-	public void testSendNewVerificationCodeWithNoUserInfo() {
+	public void testGenerateWebhookVerificationCodeWithNoUserInfo() {
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			webhookManager.sendNewVerficationCode(null, webhook.getId());
+			webhookManager.generateWebhookVerificationCode(null, webhook.getId());
 		}).getMessage();
 		
 		assertEquals("The userInfo is required.", result);
@@ -819,10 +819,10 @@ public class WebhookManagerUnitTest {
 	}
 	
 	@Test
-	public void testSendNewVerificationCodeWithNoWebhookId() {
+	public void testGenerateWebhookVerificationCodeWithNoWebhookId() {
 		String result = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			webhookManager.sendNewVerficationCode(userInfo, null);
+			webhookManager.generateWebhookVerificationCode(userInfo, null);
 		}).getMessage();
 		
 		assertEquals("The webhookId is required.", result);

@@ -1220,6 +1220,13 @@ public class UrlHelpers {
 	public static final String AUTH_LOGIN_2 = "/login2";
 	public static final String AUTHENTICATED_ON = "/authenticatedOn";
 	
+	// Endpoint for webhook management
+	public static final String WEBHOOK = "/webhook";
+	public static final String WEBHOOK_LIST = WEBHOOK + "/list";
+	public static final String WEBHOOK_ID = WEBHOOK + "/{webhookId}";
+	public static final String WEBHOOK_VERIFY = WEBHOOK_ID + "/verify";
+	public static final String WEBHOOK_VERIFICATION_CODE = WEBHOOK_ID + "/verificationCode";
+	
 	/**
 	 * API for creating integration test users
 	 */

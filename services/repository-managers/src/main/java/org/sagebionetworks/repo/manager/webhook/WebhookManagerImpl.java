@@ -174,7 +174,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@WriteTransaction
 	@Override
-	public Webhook sendNewVerficationCode(UserInfo userInfo, String webhookId) {
+	public Webhook generateWebhookVerificationCode(UserInfo userInfo, String webhookId) {
 		ValidateArgument.required(userInfo, "The userInfo");
 		ValidateArgument.required(webhookId, "The webhookId");
 		
