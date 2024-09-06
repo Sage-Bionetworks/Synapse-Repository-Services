@@ -280,6 +280,36 @@ public class WebhookDaoImplTest {
 		assertEquals(Collections.emptyList(), webhookDao.listWebhooksForObjectIds(objectIds, SynapseObjectType.ENTITY, SynapseEventType.DELETE, 10, 0));
 		
 	}
+	
+	@Test
+	public void testGetUserWebhooksCountForUpdate() {
+		assertEquals(0, webhookDao.getUserWebhooksCountForUpdate(userId));
+		
+		webhookDao.createWebhook(userId, cuRequest);
+		webhookDao.createWebhook(userId, cuRequest.setObjectId("456"));
+		webhookDao.createWebhook(otherUserId, cuRequest.setInvokeEndpoint("https://another.webhook.endpoint/"));
+		 
+		assertEquals(2, webhookDao.getUserWebhooksCountForUpdate(userId));
+		assertEquals(1, webhookDao.getUserWebhooksCountForUpdate(otherUserId));
+	}
+	
+	@Test
+	public void testGetUserWebhooksCountForUpdateLock() {
+		
+		webhookDao.createWebhook(userId, cuRequest);
+		
+		txTemplate.executeWithoutResult( txStatus -> {
+			// Call under test
+			assertEquals(1, webhookDao.getUserWebhooksCountForUpdate(userId));
+			
+			assertThrows(QueryTimeoutException.class, () -> {				
+				txTemplate.executeWithoutResult( tx2Status -> {
+					// this is blocked
+					webhookDao.getUserWebhooksCountForUpdate(userId);				
+				});
+			});
+		});
+	}
 
 	@Test
 	public void testGetWebhookVerification() {
