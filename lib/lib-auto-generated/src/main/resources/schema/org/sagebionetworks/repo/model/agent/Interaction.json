@@ -1,0 +1,23 @@
+{
+	"description": "Represents a single interaction between the user and an agent.",
+	"properties": {
+		"usersRequestText": {
+			"type": "string",
+			"description": "The text of the user's request"
+		},
+		"usersRequestTimestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The time stamp when the user made the request"
+		},
+		"agentResponseText": {
+			"type": "string",
+			"description": "The text of the agent's response"
+		},
+		"agentResponseTimestamp": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The time stamp when the agent produced the response."
+		}
+	}
+}

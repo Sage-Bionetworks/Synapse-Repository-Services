@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
@@ -84,7 +86,10 @@ public enum AsynchJobType {
 	
 	FILE_HANDLE_ARCHIVAL_REQUEST(FileHandleArchivalRequest.class, FileHandleArchivalResponse.class),
 	
-	FILE_HANDLE_RESTORE_REQUEST(FileHandleRestoreRequest.class, FileHandleRestoreResponse.class);
+	FILE_HANDLE_RESTORE_REQUEST(FileHandleRestoreRequest.class, FileHandleRestoreResponse.class),
+	
+	AGENT_CHAT(AgentChatRequest.class, AgentChatResponse.class)
+	;
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

@@ -31,4 +31,45 @@ public class AuthorizationUtilsTest {
 		userInfo.setGroups(new HashSet<Long>());
 		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
 	}
+	
+	
+	@Test
+	public void testIsSageEmployeeOrAdminWitNonAdminNonSage() {
+		boolean isAdmin = false;
+		UserInfo userInfo = new UserInfo(isAdmin);
+		userInfo.setGroups(new HashSet<Long>());
+		// call under test
+		assertFalse(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
+	}
+	
+	@Test
+	public void testIsSageEmployeeOrAdminWithAdminNonSage() {
+		boolean isAdmin = true;
+		UserInfo userInfo = new UserInfo(isAdmin);
+		userInfo.setGroups(new HashSet<Long>());
+		// call under test
+		assertTrue(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
+	}
+	
+	@Test
+	public void testIsSageEmployeeOrAdminWithNonAdminSageEmployee() {
+		boolean isAdmin = false;
+		UserInfo userInfo = new UserInfo(isAdmin);
+		userInfo.setGroups(new HashSet<Long>());
+		userInfo.getGroups().add(
+				BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
+		// call under test
+		assertTrue(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
+	}
+	
+	@Test
+	public void testIsSageEmployeeOrAdminWithAdminSageEmployee() {
+		boolean isAdmin = true;
+		UserInfo userInfo = new UserInfo(isAdmin);
+		userInfo.setGroups(new HashSet<Long>());
+		userInfo.getGroups().add(
+				BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId());
+		// call under test
+		assertTrue(AuthorizationUtils.isSageEmployeeOrAdmin(userInfo));
+	}
 }
