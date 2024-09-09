@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.webhook;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ALLOWED_DOMAIN_PATTERN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_ETAG;
@@ -12,12 +13,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_MSG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WEBHOOK_VERIFICATION_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_ALLOWED_DOMAIN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WEBHOOK_VERIFICATION;
 
 import java.sql.Timestamp;
@@ -99,6 +102,14 @@ public class WebhookDaoImpl implements WebhookDao {
 		
 		return events;
 	}
+	
+	static Long mapWebhookId(String webhookId) {
+		try {
+			return Long.valueOf(webhookId);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid webhook id.");
+		}
+	}
 
 	private static final String SELECT_WITH_STATUS = "SELECT W.*, V." + COL_WEBHOOK_VERIFICATION_STATUS + ", V." + COL_WEBHOOK_VERIFICATION_MSG 
 			+ " FROM " + TABLE_WEBHOOK + " W JOIN " + TABLE_WEBHOOK_VERIFICATION + " V"
@@ -147,7 +158,7 @@ public class WebhookDaoImpl implements WebhookDao {
 		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_ID + "=?" + (forUpdate ? " FOR UPDATE" : "");
 		
 		try {
-			return Optional.of(jdbcTemplate.queryForObject(sql, WEBHOOK_ROW_MAPPER, webhookId));
+			return Optional.of(jdbcTemplate.queryForObject(sql, WEBHOOK_ROW_MAPPER, mapWebhookId(webhookId)));
 		} catch (EmptyResultDataAccessException e) {
 			return Optional.empty();
 		}
@@ -168,12 +179,12 @@ public class WebhookDaoImpl implements WebhookDao {
 
 		try {
 			jdbcTemplate.update(sql, 
-				request.getObjectId(), 
+				KeyFactory.stringToKey(request.getObjectId()), 
 				request.getObjectType().name(), 
 				eventsToJson(request.getEventTypes()), 
 				request.getIsEnabled(), 
 				request.getInvokeEndpoint(),
-				webhookId
+				mapWebhookId(webhookId)
 			);
 		} catch (DuplicateKeyException e) {
 			throw new IllegalArgumentException(MSG_DUPLICATE_OBJECT_ENDPOINT);
@@ -185,7 +196,7 @@ public class WebhookDaoImpl implements WebhookDao {
 	@Override
 	@WriteTransaction
 	public void deleteWebhook(String webhookId) {
-		dboBasicDao.deleteObjectByPrimaryKey(DBOWebhook.class, new SinglePrimaryKeySqlParameterSource(webhookId));
+		dboBasicDao.deleteObjectByPrimaryKey(DBOWebhook.class, new SinglePrimaryKeySqlParameterSource(mapWebhookId(webhookId)));
 	}
 
 	@Override
@@ -193,6 +204,13 @@ public class WebhookDaoImpl implements WebhookDao {
 		String sql = SELECT_WITH_STATUS + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? ORDER BY " + COL_WEBHOOK_CREATED_ON + " LIMIT ? OFFSET ?";
 		
 		return jdbcTemplate.query(sql, WEBHOOK_ROW_MAPPER, userId, limit, offset);
+	}
+	
+	@Override
+	public int getUserWebhooksCountForUpdate(Long userId) {
+		String sql = "SELECT COUNT(*) FROM " + TABLE_WEBHOOK + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? FOR UPDATE";
+		
+		return jdbcTemplate.queryForObject(sql, Integer.class, userId);
 	}
 	
 	@Override
@@ -220,7 +238,7 @@ public class WebhookDaoImpl implements WebhookDao {
 	
 	@Override
 	public DBOWebhookVerification getWebhookVerification(String webhookId) {
-		return dboBasicDao.getObjectByPrimaryKey(DBOWebhookVerification.class, new SinglePrimaryKeySqlParameterSource(webhookId))
+		return dboBasicDao.getObjectByPrimaryKey(DBOWebhookVerification.class, new SinglePrimaryKeySqlParameterSource(mapWebhookId(webhookId)))
 				.orElseThrow(() -> new IllegalStateException("A webhook with id " + webhookId + " does not exist."));
 	}
 	
@@ -232,10 +250,13 @@ public class WebhookDaoImpl implements WebhookDao {
 			+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
 			+ COL_WEBHOOK_VERIFICATION_CODE + "=?,"
 			+ COL_WEBHOOK_VERIFICATION_CODE_EXPIRES_ON + "=?,"
-			+ COL_WEBHOOK_VERIFICATION_STATUS + "=?"
+			+ COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID + "=UUID(),"
+			// Reset other data
+			+ COL_WEBHOOK_VERIFICATION_STATUS + "='PENDING',"
+			+ COL_WEBHOOK_VERIFICATION_MSG + "=NULL"
 			+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
 		
-		jdbcTemplate.update(sql, verificationCode, expiresOn, WebhookVerificationStatus.PENDING.name(), webhookId);
+		jdbcTemplate.update(sql, verificationCode, expiresOn, mapWebhookId(webhookId));
 		
 		return getWebhookVerification(webhookId);
 	}
@@ -245,20 +266,67 @@ public class WebhookDaoImpl implements WebhookDao {
 	public DBOWebhookVerification setWebhookVerificationStatus(String webhookId, WebhookVerificationStatus status, String message) {
 	
 		String sql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " 
-				+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
-				+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
-				+ COL_WEBHOOK_VERIFICATION_STATUS + "=?,"
-				+ COL_WEBHOOK_VERIFICATION_MSG + "=?"
-				+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
+			+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
+			+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
+			+ COL_WEBHOOK_VERIFICATION_STATUS + "=?,"
+			+ COL_WEBHOOK_VERIFICATION_MSG + "=?"
+			+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=?";
 			
-			jdbcTemplate.update(sql, status.name(), message, webhookId);
+		jdbcTemplate.update(sql, status.name(), message, mapWebhookId(webhookId));
 		
 		return getWebhookVerification(webhookId);
 	}
 	
 	@Override
+	public Optional<WebhookVerificationStatus> getWebhookVerificationStatus(String webhookId, String messageId) {
+		String sql = "SELECT " + COL_WEBHOOK_VERIFICATION_STATUS 
+			+ " FROM " + TABLE_WEBHOOK_VERIFICATION + " WHERE " 
+				+ COL_WEBHOOK_VERIFICATION_ID + "=? AND "
+				+ COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID + "=?";
+		
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(sql, WebhookVerificationStatus.class, mapWebhookId(webhookId), messageId));
+		} catch (EmptyResultDataAccessException e) {			
+			return Optional.empty();
+		}
+		
+	}
+	
+	@Override
+	@WriteTransaction
+	public void setWebhookVerificationStatusIfMessageIdMatch(String webhookId, String messageId, WebhookVerificationStatus status, String message) {
+	
+		String sql = "UPDATE " + TABLE_WEBHOOK_VERIFICATION + " SET " 
+			+ COL_WEBHOOK_VERIFICATION_ETAG + "=UUID(),"
+			+ COL_WEBHOOK_VERIFICATION_MODIFIED_ON + "=NOW(),"
+			+ COL_WEBHOOK_VERIFICATION_STATUS + "=?,"
+			+ COL_WEBHOOK_VERIFICATION_MSG + "=?"
+			+ " WHERE " + COL_WEBHOOK_VERIFICATION_ID + "=? AND "
+			+ COL_WEBHOOK_VERIFICATION_CODE_MESSAGE_ID + "=?";		
+			
+		jdbcTemplate.update(sql, status.name(), message, mapWebhookId(webhookId), messageId);
+	}
+	
+	@Override
+	public List<String> getAllowedDomainsPatterns() {
+		return jdbcTemplate.queryForList("SELECT " + COL_WEBHOOK_ALLOWED_DOMAIN_PATTERN + " FROM " + TABLE_WEBHOOK_ALLOWED_DOMAIN, String.class);
+	}
+	
+	@Override
+	@WriteTransaction
+	public DBOWebhookAllowedDomain addAllowedDomainPattern(String pattern) {
+		DBOWebhookAllowedDomain dbo = new DBOWebhookAllowedDomain()
+			.setId(idGenerator.generateNewId(IdType.WEBHOOK_ALLOWED_DOMAIN_ID))
+			.setEtag(UUID.randomUUID().toString())
+			.setPattern(pattern);
+		
+		return dboBasicDao.createNew(dbo);
+	}
+	
+	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_WEBHOOK + " WHERE " + COL_WEBHOOK_ID + " > -1");
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_WEBHOOK_ALLOWED_DOMAIN);
 	}
 
 }

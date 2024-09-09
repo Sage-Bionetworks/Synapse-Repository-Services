@@ -10,8 +10,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
+import org.sagebionetworks.util.Clock;
 import org.springframework.stereotype.Service;
 
+import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -19,7 +21,7 @@ import com.google.common.cache.LoadingCache;
 @Service
 public class WebhookAuthorizationManager {
 
-	private static final Duration PERMISSIONS_CACHE_EXPIRATION = Duration.ofMinutes(5);
+	static final Duration PERMISSIONS_CACHE_EXPIRATION = Duration.ofMinutes(5);
 	private static final int PERMISSIONS_CACHE_MAX_SIZE = 2_000;
 
 	private LoadingCache<WebhookPermissionCacheKey, Boolean> webhookReadPermissions;
@@ -27,13 +29,19 @@ public class WebhookAuthorizationManager {
 	private UserManager userManager;
 	private EntityAuthorizationManager entityAuthorizationManager;
 
-	public WebhookAuthorizationManager(UserManager userManager, EntityAuthorizationManager entityAuthorizationManager) {
+	public WebhookAuthorizationManager(UserManager userManager, EntityAuthorizationManager entityAuthorizationManager, Clock clock) {
 		this.userManager = userManager;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.webhookReadPermissions = CacheBuilder.newBuilder()
-				.expireAfterWrite(PERMISSIONS_CACHE_EXPIRATION)
-				.maximumSize(PERMISSIONS_CACHE_MAX_SIZE)
-				.build(CacheLoader.from(this::loadWebhookOwnerReadAccessValue));
+			.ticker(new Ticker() {
+				@Override
+				public long read() {
+					return clock.nanoTime();
+				}
+			})
+			.expireAfterWrite(PERMISSIONS_CACHE_EXPIRATION)
+			.maximumSize(PERMISSIONS_CACHE_MAX_SIZE)
+			.build(CacheLoader.from(this::loadWebhookOwnerReadAccessValue));
 	}
 
 	public boolean hasWebhookOwnerReadAccess(Webhook webhook) {

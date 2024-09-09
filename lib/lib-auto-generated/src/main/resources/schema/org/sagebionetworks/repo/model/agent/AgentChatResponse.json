@@ -1,0 +1,18 @@
+{
+	"description": "The response to an agent chat request.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The sessionId that identifies the conversation with the agent.",
+			"type": "string"
+		},
+		"responseText": {
+			"description": "The agent's text response to the user's request",
+			"type": "string"
+		}
+	}
+}

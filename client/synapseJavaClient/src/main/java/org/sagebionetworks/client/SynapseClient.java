@@ -306,6 +306,12 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
+import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -4249,4 +4255,67 @@ public interface SynapseClient extends BaseClient {
 	 * Validate the definingSQL of an Entity.
 	 */
 	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException;
+	
+	/**
+	 * Creates a new webhook.
+	 * 
+	 * @param reqeust
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook createWebhook(CreateOrUpdateWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Gets the webhook with the given id.
+	 * 
+	 * @param webhookId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook getWebhook(String webhookId) throws SynapseException;
+	
+	/**
+	 * Lists the user webhooks.
+	 *
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListUserWebhooksResponse listWebhooks(ListUserWebhooksRequest request) throws SynapseException;
+	
+	/**
+	 * Updates the webhook with the given id.
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook updateWebhook(String webhookId, CreateOrUpdateWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Verifies the webhook with the given id
+	 * 
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	VerifyWebhookResponse verifyWebhook(String webhookId, VerifyWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Deletes the webhook with the given id.
+	 * @param webhookId
+	 * @throws SynapseException
+	 */
+	void deleteWebhook(String webhookId) throws SynapseException;
+
+	/**
+	 * Request a new verification code for the webhook with the given id
+	 * 
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook generateWebhookVerificationCode(String webhookId) throws SynapseException;
 }

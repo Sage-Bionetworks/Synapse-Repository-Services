@@ -2,10 +2,8 @@ package org.sagebionetworks.javadoc.velocity;
 
 import java.util.List;
 
-import com.sun.javadoc.RootDoc;
-
 /**
- * Abstraction for a generator the produces ClassContext for classes found in a Java Doc RootDoc.
+ * Abstraction for a generator the produces ClassContext for classes found in a Java Doc DocletEnvironment.
  *  
  * @author John
  *
@@ -20,5 +18,5 @@ public interface ClassContextGenerator {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<ClassContext> generateContext(ContextFactory factory, RootDoc root) throws Exception;
+	public List<ClassContext> generateContext(ContextInput input) throws Exception;
 }

@@ -51,46 +51,50 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 		new FieldColumn("invokeEndpoint", COL_WEBHOOK_INVOKE_ENDPOINT),
 		new FieldColumn("isEnabled", COL_WEBHOOK_IS_ENABLED)
 	};
+	
+	private static final TableMapping<DBOWebhook> TABLE_MAPPING = new TableMapping<>() {
+		@Override
+		public DBOWebhook mapRow(ResultSet rs, int rowNum) throws SQLException {
+			DBOWebhook dbo = new DBOWebhook();
+			dbo.setId(rs.getLong(COL_WEBHOOK_ID));
+			dbo.setEtag(rs.getString(COL_WEBHOOK_ETAG));
+			dbo.setCreatedBy(rs.getLong(COL_WEBHOOK_CREATED_BY));
+			dbo.setCreatedOn(rs.getTimestamp(COL_WEBHOOK_CREATED_ON));
+			dbo.setModifiedOn(rs.getTimestamp(COL_WEBHOOK_MODIFIED_ON));
+			dbo.setObjectId(rs.getLong(COL_WEBHOOK_OBJECT_ID));
+			dbo.setObjectType(rs.getString(COL_WEBHOOK_OBJECT_TYPE));
+			dbo.setEventTypes(rs.getString(COL_WEBHOOK_EVENT_TYPES));
+			dbo.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT));
+			dbo.setIsEnabled(rs.getBoolean(COL_WEBHOOK_IS_ENABLED));
+			return dbo;
+		}
+
+		@Override
+		public String getTableName() {
+			return TABLE_WEBHOOK;
+		}
+
+		@Override
+		public String getDDLFileName() {
+			return DDL_FILE_WEBHOOK;
+		}
+
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return FIELDS;
+		}
+
+		@Override
+		public Class<? extends DBOWebhook> getDBOClass() {
+			return DBOWebhook.class;
+		}
+	};
+
+	private static final BasicMigratableTableTranslation<DBOWebhook> MIGRATION_TRANSLATOR = new BasicMigratableTableTranslation<>();
 
 	@Override
 	public TableMapping<DBOWebhook> getTableMapping() {
-		return new TableMapping<DBOWebhook>() {
-			@Override
-			public DBOWebhook mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOWebhook dbo = new DBOWebhook();
-				dbo.setId(rs.getLong(COL_WEBHOOK_ID));
-				dbo.setEtag(rs.getString(COL_WEBHOOK_ETAG));
-				dbo.setCreatedBy(rs.getLong(COL_WEBHOOK_CREATED_BY));
-				dbo.setCreatedOn(rs.getTimestamp(COL_WEBHOOK_CREATED_ON));
-				dbo.setModifiedOn(rs.getTimestamp(COL_WEBHOOK_MODIFIED_ON));
-				dbo.setObjectId(rs.getLong(COL_WEBHOOK_OBJECT_ID));
-				dbo.setObjectType(rs.getString(COL_WEBHOOK_OBJECT_TYPE));
-				dbo.setEventTypes(rs.getString(COL_WEBHOOK_EVENT_TYPES));
-				dbo.setInvokeEndpoint(rs.getString(COL_WEBHOOK_INVOKE_ENDPOINT));
-				dbo.setIsEnabled(rs.getBoolean(COL_WEBHOOK_IS_ENABLED));
-				return dbo;
-			}
-
-			@Override
-			public String getTableName() {
-				return TABLE_WEBHOOK;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return DDL_FILE_WEBHOOK;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOWebhook> getDBOClass() {
-				return DBOWebhook.class;
-			}
-		};
+		return TABLE_MAPPING;
 	}
 
 	@Override
@@ -100,7 +104,7 @@ public class DBOWebhook implements MigratableDatabaseObject<DBOWebhook, DBOWebho
 
 	@Override
 	public MigratableTableTranslation<DBOWebhook, DBOWebhook> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOWebhook>();
+		return MIGRATION_TRANSLATOR;
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.webhook.SynapseEventType;
 import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
+import org.sagebionetworks.util.Clock;
 
 @ExtendWith(MockitoExtension.class)
 public class WebhookAuthorizationManagerUnitTest {
@@ -38,6 +40,9 @@ public class WebhookAuthorizationManagerUnitTest {
 	
 	@Mock
 	private EntityAuthorizationManager mockAuthorizationManager;
+	
+	@Mock
+	private Clock mockClock;
 	
 	@InjectMocks
 	@Spy
@@ -75,6 +80,7 @@ public class WebhookAuthorizationManagerUnitTest {
 	public void testHasWebhookOwnerReadAccess() {
 		when(mockUserManager.getUserInfo(userInfo.getId())).thenReturn(userInfo);
 		when(mockAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookAuthorizationManager.PERMISSIONS_CACHE_EXPIRATION.minusSeconds(1).toNanos());
 		
 		// Call under test
 		assertTrue(manager.hasWebhookOwnerReadAccess(webhook));
@@ -84,6 +90,24 @@ public class WebhookAuthorizationManagerUnitTest {
 		
 		verify(mockUserManager).getUserInfo(userInfo.getId());
 		verify(mockAuthorizationManager).hasAccess(userInfo, webhook.getObjectId(), ACCESS_TYPE.READ);
+		
+		verifyNoMoreInteractions(mockAuthorizationManager);
+	}
+	
+	@Test
+	public void testHasWebhookOwnerReadAccessWithExpiredCache() {
+		when(mockUserManager.getUserInfo(userInfo.getId())).thenReturn(userInfo);
+		when(mockAuthorizationManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookAuthorizationManager.PERMISSIONS_CACHE_EXPIRATION.plusSeconds(1).toNanos());
+		
+		// Call under test
+		assertTrue(manager.hasWebhookOwnerReadAccess(webhook));
+			
+		// The second time the cache is expired
+		assertTrue(manager.hasWebhookOwnerReadAccess(webhook));
+		
+		verify(mockUserManager, times(2)).getUserInfo(userInfo.getId());
+		verify(mockAuthorizationManager, times(2)).hasAccess(userInfo, webhook.getObjectId(), ACCESS_TYPE.READ);
 		
 		verifyNoMoreInteractions(mockAuthorizationManager);
 	}

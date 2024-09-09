@@ -54,6 +54,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.WebhookDomainUnsupportedException;
 import org.sagebionetworks.repo.web.filter.ByteLimitExceededException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.TypeMismatchException;
@@ -61,7 +62,6 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.CannotCreateTransactionException;
-import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -716,6 +716,20 @@ public class BaseControllerExceptionHandlerAdvice {
 	BaseError handleCannotCreateTransactionException(CannotCreateTransactionException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, true, null);
+	}
+	
+	/**
+	 * Thrown when a webhook endpoint domain is not whitelisted, we throw a special error code that the client can interpret to show a contact form
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(WebhookDomainUnsupportedException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	BaseError handleWebhookDomainUnsupportedException(WebhookDomainUnsupportedException ex, HttpServletRequest request) {
+		return handleException(ex, request, true, ErrorResponseCode.UNSUPPORTED_WEBHOOK_DOMAIN);
 	}
 
 	/**

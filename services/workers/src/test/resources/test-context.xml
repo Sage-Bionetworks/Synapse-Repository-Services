@@ -9,7 +9,7 @@
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
 	<context:annotation-config />
-
+	
 	<import resource="classpath:main-scheduler-spb.xml" />
 
 	<bean id="queueCleaner"
@@ -40,7 +40,4 @@
 	<bean id="awsStepFunctionsClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonStepFunctionsClient" scope="singleton" />
 		
-	<bean id="awsApiGatewayClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAnazonApiGatewayClient" scope="singleton" />	
-	
 </beans>

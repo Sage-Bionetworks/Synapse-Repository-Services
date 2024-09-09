@@ -1,9 +1,9 @@
 {
-	"description": "The request body of VerifyWebhookRequest.",
+	"description": "Request body used to verify a webhook, the verification code is sent to the webhook endpoint when the webhook is created or when its endpoint is modified.",
 	"properties": {
 		"verificationCode": {
 			"type": "string",
-			"description": "The verification code received by invokeEndpoint to verify a Webhook."
+			"description": "The verification code received by the webhook endpoint."
 		}
 	}
 }

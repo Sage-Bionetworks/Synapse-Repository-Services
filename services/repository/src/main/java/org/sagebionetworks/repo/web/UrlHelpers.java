@@ -1220,6 +1220,13 @@ public class UrlHelpers {
 	public static final String AUTH_LOGIN_2 = "/login2";
 	public static final String AUTHENTICATED_ON = "/authenticatedOn";
 	
+	// Endpoint for webhook management
+	public static final String WEBHOOK = "/webhook";
+	public static final String WEBHOOK_LIST = WEBHOOK + "/list";
+	public static final String WEBHOOK_ID = WEBHOOK + "/{webhookId}";
+	public static final String WEBHOOK_VERIFY = WEBHOOK_ID + "/verify";
+	public static final String WEBHOOK_VERIFICATION_CODE = WEBHOOK_ID + "/verificationCode";
+	
 	/**
 	 * API for creating integration test users
 	 */
@@ -1268,27 +1275,6 @@ public class UrlHelpers {
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
 	}
 
-	/**
-	 * Helper function to translate ids found in URLs to ids used by the system
-	 * <p>
-	 * 
-	 * Specifically we currently use the serialized system id url-encoded for
-	 * use in URLs
-	 * 
-	 * @param id
-	 * @return URL-decoded entity id
-	 */
-	public static String getEntityIdFromUriId(String id) {
-		String entityId = null;
-		try {
-			entityId = URLDecoder.decode(id, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			log.log(Level.SEVERE,
-					"Something is really messed up if we don't support UTF-8",
-					e);
-		}
-		return entityId;
-	}
 	
 	/**
 	 * Get the URL prefix from a request.

@@ -12,32 +12,36 @@ public class MetricStats {
 		return maximum;
 	}
 
-	public void setMaximum(Double maximum) {
+	public MetricStats setMaximum(Double maximum) {
 		this.maximum = maximum;
+		return this;
 	}
 
 	public Double getMinimum() {
 		return minimum;
 	}
 
-	public void setMinimum(Double minimum) {
+	public MetricStats setMinimum(Double minimum) {
 		this.minimum = minimum;
+		return this;
 	}
 
 	public Double getCount() {
 		return count;
 	}
 
-	public void setCount(Double count) {
+	public MetricStats setCount(Double count) {
 		this.count = count;
+		return this;
 	}
 
 	public Double getSum() {
 		return sum;
 	}
 
-	public void setSum(Double sum) {
+	public MetricStats setSum(Double sum) {
 		this.sum = sum;
+		return this;
 	}
 
 	@Override
@@ -61,4 +65,8 @@ public class MetricStats {
 				&& Objects.equals(minimum, other.minimum) && Objects.equals(sum, other.sum);
 	}
 
+	@Override
+	public String toString() {
+		return "MetricStats [maximum=" + maximum + ", minimum=" + minimum + ", count=" + count + ", sum=" + sum + "]";
+	}
 }

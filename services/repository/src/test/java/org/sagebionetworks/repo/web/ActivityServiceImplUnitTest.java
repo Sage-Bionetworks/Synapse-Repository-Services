@@ -26,8 +26,8 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.UsedURL;
-import org.sagebionetworks.repo.web.service.ActivityService;
-import org.sagebionetworks.repo.web.service.ActivityServiceImpl;
+import org.sagebionetworks.repo.service.ActivityService;
+import org.sagebionetworks.repo.service.ActivityServiceImpl;
 
 public class ActivityServiceImplUnitTest {
 

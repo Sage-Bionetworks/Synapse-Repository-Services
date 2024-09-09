@@ -73,7 +73,8 @@ public enum IdType {
 	PRINCIPAL_OIDC_BINDING_ID(null),
 	OTP_SECRET_ID(null),
 	WEBHOOK_ID(null),
-	WEBHOOK_VERIFICATION_ID(null)
+	WEBHOOK_VERIFICATION_ID(null),
+	WEBHOOK_ALLOWED_DOMAIN_ID(1000L)
 	;
 	
 	Long startingId;

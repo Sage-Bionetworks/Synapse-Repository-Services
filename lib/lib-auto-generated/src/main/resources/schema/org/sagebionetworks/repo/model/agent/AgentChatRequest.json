@@ -1,0 +1,18 @@
+{
+	"description": "Send a chat message to the Synapse chat agent",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The sessionId that identifies the conversation with the agent.",
+			"type": "string"
+		},
+		"chatText": {
+			"description": "The user's text message to send to the agent.",
+			"type": "string"
+		}
+	}
+}

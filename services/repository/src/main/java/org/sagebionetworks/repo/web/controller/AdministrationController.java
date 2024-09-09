@@ -28,10 +28,10 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -55,6 +55,9 @@ public class AdministrationController {
 	
 	@Autowired
 	private ServiceProvider serviceProvider;
+	
+	@Autowired
+	private ObjectTypeSerializer objectTypeSerializer;
 	
 	/**
 	 * @return the current status of the stack
@@ -94,8 +97,10 @@ public class AdministrationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
+		// Get the status of this daemon
+		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
 
-		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
+		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, updatedValue);
 	}
 	
 	@RequiredScope({view})

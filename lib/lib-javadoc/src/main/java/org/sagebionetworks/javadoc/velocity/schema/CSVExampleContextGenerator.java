@@ -8,16 +8,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.lang.model.element.TypeElement;
+
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.velocity.context.Context;
 import org.sagebionetworks.javadoc.velocity.ClassContext;
 import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
-import org.sagebionetworks.javadoc.velocity.ContextFactory;
+import org.sagebionetworks.javadoc.velocity.ContextInput;
 import org.sagebionetworks.javadoc.velocity.controller.ControllerUtils;
 import org.sagebionetworks.javadoc.web.services.FilterUtils;
-
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.RootDoc;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -31,18 +30,16 @@ import au.com.bytecode.opencsv.CSVReader;
 public class CSVExampleContextGenerator implements ClassContextGenerator {
 
 	@Override
-	public List<ClassContext> generateContext(ContextFactory factory,
-			RootDoc root) throws Exception {
+	public List<ClassContext> generateContext(ContextInput input) throws Exception {
 		List<ClassContext> list = new LinkedList<ClassContext>();
 		// Find the example classes
-		Iterator<ClassDoc> examples = FilterUtils.csvExampleIterator(root
-				.classes());
+		Iterator<TypeElement> examples = FilterUtils.csvExampleIterator(input.getDocletEnvironment().getIncludedElements());
 		// Generate a page for each example
 		while (examples.hasNext()) {
 			// Create a class for each example
-			ClassDoc exampleDoc = examples.next();
+			TypeElement exampleDoc = examples.next();
 			Map<String, Object> annotationMap = ControllerUtils
-					.mapAnnotation(exampleDoc.annotations());
+					.mapAnnotation(exampleDoc.getAnnotationMirrors());
 			String csvName = (String) annotationMap
 					.get("org.sagebionetworks.repo.web.rest.doc.CSVGeneratedExample.csvFileName");
 			if (csvName == null)
@@ -60,7 +57,7 @@ public class CSVExampleContextGenerator implements ClassContextGenerator {
 				InputStreamReader reader = new InputStreamReader(in, "UTF-8");
 				CSVReader csvReader = new CSVReader(reader);
 				// Create the context
-				list.add(createContext(factory.createNewContext(), exampleDoc.qualifiedName(), csvReader.readAll()));
+				list.add(createContext(input.getContextFactory().createNewContext(), exampleDoc.getQualifiedName().toString(), csvReader.readAll()));
 			} finally {
 				in.close();
 			}

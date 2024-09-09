@@ -11,8 +11,8 @@
 	<!-- Enables scanning and injections of annotated beans in the auth package so that services and filters can be referenced -->
 	<context:annotation-config/>
     <context:component-scan base-package="org.sagebionetworks.auth" annotation-config="false"/>
-    
+
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
+
 </beans>
