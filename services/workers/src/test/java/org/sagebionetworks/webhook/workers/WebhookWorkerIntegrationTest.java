@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -198,6 +199,14 @@ public class WebhookWorkerIntegrationTest {
 		aclHelper.update(project.getId(), ObjectType.ENTITY, a -> {
 			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
 		});
+	}
+	
+	@AfterEach
+	public void after() {
+		aclHelper.truncateAll();
+		entityManager.truncateAll();
+		fileHelper.truncateAll();
+		webhookDao.truncateAll();
 	}
 	
 	@Test

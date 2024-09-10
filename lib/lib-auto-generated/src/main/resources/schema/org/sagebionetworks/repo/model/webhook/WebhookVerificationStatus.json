@@ -20,7 +20,7 @@
         },
         {
             "name": "VERIFIED",
-            "description": "The Webhook has been created and verified succesfully."
+            "description": "The Webhook has been created and verified successfully."
         }
     ]
 }

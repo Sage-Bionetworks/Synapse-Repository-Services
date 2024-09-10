@@ -311,6 +311,12 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.webhook.CreateOrUpdateWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksRequest;
+import org.sagebionetworks.repo.model.webhook.ListUserWebhooksResponse;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookRequest;
+import org.sagebionetworks.repo.model.webhook.VerifyWebhookResponse;
+import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -4254,14 +4260,7 @@ public interface SynapseClient extends BaseClient {
 	 * Validate the definingSQL of an Entity.
 	 */
 	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException;
-	
-	/**
-	 * Start a new agent chat session.
-	 * @param request
-	 * @return
-	 * @throws SynapseException
-	 */
-	AgentSession createAgentSession(CreateAgentSessionRequest request) throws SynapseException;
+
 	
 	/**
 	 * Get the session information for a given session id.
@@ -4272,23 +4271,98 @@ public interface SynapseClient extends BaseClient {
 	AgentSession getAgentSession(String sessionId) throws SynapseException;
 
 	/**
-	 * Update an agent chat session.
+	 * Creates a new webhook.
+	 * 
+	 * @param reqeust
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook createWebhook(CreateOrUpdateWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Gets the webhook with the given id.
+	 * 
+	 * @param webhookId
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook getWebhook(String webhookId) throws SynapseException;
+	
+	/**
+	 * Lists the user webhooks.
+	 *
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListUserWebhooksResponse listWebhooks(ListUserWebhooksRequest request) throws SynapseException;
+	
+	/**
+	 * Updates the webhook with the given id.
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook updateWebhook(String webhookId, CreateOrUpdateWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Verifies the webhook with the given id
+	 * 
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	VerifyWebhookResponse verifyWebhook(String webhookId, VerifyWebhookRequest request) throws SynapseException;
+	
+	/**
+	 * Deletes the webhook with the given id.
+	 * @param webhookId
+	 * @throws SynapseException
+	 */
+	void deleteWebhook(String webhookId) throws SynapseException;
+
+	/**
+	 * Request a new verification code for the webhook with the given id
+	 * 
+	 * @param webhookId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	Webhook generateWebhookVerificationCode(String webhookId) throws SynapseException;
+
+
+	/**
+	 * Start a new agent chat session.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AgentSession createAgentSession(CreateAgentSessionRequest request) throws SynapseException;
+
+	/**
+	 * Update an agent session for the provided session id.
 	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
 	AgentSession updateAgentSession(UpdateAgentSessionRequest request) throws SynapseException;
-
+	
 	/**
-	 * Start a job to chat with the provided agent.
+	 * Start a job to chat with an agent.
 	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
 	String startAgentChat(AgentChatRequest request) throws SynapseException;
+	
 
 	/**
 	 * Get the job resutls for a chat with an agent.
+	 * 
 	 * @param asyncJobToken
 	 * @return
 	 * @throws SynapseException
@@ -4296,4 +4370,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	AgentChatResponse getAgentChatResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
+
+
 }

@@ -207,6 +207,13 @@ public class WebhookDaoImpl implements WebhookDao {
 	}
 	
 	@Override
+	public int getUserWebhooksCountForUpdate(Long userId) {
+		String sql = "SELECT COUNT(*) FROM " + TABLE_WEBHOOK + " WHERE " + COL_WEBHOOK_CREATED_BY + "=? FOR UPDATE";
+		
+		return jdbcTemplate.queryForObject(sql, Integer.class, userId);
+	}
+	
+	@Override
 	public List<Webhook> listWebhooksForObjectIds(List<Long> ids, SynapseObjectType objectType, SynapseEventType eventType, long limit, long offset) {
 		
 		String sql = SELECT_WITH_STATUS 

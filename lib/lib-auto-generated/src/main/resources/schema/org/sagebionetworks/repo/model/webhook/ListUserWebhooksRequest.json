@@ -1,5 +1,5 @@
 {
-	"description": "The request body of ListUserWebhooksRequest.",
+	"description": "Request body for listing the user webhooks.",
 	"properties": {
 		"nextPageToken": {
 			"type": "string",

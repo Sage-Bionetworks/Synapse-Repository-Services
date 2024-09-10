@@ -64,15 +64,24 @@ import com.google.common.cache.LoadingCache;
 public class WebhookManagerImpl implements WebhookManager {	
 	
 	private static final Logger LOG = LogManager.getLogger(WebhookManagerImpl.class);
+	
 	private static final String MESSAGE_QUEUE_NAME = "WEBHOOK_MESSAGE";
+	
 	private static final int VERIFICATION_CODE_LENGHT = 6;
+	
 	private static final int VERIFICATION_CODE_TTL_SECONDS = 10 * 60;
+	
 	private static final long WEBHOOK_FETCH_PAGE_SIZE = 1_000;
+	
 	private static final Duration CHANGE_MESSAGE_MAX_AGE = Duration.ofHours(1);
+	
 	private static final List<Pattern> DEFAULT_ALLOWED_DOMAINS = List.of(
 		compileDomainPattern("^.+\\.execute-api\\..+\\.amazonaws\\.com$").get()
 	);
+	
 	static final Duration DOMAIN_CACHE_EXPIRATION = Duration.ofMinutes(5);
+	
+	static final int USER_WEBHOOK_MAX_COUNT = 25;
 	
 	static Optional<Pattern> compileDomainPattern(String regex) {
 		try {
@@ -142,7 +151,11 @@ public class WebhookManagerImpl implements WebhookManager {
 	@Override
 	public Webhook createWebhook(UserInfo userInfo, CreateOrUpdateWebhookRequest request) {
 		validateCreateOrUpdateRequest(userInfo, request);
-
+		
+		int userWebhooksCount = webhookDao.getUserWebhooksCountForUpdate(userInfo.getId());
+		
+		ValidateArgument.requirement(userWebhooksCount < USER_WEBHOOK_MAX_COUNT, "Cannot create more than " + USER_WEBHOOK_MAX_COUNT + " webhooks.");		
+		
 		Webhook webhook = webhookDao.createWebhook(userInfo.getId(), request);
 		
 		return generateAndSendVerificationCode(userInfo, webhook);
@@ -174,7 +187,7 @@ public class WebhookManagerImpl implements WebhookManager {
 	
 	@WriteTransaction
 	@Override
-	public Webhook sendNewVerficationCode(UserInfo userInfo, String webhookId) {
+	public Webhook generateWebhookVerificationCode(UserInfo userInfo, String webhookId) {
 		ValidateArgument.required(userInfo, "The userInfo");
 		ValidateArgument.required(webhookId, "The webhookId");
 		

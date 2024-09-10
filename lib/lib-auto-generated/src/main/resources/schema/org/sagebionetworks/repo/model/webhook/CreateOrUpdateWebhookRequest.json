@@ -7,7 +7,7 @@
 			},
 			"objectType": {
 				"$ref": "org.sagebionetworks.repo.model.webhook.SynapseObjectType",
-				"description": "Which type of Synapse object is associated with the Webhook."
+				"description": "The type of object the objectId is referring to."
 			},
 			"eventTypes": {
 				"type": "array",
@@ -23,7 +23,7 @@
 			},
 			"isEnabled": {
 				"type": "boolean",
-				"description": "True if the webhook should be enabled. If false no events will be pushed to the endpoint."
+				"description": "True if the webhook should be enabled. If false no events will be sent to the endpoint."
 			}
 		}
 }
