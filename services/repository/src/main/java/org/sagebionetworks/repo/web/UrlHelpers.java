@@ -431,6 +431,7 @@ public class UrlHelpers {
 	 */
 	public static final String AGENT = "/agent";
 	public static final String AGENT_SESSION = AGENT+"/session";
+	public static final String AGENT_SESSION_ID = AGENT+"/session/{sessionId}";
 	public static final String AGENT_SESSION_LIST = AGENT_SESSION +"/list";
 	public static final String AGENT_CHAT = AGENT+"/chat";
 	public static final String AGENT_CHAT_START = AGENT_CHAT+ASYNC_START_REQUEST;

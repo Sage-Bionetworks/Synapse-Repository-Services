@@ -8,12 +8,14 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -79,6 +81,27 @@ public class AgentController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CreateAgentSessionRequest request) {
 		return serviceProvider.getAgentService().createSession(userId, request);
+	}
+
+	/**
+	 * Update the access level of an existing agent session.
+	 * </p>
+	 * Only the user that started the session can change its access level.
+	 * 
+	 * @param userId
+	 * @param sessionId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.AGENT_SESSION_ID }, method = RequestMethod.PUT)
+	public @ResponseBody AgentSession updateSession(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId,
+			@RequestBody UpdateAgentSessionRequest request) {
+		ValidateArgument.required(request, "request");
+		request.setSessionId(sessionId);
+		return serviceProvider.getAgentService().updateSession(userId, request);
 	}
 
 	/**
