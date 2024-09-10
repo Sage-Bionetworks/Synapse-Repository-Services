@@ -100,6 +100,11 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
@@ -6234,5 +6239,36 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/validateDefiningSql", request, ValidateDefiningSqlResponse.class);
+	}
+	
+	@Override
+	public AgentSession createAgentSession(CreateAgentSessionRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), "/agent/session", request, AgentSession.class);
+	}
+	
+	@Override
+	public AgentSession getAgentSession(String sessionId) throws SynapseException {
+		return getJSONEntity(getRepoEndpoint(), "/agent/session/"+sessionId, AgentSession.class);
+	}
+	
+	@Override
+	public AgentSession updateAgentSession(UpdateAgentSessionRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getSessionId(), "request.sessionId");
+		return putJSONEntity(getRepoEndpoint(), "/agent/session/"+request.getSessionId(), request, AgentSession.class);
+	}
+	
+	@Override
+	public String startAgentChat(AgentChatRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return startAsynchJob(AsynchJobType.AgentChat, request);
+	}
+
+	@Override
+	public AgentChatResponse getAgentChatResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException {
+		ValidateArgument.required(asyncJobToken, "asyncJobToken");
+		return (AgentChatResponse) getAsynchJobResponse("/agent/chat/async/get/" + asyncJobToken,
+				AgentChatResponse.class, getRepoEndpoint());
 	}
 }

@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * baseline agent for chat sessions.
  * </p>
  * To get started, the first step is to create a new session by calling:
- * <a href="${GET.agent.session}">GET /agent/session</a>. You will need the
+ * <a href="${POST.agent.session}">POST /agent/session</a>. You will need the
  * sessionId from the resulting <a href=
  * "${org.sagebionetworks.repo.model.agent.AgentSession}">AgentSession</a>. The
  * sessionId uniquely identifies a single conversation between the user and the
@@ -84,6 +84,21 @@ public class AgentController {
 	}
 
 	/**
+	 * Get the agent session using its session id.
+	 * 
+	 * @param userId
+	 * @param sessionId
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.AGENT_SESSION_ID }, method = RequestMethod.GET)
+	public @ResponseBody AgentSession getAgentSession(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String sessionId) {
+		return serviceProvider.getAgentService().getSession(userId, sessionId);
+	}
+	/**
 	 * Update the access level of an existing agent session.
 	 * </p>
 	 * Only the user that started the session can change its access level.
@@ -112,7 +127,7 @@ public class AgentController {
 	 * </p>
 	 * The request must include the sessionId that uniquely identifies a single
 	 * conversation between the user and the agent (see:
-	 * <a href="${GET.agent.session}">GET /agent/session</a>).
+	 * <a href="${POST.agent.session}">POST /agent/session</a>).
 	 * </p>
 	 * Only the user that started a session may use its sessionId.
 	 * 

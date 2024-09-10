@@ -271,7 +271,7 @@ public class AgentManagerImplUnitTest {
 		assertEquals(response, expected);
 
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithNullUser() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -280,7 +280,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithNullRequest() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -289,7 +289,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("request is required.", message);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithNullSessionId() {
 		chatRequest.setSessionId(null);
@@ -299,7 +299,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("request.sessionId is required.", message);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithNullText() {
 		chatRequest.setChatText(null);
@@ -312,7 +312,7 @@ public class AgentManagerImplUnitTest {
 		assertEquals(response, expected);
 
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithBlankText() {
 		chatRequest.setChatText(" \n\t ");
@@ -323,6 +323,32 @@ public class AgentManagerImplUnitTest {
 
 		AgentChatResponse expected = new AgentChatResponse().setSessionId(sessionId).setResponseText("");
 		assertEquals(response, expected);
+	}
 
+	@Test
+	public void testGetSession() {
+		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+
+		// call under test
+		AgentSession result = manager.getSesion(sageUser, sessionId);
+		assertEquals(session, result);
+	}
+
+	@Test
+	public void testGetSessionWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getSesion(null, sessionId);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+
+	@Test
+	public void testGetSessionWithNullSessionId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.getSesion(sageUser, null);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
 	}
 }

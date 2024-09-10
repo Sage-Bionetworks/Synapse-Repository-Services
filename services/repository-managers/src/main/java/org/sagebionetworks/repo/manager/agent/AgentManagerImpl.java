@@ -90,4 +90,11 @@ public class AgentManagerImpl implements AgentManager {
 		return s;
 	}
 
+	@Override
+	public AgentSession getSesion(UserInfo userInfo, String sessionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(sessionId, "sessionId");
+		return getAndValidateAgentSession(userInfo, sessionId);
+	}
+
 }

@@ -21,6 +21,7 @@ import static org.sagebionetworks.client.SynapseClientImpl.TABLE_UPLOAD_CSV_PREV
 import static org.sagebionetworks.client.SynapseClientImpl.VIEW_COLUMNS;
 import static org.sagebionetworks.client.SynapseClientImpl.FILE_HANDLE_RESTORE;
 
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
@@ -66,7 +67,8 @@ public enum AsynchJobType {
 	AddToDownloadList(DOWNLOAD_LIST_ADD, AddToDownloadListResponse.class, RestEndpointType.repo),
 	DownloadPackageList(DOWNLOAD_LIST_PACKAGE, DownloadListPackageResponse.class, RestEndpointType.repo),
 	DownloadListManifest(DOWNLOAD_LIST_MANIFEST, DownloadListManifestResponse.class, RestEndpointType.repo),
-	FileHandleRestore(FILE_HANDLE_RESTORE, FileHandleRestoreResponse.class, RestEndpointType.file);
+	FileHandleRestore(FILE_HANDLE_RESTORE, FileHandleRestoreResponse.class, RestEndpointType.file),
+	AgentChat("/agent/chat", AgentChatResponse.class, RestEndpointType.repo);
 
 	String prefix;
 	Class<? extends AsynchronousResponseBody> responseClass;

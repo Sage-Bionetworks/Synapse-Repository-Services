@@ -10,4 +10,6 @@ public interface AgentService {
 
 	AgentSession updateSession(Long userId, UpdateAgentSessionRequest request);
 
+	AgentSession getSession(Long userId, String sessionId);
+
 }
