@@ -6247,6 +6247,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return postJSONEntity(getRepoEndpoint(), "/validateDefiningSql", request, ValidateDefiningSqlResponse.class);
 	}
 	
+	@Override
 	public Webhook createWebhook(CreateOrUpdateWebhookRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/webhook", request, Webhook.class);
 	}
