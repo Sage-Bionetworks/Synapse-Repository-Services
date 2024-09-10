@@ -36,7 +36,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 	private String accessLevel;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_AGENT_SESSION_ID, true).withIsBackupId(true),
+			new FieldColumn("id", COL_AGENT_SESSION_ID).withIsPrimaryKey(true).withIsBackupId(true),
 			new FieldColumn("etag", COL_AGENT_SESSION_ETAG).withIsEtag(true),
 			new FieldColumn("createdBy", COL_AGENT_SESSION_CREATED_BY),
 			new FieldColumn("createdOn", COL_AGENT_SESSION_CREATED_ON),
@@ -51,7 +51,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 
 			@Override
 			public DBOAgentSession mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return new DBOAgentSession().setId(rs.getLong(COL_AGENT_SESSION_AGENT_ID))
+				return new DBOAgentSession().setId(rs.getLong(COL_AGENT_SESSION_ID))
 						.setEtag(rs.getString(COL_AGENT_SESSION_ETAG))
 						.setCreatedBy(rs.getLong(COL_AGENT_SESSION_CREATED_BY))
 						.setCreatedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
