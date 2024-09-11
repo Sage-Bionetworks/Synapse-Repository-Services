@@ -12,6 +12,10 @@
     {
       "name": "PERSONAL_ACCESS_TOKEN",
       "description": "Refers to a personal access token"
-    }
+    },
+	{
+	  "name": "WEBHOOK_ACCESS_TOKEN",
+	  "description": "Refers to tokens issues for webhook requests"
+	}
   ]
 }

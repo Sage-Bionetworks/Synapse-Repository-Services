@@ -34,10 +34,12 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -112,7 +114,9 @@ public class WebhookWorkerIntegrationTest {
 	@Autowired
 	private WebhookDao webhookDao;
 		
-
+	@Autowired
+	private OIDCTokenManager tokenManager;
+	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
 	private Project project;
@@ -434,9 +438,12 @@ public class WebhookWorkerIntegrationTest {
 			.isPresent();
 	}
 			
-	private static <T extends WebhookMessage> List<T> pollWebhookMessages(String queueUrl, String webhookId, Class<T> messageClass, Predicate<List<T>> filter) throws Exception  {
+	private <T extends WebhookMessage> List<T> pollWebhookMessages(String queueUrl, String webhookId, Class<T> messageClass, Predicate<List<T>> filter) throws Exception  {
 		List<T> polledMessages = new ArrayList<>();
 		WebhookMessageType messageType = WebhookMessageType.forClass(messageClass);
+		
+		// The testing API queue is configured to include the Authorization header of the webhook requests as a message attribute
+		boolean validateAuthorization = queueUrl.equals(apiTestQueueUrl);
 		
 		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
 			ReceiveMessageRequest request = new ReceiveMessageRequest(queueUrl)
@@ -444,6 +451,10 @@ public class WebhookWorkerIntegrationTest {
 				// With long polling SQS queries all the servers and avoid empty receive messages on almost empty queues
 				.withWaitTimeSeconds(10)
 				.withMessageAttributeNames(MSG_ATTR_WEBHOOK_MESSAGE_TYPE, MSG_ATTR_WEBHOOK_ID);
+			
+			if (validateAuthorization) {
+				request.withMessageAttributeNames("AuthorizationHeader");
+			}
 			
 			List<Message> messages = sqsClient.receiveMessage(request).getMessages();
 			
@@ -467,6 +478,18 @@ public class WebhookWorkerIntegrationTest {
 			// Webhook id does not match
 			if (!webhookId.equals(sqsMessageAttributes.get(MSG_ATTR_WEBHOOK_ID).getStringValue())) {
 				return Pair.create(false, null);
+			}
+			
+			if (validateAuthorization) {
+				MessageAttributeValue authorizationHeaderValue = sqsMessageAttributes.get("AuthorizationHeader");
+	
+				if (authorizationHeaderValue == null) {
+					throw new IllegalStateException("Expected authorization header");
+				}
+				
+				String webhookToken = authorizationHeaderValue.getStringValue().substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
+				
+				tokenManager.validateJWT(webhookToken);
 			}
 			
 			T message;

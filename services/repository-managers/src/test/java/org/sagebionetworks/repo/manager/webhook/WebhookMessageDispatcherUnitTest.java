@@ -61,6 +61,9 @@ public class WebhookMessageDispatcherUnitTest {
 	private WebhookManager mockManager;
 	
 	@Mock
+	private WebhookAuthorizationManager mockAuthManager;
+	
+	@Mock
 	private HttpClient mockClient;
 	
 	@Mock
@@ -91,6 +94,7 @@ public class WebhookMessageDispatcherUnitTest {
 	private String userAgent;
 	private Webhook webhook;
 	private WebhookMessageType messageType;
+	private String authToken;
 
 	@BeforeEach
 	public void before() {
@@ -107,7 +111,7 @@ public class WebhookMessageDispatcherUnitTest {
 			.setInvokeEndpoint("https://my.endpoint");
 		
 		messageType = WebhookMessageType.SynapseEvent;
-		
+		authToken = "authToken";
 		
 	}
 	
@@ -122,6 +126,7 @@ public class WebhookMessageDispatcherUnitTest {
 	private HttpRequest expectedRequest() {
 		return HttpRequest.newBuilder(URI.create(webhook.getInvokeEndpoint()))
 			.timeout(WebhookMessageDispatcher.REQUEST_TIMEOUT)
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + authToken)
 			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.header(HttpHeaders.USER_AGENT, userAgent)
 			.headers(new WebhookMessageAttributes(expectedMessageAttributes()).toRequestHeaders())
@@ -134,6 +139,7 @@ public class WebhookMessageDispatcherUnitTest {
 		
 		when(mockMessage.getMessageAttributes()).thenReturn(expectedMessageAttributes());
 		when(mockMessage.getBody()).thenReturn("messageBody");
+		when(mockAuthManager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy())).thenReturn(authToken);
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		
@@ -151,6 +157,7 @@ public class WebhookMessageDispatcherUnitTest {
 		when(mockMessage.getMessageAttributes()).thenReturn(expectedMessageAttributes());
 		when(mockMessage.getBody()).thenReturn("messageBody");
 		when(mockManager.getWebhookVerificationStatus(webhook.getId(), "messageId")).thenReturn(Optional.of(status));
+		when(mockAuthManager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy())).thenReturn(authToken);
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		

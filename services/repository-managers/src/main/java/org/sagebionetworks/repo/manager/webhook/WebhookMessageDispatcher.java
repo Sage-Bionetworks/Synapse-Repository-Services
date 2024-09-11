@@ -22,6 +22,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -65,14 +66,16 @@ public class WebhookMessageDispatcher {
 	);
 
 	private WebhookManager manager;
+	private WebhookAuthorizationManager authManager;
 	private WebhookMetricsCollector metricsCollector;
 	private HttpClient webhookHttpClient;
 	private Clock clock;
 
 	private String userAgent;
 
-	public WebhookMessageDispatcher(WebhookManager manager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
+	public WebhookMessageDispatcher(WebhookManager manager, WebhookAuthorizationManager authManager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
 		this.manager = manager;
+		this.authManager = authManager;
 		this.metricsCollector = metricsCollector;
 		this.webhookHttpClient = webhookHttpClient;
 		this.clock = clock;
@@ -98,8 +101,11 @@ public class WebhookMessageDispatcher {
 			}
 		}
 		
+		String authorizationHeader = AuthorizationConstants.BEARER_TOKEN_HEADER + authManager.getWebhookAuthorizationToken(attributes.getWebhookId(), attributes.getWebhookOwnerId());
+		
 		HttpRequest request = HttpRequest.newBuilder(URI.create(attributes.getWebhookEndpoint()))
 			.timeout(REQUEST_TIMEOUT)
+			.header(HttpHeaders.AUTHORIZATION, authorizationHeader)
 			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.header(HttpHeaders.USER_AGENT, userAgent)
 			.headers(attributes.toRequestHeaders())

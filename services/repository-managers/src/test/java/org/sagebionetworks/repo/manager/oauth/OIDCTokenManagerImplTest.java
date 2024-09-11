@@ -48,6 +48,7 @@ import org.sagebionetworks.util.Clock;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,6 +98,8 @@ public class OIDCTokenManagerImplTest {
 	@InjectMocks
 	private OIDCTokenManagerImpl oidcTokenManager;
 	
+	private JwtParser jwtParser;
+	
 	@BeforeEach
 	public void setUp() {
 		/*
@@ -133,6 +136,10 @@ public class OIDCTokenManagerImplTest {
 		
 		// takes the place of Spring set up
 		oidcTokenManager.afterPropertiesSet();
+		
+		jwtParser = Jwts.parserBuilder()
+			.setSigningKey(getPublicSigningKey())
+			.build();
 	}
 
 	@Test
@@ -152,8 +159,7 @@ public class OIDCTokenManagerImplTest {
 	public void testGenerateOIDCIdentityToken() throws Exception {
 		String oidcToken = oidcTokenManager.createOIDCIdToken(ISSUER, 
 				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(oidcToken);
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(oidcToken).getBody();
 		assertEquals(TEAM_IDS, claims.get(OIDCClaimName.team.name()));
 		assertEquals("User", claims.get(OIDCClaimName.given_name.name(), String.class));
 		assertEquals("user@synapse.org", claims.get(OIDCClaimName.email.name(), String.class));
@@ -279,8 +285,7 @@ public class OIDCTokenManagerImplTest {
 				grantedScopes,
 				expectedClaims);
 		
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		// here we just check that the 'access' claim has been added
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
@@ -331,8 +336,7 @@ public class OIDCTokenManagerImplTest {
 				expectedClaims,
 				persistToken);
 		
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		// here we just check that the 'access' claim has been added
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check 
 		// that the content is correct
@@ -363,8 +367,7 @@ public class OIDCTokenManagerImplTest {
 		// method under test
 		String accessToken = oidcTokenManager.createInternalTotalAccessToken(principalId);
 		
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		assertNull(claims.getIssuer());
 		assertEquals(principalId.toString(), claims.getSubject());
 		assertEquals(""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID, claims.getAudience());
@@ -385,9 +388,7 @@ public class OIDCTokenManagerImplTest {
 		// method under test
 		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, ISSUER);
 		
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		
 		assertEquals(ISSUER, claims.getIssuer());
 		assertEquals(principalId.toString(), claims.getSubject());
@@ -438,8 +439,7 @@ public class OIDCTokenManagerImplTest {
 				ISSUER,
 				personalAccessTokenRecord);
 
-		Jwt<JwsHeader,Claims> jwt = Jwts.parser().setSigningKey(getPublicSigningKey()).parse(accessToken);
-		Claims claims = jwt.getBody();
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		// here we just check that the 'access' claim has been added
 		// in the test for ClaimsJsonUtil.addAccessClaims() we check
 		// that the content is correct
@@ -493,5 +493,31 @@ public class OIDCTokenManagerImplTest {
 		assertEquals(10_000, deletedCount);
 		
 		verify(mockAccessTokenDao).deleteExpiredTokens();
+	}
+	
+	@Test
+	public void testCreateWebhookAccessToken() throws Exception {
+		Date now = new Date();
+		
+		when(mockClock.now()).thenReturn(now);
+		
+		String webhookId = "123";
+		String webhookOwnerId = "456";
+		int expirationsSec = 30;
+		
+		// Call under test
+		String accessToken = oidcTokenManager.createWebhookAccessToken(ISSUER, webhookId, webhookOwnerId, expirationsSec);
+		
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		
+		assertEquals(TokenType.WEBHOOK_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+		assertEquals(ISSUER, claims.getIssuer());
+		assertEquals(webhookOwnerId, claims.getAudience());
+		assertEquals(webhookId, claims.getSubject());
+		assertEquals(now.getTime()/1000, claims.getIssuedAt().getTime()/1000);
+		assertEquals(now.getTime()/1000, claims.getNotBefore().getTime()/1000);
+		assertEquals(now.getTime()/1000 + expirationsSec, claims.getExpiration().getTime()/1000);
+		
+		verifyZeroInteractions(mockAccessTokenDao);
 	}
 }

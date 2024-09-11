@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,9 +21,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookAuthorizationManager.WebhookPermissionCacheKey;
+import org.sagebionetworks.repo.manager.webhook.WebhookAuthorizationManager.WebhookTokenCacheKey;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -42,11 +46,17 @@ public class WebhookAuthorizationManagerUnitTest {
 	private EntityAuthorizationManager mockAuthorizationManager;
 	
 	@Mock
-	private Clock mockClock;
+	private OIDCTokenManager mockTokenManager;
 	
 	@InjectMocks
 	@Spy
 	private WebhookAuthorizationManager manager;
+	
+	@Mock
+	private Clock mockClock;
+	
+	@Mock
+	private StackConfiguration mockConfig;
 	
 	private UserInfo userInfo;
 	
@@ -65,6 +75,10 @@ public class WebhookAuthorizationManagerUnitTest {
 			.setInvokeEndpoint("https://my.endpoint.org/events")
 			.setIsEnabled(true)
 			.setVerificationStatus(WebhookVerificationStatus.PENDING);
+		
+		when(mockConfig.getStack()).thenReturn("dev");
+		
+		manager.configure(mockConfig, mockClock);
 	}
 
 	@Test
@@ -144,6 +158,45 @@ public class WebhookAuthorizationManagerUnitTest {
 		boolean result = manager.loadWebhookOwnerReadAccessValue(new WebhookPermissionCacheKey(webhook));
 		
 		assertFalse(result);
+	}
+	
+	@Test
+	public void testGetWebhookAuthorizationToken() {
+		
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookAuthorizationManager.TOKEN_CACHE_EXPIRATION.minusSeconds(1).toNanos());
+		doReturn("token", "anotherToken").when(manager).generateWebhookAuthorizationToken(any());
+				
+		// Call under test
+		assertEquals("token", manager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy()));
+		
+		// Calling a second time should not regenerate the token
+		assertEquals("token", manager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy()));
+		
+		verify(manager).generateWebhookAuthorizationToken(new WebhookTokenCacheKey(webhook.getId(), webhook.getCreatedBy()));
+		
+	}
+	
+	@Test
+	public void testGetWebhookAuthorizationTokenWithExpiredCache() {
+		
+		when(mockClock.nanoTime()).thenReturn(0L, 0L, WebhookAuthorizationManager.TOKEN_CACHE_EXPIRATION.plusSeconds(1).toNanos());
+		doReturn("token", "anotherToken").when(manager).generateWebhookAuthorizationToken(any());
+				
+		// Call under test
+		assertEquals("token", manager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy()));
+		
+		// Call under test
+		assertEquals("anotherToken", manager.getWebhookAuthorizationToken(webhook.getId(), webhook.getCreatedBy()));
+		
+		verify(manager, times(2)).generateWebhookAuthorizationToken(new WebhookTokenCacheKey(webhook.getId(), webhook.getCreatedBy()));
+	}
+	
+	@Test
+	public void testGenerateWebhookAuthorizationToken() {
+		when(mockTokenManager.createWebhookAccessToken("https://repo-prod.dev.sagebase.org/auth/v1", webhook.getId(), webhook.getCreatedBy(), WebhookAuthorizationManager.TOKEN_EXPIRATION_SECONDS)).thenReturn("token");
+		
+		// Call under test
+		assertEquals("token", manager.generateWebhookAuthorizationToken(new WebhookTokenCacheKey(webhook.getId(), webhook.getCreatedBy())));
 	}
 	
 }
