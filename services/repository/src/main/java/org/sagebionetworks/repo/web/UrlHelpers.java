@@ -425,6 +425,18 @@ public class UrlHelpers {
 	public static final String JSON_SCHEMA_TYPE_VALIDATION_START = JSON_SCHEMA_TYPE_VALIDATION+ASYNC_START_REQUEST;
 	public static final String JSON_SCHEMA_TYPE_VALIDATION_GET = JSON_SCHEMA_TYPE_VALIDATION+ASYNC_GET_REQUEST;
 	
+	/**
+	 * Agent API URIs
+	 * 
+	 */
+	public static final String AGENT = "/agent";
+	public static final String AGENT_SESSION = AGENT+"/session";
+	public static final String AGENT_SESSION_ID = AGENT+"/session/{sessionId}";
+	public static final String AGENT_SESSION_LIST = AGENT_SESSION +"/list";
+	public static final String AGENT_CHAT = AGENT+"/chat";
+	public static final String AGENT_CHAT_START = AGENT_CHAT+ASYNC_START_REQUEST;
+	public static final String AGENT_CHAT_GET = AGENT_CHAT +ASYNC_GET_REQUEST;
+	
 	/*
 	 * The regular expression is needed in the path variable due to:
 	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-

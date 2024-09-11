@@ -96,4 +96,14 @@ public class AuthorizationUtils {
 		}
 		return false;
 	}
+	
+	public static boolean isSageEmployeeOrAdmin(UserInfo userInfo) {
+		if (userInfo.isAdmin()) {
+			return true;
+		}
+		if(userInfo.getGroups() != null) {
+			if(userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId())) return true;
+		}
+		return false;
+	}
 }

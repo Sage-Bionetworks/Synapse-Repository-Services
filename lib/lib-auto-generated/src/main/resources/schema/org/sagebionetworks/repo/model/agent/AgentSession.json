@@ -1,5 +1,5 @@
 {
-	"description": "Information about a specific session (conversation) with an agent.  Each session is immutable.  You will need to start a new session if you wish to use a different access level or agentId.",
+	"description": "Information about a specific session (conversation) with an agent.  Only the acess level can be changed on an existing session.  You will need to start a new session if you wish to use a different agentId.",
 	"properties": {
 		"sessionId": {
 			"type": "string",
@@ -14,9 +14,22 @@
 			"format": "date-time",
 			"description": "The date this session was started."
 		},
+		"startedBy": {
+			"type": "integer",
+			"description": "The id of the user that started this session"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this session was last modified."
+		},
 		"agentId": {
 			"type": "string",
 			"description": "Identifies that agent that will be used for this session.  The default value is null, which indicates that the default agent will be used."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Will change whenever the session changes."
 		}
 	}
 }

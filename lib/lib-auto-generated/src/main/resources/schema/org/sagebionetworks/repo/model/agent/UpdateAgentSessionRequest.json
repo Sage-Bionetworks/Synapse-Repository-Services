@@ -1,0 +1,13 @@
+{
+	"description": "Update the access level of an existing session.",
+	"properties": {
+		"sessionId": {
+			"type": "string",
+			"description": "The sessionId issued by Synapse when the session was started."
+		},
+		"agentAccessLevel": {
+			"description": "Required. Specifies the access level that the agent will have during the remainder of this session.",
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentAccessLevel"
+		}
+	}
+}

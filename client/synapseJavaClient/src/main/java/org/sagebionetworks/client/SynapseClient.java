@@ -73,6 +73,11 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -4255,7 +4260,16 @@ public interface SynapseClient extends BaseClient {
 	 * Validate the definingSQL of an Entity.
 	 */
 	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request) throws SynapseException;
+
 	
+	/**
+	 * Get the session information for a given session id.
+	 * @param sessionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AgentSession getAgentSession(String sessionId) throws SynapseException;
+
 	/**
 	 * Creates a new webhook.
 	 * 
@@ -4318,4 +4332,44 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Webhook generateWebhookVerificationCode(String webhookId) throws SynapseException;
+
+
+	/**
+	 * Start a new agent chat session.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AgentSession createAgentSession(CreateAgentSessionRequest request) throws SynapseException;
+
+	/**
+	 * Update an agent session for the provided session id.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	AgentSession updateAgentSession(UpdateAgentSessionRequest request) throws SynapseException;
+	
+	/**
+	 * Start a job to chat with an agent.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String startAgentChat(AgentChatRequest request) throws SynapseException;
+	
+
+	/**
+	 * Get the job resutls for a chat with an agent.
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	AgentChatResponse getAgentChatResponse(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+
+
 }
