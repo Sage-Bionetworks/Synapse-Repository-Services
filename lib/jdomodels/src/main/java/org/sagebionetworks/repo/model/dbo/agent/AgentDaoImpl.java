@@ -21,13 +21,13 @@ import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class AgentDaoImpl implements AgentDao {
@@ -57,7 +57,7 @@ public class AgentDaoImpl implements AgentDao {
 		this.jdbcTemplate = jdbcTemplate;
 	}
 
-	@Transactional
+	@WriteTransaction
 	@Override
 	public AgentSession createSession(Long userId, CreateAgentSessionRequest request) {
 		ValidateArgument.required(userId, "userId");
@@ -83,7 +83,7 @@ public class AgentDaoImpl implements AgentDao {
 		}
 	}
 
-	@Transactional
+	@WriteTransaction
 	@Override
 	public AgentSession updateSession(UpdateAgentSessionRequest request) {
 		ValidateArgument.required(request, "request");
@@ -95,6 +95,7 @@ public class AgentDaoImpl implements AgentDao {
 		return getAgentSession(request.getSessionId()).get();
 	}
 
+	@WriteTransaction
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM AGENT_SESSION WHERE ID > -1");

@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ public class AgentManagerImpl implements AgentManager {
 		this.agentDao = agentDao;
 	}
 
+	@WriteTransaction
 	@Override
 	public AgentSession createSession(UserInfo userInfo, CreateAgentSessionRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -44,6 +46,7 @@ public class AgentManagerImpl implements AgentManager {
 		return agentDao.createSession(userInfo.getId(), request);
 	}
 
+	@WriteTransaction
 	@Override
 	public AgentSession updateSession(UserInfo userInfo, UpdateAgentSessionRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -57,6 +60,7 @@ public class AgentManagerImpl implements AgentManager {
 		return agentDao.updateSession(request);
 	}
 
+	@WriteTransaction
 	@Override
 	public AgentChatResponse invokeAgent(UserInfo userInfo, AgentChatRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
