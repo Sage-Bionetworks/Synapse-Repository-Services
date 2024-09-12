@@ -330,7 +330,7 @@ public class AgentManagerImplUnitTest {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
 
 		// call under test
-		AgentSession result = manager.getSesion(sageUser, sessionId);
+		AgentSession result = manager.getSession(sageUser, sessionId);
 		assertEquals(session, result);
 	}
 
@@ -338,7 +338,7 @@ public class AgentManagerImplUnitTest {
 	public void testGetSessionWithNullUser() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.getSesion(null, sessionId);
+			manager.getSession(null, sessionId);
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
@@ -347,7 +347,7 @@ public class AgentManagerImplUnitTest {
 	public void testGetSessionWithNullSessionId() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.getSesion(sageUser, null);
+			manager.getSession(sageUser, null);
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
 	}

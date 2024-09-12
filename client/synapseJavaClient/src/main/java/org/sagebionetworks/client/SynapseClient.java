@@ -4263,14 +4263,6 @@ public interface SynapseClient extends BaseClient {
 
 	
 	/**
-	 * Get the session information for a given session id.
-	 * @param sessionId
-	 * @return
-	 * @throws SynapseException
-	 */
-	AgentSession getAgentSession(String sessionId) throws SynapseException;
-
-	/**
 	 * Creates a new webhook.
 	 * 
 	 * @param reqeust
@@ -4370,6 +4362,14 @@ public interface SynapseClient extends BaseClient {
 	 */
 	AgentChatResponse getAgentChatResponse(String asyncJobToken)
 			throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Get the session information for a given session id.
+	 * @param sessionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AgentSession getAgentSession(String sessionId) throws SynapseException;
 
 
 }

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.agent;
 
-import java.util.Optional;
-
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -68,7 +66,7 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
 		AgentSession session = getAndValidateAgentSession(userInfo, request.getSessionId());
 		// do nothing with an empty of blank input.
-		if(request.getChatText() == null || request.getChatText().isBlank()) {
+		if (request.getChatText() == null || request.getChatText().isBlank()) {
 			return new AgentChatResponse().setResponseText("").setSessionId(request.getSessionId());
 		}
 		// stub response
@@ -83,11 +81,9 @@ public class AgentManagerImpl implements AgentManager {
 	 * @return
 	 */
 	AgentSession getAndValidateAgentSession(UserInfo userInfo, String sessionId) {
-		Optional<AgentSession> op = agentDao.getAgentSession(sessionId);
-		if (op.isEmpty()) {
-			throw new NotFoundException("Agent session does not exist");
-		}
-		AgentSession s = op.get();
+		AgentSession s = agentDao.getAgentSession(sessionId).orElseThrow(() -> {
+			return new NotFoundException("Agent session does not exist");
+		});
 		if (!userInfo.getId().equals(s.getStartedBy())) {
 			throw new UnauthorizedException("Only the user that started a session may access it");
 		}
@@ -95,7 +91,7 @@ public class AgentManagerImpl implements AgentManager {
 	}
 
 	@Override
-	public AgentSession getSesion(UserInfo userInfo, String sessionId) {
+	public AgentSession getSession(UserInfo userInfo, String sessionId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(sessionId, "sessionId");
 		return getAndValidateAgentSession(userInfo, sessionId);

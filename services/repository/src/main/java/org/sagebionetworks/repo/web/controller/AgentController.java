@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * The Synapse chat services allow the user to chat with an agent that has
+ * The Synapse chat services allow the user to chat with a 'bot' (agent) that has
  * access to Synapse data. By default, Synapse provides a 'baseline' agent that
  * has basic access to all of the supported Synapse action group functions and
  * knowledge bases. Sage authorized collaborators can create their own agents
@@ -135,7 +135,7 @@ public class AgentController {
 	 * @param request
 	 * @return
 	 */
-	@RequiredScope({ modify, modify })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AGENT_CHAT_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId chatStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,

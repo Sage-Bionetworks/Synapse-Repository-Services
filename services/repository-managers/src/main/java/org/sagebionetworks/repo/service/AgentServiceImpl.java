@@ -38,7 +38,7 @@ public class AgentServiceImpl implements AgentService {
 	@Override
 	public AgentSession getSession(Long userId, String sessionId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return agentManager.getSesion(userInfo, sessionId);
+		return agentManager.getSession(userInfo, sessionId);
 	}
 
 }
