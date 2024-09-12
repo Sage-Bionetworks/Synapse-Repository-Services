@@ -227,19 +227,19 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 	}
 	
 	@Override
-	public String createWebhookAccessToken(String issuer, String webhookId, String webhookOwnerId, int expirationInSeconds) {
-		String tokenId = UUID.randomUUID().toString();
+	public String createWebhookMessageToken(String issuer, String messageMd5, String webhookId, String webhookOwnerId, int expirationInSeconds) {
 		Date now = clock.now();
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 
-		claims.put(OIDCClaimName.token_type.name(), TokenType.WEBHOOK_ACCESS_TOKEN);		
+		claims.put(OIDCClaimName.token_type.name(), TokenType.WEBHOOK_MESSAGE_TOKEN);
 		
-		claims.setId(tokenId)
+		claims.put("message_md5", messageMd5);
+		
+		claims.setId(UUID.randomUUID().toString())
 			.setIssuer(issuer)
 			.setSubject(webhookId)
 			.setAudience(webhookOwnerId)
-			.setNotBefore(now)
 			.setIssuedAt(now)
 			.setExpiration(new Date(now.getTime() + expirationInSeconds * 1000));
 

@@ -1537,7 +1537,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		String token = "id token";
 		when(oidcTokenManager.parseJWT(token)).thenReturn(mockJWT);
 		Claims claims = Jwts.claims();
-		claims.put(OIDCClaimName.token_type.name(), TokenType.WEBHOOK_ACCESS_TOKEN.name());
+		claims.put(OIDCClaimName.token_type.name(), TokenType.WEBHOOK_MESSAGE_TOKEN.name());
 		when(mockJWT.getBody()).thenReturn(claims);
 		claims.setAudience(OAUTH_CLIENT_ID);
 		when(mockOauthClientDao.getSectorIdentifierSecretForClient(OAUTH_CLIENT_ID)).thenReturn(clientSpecificEncodingSecret);
@@ -1546,7 +1546,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		claims.setSubject(ppid);
 
 		// method under test
-		assertEquals("invalid_token The provided token is a WEBHOOK_ACCESS_TOKEN token and cannot be used to authenticate requests.", 
+		assertEquals("invalid_token The provided token is a WEBHOOK_MESSAGE_TOKEN token and cannot be used to authenticate requests.", 
 			assertThrows(OAuthUnauthenticatedException.class, () -> openIDConnectManagerImpl.validateAccessToken(token)).getMessage()
 		);
 

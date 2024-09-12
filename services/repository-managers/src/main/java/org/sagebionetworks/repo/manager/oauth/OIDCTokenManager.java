@@ -67,7 +67,7 @@ public interface OIDCTokenManager {
 	 * @param webhookOwnerId
 	 * @return
 	 */
-	String createWebhookAccessToken(String issuer, String webhookId, String webhookOwnerId, int expirationInSeconds);
+	String createWebhookMessageToken(String issuer, String messageMd5, String webhookId, String webhookOwnerId, int expirationInSeconds);
 
 	/**
 	 * Return the *public* side of the signature keys in the stack configuration, in the JSON Web Key Set (JWKS) format

@@ -570,7 +570,7 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.setWebhookVerificationCode(any(), any(), any())).thenReturn(new DBOWebhookVerification().setCodeMessageId(messageId));
 		
 		doReturn(webhook).when(webhookManager).getWebhook(userInfo, webhook.getId());
-		doNothing().when(webhookManager).publishWebhookMessage(any(), any(), any());		
+		doNothing().when(webhookManager).publishWebhookMessage(any(), any());		
 		
 		// Call under test
 		Webhook updated = webhookManager.generateAndSendVerificationCode(userInfo, webhook);
@@ -585,9 +585,9 @@ public class WebhookManagerUnitTest {
 		assertTrue(StringUtils.isAlphanumeric(generatedCode));
 				
 		verify(webhookManager).publishWebhookMessage(webhook, new WebhookVerificationMessage()
+			.setMessageId(messageId)
 			.setVerificationCode(generatedCode)
-			.setEventTimestamp(now), 
-			messageId
+			.setEventTimestamp(now)
 		);
 	}
 	
@@ -595,19 +595,20 @@ public class WebhookManagerUnitTest {
 	public void testPublishWebhookMessageWithSynapseEvent() throws JSONObjectAdapterException {
 		String messageId = "messageId";
 		
-		WebhookMessage event = new WebhookSynapseEventMessage()
+		WebhookMessage message = new WebhookSynapseEventMessage()
+			.setMessageId(messageId)
 			.setEventTimestamp(new Date())
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId("123")
 			.setObjectType(SynapseObjectType.ENTITY);
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(webhook, event, messageId);
+		webhookManager.publishWebhookMessage(webhook, message);
 				
 		verify(mockSqsClient).sendMessage(
 			new SendMessageRequest()
 				.withQueueUrl(queueUrl)
-				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageBody(EntityFactory.createJSONStringForEntity(message))
 				.withMessageAttributes(Map.of(
 					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
 					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("SynapseEvent"),
@@ -622,17 +623,18 @@ public class WebhookManagerUnitTest {
 	public void testPublishWebhookMessageWithVerificationEvent() throws JSONObjectAdapterException {
 		String messageId = "messageId";
 		
-		WebhookMessage event = new WebhookVerificationMessage()
+		WebhookMessage message = new WebhookVerificationMessage()
+			.setMessageId(messageId)
 			.setEventTimestamp(new Date())
 			.setVerificationCode("abcd");
 						
 		// Call under test
-		webhookManager.publishWebhookMessage(webhook, event, messageId);
+		webhookManager.publishWebhookMessage(webhook, message);
 		
 		verify(mockSqsClient).sendMessage(
 			new SendMessageRequest()
 				.withQueueUrl(queueUrl)
-				.withMessageBody(EntityFactory.createJSONStringForEntity(event))
+				.withMessageBody(EntityFactory.createJSONStringForEntity(message))
 				.withMessageAttributes(Map.of(
 					"WebhookMessageId", new MessageAttributeValue().withDataType("String").withStringValue(messageId),
 					"WebhookMessageType", new MessageAttributeValue().withDataType("String").withStringValue("Verification"),
@@ -912,17 +914,17 @@ public class WebhookManagerUnitTest {
 		when(mockWebhookDao.listWebhooksForObjectIds(List.of(456L, 123L), SynapseObjectType.ENTITY, SynapseEventType.CREATE, 1000, 0)).thenReturn(List.of(webhook));		
 		when(mockWebhookAuthorizationManager.hasWebhookOwnerReadAccess(webhook)).thenReturn(true);
 				
-		doNothing().when(webhookManager).publishWebhookMessage(any(), any(), stringCaptor.capture());
-				
+		doNothing().when(webhookManager).publishWebhookMessage(any(), eventCaptor.capture());
+		
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
 		verify(webhookManager).publishWebhookMessage(webhook, new WebhookSynapseEventMessage()
+			.setMessageId(eventCaptor.getValue().getMessageId())
 			.setEventTimestamp(eventTimestamp)
 			.setEventType(SynapseEventType.CREATE)
 			.setObjectId(entityId)
-			.setObjectType(SynapseObjectType.ENTITY),
-			stringCaptor.getValue()
+			.setObjectType(SynapseObjectType.ENTITY)
 		);
 	}
 	
@@ -936,7 +938,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
-		verify(webhookManager, never()).publishWebhookMessage(any(), any(), any());
+		verify(webhookManager, never()).publishWebhookMessage(any(), any());
 		verifyZeroInteractions(mockWebhookDao, mockWebhookAuthorizationManager);
 	}
 	
@@ -952,7 +954,7 @@ public class WebhookManagerUnitTest {
 		// Call under test
 		webhookManager.processEntityChange(SynapseEventType.CREATE, eventTimestamp, entityId);
 		
-		verify(webhookManager, never()).publishWebhookMessage(any(), any(), any());
+		verify(webhookManager, never()).publishWebhookMessage(any(), any());
 	}
 	
 	@Test

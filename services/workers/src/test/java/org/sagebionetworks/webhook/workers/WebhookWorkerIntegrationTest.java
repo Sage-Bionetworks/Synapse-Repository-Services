@@ -169,7 +169,8 @@ public class WebhookWorkerIntegrationTest {
 		// This is a dead letter queue that collects failed attempts
 		deadLetterQueueUrl = sqsClient.getQueueUrl(new GetQueueUrlRequest()
 			.withQueueName(config.getQueueName("WEBHOOK_MESSAGE-dead-letter"))
-		).getQueueUrl(); 
+		).getQueueUrl();
+		
 	}
 	
 	@AfterAll
@@ -489,7 +490,11 @@ public class WebhookWorkerIntegrationTest {
 				
 				String webhookToken = authorizationHeaderValue.getStringValue().substring(AuthorizationConstants.BEARER_TOKEN_HEADER.length());
 				
-				tokenManager.validateJWT(webhookToken);
+				String messageMd5 = tokenManager.parseJWT(webhookToken).getBody().get("message_md5", String.class);
+				
+				if (!sqsMessage.getMD5OfBody().equals(messageMd5)) {
+					throw new IllegalStateException("Mismatching MD5 (Expected: " + messageMd5 + ", Was: " + sqsMessage.getMD5OfBody() + ")");
+				}
 			}
 			
 			T message;

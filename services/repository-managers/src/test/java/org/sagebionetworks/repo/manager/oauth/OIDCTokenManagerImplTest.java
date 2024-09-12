@@ -496,26 +496,27 @@ public class OIDCTokenManagerImplTest {
 	}
 	
 	@Test
-	public void testCreateWebhookAccessToken() throws Exception {
+	public void testCreateWebhookMessageToken() throws Exception {
 		Date now = new Date();
 		
 		when(mockClock.now()).thenReturn(now);
 		
+		String messageMd5 = "messageMd5";
 		String webhookId = "123";
 		String webhookOwnerId = "456";
 		int expirationsSec = 30;
 		
 		// Call under test
-		String accessToken = oidcTokenManager.createWebhookAccessToken(ISSUER, webhookId, webhookOwnerId, expirationsSec);
+		String accessToken = oidcTokenManager.createWebhookMessageToken(ISSUER, messageMd5, webhookId, webhookOwnerId, expirationsSec);
 		
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		
-		assertEquals(TokenType.WEBHOOK_ACCESS_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
+		assertEquals(TokenType.WEBHOOK_MESSAGE_TOKEN.name(), claims.get(OIDCClaimName.token_type.name(), String.class));
 		assertEquals(ISSUER, claims.getIssuer());
+		assertEquals(messageMd5, claims.get("message_md5"));
 		assertEquals(webhookOwnerId, claims.getAudience());
 		assertEquals(webhookId, claims.getSubject());
 		assertEquals(now.getTime()/1000, claims.getIssuedAt().getTime()/1000);
-		assertEquals(now.getTime()/1000, claims.getNotBefore().getTime()/1000);
 		assertEquals(now.getTime()/1000 + expirationsSec, claims.getExpiration().getTime()/1000);
 		
 		verifyZeroInteractions(mockAccessTokenDao);
