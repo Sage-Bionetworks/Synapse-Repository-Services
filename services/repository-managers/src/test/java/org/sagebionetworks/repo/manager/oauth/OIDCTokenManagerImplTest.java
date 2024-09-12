@@ -501,13 +501,13 @@ public class OIDCTokenManagerImplTest {
 		
 		when(mockClock.now()).thenReturn(now);
 		
+		String messageId = "123";
 		String messageMd5 = "messageMd5";
-		String webhookId = "123";
 		String webhookOwnerId = "456";
 		int expirationsSec = 30;
 		
 		// Call under test
-		String accessToken = oidcTokenManager.createWebhookMessageToken(ISSUER, messageMd5, webhookId, webhookOwnerId, expirationsSec);
+		String accessToken = oidcTokenManager.createWebhookMessageToken(ISSUER, messageId, messageMd5, webhookOwnerId, expirationsSec);
 		
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		
@@ -515,7 +515,7 @@ public class OIDCTokenManagerImplTest {
 		assertEquals(ISSUER, claims.getIssuer());
 		assertEquals(messageMd5, claims.get("message_md5"));
 		assertEquals(webhookOwnerId, claims.getAudience());
-		assertEquals(webhookId, claims.getSubject());
+		assertEquals(messageId, claims.getSubject());
 		assertEquals(now.getTime()/1000, claims.getIssuedAt().getTime()/1000);
 		assertEquals(now.getTime()/1000 + expirationsSec, claims.getExpiration().getTime()/1000);
 		

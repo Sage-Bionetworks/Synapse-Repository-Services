@@ -227,7 +227,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 	}
 	
 	@Override
-	public String createWebhookMessageToken(String issuer, String messageMd5, String webhookId, String webhookOwnerId, int expirationInSeconds) {
+	public String createWebhookMessageToken(String issuer, String messageId, String messageMd5, String webhookOwnerId, int expirationInSeconds) {
 		Date now = clock.now();
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
@@ -236,9 +236,8 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 		
 		claims.put("message_md5", messageMd5);
 		
-		claims.setId(UUID.randomUUID().toString())
-			.setIssuer(issuer)
-			.setSubject(webhookId)
+		claims.setIssuer(issuer)
+			.setSubject(messageId)
 			.setAudience(webhookOwnerId)
 			.setIssuedAt(now)
 			.setExpiration(new Date(now.getTime() + expirationInSeconds * 1000));

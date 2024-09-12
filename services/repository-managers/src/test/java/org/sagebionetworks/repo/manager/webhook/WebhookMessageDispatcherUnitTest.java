@@ -143,7 +143,7 @@ public class WebhookMessageDispatcherUnitTest {
 		when(mockMessage.getMessageAttributes()).thenReturn(expectedMessageAttributes());
 		when(mockMessage.getBody()).thenReturn("messageBody");
 		when(mockMessage.getMD5OfBody()).thenReturn("messageMd5");
-		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageMd5", webhook.getId(), webhook.getCreatedBy(), 30)).thenReturn(authToken);
+		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageId", "messageMd5", webhook.getCreatedBy(), 30)).thenReturn(authToken);
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		
@@ -162,7 +162,7 @@ public class WebhookMessageDispatcherUnitTest {
 		when(mockMessage.getBody()).thenReturn("messageBody");
 		when(mockMessage.getMD5OfBody()).thenReturn("messageMd5");
 		when(mockManager.getWebhookVerificationStatus(webhook.getId(), "messageId")).thenReturn(Optional.of(status));
-		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageMd5", webhook.getId(), webhook.getCreatedBy(), 30)).thenReturn(authToken);		
+		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageId", "messageMd5", webhook.getCreatedBy(), 30)).thenReturn(authToken);		
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		

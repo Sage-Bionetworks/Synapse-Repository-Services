@@ -106,7 +106,7 @@ public class WebhookMessageDispatcher {
 			}
 		}
 		
-		String messageToken = tokenManager.createWebhookMessageToken(tokenIssuer, message.getMD5OfBody(), attributes.getWebhookId(), attributes.getWebhookOwnerId(), TOKEN_EXPIRATION_SECONDS);
+		String messageToken = tokenManager.createWebhookMessageToken(tokenIssuer, attributes.getMessageId(), message.getMD5OfBody(), attributes.getWebhookOwnerId(), TOKEN_EXPIRATION_SECONDS);
 		
 		HttpRequest request = HttpRequest.newBuilder(URI.create(attributes.getWebhookEndpoint()))
 			.timeout(REQUEST_TIMEOUT)
