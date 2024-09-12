@@ -1,6 +1,7 @@
 package org.sagebionetworks.worker.config;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.agent.worker.AgentChatWorker;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
@@ -512,6 +513,29 @@ public class AsyncJobWorkersConfig {
 			.withStack(stack)
 			.withRepeatInterval(1053)
 			.withStartDelay(850)
+			.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean agentChatTrigger(ConcurrentManager concurrentStackManager, AgentChatWorker chatWorker) {
+		
+		String queueName = stackConfig.getQueueName("AGENT_CHAT");		
+		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, chatWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("agetnChatWorker")
+				.withSemaphoreMaxLockCount(10)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(3)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(false)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(2187)
+			.withStartDelay(1025)
 			.build();
 	}
 

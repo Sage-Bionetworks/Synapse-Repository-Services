@@ -1,0 +1,20 @@
+{
+	"description": "A single page of an agent session history",
+	"properties": {
+		"sessionId": {
+			"description": "The session ID of this conversation's history",
+			"type": "string"
+		},
+		"page": {
+			"description": "A single page of a session's history.  The history is ordered by the interaction time stamp descending.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.agent.Interaction"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
+	}
+}

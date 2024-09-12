@@ -1,5 +1,5 @@
 {
-	"description": "Information about a specific session (conversation) with an agent.  Each session is immutable.  You will need to start a new session if you wish to use a different access level or agentId.",
+	"description": "Information about a specific session (conversation) with an agent.  Only the acess level can be changed on an existing session.  You will need to start a new session if you wish to use a different agentId.",
 	"properties": {
 		"agentAccessLevel": {
 			"description": "Required. Specifies the access level that the agent will have during this session only.",

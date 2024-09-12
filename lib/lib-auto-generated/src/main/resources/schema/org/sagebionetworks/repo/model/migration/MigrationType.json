@@ -455,6 +455,10 @@
 			"description": "Table that stores allowed domain patterns for webhook endpoints"
 		},
 		{
+			"name": "AGENT_SESSION",
+			"description": "Table that stores user's agent sessions"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}
