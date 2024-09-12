@@ -76,42 +76,6 @@ public class WebhookAuthorizationManager {
 
 		return getReadAuthorizationStatus(userInfo, webhookKey.getObjectType(), webhookKey.getObjectId()).isAuthorized();
 	}
-	
-	static class WebhookTokenCacheKey {
-		private String webhookId;
-		private String webhookOwnerId;
-		
-		WebhookTokenCacheKey(String webhookId, String webhookOwnerId) {
-			this.webhookId = webhookId;
-			this.webhookOwnerId = webhookOwnerId;
-		}
-		
-		String getWebhookId() {
-			return webhookId;
-		}
-		
-		String getWebhookOwnerId() {
-			return webhookOwnerId;
-		}
-
-		@Override
-		public int hashCode() {
-			return Objects.hash(webhookId, webhookOwnerId);
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj) {
-				return true;
-			}
-			if (!(obj instanceof WebhookTokenCacheKey)) {
-				return false;
-			}
-			WebhookTokenCacheKey other = (WebhookTokenCacheKey) obj;
-			return Objects.equals(webhookId, other.webhookId) && Objects.equals(webhookOwnerId, other.webhookOwnerId);
-		}
-		
-	}
 
 	static class WebhookPermissionCacheKey {
 
