@@ -177,6 +177,18 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-apigatewayv2</artifactId>
 		</dependency>
+		
+		<!-- AWS V2 dependencies -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentruntime</artifactId>
+		</dependency>
+		<dependency>
+			<artifactId>netty-nio-client</artifactId>
+			<groupId>software.amazon.awssdk</groupId>
+		</dependency>
+			
+			
 	</dependencies>
 
 	<properties>
@@ -197,7 +209,7 @@
 			</resource>
 		</resources>
         <plugins>
-            <!-- Compile to Java 8 for compatibility with SWC -->
+			<!-- Compile to Java 8 for compatibility with SWC -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

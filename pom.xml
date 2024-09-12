@@ -732,11 +732,20 @@
 				<version>2.9.0</version>
 			</dependency>
 
-			<!-- Import the BOM for AWS sdk dependencies -->
+			<!-- Import the BOM for AWS sdk dependencies v1 -->
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-bom</artifactId>
 				<version>${com.amazonaws.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<!-- Import the BOM for AWS sdk dependencies v2 -->
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.27.21</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -758,7 +767,7 @@
 			    <artifactId>totp</artifactId>
 			    <version>1.7.1</version>
 			</dependency>
-			
+
 			<!-- Jakarta Email Api -->
 			<dependency>
 				<groupId>jakarta.mail</groupId>
@@ -777,7 +786,7 @@
                 <artifactId>jakarta.activation-api</artifactId>
                 <version>2.1.2</version>
             </dependency>
-            <!-- Official Activation Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-activation/) -->
+			<!-- Official Activation Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-activation/) -->
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-activation</artifactId>
@@ -1060,6 +1069,7 @@
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<schema-to-pojo.version>0.6.10</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.768</com.amazonaws.version>
+		<com.amazonaws.v2>2.27.21</com.amazonaws.v2>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
