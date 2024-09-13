@@ -548,7 +548,7 @@ public class VerificationManagerImplTest {
 				TEMPLATE_KEY_USER_ID
 		});
 		
-		// this will create 7 pieces
+		// this will create 5 pieces
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
 				VerificationManagerImpl.VERIFICATION_REJECTED_TEMPLATE, delims);
 		
@@ -559,9 +559,7 @@ public class VerificationManagerImplTest {
 		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
 		String reason = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
 		assertEquals(expectedReason, reason);
-		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
-		assertEquals(USER_ID.toString(), userId);
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
 	}
 
 	@Test
@@ -592,7 +590,7 @@ public class VerificationManagerImplTest {
 				TEMPLATE_KEY_USER_ID
 		});
 		
-		// this will create 5 pieces
+		// this will create 3 pieces
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
 				VerificationManagerImpl.VERIFICATION_REJECTED_NO_REASON_TEMPLATE, delims);
 		
@@ -600,9 +598,7 @@ public class VerificationManagerImplTest {
 		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
 		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
 		assertEquals("fname lname (username)", displayName);	
-		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
-		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-		assertEquals(USER_ID.toString(), userId);
+		assertTrue(result.getBody().endsWith(templatePieces.get(2)));
 	}
 
 	@Test
@@ -636,7 +632,7 @@ public class VerificationManagerImplTest {
 				TEMPLATE_KEY_USER_ID
 		});
 		
-		// this will create 7 pieces
+		// this will create 5 pieces
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
 				VerificationManagerImpl.VERIFICATION_SUSPENDED_TEMPLATE, delims);
 		
@@ -647,9 +643,7 @@ public class VerificationManagerImplTest {
 		assertTrue(result.getBody().indexOf(templatePieces.get(4))>0);
 		String reason = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
 		assertEquals(expectedReason, reason);
-		assertTrue(result.getBody().endsWith(templatePieces.get(6)));
-		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(4), templatePieces.get(6));
-		assertEquals(USER_ID.toString(), userId);
+		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
 	}
 
 	@Test
@@ -680,16 +674,14 @@ public class VerificationManagerImplTest {
 				TEMPLATE_KEY_USER_ID
 		});
 		
-		// this will create 5 pieces
+		// this will create 3 pieces
 		List<String> templatePieces = EmailParseUtil.splitEmailTemplate(
 				VerificationManagerImpl.VERIFICATION_SUSPENDED_NO_REASON_TEMPLATE, delims);
 		
 		assertTrue(result.getBody().startsWith(templatePieces.get(0)));
 		assertTrue(result.getBody().indexOf(templatePieces.get(2))>0);
 		String displayName = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(0), templatePieces.get(2));
-		assertEquals("fname lname (username)", displayName);	
-		assertTrue(result.getBody().endsWith(templatePieces.get(4)));
-		String userId = EmailParseUtil.getTokenFromString(result.getBody(), templatePieces.get(2), templatePieces.get(4));
-		assertEquals(USER_ID.toString(), userId);
+		assertEquals("fname lname (username)", displayName);
+		assertTrue(result.getBody().endsWith(templatePieces.get(2)));
 	}
 }
