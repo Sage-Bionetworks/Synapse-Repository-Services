@@ -17,7 +17,6 @@ public class MarkdownClient {
 	private String markdownServiceEndpoint;
 	private static final Map<String, String> DEFAULT_REQUEST_HEADERS;
 
-	public static final String MARKDOWN_TO_HTML = "/markdown2html";
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Content-Type", "application/json");
@@ -42,7 +41,7 @@ public class MarkdownClient {
 	 * @throws MarkdownClientException 
 	 */
 	public String requestMarkdownConversion(String requestContent) throws ClientProtocolException, IOException, MarkdownClientException {
-		String uri = markdownServiceEndpoint+MARKDOWN_TO_HTML;
+		String uri = markdownServiceEndpoint;
 		SimpleHttpRequest request = new SimpleHttpRequest();
 		request.setUri(uri);
 		Map<String, String> headers = new HashMap<String, String>(DEFAULT_REQUEST_HEADERS);
