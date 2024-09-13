@@ -62,6 +62,17 @@ public interface OIDCTokenManager {
 	String createPersonalAccessToken(String issuer, AccessTokenRecord record);
 
 	/**
+	 * 
+	 * @param issuer
+	 * @param messageId
+	 * @param messageMd5
+	 * @param webhookOwnerId
+	 * @param expirationInSeconds
+	 * @return A JWT token that is valid for a webhook message
+	 */
+	String createWebhookMessageToken(String issuer, String messageId, String messageMd5, String webhookOwnerId, int expirationInSeconds);
+
+	/**
 	 * Return the *public* side of the signature keys in the stack configuration, in the JSON Web Key Set (JWKS) format
 	 * @return a JSON object holding the JWKS
 	 */

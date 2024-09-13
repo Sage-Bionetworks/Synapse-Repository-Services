@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.webhook.SynapseObjectType;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.util.Clock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Ticker;
@@ -20,7 +21,7 @@ import com.google.common.cache.LoadingCache;
 
 @Service
 public class WebhookAuthorizationManager {
-
+	
 	static final Duration PERMISSIONS_CACHE_EXPIRATION = Duration.ofMinutes(5);
 	private static final int PERMISSIONS_CACHE_MAX_SIZE = 2_000;
 
@@ -29,16 +30,23 @@ public class WebhookAuthorizationManager {
 	private UserManager userManager;
 	private EntityAuthorizationManager entityAuthorizationManager;
 
-	public WebhookAuthorizationManager(UserManager userManager, EntityAuthorizationManager entityAuthorizationManager, Clock clock) {
+	public WebhookAuthorizationManager(UserManager userManager, EntityAuthorizationManager entityAuthorizationManager) {
 		this.userManager = userManager;
 		this.entityAuthorizationManager = entityAuthorizationManager;
+	}
+	
+	@Autowired
+	public void configure(Clock clock) {
+		
+		Ticker cacheTicker = new Ticker() {
+			@Override
+			public long read() {
+				return clock.nanoTime();
+			}
+		};
+		
 		this.webhookReadPermissions = CacheBuilder.newBuilder()
-			.ticker(new Ticker() {
-				@Override
-				public long read() {
-					return clock.nanoTime();
-				}
-			})
+			.ticker(cacheTicker)
 			.expireAfterWrite(PERMISSIONS_CACHE_EXPIRATION)
 			.maximumSize(PERMISSIONS_CACHE_MAX_SIZE)
 			.build(CacheLoader.from(this::loadWebhookOwnerReadAccessValue));
@@ -62,34 +70,34 @@ public class WebhookAuthorizationManager {
 			throw new IllegalArgumentException("Unsupported object type " + objectType);
 		}
 	}
-
+	
 	boolean loadWebhookOwnerReadAccessValue(WebhookPermissionCacheKey webhookKey) {
 		UserInfo userInfo = userManager.getUserInfo(webhookKey.getUserId());
 
 		return getReadAuthorizationStatus(userInfo, webhookKey.getObjectType(), webhookKey.getObjectId()).isAuthorized();
 	}
 
-	public static class WebhookPermissionCacheKey {
+	static class WebhookPermissionCacheKey {
 
 		private Long userId;
 		private SynapseObjectType objectType;
 		private String objectId;
 
-		public WebhookPermissionCacheKey(Webhook webhook) {
+		WebhookPermissionCacheKey(Webhook webhook) {
 			this.userId = Long.valueOf(webhook.getCreatedBy());
 			this.objectType = webhook.getObjectType();
 			this.objectId = webhook.getObjectId();
 		}
 
-		public Long getUserId() {
+		Long getUserId() {
 			return userId;
 		}
 
-		public SynapseObjectType getObjectType() {
+		SynapseObjectType getObjectType() {
 			return objectType;
 		}
 
-		public String getObjectId() {
+		String getObjectId() {
 			return objectId;
 		}
 

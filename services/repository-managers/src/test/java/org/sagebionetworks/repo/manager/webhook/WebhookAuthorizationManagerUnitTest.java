@@ -22,6 +22,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookAuthorizationManager.WebhookPermissionCacheKey;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,11 +43,14 @@ public class WebhookAuthorizationManagerUnitTest {
 	private EntityAuthorizationManager mockAuthorizationManager;
 	
 	@Mock
-	private Clock mockClock;
+	private OIDCTokenManager mockTokenManager;
 	
 	@InjectMocks
 	@Spy
 	private WebhookAuthorizationManager manager;
+	
+	@Mock
+	private Clock mockClock;
 	
 	private UserInfo userInfo;
 	
@@ -65,6 +69,8 @@ public class WebhookAuthorizationManagerUnitTest {
 			.setInvokeEndpoint("https://my.endpoint.org/events")
 			.setIsEnabled(true)
 			.setVerificationStatus(WebhookVerificationStatus.PENDING);
+				
+		manager.configure(mockClock);
 	}
 
 	@Test

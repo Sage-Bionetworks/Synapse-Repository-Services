@@ -22,6 +22,8 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -41,6 +43,8 @@ public class WebhookMessageDispatcher {
 
 	public static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(2);
 
+	private static final int TOKEN_EXPIRATION_SECONDS = 30;
+	
 	private static final String HEADER_PREFIX = "X-Syn-Webhook-";
 	static final String HEADER_WEBHOOK_ID = HEADER_PREFIX + "Id";
 	static final String HEADER_WEBHOOK_MSG_ID = HEADER_PREFIX + "Message-Id";
@@ -65,14 +69,18 @@ public class WebhookMessageDispatcher {
 	);
 
 	private WebhookManager manager;
+	private OIDCTokenManager tokenManager;
 	private WebhookMetricsCollector metricsCollector;
 	private HttpClient webhookHttpClient;
 	private Clock clock;
 
+	// Configured after construction
 	private String userAgent;
+	private String tokenIssuer;
 
-	public WebhookMessageDispatcher(WebhookManager manager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
+	public WebhookMessageDispatcher(WebhookManager manager, OIDCTokenManager tokenManager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
 		this.manager = manager;
+		this.tokenManager = tokenManager;
 		this.metricsCollector = metricsCollector;
 		this.webhookHttpClient = webhookHttpClient;
 		this.clock = clock;
@@ -81,10 +89,10 @@ public class WebhookMessageDispatcher {
 	@Autowired
 	public void configure(StackConfiguration config) {
 		this.userAgent = "Synapse-Webhook/" + config.getStackInstance();
+		this.tokenIssuer = "https://repo-prod." + config.getStack() + ".sagebase.org/auth/v1";
 	}
 
 	public void dispatchMessage(Message message) {
-
 		WebhookMessageAttributes attributes = new WebhookMessageAttributes(message.getMessageAttributes());
 		
 		if (attributes.isVerification()) {
@@ -98,8 +106,11 @@ public class WebhookMessageDispatcher {
 			}
 		}
 		
+		String messageToken = tokenManager.createWebhookMessageToken(tokenIssuer, attributes.getMessageId(), message.getMD5OfBody(), attributes.getWebhookOwnerId(), TOKEN_EXPIRATION_SECONDS);
+		
 		HttpRequest request = HttpRequest.newBuilder(URI.create(attributes.getWebhookEndpoint()))
 			.timeout(REQUEST_TIMEOUT)
+			.header(HttpHeaders.AUTHORIZATION, AuthorizationConstants.BEARER_TOKEN_HEADER + messageToken)
 			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.header(HttpHeaders.USER_AGENT, userAgent)
 			.headers(attributes.toRequestHeaders())

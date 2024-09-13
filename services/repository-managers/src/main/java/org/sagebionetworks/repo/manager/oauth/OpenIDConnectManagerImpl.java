@@ -336,10 +336,10 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 					throw new ForbiddenException("The provided personal access token has expired or has been revoked.");
 				}
 				break;
-			case OIDC_ID_TOKEN:
-				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is an OIDC ID token and cannot be used to authenticate requests.");
-
-		}
+			default:
+				throw new OAuthUnauthenticatedException(OAuthErrorCode.invalid_token, "The provided token is a " + tokenType.name() + " token and cannot be used to authenticate requests.");
+	
+			}
 		return userId;
 	}
 	

@@ -5,6 +5,11 @@
 		"concreteType":{
 			"type": "string"
 		},
+		"messageId": {
+			"type": "string",
+			"description": "Unique message identifier.",
+			"required": true
+		},
 		"eventTimestamp": {
 			"type": "string",
 			"format": "date-time",
