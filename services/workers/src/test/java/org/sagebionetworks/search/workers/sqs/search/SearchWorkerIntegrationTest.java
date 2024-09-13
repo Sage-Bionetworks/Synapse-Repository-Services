@@ -1,5 +1,7 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -25,6 +27,11 @@ import org.sagebionetworks.repo.manager.search.SearchManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -40,6 +47,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.service.AgentService;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.CloudSearchClientProvider;
@@ -96,6 +104,9 @@ public class SearchWorkerIntegrationTest {
 	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
+	
+	@Autowired
+	private AgentService agentService;
 	
 	private UserInfo adminUserInfo;
 	private UserInfo anotherUser;
@@ -218,6 +229,25 @@ public class SearchWorkerIntegrationTest {
 		Thread.sleep(1000);
 		
 		waitForQuery(adminUserInfo, uuid);
+		
+		// can the agent find this document?
+		AgentSession session = agentService.createSession(adminUserInfo.getId(),
+				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
+
+		assertNotNull(session);
+		// an empty request will return an empty response.
+		String chatRequest = String.format("I would like to search for the term: '%s' in Synapse.", uuid);
+
+		asyncHelper.assertJobResponse(adminUserInfo,
+				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
+				(AgentChatResponse response) -> {
+					assertNotNull(response);
+					assertEquals(session.getSessionId(), response.getSessionId());
+					System.out.println(response.getResponseText());
+					// if the agent was able to find this project, its id should be in the response.
+					assertTrue(response.getResponseText().contains(project.getId()),
+							"Failed to find the project ID in the agent's response");
+				}, MAX_WAIT).getResponse();
 		
 	}
 	

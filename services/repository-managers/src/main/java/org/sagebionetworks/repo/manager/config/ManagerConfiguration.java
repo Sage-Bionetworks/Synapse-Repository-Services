@@ -22,6 +22,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.repo.manager.agent.handler.EntityMetadataHandler;
+import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
+import org.sagebionetworks.repo.manager.agent.handler.SearchHandler;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
@@ -305,5 +308,10 @@ public class ManagerConfiguration {
 				.map(a -> a.agentId()).findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("Could not find a bedrock agent named: " + agentName));
 
+	}
+	
+	@Bean
+	public ReturnControlHandlerProvider createReturnControlHandlerProvider(SearchHandler searchHandler, EntityMetadataHandler entityMedatadataHandler) {
+		return new ReturnControlHandlerProvider(List.of(searchHandler, entityMedatadataHandler));
 	}
 }
