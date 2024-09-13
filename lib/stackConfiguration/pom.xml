@@ -181,13 +181,8 @@
 		<!-- AWS V2 dependencies -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
-			<artifactId>bedrockagentruntime</artifactId>
+			<artifactId>auth</artifactId>
 		</dependency>
-		<dependency>
-			<artifactId>netty-nio-client</artifactId>
-			<groupId>software.amazon.awssdk</groupId>
-		</dependency>
-			
 			
 	</dependencies>
 

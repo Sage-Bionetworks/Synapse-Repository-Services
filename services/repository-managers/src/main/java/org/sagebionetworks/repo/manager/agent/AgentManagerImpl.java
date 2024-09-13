@@ -15,15 +15,23 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
+
 @Service
 public class AgentManagerImpl implements AgentManager {
 
 	private final AgentDao agentDao;
+	private final BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient;
+	private final String stackBedrockAgentId;
+	
 
 	@Autowired
-	public AgentManagerImpl(AgentDao agentDao) {
+	public AgentManagerImpl(AgentDao agentDao, BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient,
+			String stackBedrockAgentId) {
 		super();
 		this.agentDao = agentDao;
+		this.bedrockAgentRuntimeAsyncClient = bedrockAgentRuntimeAsyncClient;
+		this.stackBedrockAgentId = stackBedrockAgentId;
 	}
 
 	@WriteTransaction
@@ -35,13 +43,14 @@ public class AgentManagerImpl implements AgentManager {
 		// only authenticated users can start a chat session.
 		AuthorizationUtils.disallowAnonymous(userInfo);
 
-		if (request.getAgentId() != null) {
+		if (request.getAgentId() != null && !request.getAgentId().isBlank()) {
 			if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
 				throw new UnauthorizedException("Currently, only internal users can override the agentId.");
 			}
 		}
-
-		return agentDao.createSession(userInfo.getId(), request);
+		String agentId = (request.getAgentId() == null || request.getAgentId().isBlank()) ? stackBedrockAgentId
+				: request.getAgentId();
+		return agentDao.createSession(userInfo.getId(), request.getAgentAccessLevel(), agentId);
 	}
 
 	@WriteTransaction
@@ -55,7 +64,7 @@ public class AgentManagerImpl implements AgentManager {
 		if (request.getAgentAccessLevel().equals(s.getAgentAccessLevel())) {
 			return s;
 		}
-		return agentDao.updateSession(request);
+		return agentDao.updateSession(request.getSessionId(), request.getAgentAccessLevel());
 	}
 
 	@WriteTransaction

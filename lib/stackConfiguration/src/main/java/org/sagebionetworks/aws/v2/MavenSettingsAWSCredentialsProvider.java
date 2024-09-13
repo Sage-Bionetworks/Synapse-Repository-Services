@@ -34,12 +34,12 @@ public class MavenSettingsAWSCredentialsProvider implements AwsCredentialsProvid
 			
 			@Override
 			public String secretAccessKey() {
-				return properties.getProperty("org.sagebionetworks.stack.iam.id");
+				return properties.getProperty("org.sagebionetworks.stack.iam.key");
 			}
 			
 			@Override
 			public String accessKeyId() {
-				return properties.getProperty("org.sagebionetworks.stack.iam.key");
+				return properties.getProperty("org.sagebionetworks.stack.iam.id");
 			}
 		};
 	}

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.agent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -16,8 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentSession;
-import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
-import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -31,15 +28,15 @@ public class AgentDaoImplTest {
 
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
-	private CreateAgentSessionRequest createRequest;
-	private UpdateAgentSessionRequest updateRequest;
+	private String sessionId;
+	private AgentAccessLevel accessLevel;
+	private String agentId;
 
 	@BeforeEach
 	public void before() {
-		this.createRequest = new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE)
-				.setAgentId("123");
-		this.updateRequest = new UpdateAgentSessionRequest()
-				.setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA).setSessionId("sessionId");
+		this.sessionId = "sessionId";
+		this.accessLevel = AgentAccessLevel.PUBLICLY_ACCESSIBLE;
+		this.agentId = "123";
 	}
 
 	@AfterEach
@@ -49,11 +46,8 @@ public class AgentDaoImplTest {
 
 	@Test
 	public void testCreateSession() {
-		CreateAgentSessionRequest request = new CreateAgentSessionRequest()
-				.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE).setAgentId("agent123");
-
 		// call under test
-		AgentSession session = agentDao.createSession(adminUserId, request);
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, agentId);
 		assertNotNull(session);
 		assertNotNull(session.getSessionId());
 		assertNotNull(session.getEtag());
@@ -63,6 +57,7 @@ public class AgentDaoImplTest {
 		assertEquals(session.getStartedOn(), session.getModifiedOn());
 		assertEquals(adminUserId, session.getStartedBy());
 		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE, session.getAgentAccessLevel());
+		assertEquals(agentId, session.getAgentId());
 
 		assertEquals(Optional.of(session), agentDao.getAgentSession(session.getSessionId()));
 
@@ -76,17 +71,14 @@ public class AgentDaoImplTest {
 
 	@Test
 	public void testUpdateSession() throws InterruptedException {
-		CreateAgentSessionRequest request = new CreateAgentSessionRequest()
-				.setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA).setAgentId("agent123");
 
-		AgentSession session = agentDao.createSession(adminUserId, request);
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, agentId);
 		assertNotNull(session);
 
 		Thread.sleep(1001L);
 
 		// call under test
-		AgentSession updated = agentDao.updateSession(new UpdateAgentSessionRequest()
-				.setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA).setSessionId(session.getSessionId()));
+		AgentSession updated = agentDao.updateSession(session.getSessionId(), AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA);
 		assertNotNull(updated);
 
 		assertEquals(session.getSessionId(), updated.getSessionId());
@@ -103,17 +95,13 @@ public class AgentDaoImplTest {
 	@Test
 	public void testMultipleSessions() {
 
-		AgentSession one = agentDao.createSession(adminUserId, new CreateAgentSessionRequest().setAgentId("one")
-				.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE));
-		AgentSession two = agentDao.createSession(adminUserId, new CreateAgentSessionRequest().setAgentId("two")
-				.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE));
+		AgentSession one = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE, "one");
+		AgentSession two = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE, "two");
 
 		assertNotEquals(one.getSessionId(), two.getSessionId());
 
-		AgentSession oneUp = agentDao.updateSession(new UpdateAgentSessionRequest().setSessionId(one.getSessionId())
-				.setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
-		AgentSession twoUp = agentDao.updateSession(new UpdateAgentSessionRequest().setSessionId(two.getSessionId())
-				.setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
+		AgentSession oneUp = agentDao.updateSession(one.getSessionId(), AgentAccessLevel.READ_YOUR_PRIVATE_DATA);
+		AgentSession twoUp = agentDao.updateSession(two.getSessionId(), AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA);
 
 		assertEquals(AgentAccessLevel.READ_YOUR_PRIVATE_DATA, oneUp.getAgentAccessLevel());
 		assertEquals(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA, twoUp.getAgentAccessLevel());
@@ -126,73 +114,53 @@ public class AgentDaoImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, createRequest);
+			agentDao.createSession(adminUserId, accessLevel, agentId);
 		}).getMessage();
 		assertEquals("userId is required.", message);
 	}
 
 	@Test
-	public void testCreateSessionWithNullRequest() {
-		createRequest = null;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			agentDao.createSession(adminUserId, createRequest);
-		}).getMessage();
-		assertEquals("request is required.", message);
-	}
-
-	@Test
 	public void testCreateSessionWithNullAccessLevel() {
-		createRequest.setAgentAccessLevel(null);
-
+		accessLevel = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, createRequest);
+			agentDao.createSession(adminUserId, accessLevel, agentId);
 		}).getMessage();
-		assertEquals("request.accessLevel is required.", message);
+		assertEquals("accessLevel is required.", message);
 	}
 
 	@Test
 	public void testCreateSessionWithNullAgentId() {
-		createRequest.setAgentId(null);
-		AgentSession one = agentDao.createSession(adminUserId, createRequest);
-		assertNotNull(one);
-		assertNotNull(one.getSessionId());
-		assertNull(one.getAgentId());
-	}
-
-	@Test
-	public void testUpdateSessionWithNullRequest() {
-		updateRequest = null;
-
+		agentId = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.updateSession(updateRequest);
+			agentDao.createSession(adminUserId, accessLevel, agentId);
 		}).getMessage();
-		assertEquals("request is required.", message);
+		assertEquals("agentId is required.", message);;
 	}
+
+
 
 	@Test
 	public void testUpdateSessionWithNullSessionId() {
-		updateRequest.setSessionId(null);
+		sessionId = null;
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.updateSession(updateRequest);
+			agentDao.updateSession(sessionId, accessLevel);
 		}).getMessage();
-		assertEquals("request.sessionId is required.", message);
+		assertEquals("sessionId is required.", message);
 	}
 	
 	@Test
 	public void testUpdateSessionWithNullAccessLevel() {
-		updateRequest.setAgentAccessLevel(null);
+		accessLevel = null;
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.updateSession(updateRequest);
+			agentDao.updateSession(sessionId, accessLevel);
 		}).getMessage();
-		assertEquals("request.accessLevel is required.", message);
+		assertEquals("accessLevel is required.", message);
 	}
 
 }

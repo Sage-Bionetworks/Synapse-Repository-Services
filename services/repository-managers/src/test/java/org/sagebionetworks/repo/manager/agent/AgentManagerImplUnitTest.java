@@ -27,17 +27,25 @@ import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 
 @ExtendWith(MockitoExtension.class)
 public class AgentManagerImplUnitTest {
 
 	@Mock
 	private AgentDao mockAgentDao;
+	
+	@Mock
+	private BedrockAgentRuntimeAsyncClient mockAgentRuntime;
+	
 
 	@Spy
 	@InjectMocks
 	private AgentManagerImpl manager;
 
+	private String stackBedrockAgentId;
 	private Long adminId;
 	private Long sageTeamId;
 	private Long anonymousUserId;
@@ -57,6 +65,9 @@ public class AgentManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
+		stackBedrockAgentId = "stackAgentId";
+		ReflectionTestUtils.setField(manager, "stackBedrockAgentId", stackBedrockAgentId);
+		
 		adminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		sageTeamId = BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId();
 		anonymousUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
@@ -90,7 +101,7 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithSageUser() {
-		when(mockAgentDao.createSession(sageUser.getId(), createRequest)).thenReturn(session);
+		when(mockAgentDao.createSession(sageUser.getId(), createRequest.getAgentAccessLevel(), createRequest.getAgentId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(sageUser, createRequest);
@@ -99,7 +110,7 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithAdmin() {
-		when(mockAgentDao.createSession(admin.getId(), createRequest)).thenReturn(session);
+		when(mockAgentDao.createSession(admin.getId(), createRequest.getAgentAccessLevel(), createRequest.getAgentId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(admin, createRequest);
@@ -129,7 +140,18 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testCreateSessionWithNonSageNonAdminWithNullAgentId() {
 		createRequest.setAgentId(null);
-		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest)).thenReturn(session);
+		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(), stackBedrockAgentId)).thenReturn(session);
+
+		// call under test
+		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
+		assertEquals(session, result);
+	}
+	
+
+	@Test
+	public void testCreateSessionWithNonSageNonAdminWithBlankAgentId() {
+		createRequest.setAgentId("");
+		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(), stackBedrockAgentId)).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
@@ -204,7 +226,7 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testUpdateSession() {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
-		when(mockAgentDao.updateSession(updateRequest)).thenReturn(session);
+		when(mockAgentDao.updateSession(updateRequest.getSessionId(), updateRequest.getAgentAccessLevel())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.updateSession(sageUser, updateRequest);

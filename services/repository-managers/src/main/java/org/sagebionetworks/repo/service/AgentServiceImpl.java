@@ -9,8 +9,6 @@ import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.mchange.v1.cachedstore.CachedStore.Manager;
-
 @Service
 public class AgentServiceImpl implements AgentService {
 
