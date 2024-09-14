@@ -103,9 +103,8 @@ public class AgentManagerImpl implements AgentManager {
 		if (request.getChatText() == null || request.getChatText().isBlank()) {
 			return new AgentChatResponse().setResponseText("").setSessionId(request.getSessionId());
 		}
-		// stub response
-		return new AgentChatResponse().setResponseText(invokeAgentWithText(session, request.getChatText()))
-				.setSessionId(request.getSessionId());
+		String responseText = invokeAgentWithText(session, request.getChatText());
+		return new AgentChatResponse().setResponseText(responseText).setSessionId(request.getSessionId());
 	}
 
 	/**
@@ -240,7 +239,8 @@ public class AgentManagerImpl implements AgentManager {
 	 * @throws Exception
 	 * @throws ApiException
 	 */
-	List<InvocationResultMember> executeEvents(AgentAccessLevel accessLevel, List<ReturnControlEvent> events) throws Exception {
+	List<InvocationResultMember> executeEvents(AgentAccessLevel accessLevel, List<ReturnControlEvent> events)
+			throws Exception {
 		List<InvocationResultMember> results = new ArrayList<>();
 		for (ReturnControlEvent e : events) {
 			ReturnControlHandler handler = handlerProvider.getHandler(e.getActionGroup(), e.getFunction())
@@ -249,10 +249,10 @@ public class AgentManagerImpl implements AgentManager {
 									e.getFunction())));
 
 			String responseBody = handler.handleEvent(e);
-			if(handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {
-				
-			}else {
-				
+			if (handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {
+
+			} else {
+
 			}
 			results.add(InvocationResultMember.builder()
 					.functionResult(FunctionResult.builder().actionGroup(e.getActionGroup()).function(e.getFunction())
@@ -261,7 +261,7 @@ public class AgentManagerImpl implements AgentManager {
 		}
 		return results;
 	}
-	
+
 	String createResponseBody(AgentAccessLevel accessLevel, ReturnControlHandler handler, ReturnControlEvent event)
 			throws Exception {
 		if (handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {

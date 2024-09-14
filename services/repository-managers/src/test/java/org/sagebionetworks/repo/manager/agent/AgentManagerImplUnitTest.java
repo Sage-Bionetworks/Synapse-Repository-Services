@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,6 +40,9 @@ public class AgentManagerImplUnitTest {
 	
 	@Mock
 	private BedrockAgentRuntimeAsyncClient mockAgentRuntime;
+	
+	@Mock
+	private ReturnControlHandlerProvider mockReturnControlHandlerProvider;
 	
 
 	@Spy
@@ -285,11 +289,13 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testInvokeAgent() {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
+		String responseText = "hi";
+		doReturn(responseText).when(manager).invokeAgentWithText(session, chatRequest.getChatText());
 
 		// call under test
 		AgentChatResponse response = manager.invokeAgent(sageUser, chatRequest);
 
-		AgentChatResponse expected = new AgentChatResponse().setSessionId(sessionId).setResponseText("hello");
+		AgentChatResponse expected = new AgentChatResponse().setSessionId(sessionId).setResponseText(responseText);
 		assertEquals(response, expected);
 
 	}

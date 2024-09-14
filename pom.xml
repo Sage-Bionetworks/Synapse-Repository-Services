@@ -1069,7 +1069,6 @@
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<schema-to-pojo.version>0.6.10</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.768</com.amazonaws.version>
-		<com.amazonaws.v2>2.27.21</com.amazonaws.v2>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
 		<org.apache.pivot.version>2.0.1</org.apache.pivot.version>
