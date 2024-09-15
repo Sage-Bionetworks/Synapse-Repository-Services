@@ -284,7 +284,7 @@ public class ManagerConfiguration {
 
 	@Bean
 	public SdkAsyncHttpClient createSharedAsyncHttpClient() {
-		return NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(60)).build();
+		return NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)).build();
 	}
 
 	@Bean
