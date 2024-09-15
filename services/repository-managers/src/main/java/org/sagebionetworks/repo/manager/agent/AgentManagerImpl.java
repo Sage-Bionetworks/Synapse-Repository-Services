@@ -6,6 +6,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
@@ -27,8 +30,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.google.api.gax.rpc.ApiException;
-
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockagentruntime.model.ContentBody;
 import software.amazon.awssdk.services.bedrockagentruntime.model.FunctionResult;
@@ -48,15 +49,19 @@ public class AgentManagerImpl implements AgentManager {
 	private final BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient;
 	private final String stackBedrockAgentId;
 	private final ReturnControlHandlerProvider handlerProvider;
+	private final LoggerProvider loggerProvider;
+	private Logger logger;
 
 	@Autowired
 	public AgentManagerImpl(AgentDao agentDao, BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient,
-			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider) {
+			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider, LoggerProvider loggerProvider) {
 		super();
 		this.agentDao = agentDao;
 		this.bedrockAgentRuntimeAsyncClient = bedrockAgentRuntimeAsyncClient;
 		this.stackBedrockAgentId = stackBedrockAgentId;
 		this.handlerProvider = handlerProvider;
+		this.loggerProvider = loggerProvider;
+
 	}
 
 	@WriteTransaction
@@ -142,38 +147,54 @@ public class AgentManagerImpl implements AgentManager {
 	 * @return
 	 */
 	String invokeAgentWithText(AgentSession session, String inputText) {
-		// This buffer is used to capture each chunk of data sent from the agent.
-		var chunkedBuffer = new StringBuilder();
-		var responseStreamHandler = InvokeAgentResponseHandler.builder()
-				.subscriber(Visitor.builder().onReturnControl(payload -> {
-					// The agent has requested more information, so another invoke_agent call is
-					// needed.
-					chunkedBuffer.append(invokeAgentWithReturnControlResults(session, payload));
-				}).onChunk(chunk -> {
-					// Append the text to the response text buffer.
-					chunkedBuffer.append(chunk.bytes().asUtf8String());
-				}).build()).onResponse(resp -> {
-				}).onError(t -> {
-					t.printStackTrace();
-				}).build();
-
-		CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(
-				InvokeAgentRequest.builder().agentId(session.getAgentId()).agentAliasId(TSTALIASID)
-						.sessionId(session.getSessionId()).enableTrace(false).inputText(inputText).build(),
-				responseStreamHandler);
-		try {
-			future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
-		}
-		return chunkedBuffer.toString();
+		InvokeAgentRequest request = InvokeAgentRequest.builder().agentId(session.getAgentId()).agentAliasId(TSTALIASID)
+				.sessionId(session.getSessionId()).enableTrace(false).inputText(inputText).build();
+		return invokeAgent(session, request);
 	}
 
 	/**
-	 * This invoke_agent call is used to reply to a "return control" response from a
+	 * The main invoke_agent call.
+	 * 
+	 * @param session
+	 * @param invokeAgentRequest
+	 * @return
+	 */
+	String invokeAgent(AgentSession session, InvokeAgentRequest invokeAgentRequest) {
+		try {
+			// This buffer is used to concatenated all of
+			var chunkedBuffer = new StringBuilder();
+			var responseStreamHandler = InvokeAgentResponseHandler.builder()
+					.subscriber(Visitor.builder().onReturnControl(payload -> {
+						/*
+						 * The agent has requested more information by providing a return_control
+						 * response. Another recursive invoke_agent call is used to send the results to
+						 * the agent.
+						 */
+						chunkedBuffer.append(invokeAgentWithReturnControlResults(session, payload));
+					}).onChunk(chunk -> {
+						// The agent will return results in chunks that must be concatenated.
+						chunkedBuffer.append(chunk.bytes().asUtf8String());
+					}).build()).onResponse(resp -> {
+						getLogger().info("onResponse() sessionId: '{}'", session.getSessionId());
+					}).onError(t -> {
+						getLogger().error("onError() sessionId: '{}' errorMessage:'{}'", session.getSessionId(),
+								t.getMessage());
+					}).build();
+
+			CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(invokeAgentRequest,
+					responseStreamHandler);
+			future.get();
+			return chunkedBuffer.toString();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * This invoke_agent call is used to reply to a return_control response from a
 	 * previous invoke_agent call. This call will execute the requested events and
 	 * then provide them to the agent with another invoke_agent call. Note: This
-	 * method is recursive as the agent might respond with another "return control"
+	 * method is recursive as the agent might respond with another return_control
 	 * response.
 	 * 
 	 * @param sessionId
@@ -181,44 +202,23 @@ public class AgentManagerImpl implements AgentManager {
 	 * @return
 	 */
 	String invokeAgentWithReturnControlResults(AgentSession session, ReturnControlPayload payloadIn) {
-		try {
-			Long runAsUser = getRunAsUser(session);
-			List<ReturnControlEvent> events = extractEvents(runAsUser, payloadIn);
-			List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(), events);
-			// This buffer is used to capture each chunk of data sent from the agent.
-			var chunkedBuffer = new StringBuilder();
-			var responseStreamHandler = InvokeAgentResponseHandler.builder()
-					.subscriber(Visitor.builder().onReturnControl(payload -> {
-						// The agent has requested more information, so another invoke_agent call is
-						// needed.
-						chunkedBuffer.append(invokeAgentWithReturnControlResults(session, payload));
-					}).onChunk(chunk -> {
-						// Append the text to the response text buffer.
-						chunkedBuffer.append(chunk.bytes().asUtf8String());
-					}).build()).onResponse(resp -> {
-					}).onError(t -> {
-						t.printStackTrace();
-					}).build();
-
-			CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(
-					InvokeAgentRequest.builder().agentId(session.getAgentId()).agentAliasId(TSTALIASID)
-							.sessionId(session.getSessionId())
-							.sessionState(SessionState.builder().invocationId(payloadIn.invocationId())
-									.returnControlInvocationResults(eventResults).build())
-							.enableTrace(false).build(),
-					responseStreamHandler);
-			try {
-				future.get();
-			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
-			}
-			return chunkedBuffer.toString();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return e.getMessage();
-		}
+		Long runAsUser = getRunAsUser(session);
+		List<ReturnControlEvent> events = extractEvents(runAsUser, payloadIn);
+		List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(), events);
+		InvokeAgentRequest newRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
+				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
+						.invocationId(payloadIn.invocationId()).returnControlInvocationResults(eventResults).build())
+				.enableTrace(false).build();
+		return invokeAgent(session, newRequest);
 	}
 
+	/**
+	 * Get the ID of the user that should be used for return_control event handlers
+	 * based on the session's access level.
+	 * 
+	 * @param session
+	 * @return
+	 */
 	Long getRunAsUser(AgentSession session) {
 		switch (session.getAgentAccessLevel()) {
 		case PUBLICLY_ACCESSIBLE:
@@ -237,10 +237,8 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param events
 	 * @return
 	 * @throws Exception
-	 * @throws ApiException
 	 */
-	List<InvocationResultMember> executeEvents(AgentAccessLevel accessLevel, List<ReturnControlEvent> events)
-			throws Exception {
+	List<InvocationResultMember> executeEvents(AgentAccessLevel accessLevel, List<ReturnControlEvent> events) {
 		List<InvocationResultMember> results = new ArrayList<>();
 		for (ReturnControlEvent e : events) {
 			ReturnControlHandler handler = handlerProvider.getHandler(e.getActionGroup(), e.getFunction())
@@ -248,12 +246,7 @@ public class AgentManagerImpl implements AgentManager {
 							String.format("No handler for actionGroup: '%s' and function: '%s'", e.getActionGroup(),
 									e.getFunction())));
 
-			String responseBody = handler.handleEvent(e);
-			if (handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {
-
-			} else {
-
-			}
+			String responseBody = handleEvent(accessLevel, handler, e);
 			results.add(InvocationResultMember.builder()
 					.functionResult(FunctionResult.builder().actionGroup(e.getActionGroup()).function(e.getFunction())
 							.responseBody(Map.of("TEXT", ContentBody.builder().body(responseBody).build())).build())
@@ -262,15 +255,35 @@ public class AgentManagerImpl implements AgentManager {
 		return results;
 	}
 
-	String createResponseBody(AgentAccessLevel accessLevel, ReturnControlHandler handler, ReturnControlEvent event)
-			throws Exception {
-		if (handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {
-			return String.format(
-					"Calling actionGroup: '%s' function: '%s' requires an access level of '%s'. The current session has an access level of '%s'. Please inform the user that they will need to need to change the access level of this session to be '%s' before this function may be called.",
-					event.getActionGroup(), event.getFunction(), AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA, accessLevel,
-					AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA);
-		} else {
-			return handler.handleEvent(event);
+	/**
+	 * Handle the provided event bases on provided access level. When write access
+	 * is needed but not provided, the resulting message
+	 * 
+	 * @param accessLevel
+	 * @param handler
+	 * @param event
+	 * @return
+	 * @throws Exception
+	 */
+	String handleEvent(AgentAccessLevel accessLevel, ReturnControlHandler handler, ReturnControlEvent event) {
+		try {
+			if (handler.needsWriteAccess() && !AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA.equals(accessLevel)) {
+				throw new UnauthorizedException(String.format(
+						"Calling actionGroup: '%s' function: '%s' requires an access level of '%s'. The current session has an access level of '%s'. Please inform the user that they will need to need to change the access level of this session to be '%s' before this function may be called.",
+						event.getActionGroup(), event.getFunction(), AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA,
+						accessLevel, AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
+
+			} else {
+				return handler.handleEvent(event);
+			}
+		} catch (Exception e) {
+			getLogger().error(
+					"Return_control event execution failed. Will send the following message to the agent: '{}'",
+					e.getMessage());
+			// on failure provide the error message to the agent in JSON.
+			JSONObject error = new JSONObject();
+			error.put("errorMessage", e.getMessage());
+			return error.toString();
 		}
 	}
 
@@ -284,9 +297,6 @@ public class AgentManagerImpl implements AgentManager {
 		List<ReturnControlEvent> events = new ArrayList<>();
 		payload.invocationInputs().forEach(iim -> {
 			var input = iim.functionInvocationInput();
-			if (input == null) {
-				throw new IllegalArgumentException("expected FunctionInvocationInput but was null");
-			}
 			List<Parameter> params = new ArrayList<>();
 			input.parameters().forEach(p -> {
 
@@ -295,6 +305,18 @@ public class AgentManagerImpl implements AgentManager {
 			events.add(new ReturnControlEvent(userId, input.actionGroup(), input.function(), params));
 		});
 		return events;
+	}
+
+	/**
+	 * Helper to get the lazy logger used for this manager.
+	 * 
+	 * @return
+	 */
+	Logger getLogger() {
+		if (logger == null) {
+			logger = loggerProvider.getLogger(AgentManagerImpl.class.getName());
+		}
+		return logger;
 	}
 
 }

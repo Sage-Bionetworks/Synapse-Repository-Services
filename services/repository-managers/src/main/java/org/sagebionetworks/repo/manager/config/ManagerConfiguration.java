@@ -23,6 +23,8 @@ import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
 import org.sagebionetworks.repo.manager.agent.handler.EntityMetadataHandler;
+import org.sagebionetworks.repo.manager.agent.handler.GetDescriptionHandler;
+import org.sagebionetworks.repo.manager.agent.handler.GetEntityChildrenHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.handler.SearchHandler;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
@@ -311,7 +313,10 @@ public class ManagerConfiguration {
 	}
 	
 	@Bean
-	public ReturnControlHandlerProvider createReturnControlHandlerProvider(SearchHandler searchHandler, EntityMetadataHandler entityMedatadataHandler) {
-		return new ReturnControlHandlerProvider(List.of(searchHandler, entityMedatadataHandler));
+	public ReturnControlHandlerProvider createReturnControlHandlerProvider(SearchHandler searchHandler,
+			EntityMetadataHandler entityMedatadataHandler, GetEntityChildrenHandler getEntityChildrenHandler,
+			GetDescriptionHandler getDescriptionHandler) {
+		return new ReturnControlHandlerProvider(
+				List.of(searchHandler, entityMedatadataHandler, getEntityChildrenHandler, getDescriptionHandler));
 	}
 }
