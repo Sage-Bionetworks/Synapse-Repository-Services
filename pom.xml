@@ -732,11 +732,20 @@
 				<version>2.9.0</version>
 			</dependency>
 
-			<!-- Import the BOM for AWS sdk dependencies -->
+			<!-- Import the BOM for AWS sdk dependencies v1 -->
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-bom</artifactId>
 				<version>${com.amazonaws.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<!-- Import the BOM for AWS sdk dependencies v2 -->
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.27.21</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -758,7 +767,7 @@
 			    <artifactId>totp</artifactId>
 			    <version>1.7.1</version>
 			</dependency>
-			
+
 			<!-- Jakarta Email Api -->
 			<dependency>
 				<groupId>jakarta.mail</groupId>
@@ -777,7 +786,7 @@
                 <artifactId>jakarta.activation-api</artifactId>
                 <version>2.1.2</version>
             </dependency>
-            <!-- Official Activation Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-activation/) -->
+			<!-- Official Activation Api Implementation from Eclipse Angus (See https://eclipse-ee4j.github.io/angus-activation/) -->
             <dependency>
                 <groupId>org.eclipse.angus</groupId>
                 <artifactId>angus-activation</artifactId>

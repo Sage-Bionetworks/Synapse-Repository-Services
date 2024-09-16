@@ -15,6 +15,6 @@ public interface AgentManager {
 
 	AgentSession updateSession(UserInfo userInfo, UpdateAgentSessionRequest request);
 
-	AgentSession getSesion(UserInfo userInfo, String sessionId);
+	AgentSession getSession(UserInfo userInfo, String sessionId);
 
 }

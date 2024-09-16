@@ -11,7 +11,8 @@ import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.service.ServiceProvider;
+import org.sagebionetworks.repo.service.AgentService;
+import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -28,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * The Synapse chat services allow the user to chat with an agent that has
+ * The Synapse chat services allow the user to chat with a 'bot' (agent) that has
  * access to Synapse data. By default, Synapse provides a 'baseline' agent that
  * has basic access to all of the supported Synapse action group functions and
  * knowledge bases. Sage authorized collaborators can create their own agents
@@ -62,7 +63,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AgentController {
 
 	@Autowired
-	ServiceProvider serviceProvider;
+	private AgentService agentService;
+	@Autowired
+	private AsynchronousJobServices asynchronousJobServices;
 
 	/**
 	 * Start a new chat session. Each chat session request must include an <a href=
@@ -80,7 +83,7 @@ public class AgentController {
 	public @ResponseBody AgentSession createSession(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CreateAgentSessionRequest request) {
-		return serviceProvider.getAgentService().createSession(userId, request);
+		return agentService.createSession(userId, request);
 	}
 
 	/**
@@ -96,7 +99,7 @@ public class AgentController {
 	public @ResponseBody AgentSession getAgentSession(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String sessionId) {
-		return serviceProvider.getAgentService().getSession(userId, sessionId);
+		return agentService.getSession(userId, sessionId);
 	}
 	/**
 	 * Update the access level of an existing agent session.
@@ -116,7 +119,7 @@ public class AgentController {
 			@RequestBody UpdateAgentSessionRequest request) {
 		ValidateArgument.required(request, "request");
 		request.setSessionId(sessionId);
-		return serviceProvider.getAgentService().updateSession(userId, request);
+		return agentService.updateSession(userId, request);
 	}
 
 	/**
@@ -135,12 +138,12 @@ public class AgentController {
 	 * @param request
 	 * @return
 	 */
-	@RequiredScope({ modify, modify })
+	@RequiredScope({ view, modify })
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AGENT_CHAT_START, method = RequestMethod.POST)
 	public @ResponseBody AsyncJobId chatStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AgentChatRequest request) {
-		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, request);
 		AsyncJobId asyncJobId = new AsyncJobId();
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
@@ -163,7 +166,7 @@ public class AgentController {
 	public @ResponseBody AgentChatResponse chatGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
 			throws Throwable {
-		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+		AsynchronousJobStatus jobStatus = asynchronousJobServices.getJobStatusAndThrow(userId,
 				asyncToken);
 		return (AgentChatResponse) jobStatus.getResponseBody();
 	}

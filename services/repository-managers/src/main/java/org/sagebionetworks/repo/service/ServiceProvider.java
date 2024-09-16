@@ -89,6 +89,4 @@ public interface ServiceProvider {
 
 	DrsService getDrsService();
 	
-	AgentService getAgentService();
-	
 }
