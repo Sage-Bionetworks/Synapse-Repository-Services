@@ -94,8 +94,6 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private DownloadListService downloadListService;
 	@Autowired
 	private DrsService drsService;
-	@Autowired
-	private AgentService agentService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -245,8 +243,5 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public DrsService getDrsService(){
 		return drsService;
 	}
-	@Override
-	public AgentService getAgentService() {
-		return agentService;
-	}
+
 }

@@ -239,6 +239,19 @@
              <scope>runtime</scope>
          </dependency>
 
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentruntime</artifactId>
+		</dependency>
+		<dependency>
+			<artifactId>netty-nio-client</artifactId>
+			<groupId>software.amazon.awssdk</groupId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagent</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>

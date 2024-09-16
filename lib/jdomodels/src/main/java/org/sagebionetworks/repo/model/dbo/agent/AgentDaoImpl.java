@@ -18,8 +18,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentSession;
-import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
-import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
@@ -59,15 +57,15 @@ public class AgentDaoImpl implements AgentDao {
 
 	@WriteTransaction
 	@Override
-	public AgentSession createSession(Long userId, CreateAgentSessionRequest request) {
+	public AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String agentId) {
 		ValidateArgument.required(userId, "userId");
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getAgentAccessLevel(), "request.accessLevel");
+		ValidateArgument.required(accessLevel, "accessLevel");
+		ValidateArgument.required(agentId, "agentId");
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		DBOAgentSession dbo = new DBOAgentSession().setId(idGenerator.generateNewId(IdType.AGENT_SESSION_ID))
 				.setEtag(UUID.randomUUID().toString()).setCreatedBy(userId).setCreatedOn(now).setModifiedOn(now)
-				.setSessionId(UUID.randomUUID().toString()).setAgentId(request.getAgentId())
-				.setAccessLevel(request.getAgentAccessLevel().name());
+				.setSessionId(UUID.randomUUID().toString()).setAgentId(agentId)
+				.setAccessLevel(accessLevel.name());
 		basicDao.createNew(dbo);
 		return getAgentSession(dbo.getSessionId()).get();
 	}
@@ -85,14 +83,13 @@ public class AgentDaoImpl implements AgentDao {
 
 	@WriteTransaction
 	@Override
-	public AgentSession updateSession(UpdateAgentSessionRequest request) {
-		ValidateArgument.required(request, "request");
-		ValidateArgument.required(request.getSessionId(), "request.sessionId");
-		ValidateArgument.required(request.getAgentAccessLevel(), "request.accessLevel");
+	public AgentSession updateSession(String sessionId, AgentAccessLevel accessLevel) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(accessLevel, "accessLevel");
 		jdbcTemplate.update(
 				"UPDATE AGENT_SESSION SET ETAG = UUID(), MODIFIED_ON = NOW(), ACCESS_LEVEL = ? WHERE SESSION_ID = ?",
-				request.getAgentAccessLevel().name(), request.getSessionId());
-		return getAgentSession(request.getSessionId()).get();
+				accessLevel.name(), sessionId);
+		return getAgentSession(sessionId).get();
 	}
 
 	@WriteTransaction

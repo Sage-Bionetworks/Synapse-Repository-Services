@@ -4,9 +4,11 @@ import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssoc
 
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -17,8 +19,14 @@ import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.repo.manager.agent.handler.EntityMetadataHandler;
+import org.sagebionetworks.repo.manager.agent.handler.GetDescriptionHandler;
+import org.sagebionetworks.repo.manager.agent.handler.GetEntityChildrenHandler;
+import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
+import org.sagebionetworks.repo.manager.agent.handler.SearchHandler;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
@@ -69,6 +77,13 @@ import dev.samstevens.totp.secret.DefaultSecretGenerator;
 import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
+import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockagent.BedrockAgentClient;
+import software.amazon.awssdk.services.bedrockagent.model.ListAgentsRequest;
+import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 
 @Configuration
 public class ManagerConfiguration {
@@ -261,4 +276,47 @@ public class ManagerConfiguration {
 			.build();
 	}
 	
+	
+	@Bean
+	public AwsCredentialsProvider createAwsCredentialProviderV2() {
+		return AwsCrdentialPoviderV2.createCredentialProvider();
+	}
+
+	@Bean
+	public SdkAsyncHttpClient createSharedAsyncHttpClient() {
+		return NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)).build();
+	}
+
+	@Bean
+	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
+			AwsCredentialsProvider credentialProvider, SdkAsyncHttpClient asncyClient) {
+		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
+				.httpClient(asncyClient).build();
+	}
+
+	@Bean
+	public BedrockAgentClient createBedrockAgentClient(AwsCredentialsProvider credentialProvider) {
+		return BedrockAgentClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+	
+	@Bean
+	public String stackBedrockAgentId(BedrockAgentClient bedrockAgentClient,
+			BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient, StackConfiguration stackConfig) {
+		String agentName = new StringJoiner("-").add(stackConfig.getStack()).add(stackConfig.getStackInstance())
+				.add("agent").toString();
+
+		return bedrockAgentClient.listAgentsPaginator(ListAgentsRequest.builder().build()).stream()
+				.flatMap(a -> a.agentSummaries().stream()).filter(a -> agentName.equals(a.agentName()))
+				.map(a -> a.agentId()).findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Could not find a bedrock agent named: " + agentName));
+
+	}
+	
+	@Bean
+	public ReturnControlHandlerProvider createReturnControlHandlerProvider(SearchHandler searchHandler,
+			EntityMetadataHandler entityMedatadataHandler, GetEntityChildrenHandler getEntityChildrenHandler,
+			GetDescriptionHandler getDescriptionHandler) {
+		return new ReturnControlHandlerProvider(
+				List.of(searchHandler, entityMedatadataHandler, getEntityChildrenHandler, getDescriptionHandler));
+	}
 }
