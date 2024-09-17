@@ -283,15 +283,10 @@ public class ManagerConfiguration {
 	}
 
 	@Bean
-	public SdkAsyncHttpClient createSharedAsyncHttpClient() {
-		return NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)).build();
-	}
-
-	@Bean
 	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
-			AwsCredentialsProvider credentialProvider, SdkAsyncHttpClient asncyClient) {
+			AwsCredentialsProvider credentialProvider) {
 		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
-				.httpClient(asncyClient).build();
+				.httpClient(NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)).maxConcurrency(100).build()).build();
 	}
 
 	@Bean
