@@ -156,7 +156,7 @@ public class WebhookMetricsCollectorUnitTest {
 		
 		for (int i=0; i<100; i++) {
 			boolean failed = i % 2 == 0;
-			service.submit(() -> {				
+			service.submit(() -> {
 				collector.requestCompleted(webhookId1, failed ? 50 : 100, failed);
 			});
 		}
@@ -174,6 +174,10 @@ public class WebhookMetricsCollectorUnitTest {
 		
 		service.shutdown();
 		service.awaitTermination(10, TimeUnit.SECONDS);
+		
+		// A final call to the collectMetrics is needed since there is a chance that the thread(s) that collected metrics 
+		// left some data behind due to contention (See https://sagebionetworks.jira.com/browse/PLFM-8612)
+		collector.collectMetrics();
 		
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<List<ProfileData>> captor = ArgumentCaptor.forClass(List.class);
