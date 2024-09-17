@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.agent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -49,19 +49,21 @@ public class AgentManagerImpl implements AgentManager {
 	private final BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient;
 	private final String stackBedrockAgentId;
 	private final ReturnControlHandlerProvider handlerProvider;
-	private final LoggerProvider loggerProvider;
 	private Logger logger;
 
 	@Autowired
 	public AgentManagerImpl(AgentDao agentDao, BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient,
-			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider, LoggerProvider loggerProvider) {
+			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider) {
 		super();
 		this.agentDao = agentDao;
 		this.bedrockAgentRuntimeAsyncClient = bedrockAgentRuntimeAsyncClient;
 		this.stackBedrockAgentId = stackBedrockAgentId;
 		this.handlerProvider = handlerProvider;
-		this.loggerProvider = loggerProvider;
-
+	}
+	
+	@Autowired
+	public void setLoggerProvider(LoggerProvider provider) {
+		this.logger = provider.getLogger(AgentManagerImpl.class.getName());
 	}
 
 	@WriteTransaction
@@ -142,14 +144,38 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param sessionId
 	 * @param inputText
 	 * @return
-	 * @throws InterruptedException
-	 * @throws ExecutionException
-	 * @return
 	 */
 	String invokeAgentWithText(AgentSession session, String inputText) {
-		InvokeAgentRequest request = InvokeAgentRequest.builder().agentId(session.getAgentId()).agentAliasId(TSTALIASID)
-				.sessionId(session.getSessionId()).enableTrace(false).inputText(inputText).build();
-		return invokeAgent(session, request);
+		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
+				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).enableTrace(false).inputText(inputText)
+				.build();
+		AgentResponse res = invokeAgentAsync(session, startRequest);
+		int count = 0;
+		// When the invocation ID is not null, the agent has requested more information
+		// with a return_control response.
+		while (res.getInvocationId() != null) {
+			if(count > 10) {
+				throw new IllegalStateException("Max number of 10 return_control agent response exceeded.");
+			}
+			int thisCount = count;
+			res.getReturnControlEvents().forEach(e -> {
+				logger.info(
+						"return_control sessionId: '{}', count: '{}', actionGroup: '{}', function: '{}', params: '{}'",
+						session.getAgentId(), thisCount, e.getActionGroup(), e.getFunction(),
+						e.getParameters().toString());
+			});
+			// Each time the agent responds with return_control we need to get the requested
+			// data and send it with another invoke_agent call.
+			List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(),
+					res.getReturnControlEvents());
+			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
+					.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
+							.invocationId(res.getInvocationId()).returnControlInvocationResults(eventResults).build())
+					.enableTrace(false).build();
+			res = invokeAgentAsync(session, returnRequest);
+			count++;
+		}
+		return res.getBuilder().toString();
 	}
 
 	/**
@@ -159,57 +185,36 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param invokeAgentRequest
 	 * @return
 	 */
-	String invokeAgent(AgentSession session, InvokeAgentRequest invokeAgentRequest) {
+	AgentResponse invokeAgentAsync(AgentSession session, InvokeAgentRequest invokeAgentRequest) {
 		try {
-			// This buffer is used to concatenated all of
-			var chunkedBuffer = new StringBuilder();
+			// This object will capture the response data pushed to the handler.
+			AgentResponse response = new AgentResponse();
 			var responseStreamHandler = InvokeAgentResponseHandler.builder()
 					.subscriber(Visitor.builder().onReturnControl(payload -> {
 						/*
 						 * The agent has requested more information by providing a return_control
-						 * response. Another recursive invoke_agent call is used to send the results to
-						 * the agent.
+						 * response..
 						 */
-						chunkedBuffer.append(invokeAgentWithReturnControlResults(session, payload));
+						Long runAsUser = getRunAsUser(session);
+						List<ReturnControlEvent> events = extractEvents(runAsUser, payload);
+						response.setReturnControl(payload.invocationId(), events);
 					}).onChunk(chunk -> {
 						// The agent will return results in chunks that must be concatenated.
-						chunkedBuffer.append(chunk.bytes().asUtf8String());
+						response.appendText(chunk.bytes().asUtf8String());
 					}).build()).onResponse(resp -> {
-						getLogger().info("onResponse() sessionId: '{}'", session.getSessionId());
+						logger.info("onResponse() sessionId: '{}'", session.getSessionId());
 					}).onError(t -> {
-						getLogger().error("onError() sessionId: '{}' errorMessage:'{}'", session.getSessionId(),
+						logger.error("onError() sessionId: '{}' errorMessage:'{}'", session.getSessionId(),
 								t.getMessage());
 					}).build();
 
 			CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(invokeAgentRequest,
 					responseStreamHandler);
 			future.get();
-			return chunkedBuffer.toString();
+			return response;
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * This invoke_agent call is used to reply to a return_control response from a
-	 * previous invoke_agent call. This call will execute the requested events and
-	 * then provide them to the agent with another invoke_agent call. Note: This
-	 * method is recursive as the agent might respond with another return_control
-	 * response.
-	 * 
-	 * @param sessionId
-	 * @param payloadIn
-	 * @return
-	 */
-	String invokeAgentWithReturnControlResults(AgentSession session, ReturnControlPayload payloadIn) {
-		Long runAsUser = getRunAsUser(session);
-		List<ReturnControlEvent> events = extractEvents(runAsUser, payloadIn);
-		List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(), events);
-		InvokeAgentRequest newRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
-						.invocationId(payloadIn.invocationId()).returnControlInvocationResults(eventResults).build())
-				.enableTrace(false).build();
-		return invokeAgent(session, newRequest);
 	}
 
 	/**
@@ -245,7 +250,6 @@ public class AgentManagerImpl implements AgentManager {
 					.orElseThrow(() -> new UnsupportedOperationException(
 							String.format("No handler for actionGroup: '%s' and function: '%s'", e.getActionGroup(),
 									e.getFunction())));
-
 			String responseBody = handleEvent(accessLevel, handler, e);
 			results.add(InvocationResultMember.builder()
 					.functionResult(FunctionResult.builder().actionGroup(e.getActionGroup()).function(e.getFunction())
@@ -277,7 +281,7 @@ public class AgentManagerImpl implements AgentManager {
 				return handler.handleEvent(event);
 			}
 		} catch (Exception e) {
-			getLogger().error(
+			logger.error(
 					"Return_control event execution failed. Will send the following message to the agent: '{}'",
 					e.getMessage());
 			// on failure provide the error message to the agent in JSON.
@@ -307,16 +311,73 @@ public class AgentManagerImpl implements AgentManager {
 		return events;
 	}
 
-	/**
-	 * Helper to get the lazy logger used for this manager.
-	 * 
-	 * @return
-	 */
-	Logger getLogger() {
-		if (logger == null) {
-			logger = loggerProvider.getLogger(AgentManagerImpl.class.getName());
+	public static class AgentResponse {
+
+		private final StringBuilder builder;
+		private List<ReturnControlEvent> returnControlEvents;
+		private String invocationId;
+
+		public AgentResponse() {
+			builder = new StringBuilder();
+			returnControlEvents = new ArrayList<>(2);
 		}
-		return logger;
+
+		/**
+		 * Called for a normal response.
+		 * @param text
+		 */
+		AgentResponse appendText(String text) {
+			builder.append(text);
+			return this;
+		}
+		
+		/**
+		 * Called for a return_control response.
+		 * @param invocationId
+		 * @param returnControlEvents
+		 */
+		AgentResponse setReturnControl(String invocationId, List<ReturnControlEvent> returnControlEvents) {
+			this.invocationId = invocationId;
+			this.returnControlEvents = returnControlEvents;
+			return this;
+		}
+
+		public StringBuilder getBuilder() {
+			return builder;
+		}
+
+		public List<ReturnControlEvent> getReturnControlEvents() {
+			return returnControlEvents;
+		}
+
+		public String getInvocationId() {
+			return invocationId;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(builder.toString(), invocationId, returnControlEvents);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			AgentResponse other = (AgentResponse) obj;
+			return Objects.equals(builder.toString(), other.builder.toString()) && Objects.equals(invocationId, other.invocationId)
+					&& Objects.equals(returnControlEvents, other.returnControlEvents);
+		}
+
+		@Override
+		public String toString() {
+			return "AgentResponse [builder=" + builder + ", returnControlEvents=" + returnControlEvents
+					+ ", invocationId=" + invocationId + "]";
+		}
+
 	}
 
 }

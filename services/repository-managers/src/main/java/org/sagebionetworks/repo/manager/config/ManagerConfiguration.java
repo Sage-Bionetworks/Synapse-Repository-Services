@@ -286,7 +286,8 @@ public class ManagerConfiguration {
 	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
 			AwsCredentialsProvider credentialProvider) {
 		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
-				.httpClient(NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)).maxConcurrency(100).build()).build();
+				.httpClientBuilder(NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)))
+				.build();
 	}
 
 	@Bean
