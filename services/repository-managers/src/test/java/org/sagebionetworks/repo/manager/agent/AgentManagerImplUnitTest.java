@@ -30,6 +30,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Subscription;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.repo.manager.agent.AgentManagerImpl.AgentResponse;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
@@ -120,10 +121,14 @@ public class AgentManagerImplUnitTest {
 	private ReturnControlEvent returnControlEventOne;
 	private ReturnControlEvent returnControlEventTwo;
 	private List<ReturnControlEvent> returnControlEvents;
+	private String invocationId;
 
 	private String returnControlResponseBody;
 	private InvocationResultMember invocationResultMember;
 	private List<InvocationResultMember> invocationResultMembers;
+
+	private InvokeAgentRequest invokeAgentRequest;
+	private InvokeAgentRequest invokeAgentReturnRequest;
 
 	private UpdateAgentSessionRequest updateRequest;
 
@@ -151,6 +156,8 @@ public class AgentManagerImplUnitTest {
 
 		nonSageNonAdmin = new UserInfo(false);
 		nonSageNonAdmin.setId(555L);
+		
+		invocationId = "someInvocationId";
 
 		sessionId = "sessionId111";
 		createRequest = new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE)
@@ -187,6 +194,15 @@ public class AgentManagerImplUnitTest {
 						.build())
 				.build();
 		invocationResultMembers = List.of(invocationResultMember);
+
+		invokeAgentRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
+				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).enableTrace(false)
+				.inputText(inputText).build();
+		
+		invokeAgentReturnRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
+				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
+						.invocationId(invocationId).returnControlInvocationResults(invocationResultMembers).build())
+				.enableTrace(false).build();
 	}
 
 	@Test
@@ -472,11 +488,7 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testInvokeAgentWithText() {
-		InvokeAgentRequest expected = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).enableTrace(false)
-				.inputText(inputText).build();
-
-		doReturn("foo").when(manager).invokeAgent(session, expected);
+		doReturn(new AgentResponse().appendText("foo")).when(manager).invokeAgentAsync(session, invokeAgentRequest);
 
 		// call under test
 		String results = manager.invokeAgentWithText(session, inputText);
@@ -484,8 +496,41 @@ public class AgentManagerImplUnitTest {
 	}
 
 	@Test
-	public void testInvokeAgentWithTextWithMultipleOnChunk() throws InterruptedException, ExecutionException {
-		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
+	public void testInvokeAgentWithTextWithReturnControl() {
+
+		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
+				.invokeAgentAsync(session, invokeAgentRequest);
+		setupLogger();
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(), returnControlEvents);
+		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(session, invokeAgentReturnRequest);
+
+		// call under test
+		String results = manager.invokeAgentWithText(session, inputText);
+		assertEquals("bar", results);
+	}
+	
+	@Test
+	public void testInvokeAgentWithTextWithReturnControlInfiniteLoop() {
+
+		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
+				.invokeAgentAsync(session, invokeAgentRequest);
+		setupLogger();
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
+				returnControlEvents);
+		// return control triggers another return control infinite loop.
+		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
+				.invokeAgentAsync(session, invokeAgentReturnRequest);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.invokeAgentWithText(session, inputText);
+		}).getMessage();
+		assertEquals("Max number of 10 return_control agent response exceeded.", message);
+	}
+
+	@Test
+	public void testInvokeAgentAsnchMultipleOnChunk() throws InterruptedException, ExecutionException {
+		setupLogger();
 		when(mockCompletableFuture.get()).thenReturn(null);
 		// mock two onChunk()
 		doAnswer((InvocationOnMock invocation) -> {
@@ -500,16 +545,16 @@ public class AgentManagerImplUnitTest {
 		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
 
 		// call under test
-		String response = manager.invokeAgentWithText(session, inputText);
-		assertEquals("onetwo", response);
+		AgentResponse response = manager.invokeAgentAsync(session, invokeAgentRequest);
+		assertEquals("onetwo", response.getBuilder().toString());
 		verify(mockLogger).info("onResponse() sessionId: '{}'", session.getSessionId());
 	}
 
 	@Test
 	public void testInvokeAgentWithTextWithOnReturnControl() throws InterruptedException, ExecutionException {
-		ReturnControlPayload payload = DefaultReturnControl.builder().invocationId("someActionGroup").build();
-		String returnControlResults = "response after return control";
-		doReturn(returnControlResults).when(manager).invokeAgentWithReturnControlResults(session, payload);
+		ReturnControlPayload payload = DefaultReturnControl.builder().invocationId(invocationId).build();
+		doReturn(session.getStartedBy()).when(manager).getRunAsUser(session);
+		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), payload);
 
 		when(mockCompletableFuture.get()).thenReturn(null);
 		// mock mock a return control call
@@ -523,13 +568,13 @@ public class AgentManagerImplUnitTest {
 		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
 
 		// call under test
-		String response = manager.invokeAgentWithText(session, inputText);
-		assertEquals(returnControlResults, response);
+		AgentResponse response = manager.invokeAgentAsync(session, invokeAgentRequest);
+		assertEquals(new AgentResponse().setReturnControl(invocationId, returnControlEvents), response);
 	}
 
 	@Test
 	public void testInvokeAgentWithTextWithError() throws InterruptedException, ExecutionException {
-		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
+		setupLogger();
 		InterruptedException e = new InterruptedException("something");
 		when(mockCompletableFuture.get()).thenThrow(e);
 		// mock two onChunk()
@@ -546,33 +591,11 @@ public class AgentManagerImplUnitTest {
 
 		String message = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			manager.invokeAgentWithText(session, inputText);
+			manager.invokeAgentAsync(session, invokeAgentRequest);
 		}).getMessage();
 		assertEquals("java.lang.InterruptedException: something", message);
 
-		verify(mockLogger).error("onError() sessionId: '{}' errorMessage:'{}'", sessionId,  e.getMessage());
-	}
-
-	@Test
-	public void testInvokeAgentWithReturnControlResults() {
-		String invokationId = "invocationId";
-		ReturnControlPayload payload = ReturnControlPayload.builder().invocationId(invokationId).build();
-		doReturn(session.getStartedBy()).when(manager).getRunAsUser(session);
-		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), payload);
-		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
-				returnControlEvents);
-
-		InvokeAgentRequest newRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId())
-				.sessionState(SessionState.builder().invocationId(invokationId)
-						.returnControlInvocationResults(invocationResultMembers).build())
-				.enableTrace(false).build();
-		String responseString = "The answer is 42";
-		doReturn(responseString).when(manager).invokeAgent(session, newRequest);
-
-		// call under test
-		String results = manager.invokeAgentWithReturnControlResults(session, payload);
-		assertEquals(responseString, results);
+		verify(mockLogger).error("onError() sessionId: '{}' errorMessage:'{}'", sessionId, e.getMessage());
 	}
 
 	@ParameterizedTest
@@ -659,7 +682,7 @@ public class AgentManagerImplUnitTest {
 	@ParameterizedTest
 	@EnumSource(value = AgentAccessLevel.class, names = { "PUBLICLY_ACCESSIBLE", "READ_YOUR_PRIVATE_DATA" })
 	public void testHandleEventWithNeedWriteAccessTrue(AgentAccessLevel level) throws Exception {
-		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
+		setupLogger();
 		when(mockReturnControlHandlerOne.needsWriteAccess()).thenReturn(true);
 
 		// call under test
@@ -676,7 +699,7 @@ public class AgentManagerImplUnitTest {
 	@ParameterizedTest
 	@EnumSource(AgentAccessLevel.class)
 	public void testHandleEventWithException(AgentAccessLevel level) throws Exception {
-		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
+		setupLogger();
 		IllegalArgumentException e = new IllegalArgumentException("need this");
 		when(mockReturnControlHandlerOne.needsWriteAccess()).thenReturn(false);
 		when(mockReturnControlHandlerOne.handleEvent(returnControlEventOne)).thenThrow(e);
@@ -718,5 +741,13 @@ public class AgentManagerImplUnitTest {
 
 		return InvocationInputMember.builder().functionInvocationInput(FunctionInvocationInput.builder()
 				.actionGroup(actionGroup).function(function).parameters(List.of(paramOne, paramTwo)).build()).build();
+	}
+
+	/**
+	 * Helper to setup the logger for cases where logging is used.
+	 */
+	private void setupLogger() {
+		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
+		manager.setLoggerProvider(mockLoggerProvider);
 	}
 }
