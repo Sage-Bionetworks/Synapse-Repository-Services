@@ -2,8 +2,10 @@ package org.sagebionetworks.aws.v2;
 
 import java.util.Properties;
 
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.utils.StringUtils;
 
 /**
  * A credential provider that attempts to find Synapse specific aws id & key in
@@ -11,31 +13,22 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
  */
 public class SynapsePropertyCredentialProvider implements AwsCredentialsProvider {
 
-	private final Properties props;
 	private final String name;
+	private final AwsCredentials credentials;
 
 	public SynapsePropertyCredentialProvider(String name, Properties props) {
 		super();
-		this.props = props;
+		String key = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.key")) : null;
+		String id = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.id")) : null;
+		credentials = key != null && id != null ? AwsBasicCredentials.create(id, key) : null;
 		this.name = name;
 	}
 
 	@Override
 	public AwsCredentials resolveCredentials() {
-		if (props == null) {
-			throw new RuntimeException("No properties for name: "+name);
+		if (credentials != null) {
+			return credentials;
 		}
-		return new AwsCredentials() {
-
-			@Override
-			public String secretAccessKey() {
-				return props.getProperty("org.sagebionetworks.stack.iam.key");
-			}
-
-			@Override
-			public String accessKeyId() {
-				return props.getProperty("org.sagebionetworks.stack.iam.id");
-			}
-		};
+		throw new IllegalStateException("No properties for name: " + name);
 	}
 }
