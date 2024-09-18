@@ -227,6 +227,25 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 	}
 	
 	@Override
+	public String createWebhookMessageToken(String issuer, String messageId, String messageMd5, String webhookOwnerId, int expirationInSeconds) {
+		Date now = clock.now();
+		
+		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
+
+		claims.put(OIDCClaimName.token_type.name(), TokenType.WEBHOOK_MESSAGE_TOKEN);
+		
+		claims.put("message_md5", messageMd5);
+		
+		claims.setIssuer(issuer)
+			.setSubject(messageId)
+			.setAudience(webhookOwnerId)
+			.setIssuedAt(now)
+			.setExpiration(new Date(now.getTime() + expirationInSeconds * 1000));
+
+		return createSignedJWT(claims);
+	}
+	
+	@Override
 	public Jwt<JwsHeader,Claims> parseJWT(String token) {
 		return JSONWebTokenHelper.parseJWT(token, jsonWebKeySet);
 	}

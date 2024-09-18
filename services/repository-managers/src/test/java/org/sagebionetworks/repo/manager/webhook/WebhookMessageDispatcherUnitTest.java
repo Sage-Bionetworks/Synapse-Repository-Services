@@ -42,6 +42,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher.WebhookMessageAttributes;
 import org.sagebionetworks.repo.model.webhook.Webhook;
 import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
@@ -59,6 +60,9 @@ public class WebhookMessageDispatcherUnitTest {
 	
 	@Mock
 	private WebhookManager mockManager;
+	
+	@Mock
+	private OIDCTokenManager mockTokenManager;
 	
 	@Mock
 	private HttpClient mockClient;
@@ -91,10 +95,13 @@ public class WebhookMessageDispatcherUnitTest {
 	private String userAgent;
 	private Webhook webhook;
 	private WebhookMessageType messageType;
+	private String tokenIssuer;
+	private String authToken;
 
 	@BeforeEach
 	public void before() {
 		when(mockConfig.getStackInstance()).thenReturn("123");
+		when(mockConfig.getStack()).thenReturn("dev");
 		
 		// This is automatically invoked by spring
 		dispatcher.configure(mockConfig);
@@ -107,8 +114,8 @@ public class WebhookMessageDispatcherUnitTest {
 			.setInvokeEndpoint("https://my.endpoint");
 		
 		messageType = WebhookMessageType.SynapseEvent;
-		
-		
+		tokenIssuer = "https://repo-prod.dev.sagebase.org/auth/v1";
+		authToken = "authToken";
 	}
 	
 	private Map<String, MessageAttributeValue> expectedMessageAttributes() {
@@ -122,6 +129,7 @@ public class WebhookMessageDispatcherUnitTest {
 	private HttpRequest expectedRequest() {
 		return HttpRequest.newBuilder(URI.create(webhook.getInvokeEndpoint()))
 			.timeout(WebhookMessageDispatcher.REQUEST_TIMEOUT)
+			.header(HttpHeaders.AUTHORIZATION, "Bearer " + authToken)
 			.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 			.header(HttpHeaders.USER_AGENT, userAgent)
 			.headers(new WebhookMessageAttributes(expectedMessageAttributes()).toRequestHeaders())
@@ -134,6 +142,8 @@ public class WebhookMessageDispatcherUnitTest {
 		
 		when(mockMessage.getMessageAttributes()).thenReturn(expectedMessageAttributes());
 		when(mockMessage.getBody()).thenReturn("messageBody");
+		when(mockMessage.getMD5OfBody()).thenReturn("messageMd5");
+		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageId", "messageMd5", webhook.getCreatedBy(), 30)).thenReturn(authToken);
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		
@@ -150,7 +160,9 @@ public class WebhookMessageDispatcherUnitTest {
 		
 		when(mockMessage.getMessageAttributes()).thenReturn(expectedMessageAttributes());
 		when(mockMessage.getBody()).thenReturn("messageBody");
+		when(mockMessage.getMD5OfBody()).thenReturn("messageMd5");
 		when(mockManager.getWebhookVerificationStatus(webhook.getId(), "messageId")).thenReturn(Optional.of(status));
+		when(mockTokenManager.createWebhookMessageToken(tokenIssuer, "messageId", "messageMd5", webhook.getCreatedBy(), 30)).thenReturn(authToken);		
 		
 		doNothing().when(dispatcher).sendWebhookRequest(expectedAttributes(), expectedRequest());
 		

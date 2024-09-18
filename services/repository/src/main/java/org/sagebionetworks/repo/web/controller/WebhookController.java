@@ -32,20 +32,26 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * Before events are published to the endpoint, the webhook needs to be verified. A special request is sent to the webhook endpoint 
  * containing a verification code that can be submitted in the body of the <a href="${POST.webhook.webhookId.verify}">POST /webhook/{webhookId}/verify</a> request.
- * <p>
+ * <h6>Request Format</h6>
  * There are two types of requests that can be sent to an endpoint:
  * <ul>
  * <li><a href="${org.sagebionetworks.repo.model.webhook.WebhookVerificationMessage}">WebhookVerificationMessage</a>: Sent when a webhook is created or when its endpoint is updated that contains the verification code used to verify the webhook.</li>
  * <li><a href="${org.sagebionetworks.repo.model.webhook.WebhookSynapseEventMessage}">WebhookSynapseEventMessage</a>: Sent when a synapse event that match the webhook entity is generated in the backend.</li>
  * </ul>
- * Each HTTP request will contain the following headers:
+ * Each HTTP request will contain the following custom headers:
  * <ul>
- * <li><b>X-Syn-Webhook-Id:</b> The id of the webhook</li>
- * <li><b>X-Syn-Webhook-Message-Type:</b> The type of message body, either Verification or SynapseEvent</li>
- * <li><b>X-Syn-Webhook-Message-Id:</b> A unique id for the message</li>
- * <li><b>X-Syn-Webhook-Owner-Id:</b> The id of the user that created the webhook</li>
+ * <li><b>X-Syn-Webhook-Id</b>: The id of the webhook</li>
+ * <li><b>X-Syn-Webhook-Message-Type</b>: The type of message body, either Verification or SynapseEvent</li>
+ * <li><b>X-Syn-Webhook-Message-Id</b>: A unique id for the message</li>
+ * <li><b>X-Syn-Webhook-Owner-Id</b>: The id of the user that created the webhook</li>
  * </ul>
- * <p>
+ * And the following standard headers:
+ * <ul>
+ * <li><b>Content-Type</b>: Always application&#47;json</li>
+ * <li><b>User-Agent</b>: Set with the prefix Synapse-Webhook&#47;, followed by the synapse stack version</li>
+ * <li><b>Authorization</b>: Set with the Bearer prefix, followed by an authentication token (See below)</li>
+ * </ul>
+ * <h6>Request Handling</h6>
  * A request to an endpoint is sent at least once and retried for a maximum of 3 times. The endpoint needs to provide a response within 2 seconds in order for the request to be considered successful, 
  * otherwise the request is retried. Valid HTTP response codes are: 
  * <ul>
@@ -64,8 +70,22 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </ul>
  * Any other response code is considered a failed delivery and won't be retried. If a webhook endpoint consistently fails to respond to requests, it will eventually be disabled 
  * and the <a href="${org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus}">verification status</a> of the webhook will be set to REVOKED and will need to be re-verified.
+ * <h6>Limits</h6>
+ * Each user is limited to a maximum of 25 webhooks. The webhook endpoint is checked against a white list of allowed domain patterns, currently only the AWS Api Gateway <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-call-api.html">execute-api</a> is allowed.
+ * For adding a new domain exception you can submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
+ * <h6>Authentication</h6>
+ * By default each request includes a signed JSON Web Token (JWT) in the <b>Authorization</b> header as a bearer token. The token is signed with a JSON Web Key (JWK) and 
+ * can be verified using the public JWK id specified in the header of the JWT. The public keys are published under the "well-known" discovery document of the issuer (See below).
  * <p>
- * Each user is limited to a maximum of 25 webhooks.
+ * The JWT will contain a set of <a href="https://www.iana.org/assignments/jwt/jwt.xhtml#claims">standard claims</a> that can be used to validate the token:
+ * <ul>
+ * <li><b>iss</b>: The issuer of the token is set to <a href="https://repo-prod.prod.sagebase.org/auth/v1">https://repo-prod.prod.sagebase.org/auth/v1</a>. The openid discovery document (<a href="https://repo-prod.prod.sagebase.org/auth/v1/.well-known/openid-configuration">https://repo-prod.prod.sagebase.org/auth/v1/.well-known/openid-configuration</a>)
+ * can be used to get information about the JWKs</li>
+ * <li><b>aud</b>: The audience contains the id of the user that owns the webhook</li>
+ * <li><b>iat</b>: The timestamp when the token was generated</li>
+ * <li><b>exp</b>: The expiration time of the token, each token is valid for 30 seconds.</li>
+ * </ul>
+ * To verify the integrity of the message, the MD5 of the request body is included under the custom claim <b>message_md5</b> and can be verified against the md5 of the request body once the JWT is verified.  
  */
 @ControllerInfo(displayName = "Webhook Services", path = "repo/v1")
 @Controller
@@ -84,7 +104,7 @@ public class WebhookController {
 	 * verification code received by the webhook endpoint.
 	 * <p>
 	 * The webhook endpoint is checked against a white list of allowed domain patterns, currently only the AWS Api Gateway <a href="https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-call-api.html">execute-api</a> is allowed.
-	 * For adding new domain exception you can submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
+	 * For adding a new domain exception you can submit a request to the <a href="https://sagebionetworks.jira.com/servicedesk/customer/portal/9">Synapse Service Desk</a>.
 	 * <p>
 	 * The caller must have READ permissions on the entity specified in the request, this permission needs to be maintained in order to receive events. 
 	 *  

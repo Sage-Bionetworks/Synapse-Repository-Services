@@ -340,11 +340,11 @@ public class WebhookManagerImpl implements WebhookManager {
 			}
 			
 			publishWebhookMessage(webhook, new WebhookSynapseEventMessage()
+				.setMessageId(UUID.randomUUID().toString())
 				.setEventTimestamp(timestamp)
 				.setEventType(eventType)
 				.setObjectId(entityId)
-				.setObjectType(SynapseObjectType.ENTITY),
-				UUID.randomUUID().toString()
+				.setObjectType(SynapseObjectType.ENTITY)
 			);
 		}
 	}
@@ -363,19 +363,19 @@ public class WebhookManagerImpl implements WebhookManager {
 		// There is a chance that the message is received prior to the transaction being committed, in such
 		// case the worker wont find a status with the matching messageId and will retry
 		publishWebhookMessage(webhook, new WebhookVerificationMessage()
+			.setMessageId(messageId)
 			.setEventTimestamp(now)
-			.setVerificationCode(verificationCode), 
-			messageId
+			.setVerificationCode(verificationCode)
 		);		
 		
 		return updatedWebhook;
 	}
 	
-	void publishWebhookMessage(Webhook webhook, WebhookMessage event, String messageId) {
+	void publishWebhookMessage(Webhook webhook, WebhookMessage message) {
 		String messageJson;
 		
 		try {
-			messageJson = EntityFactory.createJSONStringForEntity(event);
+			messageJson = EntityFactory.createJSONStringForEntity(message);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException(e);
 		}
@@ -384,7 +384,7 @@ public class WebhookManagerImpl implements WebhookManager {
 			new SendMessageRequest()
 				.withQueueUrl(queueUrl)
 				.withMessageBody(messageJson)
-				.withMessageAttributes(mapMessageAttributes(event.getClass(), webhook, messageId))
+				.withMessageAttributes(mapMessageAttributes(message.getClass(), webhook, message.getMessageId()))
 		);
 	}
 	
