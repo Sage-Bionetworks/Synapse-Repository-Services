@@ -161,7 +161,7 @@ public class AgentManagerImpl implements AgentManager {
 			res.getReturnControlEvents().forEach(e -> {
 				logger.info(
 						"return_control sessionId: '{}', count: '{}', actionGroup: '{}', function: '{}', params: '{}'",
-						session.getAgentId(), thisCount, e.getActionGroup(), e.getFunction(),
+						session.getSessionId(), thisCount, e.getActionGroup(), e.getFunction(),
 						e.getParameters().toString());
 			});
 			// Each time the agent responds with return_control we need to get the requested
@@ -319,7 +319,6 @@ public class AgentManagerImpl implements AgentManager {
 
 		public AgentResponse() {
 			builder = new StringBuilder();
-			returnControlEvents = new ArrayList<>(2);
 		}
 
 		/**
