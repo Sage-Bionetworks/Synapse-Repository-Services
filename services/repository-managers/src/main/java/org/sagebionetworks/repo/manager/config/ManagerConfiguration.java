@@ -286,7 +286,6 @@ public class ManagerConfiguration {
 	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
 			AwsCredentialsProvider credentialProvider) {
 		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
-				.httpClientBuilder(NettyNioAsyncHttpClient.builder().connectionTimeout(Duration.ofSeconds(120)))
 				.build();
 	}
 
@@ -308,11 +307,4 @@ public class ManagerConfiguration {
 
 	}
 	
-	@Bean
-	public ReturnControlHandlerProvider createReturnControlHandlerProvider(SearchHandler searchHandler,
-			EntityMetadataHandler entityMedatadataHandler, GetEntityChildrenHandler getEntityChildrenHandler,
-			GetDescriptionHandler getDescriptionHandler) {
-		return new ReturnControlHandlerProvider(
-				List.of(searchHandler, entityMedatadataHandler, getEntityChildrenHandler, getDescriptionHandler));
-	}
 }

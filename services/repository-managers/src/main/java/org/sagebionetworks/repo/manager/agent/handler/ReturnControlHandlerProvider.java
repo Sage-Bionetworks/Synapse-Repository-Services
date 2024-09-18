@@ -6,10 +6,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+@Service
 public class ReturnControlHandlerProvider {
 
 	private final Map<String, ReturnControlHandler> handlerMap;
 
+	@Autowired
 	public ReturnControlHandlerProvider(List<ReturnControlHandler> handlers) {
 		handlerMap = new HashMap<>();
 		handlers.stream().forEach((h) -> {
