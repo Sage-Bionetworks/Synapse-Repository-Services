@@ -15,4 +15,10 @@ public interface AsyncJobProgressCallback extends ProgressCallback {
 	 * @param progressTotal The total progress
 	 */
 	void updateProgress(String message, Long progressCurrent, Long progressTotal);
+	
+	/**
+	 * Get the id of this job.
+	 * @return
+	 */
+	String getJobId();
 }

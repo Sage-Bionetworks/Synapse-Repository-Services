@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.manager.agent.AgentManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +39,12 @@ public class AgentServiceImpl implements AgentService {
 	public AgentSession getSession(Long userId, String sessionId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return agentManager.getSession(userInfo, sessionId);
+	}
+
+	@Override
+	public TraceEventsResponse getChatTrace(Long userId, TraceEventsRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return agentManager.getChatTrace(userInfo, request);
 	}
 
 }

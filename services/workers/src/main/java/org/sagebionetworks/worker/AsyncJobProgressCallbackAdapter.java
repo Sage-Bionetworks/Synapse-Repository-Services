@@ -40,4 +40,9 @@ public class AsyncJobProgressCallbackAdapter implements AsyncJobProgressCallback
 		manager.updateJobProgress(jobId, progressCurrent, progressTotal, message);
 	}
 
+	@Override
+	public String getJobId() {
+		return jobId;
+	}
+
 }

@@ -1,0 +1,13 @@
+{
+	"description": "A request to get a single page of trace events for a specified asynchronous job.",
+	"properties": {
+		"jobId": {
+			"type": "string",
+			"description": "The job ID issued when the agent chat request job was started."
+		},
+		"newerThanTimestamp": {
+			"type": "integer",
+			"description": "When a timestamp value is provided, only trace events that occurred after the provided timestamp will be included in the results."
+		}
+	}
+}

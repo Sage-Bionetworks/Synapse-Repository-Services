@@ -77,6 +77,8 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
@@ -4370,6 +4372,14 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	AgentSession getAgentSession(String sessionId) throws SynapseException;
+
+	/**
+	 * Get the trace events for an Agent chat request.
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	TraceEventsResponse getAgentTrace(TraceEventsRequest request) throws SynapseException;
 
 
 }
