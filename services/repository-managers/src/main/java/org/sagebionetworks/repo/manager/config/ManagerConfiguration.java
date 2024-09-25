@@ -22,11 +22,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
-import org.sagebionetworks.repo.manager.agent.handler.EntityMetadataHandler;
-import org.sagebionetworks.repo.manager.agent.handler.GetDescriptionHandler;
-import org.sagebionetworks.repo.manager.agent.handler.GetEntityChildrenHandler;
-import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
-import org.sagebionetworks.repo.manager.agent.handler.SearchHandler;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
@@ -78,7 +73,6 @@ import dev.samstevens.totp.secret.SecretGenerator;
 import dev.samstevens.totp.time.SystemTimeProvider;
 import dev.samstevens.totp.time.TimeProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagent.BedrockAgentClient;
@@ -87,19 +81,19 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAs
 
 @Configuration
 public class ManagerConfiguration {
-	
+
 	private static final String VELOCITY_RESOURCE_LOADERS = "classpath,file";
 	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "classpath.resource.loader.class";
 	private static final String VELOCITY_PARAM_FILE_LOADER_CLASS = "file.resource.loader.class";
 	private static final String VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT = "runtime.references.strict";
-	
+
 	/**
 	 * @return The velocity engine instance that can be used within the managers
 	 */
 	@Bean
 	public VelocityEngine velocityEngine() {
 		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, VELOCITY_RESOURCE_LOADERS); 
+		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, VELOCITY_RESOURCE_LOADERS);
 		engine.setProperty(VELOCITY_PARAM_CLASSPATH_LOADER_CLASS, ClasspathResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_FILE_LOADER_CLASS, FileResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT, true);
@@ -108,24 +102,28 @@ public class ManagerConfiguration {
 
 	/**
 	 * 
-	 * @return A general purpose JSON object mapper configured to not fail on unkonwn properties and with the Java time module enabled
+	 * @return A general purpose JSON object mapper configured to not fail on
+	 *         unkonwn properties and with the Java time module enabled
 	 */
 	@Bean
 	public ObjectMapper jsonObjectMapper() {
-		return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).registerModule(new JavaTimeModule());
+		return new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+				.registerModule(new JavaTimeModule());
 	}
-	
+
 	@Bean
-	public Map<FileHandleAssociateType, FileHandleAssociationProvider> fileHandleAssociationProviderMap(List<FileHandleAssociationProvider> providers) {
-		 return providers.stream().collect(Collectors.toMap(p -> p.getAssociateType(), Function.identity()));
+	public Map<FileHandleAssociateType, FileHandleAssociationProvider> fileHandleAssociationProviderMap(
+			List<FileHandleAssociationProvider> providers) {
+		return providers.stream().collect(Collectors.toMap(p -> p.getAssociateType(), Function.identity()));
 	}
-	
+
 	@Bean
-	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(NamedParameterJdbcTemplate jdbcTemplate, TableEntityManager tableManager) {
+	public Map<FileHandleAssociateType, FileHandleAssociationScanner> fileHandleAssociationScannerMap(
+			NamedParameterJdbcTemplate jdbcTemplate, TableEntityManager tableManager) {
 		Map<FileHandleAssociateType, FileHandleAssociationScanner> scannerMap = new HashMap<>();
-		
+
 		scannerMap.put(FileHandleAssociateType.TableEntity, tableEntityFileScanner(tableManager));
-		
+
 		scannerMap.put(FileHandleAssociateType.FileEntity, fileEntityFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.SubmissionAttachment, evaluationSubmissionFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.FormData, formFileScanner(jdbcTemplate));
@@ -135,148 +133,159 @@ public class ManagerConfiguration {
 		scannerMap.put(FileHandleAssociateType.VerificationSubmission, verificationFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.WikiMarkdown, wikiMarkdownFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.WikiAttachment, wikiAttachmentFileScanner(jdbcTemplate));
-		
+
 		scannerMap.put(FileHandleAssociateType.AccessRequirementAttachment, accessRequirementFileScanner(jdbcTemplate));
 		scannerMap.put(FileHandleAssociateType.DataAccessRequestAttachment, accessRequestFileScanner(jdbcTemplate));
-		scannerMap.put(FileHandleAssociateType.DataAccessSubmissionAttachment, accessSubmissionFileScanner(jdbcTemplate));
-		
+		scannerMap.put(FileHandleAssociateType.DataAccessSubmissionAttachment,
+				accessSubmissionFileScanner(jdbcTemplate));
+
 		return scannerMap;
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner tableEntityFileScanner(TableEntityManager tableManager) {
-		// Note: for configuration consistency this bean is not annotated with the @Service annotation (e.g. will not be auto-scanned) but we
+		// Note: for configuration consistency this bean is not annotated with the
+		// @Service annotation (e.g. will not be auto-scanned) but we
 		// configure it here as a public bean
 		return new TableFileHandleScanner(tableManager);
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner fileEntityFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORevision().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner formFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOFormData().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner messageFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOMessageContent().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner teamFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOTeam().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner userProfileFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOUserProfile().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner verificationFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOVerificationSubmissionFile().getTableMapping());
+		return new BasicFileHandleAssociationScanner(jdbcTemplate,
+				new DBOVerificationSubmissionFile().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner wikiMarkdownFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		// Note: the wiki might also contain attachments, those are stored in the serialized field of the wiki but also in a dedicated table
-		// that is actually scanned with the scanner provided by the dedicated wikiAttachmentFileScanner
+		// Note: the wiki might also contain attachments, those are stored in the
+		// serialized field of the wiki but also in a dedicated table
+		// that is actually scanned with the scanner provided by the dedicated
+		// wikiAttachmentFileScanner
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new V2DBOWikiMarkdown().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner wikiAttachmentFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		// Note: This table contains all the attachments of a wiki plus the wiki id itself
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new V2DBOWikiAttachmentReservation().getTableMapping());
+		// Note: This table contains all the attachments of a wiki plus the wiki id
+		// itself
+		return new BasicFileHandleAssociationScanner(jdbcTemplate,
+				new V2DBOWikiAttachmentReservation().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner evaluationSubmissionFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
 		return new BasicFileHandleAssociationScanner(jdbcTemplate, new SubmissionFileHandleDBO().getTableMapping());
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner accessRequirementFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(AccessRequirementUtils::readSerializedField, AccessRequirementUtils::extractAllFileHandleIds);
-		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(
+				AccessRequirementUtils::readSerializedField, AccessRequirementUtils::extractAllFileHandleIds);
+
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOAccessRequirementRevision().getTableMapping(),
+				DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner accessRequestFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(RequestUtils::readSerializedField, RequestUtils::extractAllFileHandleIds);
-		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(RequestUtils::readSerializedField,
+				RequestUtils::extractAllFileHandleIds);
+
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBORequest().getTableMapping(),
+				DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
-	
+
 	@Bean
 	public FileHandleAssociationScanner accessSubmissionFileScanner(NamedParameterJdbcTemplate jdbcTemplate) {
-		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
-		
-		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(), DEFAULT_BATCH_SIZE, rowMapperSupplier);
+		RowMapperSupplier rowMapperSupplier = new SerializedFieldRowMapperSupplier<>(
+				SubmissionUtils::readSerializedField, SubmissionUtils::extractAllFileHandleIds);
+
+		return new BasicFileHandleAssociationScanner(jdbcTemplate, new DBOSubmission().getTableMapping(),
+				DEFAULT_BATCH_SIZE, rowMapperSupplier);
 	}
-	
+
 	@Bean
-	public Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap(StackConfiguration config, SimpleHttpClient client) {
-		return Map.of(
-			OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client),
-			OAuthProvider.ORCID, orcidOAuthProvider(config, client)
-		);
+	public Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap(StackConfiguration config,
+			SimpleHttpClient client) {
+		return Map.of(OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client), OAuthProvider.ORCID,
+				orcidOAuthProvider(config, client));
 	}
-	
+
 	@Bean
 	public GoogleOAuth2Provider googleOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
-		return new GoogleOAuth2Provider(config.getOAuth2GoogleClientId(), config.getOAuth2GoogleClientSecret(), new OIDCConfig(client, config.getOAuth2GoogleDiscoveryDocument()));
+		return new GoogleOAuth2Provider(config.getOAuth2GoogleClientId(), config.getOAuth2GoogleClientSecret(),
+				new OIDCConfig(client, config.getOAuth2GoogleDiscoveryDocument()));
 	}
-	
+
 	@Bean
 	public OrcidOAuth2Provider orcidOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
-		return new OrcidOAuth2Provider(config.getOAuth2ORCIDClientId(), config.getOAuth2ORCIDClientSecret(), new OIDCConfig(client, config.getOAuth2ORCIDDiscoveryDocument()));
+		return new OrcidOAuth2Provider(config.getOAuth2ORCIDClientId(), config.getOAuth2ORCIDClientSecret(),
+				new OIDCConfig(client, config.getOAuth2ORCIDDiscoveryDocument()));
 	}
-	
+
 	@Bean
 	public TotpManager totpManager() {
 		SecretGenerator secretGenerator = new DefaultSecretGenerator(TotpManager.SECRET_LENGHT);
-		
+
 		TimeProvider timeProvider = new SystemTimeProvider();
-		
+
 		CodeGenerator codeGenerator = new DefaultCodeGenerator(TotpManager.HASH_ALG, TotpManager.DIGITS_COUNT);
-		
+
 		DefaultCodeVerifier codeVerifier = new DefaultCodeVerifier(codeGenerator, timeProvider);
 		codeVerifier.setTimePeriod(TotpManager.PERIOD);
-		
+
 		RecoveryCodeGenerator recoveryCodesGenerator = new RecoveryCodeGenerator();
-		
+
 		return new TotpManager(secretGenerator, codeVerifier, recoveryCodesGenerator);
 	}
-	
+
 	@Bean
 	public Map<OIDCClaimName, OIDCClaimProvider> claimProviders(List<OIDCClaimProvider> providerList) {
-		return providerList.stream().collect(Collectors.toMap(OIDCClaimProvider::getName, Function.identity()));		
+		return providerList.stream().collect(Collectors.toMap(OIDCClaimProvider::getName, Function.identity()));
 	}
-	
+
 	@Bean
 	public WriteReadSemaphore getWriteReadSemaphore(StackConfiguration config, CountingSemaphore countingSemaphore) {
 		return new WriteReadSemaphoreImpl(countingSemaphore, config.getWriteReadSemaphoreRunnerMaxReaders());
 	}
-	
+
 	@Bean
 	public ExecutorService cachedThreadPool() {
 		return Executors.newCachedThreadPool();
 	}
-	
+
 	@Bean
 	public HttpClient webhookHttpClient() {
-		return HttpClient.newBuilder()
-			.connectTimeout(WebhookMessageDispatcher.REQUEST_TIMEOUT)
-			.followRedirects(Redirect.NEVER)
-			.build();
+		return HttpClient.newBuilder().connectTimeout(WebhookMessageDispatcher.REQUEST_TIMEOUT)
+				.followRedirects(Redirect.NEVER).build();
 	}
-	
-	
+
 	@Bean
 	public AwsCredentialsProvider createAwsCredentialProviderV2() {
 		return AwsCrdentialPoviderV2.createCredentialProvider();
@@ -285,15 +294,17 @@ public class ManagerConfiguration {
 	@Bean
 	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
 			AwsCredentialsProvider credentialProvider) {
-		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1)
-				.build();
+		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider)
+				// invoke_agent calls can take more than a minute.
+				.httpClientBuilder(NettyNioAsyncHttpClient.builder().readTimeout(Duration.ofMinutes(2)))
+				.region(Region.US_EAST_1).build();
 	}
 
 	@Bean
 	public BedrockAgentClient createBedrockAgentClient(AwsCredentialsProvider credentialProvider) {
 		return BedrockAgentClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
 	}
-	
+
 	@Bean
 	public String stackBedrockAgentId(BedrockAgentClient bedrockAgentClient,
 			BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient, StackConfiguration stackConfig) {
@@ -306,5 +317,5 @@ public class ManagerConfiguration {
 				.orElseThrow(() -> new IllegalArgumentException("Could not find a bedrock agent named: " + agentName));
 
 	}
-	
+
 }

@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 
 @ExtendWith(ITTestExtension.class)
@@ -49,15 +51,19 @@ public class ITAgentControllerTest {
 		assertEquals(AgentAccessLevel.READ_YOUR_PRIVATE_DATA, updated.getAgentAccessLevel());
 
 		// call under test, empty input should result in empty response.
-		AgentChatResponse response = (AgentChatResponse) AsyncJobHelper
+		var jobResult = AsyncJobHelper
 				.assertAysncJobResult(synapse, AsynchJobType.AgentChat,
-						new AgentChatRequest().setChatText("").setSessionId(session.getSessionId()), body -> {
+						new AgentChatRequest().setEnableTrace(true).setChatText("hello").setSessionId(session.getSessionId()), body -> {
 							assertTrue(body instanceof AgentChatResponse);
 							AgentChatResponse r = (AgentChatResponse) body;
 							assertEquals(session.getSessionId(), r.getSessionId());
-							assertEquals("", r.getResponseText());
-						}, MAX_WAIT_MS, MAX_RETIES)
-				.getResponse();
+							assertNotNull(r.getResponseText());
+						}, MAX_WAIT_MS, MAX_RETIES);
+		
+		// call under test
+		TraceEventsResponse trace = synapse.getAgentTrace(new TraceEventsRequest().setJobId(jobResult.getJobToken()));
+		assertNotNull(trace);
+		assertEquals(jobResult.getJobToken(), trace.getJobId());
 	}
 
 }

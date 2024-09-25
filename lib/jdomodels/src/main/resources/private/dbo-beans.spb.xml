@@ -181,6 +181,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookAllowedDomain"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentSession"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentTrace"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

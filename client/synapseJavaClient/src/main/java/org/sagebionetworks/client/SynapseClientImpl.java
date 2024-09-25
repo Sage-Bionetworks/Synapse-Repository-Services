@@ -104,6 +104,8 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -6311,6 +6313,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(asyncJobToken, "asyncJobToken");
 		return (AgentChatResponse) getAsynchJobResponse("/agent/chat/async/get/" + asyncJobToken,
 				AgentChatResponse.class, getRepoEndpoint());
+	}
+	
+	@Override
+	public TraceEventsResponse getAgentTrace(TraceEventsRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), "/agent/chat/trace/"+request.getJobId(), request, TraceEventsResponse.class);
 	}
 	
 }

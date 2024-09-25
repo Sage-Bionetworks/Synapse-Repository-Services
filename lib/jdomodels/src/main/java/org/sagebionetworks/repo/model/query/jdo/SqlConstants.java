@@ -1318,6 +1318,12 @@ public class SqlConstants {
 	
 	public static final String DDL_AGENT_SESSION = 				"schema/agent/Agent-Session-ddl.sql";
 	
+	public static final String TABLE_AGENT_TRACE =				"AGENT_TRACE";
+	public static final String COL_AGENT_TRACE_JOB_ID = 		"JOB_ID";
+	public static final String COL_AGENT_TRACE_TIMESTAMP =		"TIME_STAMP";
+	public static final String COL_AGENT_TRACE_MESSAGE = 		"MESSAGE";
+	public static final String DDL_AGENT_TRACE = 				"schema/agent/Agent-Trace-ddl.sql";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
@@ -13,8 +14,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
+import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.TraceEvent;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -25,18 +32,27 @@ public class AgentDaoImplTest {
 
 	@Autowired
 	private AgentDao agentDao;
+	
+	@Autowired
+	private AsynchronousJobStatusDAO asyncDao;
 
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+	private UserInfo admin;
 
 	private String sessionId;
 	private AgentAccessLevel accessLevel;
 	private String agentId;
+	
+	private AgentChatRequest request;
 
 	@BeforeEach
 	public void before() {
 		this.sessionId = "sessionId";
 		this.accessLevel = AgentAccessLevel.PUBLICLY_ACCESSIBLE;
 		this.agentId = "123";
+		this.admin = new UserInfo(true, adminUserId);
+		this.admin.setContext(new CallersContext().setSessionId("abc"));
+		this.request = new AgentChatRequest().setSessionId(sessionId).setChatText("hello");
 	}
 
 	@AfterEach
@@ -162,5 +178,130 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("accessLevel is required.", message);
 	}
+	
+	@Test
+	public void testAddMessageWithMultipleJobs()  {
+		String one = "one";
+		String two = "two";
+		String three = "three";
+		String four = "four";
+		AsynchronousJobStatus jobOne = asyncDao.startJob(admin, request);
+		AsynchronousJobStatus jobTwo = asyncDao.startJob(admin, request);
+		
+		long timeOne = 1;
+		long timeTwo = 2;
+		
+		// call under test
+		agentDao.addTraceToJob(jobOne.getJobId(), timeOne, one);
+		agentDao.addTraceToJob(jobTwo.getJobId(), timeOne, three);
 
+		agentDao.addTraceToJob(jobOne.getJobId(), timeTwo, two);
+		agentDao.addTraceToJob(jobTwo.getJobId(), timeTwo, four);
+
+		// job one with null filter
+		assertEquals(
+				List.of(new TraceEvent().setMessage(one).setTimestamp(timeOne),
+						new TraceEvent().setMessage(two).setTimestamp(timeTwo)),
+				agentDao.listTraceEvents(jobOne.getJobId(), null));
+
+		// job one with non-null filter
+		assertEquals(
+				List.of(
+						new TraceEvent().setMessage(two).setTimestamp(timeTwo)),
+				agentDao.listTraceEvents(jobOne.getJobId(), timeOne));
+		
+		
+		// job two with null filter
+		assertEquals(
+				List.of(new TraceEvent().setMessage(three).setTimestamp(timeOne),
+						new TraceEvent().setMessage(four).setTimestamp(timeTwo)),
+				agentDao.listTraceEvents(jobTwo.getJobId(), null));
+
+		// job two with non-null filter
+		assertEquals(
+				List.of(
+						new TraceEvent().setMessage(four).setTimestamp(timeTwo)),
+				agentDao.listTraceEvents(jobTwo.getJobId(), timeOne));
+		
+	}
+
+	@Test
+	public void testAddMessageWithDuplicate()  {
+		String one = "one";
+		String two = "two";
+		AsynchronousJobStatus jobOne = asyncDao.startJob(admin, request);
+
+		long timeOne = 1;
+
+		// call under test
+		agentDao.addTraceToJob(jobOne.getJobId(), timeOne, one);
+		agentDao.addTraceToJob(jobOne.getJobId(), timeOne, two);
+
+		// null filter
+		assertEquals(List.of(new TraceEvent().setMessage(two).setTimestamp(timeOne)),
+				agentDao.listTraceEvents(jobOne.getJobId(), null));
+
+		// job one with non-null filter
+		assertEquals(
+				List.of(), agentDao.listTraceEvents(jobOne.getJobId(), timeOne));
+
+	}
+	
+	@Test
+	public void testAddTraceWithNullJobId() {
+		String job = null;
+		long now  =1L;
+		String eventMessage = "hi";
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.addTraceToJob(job, now, eventMessage);
+		}).getMessage();
+		assertEquals("jobId is required.", message);
+	}
+	
+	@Test
+	public void testAddTraceWithJobNotNumber() {
+		String job = "abc";
+		long now  =1L;
+		String eventMessage = "hi";
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.addTraceToJob(job, now, eventMessage);
+		}).getMessage();
+		assertEquals("For input string: \"abc\"", message);
+	}
+	
+	@Test
+	public void testAddTraceWithNullMessage() {
+		AsynchronousJobStatus job = asyncDao.startJob(admin, request);
+		long now  =1L;
+		String eventMessage = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.addTraceToJob(job.getJobId(), now, eventMessage);
+		}).getMessage();
+		assertEquals("message is required.", message);
+	}
+	
+	@Test
+	public void testListTraceEventWithNullJobId() {
+		String job = null;
+		long now  =1L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.listTraceEvents(job, now);
+		}).getMessage();
+		assertEquals("jobId is required.", message);
+	}
+	
+	@Test
+	public void testListTraceEventWithJobNotNumber() {
+		String job = "abc";
+		long now  =1L;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.listTraceEvents(job, now);
+		}).getMessage();
+		assertEquals("For input string: \"abc\"", message);
+	}
 }

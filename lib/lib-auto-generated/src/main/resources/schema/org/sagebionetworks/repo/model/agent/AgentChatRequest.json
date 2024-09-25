@@ -13,6 +13,10 @@
 		"chatText": {
 			"description": "The user's text message to send to the agent.",
 			"type": "string"
+		},
+		"enableTrace": {
+			"description": "Optional. When trace is enabled, the agent will include information about its decision process and the functions/tools it will use to process this request. Default value is false.",
+			"type": "boolean"
 		}
 	}
 }

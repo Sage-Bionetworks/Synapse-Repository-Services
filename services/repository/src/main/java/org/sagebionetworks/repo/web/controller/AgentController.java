@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -29,13 +31,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * The Synapse chat services allow the user to chat with a 'bot' (agent) that has
- * access to Synapse data. By default, Synapse provides a 'baseline' agent that
- * has basic access to all of the supported Synapse action group functions and
- * knowledge bases. Sage authorized collaborators can create their own agents
- * that can also utilize the same action groups and knowledge bases used by the
- * baseline agent. The collaborator's agent can then be used to override the
- * baseline agent for chat sessions.
+ * The Synapse chat services allow the user to chat with a 'bot' (agent) that
+ * has access to Synapse data. By default, Synapse provides a 'baseline' agent
+ * that has basic access to all of the supported Synapse action group functions
+ * and knowledge bases. Sage authorized collaborators can create their own
+ * agents that can also utilize the same action groups and knowledge bases used
+ * by the baseline agent. The collaborator's agent can then be used to override
+ * the baseline agent for chat sessions.
  * </p>
  * To get started, the first step is to create a new session by calling:
  * <a href="${POST.agent.session}">POST /agent/session</a>. You will need the
@@ -97,10 +99,10 @@ public class AgentController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.AGENT_SESSION_ID }, method = RequestMethod.GET)
 	public @ResponseBody AgentSession getAgentSession(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String sessionId) {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId) {
 		return agentService.getSession(userId, sessionId);
 	}
+
 	/**
 	 * Update the access level of an existing agent session.
 	 * </p>
@@ -166,8 +168,35 @@ public class AgentController {
 	public @ResponseBody AgentChatResponse chatGet(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
 			throws Throwable {
-		AsynchronousJobStatus jobStatus = asynchronousJobServices.getJobStatusAndThrow(userId,
-				asyncToken);
+		AsynchronousJobStatus jobStatus = asynchronousJobServices.getJobStatusAndThrow(userId, asyncToken);
 		return (AgentChatResponse) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Get a single page of trace events associated with an <a href=
+	 * "${org.sagebionetworks.repo.model.agent.AgentChatRequest}">AgentChatRequest<a/>.
+	 * The resulting TraceEvents will be ordered by timestamp ascending.
+	 * </p>
+	 * Note: The AgentChatRequest.enableTrace must be set to 'true' to enable
+	 * tracing for a job. If enebleTrace is not set or is 'false', the resulting
+	 * trace events list will always be empty.
+	 * </p>
+	 * Only the user that started the AgentChatRequest may get its trace.
+	 * 
+	 * @param userId
+	 * @param jobId   - The jobID of the asynchronous job started for an
+	 *                AgentChatRequest.
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AGENT_CHAT_TRACE, method = RequestMethod.POST)
+	public @ResponseBody TraceEventsResponse getTaceEvents(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId,
+			@RequestBody TraceEventsRequest request) {
+		ValidateArgument.required(request, "request");
+		request.setJobId(jobId);
+		return agentService.getChatTrace(userId, request);
 	}
 }

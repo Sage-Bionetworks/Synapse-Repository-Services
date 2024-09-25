@@ -34,7 +34,7 @@ public class AgentChatWorker implements AsyncJobRunner<AgentChatRequest, AgentCh
 	@Override
 	public AgentChatResponse run(String jobId, UserInfo user, AgentChatRequest request,
 			AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
-		return agentManager.invokeAgent(user, request);
+		return agentManager.invokeAgent(user, jobProgressCallback.getJobId(), request);
 	}
 
 }

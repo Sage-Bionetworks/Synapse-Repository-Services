@@ -22,10 +22,14 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
+import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,8 +41,13 @@ import software.amazon.awssdk.services.bedrockagentruntime.model.InvocationResul
 import software.amazon.awssdk.services.bedrockagentruntime.model.InvokeAgentRequest;
 import software.amazon.awssdk.services.bedrockagentruntime.model.InvokeAgentResponseHandler;
 import software.amazon.awssdk.services.bedrockagentruntime.model.InvokeAgentResponseHandler.Visitor;
+import software.amazon.awssdk.services.bedrockagentruntime.model.OrchestrationModelInvocationOutput;
+import software.amazon.awssdk.services.bedrockagentruntime.model.OrchestrationTrace;
+import software.amazon.awssdk.services.bedrockagentruntime.model.RawResponse;
 import software.amazon.awssdk.services.bedrockagentruntime.model.ReturnControlPayload;
 import software.amazon.awssdk.services.bedrockagentruntime.model.SessionState;
+import software.amazon.awssdk.services.bedrockagentruntime.model.Trace;
+import software.amazon.awssdk.services.bedrockagentruntime.model.TracePart;
 
 @Service
 public class AgentManagerImpl implements AgentManager {
@@ -49,18 +58,22 @@ public class AgentManagerImpl implements AgentManager {
 	private final BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient;
 	private final String stackBedrockAgentId;
 	private final ReturnControlHandlerProvider handlerProvider;
+	private final Clock clock;
+	private final AsynchronousJobStatusDAO statusDao;
 	private Logger logger;
 
 	@Autowired
 	public AgentManagerImpl(AgentDao agentDao, BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient,
-			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider) {
+			String stackBedrockAgentId, ReturnControlHandlerProvider handlerProvider, Clock clock, AsynchronousJobStatusDAO statusDao) {
 		super();
 		this.agentDao = agentDao;
 		this.bedrockAgentRuntimeAsyncClient = bedrockAgentRuntimeAsyncClient;
 		this.stackBedrockAgentId = stackBedrockAgentId;
+		this.clock = clock;
+		this.statusDao = statusDao;
 		this.handlerProvider = handlerProvider;
 	}
-	
+
 	@Autowired
 	public void setLoggerProvider(LoggerProvider provider) {
 		this.logger = provider.getLogger(AgentManagerImpl.class.getName());
@@ -101,8 +114,9 @@ public class AgentManagerImpl implements AgentManager {
 
 	@WriteTransaction
 	@Override
-	public AgentChatResponse invokeAgent(UserInfo userInfo, AgentChatRequest request) {
+	public AgentChatResponse invokeAgent(UserInfo userInfo, String jobId, AgentChatRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(jobId, "jobId");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
 		AgentSession session = getAndValidateAgentSession(userInfo, request.getSessionId());
@@ -110,7 +124,7 @@ public class AgentManagerImpl implements AgentManager {
 		if (request.getChatText() == null || request.getChatText().isBlank()) {
 			return new AgentChatResponse().setResponseText("").setSessionId(request.getSessionId());
 		}
-		String responseText = invokeAgentWithText(session, request.getChatText());
+		String responseText = invokeAgentWithText(jobId, session, request);
 		return new AgentChatResponse().setResponseText(responseText).setSessionId(request.getSessionId());
 	}
 
@@ -145,16 +159,17 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param inputText
 	 * @return
 	 */
-	String invokeAgentWithText(AgentSession session, String inputText) {
+	String invokeAgentWithText(String jobId, AgentSession session, AgentChatRequest request) {
+		boolean enableTrace = request.getEnableTrace() != null? request.getEnableTrace(): false;
 		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).enableTrace(false).inputText(inputText)
+				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).enableTrace(enableTrace).inputText(request.getChatText())
 				.build();
-		AgentResponse res = invokeAgentAsync(session, startRequest);
+		AgentResponse res = invokeAgentAsync(jobId, session, startRequest);
 		int count = 0;
 		// When the invocation ID is not null, the agent has requested more information
 		// with a return_control response.
 		while (res.getInvocationId() != null) {
-			if(count > 10) {
+			if (count > 10) {
 				throw new IllegalStateException("Max number of 10 return_control agent response exceeded.");
 			}
 			int thisCount = count;
@@ -171,8 +186,8 @@ public class AgentManagerImpl implements AgentManager {
 			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
 					.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
 							.invocationId(res.getInvocationId()).returnControlInvocationResults(eventResults).build())
-					.enableTrace(false).build();
-			res = invokeAgentAsync(session, returnRequest);
+					.enableTrace(enableTrace).build();
+			res = invokeAgentAsync(jobId, session, returnRequest);
 			count++;
 		}
 		return res.getBuilder().toString();
@@ -185,7 +200,7 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param invokeAgentRequest
 	 * @return
 	 */
-	AgentResponse invokeAgentAsync(AgentSession session, InvokeAgentRequest invokeAgentRequest) {
+	AgentResponse invokeAgentAsync(String jobId, AgentSession session, InvokeAgentRequest invokeAgentRequest) {
 		try {
 			// This object will capture the response data pushed to the handler.
 			AgentResponse response = new AgentResponse();
@@ -199,8 +214,13 @@ public class AgentManagerImpl implements AgentManager {
 						List<ReturnControlEvent> events = extractEvents(runAsUser, payload);
 						response.setReturnControl(payload.invocationId(), events);
 					}).onChunk(chunk -> {
+						String chunktoken = chunk.bytes().asUtf8String();
+						logger.info("onchunk() '{}'", chunktoken);
 						// The agent will return results in chunks that must be concatenated.
 						response.appendText(chunk.bytes().asUtf8String());
+					}).onTrace(t -> {
+						logger.info("onTrace() sessionId: '{}' trace: '{}'", session.getSessionId(), t.toString());
+						onTrace(jobId, t);
 					}).build()).onResponse(resp -> {
 						logger.info("onResponse() sessionId: '{}'", session.getSessionId());
 					}).onError(t -> {
@@ -215,6 +235,20 @@ public class AgentManagerImpl implements AgentManager {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	void onTrace(String jobId, TracePart part) {
+		part.getValueForField("trace", Trace.class).ifPresent(trace -> {
+			trace.getValueForField("orchestrationTrace", OrchestrationTrace.class).ifPresent(o -> {
+				o.getValueForField("modelInvocationOutput", OrchestrationModelInvocationOutput.class).ifPresent(m -> {
+					m.getValueForField("rawResponse", RawResponse.class).ifPresent(rr -> {
+						rr.getValueForField("content", String.class).ifPresent(c -> {
+							agentDao.addTraceToJob(jobId, clock.currentTimeMillis(), c);
+						});
+					});
+				});
+			});
+		});
 	}
 
 	/**
@@ -281,8 +315,7 @@ public class AgentManagerImpl implements AgentManager {
 				return handler.handleEvent(event);
 			}
 		} catch (Exception e) {
-			logger.error(
-					"Return_control event execution failed. Will send the following message to the agent: '{}'",
+			logger.error("Return_control event execution failed. Will send the following message to the agent: '{}'",
 					e.getMessage());
 			// on failure provide the error message to the agent in JSON.
 			JSONObject error = new JSONObject();
@@ -311,6 +344,19 @@ public class AgentManagerImpl implements AgentManager {
 		return events;
 	}
 
+	@Override
+	public TraceEventsResponse getChatTrace(UserInfo userInfo, TraceEventsRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getJobId(), "request.jobId");
+		var status = statusDao.getJobStatus(request.getJobId());
+		if (!status.getStartedByUserId().equals(userInfo.getId())) {
+			throw new UnauthorizedException("Only the user that started the job may access the job's trace");
+		}
+		return new TraceEventsResponse().setJobId(request.getJobId())
+				.setPage(agentDao.listTraceEvents(request.getJobId(), request.getNewerThanTimestamp()));
+	}
+
 	public static class AgentResponse {
 
 		private final StringBuilder builder;
@@ -323,15 +369,17 @@ public class AgentManagerImpl implements AgentManager {
 
 		/**
 		 * Called for a normal response.
+		 * 
 		 * @param text
 		 */
 		AgentResponse appendText(String text) {
 			builder.append(text);
 			return this;
 		}
-		
+
 		/**
 		 * Called for a return_control response.
+		 * 
 		 * @param invocationId
 		 * @param returnControlEvents
 		 */
@@ -367,7 +415,8 @@ public class AgentManagerImpl implements AgentManager {
 			if (getClass() != obj.getClass())
 				return false;
 			AgentResponse other = (AgentResponse) obj;
-			return Objects.equals(builder.toString(), other.builder.toString()) && Objects.equals(invocationId, other.invocationId)
+			return Objects.equals(builder.toString(), other.builder.toString())
+					&& Objects.equals(invocationId, other.invocationId)
 					&& Objects.equals(returnControlEvents, other.returnControlEvents);
 		}
 

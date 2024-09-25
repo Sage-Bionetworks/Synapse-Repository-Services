@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SE
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,7 +19,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,8 +67,7 @@ public class AgentDaoImpl implements AgentDao {
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		DBOAgentSession dbo = new DBOAgentSession().setId(idGenerator.generateNewId(IdType.AGENT_SESSION_ID))
 				.setEtag(UUID.randomUUID().toString()).setCreatedBy(userId).setCreatedOn(now).setModifiedOn(now)
-				.setSessionId(UUID.randomUUID().toString()).setAgentId(agentId)
-				.setAccessLevel(accessLevel.name());
+				.setSessionId(UUID.randomUUID().toString()).setAgentId(agentId).setAccessLevel(accessLevel.name());
 		basicDao.createNew(dbo);
 		return getAgentSession(dbo.getSessionId()).get();
 	}
@@ -96,6 +98,32 @@ public class AgentDaoImpl implements AgentDao {
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM AGENT_SESSION WHERE ID > -1");
+	}
+
+	@NewWriteTransaction
+	@Override
+	public void addTraceToJob(String jobId, long timestamp, String message) {
+		ValidateArgument.required(jobId, "jobId");
+		ValidateArgument.required(message, "message");
+		long jobIdLong = Long.parseLong(jobId);
+		jdbcTemplate.update(
+				"INSERT INTO AGENT_TRACE (JOB_ID, TIME_STAMP, MESSAGE) VALUES (?,?,?) ON DUPLICATE KEY UPDATE MESSAGE = ?",
+				jobIdLong, timestamp, message, message);
+
+	}
+
+	@Override
+	public List<TraceEvent> listTraceEvents(String jobId, Long timestamp) {
+		ValidateArgument.required(jobId, "jobId");
+		Long jobIdLong = Long.parseLong(jobId);
+		if (timestamp == null) {
+			timestamp = 0L;
+		}
+		return jdbcTemplate.query(
+				"SELECT TIME_STAMP, MESSAGE FROM AGENT_TRACE WHERE JOB_ID = ? AND TIME_STAMP > ? ORDER BY TIME_STAMP ASC",
+				(ResultSet rs, int rowNum) -> {
+					return new TraceEvent().setTimestamp(rs.getLong("TIME_STAMP")).setMessage(rs.getString("MESSAGE"));
+				}, jobIdLong, timestamp);
 	}
 
 }
