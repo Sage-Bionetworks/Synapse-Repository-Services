@@ -5,16 +5,20 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
+import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 
 public interface AgentManager {
 
 	AgentSession createSession(UserInfo userInfo, CreateAgentSessionRequest request);
 
-	AgentChatResponse invokeAgent(UserInfo user, AgentChatRequest request);
+	AgentChatResponse invokeAgent(UserInfo user, String jobId, AgentChatRequest request);
 
 	AgentSession updateSession(UserInfo userInfo, UpdateAgentSessionRequest request);
 
 	AgentSession getSession(UserInfo userInfo, String sessionId);
+
+	TraceEventsResponse getChatTrace(UserInfo userInfo, TraceEventsRequest request);
 
 }

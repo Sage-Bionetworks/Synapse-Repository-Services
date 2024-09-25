@@ -1,0 +1,16 @@
+{
+	"description": "A single page of an agent trace events for an asynchronous agent chat job. The events are sorted by timestamp ascending.",
+	"properties": {
+		"jobId": {
+			"type": "string",
+			"description": "The job ID issued when the agent chat request job was started."
+		},
+		"page": {
+			"description": "A single page of trace events.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.agent.TraceEvent"
+			}
+		}
+	}
+}
