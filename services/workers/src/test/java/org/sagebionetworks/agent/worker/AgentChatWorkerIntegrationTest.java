@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.service.AgentService;
 import org.sagebionetworks.repo.service.EntityService;
@@ -169,5 +170,56 @@ public class AgentChatWorkerIntegrationTest {
 					assertTrue(response.getResponseText().contains(sub.getTitle()));
 					assertTrue(response.getResponseText().contains(sub.getMarkdown()));
 				}, MAX_WAIT_MS).getResponse();
+	}
+	
+	@Test
+	public void testGetAccessLevel() throws AssertionError, AsynchJobFailedException {
+		AgentSession session = agentService.createSession(admin.getId(),
+				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE));
+		
+		String sessionId = session.getSessionId();
+		
+		String chatRequest = "What is the current access level?";
+		
+		asynchronousJobWorkerHelper.assertJobResponse(admin, new AgentChatRequest().setSessionId(sessionId).setChatText(chatRequest),
+			(AgentChatResponse response) -> {
+				assertNotNull(response);
+				assertEquals(sessionId, response.getSessionId());
+				assertNotNull(response.getResponseText());
+				System.out.println(response.getResponseText());
+				assertTrue(response.getResponseText().contains("PUBLICLY_ACCESSIBLE"));
+			}, MAX_WAIT_MS).getResponse();
+		
+		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()), null);
+		
+		chatRequest = "What is the name of entity: " + project.getId();
+
+		asynchronousJobWorkerHelper.assertJobResponse(admin, new AgentChatRequest().setSessionId(sessionId).setChatText(chatRequest),
+			(AgentChatResponse response) -> {
+				assertNotNull(response);
+				assertEquals(sessionId, response.getSessionId());
+				assertNotNull(response.getResponseText());
+				System.out.println(response.getResponseText());
+				assertTrue(response.getResponseText().contains(project.getId()));
+				assertTrue(response.getResponseText().contains("Public Data Only"));
+				assertTrue(response.getResponseText().contains("increase"));
+				assertTrue(response.getResponseText().contains("Read your Private Data"));
+				
+			}, MAX_WAIT_MS).getResponse();
+		
+		session = agentService.updateSession(admin.getId(), new UpdateAgentSessionRequest().setSessionId(sessionId).setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
+		
+		chatRequest = "Ok, I updated the access level. What is the name of entity: " + project.getId();
+
+		asynchronousJobWorkerHelper.assertJobResponse(admin, new AgentChatRequest().setSessionId(sessionId).setChatText(chatRequest),
+			(AgentChatResponse response) -> {
+				assertNotNull(response);
+				assertEquals(sessionId, response.getSessionId());
+				assertNotNull(response.getResponseText());
+				System.out.println(response.getResponseText());
+				assertTrue(response.getResponseText().contains(project.getId()));
+				assertTrue(response.getResponseText().contains(project.getName()));
+				
+			}, MAX_WAIT_MS).getResponse();
 	}
 }
