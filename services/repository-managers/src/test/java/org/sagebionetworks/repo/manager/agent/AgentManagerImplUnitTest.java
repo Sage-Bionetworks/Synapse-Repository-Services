@@ -230,7 +230,8 @@ public class AgentManagerImplUnitTest {
 
 		var builder = InvokeAgentRequest.builder().agentId(session.getAgentId())
 				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).enableTrace(false)
-				.inputText(inputText);
+				.inputText(inputText)
+				.sessionState(sessionState -> sessionState.promptSessionAttributes(Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
 		
 		invokeAgentRequest = builder.build();
 		
@@ -239,7 +240,8 @@ public class AgentManagerImplUnitTest {
 		
 		var returnBuilder = InvokeAgentRequest.builder().agentId(session.getAgentId())
 				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
-						.invocationId(invocationId).returnControlInvocationResults(invocationResultMembers).build())
+						.invocationId(invocationId).returnControlInvocationResults(invocationResultMembers)
+						.promptSessionAttributes(Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())).build())
 				.enableTrace(false);
 		
 		invokeAgentReturnRequest = returnBuilder.build();

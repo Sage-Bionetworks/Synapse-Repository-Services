@@ -53,6 +53,7 @@ import software.amazon.awssdk.services.bedrockagentruntime.model.TracePart;
 public class AgentManagerImpl implements AgentManager {
 
 	public static final String TSTALIASID = "TSTALIASID";
+	public static final String PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL = "access_level";
 
 	private final AgentDao agentDao;
 	private final BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient;
@@ -161,9 +162,18 @@ public class AgentManagerImpl implements AgentManager {
 	 */
 	String invokeAgentWithText(String jobId, AgentSession session, AgentChatRequest request) {
 		boolean enableTrace = request.getEnableTrace() != null? request.getEnableTrace(): false;
-		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).enableTrace(enableTrace).inputText(request.getChatText())
+		
+		InvokeAgentRequest startRequest = InvokeAgentRequest
+				.builder().agentId(session.getAgentId())
+				.agentAliasId(TSTALIASID)
+				.sessionId(session.getSessionId())
+				.enableTrace(enableTrace)
+				.inputText(request.getChatText())
+				.sessionState(sessionState -> sessionState.promptSessionAttributes(
+					Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString())
+				))
 				.build();
+		
 		AgentResponse res = invokeAgentAsync(jobId, session, startRequest);
 		int count = 0;
 		// When the invocation ID is not null, the agent has requested more information
@@ -183,10 +193,19 @@ public class AgentManagerImpl implements AgentManager {
 			// data and send it with another invoke_agent call.
 			List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(),
 					res.getReturnControlEvents());
-			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-					.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
-							.invocationId(res.getInvocationId()).returnControlInvocationResults(eventResults).build())
-					.enableTrace(enableTrace).build();
+			
+			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder()
+					.agentId(session.getAgentId())
+					.agentAliasId(TSTALIASID).sessionId(session.getSessionId())
+					.sessionState(SessionState.builder()
+						.invocationId(res.getInvocationId())
+						.returnControlInvocationResults(eventResults)
+						.promptSessionAttributes(
+							Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString()))
+						.build())
+					.enableTrace(enableTrace)
+					.build();
+			
 			res = invokeAgentAsync(jobId, session, returnRequest);
 			count++;
 		}
@@ -204,6 +223,7 @@ public class AgentManagerImpl implements AgentManager {
 		try {
 			// This object will capture the response data pushed to the handler.
 			AgentResponse response = new AgentResponse();
+			
 			var responseStreamHandler = InvokeAgentResponseHandler.builder()
 					.subscriber(Visitor.builder().onReturnControl(payload -> {
 						/*
@@ -226,10 +246,9 @@ public class AgentManagerImpl implements AgentManager {
 					}).onError(t -> {
 						logger.error("onError() sessionId: '{}' errorMessage:'{}'", session.getSessionId(),
 								t.getMessage());
-					}).build();
+					}).build();			
 
-			CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(invokeAgentRequest,
-					responseStreamHandler);
+			CompletableFuture<Void> future = bedrockAgentRuntimeAsyncClient.invokeAgent(invokeAgentRequest, responseStreamHandler);
 			future.get();
 			return response;
 		} catch (Exception e) {
