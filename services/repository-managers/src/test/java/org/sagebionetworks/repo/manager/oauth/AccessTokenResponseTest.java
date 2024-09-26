@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.UnsupportedEncodingException;
+
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -22,14 +24,30 @@ public class AccessTokenResponseTest {
 				.claim(OIDCClaimName.email.name(), "first.last@domain.com")
 				.claim(OIDCClaimName.sub.name(), "abcd")
 				.compact() + "signature";
-
+		
 		// Call under test
 		ProvidedUserInfo info = new AccessTokenResponse("", idToken, "").parseIdToken();
-
+		
 		assertEquals("last", info.getLastName());
 		assertEquals("first", info.getFirstName());
 		assertEquals("first.last@domain.com", info.getUsersVerifiedEmail());
 		assertEquals("abcd", info.getSubject());
+	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/SYNSD-1231
+	@Test
+	public void testParseIdTokenBase64UrlEncoding() throws JSONException, UnsupportedEncodingException {
+		// The following will encode into eyJhbGciOiJub25lIn0.eyJzdWIiOiJ-YWJjZCJ9.signature (A JWT is base64url encoded)
+		// The ~ character in binary is 111111 (=63), using base64 url safe encoding it is translated to "-" (while it is translated to "/" in base64, see https://datatracker.ietf.org/doc/html/rfc4648#section-5)
+		// A plain64 decoder cannot decode the character "-" correctly, so this ensures that we are using a base64 url safe decoder
+		String idToken = Jwts.builder()
+				.claim(OIDCClaimName.sub.name(), "~abcd")
+				.compact() + "signature";
+		
+		// Call under test
+		ProvidedUserInfo info = new AccessTokenResponse("", idToken, "").parseIdToken();
+		
+		assertEquals("~abcd", info.getSubject());
 	}
 
 	@Test
