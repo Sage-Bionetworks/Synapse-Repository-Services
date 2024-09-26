@@ -35,7 +35,7 @@ public class AccessTokenResponse extends Token {
 				
 		try {
 			
-			String idTokenClaims = new String(Base64.getDecoder().decode(idTokenParts[1]), StandardCharsets.UTF_8);
+			String idTokenClaims = new String(Base64.getUrlDecoder().decode(idTokenParts[1]), StandardCharsets.UTF_8);
 			
 			JSONObject json = new JSONObject(idTokenClaims);
 

@@ -5,6 +5,9 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.springframework.stereotype.Service;
@@ -16,6 +19,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class OAuthManagerImpl implements OAuthManager {
+	
+	private static final Logger LOGGER = LogManager.getLogger(OAuthManagerImpl.class);
 	
 	private Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap;
 	
@@ -40,13 +45,25 @@ public class OAuthManagerImpl implements OAuthManager {
 	@Override
 	public ProvidedUserInfo validateUserWithProvider(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
-		return getBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
+		try {
+			return getBinding(provider).validateUserWithProvider(authorizationCode, redirectUrl);
+		} catch (UnauthorizedException e) {
+			// UnauthorizedException trace is not logged at the controller level, added after https://sagebionetworks.jira.com/browse/SYNSD-1231
+			LOGGER.warn("Could not validate user with {} provider (Code: {}, RedirectUrl: {}):", provider, authorizationCode, redirectUrl, e);
+			throw e;
+		}
 	}
 	
 	@Override
 	public AliasAndType retrieveProvidersId(OAuthProvider provider,
 			String authorizationCode, String redirectUrl) {
-		return getBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
+		try {
+			return getBinding(provider).retrieveProvidersId(authorizationCode, redirectUrl);
+		} catch (UnauthorizedException e) {
+			// UnauthorizedException trace is not logged at the controller level, added after https://sagebionetworks.jira.com/browse/SYNSD-1231
+			LOGGER.warn("Could not retrive user id from {} provider (Code: {}, RedirectUrl: {}):", provider, authorizationCode, redirectUrl, e);
+			throw e;
+		}
 	}
 	
 	@Override
