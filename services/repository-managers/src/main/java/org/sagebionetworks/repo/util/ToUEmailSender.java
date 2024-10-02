@@ -49,7 +49,7 @@ public class ToUEmailSender {
 	
 	private static final String SUBJECT = "[TEST] Updates to our Terms of Service and Privacy Policy";
 
-	private static final String SENDER = "Synpase<noreply@synapse.org>";
+	private static final String SENDER = "Synapse<noreply@synapse.org>";
 
 	private static final Logger LOG = LogManager.getLogger(ToUEmailSender.class);
 	
@@ -111,7 +111,7 @@ public class ToUEmailSender {
 		
 		scheduler.scheduleAtFixedRate(() -> {
 			LOG.info("Number of sent emails: {} (Elapsed: {} seconds)", sentCounter, stopWatch.elapsed(TimeUnit.SECONDS));
-		}, 1, 1, TimeUnit.SECONDS);
+		}, 30, 30, TimeUnit.SECONDS);
 		
 		List<Future<?>> tasks = new ArrayList<>();
 		
@@ -215,7 +215,7 @@ public class ToUEmailSender {
 			checkReputationRate("BounceRate", BOUNCE_THRESHOLD);
 			checkReputationRate("ComplaintRate", COMPLAINT_THRESHOLD);
 			
-		}, 0, 1, TimeUnit.MINUTES);
+		}, 0, 60, TimeUnit.SECONDS);
 	}
 	
 	private void checkReputationRate(String which, double threshold) {
