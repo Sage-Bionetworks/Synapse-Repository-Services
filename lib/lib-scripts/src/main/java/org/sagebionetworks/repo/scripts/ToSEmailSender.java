@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.OptionalDouble;
@@ -20,6 +21,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
@@ -44,18 +47,20 @@ import au.com.bytecode.opencsv.CSVReader;
 
 public class ToSEmailSender {
 	
-	private static final String SUBJECT = "[TEST] Updates to our Terms of Service and Privacy Policy";
-
-	private static final String SENDER = "Synapse<noreply@synapse.org>";
-
 	private static final Logger LOG = LogManager.getLogger(ToSEmailSender.class);
+	
+	private static final String SUBJECT = "Updates to our Terms of Service and Privacy Policy";
+	
+	private static final String SENDER = "Synapse<noreply@synapse.org>";
 	
 	private static final String EMAIL_TPL_PATH = "message/TermsOfServiceUpdateTemplate.html";
 	
 	private static final int MAX_EMAIL_RATE = 14;
 	
-	private static final double BOUNCE_THRESHOLD = 0.05;
-	private static final double COMPLAINT_THRESHOLD = 0.001;
+	// SES suggest to stay under 5%
+	private static final double BOUNCE_THRESHOLD = 0.04;
+	// SES suggests to stay under 0.1%
+	private static final double COMPLAINT_THRESHOLD = 0.0008;
 	
 	private ExecutorService executor;
 	private ScheduledExecutorService scheduler;
@@ -65,7 +70,7 @@ public class ToSEmailSender {
 	private AmazonCloudWatch cloudWatchService;
 	private String emailBody;
 	private int sendMax;
-	private boolean stop = false;
+	private volatile boolean stop = false;
 	
 	public static void main(String[] args) throws SQLException, IOException, InterruptedException {
 		String emailCsvFile = args[0];
@@ -115,6 +120,7 @@ public class ToSEmailSender {
 		for (String email : sendList) {
 			
 			if (stop) {
+				LOG.warn("The process was stopped, won't send email to {}", email);
 				break;
 			}
 			
@@ -123,6 +129,7 @@ public class ToSEmailSender {
 			
 			tasks.add(executor.submit(() -> {
 				if (stop) {
+					LOG.warn("The process was stopped, won't send email to {}", email);
 					return;
 				}
 				
@@ -155,7 +162,7 @@ public class ToSEmailSender {
 		executor.shutdown();
 		
 		try {
-			executor.awaitTermination(30, TimeUnit.SECONDS);
+			executor.awaitTermination(60, TimeUnit.SECONDS);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -183,22 +190,40 @@ public class ToSEmailSender {
 		List<String> sendList = new ArrayList<>(sendMax);
 		
 		int skippedCounter = 0;
+		final int batchSize = 100;
 		
 		try (CSVReader csvReader = new CSVReader(new BufferedReader(new InputStreamReader(new FileInputStream(csvFile), StandardCharsets.UTF_8)))) {
 			String[] row;
+		
+			List<String> batch = new ArrayList<>(batchSize);
 			
 			while ((row = csvReader.readNext()) != null) {
 				String email = row[0];
 				
-				if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM TOS_EMAIL_SENT WHERE EMAIL_ADDRESS = ?", Integer.class, email) > 0) {
-					skippedCounter++;
-					continue;
+				batch.add(email);
+				
+				if (batch.size() >= batchSize) {
+					List<String> unsentBatch = filterBatchBySent(batch);
+					skippedCounter += batch.size() - unsentBatch.size();
+					for (String emailToAdd : unsentBatch) {
+						sendList.add(emailToAdd);
+						if (sendList.size() >= sendMax) {
+							break;
+						}
+						
+					}
+					batch.clear();
 				}
-				
-				sendList.add(email);
-				
-				if (sendList.size() >= sendMax) {
-					break;
+			}
+			
+			if (!batch.isEmpty() && sendList.size() < sendMax) {
+				List<String> unsentBatch = filterBatchBySent(batch);
+				skippedCounter += batch.size() - unsentBatch.size();
+				for (String emailToAdd : unsentBatch) {
+					sendList.add(emailToAdd);
+					if (sendList.size() >= sendMax) {
+						break;
+					}
 				}
 			}
 		}
@@ -206,6 +231,12 @@ public class ToSEmailSender {
 		LOG.info("Loading email list from {} (Limit: {})...DONE (Total: {}, Skipped: {})", csvFile, sendMax, sendList.size(), skippedCounter);
 		
 		return sendList;
+	}
+	
+	private List<String> filterBatchBySent(List<String> batch) {
+		String selectSql = "SELECT EMAIL_ADDRESS FROM TOS_EMAIL_SENT WHERE EMAIL_ADDRESS IN (" + String.join(",", Collections.nCopies(batch.size(), "?")) +")";
+		List<String> alreadySent = jdbcTemplate.queryForList(selectSql, String.class, batch.toArray());
+		return batch.stream().filter(Predicate.not(alreadySent::contains)).collect(Collectors.toList());
 	}
 	
 	private void setupDatabaseTable() {
@@ -216,13 +247,13 @@ public class ToSEmailSender {
 		
 		scheduler.scheduleAtFixedRate(() -> {
 			
-			checkReputationRate("BounceRate", BOUNCE_THRESHOLD);
-			checkReputationRate("ComplaintRate", COMPLAINT_THRESHOLD);
+			stop = checkReputationRate("BounceRate", BOUNCE_THRESHOLD);
+			stop = checkReputationRate("ComplaintRate", COMPLAINT_THRESHOLD);
 			
 		}, 0, 60, TimeUnit.SECONDS);
 	}
 	
-	private void checkReputationRate(String which, double threshold) {
+	private boolean checkReputationRate(String which, double threshold) {
 		Instant now = Instant.now();
 		
 		LOG.info("Checking {}...", which);
@@ -243,11 +274,13 @@ public class ToSEmailSender {
 			LOG.info("Current {}: {} (Threshold: {})", which, currentRate, threshold);
 			if (currentRate >= threshold) {
 				LOG.warn("Current {} ({}) is over threshold ({}), stopping process.", which, currentRate, threshold);
-				stop = true;
+				return true;
 			}
 		} else {
 			LOG.info("Checking {}...No Data", which);
 		}
+		
+		return false;
 	}
 
 }
