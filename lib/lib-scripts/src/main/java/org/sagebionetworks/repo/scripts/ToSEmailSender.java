@@ -11,10 +11,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.OptionalDouble;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -26,8 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -72,17 +68,14 @@ public class ToSEmailSender {
 	private boolean stop = false;
 	
 	public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
-		
 		String emailCsvFile = args[0];
-		
 		int sendMax = Integer.parseInt(args[1]);
 		
 		try (BasicDataSource dataSource = new BasicDataSource()) {	
-			dataSource.setUrl(stackConfig.getRepositoryDatabaseConnectionUrl());
-			dataSource.setUsername(stackConfig.getRepositoryDatabaseUsername());
-			dataSource.setPassword(stackConfig.getRepositoryDatabasePassword());
-			dataSource.setDriverClassName(stackConfig.getRepositoryDatabaseDriver());
+			dataSource.setUrl(args[2]);
+			dataSource.setUsername(args[3]);
+			dataSource.setPassword(args[4]);
+			dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 			
 			new ToSEmailSender(new JdbcTemplate(dataSource), sendMax).start(emailCsvFile);
 			
@@ -110,7 +103,11 @@ public class ToSEmailSender {
 		Stopwatch stopWatch = Stopwatch.createStarted();
 		
 		scheduler.scheduleAtFixedRate(() -> {
-			LOG.info("Number of sent emails: {} (Elapsed: {} seconds)", sentCounter, stopWatch.elapsed(TimeUnit.SECONDS));
+			int sentCount = sentCounter.get();
+			long elapsed = stopWatch.elapsed(TimeUnit.SECONDS);
+			long sendRate = sentCount/elapsed;
+			
+			LOG.info("Number of sent emails: {} (Elapsed: {} seconds, Send Rate: {} email/second)", sentCount, elapsed, sendRate);
 		}, 30, 30, TimeUnit.SECONDS);
 		
 		List<Future<?>> tasks = new ArrayList<>();
@@ -139,7 +136,7 @@ public class ToSEmailSender {
 				
 				emailService.sendEmail(request);
 				
-				jdbcTemplate.update("INSERT INTO TOU_EMAIL_SENT VALUES(?, NOW())", email);
+				jdbcTemplate.update("INSERT INTO TOS_EMAIL_SENT VALUES(?, NOW())", email);
 				
 				sentCounter.incrementAndGet();
 					
@@ -181,7 +178,8 @@ public class ToSEmailSender {
 	}
 	
 	private List<String> getSendList(String csvFile) throws IOException {
-		Set<String> sentEmails = new HashSet<>(jdbcTemplate.queryForList("SELECT EMAIL_ADDRESS FROM TOU_EMAIL_SENT", String.class));
+		LOG.info("Loading email list from {} (Limit: {})...", csvFile, sendMax);
+		
 		List<String> sendList = new ArrayList<>(sendMax);
 		
 		int skippedCounter = 0;
@@ -192,7 +190,7 @@ public class ToSEmailSender {
 			while ((row = csvReader.readNext()) != null) {
 				String email = row[0];
 				
-				if (sentEmails.contains(email)) {
+				if (jdbcTemplate.queryForObject("SELECT COUNT(*) FROM TOS_EMAIL_SENT WHERE EMAIL_ADDRESS = ?", Integer.class, email) > 0) {
 					skippedCounter++;
 					continue;
 				}
@@ -205,13 +203,13 @@ public class ToSEmailSender {
 			}
 		}
 		
-		LOG.info("Total number of emails to send: {} (Skipped: {})", sendList.size(), skippedCounter);
+		LOG.info("Loading email list from {} (Limit: {})...DONE (Total: {}, Skipped: {})", csvFile, sendMax, sendList.size(), skippedCounter);
 		
 		return sendList;
 	}
 	
 	private void setupDatabaseTable() {
-		jdbcTemplate.update("CREATE TABLE IF NOT EXISTS `TOU_EMAIL_SENT` ( `EMAIL_ADDRESS` VARCHAR(255) NOT NULL COLLATE 'utf8mb4_0900_ai_ci', `SENT_ON` TIMESTAMP NOT NULL)");
+		jdbcTemplate.update("CREATE TABLE IF NOT EXISTS `TOS_EMAIL_SENT` ( `EMAIL_ADDRESS` VARCHAR(255) NOT NULL COLLATE 'utf8mb4_0900_ai_ci', `SENT_ON` TIMESTAMP NOT NULL, PRIMARY KEY (`EMAIL_ADDRESS`))");
 	}
 	
 	private void monitorReputation() {
