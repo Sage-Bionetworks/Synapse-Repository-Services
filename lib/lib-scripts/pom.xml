@@ -10,7 +10,25 @@
   <dependencies>
   	<dependency>
 		<groupId>org.sagebionetworks</groupId>
-		<artifactId>lib-jdomodels</artifactId>
+		<artifactId>lib-stackConfiguration</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>org.sagebionetworks</groupId>
+		<artifactId>csv-utilities</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>mysql</groupId>
+		<artifactId>mysql-connector-java</artifactId>
+		<version>${mysql.mysql-connector-java.version}</version>
+		<scope>runtime</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.apache.commons</groupId>
+		<artifactId>commons-dbcp2</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>org.springframework</groupId>
+		<artifactId>spring-jdbc</artifactId>
 	</dependency>
   </dependencies>
   

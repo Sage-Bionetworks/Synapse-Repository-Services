@@ -24,9 +24,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.AwsClientFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -53,7 +54,6 @@ public class ToSEmailSender {
 
 	private static final Logger LOG = LogManager.getLogger(ToSEmailSender.class);
 	
-	private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
 	private static final String EMAIL_TPL_PATH = "message/TermsOfServiceUpdateTemplate.html";
 	
 	private static final int MAX_EMAIL_RATE = 14;
@@ -72,19 +72,19 @@ public class ToSEmailSender {
 	private boolean stop = false;
 	
 	public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-		String dbUrl = args[0];
-		String dbUser = args[1];
-		String dbPassword = args[2];
-		String usersCsv = args[3];
-		int sendMax = Integer.parseInt(args[4]);
+		StackConfiguration stackConfig = StackConfigurationSingleton.singleton();
+		
+		String emailCsvFile = args[0];
+		
+		int sendMax = Integer.parseInt(args[1]);
 		
 		try (BasicDataSource dataSource = new BasicDataSource()) {	
-			dataSource.setUrl(dbUrl);
-			dataSource.setUsername(dbUser);
-			dataSource.setPassword(dbPassword);
-			dataSource.setDriverClassName(DB_DRIVER);
+			dataSource.setUrl(stackConfig.getRepositoryDatabaseConnectionUrl());
+			dataSource.setUsername(stackConfig.getRepositoryDatabaseUsername());
+			dataSource.setPassword(stackConfig.getRepositoryDatabasePassword());
+			dataSource.setDriverClassName(stackConfig.getRepositoryDatabaseDriver());
 			
-			new ToSEmailSender(new JdbcTemplate(dataSource), sendMax).start(usersCsv);
+			new ToSEmailSender(new JdbcTemplate(dataSource), sendMax).start(emailCsvFile);
 			
 		}
 	}
@@ -137,12 +137,9 @@ public class ToSEmailSender {
 						.withBody(new Body().withHtml(new Content().withData(emailBody)))
 					);
 				
-				LOG.info("Sending email to {}...", email);
 				emailService.sendEmail(request);
 				
 				jdbcTemplate.update("INSERT INTO TOU_EMAIL_SENT VALUES(?, NOW())", email);
-				
-				LOG.info("Sending email to {}...DONE", email);
 				
 				sentCounter.incrementAndGet();
 					
@@ -179,7 +176,7 @@ public class ToSEmailSender {
 	
 	private String readEmailTemplate() throws IOException {
 		try (InputStream is = getClass().getClassLoader().getResourceAsStream(EMAIL_TPL_PATH)) {
-			return IOUtils.toString(is, StandardCharsets.UTF_8);	
+			return new String(is.readAllBytes(), StandardCharsets.UTF_8);
 		}
 	}
 	
