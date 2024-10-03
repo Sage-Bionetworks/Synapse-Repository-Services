@@ -1,15 +1,15 @@
-package org.sagebionetworks.repo.util;
+package org.sagebionetworks.repo.scripts;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -24,10 +24,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.aws.AwsClientFactory;
-import org.sagebionetworks.repo.manager.EmailUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
@@ -45,16 +45,16 @@ import com.google.common.util.concurrent.RateLimiter;
 
 import au.com.bytecode.opencsv.CSVReader;
 
-public class ToUEmailSender {
+public class ToSEmailSender {
 	
 	private static final String SUBJECT = "[TEST] Updates to our Terms of Service and Privacy Policy";
 
 	private static final String SENDER = "Synapse<noreply@synapse.org>";
 
-	private static final Logger LOG = LogManager.getLogger(ToUEmailSender.class);
+	private static final Logger LOG = LogManager.getLogger(ToSEmailSender.class);
 	
 	private static final String DB_DRIVER = "com.mysql.cj.jdbc.Driver";
-	private static final String EMAIL_TPL = "message/TermsOfUseUpdateTemplate.html";
+	private static final String EMAIL_TPL_PATH = "message/TermsOfServiceUpdateTemplate.html";
 	
 	private static final int MAX_EMAIL_RATE = 14;
 	
@@ -84,20 +84,20 @@ public class ToUEmailSender {
 			dataSource.setPassword(dbPassword);
 			dataSource.setDriverClassName(DB_DRIVER);
 			
-			new ToUEmailSender(new JdbcTemplate(dataSource), sendMax).start(usersCsv);
+			new ToSEmailSender(new JdbcTemplate(dataSource), sendMax).start(usersCsv);
 			
 		}
 	}
 	
-	public ToUEmailSender(JdbcTemplate jdbcTemplate, int sendMax) {
+	public ToSEmailSender(JdbcTemplate jdbcTemplate, int sendMax) throws IOException {
 		this.executor = Executors.newFixedThreadPool(MAX_EMAIL_RATE);
 		this.scheduler = Executors.newSingleThreadScheduledExecutor();
 		this.rateLimiter = RateLimiter.create(MAX_EMAIL_RATE);
 		this.jdbcTemplate = jdbcTemplate;
 		this.sendMax = sendMax;
-		this.emailBody = EmailUtils.readMailTemplate(EMAIL_TPL, Collections.emptyMap());
 		this.emailService = AwsClientFactory.createAmazonSimpleEmailServiceClient();
 		this.cloudWatchService = AwsClientFactory.createCloudWatchClient();
+		this.emailBody = this.readEmailTemplate();
 		this.setupDatabaseTable();
 		this.monitorReputation();
 	}
@@ -137,9 +137,12 @@ public class ToUEmailSender {
 						.withBody(new Body().withHtml(new Content().withData(emailBody)))
 					);
 				
+				LOG.info("Sending email to {}...", email);
 				emailService.sendEmail(request);
 				
 				jdbcTemplate.update("INSERT INTO TOU_EMAIL_SENT VALUES(?, NOW())", email);
+				
+				LOG.info("Sending email to {}...DONE", email);
 				
 				sentCounter.incrementAndGet();
 					
@@ -172,6 +175,12 @@ public class ToUEmailSender {
 		}
 		
 		LOG.info("Process finished: Sent {}", sentCounter.get());
+	}
+	
+	private String readEmailTemplate() throws IOException {
+		try (InputStream is = getClass().getClassLoader().getResourceAsStream(EMAIL_TPL_PATH)) {
+			return IOUtils.toString(is, StandardCharsets.UTF_8);	
+		}
 	}
 	
 	private List<String> getSendList(String csvFile) throws IOException {

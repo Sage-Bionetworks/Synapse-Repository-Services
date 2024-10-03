@@ -39,6 +39,7 @@
         <module>lib-dbuserhelper</module>
 		<module>lib-worker-common</module>
 		<module>database-semaphore</module>
-    </modules>
+		<module>lib-scripts</module>
+	</modules>
 
 </project>
