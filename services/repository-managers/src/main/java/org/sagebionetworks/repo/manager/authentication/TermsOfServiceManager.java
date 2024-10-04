@@ -9,6 +9,7 @@ import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.utils.github.Release;
@@ -31,8 +32,9 @@ public class TermsOfServiceManager {
 	
 	private static final Logger LOGGER = LogManager.getLogger(TermsOfServiceManager.class);	
 	
-	private static final String DEFAULT_VERSION = "0.0.0";
-	private static final Date DEFAULT_REQUIREMENT_DATE = Date.from(Instant.parse("2011-01-01T00:00:00.000Z"));
+	private static final TermsOfServiceRequirements DEFAULT_REQUIRMENTS = new TermsOfServiceRequirements()
+		.setMinimumTermsOfServiceVersion("0.0.0")
+		.setRequirementDate(Date.from(Instant.parse("2011-01-01T00:00:00.000Z")));
 
 	private static final String VERSION_LATEST = "latest";
 	
@@ -43,13 +45,16 @@ public class TermsOfServiceManager {
 	
 	private static final String TOS_URL_FORMAT = "https://raw.githubusercontent.com/" + ORG + "/" + REPO + "/refs/tags/%s/Terms.md";
 		
+	private AuthenticationDAO authDao;
+	
 	private GithubApiClient githubClient;
 	
 	private LoadingCache<String, Release> versionCache;
 	
-	private String latestVersionFallback = DEFAULT_VERSION;
+	private String latestVersionFallback;
 	
-	public TermsOfServiceManager(GithubApiClient githubClient, Clock clock) {
+	public TermsOfServiceManager(AuthenticationDAO authDao, GithubApiClient githubClient, Clock clock) {
+		this.authDao = authDao;
 		this.githubClient = githubClient;
 		this.versionCache = CacheBuilder.newBuilder()
 			.ticker(new Ticker() {
@@ -66,7 +71,8 @@ public class TermsOfServiceManager {
 	@PostConstruct
 	public void initialize() {
 		// We load some version when we start so there is always a known latest version
-		latestVersionFallback = getLatestVersion();
+		// let the exception go through so the server does not start if this fails
+		latestVersionFallback = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
 	}
 
 	/**
@@ -79,12 +85,7 @@ public class TermsOfServiceManager {
 		
 		tosInfo.setLatestTermsOfServiceVersion(latestVersion);
 		tosInfo.setTermsOfServiceUrl(String.format(TOS_URL_FORMAT, latestVersion));
-		
-		// TODO, get this from the database?
-		tosInfo.setCurrentRequirements(new TermsOfServiceRequirements()
-			.setMinimumTermsOfServiceVersion(DEFAULT_VERSION)
-			.setRequirementDate(DEFAULT_REQUIREMENT_DATE)
-		);
+		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements().orElse(DEFAULT_REQUIRMENTS));
 		 
 		return tosInfo;
 	}
@@ -94,6 +95,7 @@ public class TermsOfServiceManager {
 		
 		try {
 			latestVersion = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
+			// Make sure to update the fallback version
 			latestVersionFallback = latestVersion;
 		} catch (UncheckedExecutionException | ExecutionError e ) {
 			// We do not want an issue with github to bring down synapse, fallback on the latest known version
@@ -105,7 +107,7 @@ public class TermsOfServiceManager {
 				}
 			}
 			latestVersion = latestVersionFallback;
-		}		
+		}
 		
 		return latestVersion;
 	}

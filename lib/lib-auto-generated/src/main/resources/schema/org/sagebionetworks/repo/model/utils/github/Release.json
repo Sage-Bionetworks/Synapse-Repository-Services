@@ -12,13 +12,9 @@
 	      "type": "string",
 	      "format": "uri"
 	    },
-		"html_url": {
-	      "type": "string",
-	      "format": "uri"
-	    },
 		"tag_name": {
 	      "description": "The name of the tag.",
 	      "type": "string"
-	    },
+	    }
 	}
 }

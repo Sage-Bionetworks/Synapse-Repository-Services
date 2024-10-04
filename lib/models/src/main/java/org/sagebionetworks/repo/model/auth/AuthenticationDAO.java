@@ -81,6 +81,24 @@ public interface AuthenticationDAO {
 	void setTermsOfUseAcceptance(long principalId, Boolean acceptance);
 	
 	/**
+	 * Sets the current TOS requirements
+	 * 
+	 * @param principalId
+	 * @param minVersion
+	 * @param enforceOn
+	 * @return
+	 */
+	TermsOfServiceRequirements setCurrentTermsOfServiceRequirements(long principalId, String minVersion, Date enforceOn);
+	
+	/**
+	 * @return The latest terms of service requirements
+	 */
+	Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements();
+	
+	// For testing
+	void clearTermsOfServiceRequirements();
+	
+	/**
 	 * Updates the state of 2fa for the given principal
 	 * 
 	 * @param principalId
@@ -116,4 +134,5 @@ public interface AuthenticationDAO {
 	 * Ensure the bootstrap users have sufficient credentials to authenticate
 	 */
 	void bootstrapCredentials() throws NotFoundException;
+
 }
