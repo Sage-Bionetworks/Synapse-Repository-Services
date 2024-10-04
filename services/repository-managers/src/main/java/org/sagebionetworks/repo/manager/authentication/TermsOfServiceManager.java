@@ -1,34 +1,29 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
+import javax.annotation.PostConstruct;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.utils.github.Release;
+import org.sagebionetworks.repo.util.github.GithubApiClient;
+import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.util.Clock;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Ticker;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.ExecutionError;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 @Service
@@ -43,25 +38,19 @@ public class TermsOfServiceManager {
 	
 	private static final Duration VERSION_CACHE_EXPIRATION = Duration.of(10, ChronoUnit.MINUTES);
 	
-	private static final String TOS_REPO = "Sage-Bionetworks/Sage-Governance-Documents";
-	private static final String TOS_API_VERSION = "https://api.github.com/repos/" + TOS_REPO + "/releases/%s";
-	private static final String TOS_URL_FORMAT = "https://raw.githubusercontent.com/" + TOS_REPO + "/refs/tags/%s/Terms.md";
+	static final String ORG = "Sage-Bionetworks";
+	static final String REPO = "Sage-Governance-Documents";
 	
-	private static final String[] GITHUB_REQUEST_HEADERS = new String[] {
-		HttpHeaders.USER_AGENT, "Synapse-App",
-		HttpHeaders.ACCEPT, "application/vnd.github+json",
-		"X-GitHub-Api-Version", "2022-11-28"
-	};
+	private static final String TOS_URL_FORMAT = "https://raw.githubusercontent.com/" + ORG + "/" + REPO + "/refs/tags/%s/Terms.md";
+		
+	private GithubApiClient githubClient;
 	
-	private static final String PROPERTY_RELEASE_TAG = "tag_name";
-
-	private static final String MESSAGE_VERSION_UNAVAILABLE = "The {} terms of service version is unavailable.";
+	private LoadingCache<String, Release> versionCache;
 	
-	private HttpClient httpClient;
-	private LoadingCache<String, String> versionCache;
+	private String latestVersionFallback = DEFAULT_VERSION;
 	
-	public TermsOfServiceManager(HttpClient defaultHttpClient, Clock clock) {
-		this.httpClient = defaultHttpClient;
+	public TermsOfServiceManager(GithubApiClient githubClient, Clock clock) {
+		this.githubClient = githubClient;
 		this.versionCache = CacheBuilder.newBuilder()
 			.ticker(new Ticker() {
 				
@@ -71,7 +60,13 @@ public class TermsOfServiceManager {
 				}
 			})
 			.expireAfterWrite(VERSION_CACHE_EXPIRATION)
-			.build(CacheLoader.from(this::fetchTermsOfServiceVersion));
+			.build(CacheLoader.from(this::fetchRelease));
+	}
+	
+	@PostConstruct
+	public void initialize() {
+		// We load some version when we start so there is always a known latest version
+		latestVersionFallback = getLatestVersion();
 	}
 
 	/**
@@ -80,12 +75,12 @@ public class TermsOfServiceManager {
 	public TermsOfServiceInfo getTermsOfUseInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 
-		String latestVersion = getCachedTermsOfServiceVersion(DEFAULT_VERSION);
+		String latestVersion = getLatestVersion();
 		
 		tosInfo.setLatestTermsOfServiceVersion(latestVersion);
 		tosInfo.setTermsOfServiceUrl(String.format(TOS_URL_FORMAT, latestVersion));
 		
-		// TODO
+		// TODO, get this from the database?
 		tosInfo.setCurrentRequirements(new TermsOfServiceRequirements()
 			.setMinimumTermsOfServiceVersion(DEFAULT_VERSION)
 			.setRequirementDate(DEFAULT_REQUIREMENT_DATE)
@@ -94,76 +89,48 @@ public class TermsOfServiceManager {
 		return tosInfo;
 	}
 	
-	String getCachedTermsOfServiceVersion(String version) {
+	String getLatestVersion() {
+		String latestVersion;
+		
 		try {
-			return versionCache.getUnchecked(VERSION_LATEST);
-		} catch (UncheckedExecutionException e) {
-			if (e.getCause() instanceof IllegalArgumentException) {
-				throw (IllegalArgumentException) e.getCause();
+			latestVersion = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
+			latestVersionFallback = latestVersion;
+		} catch (UncheckedExecutionException | ExecutionError e ) {
+			// We do not want an issue with github to bring down synapse, fallback on the latest known version
+			LOGGER.error("Could not fetch latest version, will fallback to version {}: ", latestVersionFallback, e);
+			if (e.getCause() instanceof GithubApiException) {
+				GithubApiException githubApiEx = (GithubApiException) e.getCause();
+				if (githubApiEx.getResponseBody() != null || githubApiEx.getStatus() != null) {
+					LOGGER.error("Reponse from github was: {} (status: {})", githubApiEx.getResponseBody(), githubApiEx.getStatus());	
+				}
 			}
-			if (e.getCause() instanceof NotFoundException) {
-				throw (NotFoundException) e.getCause();
+			latestVersion = latestVersionFallback;
+		}		
+		
+		return latestVersion;
+	}
+
+	Release fetchRelease(String tag) {
+		LOGGER.info("Fetching github release for {} version...", tag);
+		
+		Release release;
+		
+		if (VERSION_LATEST.equals(tag)) {
+			release = githubClient.getLatestRelease(ORG, REPO);
+		} else {
+			try {
+				new SchemaIdParser(tag).semanticVersion();
+			} catch (ParseException e) {
+				throw new IllegalArgumentException("Expected a semantic version, was: " + tag);
 			}
-			throw e;
+			
+			release = githubClient.getReleaseByTag(ORG, REPO, tag);
 		}
+		
+		LOGGER.info("Fetching github release for {} version...DONE (Name: {}, Tag: {})", tag, release.getName(), release.getTag_name());
+		
+		return release;
 	}
 	
-	String fetchTermsOfServiceVersion(String version) {
-		
-		if (!VERSION_LATEST.equals(version)) {
-			try {
-				new SchemaIdParser(version).semanticVersion().toString();
-			} catch (ParseException e) {
-				throw new IllegalArgumentException(version + " is not a valid semantic version.");
-			}
-		}
-		
-		String url = String.format(TOS_API_VERSION, version);
-		
-		HttpRequest request = HttpRequest.newBuilder()
-				.GET()
-				.uri(URI.create(url))
-				.headers(GITHUB_REQUEST_HEADERS)
-				.build();
-
-		HttpResponse<String> response;
-		
-		try {
-			response = httpClient.send(request, BodyHandlers.ofString());
-		} catch (IOException | InterruptedException e) {
-			LOGGER.error("Could not fetch {} TOS version: ", version, e);
-			throw new RuntimeException(String.format(MESSAGE_VERSION_UNAVAILABLE, version), e);
-		}
-		
-		HttpStatus status = HttpStatus.resolve(response.statusCode());
-		
-		if (!HttpStatus.OK.equals(status)) {
-			LOGGER.error("Could not fetch {} TOS version (status code: {}): {}", version, response.statusCode(), response.body());
-			
-			String exMessage = String.format(MESSAGE_VERSION_UNAVAILABLE, version);
-			
-			if (HttpStatus.NOT_FOUND.equals(status)) {
-				throw new NotFoundException(exMessage);
-			}
-			
-			throw new RuntimeException(exMessage);
-		}
-		
-		JSONObject responseBody;
-		
-		try {
-			responseBody = new JSONObject(response.body());
-		} catch (JSONException e) {
-			LOGGER.error("Could not parse {} TOS version: {}", version, response.body(), e);
-			throw new RuntimeException(String.format(MESSAGE_VERSION_UNAVAILABLE, version), e);
-		}
-		
-		if (!responseBody.has(PROPERTY_RELEASE_TAG)) {
-			LOGGER.error("Could not parse {} TOS version, missing {} property", version, PROPERTY_RELEASE_TAG, response.body());
-			throw new RuntimeException(String.format(MESSAGE_VERSION_UNAVAILABLE, version));
-		}
-		
-		return responseBody.getString(PROPERTY_RELEASE_TAG);
-	}
 		
 }

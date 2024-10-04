@@ -13,6 +13,7 @@
 	<context:annotation-config />
 	<context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.repo.service" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.repo.util" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
@@ -239,11 +240,6 @@
 	<bean id="searchManager"
 		  class="org.sagebionetworks.repo.manager.search.SearchManagerImpl"
 		  scope="singleton" />
-
-	<!-- Used to interface to the Jira server -->
-	<bean id="jiraClient"
-		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
-		scope="singleton" />
 
 	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" init-method="bootstrapTeams" scope="singleton">
 	    <property name="teamsToBootstrap" ref="teamsToBootstrap"/>

@@ -212,6 +212,10 @@ public class AuthenticationController {
 		authenticationService.signTermsOfUse(signRequest);
 	}
 	
+	/**
+	 * Get the information about the latest version of the terms of service together with the
+	 * requirements in effect.
+	 */
 	@RequiredScope({})
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/info", method = RequestMethod.GET)

@@ -75,7 +75,8 @@ public enum IdType {
 	WEBHOOK_ID(null),
 	WEBHOOK_VERIFICATION_ID(null),
 	WEBHOOK_ALLOWED_DOMAIN_ID(1000L),
-	AGENT_SESSION_ID(null)
+	AGENT_SESSION_ID(null),
+	TOS_REQUIREMENT_ID(null)
 	;
 	
 	Long startingId;

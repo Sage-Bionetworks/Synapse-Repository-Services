@@ -12,6 +12,7 @@ import org.json.simple.parser.ParseException;
 import org.sagebionetworks.simpleHttpClient.*;
 import org.sagebionetworks.util.url.HttpMethod;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -23,6 +24,7 @@ import java.util.Map;
 /**
  * Mini JIRA REST client
  */
+@Service
 public class JiraClientImpl implements JiraClient {
 	private static final String JIRA_URL = "https://sagebionetworks.jira.com";
 	private static final String CONTENT_TYPE_APPLICATION_JSON = "application/json";
