@@ -120,7 +120,7 @@ public class TrashServiceImplAutowiredTest {
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
 
 		// Before we can create file entities, we must agree to terms of use.
-		authManager.setTermsOfUseAcceptance(createdUserId, true);
+		authManager.signTermsOfUser(createdUserId);
 
 		return createdUserId;
 	}

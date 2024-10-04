@@ -1,0 +1,17 @@
+{
+	"description": "Information about the current Synapse Terms of Service (ToS).",
+	"properties": {
+		"termsOfServiceUrl": {
+			"type": "string",
+			"description": "The URL that can be used to fetch the latest ToS using an HTTPS GET."
+		},
+		"latestTermsOfServiceVersion": {
+			"type": "string",
+			"description": "The semantic version of the latest ToS in the provided URL.  Callers will need to provide this version when submitting a request to agree to shown ToS."
+		},
+		"currentRequirements": {
+			"$ref": "org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements",
+			"description": "Information about the global ToS Synapse requirements that all users must agree to."
+		}
+	}
+}

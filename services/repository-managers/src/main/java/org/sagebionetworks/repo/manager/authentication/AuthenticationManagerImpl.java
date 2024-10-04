@@ -205,11 +205,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@WriteTransaction
-	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
-		if (acceptance == null) {
-			throw new IllegalArgumentException("Cannot \"unsign\" the terms of use");
-		}
-		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
+	public void signTermsOfUser(Long principalId) {
+		authDAO.setTermsOfUseAcceptance(principalId, true);
 	}
 
 	@Override
@@ -407,5 +404,4 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		return principalAlias.getPrincipalId();
 	}
-
 }

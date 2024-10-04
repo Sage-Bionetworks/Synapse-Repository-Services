@@ -859,17 +859,17 @@ public interface StackConfiguration {
 	String getOtpSecretsPassword();
 
 	/**
-	 * Credentials for signing CloudFront URLs
+	 * @return Credentials for signing CloudFront URLs
 	 */
-	public String getCloudFrontPrivateKey();
+	String getCloudFrontPrivateKey();
 
 	/**
-	 * The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
+	 * @return The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
-	public String getCloudFrontKeyPairId();
+	String getCloudFrontKeyPairId();
 
 	/**
-	 * The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
+	 * @return The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
-	public String getCloudFrontDomainName();
+	String getCloudFrontDomainName();
 }

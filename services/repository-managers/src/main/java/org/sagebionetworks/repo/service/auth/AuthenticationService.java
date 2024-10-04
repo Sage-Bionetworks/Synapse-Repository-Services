@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.service.auth;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -10,6 +9,8 @@ import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -39,7 +40,7 @@ public interface AuthenticationService {
 	/**
 	 * Identifies a user via access token and signs that user's terms of use
 	 */
-	void signTermsOfUse(AccessToken accessToken) throws NotFoundException;
+	void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -209,5 +210,7 @@ public interface AuthenticationService {
 	 * @param userId
 	 */
 	void revokeAllSessionAccessTokens(Long userId, Long targetUserId);
+
+	TermsOfServiceInfo getTermsOfUseInfo();
 
 }

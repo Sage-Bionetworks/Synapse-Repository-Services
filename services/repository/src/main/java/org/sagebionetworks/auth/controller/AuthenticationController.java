@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import org.sagebionetworks.auth.DeprecatedUtils;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -19,6 +18,8 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -206,10 +207,16 @@ public class AuthenticationController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2, method = RequestMethod.POST)
-	public void signTermsOfUse(
-			@RequestBody AccessToken accessToken)
+	public void signTermsOfUse(@RequestBody TermsOfServiceSignRequest signRequest)
 			throws NotFoundException {
-		authenticationService.signTermsOfUse(accessToken);
+		authenticationService.signTermsOfUse(signRequest);
+	}
+	
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/info", method = RequestMethod.GET)
+	public @ResponseBody TermsOfServiceInfo getTermsOfServiceInfo() {
+		return authenticationService.getTermsOfUseInfo();
 	}
 
 	/**

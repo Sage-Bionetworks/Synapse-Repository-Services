@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
@@ -48,7 +49,7 @@ public interface AuthenticationManager {
 	/**
 	 * Sets whether the user has accepted or rejected the terms of use
 	 */
-	void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
+	void signTermsOfUser(Long principalId);
 
 	/**
 	 * Get the date/time the user was last logged in
@@ -98,4 +99,5 @@ public interface AuthenticationManager {
 	 * @param request
 	 */
 	void disable2FaWithToken(TwoFactorAuthDisableRequest request);
+
 }

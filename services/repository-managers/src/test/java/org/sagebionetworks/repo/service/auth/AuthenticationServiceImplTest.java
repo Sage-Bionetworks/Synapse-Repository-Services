@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.authentication.TermsOfServiceManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
@@ -32,13 +33,14 @@ import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -47,7 +49,6 @@ import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthValidationRequest;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.service.auth.AuthenticationServiceImpl;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,6 +59,8 @@ public class AuthenticationServiceImplTest {
 	private UserManager mockUserManager;
 	@Mock
 	private AuthenticationManager mockAuthenticationManager;
+	@Mock
+	private TermsOfServiceManager mockTosManager;
 	@Mock
 	private MessageManager mockMessageManager;
 	@Mock
@@ -121,15 +124,24 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testSignTermsOfUse() {
-		AccessToken accessToken = new AccessToken();
-		accessToken.setAccessToken(ACCESS_TOKEN);
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest();
+		request.setAccessToken(ACCESS_TOKEN);
 		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
 		
 		// method under test
-		service.signTermsOfUse(accessToken);
+		service.signTermsOfUse(request);
 		
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
-		verify(mockAuthenticationManager).setTermsOfUseAcceptance(userId, true);
+		verify(mockAuthenticationManager).signTermsOfUser(userId);
+	}
+	
+	@Test
+	public void testGetTermsOfUseInfo() {
+		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
+		
+		when(mockTosManager.getTermsOfUseInfo()).thenReturn(tosInfo);
+		
+		assertEquals(tosInfo, service.getTermsOfUseInfo());
 	}
 	
 	@Test

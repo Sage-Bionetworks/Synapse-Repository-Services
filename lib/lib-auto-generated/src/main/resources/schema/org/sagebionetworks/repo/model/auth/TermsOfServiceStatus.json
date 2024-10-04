@@ -1,0 +1,18 @@
+{
+	"description": "The status of a user's ToS agreement",
+	"properties": {
+		"userId": {
+			"type": "string",
+			"description": "The ID of the user."
+		},
+		"lastAgreementDate": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time when the user last agreed to the ToS. Will be null if the user has never agreed to the ToS."
+		},
+		"lastAgreementVersion": {
+			"type": "string",
+			"description": "The version of ToS that the user last agreed to.  Will be null if the user has never agreed to the ToS."
+		}
+	}
+}

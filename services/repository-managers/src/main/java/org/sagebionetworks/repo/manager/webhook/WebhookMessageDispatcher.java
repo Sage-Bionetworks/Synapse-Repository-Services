@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.webhook.WebhookVerificationStatus;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -78,7 +79,7 @@ public class WebhookMessageDispatcher {
 	private String userAgent;
 	private String tokenIssuer;
 
-	public WebhookMessageDispatcher(WebhookManager manager, OIDCTokenManager tokenManager, WebhookMetricsCollector metricsCollector, HttpClient webhookHttpClient, Clock clock) {
+	public WebhookMessageDispatcher(WebhookManager manager, OIDCTokenManager tokenManager, WebhookMetricsCollector metricsCollector, @Qualifier("webhookHttpClient") HttpClient webhookHttpClient, Clock clock) {
 		this.manager = manager;
 		this.tokenManager = tokenManager;
 		this.metricsCollector = metricsCollector;
