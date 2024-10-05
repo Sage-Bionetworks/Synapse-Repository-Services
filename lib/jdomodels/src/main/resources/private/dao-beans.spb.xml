@@ -182,7 +182,7 @@
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.auth.DBOAuthenticationDAOImpl"
 		depends-on="userGroupDAO"
-		init-method="bootstrapCredentials" />
+		init-method="bootstrap" />
 
 	<bean id="aclDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
