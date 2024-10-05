@@ -114,7 +114,6 @@ import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -125,6 +124,8 @@ import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -4532,10 +4533,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void signTermsOfUse(String accessToken) throws SynapseException {
-		AccessToken accessTokenWrapper = new AccessToken();
-		accessTokenWrapper.setAccessToken(accessToken);
-		voidPost(getAuthEndpoint(), TERMS_OF_USE_V2, accessTokenWrapper, null);
-		
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest();
+		request.setAccessToken(accessToken);
+		voidPost(getAuthEndpoint(), TERMS_OF_USE_V2, request, null);
+	}
+	
+	@Override
+	public TermsOfServiceInfo getTermsOfServiceInfo() throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), TERMS_OF_USE_V2 + "/info", TermsOfServiceInfo.class);
 	}
 	
 	/*

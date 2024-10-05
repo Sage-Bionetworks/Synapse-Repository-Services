@@ -1,8 +1,14 @@
 package org.sagebionetworks.client;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwt;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
+
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
@@ -91,6 +97,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -323,14 +330,9 @@ import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.List;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwt;
 
 
 /**
@@ -1933,7 +1935,15 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token
 	 */
-	public void signTermsOfUse(String accessToken) throws SynapseException;
+	void signTermsOfUse(String accessToken) throws SynapseException;
+	
+	/**
+	 * 
+	 * @return The information about the current terms of service requirements
+	 * 
+	 * @throws SynapseException
+	 */
+	TermsOfServiceInfo getTermsOfServiceInfo() throws SynapseException;
 
 	/**
 	 * The first step in OAuth authentication involves sending the user to

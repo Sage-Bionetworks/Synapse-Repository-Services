@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -69,6 +71,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		authDAO.clearTermsOfServiceRequirements();
 		groupsToDelete = new ArrayList<String>();
 		
 		// Initialize a UserGroup
@@ -104,6 +107,7 @@ public class DBOAuthenticationDAOImplTest {
 		for (String toDelete: groupsToDelete) {
 			userGroupDAO.delete(toDelete);
 		}
+		authDAO.clearTermsOfServiceRequirements();
 	}
 	
 	@Test
@@ -305,6 +309,29 @@ public class DBOAuthenticationDAOImplTest {
 		Map<Long, Boolean> result = authDAO.getTwoFactorAuthStateMap(Set.of(-123L, userId));
 		
 		assertEquals(expected, result);
+	}
+		
+	@Test
+	public void testGetAndSetTermsOfServiceRequirements() {
+		assertEquals(Optional.empty(), authDAO.getCurrentTermsOfServiceRequirements());
+		
+		TermsOfServiceRequirements expected = new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("1.0.0")
+			.setRequirementDate(Date.from(Instant.now()));
+		
+		assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+		
+		assertEquals(Optional.of(expected), authDAO.getCurrentTermsOfServiceRequirements());
+		
+		assertEquals("A TOS requirement with the 1.0.0 minimum version already exists.", assertThrows(IllegalArgumentException.class, () -> {			
+			assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+		}).getMessage());
+		
+		expected.setMinimumTermsOfServiceVersion("2.0.0");
+		
+		assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+		
+		assertEquals(Optional.of(expected), authDAO.getCurrentTermsOfServiceRequirements());
 	}
 
 }

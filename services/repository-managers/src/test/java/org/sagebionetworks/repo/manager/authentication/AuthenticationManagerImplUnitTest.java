@@ -152,14 +152,6 @@ public class AuthenticationManagerImplUnitTest {
 	}
 
 	@Test
-	public void testUnseeTermsOfUse() throws Exception {
-		Assertions.assertThrows(IllegalArgumentException.class, () -> {
-			authManager.setTermsOfUseAcceptance(userId, null);
-			}
-		);
-	}
-
-	@Test
 	public void testSetPasswordWithInvalidPassword() {
 		String bannedPassword = "password123";
 		doThrow(InvalidPasswordException.class).when(mockPassswordValidator).validatePassword(bannedPassword);

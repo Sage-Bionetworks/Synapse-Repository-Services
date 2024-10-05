@@ -802,7 +802,16 @@ public class SqlConstants {
 	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
-	public static final String DDL_TERMS_OF_USE_AGREEMENT				= "schema/TermsOfUseAgreement-ddl.sql";
+	public static final String DDL_TERMS_OF_USE_AGREEMENT				= "schema/tos/TermsOfUseAgreement-ddl.sql";
+	
+	// Terms of service requirements
+	public static final String TABLE_TOS_REQUIREMENTS      				= "TERMS_OF_SERVICE_REQUIREMENT";
+	public static final String COL_TOS_REQUIREMENTS_ID			   		= "ID";
+	public static final String COL_TOS_REQUIREMENTS_CREATED_ON   		= "CREATED_ON";
+	public static final String COL_TOS_REQUIREMENTS_CREATED_BY   		= "CREATED_BY";
+	public static final String COL_TOS_REQUIREMENTS_MIN_VERSION   		= "MIN_VERSION";
+	public static final String COL_TOS_REQUIREMENTS_ENFORCED_ON      	= "ENFORCED_ON";
+	public static final String DDL_TABLE_TOS_REQUIREMENTS				= "schema/tos/TermsOfServiceRequirements-ddl.sql";
 	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
+import org.sagebionetworks.repo.manager.authentication.TermsOfServiceManager;
 import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
@@ -17,7 +18,6 @@ import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -79,6 +81,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Autowired
 	private TwoFactorAuthManager twoFaManager;
 	
+	@Autowired
+	private TermsOfServiceManager tosManager;
+	
 	@WriteTransaction
 	@Override
 	public void changePassword(ChangePasswordInterface request) throws NotFoundException {
@@ -88,14 +93,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(AccessToken accessToken) throws NotFoundException {
-		ValidateArgument.required(accessToken, "Access token");
-		ValidateArgument.required(accessToken.getAccessToken(), "Access token contents");
+	public void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException {
+		ValidateArgument.required(signRequest, "The request");
+		ValidateArgument.required(signRequest.getAccessToken(), "Access token contents");
 		
-		Long principalId = Long.parseLong(oidcManager.validateAccessToken(accessToken.getAccessToken()));
+		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()));
 		
 		// Save the state of acceptance
-		authManager.setTermsOfUseAcceptance(principalId, true);
+		authManager.signTermsOfUser(principalId);
+	}
+	
+	@Override
+	public TermsOfServiceInfo getTermsOfUseInfo() {
+		return tosManager.getTermsOfUseInfo();
 	}
 	
 	@Override

@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssoc
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,7 @@ import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -278,6 +280,15 @@ public class ManagerConfiguration {
 	@Bean
 	public ExecutorService cachedThreadPool() {
 		return Executors.newCachedThreadPool();
+	}
+	
+	@Bean
+	@Primary
+	public HttpClient defaultHttpClient() {
+		return HttpClient.newBuilder()
+				.connectTimeout(Duration.of(5, ChronoUnit.SECONDS))
+				.followRedirects(Redirect.NORMAL)
+				.build();
 	}
 
 	@Bean

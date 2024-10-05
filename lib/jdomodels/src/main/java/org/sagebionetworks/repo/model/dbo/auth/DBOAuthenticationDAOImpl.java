@@ -18,6 +18,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDEN
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TWO_FA_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_MIN_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY;
 
 import java.sql.ResultSet;
 import java.util.Collections;
@@ -30,10 +36,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
@@ -46,6 +55,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -59,6 +69,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDAO;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	public static final String SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID = 
 			"SELECT "+COL_AUTHENTICATED_ON_AUTHENTICATED_ON+
@@ -206,6 +219,51 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		agreement.setPrincipalId(principalId);
 		agreement.setAgreesToTermsOfUse(acceptance);
 		basicDAO.createOrUpdate(agreement);
+	}
+	
+	@Override
+	@WriteTransaction
+	public TermsOfServiceRequirements setCurrentTermsOfServiceRequirements(long principalId, String minVersion, Date enforceOn) {
+		String sql = "INSERT INTO " + TABLE_TOS_REQUIREMENTS + "("
+			+ COL_TOS_REQUIREMENTS_ID + ", "
+			+ COL_TOS_REQUIREMENTS_CREATED_ON + ", "
+			+ COL_TOS_REQUIREMENTS_CREATED_BY + ", "
+			+ COL_TOS_REQUIREMENTS_MIN_VERSION + ", "
+			+ COL_TOS_REQUIREMENTS_ENFORCED_ON + ")" 
+			+ " VALUES (?, NOW(), ?, ?, ?)";
+		
+		Long id = idGenerator.generateNewId(IdType.TOS_REQUIREMENT_ID);
+		
+		try {
+			jdbcTemplate.update(sql, id, principalId, minVersion, enforceOn);
+		} catch (DuplicateKeyException e) {
+			if (e.getMessage().contains("TOS_REQUIREMENTS_MIN_VERSION")) {
+				throw new IllegalArgumentException("A TOS requirement with the " + minVersion + " minimum version already exists.");
+			}
+			throw e;
+		}
+		
+		return getCurrentTermsOfServiceRequirements().orElseThrow();
+	}
+	
+	@Override
+	public Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements() {
+		String sql = "SELECT " 
+			+ COL_TOS_REQUIREMENTS_MIN_VERSION+ " , " 
+			+ COL_TOS_REQUIREMENTS_ENFORCED_ON
+			+ " FROM " + TABLE_TOS_REQUIREMENTS 
+			+ " ORDER BY " + COL_TOS_REQUIREMENTS_ID + " DESC"
+			+ " LIMIT 1";
+		
+		return jdbcTemplate.query(sql, (rs, i) -> new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion(rs.getString(COL_TOS_REQUIREMENTS_MIN_VERSION))
+			.setRequirementDate(rs.getTimestamp(COL_TOS_REQUIREMENTS_ENFORCED_ON))
+		).stream().findFirst();
+	}
+	
+	@Override
+	public void clearTermsOfServiceRequirements() {
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_REQUIREMENTS);
 	}
 	
 	@Override

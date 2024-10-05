@@ -192,6 +192,7 @@
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
 		<url-pattern>/docker/v1/*</url-pattern>
+		<url-pattern>/ga4gh/drs/v1/*</url-pattern>
 	</filter-mapping>
 
 	<filter>

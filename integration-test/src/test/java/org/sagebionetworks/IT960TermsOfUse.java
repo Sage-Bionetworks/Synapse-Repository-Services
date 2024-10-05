@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,6 +24,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 
 @ExtendWith(ITTestExtension.class)
@@ -117,5 +121,16 @@ public class IT960TermsOfUse {
 		assertThrows(SynapseForbiddenException.class, () -> rejectTOUsynapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
 	}
 	
-
+	@Test
+	public void testGetTermsOfServiceInfo() throws SynapseException {
+		TermsOfServiceInfo tosInfo = synapse.getTermsOfServiceInfo();
+		
+		assertNotNull(tosInfo.getLatestTermsOfServiceVersion());
+		assertEquals(String.format("https://raw.githubusercontent.com/Sage-Bionetworks/Sage-Governance-Documents/refs/tags/%s/Terms.md", tosInfo.getLatestTermsOfServiceVersion()), tosInfo.getTermsOfServiceUrl());
+		
+		assertNotNull(tosInfo.getCurrentRequirements().getMinimumTermsOfServiceVersion());
+		assertNotNull(tosInfo.getCurrentRequirements().getRequirementDate());
+		
+	}
+ 
 }

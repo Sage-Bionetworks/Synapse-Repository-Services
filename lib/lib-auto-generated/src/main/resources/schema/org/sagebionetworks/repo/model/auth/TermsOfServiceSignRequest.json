@@ -1,0 +1,13 @@
+{
+	"description": "Request to agree to the terms of service.",
+	"properties": {
+		"accessToken": {
+			"type": "string",
+			"description": "An access token of the user that is agreeing to the ToS."
+		},
+		"termsOfServiceVersion": {
+			"type": "string",
+			"description": "The semantic version of the ToS that the user read and agreed to.  If a client does not provide this value, then a default value of '0.0.0' will be used indicating that the original (and deprecated) ToS was used."
+		}
+	}
+}

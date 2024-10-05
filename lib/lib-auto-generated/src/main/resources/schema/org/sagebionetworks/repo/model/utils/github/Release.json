@@ -1,0 +1,20 @@
+{
+	"title": "Release",
+	"description": "A Github repository release.",
+	"properties": {
+		"id": {
+	      "type": "integer"
+	    },
+		"name": {
+	      "type": "string"
+	    },
+		"url": {
+	      "type": "string",
+	      "format": "uri"
+	    },
+		"tag_name": {
+	      "description": "The name of the tag.",
+	      "type": "string"
+	    }
+	}
+}

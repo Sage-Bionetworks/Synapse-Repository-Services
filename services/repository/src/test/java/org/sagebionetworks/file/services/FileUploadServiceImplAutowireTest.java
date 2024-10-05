@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.auth.AccessToken;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
@@ -269,7 +268,7 @@ public class FileUploadServiceImplAutowireTest {
 		projectSettingsService.createProjectSetting(userId, externalS3ProjectSetting);
 
 		// Before we can create file entities, we must agree to terms of use.
-		authManager.setTermsOfUseAcceptance(userId, true);
+		authManager.signTermsOfUser(userId);
 
 		// Create file entities for each file handle.
 		FileEntity synapseFileEntity = new FileEntity();
@@ -326,7 +325,7 @@ public class FileUploadServiceImplAutowireTest {
 		fileHandlesToDelete.add(fileHandle);
 
 		// Before we can create file entities, we must agree to terms of use.
-		authManager.setTermsOfUseAcceptance(userId, true);
+		authManager.signTermsOfUser(userId);
 
 		// Make a FileEntity out of that FileHandle in Folder A.
 		FileEntity fileEntity = new FileEntity();

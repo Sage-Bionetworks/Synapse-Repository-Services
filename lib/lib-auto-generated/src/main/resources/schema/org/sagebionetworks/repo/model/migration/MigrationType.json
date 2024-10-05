@@ -459,6 +459,10 @@
 			"description": "Table that stores user's agent sessions"
 		},
 		{
+			"name": "TOS_REQUIREMENTS",
+			"description": "Table that the TOS requirements"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

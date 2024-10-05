@@ -115,7 +115,7 @@ public class StsManagerImplAutowiredTest {
 		userInfo.setAcceptsTermsOfUse(true);
 
 		// User must agree to terms of use to get download privileges (and hence access the STS API).
-		authManager.setTermsOfUseAcceptance(userInfo.getId(), true);
+		authManager.signTermsOfUser(userInfo.getId());
 
 		// Create a test project which we will need.
 		Project project = new Project();

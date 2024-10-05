@@ -1841,7 +1841,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		long userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, true);
+		authenticationManager.signTermsOfUser(userId);
 		UserInfo owner = userManager.getUserInfo(userId);
 		users.add(owner);
 
@@ -1850,7 +1850,7 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.setTermsOfUseAcceptance(userId, true);
+		authenticationManager.signTermsOfUser(userId);
 		UserInfo notOwner = userManager.getUserInfo(userId);
 		users.add(notOwner);
 
