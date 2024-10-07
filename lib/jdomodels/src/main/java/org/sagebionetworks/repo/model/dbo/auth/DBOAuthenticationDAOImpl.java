@@ -10,20 +10,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_MIN_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TWO_FA_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_MIN_VERSION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY;
 
 import java.sql.ResultSet;
 import java.util.Collections;
@@ -60,7 +60,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
-
+	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
@@ -255,15 +255,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			+ " ORDER BY " + COL_TOS_REQUIREMENTS_ID + " DESC"
 			+ " LIMIT 1";
 		
-		return jdbcTemplate.query(sql, (rs, i) -> new TermsOfServiceRequirements()
-			.setMinimumTermsOfServiceVersion(rs.getString(COL_TOS_REQUIREMENTS_MIN_VERSION))
-			.setRequirementDate(rs.getTimestamp(COL_TOS_REQUIREMENTS_ENFORCED_ON))
-		).stream().findFirst();
+		return jdbcTemplate
+				.query(sql, (rs, i) -> new TermsOfServiceRequirements()
+					.setMinimumTermsOfServiceVersion(rs.getString(COL_TOS_REQUIREMENTS_MIN_VERSION))
+					.setRequirementDate(rs.getTimestamp(COL_TOS_REQUIREMENTS_ENFORCED_ON)))
+				.stream().findFirst();
 	}
 	
 	@Override
 	public void clearTermsOfServiceRequirements() {
-		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_REQUIREMENTS);
+		jdbcTemplate.update("DELETE FROM " + TABLE_TOS_REQUIREMENTS + " WHERE " + COL_TOS_REQUIREMENTS_MIN_VERSION + "<> ?", DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion());
 	}
 	
 	@Override
@@ -326,7 +327,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@WriteTransaction
-	public void bootstrapCredentials() throws NotFoundException {
+	public void bootstrap() throws NotFoundException {
 		if(this.userGroupDAO.getBootstrapPrincipals() == null) throw new IllegalStateException("bootstrapPrincipals must be initialized");
 		for (BootstrapPrincipal abs : this.userGroupDAO.getBootstrapPrincipals()) {
 			if (abs instanceof BootstrapGroup) {
@@ -348,6 +349,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		// The migration admin should only be used in specific, non-development stacks
 		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		changeSecretKey(migrationAdminId, StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
+		
+		// Makes sure we have the default TOS requirements
+		if (getCurrentTermsOfServiceRequirements().isEmpty()) {
+			setCurrentTermsOfServiceRequirements(migrationAdminId, DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion(), DEFAULT_TOS_REQUIREMENTS.getRequirementDate());
+		}
 	}
 
 }

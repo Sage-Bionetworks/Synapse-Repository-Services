@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.auth;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
@@ -12,6 +13,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *   presumably created by the UserGroupDAO
  */
 public interface AuthenticationDAO {
+	
+	TermsOfServiceRequirements DEFAULT_TOS_REQUIREMENTS = new TermsOfServiceRequirements()
+		.setMinimumTermsOfServiceVersion("0.0.0")
+		.setRequirementDate(Date.from(Instant.parse("2011-01-01T00:00:00.000Z")));
 	
 	/**
 	 * Creates a row in the Credentials table for the given principal
@@ -133,6 +138,6 @@ public interface AuthenticationDAO {
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate
 	 */
-	void bootstrapCredentials() throws NotFoundException;
+	void bootstrap() throws NotFoundException;
 
 }

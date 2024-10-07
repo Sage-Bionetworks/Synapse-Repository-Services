@@ -1,23 +1,26 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.atMost;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Instant;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
@@ -34,6 +37,8 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 @ExtendWith(MockitoExtension.class)
 public class TermsOfServiceManagerTest {
 	
+	private static String INITIAL_LATEST_VERSION = "0.0.0";
+	
 	@Mock
 	private AuthenticationDAO mockAuthDao;
 	
@@ -47,16 +52,26 @@ public class TermsOfServiceManagerTest {
 	private TermsOfServiceManager manager;
 	
 	@Mock
-	private Release mockRelease;
-	
-	@Mock
 	private TermsOfServiceRequirements mockRequirements;
+	
+	private Release release;
+	
+	@BeforeEach
+	public void beforeEach() {
+		release = new Release()
+			.setId(123L)
+			.setName("Latest Release")
+			.setTag_name(INITIAL_LATEST_VERSION);
+	}
 	
 	@Test
 	public void testGetTermsOfUseInfo() {
+		
+		var managerSpy = Mockito.spy(manager);
+		
+		doReturn("2.0.0").when(managerSpy).getLatestVersion();
+		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.of(mockRequirements));
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("2.0.0");
 		
 		TermsOfServiceInfo expected = new TermsOfServiceInfo()
 			.setLatestTermsOfServiceVersion("2.0.0")
@@ -64,34 +79,30 @@ public class TermsOfServiceManagerTest {
 			.setCurrentRequirements(mockRequirements);
 		
 		// Call under test
-		assertEquals(expected, manager.getTermsOfUseInfo());
+		assertEquals(expected, managerSpy.getTermsOfUseInfo());
 	}
 	
 	@Test
 	public void testGetTermsOfUseInfoWithNoData() {
+		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.empty());
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("2.0.0");
 		
-		TermsOfServiceInfo expected = new TermsOfServiceInfo()
-			.setLatestTermsOfServiceVersion("2.0.0")
-			.setTermsOfServiceUrl("https://raw.githubusercontent.com/Sage-Bionetworks/Sage-Governance-Documents/refs/tags/2.0.0/Terms.md")
-			.setCurrentRequirements(new TermsOfServiceRequirements()
-				.setMinimumTermsOfServiceVersion("0.0.0")
-				.setRequirementDate(Date.from(Instant.parse("2011-01-01T00:00:00.000Z")))
-			);
-		
-		// Call under test
-		assertEquals(expected, manager.getTermsOfUseInfo());
+		assertEquals("Terms of Service requirements not initialized.", assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			manager.getTermsOfUseInfo();
+		}).getMessage());
 	}
 	
 	@Test
 	public void testInitialize() {
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("2.0.0");
 		
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(release);
+				
 		// Call under test
 		manager.initialize();
+		
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
+		
 	}
 	
 	@Test
@@ -104,26 +115,29 @@ public class TermsOfServiceManagerTest {
 			// Call under test
 			manager.initialize();
 		}).getCause());
+		
+		assertNull(manager.getLatestVersionFallback());
 	}
 	
 	@Test
 	public void testGetLatestVersion() {
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("2.0.0");
+		
+		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
 		
 		// Call under test
-		assertEquals("2.0.0", manager.getLatestVersion());
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
 		
 		// Calling a second time fetches it from the cache
-		assertEquals("2.0.0", manager.getLatestVersion());
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
 		
-		verify(mockGithubClient, atMost(1)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
+		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
 		
-		// Clear the cache content by moving the time ahead
-		when(mockClock.nanoTime()).thenReturn(System.nanoTime());
+		expireVersionCache();
+		
+		release.setTag_name("3.0.0");
 		
 		// Now the call refreshes the cache
-		assertEquals("2.0.0", manager.getLatestVersion());
+		assertEquals("3.0.0", manager.getLatestVersion());
 		
 		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
 	}
@@ -141,19 +155,16 @@ public class TermsOfServiceManagerTest {
 	@ParameterizedTest
 	@MethodSource("getLatestVersionExceptions")
 	public void testGetLatestVersionWithExceptionAfterInitialize(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("1.0.0");
+		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
 		
-		// This is invoked by spring after construction
 		manager.initialize();
 		
-		// Clear the cache
-		when(mockClock.nanoTime()).thenReturn(System.nanoTime());
+		expireVersionCache();
 		
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenThrow(ex);
+		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
 		
 		// Call under test
-		assertEquals("1.0.0", manager.getLatestVersion());
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
 		
 		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
 	}
@@ -161,43 +172,58 @@ public class TermsOfServiceManagerTest {
 	@ParameterizedTest
 	@MethodSource("getLatestVersionExceptions")
 	public void testGetLatestVersionWithExceptionAfterSuccess(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
-		when(mockRelease.getTag_name()).thenReturn("2.0.0");
+		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
 		
-		assertEquals("2.0.0", manager.getLatestVersion());
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
 		
-		// Clear the cache
-		when(mockClock.nanoTime()).thenReturn(System.nanoTime());
+		expireVersionCache();
 		
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenThrow(ex);
+		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
 		
-		// Call under test, get the "default" version
-		assertEquals("2.0.0", manager.getLatestVersion());
+		// Call under test, get the latest recorded version
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
+		
+		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
 	}
 	
 	@Test
 	public void testFetchReleaseWithLatest() {
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(mockRelease);
+		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
 		
 		// Call under test
-		assertEquals(mockRelease, manager.fetchRelease("latest"));
+		assertEquals(release, manager.fetchRelease("latest"));
+		
+		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
+		
+		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
 	}
 	
 	@Test
 	public void testFetchReleaseWithTag() {
-		when(mockGithubClient.getReleaseByTag(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO, "1.0.0")).thenReturn(mockRelease);
+		when(mockGithubClient.getReleaseByTag(any(), any(), any())).thenReturn(release);
 		
 		// Call under test
-		assertEquals(mockRelease, manager.fetchRelease("1.0.0"));
+		assertEquals(release, manager.fetchRelease("1.0.0"));
+		
+		assertNull(manager.getLatestVersionFallback());
+		
+		verify(mockGithubClient).getReleaseByTag(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO, "1.0.0");
 	}
 	
 	@Test
-	public void testFetchReleaseWithNonSemanticVersion() {
-		
+	public void testFetchReleaseWithTagAndNonSemanticVersion() {		
 		assertEquals("Expected a semantic version, was: 1.0", assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			manager.fetchRelease("1.0");
 		}).getMessage());
+		
+		assertNull(manager.getLatestVersionFallback());
+		
+		verifyZeroInteractions(mockGithubClient);
 	}
 
+	private void expireVersionCache() {
+		// By default the mock of nanoTime() returns 0, moving the clock forward to the expiration plus 1 second effectively invalidates the cache 
+		when(mockClock.nanoTime()).thenReturn(TermsOfServiceManager.VERSION_CACHE_EXPIRATION.plusSeconds(1).toNanos());
+	}
 }

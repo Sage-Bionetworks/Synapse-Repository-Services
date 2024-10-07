@@ -109,7 +109,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		userGroupDAO.bootstrapUsers();
 		userProfileDAO.bootstrapProfiles();
 		groupMembersDAO.bootstrapGroups();
-		authDAO.bootstrapCredentials();
+		authDAO.bootstrap();
 		accessRequirementDao.bootstrap();
 		
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
