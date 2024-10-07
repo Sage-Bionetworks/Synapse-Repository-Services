@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 
 import javax.annotation.PostConstruct;
 
@@ -11,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
-import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.utils.github.Release;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
 import org.sagebionetworks.repo.util.github.GithubApiException;
@@ -31,14 +27,10 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 public class TermsOfServiceManager {
 	
 	private static final Logger LOGGER = LogManager.getLogger(TermsOfServiceManager.class);	
-	
-	private static final TermsOfServiceRequirements DEFAULT_REQUIRMENTS = new TermsOfServiceRequirements()
-		.setMinimumTermsOfServiceVersion("0.0.0")
-		.setRequirementDate(Date.from(Instant.parse("2011-01-01T00:00:00.000Z")));
 
 	private static final String VERSION_LATEST = "latest";
 	
-	private static final Duration VERSION_CACHE_EXPIRATION = Duration.of(10, ChronoUnit.MINUTES);
+	static final Duration VERSION_CACHE_EXPIRATION = Duration.ofHours(24);
 	
 	static final String ORG = "Sage-Bionetworks";
 	static final String REPO = "Sage-Governance-Documents";
@@ -51,7 +43,7 @@ public class TermsOfServiceManager {
 	
 	private LoadingCache<String, Release> versionCache;
 	
-	private String latestVersionFallback;
+	private volatile String latestVersionFallback;
 	
 	public TermsOfServiceManager(AuthenticationDAO authDao, GithubApiClient githubClient, Clock clock) {
 		this.authDao = authDao;
@@ -70,9 +62,8 @@ public class TermsOfServiceManager {
 	
 	@PostConstruct
 	public void initialize() {
-		// We load some version when we start so there is always a known latest version
-		// let the exception go through so the server does not start if this fails
-		latestVersionFallback = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
+		// We pre-load the latest version letting the exceptions go through so the server does not start if this fails
+		versionCache.getUnchecked(VERSION_LATEST);
 	}
 
 	/**
@@ -80,12 +71,14 @@ public class TermsOfServiceManager {
 	 */
 	public TermsOfServiceInfo getTermsOfUseInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
+		
+		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements()
+				.orElseThrow(() -> new IllegalStateException("Terms of Service requirements not initialized.")));
 
 		String latestVersion = getLatestVersion();
 		
 		tosInfo.setLatestTermsOfServiceVersion(latestVersion);
 		tosInfo.setTermsOfServiceUrl(String.format(TOS_URL_FORMAT, latestVersion));
-		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements().orElse(DEFAULT_REQUIRMENTS));
 		 
 		return tosInfo;
 	}
@@ -95,17 +88,16 @@ public class TermsOfServiceManager {
 		
 		try {
 			latestVersion = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
-			// Make sure to update the fallback version
-			latestVersionFallback = latestVersion;
 		} catch (UncheckedExecutionException | ExecutionError e ) {
 			// We do not want an issue with github to bring down synapse, fallback on the latest known version
 			LOGGER.error("Could not fetch latest version, will fallback to version {}: ", latestVersionFallback, e);
 			if (e.getCause() instanceof GithubApiException) {
 				GithubApiException githubApiEx = (GithubApiException) e.getCause();
 				if (githubApiEx.getResponseBody() != null || githubApiEx.getStatus() != null) {
-					LOGGER.error("Reponse from github was: {} (status: {})", githubApiEx.getResponseBody(), githubApiEx.getStatus());	
+					LOGGER.error("Response from github was: {} (status: {})", githubApiEx.getResponseBody(), githubApiEx.getStatus());	
 				}
 			}
+			// We fallback on the known latest fallback version
 			latestVersion = latestVersionFallback;
 		}
 		
@@ -119,6 +111,8 @@ public class TermsOfServiceManager {
 		
 		if (VERSION_LATEST.equals(tag)) {
 			release = githubClient.getLatestRelease(ORG, REPO);
+			// Makes sure to update the latest version fallback each time we fetch a new value
+			latestVersionFallback = release.getTag_name();
 		} else {
 			try {
 				new SchemaIdParser(tag).semanticVersion();
@@ -134,5 +128,7 @@ public class TermsOfServiceManager {
 		return release;
 	}
 	
-		
+	String getLatestVersionFallback() {
+		return latestVersionFallback;
+	}
 }

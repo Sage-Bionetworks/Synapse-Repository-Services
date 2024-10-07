@@ -313,25 +313,25 @@ public class DBOAuthenticationDAOImplTest {
 		
 	@Test
 	public void testGetAndSetTermsOfServiceRequirements() {
-		assertEquals(Optional.empty(), authDAO.getCurrentTermsOfServiceRequirements());
+		assertEquals(Optional.of(AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS), authDAO.getCurrentTermsOfServiceRequirements());
 		
-		TermsOfServiceRequirements expected = new TermsOfServiceRequirements()
+		TermsOfServiceRequirements nextVersion = new TermsOfServiceRequirements()
 			.setMinimumTermsOfServiceVersion("1.0.0")
 			.setRequirementDate(Date.from(Instant.now()));
 		
-		assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
-		assertEquals(Optional.of(expected), authDAO.getCurrentTermsOfServiceRequirements());
+		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
 		
 		assertEquals("A TOS requirement with the 1.0.0 minimum version already exists.", assertThrows(IllegalArgumentException.class, () -> {			
-			assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+			assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		}).getMessage());
 		
-		expected.setMinimumTermsOfServiceVersion("2.0.0");
+		nextVersion.setMinimumTermsOfServiceVersion("2.0.0");
 		
-		assertEquals(expected, authDAO.setCurrentTermsOfServiceRequirements(userId, expected.getMinimumTermsOfServiceVersion(), expected.getRequirementDate()));
+		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
-		assertEquals(Optional.of(expected), authDAO.getCurrentTermsOfServiceRequirements());
+		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
 	}
 
 }
