@@ -10,6 +10,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON;
@@ -21,6 +25,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TWO_FA_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
@@ -39,15 +44,14 @@ import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -192,33 +196,43 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
-		Boolean acceptance;
+	@WriteTransaction
+	public TermsOfServiceAgreement addTermsOfServiceAgreement(long principalId, String version, Date agreedOn) {
+		String sql = "INSERT INTO " + TABLE_TOS_AGREEMENT + "("
+			+ COL_TOS_AGREEMENT_ID + ", "
+			+ COL_TOS_AGREEMENT_CREATED_ON + ", "
+			+ COL_TOS_AGREEMENT_CREATED_BY + ", "
+			+ COL_TOS_AGREEMENT_VERSION + ")" 
+			+ " VALUES (?, ?, ?, ?)";
+		
+		Long id = idGenerator.generateNewId(IdType.TOS_AGREEMENT_ID);
+
 		try {
-			acceptance = jdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, principalId);
-		} catch (EmptyResultDataAccessException e) {
-			// It's possible now that there is no record. That shouldn't be an
-			// exception, that's a "false, not accepted".
-			return false;
+			jdbcTemplate.update(sql, id, agreedOn, principalId, version);
+		} catch (DuplicateKeyException e) {
+			if (e.getMessage().contains("TOS_AGREEMENT_ID_VERSION")) {
+				throw new IllegalArgumentException("The user already agreed to version " + version + " of the terms of service.");
+			}
+			throw e;
 		}
-		if (acceptance == null) {
-			return false;
-		}
-		return acceptance;
+		
+		return getLatestTermsOfServiceAgreement(principalId).orElseThrow();
 	}
 	
 	@Override
-	@WriteTransaction
-	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance) {
-		if (acceptance == null) {
-			acceptance = Boolean.FALSE;
-		}
-		userGroupDAO.touch(principalId);
-		
-		DBOTermsOfUseAgreement agreement = new DBOTermsOfUseAgreement();
-		agreement.setPrincipalId(principalId);
-		agreement.setAgreesToTermsOfUse(acceptance);
-		basicDAO.createOrUpdate(agreement);
+	public Optional<TermsOfServiceAgreement> getLatestTermsOfServiceAgreement(long principalId) {
+		String sql = "SELECT " 
+				+ COL_TOS_AGREEMENT_VERSION+ " , " 
+				+ COL_TOS_AGREEMENT_CREATED_ON
+				+ " FROM " + TABLE_TOS_AGREEMENT 
+				+ " ORDER BY " + COL_TOS_AGREEMENT_ID + " DESC"
+				+ " LIMIT 1";
+			
+		return jdbcTemplate
+				.query(sql, (rs, i) -> new TermsOfServiceAgreement()
+					.setVersion(rs.getString(COL_TOS_AGREEMENT_VERSION))
+					.setAgreedOn(new Date(rs.getTimestamp(COL_TOS_AGREEMENT_CREATED_ON).getTime())))
+				.stream().findFirst();
 	}
 	
 	@Override
@@ -263,8 +277,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	public void clearTermsOfServiceRequirements() {
+	public void clearTermsOfServiceData() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_TOS_REQUIREMENTS + " WHERE " + COL_TOS_REQUIREMENTS_MIN_VERSION + "<> ?", DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion());
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_AGREEMENT);
 	}
 	
 	@Override
@@ -339,11 +354,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 				getSecretKey(abs.getId());
 			} catch (NotFoundException e) {
 				createNew(abs.getId());
-			}
-			
-			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
-			if (!AuthorizationUtils.isUserAnonymous(abs.getId())) {
-				setTermsOfUseAcceptance(abs.getId(), true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks

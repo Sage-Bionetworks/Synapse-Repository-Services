@@ -183,6 +183,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentSession"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentTrace"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -328,6 +329,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentSession"/>
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

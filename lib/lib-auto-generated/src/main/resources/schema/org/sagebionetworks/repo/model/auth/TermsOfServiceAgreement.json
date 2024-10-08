@@ -1,0 +1,14 @@
+{
+	"description": "Information about the user agreement for a specific version of the TOS",
+	"properties": {
+		"agreedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date/time when the user signed the version of the TOS."
+		},
+		"version": {
+			"type": "string",
+			"description": "The version that the user agreed on."
+		}
+	}
+}

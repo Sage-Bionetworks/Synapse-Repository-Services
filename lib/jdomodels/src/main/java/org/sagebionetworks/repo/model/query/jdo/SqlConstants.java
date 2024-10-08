@@ -813,6 +813,14 @@ public class SqlConstants {
 	public static final String COL_TOS_REQUIREMENTS_ENFORCED_ON      	= "ENFORCED_ON";
 	public static final String DDL_TABLE_TOS_REQUIREMENTS				= "schema/tos/TermsOfServiceRequirements-ddl.sql";
 	
+	// Terms of service agreement
+	public static final String TABLE_TOS_AGREEMENT      				= "TERMS_OF_SERVICE_AGREEMENT";
+	public static final String COL_TOS_AGREEMENT_ID			   			= "ID";
+	public static final String COL_TOS_AGREEMENT_CREATED_ON   			= "CREATED_ON";
+	public static final String COL_TOS_AGREEMENT_CREATED_BY   			= "CREATED_BY";
+	public static final String COL_TOS_AGREEMENT_VERSION   				= "VERSION";
+	public static final String DDL_TABLE_TOS_AGREEMENT					= "schema/tos/TermsOfServiceAgreement-ddl.sql";
+	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";
 	public static final String COL_TEAM_ID				= "ID";

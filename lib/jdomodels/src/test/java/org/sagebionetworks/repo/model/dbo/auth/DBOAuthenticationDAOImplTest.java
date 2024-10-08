@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
@@ -63,7 +64,6 @@ public class DBOAuthenticationDAOImplTest {
 	private Long userId;
 	private DBOCredential credential;
 	private DBOAuthenticatedOn authOn;
-	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
 	
 	private static final Date VALIDATED_ON = new Date();
@@ -71,7 +71,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		authDAO.clearTermsOfServiceRequirements();
+		authDAO.clearTermsOfServiceData();
 		groupsToDelete = new ArrayList<String>();
 		
 		// Initialize a UserGroup
@@ -95,11 +95,6 @@ public class DBOAuthenticationDAOImplTest {
 		authOn.setAuthenticatedOn(VALIDATED_ON);
 		authOn.setEtag(UUID.randomUUID().toString());
 		authOn = basicDAO.createNew(authOn);
-		
-		touAgreement = new DBOTermsOfUseAgreement();
-		touAgreement.setPrincipalId(userId);
-		touAgreement.setAgreesToTermsOfUse(true);
-		touAgreement = basicDAO.createNew(touAgreement);
 	}
 
 	@AfterEach
@@ -107,7 +102,7 @@ public class DBOAuthenticationDAOImplTest {
 		for (String toDelete: groupsToDelete) {
 			userGroupDAO.delete(toDelete);
 		}
-		authDAO.clearTermsOfServiceRequirements();
+		authDAO.clearTermsOfServiceData();
 	}
 	
 	@Test
@@ -122,19 +117,7 @@ public class DBOAuthenticationDAOImplTest {
 
 		assertFalse(authDAO.checkUserCredentials(-100, "Blargle"));
 	}
-	
-	@Test
-	public void testGetWithoutToUAcceptance() throws Exception {
-		touAgreement.setAgreesToTermsOfUse(false);
-		basicDAO.update(touAgreement);
 		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setPrincipalId(credential.getPrincipalId());
-		tou.setAgreesToTermsOfUse(Boolean.FALSE);
-		basicDAO.createOrUpdate(tou);
-		
-	}
-	
 	@Test
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
@@ -189,46 +172,6 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
-	public void testSetToU() throws Exception {
-		Long userId = credential.getPrincipalId();
-		
-		// Reject the terms
-		authDAO.setTermsOfUseAcceptance(userId, false);
-		assertFalse(authDAO.hasUserAcceptedToU(userId));
-		
-		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
-		assertTrue(!userEtag.equals(changedEtag));
-		
-		// Accept the terms
-		authDAO.setTermsOfUseAcceptance(userId, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId));
-		
-		// Verify that the parent group's etag has changed
-		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
-		assertTrue(!userEtag.equals(changedEtag));
-		
-		// Pretend we haven't had a chance to see the terms yet
-		authDAO.setTermsOfUseAcceptance(userId, null);
-		assertFalse(authDAO.hasUserAcceptedToU(userId));
-		
-		// Verify that the parent group's etag has changed
-		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
-		assertTrue(!userEtag.equals(changedEtag));
-		
-		// Accept the terms again
-		authDAO.setTermsOfUseAcceptance(userId, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId));
-		
-		// Verify that the parent group's etag has changed
-		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
-		assertTrue(!userEtag.equals(changedEtag));
-	}
-	
-	@Test
 	public void testBootstrapCredentials() throws Exception {
 		// Most bootstrapped users should have signed the terms
 		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
@@ -238,7 +181,6 @@ public class DBOAuthenticationDAOImplTest {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
 				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();
-				assertTrue(touAgreement.getAgreesToTermsOfUse());
 			}
 		}
 		
@@ -324,7 +266,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
 		
 		assertEquals("A TOS requirement with the 1.0.0 minimum version already exists.", assertThrows(IllegalArgumentException.class, () -> {			
-			assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
+			authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate());
 		}).getMessage());
 		
 		nextVersion.setMinimumTermsOfServiceVersion("2.0.0");
@@ -332,6 +274,25 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
 		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
+	}
+
+	@Test
+	public void testAddAndGetTTermsOfServiceAgreement() throws Exception {
+		Long userId = credential.getPrincipalId();
+		
+		// Call under test
+		assertEquals(Optional.empty(), authDAO.getLatestTermsOfServiceAgreement(userId));
+		
+		TermsOfServiceAgreement expected = new TermsOfServiceAgreement()
+			.setVersion("0.0.0")
+			.setAgreedOn(new Date());
+		
+		assertEquals(expected, authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn()));
+		assertEquals(Optional.of(expected), authDAO.getLatestTermsOfServiceAgreement(userId));
+		
+		assertEquals("The user already agreed to version 0.0.0 of the terms of service.", assertThrows(IllegalArgumentException.class, () -> {			
+			authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn());
+		}).getMessage());
 	}
 
 }
