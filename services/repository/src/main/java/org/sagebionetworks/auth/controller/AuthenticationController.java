@@ -209,7 +209,7 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2, method = RequestMethod.POST)
 	public void signTermsOfUse(@RequestBody TermsOfServiceSignRequest signRequest)
 			throws NotFoundException {
-		authenticationService.signTermsOfUse(signRequest);
+		authenticationService.signTermsOfService(signRequest);
 	}
 	
 	/**

@@ -6,7 +6,6 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
-import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
@@ -41,16 +40,6 @@ public interface AuthenticationManager {
 	 */
 	PasswordResetSignedToken createPasswordResetToken(long principalId) throws NotFoundException;
 	
-	/**
-	 * Returns whether the user has accepted the terms of use
-	 */
-	boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException;
-
-	/**
-	 * Sets whether the user has accepted or rejected the terms of use
-	 */
-	void signTermsOfUser(Long principalId);
-
 	/**
 	 * Get the date/time the user was last logged in
 	 * 

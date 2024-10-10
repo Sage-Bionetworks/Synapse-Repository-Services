@@ -74,7 +74,6 @@ public class EntityAuthorizationManagerUnitTest {
 	public void before() {
 		boolean isAdmin = false;
 		userInfo = new UserInfo(isAdmin, 123L);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		userInfo.getGroups().add(userInfo.getId());
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -101,8 +100,6 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
-		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -120,8 +117,6 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
-		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -142,7 +137,6 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -166,7 +160,6 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -449,7 +442,6 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		
 		permissionsState.withDoesEntityExist(true);
-		userInfo.setAcceptsTermsOfUse(false);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -472,9 +464,7 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
 		permissionsState.withDoesEntityExist(true);
-		userInfo.setAcceptsTermsOfUse(true);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);

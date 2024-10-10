@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.manager.AuthorizationManagerImpl.ANONYMOU
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -55,10 +54,7 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
-	
-	@Autowired
-	private AuthenticationManager authenticationManager;
-	
+		
 	@Autowired
 	private NodeManager nodeManager;
 	
@@ -509,7 +505,6 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		assertTrue(adminUser.isAdmin());
-		assertTrue(authenticationManager.hasUserAcceptedTermsOfUse(adminUser.getId()));
 		// the admin user can do it all
 		UserEntityPermissions uep = entityAuthorizationManager.getUserPermissionsForEntity(adminUser, node.getId());
 		assertNotNull(uep);

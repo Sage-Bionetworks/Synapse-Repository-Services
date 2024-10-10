@@ -123,16 +123,33 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testSignTermsOfUse() {
-		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest();
-		request.setAccessToken(ACCESS_TOKEN);
+	public void testSignTermsOfService() {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(ACCESS_TOKEN)
+			.setTermsOfServiceVersion("1.0.0");
+		
 		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
 		
 		// method under test
-		service.signTermsOfUse(request);
+		service.signTermsOfService(request);
 		
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
-		verify(mockAuthenticationManager).signTermsOfUser(userId);
+		verify(mockTosManager).signTermsOfService(userId, "1.0.0");
+	}
+	
+	@Test
+	public void testSignTermsOfServiceWithoutVersion() {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(ACCESS_TOKEN)
+			.setTermsOfServiceVersion(null);
+		
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
+		
+		// method under test
+		service.signTermsOfService(request);
+		
+		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
+		verify(mockTosManager).signTermsOfService(userId, null);
 	}
 	
 	@Test
@@ -639,15 +656,11 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testHasUserAcceptedTermsOfUseJWT() {
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
+	public void testHasUserAcceptedTermsOfService() {
+		when(mockTosManager.hasUserAcceptedTermsOfService(userId)).thenReturn(true);
 		
 		// method under test
-		assertTrue(service.hasUserAcceptedTermsOfUse(userId));
-		
-		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userId);
-
-		
+		assertTrue(service.hasUserAcceptedTermsOfService(userId));		
 	}
 	
 	@Test

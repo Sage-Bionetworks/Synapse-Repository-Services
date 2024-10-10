@@ -93,14 +93,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException {
+	public void signTermsOfService(TermsOfServiceSignRequest signRequest) throws NotFoundException {
 		ValidateArgument.required(signRequest, "The request");
 		ValidateArgument.required(signRequest.getAccessToken(), "Access token contents");
 		
 		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()));
 		
 		// Save the state of acceptance
-		authManager.signTermsOfUser(principalId);
+		tosManager.signTermsOfService(principalId, signRequest.getTermsOfServiceVersion());
 	}
 	
 	@Override
@@ -120,8 +120,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
-		return authManager.hasUserAcceptedTermsOfUse(userId);
+	public boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException {
+		return tosManager.hasUserAcceptedTermsOfService(userId);
 	}
 
 	@Override

@@ -73,9 +73,6 @@ public class StsManagerImplAutowiredTest {
 	private static final String STS_TEST_EXTERNAL_S3_BUCKET = "dev.sts-test.sagebase.org";
 
 	@Autowired
-	private AuthenticationManager authManager;
-
-	@Autowired
 	private EntityManager entityManager;
 
 	@Autowired
@@ -112,10 +109,6 @@ public class StsManagerImplAutowiredTest {
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo.setAcceptsTermsOfUse(true);
-
-		// User must agree to terms of use to get download privileges (and hence access the STS API).
-		authManager.signTermsOfUser(userInfo.getId());
 
 		// Create a test project which we will need.
 		Project project = new Project();

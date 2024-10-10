@@ -8,6 +8,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.utils.github.Release;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
 import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
@@ -60,6 +61,17 @@ public class TermsOfServiceManager {
 		return tosInfo;
 	}
 
+	@WriteTransaction
+	public void signTermsOfService(Long principalId, String termsOfServiceVersion) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	public boolean hasUserAcceptedTermsOfService(long userId) {
+		// TODO
+		return true;
+	}
+
 	public void refreshLatestVersion() {
 		
 		LOGGER.info("Fetching latest ToS version from github...");
@@ -89,4 +101,5 @@ public class TermsOfServiceManager {
 		ValidateArgument.requirement(version.getBuild() == null || version.getBuild().isEmpty(), "Unsupported version format: build metadata should not be included.");
 		return version;
 	}
+
 }

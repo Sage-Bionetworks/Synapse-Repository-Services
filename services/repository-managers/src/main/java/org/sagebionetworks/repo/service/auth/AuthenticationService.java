@@ -40,7 +40,7 @@ public interface AuthenticationService {
 	/**
 	 * Identifies a user via access token and signs that user's terms of use
 	 */
-	void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException;
+	void signTermsOfService(TermsOfServiceSignRequest signRequest) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -64,7 +64,7 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
+	boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException;
 
 	/**
 	 * Sends a password reset email to the user identified by the given alias (username or email)

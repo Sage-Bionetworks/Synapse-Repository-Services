@@ -232,7 +232,6 @@ public class UserManagerImpl implements UserManager {
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);
-		ui.setAcceptsTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
 		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
 		return ui;

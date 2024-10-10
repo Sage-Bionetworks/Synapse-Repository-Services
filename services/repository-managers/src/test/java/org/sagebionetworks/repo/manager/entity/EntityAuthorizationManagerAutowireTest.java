@@ -9,7 +9,6 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CANN
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_CERTIFIED_USER_CONTENT;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_ENTITY_IN_TRASH_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_NEED_TWO_FA;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
@@ -315,30 +314,6 @@ public class EntityAuthorizationManagerAutowireTest {
 		AuthorizationStatus newStatus = entityAuthManager.hasAccess(user, entityId, accessType);
 		assertNotNull(newStatus);
 		assertTrue(newStatus.isAuthorized());
-	}
-
-	@Test
-	public void testHasAccessDownloadWithHasNotAcceptedTermsOfUse() {
-		Node project = nodeDaoHelper.create(n -> {
-			n.setName("aProject");
-			n.setCreatedByPrincipalId(userOne.getId());
-		});
-		aclHelper.create((a) -> {
-			a.setId(project.getId());
-			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.DOWNLOAD));
-		});
-
-		String entityId = project.getId();
-		UserInfo user = userTwo;
-		ACCESS_TYPE accessType = ACCESS_TYPE.DOWNLOAD;
-		// change the user to not accept.
-		userTwo.setAcceptsTermsOfUse(false);
-
-		// new call under test
-		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
 
 	@Test
@@ -1209,31 +1184,6 @@ public class EntityAuthorizationManagerAutowireTest {
 	}
 	
 	@Test
-	public void testHasAccessWithUpdateWithoutTermsOfUse() {
-		Node project = nodeDaoHelper.create(n -> {
-			n.setName("aProject");
-			n.setCreatedByPrincipalId(userOne.getId());
-		});
-		aclHelper.create((a) -> {
-			a.setId(project.getId());
-			a.getResourceAccess()
-					.add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
-		});
-		userTwo.setAcceptsTermsOfUse(false);
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
-		String entityId = project.getId();
-		UserInfo user = userTwo;
-		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
-
-		// new call under test
-		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
-	}
-	
-	@Test
 	public void testCanCreate() {
 		Node project = nodeDaoHelper.create(n -> {
 			n.setName("aProject");
@@ -1581,31 +1531,6 @@ public class EntityAuthorizationManagerAutowireTest {
 			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
 		}).getMessage();
 		assertEquals(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION, newMessage);
-	}
-	
-	@Test
-	public void testHasAccessWithCreateWithoutTermsOfUse() {
-		Node project = nodeDaoHelper.create(n -> {
-			n.setName("aProject");
-			n.setCreatedByPrincipalId(userOne.getId());
-		});
-		aclHelper.create((a) -> {
-			a.setId(project.getId());
-			a.getResourceAccess()
-					.add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
-		});
-		userTwo.setAcceptsTermsOfUse(false);
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		
-		String entityId = project.getId();
-		UserInfo user = userTwo;
-		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
-
-		// new call under test
-		String newMessage = assertThrows(UnauthorizedException.class, () -> {
-			entityAuthManager.hasAccess(user, entityId, accessType).checkAuthorizationOrElseThrow();
-		}).getMessage();
-		assertEquals(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE, newMessage);
 	}
 	
 	@Test

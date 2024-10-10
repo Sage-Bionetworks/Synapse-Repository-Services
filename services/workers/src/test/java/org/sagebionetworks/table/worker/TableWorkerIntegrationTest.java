@@ -42,7 +42,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -167,8 +166,6 @@ public class TableWorkerIntegrationTest {
 	UserManager userManager;
 	@Autowired
 	CertifiedUserManager certifiedUserManager;
-	@Autowired
-	AuthenticationManager authenticationManager;
 	@Autowired
 	AccessRequirementManager accessRequirementManager;
 	@Autowired
@@ -1841,7 +1838,6 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		long userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.signTermsOfUser(userId);
 		UserInfo owner = userManager.getUserInfo(userId);
 		users.add(owner);
 
@@ -1850,7 +1846,6 @@ public class TableWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userId = userManager.createUser(user);
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
-		authenticationManager.signTermsOfUser(userId);
 		UserInfo notOwner = userManager.getUserInfo(userId);
 		users.add(notOwner);
 
