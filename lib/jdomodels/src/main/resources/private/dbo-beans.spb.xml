@@ -184,6 +184,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentTrace"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceLatestVersion"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

@@ -14,6 +14,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGRE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_LATEST_VERSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_LATEST_VERSION_UPDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_LATEST_VERSION_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON;
@@ -26,6 +29,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHEN
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_LATEST_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TWO_FA_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
@@ -277,9 +281,34 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
+	public Optional<String> getTermsOfServiceLatestVersion() {
+		String sql = "SELECT " + COL_TOS_LATEST_VERSION_VERSION + " FROM " + TABLE_TOS_LATEST_VERSION + " WHERE " + COL_TOS_LATEST_VERSION_ID + "=?";
+		
+		return jdbcTemplate.queryForList(sql, String.class, DBOTermsOfServiceLatestVersion.LATEST_VERSION_ID)
+				.stream().findFirst();
+	}
+	
+	@Override
+	@WriteTransaction
+	public void setTermsOfServiceLatestVersion(String version) {
+		String sql = "INSERT INTO " + TABLE_TOS_LATEST_VERSION + "("
+			+ COL_TOS_LATEST_VERSION_ID + ","
+			+ COL_TOS_LATEST_VERSION_UPDATED_ON + ","
+			+ COL_TOS_LATEST_VERSION_VERSION + ")"
+			+ " VALUES (" + DBOTermsOfServiceLatestVersion.LATEST_VERSION_ID + ", NOW(), ?)"
+			+ " ON DUPLICATE KEY UPDATE " 
+			+ COL_TOS_LATEST_VERSION_UPDATED_ON + " = NOW(), "
+			+ COL_TOS_LATEST_VERSION_VERSION + " = ?";
+		
+		jdbcTemplate.update(sql, version, version);
+			
+	}
+	
+	@Override
 	public void clearTermsOfServiceData() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_TOS_REQUIREMENTS + " WHERE " + COL_TOS_REQUIREMENTS_MIN_VERSION + "<> ?", DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion());
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_AGREEMENT);
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_LATEST_VERSION);
 	}
 	
 	@Override

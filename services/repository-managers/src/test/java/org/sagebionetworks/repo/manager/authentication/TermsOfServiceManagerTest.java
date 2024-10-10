@@ -1,27 +1,22 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
@@ -31,19 +26,17 @@ import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.http.HttpStatus;
 
-import com.google.common.util.concurrent.ExecutionError;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-
 @ExtendWith(MockitoExtension.class)
 public class TermsOfServiceManagerTest {
-	
-	private static String INITIAL_LATEST_VERSION = "0.0.0";
 	
 	@Mock
 	private AuthenticationDAO mockAuthDao;
 	
 	@Mock
 	private GithubApiClient mockGithubClient;
+	
+	@Mock
+	private CountingSemaphore mockCountingSemaphore;
 	
 	@Mock
 	private Clock mockClock;
@@ -54,24 +47,26 @@ public class TermsOfServiceManagerTest {
 	@Mock
 	private TermsOfServiceRequirements mockRequirements;
 	
-	private Release release;
-	
 	@BeforeEach
 	public void beforeEach() {
-		release = new Release()
-			.setId(123L)
-			.setName("Latest Release")
-			.setTag_name(INITIAL_LATEST_VERSION);
+		
+	}
+	
+	@Test
+	public void testInitialize() {
+		TermsOfServiceManager managerSpy = Mockito.spy(manager);
+		
+		doNothing().when(managerSpy).refreshLatestVersion();
+		
+		// Call under test
+		managerSpy.initialize();
 	}
 	
 	@Test
 	public void testGetTermsOfUseInfo() {
 		
-		var managerSpy = Mockito.spy(manager);
-		
-		doReturn("2.0.0").when(managerSpy).getLatestVersion();
-		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.of(mockRequirements));
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn(Optional.of("2.0.0"));
 		
 		TermsOfServiceInfo expected = new TermsOfServiceInfo()
 			.setLatestTermsOfServiceVersion("2.0.0")
@@ -79,11 +74,11 @@ public class TermsOfServiceManagerTest {
 			.setCurrentRequirements(mockRequirements);
 		
 		// Call under test
-		assertEquals(expected, managerSpy.getTermsOfUseInfo());
+		assertEquals(expected, manager.getTermsOfUseInfo());
 	}
 	
 	@Test
-	public void testGetTermsOfUseInfoWithNoData() {
+	public void testGetTermsOfUseInfoWithMissingRequirements() {
 		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.empty());
 		
@@ -94,136 +89,73 @@ public class TermsOfServiceManagerTest {
 	}
 	
 	@Test
-	public void testInitialize() {
+	public void testGetTermsOfUseInfoWithMissingLatestVersion() {
 		
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(release);
-				
-		// Call under test
-		manager.initialize();
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.of(mockRequirements));
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn(Optional.empty());
 		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
-		
+		assertEquals("Terms of Service latest version not initialized.", assertThrows(IllegalStateException.class, () -> {			
+			// Call under test
+			manager.getTermsOfUseInfo();
+		}).getMessage());
 	}
 	
 	@Test
-	public void testInitializeWithException() {
-		RuntimeException ex = new RuntimeException("failed");
+	public void testRefreshLatestVersion() {
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(new Release()
+			.setName("Latest")
+			.setTag_name("1.0.0")
+		);
+		
+		// Call under test
+		manager.refreshLatestVersion();
+		
+		verify(mockAuthDao).setTermsOfServiceLatestVersion("1.0.0");
+	}
+	
+	@Test
+	public void testRefreshLatestVersionWithPreRelease() {
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(new Release()
+			.setName("Latest")
+			.setTag_name("1.0.0-beta")
+		);
+		
+		assertEquals("Unsupported version format: prerelease should not be included.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.refreshLatestVersion();
+		}).getMessage());
+		
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testRefreshLatestVersionWithBuildMetadata() {
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(new Release()
+			.setName("Latest")
+			.setTag_name("1.0.0+abcd")
+		);
+		
+		assertEquals("Unsupported version format: build metadata should not be included.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.refreshLatestVersion();
+		}).getMessage());
+		
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testRefreshLatestVersionWithGithubApiException() {
+		
+		GithubApiException ex = new GithubApiException("failed", HttpStatus.BAD_GATEWAY, "bad");
 		
 		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenThrow(ex);
 		
-		assertEquals(ex, assertThrows(UncheckedExecutionException.class, () -> {
+		assertEquals(ex, assertThrows(GithubApiException.class, () -> {
 			// Call under test
-			manager.initialize();
-		}).getCause());
+			manager.refreshLatestVersion();
+		}));
 		
-		assertNull(manager.getLatestVersionFallback());
+		verifyZeroInteractions(mockAuthDao);
 	}
 	
-	@Test
-	public void testGetLatestVersion() {
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		// Calling a second time fetches it from the cache
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-		
-		expireVersionCache();
-		
-		release.setTag_name("3.0.0");
-		
-		// Now the call refreshes the cache
-		assertEquals("3.0.0", manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-
-	static List<Throwable> getLatestVersionExceptions() {
-		return List.of(
-			new GithubApiException(new RuntimeException("failed")),
-			new GithubApiException("failed", HttpStatus.BAD_GATEWAY, "requestBody"),
-			new GithubApiException("failed", HttpStatus.BAD_GATEWAY, null),
-			new UncheckedExecutionException(new RuntimeException("failed")),
-			new ExecutionError(new Error("bad"))
-		);
-	}
-	
-	@ParameterizedTest
-	@MethodSource("getLatestVersionExceptions")
-	public void testGetLatestVersionWithExceptionAfterInitialize(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		manager.initialize();
-		
-		expireVersionCache();
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
-		
-		// Call under test
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-		
-	@ParameterizedTest
-	@MethodSource("getLatestVersionExceptions")
-	public void testGetLatestVersionWithExceptionAfterSuccess(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		expireVersionCache();
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
-		
-		// Call under test, get the latest recorded version
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-	
-	@Test
-	public void testFetchReleaseWithLatest() {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(release, manager.fetchRelease("latest"));
-		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
-		
-		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-	
-	@Test
-	public void testFetchReleaseWithTag() {
-		when(mockGithubClient.getReleaseByTag(any(), any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(release, manager.fetchRelease("1.0.0"));
-		
-		assertNull(manager.getLatestVersionFallback());
-		
-		verify(mockGithubClient).getReleaseByTag(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO, "1.0.0");
-	}
-	
-	@Test
-	public void testFetchReleaseWithTagAndNonSemanticVersion() {		
-		assertEquals("Expected a semantic version, was: 1.0", assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.fetchRelease("1.0");
-		}).getMessage());
-		
-		assertNull(manager.getLatestVersionFallback());
-		
-		verifyZeroInteractions(mockGithubClient);
-	}
-
-	private void expireVersionCache() {
-		// By default the mock of nanoTime() returns 0, moving the clock forward to the expiration plus 1 second effectively invalidates the cache 
-		when(mockClock.nanoTime()).thenReturn(TermsOfServiceManager.VERSION_CACHE_EXPIRATION.plusSeconds(1).toNanos());
-	}
 }

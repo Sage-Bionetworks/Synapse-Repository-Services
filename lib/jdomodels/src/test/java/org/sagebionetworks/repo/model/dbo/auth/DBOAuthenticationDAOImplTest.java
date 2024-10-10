@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -64,7 +63,6 @@ public class DBOAuthenticationDAOImplTest {
 	private Long userId;
 	private DBOCredential credential;
 	private DBOAuthenticatedOn authOn;
-	private static String userEtag;
 	
 	private static final Date VALIDATED_ON = new Date();
 
@@ -80,7 +78,6 @@ public class DBOAuthenticationDAOImplTest {
 		userId = userGroupDAO.create(ug);
 	
 		groupsToDelete.add(userId.toString());
-		userEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 
 		// Make a row of Credentials
 		credential = new DBOCredential();
@@ -277,7 +274,7 @@ public class DBOAuthenticationDAOImplTest {
 	}
 
 	@Test
-	public void testAddAndGetTTermsOfServiceAgreement() throws Exception {
+	public void testAddAndGetTermsOfServiceAgreement() {
 		Long userId = credential.getPrincipalId();
 		
 		// Call under test
@@ -293,6 +290,19 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals("The user already agreed to version 0.0.0 of the terms of service.", assertThrows(IllegalArgumentException.class, () -> {			
 			authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn());
 		}).getMessage());
+	}
+	
+	@Test
+	public void testGetAndSetTermsOfServiceLatestVersion() {
+		assertEquals(Optional.empty(), authDAO.getTermsOfServiceLatestVersion());
+		
+		authDAO.setTermsOfServiceLatestVersion("1.0.0");
+		
+		assertEquals(Optional.of("1.0.0"), authDAO.getTermsOfServiceLatestVersion());
+		
+		authDAO.setTermsOfServiceLatestVersion("1.0.1");
+		
+		assertEquals(Optional.of("1.0.1"), authDAO.getTermsOfServiceLatestVersion());
 	}
 
 }

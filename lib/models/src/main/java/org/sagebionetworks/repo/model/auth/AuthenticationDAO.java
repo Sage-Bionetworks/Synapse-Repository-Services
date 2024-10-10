@@ -105,6 +105,18 @@ public interface AuthenticationDAO {
 	 */
 	Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements();
 	
+	/**
+	 * 
+	 * @return The latest version of the terms of service
+	 */
+	Optional<String> getTermsOfServiceLatestVersion();
+	
+	/**
+	 * Sets the latest version of the terms of service
+	 * @param version
+	 */
+	void setTermsOfServiceLatestVersion(String version);
+	
 	// For testing
 	void clearTermsOfServiceData();
 	

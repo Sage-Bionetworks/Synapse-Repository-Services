@@ -43,6 +43,7 @@
     <context:component-scan base-package="org.sagebionetworks.auth.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.webhook.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.agent.worker" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.tos.workers" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -158,6 +159,8 @@
 		<ref bean="webhookChangeMessageWorkerTrigger"/>
 		<ref bean="webhookMetricsTrigger"/>
 		
+		<!-- TOS -->
+		<ref bean="tosLatestVersionRefreshWorkerTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
