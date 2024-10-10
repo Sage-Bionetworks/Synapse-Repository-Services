@@ -8,8 +8,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PASS_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CREDENTIAL_SECRET_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_AGREEMENT_ID;
@@ -27,7 +25,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_S
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_AGREEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_LATEST_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_REQUIREMENTS;
@@ -114,11 +111,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			// Note that we do not update the "MODIFIED_ON" since that applies only to passwords and the secret_key is deprecated
 			" SET "+COL_CREDENTIAL_SECRET_KEY+"= ?, " + COL_CREDENTIAL_ETAG + " = UUID()" +
 			" WHERE "+COL_CREDENTIAL_PRINCIPAL_ID+"= ?";
-	
-	private static final String SELECT_TOU_ACCEPTANCE = 
-			"SELECT "+COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+
-			" FROM "+TABLE_TERMS_OF_USE_AGREEMENT+
-			" WHERE "+COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+"= ?";
 	
 	@Override
 	public void createNew(long principalId) {

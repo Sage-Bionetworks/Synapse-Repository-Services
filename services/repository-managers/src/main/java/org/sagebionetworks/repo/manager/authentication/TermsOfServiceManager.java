@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import java.util.Date;
+
 import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.utils.github.Release;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
@@ -49,11 +51,9 @@ public class TermsOfServiceManager {
 	public TermsOfServiceInfo getTermsOfUseInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 
-		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements()
-				.orElseThrow(() -> new IllegalStateException("Terms of Service requirements not initialized.")));
+		tosInfo.setCurrentRequirements(getCurrentRequirementsOrThrow());
 
-		String latestVersion = authDao.getTermsOfServiceLatestVersion()
-				.orElseThrow(() -> new IllegalStateException("Terms of Service latest version not initialized."));
+		String latestVersion = getLatestVersionOrThrow();
 
 		tosInfo.setLatestTermsOfServiceVersion(latestVersion);
 		tosInfo.setTermsOfServiceUrl(String.format(TOS_URL_FORMAT, latestVersion));
@@ -62,9 +62,24 @@ public class TermsOfServiceManager {
 	}
 
 	@WriteTransaction
-	public void signTermsOfService(Long principalId, String termsOfServiceVersion) {
-		// TODO Auto-generated method stub
+	public void signTermsOfService(long principalId, String termsOfServiceVersion) {
+		Semver versionToSign = validateSemver(new Semver(termsOfServiceVersion == null ? AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion() : termsOfServiceVersion));
+		Semver latestVersion = new Semver(getLatestVersionOrThrow());
 		
+		ValidateArgument.requirement(versionToSign.isLowerThanOrEqualTo(latestVersion),
+				String.format("The version cannot be greater than the latest version %s.", latestVersion.getVersion()));
+		
+		TermsOfServiceRequirements requirements = getCurrentRequirementsOrThrow();
+		
+		Date now = clock.now();
+		
+		// If the requirements are in force, then validate the min version
+		if (now.toInstant().isAfter(requirements.getRequirementDate().toInstant())) {
+			ValidateArgument.requirement(versionToSign.isGreaterThanOrEqualTo(requirements.getMinimumTermsOfServiceVersion()),
+					String.format("The version must be greater or equal than %s", requirements.getMinimumTermsOfServiceVersion()));
+		}
+		
+		authDao.addTermsOfServiceAgreement(principalId, versionToSign.getVersion(), now);
 	}
 	
 	public boolean hasUserAcceptedTermsOfService(long userId) {
@@ -94,6 +109,16 @@ public class TermsOfServiceManager {
 
 		LOGGER.info("Fetching latest ToS version from github...DONE (Name: {}, Tag: {})", latestRelease.getName(),
 				latestRelease.getTag_name());
+	}
+
+	private TermsOfServiceRequirements getCurrentRequirementsOrThrow() {
+		return authDao.getCurrentTermsOfServiceRequirements()
+				.orElseThrow(() -> new IllegalStateException("Terms of Service requirements not initialized."));
+	}
+
+	private String getLatestVersionOrThrow() {
+		return authDao.getTermsOfServiceLatestVersion()
+				.orElseThrow(() -> new IllegalStateException("Terms of Service latest version not initialized."));
 	}
 	
 	private static Semver validateSemver(Semver version) {

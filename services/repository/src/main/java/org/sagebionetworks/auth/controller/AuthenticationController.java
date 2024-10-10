@@ -207,7 +207,7 @@ public class AuthenticationController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2, method = RequestMethod.POST)
-	public void signTermsOfUse(@RequestBody TermsOfServiceSignRequest signRequest)
+	public void signTermsOfService(@RequestBody TermsOfServiceSignRequest signRequest)
 			throws NotFoundException {
 		authenticationService.signTermsOfService(signRequest);
 	}
