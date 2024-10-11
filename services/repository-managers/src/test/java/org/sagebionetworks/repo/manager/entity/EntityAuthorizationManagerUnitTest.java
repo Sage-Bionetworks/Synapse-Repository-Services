@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
@@ -97,6 +98,7 @@ public class EntityAuthorizationManagerUnitTest {
 
 	@Test
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
@@ -122,6 +124,7 @@ public class EntityAuthorizationManagerUnitTest {
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		expected.setIsCertifiedUser(true);
+		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
@@ -437,6 +440,8 @@ public class EntityAuthorizationManagerUnitTest {
 	 */
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
@@ -447,7 +452,6 @@ public class EntityAuthorizationManagerUnitTest {
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		expected.setCanUpload(false);
-		expected.setIsCertifiedUser(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);

@@ -103,13 +103,13 @@ public interface AuthenticationDAO {
 	/**
 	 * @return The latest terms of service requirements
 	 */
-	Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements();
+	TermsOfServiceRequirements getCurrentTermsOfServiceRequirements();
 	
 	/**
 	 * 
 	 * @return The latest version of the terms of service
 	 */
-	Optional<String> getTermsOfServiceLatestVersion();
+	String getTermsOfServiceLatestVersion();
 	
 	/**
 	 * Sets the latest version of the terms of service

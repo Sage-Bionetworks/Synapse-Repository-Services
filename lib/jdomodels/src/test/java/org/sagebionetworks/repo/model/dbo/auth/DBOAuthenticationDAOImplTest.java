@@ -169,12 +169,12 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
-	public void testBootstrapCredentials() throws Exception {
+	public void testBootstrap() throws Exception {
+		authDAO.bootstrap();
 		// Most bootstrapped users should have signed the terms
 		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
 		for (BootstrapPrincipal agg: ugs) {
-			if (agg instanceof BootstrapUser 
-					&& !AuthorizationUtils.isUserAnonymous(agg.getId())) {
+			if (agg instanceof BootstrapUser && !AuthorizationUtils.isUserAnonymous(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
 				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();
@@ -184,6 +184,8 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
+		TermsOfServiceRequirements requirements = authDAO.getCurrentTermsOfServiceRequirements();
+		assertEquals(requirements.getMinimumTermsOfServiceVersion(), authDAO.getTermsOfServiceLatestVersion());
 	}
 	
 	@Test
@@ -252,7 +254,10 @@ public class DBOAuthenticationDAOImplTest {
 		
 	@Test
 	public void testGetAndSetTermsOfServiceRequirements() {
-		assertEquals(Optional.of(AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS), authDAO.getCurrentTermsOfServiceRequirements());
+		
+		assertThrows(NotFoundException.class, () -> {			
+			authDAO.getCurrentTermsOfServiceRequirements();
+		});
 		
 		TermsOfServiceRequirements nextVersion = new TermsOfServiceRequirements()
 			.setMinimumTermsOfServiceVersion("1.0.0")
@@ -260,7 +265,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
-		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
+		assertEquals(nextVersion, authDAO.getCurrentTermsOfServiceRequirements());
 		
 		assertEquals("A TOS requirement with the 1.0.0 minimum version already exists.", assertThrows(IllegalArgumentException.class, () -> {			
 			authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate());
@@ -270,7 +275,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
-		assertEquals(Optional.of(nextVersion), authDAO.getCurrentTermsOfServiceRequirements());
+		assertEquals(nextVersion, authDAO.getCurrentTermsOfServiceRequirements());
 	}
 
 	@Test
@@ -294,15 +299,18 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testGetAndSetTermsOfServiceLatestVersion() {
-		assertEquals(Optional.empty(), authDAO.getTermsOfServiceLatestVersion());
+
+		assertThrows(NotFoundException.class, () -> {
+			authDAO.getTermsOfServiceLatestVersion();
+		});
 		
 		authDAO.setTermsOfServiceLatestVersion("1.0.0");
 		
-		assertEquals(Optional.of("1.0.0"), authDAO.getTermsOfServiceLatestVersion());
+		assertEquals("1.0.0", authDAO.getTermsOfServiceLatestVersion());
 		
 		authDAO.setTermsOfServiceLatestVersion("1.0.1");
 		
-		assertEquals(Optional.of("1.0.1"), authDAO.getTermsOfServiceLatestVersion());
+		assertEquals("1.0.1", authDAO.getTermsOfServiceLatestVersion());
 	}
 
 }

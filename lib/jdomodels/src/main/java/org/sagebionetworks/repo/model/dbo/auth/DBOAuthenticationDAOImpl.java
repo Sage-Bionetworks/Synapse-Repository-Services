@@ -253,11 +253,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			throw e;
 		}
 		
-		return getCurrentTermsOfServiceRequirements().orElseThrow();
+		return getCurrentTermsOfServiceRequirements();
 	}
 	
 	@Override
-	public Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements() {
+	public TermsOfServiceRequirements getCurrentTermsOfServiceRequirements() {
 		String sql = "SELECT " 
 			+ COL_TOS_REQUIREMENTS_MIN_VERSION+ " , " 
 			+ COL_TOS_REQUIREMENTS_ENFORCED_ON
@@ -268,16 +268,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		return jdbcTemplate
 				.query(sql, (rs, i) -> new TermsOfServiceRequirements()
 					.setMinimumTermsOfServiceVersion(rs.getString(COL_TOS_REQUIREMENTS_MIN_VERSION))
-					.setRequirementDate(rs.getTimestamp(COL_TOS_REQUIREMENTS_ENFORCED_ON)))
-				.stream().findFirst();
+					.setRequirementDate(new Date(rs.getTimestamp(COL_TOS_REQUIREMENTS_ENFORCED_ON).getTime())))
+				.stream().findFirst().orElseThrow(() -> new NotFoundException("Terms of service requirements not found."));
 	}
 	
 	@Override
-	public Optional<String> getTermsOfServiceLatestVersion() {
+	public String getTermsOfServiceLatestVersion() {
 		String sql = "SELECT " + COL_TOS_LATEST_VERSION_VERSION + " FROM " + TABLE_TOS_LATEST_VERSION + " WHERE " + COL_TOS_LATEST_VERSION_ID + "=?";
 		
 		return jdbcTemplate.queryForList(sql, String.class, DBOTermsOfServiceLatestVersion.LATEST_VERSION_ID)
-				.stream().findFirst();
+				.stream().findFirst().orElseThrow(() -> new NotFoundException("Terms of service latest version not found."));
 	}
 	
 	@Override
@@ -298,9 +298,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	public void clearTermsOfServiceData() {
-		jdbcTemplate.update("DELETE FROM " + TABLE_TOS_REQUIREMENTS + " WHERE " + COL_TOS_REQUIREMENTS_MIN_VERSION + "<> ?", DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion());
-		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_AGREEMENT);
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_REQUIREMENTS);
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_LATEST_VERSION);
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_TOS_AGREEMENT);
 	}
 	
 	@Override
@@ -382,8 +382,19 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		changeSecretKey(migrationAdminId, StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
 		
 		// Makes sure we have the default TOS requirements
-		if (getCurrentTermsOfServiceRequirements().isEmpty()) {
-			setCurrentTermsOfServiceRequirements(migrationAdminId, DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion(), DEFAULT_TOS_REQUIREMENTS.getRequirementDate());
+		TermsOfServiceRequirements tosRequirements;
+		
+		try {
+			tosRequirements = getCurrentTermsOfServiceRequirements();
+		} catch (NotFoundException e) {
+			tosRequirements = setCurrentTermsOfServiceRequirements(migrationAdminId, DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion(), DEFAULT_TOS_REQUIREMENTS.getRequirementDate());
+		}
+		
+		// Makes sure we have at least one latest version
+		try {
+			getTermsOfServiceLatestVersion();
+		} catch (NotFoundException e) {
+			setTermsOfServiceLatestVersion(tosRequirements.getMinimumTermsOfServiceVersion());
 		}
 	}
 
