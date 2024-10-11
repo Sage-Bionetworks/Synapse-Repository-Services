@@ -59,7 +59,7 @@ public class DBOTermsOfServiceLatestVersion implements DatabaseObject<DBOTermsOf
 			public DBOTermsOfServiceLatestVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return new DBOTermsOfServiceLatestVersion()
 					.setId(rs.getLong(SqlConstants.COL_TOS_LATEST_VERSION_ID))
-					.setUpdatedOn(rs.getTimestamp(SqlConstants.COL_TOS_LATEST_VERSION_UPDATED_ON))
+					.setUpdatedOn(new Date(rs.getTimestamp(SqlConstants.COL_TOS_LATEST_VERSION_UPDATED_ON).getTime()))
 					.setVersion(rs.getString(SqlConstants.COL_TOS_LATEST_VERSION_VERSION));
 			}
 			

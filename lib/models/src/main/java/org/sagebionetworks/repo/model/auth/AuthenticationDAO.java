@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.model.auth;
 
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -82,6 +84,11 @@ public interface AuthenticationDAO {
 	 * @param agreedOn
 	 */
 	TermsOfServiceAgreement addTermsOfServiceAgreement(long principalId, String version, Date agreedOn);
+	
+	// For migration
+	List<UserGroup> getUsersWithoutAgreement(List<Long> userIds);
+	
+	void batchAddTermsOfServiceAgreement(List<TermsOfServiceAgreement> batch);
 	
 	/**
 	 * 

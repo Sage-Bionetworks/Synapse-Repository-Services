@@ -1,6 +1,9 @@
 {
 	"description": "Information about the user agreement for a specific version of the TOS",
 	"properties": {
+		"userId": {
+			"type": "integer"
+		},
 		"agreedOn": {
 			"type": "string",
 			"format": "date-time",

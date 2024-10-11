@@ -83,10 +83,10 @@ public class DBOTermsOfServiceRequirements implements MigratableDatabaseObject<D
 			public DBOTermsOfServiceRequirements mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return new DBOTermsOfServiceRequirements()
 					.setId(rs.getLong(SqlConstants.COL_TOS_REQUIREMENTS_ID))
-					.setCreatedOn(rs.getTimestamp(SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON))
+					.setCreatedOn(new Date(rs.getTimestamp(SqlConstants.COL_TOS_REQUIREMENTS_CREATED_ON).getTime()))
 					.setCreatedBy(rs.getLong(SqlConstants.COL_TOS_REQUIREMENTS_CREATED_BY))
 					.setMinVersion(rs.getString(SqlConstants.COL_TOS_REQUIREMENTS_MIN_VERSION))
-					.setEnforcedOn(rs.getTimestamp(SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON));
+					.setEnforcedOn(new Date(rs.getTimestamp(SqlConstants.COL_TOS_REQUIREMENTS_ENFORCED_ON).getTime()));
 			}
 			
 			@Override

@@ -73,7 +73,7 @@ public class DBOTermsOfServiceAgreement implements MigratableDatabaseObject<DBOT
 				return new DBOTermsOfServiceAgreement()
 					.setId(rs.getLong(SqlConstants.COL_TOS_AGREEMENT_ID))
 					.setCreatedBy(rs.getLong(SqlConstants.COL_TOS_AGREEMENT_CREATED_BY))
-					.setCreatedOn(rs.getTimestamp(SqlConstants.COL_TOS_AGREEMENT_CREATED_ON))
+					.setCreatedOn(new Date(rs.getTimestamp(SqlConstants.COL_TOS_AGREEMENT_CREATED_ON).getTime()))
 					.setVersion(rs.getString(SqlConstants.COL_TOS_AGREEMENT_VERSION));
 			}
 			
