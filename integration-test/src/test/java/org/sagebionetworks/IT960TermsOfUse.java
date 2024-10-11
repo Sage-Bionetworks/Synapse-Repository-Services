@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(ITTestExtension.class)
 public class IT960TermsOfUse {
@@ -105,11 +107,47 @@ public class IT960TermsOfUse {
 	}
 	
 	@Test
+	public void testSignTermsOfServiceWithVersion(SynapseAdminClient adminSynapse) throws SynapseException, JSONObjectAdapterException {
+		SynapseClient newUser = new SynapseClientImpl();
+		
+		SynapseClientHelper.createUser(adminSynapse, newUser, false, false);
+		
+		TermsOfServiceStatus status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, status.getUserCurrentTermsOfServiceState());
+		
+		newUser.signTermsOfUse(newUser.getAccessToken(), newUser.getTermsOfServiceInfo().getCurrentRequirements().getMinimumTermsOfServiceVersion());
+
+		status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		
+		String latestVersion = newUser.getTermsOfServiceInfo().getLatestTermsOfServiceVersion();
+		
+		// This should work even though we already signed it
+		newUser.signTermsOfUse(newUser.getAccessToken(), latestVersion);
+		
+		status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		assertEquals(latestVersion, status.getLastAgreementVersion());
+	}
+	
+	@Test
 	public void testGetUserTermsOfServiceStatus() throws SynapseException {
+		TermsOfServiceStatus status = rejectTOUsynapse.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, status.getUserCurrentTermsOfServiceState());
+		
+		assertNull(status.getLastAgreementDate());
+		assertNull(status.getLastAgreementVersion());
 
-		assertEquals(TermsOfServiceState.UP_TO_DATE, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		status = synapse.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		assertNotNull(status.getLastAgreementDate());
+		assertNotNull(status.getLastAgreementVersion());
 
-		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, rejectTOUsynapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
 	}
  
 }
