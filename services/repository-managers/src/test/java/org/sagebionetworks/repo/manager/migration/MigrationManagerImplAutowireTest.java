@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.UserGroupDoaObjectHelper;
@@ -434,12 +433,7 @@ public class MigrationManagerImplAutowireTest {
 		member.setGroupId(principalId);
 		member.setMemberId(principalId);
 		basicDao.createNew(member);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(true);
-		tou.setPrincipalId(principalId);
-		basicDao.createNew(tou);
-		
+				
 		MigrationType type =  MigrationType.PRINCIPAL;
 		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
 		long batchSize = 2;

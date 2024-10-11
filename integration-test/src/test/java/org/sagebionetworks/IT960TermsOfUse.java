@@ -3,14 +3,12 @@ package org.sagebionetworks;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -25,7 +23,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
-import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 
 @ExtendWith(ITTestExtension.class)
@@ -36,11 +35,9 @@ public class IT960TermsOfUse {
 	private static Project project;
 	private static FileEntity dataset;
 	
-	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
 	
-	public IT960TermsOfUse(SynapseAdminClient adminSynapse, SynapseClient synapse) {
-		this.adminSynapse = adminSynapse;
+	public IT960TermsOfUse(SynapseClient synapse) {
 		this.synapse = synapse;
 	}
 	
@@ -80,36 +77,11 @@ public class IT960TermsOfUse {
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
-	@BeforeEach
-	public void before() throws Exception {
-		synapse.signTermsOfUse(synapse.getAccessToken());
-	}
-	
 	@AfterAll
 	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(rejectTOUuserToDelete);
 		
-	}
-	
-	@Test
-	public void testRepoSvcWithTermsOfUse() throws Exception {
-		// should be able to see locations (i.e. the location is 'tier 1' data
-		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
-	}
-
-	@Test
-	public void testRepoSvcNoTermsOfUse() throws Exception {
-		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
-		
-		FileEntity idHolder = new FileEntity();
-		idHolder.setId(ds.getId());
-		// an admin should be able to retrieve the entity and download the content
-		ds = adminSynapse.getEntity(idHolder.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
-
 	}
 	
 	@Test
@@ -130,7 +102,14 @@ public class IT960TermsOfUse {
 		
 		assertNotNull(tosInfo.getCurrentRequirements().getMinimumTermsOfServiceVersion());
 		assertNotNull(tosInfo.getCurrentRequirements().getRequirementDate());
-		
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatus() throws SynapseException {
+
+		assertEquals(TermsOfServiceState.UP_TO_DATE, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, rejectTOUsynapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
 	}
  
 }

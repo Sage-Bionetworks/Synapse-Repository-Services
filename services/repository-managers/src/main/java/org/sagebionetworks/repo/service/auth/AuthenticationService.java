@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -211,6 +212,8 @@ public interface AuthenticationService {
 	 */
 	void revokeAllSessionAccessTokens(Long userId, Long targetUserId);
 
-	TermsOfServiceInfo getTermsOfUseInfo();
+	TermsOfServiceInfo getTermsOfServiceInfo();
+	
+	TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId);
 
 }

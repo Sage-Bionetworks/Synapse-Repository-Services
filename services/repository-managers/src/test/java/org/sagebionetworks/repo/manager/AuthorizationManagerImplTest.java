@@ -40,8 +40,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,17 +118,12 @@ public class AuthorizationManagerImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		// Create a new user
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createOrGetTestUser(adminUser, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUser, nu);
 
 		// Create a new group
 		testGroup = new UserGroup();
@@ -144,7 +137,7 @@ public class AuthorizationManagerImplTest {
 		// Create team with teamAdmin as the admin
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		teamAdmin = userManager.createOrGetTestUser(adminUser, nu, cred, tou);
+		teamAdmin = userManager.createOrGetTestUser(adminUser, nu);
 		team = new Team();
 		team.setName("teamName");
 		team = teamManager.create(teamAdmin, team);

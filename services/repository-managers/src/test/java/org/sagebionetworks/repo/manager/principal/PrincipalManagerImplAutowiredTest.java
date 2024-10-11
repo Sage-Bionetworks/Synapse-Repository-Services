@@ -26,8 +26,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -65,7 +63,6 @@ public class PrincipalManagerImplAutowiredTest {
 	private UserInfo adminUserInfo;
 	private UserInfo testUser;
 
-	private DBOCredential credential;
 	private final String password = "A User's Pa$$word456";
 
 	private String fileHandleId;
@@ -77,10 +74,7 @@ public class PrincipalManagerImplAutowiredTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		credential = new DBOCredential();
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		testUser = userManager.createOrGetTestUser(adminUserInfo, nu, credential, tou);
+		testUser = userManager.createOrGetTestUser(adminUserInfo, nu);
 		authenticationManager.setPassword(testUser.getId(), password);
 		S3FileHandle fh = new S3FileHandle();
 		fh.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());

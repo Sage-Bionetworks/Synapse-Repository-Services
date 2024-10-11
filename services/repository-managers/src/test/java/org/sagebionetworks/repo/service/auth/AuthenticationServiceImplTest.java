@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -153,12 +154,21 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testGetTermsOfUseInfo() {
+	public void testGetTermsOfServiceInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 		
 		when(mockTosManager.getTermsOfUseInfo()).thenReturn(tosInfo);
 		
-		assertEquals(tosInfo, service.getTermsOfUseInfo());
+		assertEquals(tosInfo, service.getTermsOfServiceInfo());
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatus() {
+		TermsOfServiceStatus status = new TermsOfServiceStatus();
+		
+		when(mockTosManager.getUserTermsOfServiceStatus(userId)).thenReturn(status);
+		
+		assertEquals(status, service.getUserTermsOfServiceStatus(userId));
 	}
 	
 	@Test

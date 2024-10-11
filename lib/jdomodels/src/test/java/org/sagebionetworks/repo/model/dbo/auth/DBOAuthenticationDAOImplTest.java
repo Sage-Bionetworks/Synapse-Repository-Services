@@ -280,8 +280,6 @@ public class DBOAuthenticationDAOImplTest {
 
 	@Test
 	public void testAddAndGetTermsOfServiceAgreement() {
-		Long userId = credential.getPrincipalId();
-		
 		// Call under test
 		assertEquals(Optional.empty(), authDAO.getLatestTermsOfServiceAgreement(userId));
 		
@@ -290,11 +288,9 @@ public class DBOAuthenticationDAOImplTest {
 			.setAgreedOn(new Date());
 		
 		assertEquals(expected, authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn()));
+		// Ignore re-sign attempts
+		assertEquals(expected, authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn()));
 		assertEquals(Optional.of(expected), authDAO.getLatestTermsOfServiceAgreement(userId));
-		
-		assertEquals("The user already agreed to version 0.0.0 of the terms of service.", assertThrows(IllegalArgumentException.class, () -> {			
-			authDAO.addTermsOfServiceAgreement(userId, expected.getVersion(), expected.getAgreedOn());
-		}).getMessage());
 	}
 	
 	@Test

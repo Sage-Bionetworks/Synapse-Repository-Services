@@ -10,8 +10,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -34,10 +32,9 @@ public interface UserManager {
 	 */
 	long createUser(NewUser user);
 	
-	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
-			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
+	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, String password, boolean signTermsOfService) throws NotFoundException;
 	
-	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse) throws NotFoundException;
+	UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user) throws NotFoundException;
 	
 	/**
 	 * Delete a principal by ID

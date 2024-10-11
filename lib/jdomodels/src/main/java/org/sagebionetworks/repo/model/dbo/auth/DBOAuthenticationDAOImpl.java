@@ -194,7 +194,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@WriteTransaction
 	public TermsOfServiceAgreement addTermsOfServiceAgreement(long principalId, String version, Date agreedOn) {
-		String sql = "INSERT INTO " + TABLE_TOS_AGREEMENT + "("
+		// We need an ignore here for backward compatibility, since clients try to sign multiple times
+		String sql = "INSERT IGNORE INTO " + TABLE_TOS_AGREEMENT + "("
 			+ COL_TOS_AGREEMENT_ID + ", "
 			+ COL_TOS_AGREEMENT_CREATED_ON + ", "
 			+ COL_TOS_AGREEMENT_CREATED_BY + ", "
@@ -203,14 +204,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		
 		Long id = idGenerator.generateNewId(IdType.TOS_AGREEMENT_ID);
 
-		try {
-			jdbcTemplate.update(sql, id, agreedOn, principalId, version);
-		} catch (DuplicateKeyException e) {
-			if (e.getMessage().contains("TOS_AGREEMENT_ID_VERSION")) {
-				throw new IllegalArgumentException("The user already agreed to version " + version + " of the terms of service.");
-			}
-			throw e;
-		}
+		jdbcTemplate.update(sql, id, agreedOn, principalId, version);
 		
 		return getLatestTermsOfServiceAgreement(principalId).orElseThrow();
 	}
@@ -220,14 +214,16 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		String sql = "SELECT " 
 				+ COL_TOS_AGREEMENT_VERSION+ " , " 
 				+ COL_TOS_AGREEMENT_CREATED_ON
-				+ " FROM " + TABLE_TOS_AGREEMENT 
+				+ " FROM " + TABLE_TOS_AGREEMENT
+				+ " WHERE " + COL_TOS_AGREEMENT_CREATED_BY + "=?"
 				+ " ORDER BY " + COL_TOS_AGREEMENT_ID + " DESC"
 				+ " LIMIT 1";
 			
 		return jdbcTemplate
 				.query(sql, (rs, i) -> new TermsOfServiceAgreement()
-					.setVersion(rs.getString(COL_TOS_AGREEMENT_VERSION))
-					.setAgreedOn(new Date(rs.getTimestamp(COL_TOS_AGREEMENT_CREATED_ON).getTime())))
+						.setVersion(rs.getString(COL_TOS_AGREEMENT_VERSION))
+						.setAgreedOn(new Date(rs.getTimestamp(COL_TOS_AGREEMENT_CREATED_ON).getTime())),
+					principalId)
 				.stream().findFirst();
 	}
 	

@@ -71,7 +71,7 @@ public class DownloadListManagerAutowiredTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		String userName = UUID.randomUUID().toString();
 		userInfo = userManager.createOrGetTestUser(adminUserInfo,
-				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), true);
+				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 		
 		aclDao.truncateAll();
 		nodeDao.truncateAll();

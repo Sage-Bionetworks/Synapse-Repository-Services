@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 public class GithubApiClientImpl implements GithubApiClient {
 	
 	private static final String[] GITHUB_REQUEST_HEADERS = new String[] {
-		HttpHeaders.USER_AGENT, "Synapse-Org-App",
+		HttpHeaders.USER_AGENT, "Synapse-Org",
 		HttpHeaders.ACCEPT, "application/vnd.github+json",
 		"X-GitHub-Api-Version", "2022-11-28"
 	};

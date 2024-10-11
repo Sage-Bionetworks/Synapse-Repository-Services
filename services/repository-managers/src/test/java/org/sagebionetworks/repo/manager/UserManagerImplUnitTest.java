@@ -204,7 +204,7 @@ public class UserManagerImplUnitTest {
 	public void testCreateUserAdmin() throws Exception {
 		// Call with a non admin
 		try {
-			userManager.createOrGetTestUser(notAdmin, null, null, null);
+			userManager.createOrGetTestUser(notAdmin, null, null, true);
 			fail();
 		} catch (UnauthorizedException e) { }
 		
@@ -227,7 +227,7 @@ public class UserManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(username)).thenReturn(alias);
 		
 		// method under test
-		UserInfo userInfo = userManager.createOrGetTestUser(admin, nu, null, null);
+		UserInfo userInfo = userManager.createOrGetTestUser(admin, nu, null, true);
 		// we get back the principal ID for the existing user
 		assertEquals(principalId, userInfo.getId().longValue());
 		

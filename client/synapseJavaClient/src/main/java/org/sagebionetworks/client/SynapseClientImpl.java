@@ -126,6 +126,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -4532,9 +4533,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void signTermsOfUse(String accessToken) throws SynapseException {
-		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest();
-		request.setAccessToken(accessToken);
+	public void signTermsOfUse(String accessToken, String version) throws SynapseException {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(accessToken)
+			.setTermsOfServiceVersion(version);
+		
 		voidPost(getAuthEndpoint(), TERMS_OF_USE_V2, request, null);
 	}
 	
@@ -4543,6 +4546,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(getAuthEndpoint(), TERMS_OF_USE_V2 + "/info", TermsOfServiceInfo.class);
 	}
 	
+	@Override
+	public TermsOfServiceStatus getUserTermsOfServiceStatus() throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), TERMS_OF_USE_V2 + "/status", TermsOfServiceStatus.class);
+	}
 	/*
 	 * (non-Javadoc)
 	 * @see org.sagebionetworks.client.SynapseClient#getOAuth2AuthenticationUrl(org.sagebionetworks.repo.model.oauth.OAuthUrlRequest)
@@ -6235,7 +6242,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException {
 		LoginResponse response = postJSONEntity(getAuthEndpoint(), "/2fa/token", request, LoginResponse.class);
 		setBearerAuthorizationToken(response.getAccessToken());
-		setAcceptsTermsOfUse(response.getAcceptsTermsOfUse());
 		return response;
 	}
 	

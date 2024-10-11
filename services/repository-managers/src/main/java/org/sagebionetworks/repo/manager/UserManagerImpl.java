@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -38,6 +37,7 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -154,19 +154,16 @@ public class UserManagerImpl implements UserManager {
 	
 	@WriteTransaction
 	@Override
-	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, boolean acceptsTermsOfUse)
-			throws NotFoundException {
-		DBOCredential credential = null;
-		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
-		touAgreement.setAgreesToTermsOfUse(acceptsTermsOfUse);
-		return createOrGetTestUser(adminUserInfo, user, credential, touAgreement);
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user) throws NotFoundException {
+		String password = null;
+		boolean signTermsOfService = true;
+		return createOrGetTestUser(adminUserInfo, user, password, signTermsOfService);
 	}
 
 
 	@WriteTransaction
 	@Override
-	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
-			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
+	public UserInfo createOrGetTestUser(UserInfo adminUserInfo, NewUser user, String password, boolean signTermsOfService) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
@@ -176,21 +173,21 @@ public class UserManagerImpl implements UserManager {
 		if (alias==null) {
 			principalId = createUser(user);
 
-			// Update the credentials
-			if (credential == null) {
-				credential = new DBOCredential();
-			}
-			if (credential.getEtag() == null) {
-				credential.setEtag(UUID.randomUUID().toString());
-			}
+			DBOCredential credential = new DBOCredential();
+			credential.setEtag(UUID.randomUUID().toString());
 			credential.setPrincipalId(principalId);
 			credential.setSecretKey(HMACUtils.newHMACSHA1Key());
+			
+			if (password != null) {
+				credential.setPassHash(PBKDF2Utils.hashPassword(password, null));
+			}
+			
 			basicDAO.update(credential);
 
-			if (touAgreement != null) {
-				touAgreement.setPrincipalId(principalId);
-				basicDAO.createOrUpdate(touAgreement);
+			if (signTermsOfService) {
+				authDAO.addTermsOfServiceAgreement(principalId, authDAO.getCurrentTermsOfServiceRequirements().getMinimumTermsOfServiceVersion(), new Date());
 			}
+			
 		} else {
 			principalId = alias.getPrincipalId();
 		}

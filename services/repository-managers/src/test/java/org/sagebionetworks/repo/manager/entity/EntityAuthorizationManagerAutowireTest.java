@@ -51,8 +51,6 @@ import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -110,21 +108,15 @@ public class EntityAuthorizationManagerAutowireTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
-
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userOne = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+		userOne = userManager.createOrGetTestUser(adminUserInfo, nu);
 
 		nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userTwo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+		userTwo = userManager.createOrGetTestUser(adminUserInfo, nu);
 
 		teamOneId = Long.parseLong(userGroupHelper.create(u -> {
 			u.setIsIndividual(false);

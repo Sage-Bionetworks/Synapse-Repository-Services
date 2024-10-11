@@ -38,9 +38,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -65,9 +62,6 @@ public class EntityAclManagerImplTest {
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
 	
-	@Autowired
-	private DBOBasicDao basicDao;
-
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
 	private Node childNode = null;
@@ -96,26 +90,17 @@ public class EntityAclManagerImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
-		
+				
 		// Need two users for this test
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
 		
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherUserInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
-		
-		tou.setPrincipalId(otherUserInfo.getId());
-		basicDao.createOrUpdate(tou);
-		
+		otherUserInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
+				
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
 		

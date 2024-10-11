@@ -76,9 +76,7 @@ public class TimerWorkersConfig {
 		
 		return new WorkerTriggerBuilder()
 			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
-//			.withRepeatInterval(10 * 60 * 1000)
-//			.withStartDelay(10 * 60 * 1000)
-			.withRepeatInterval(10 * 1000)
+			.withRepeatInterval(10 * 60 * 1000)
 			.withStartDelay(10 * 1000)
 			.build();
 		
