@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.utils.github.Release;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
-import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.semver4j.Semver;
@@ -120,17 +119,7 @@ public class TermsOfServiceManager {
 		
 		LOGGER.info("Fetching latest ToS version from github...");
 
-		Release latestRelease;
-
-		try {
-			latestRelease = githubClient.getLatestRelease(ORG, REPO);
-		} catch (GithubApiException e) {
-			LOGGER.error("Could not fetch latest ToS version: ", e);
-			if (e.getResponseBody() != null || e.getStatus() != null) {
-				LOGGER.error("Response from github was: {} (status: {})", e.getResponseBody(), e.getStatus());
-			}
-			throw e;
-		}
+		Release latestRelease = githubClient.getLatestRelease(ORG, REPO);
 		
 		Semver version = parseSemver(latestRelease.getTag_name());
 

@@ -54,7 +54,7 @@ public class GithubApiClientImpl implements GithubApiClient {
 		HttpStatus status = HttpStatus.resolve(response.statusCode());
 		
 		if (!HttpStatus.OK.equals(status)) {
-			throw new GithubApiException("The request failed.", status, response.body());
+			throw new GithubApiException(String.format("The request failed with status %s (Response: %s).", status, response.body()));
 		}
 		
 		return response;

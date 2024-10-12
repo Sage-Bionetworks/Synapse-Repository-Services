@@ -133,13 +133,10 @@ public class GithubApiClientImplTest {
 		Throwable ex = null;
 		
 		// Call under test
-		GithubApiException result = assertThrows(GithubApiException.class, () -> {
+		assertEquals("The request failed with status 404 NOT_FOUND (Response: body).", assertThrows(GithubApiException.class, () -> {
 			// Call under test
 			GithubApiClientImpl.RESPONSE_HANDLER.apply(mockResponse, ex);
-		});
-		
-		assertEquals(HttpStatus.NOT_FOUND, result.getStatus());
-		assertEquals("body", result.getResponseBody());
+		}).getMessage());
 	}
 	
 	@Test

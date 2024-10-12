@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.util.github.GithubApiClient;
 import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
 import org.semver4j.Semver;
-import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 public class TermsOfServiceManagerTest {
@@ -375,7 +374,7 @@ public class TermsOfServiceManagerTest {
 	@Test
 	public void testRefreshLatestVersionWithGithubApiException() {
 		
-		GithubApiException ex = new GithubApiException("failed", HttpStatus.BAD_GATEWAY, "bad");
+		GithubApiException ex = new GithubApiException("failed");
 		
 		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenThrow(ex);
 		
