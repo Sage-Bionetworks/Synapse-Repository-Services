@@ -177,7 +177,7 @@ public class DBOAuthenticationDAOImplTest {
 			if (agg instanceof BootstrapUser && !AuthorizationUtils.isUserAnonymous(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
-				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();
+				basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();
 			}
 		}
 		
@@ -267,15 +267,14 @@ public class DBOAuthenticationDAOImplTest {
 		
 		assertEquals(nextVersion, authDAO.getCurrentTermsOfServiceRequirements());
 		
-		assertEquals("A TOS requirement with the 1.0.0 minimum version already exists.", assertThrows(IllegalArgumentException.class, () -> {			
-			authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate());
-		}).getMessage());
-		
 		nextVersion.setMinimumTermsOfServiceVersion("2.0.0");
 		
 		assertEquals(nextVersion, authDAO.setCurrentTermsOfServiceRequirements(userId, nextVersion.getMinimumTermsOfServiceVersion(), nextVersion.getRequirementDate()));
 		
 		assertEquals(nextVersion, authDAO.getCurrentTermsOfServiceRequirements());
+		
+		// We allow to revert back to previous versions
+		assertEquals(nextVersion.setMinimumTermsOfServiceVersion("1.0.0"), authDAO.setCurrentTermsOfServiceRequirements(userId, "1.0.0", nextVersion.getRequirementDate()));
 	}
 
 	@Test

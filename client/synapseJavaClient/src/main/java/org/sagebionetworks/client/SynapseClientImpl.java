@@ -125,6 +125,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
@@ -4544,6 +4545,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public TermsOfServiceInfo getTermsOfServiceInfo() throws SynapseException {
 		return getJSONEntity(getAuthEndpoint(), TERMS_OF_USE_V2 + "/info", TermsOfServiceInfo.class);
+	}
+	
+	@Override
+	public TermsOfServiceInfo updateTermsOfServiceRequirements(TermsOfServiceRequirements requirements) throws SynapseException {
+		return putJSONEntity(getAuthEndpoint(), TERMS_OF_USE_V2 + "/requirements", requirements, TermsOfServiceInfo.class);
 	}
 	
 	@Override

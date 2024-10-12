@@ -6,6 +6,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
@@ -109,6 +111,27 @@ public class TermsOfServiceManager {
 		}
 		
 		return status;
+	}
+	
+	@WriteTransaction
+	public TermsOfServiceInfo updateTermsOfServiceRequirements(UserInfo userInfo, TermsOfServiceRequirements requirements) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(requirements, "The requirements");
+		ValidateArgument.required(requirements.getRequirementDate(), "The requirement date");
+		ValidateArgument.required(requirements.getMinimumTermsOfServiceVersion(), "The minimum version");
+		
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only an ACT member or an administrator can perform this operation.");
+		}
+		
+		Semver minVersion = parseSemver(requirements.getMinimumTermsOfServiceVersion());
+		Semver latestVersion = refreshLatestVersion();
+		
+		ValidateArgument.requirement(minVersion.isLowerThanOrEqualTo(latestVersion), "The minium version cannot be greater than the latest available version.");
+		
+		authDao.setCurrentTermsOfServiceRequirements(userInfo.getId(), minVersion.getVersion(), requirements.getRequirementDate());
+		
+		return getTermsOfServiceInfo();
 	}
 	
 	public boolean hasUserAcceptedTermsOfService(long userId) {

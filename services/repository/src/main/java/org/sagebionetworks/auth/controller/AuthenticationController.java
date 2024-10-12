@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -232,6 +233,20 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/status", method = RequestMethod.GET)
 	public @ResponseBody TermsOfServiceStatus getUserTermsOfServiceStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
 		return authenticationService.getUserTermsOfServiceStatus(userId);
+	}
+	
+	/**
+	 * Updates the terms of service requirements. Only an administrator can perform this operation.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/requirements", method = RequestMethod.PUT)
+	public @ResponseBody TermsOfServiceInfo updateTermsOfServiceRequirement(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody TermsOfServiceRequirements request) {
+		return authenticationService.updateTermsOfServiceRequirements(userId, request);
 	}
 
 	/**

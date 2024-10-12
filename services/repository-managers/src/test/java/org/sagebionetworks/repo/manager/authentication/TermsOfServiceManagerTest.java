@@ -28,6 +28,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
@@ -62,10 +64,12 @@ public class TermsOfServiceManagerTest {
 	private TermsOfServiceRequirements mockRequirements;
 	
 	private long userId;
+	private UserInfo adminUser;
 	
 	@BeforeEach
 	public void beforeEach() {
 		userId = 123;
+		adminUser = new UserInfo(true, 1L);
 	}
 	
 	@Test
@@ -339,6 +343,135 @@ public class TermsOfServiceManagerTest {
 		
 		// Call under test
 		assertEquals(!TermsOfServiceState.MUST_AGREE_NOW.equals(userTosState), managerSpy.hasUserAcceptedTermsOfService(userId));
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirements() {
+		TermsOfServiceManager managerSpy = Mockito.spy(manager);
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("1.0.0")
+			.setRequirementDate(new Date());
+		
+		TermsOfServiceInfo info = new TermsOfServiceInfo().setCurrentRequirements(requirements);
+		
+		doReturn(new Semver("1.0.0")).when(managerSpy).refreshLatestVersion();
+		doReturn(info).when(managerSpy).getTermsOfServiceInfo();
+		
+		// Call under test
+		assertEquals(info, managerSpy.updateTermsOfServiceRequirements(adminUser, requirements));
+		
+		verify(mockAuthDao).setCurrentTermsOfServiceRequirements(adminUser.getId(), requirements.getMinimumTermsOfServiceVersion(), requirements.getRequirementDate());
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithVersionGreaterThanLatest() {
+		TermsOfServiceManager managerSpy = Mockito.spy(manager);
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("1.0.0")
+			.setRequirementDate(new Date());
+		
+		doReturn(new Semver("0.0.0")).when(managerSpy).refreshLatestVersion();
+		
+		assertEquals("The minium version cannot be greater than the latest available version.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			managerSpy.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@ParameterizedTest
+	@MethodSource("unsupportedSemanticVersions")
+	public void testUpdateTermsOfServiceRequirementsWithInvalidVersion(String version, String expectedMessage) {
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion(version)
+			.setRequirementDate(new Date());
+		
+		assertEquals(expectedMessage, assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithUserNotAdmin() {
+		
+		adminUser = new UserInfo(false, 123L);
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+				.setMinimumTermsOfServiceVersion("1.0.0")
+				.setRequirementDate(new Date());
+		
+		assertEquals("Only an ACT member or an administrator can perform this operation.", assertThrows(UnauthorizedException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithNoUser() {
+		
+		adminUser = null;
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+				.setMinimumTermsOfServiceVersion("1.0.0")
+				.setRequirementDate(new Date());
+		
+		assertEquals("The user is required.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithNoRequirements() {
+		
+		TermsOfServiceRequirements requirements = null;
+		
+		assertEquals("The requirements is required.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithNoDate() {
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+				.setMinimumTermsOfServiceVersion("1.0.0")
+				.setRequirementDate(null);
+		
+		assertEquals("The requirement date is required.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirementsWithNoVersion() {
+		
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+				.setMinimumTermsOfServiceVersion("")
+				.setRequirementDate(new Date());
+		
+		assertEquals("The version is required and must not be the empty string.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.updateTermsOfServiceRequirements(adminUser, requirements);
+		}).getMessage());
+
+		verifyZeroInteractions(mockAuthDao);
 	}
 		
 	@Test

@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
@@ -112,6 +113,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId) {
 		return tosManager.getUserTermsOfServiceStatus(userId);
+	}
+	
+	@Override
+	public TermsOfServiceInfo updateTermsOfServiceRequirements(Long userId, TermsOfServiceRequirements request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return tosManager.updateTermsOfServiceRequirements(user, request);
 	}
 	
 	@Override
