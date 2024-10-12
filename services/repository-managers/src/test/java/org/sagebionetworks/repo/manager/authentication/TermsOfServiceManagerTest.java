@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -13,13 +12,16 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.utils.github.Release;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
 import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
+import org.semver4j.Semver;
 import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,7 +73,7 @@ public class TermsOfServiceManagerTest {
 	public void testInitialize() {
 		TermsOfServiceManager managerSpy = Mockito.spy(manager);
 		
-		doNothing().when(managerSpy).refreshLatestVersion();
+		doReturn(new Semver("1.0.0")).when(managerSpy).refreshLatestVersion();
 		
 		// Call under test
 		managerSpy.initialize();
@@ -88,11 +91,11 @@ public class TermsOfServiceManagerTest {
 			.setCurrentRequirements(mockRequirements);
 		
 		// Call under test
-		assertEquals(expected, manager.getTermsOfUseInfo());
+		assertEquals(expected, manager.getTermsOfServiceInfo());
 	}
 	
 	@Test
-	public void signTermsOfService() {
+	public void testSignTermsOfService() {
 		
 		Date now = new Date();
 		
@@ -109,7 +112,7 @@ public class TermsOfServiceManagerTest {
 	}
 	
 	@Test
-	public void signTermsOfServiceWithNoVersion() {
+	public void testSignTermsOfServiceWithNoVersion() {
 		
 		Date now = new Date();
 		
@@ -126,7 +129,7 @@ public class TermsOfServiceManagerTest {
 	}
 	
 	@Test
-	public void signTermsOfServiceWithVersionLowerThanRequired() {
+	public void testSignTermsOfServiceWithVersionLowerThanRequired() {
 		
 		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("2.0.0");
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
@@ -142,7 +145,7 @@ public class TermsOfServiceManagerTest {
 	}
 
 	@Test
-	public void signTermsOfServiceWithVersionGreaterThanLatest() {
+	public void testSignTermsOfServiceWithVersionGreaterThanLatest() {
 		
 		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("1.0.0");
 			
@@ -154,17 +157,13 @@ public class TermsOfServiceManagerTest {
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 		
-	@Test
-	public void signTermsOfServiceWithInvalidVersion() {
+	@ParameterizedTest
+	@MethodSource("unsupportedSemanticVersions")
+	public void testSignTermsOfServiceWithInvalidVersion(String version, String expectedMessage) {
 				
-		assertEquals("Unsupported version format.", assertThrows(IllegalArgumentException.class, () -> {			
+		assertEquals(expectedMessage, assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.signTermsOfService(userId, "1.0.0-alpha");
-		}).getMessage());
-		
-		assertEquals("Unsupported version format.", assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.signTermsOfService(userId, "1.0.0+abcd");
+			manager.signTermsOfService(userId, version);
 		}).getMessage());
 		
 		verifyNoMoreInteractions(mockAuthDao);
@@ -172,7 +171,7 @@ public class TermsOfServiceManagerTest {
 	
 	@ParameterizedTest
 	@EnumSource(BOOTSTRAP_PRINCIPAL.class)
-	public void signTermsOfServiceWithBootstrapUser(BOOTSTRAP_PRINCIPAL principal) {
+	public void testSignTermsOfServiceWithBootstrapUser(BOOTSTRAP_PRINCIPAL principal) {
 		userId = principal.getPrincipalId();
 		
 		assertEquals("The given user cannot sign the terms of service.", assertThrows(IllegalArgumentException.class, () -> {
@@ -351,28 +350,21 @@ public class TermsOfServiceManagerTest {
 		);
 		
 		// Call under test
-		manager.refreshLatestVersion();
+		assertEquals(new Semver("1.0.0"), manager.refreshLatestVersion());
 		
 		verify(mockAuthDao).setTermsOfServiceLatestVersion("1.0.0");
 	}
 	
-	@Test
-	public void testRefreshLatestVersionWithUnsupportedFormat() {
+	@ParameterizedTest
+	@MethodSource("unsupportedSemanticVersions")
+	public void testRefreshLatestVersionWithUnsupportedFormat(String version, String expectedMessage) {
 		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(
 			new Release()
 				.setName("Latest")
-				.setTag_name("1.0.0-beta"),
-			new Release()
-				.setName("Latest")
-				.setTag_name("1.0.0+abcd")
+				.setTag_name(version)
 		);
 		
-		assertEquals("Unsupported version format.", assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.refreshLatestVersion();
-		}).getMessage());
-		
-		assertEquals("Unsupported version format.", assertThrows(IllegalArgumentException.class, () -> {			
+		assertEquals(expectedMessage, assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
 			manager.refreshLatestVersion();
 		}).getMessage());
@@ -395,4 +387,11 @@ public class TermsOfServiceManagerTest {
 		verifyZeroInteractions(mockAuthDao);
 	}
 	
+	static Stream<Arguments> unsupportedSemanticVersions() {
+		return Stream.of(
+			Arguments.of("1.0.0-beta", "Unsupported version format: should not include pre-release or build metadata."), 
+			Arguments.of("1.0.0+abcd", "Unsupported version format: should not include pre-release or build metadata."), 
+			Arguments.of("1.0", "Version [1.0] is not valid semver.")
+		);
+	}
 }

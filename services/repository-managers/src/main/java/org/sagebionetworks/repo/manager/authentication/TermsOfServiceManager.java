@@ -50,7 +50,7 @@ public class TermsOfServiceManager {
 	/**
 	 * @return The information about the current terms of service and requirements
 	 */
-	public TermsOfServiceInfo getTermsOfUseInfo() {
+	public TermsOfServiceInfo getTermsOfServiceInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 
 		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements());
@@ -67,7 +67,7 @@ public class TermsOfServiceManager {
 	public void signTermsOfService(long principalId, String termsOfServiceVersion) {
 		ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(principalId), "The given user cannot sign the terms of service.");
 		
-		Semver versionToSign = validateSemver(new Semver(termsOfServiceVersion == null ? AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion() : termsOfServiceVersion));
+		Semver versionToSign = parseSemver(termsOfServiceVersion == null ? AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion() : termsOfServiceVersion);
 		Semver latestVersion = new Semver(authDao.getTermsOfServiceLatestVersion());
 		
 		ValidateArgument.requirement(versionToSign.isLowerThanOrEqualTo(latestVersion),
@@ -116,7 +116,7 @@ public class TermsOfServiceManager {
 		return !TermsOfServiceState.MUST_AGREE_NOW.equals(getUserTermsOfServiceStatus(userId).getUserCurrentTermsOfServiceState());
 	}
 
-	public void refreshLatestVersion() {
+	public Semver refreshLatestVersion() {
 		
 		LOGGER.info("Fetching latest ToS version from github...");
 
@@ -132,17 +132,21 @@ public class TermsOfServiceManager {
 			throw e;
 		}
 		
-		Semver version = validateSemver(new Semver(latestRelease.getTag_name()));
+		Semver version = parseSemver(latestRelease.getTag_name());
 
 		authDao.setTermsOfServiceLatestVersion(version.getVersion());
 
 		LOGGER.info("Fetching latest ToS version from github...DONE (Name: {}, Tag: {})", latestRelease.getName(),
 				latestRelease.getTag_name());
+		
+		return version;
 	}
 	
-	private static Semver validateSemver(Semver version) {
-		ValidateArgument.requirement(version.getPreRelease().isEmpty() && version.getBuild().isEmpty(), "Unsupported version format.");
-		return version;
+	private static Semver parseSemver(String version) {
+		ValidateArgument.requiredNotBlank(version, "The version");
+		Semver parsedVersion = new Semver(version);
+		ValidateArgument.requirement(parsedVersion.getPreRelease().isEmpty() && parsedVersion.getBuild().isEmpty(), "Unsupported version format: should not include pre-release or build metadata.");
+		return parsedVersion;
 	}
 
 }

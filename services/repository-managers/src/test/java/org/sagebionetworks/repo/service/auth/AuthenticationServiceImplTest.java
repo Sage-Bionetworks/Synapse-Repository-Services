@@ -157,7 +157,7 @@ public class AuthenticationServiceImplTest {
 	public void testGetTermsOfServiceInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 		
-		when(mockTosManager.getTermsOfUseInfo()).thenReturn(tosInfo);
+		when(mockTosManager.getTermsOfServiceInfo()).thenReturn(tosInfo);
 		
 		assertEquals(tosInfo, service.getTermsOfServiceInfo());
 	}

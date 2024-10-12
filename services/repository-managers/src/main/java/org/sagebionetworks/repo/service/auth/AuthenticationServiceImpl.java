@@ -106,7 +106,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public TermsOfServiceInfo getTermsOfServiceInfo() {
-		return tosManager.getTermsOfUseInfo();
+		return tosManager.getTermsOfServiceInfo();
 	}
 	
 	@Override
