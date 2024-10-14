@@ -48,7 +48,6 @@ public class EmailListSender {
 	private static final Logger LOG = LogManager.getLogger(EmailListSender.class);
 	
 	private static final String SENT_TABLE_NAME = "EMAIL_LIST_JOB_SENT";
-	private static final String SENDER = "Synapse<noreply@synapse.org>";
 		
 	// SES suggest to stay under 5%
 	private static final double BOUNCE_THRESHOLD = 0.04;
@@ -85,7 +84,7 @@ public class EmailListSender {
 		this.monitorReputation();
 	}
 	
-	public void start(String emailCsvFile, String subject, String emailTemplatePath, boolean doSend) throws IOException {
+	public void start(String emailCsvFile, String from, String subject, String emailTemplatePath, boolean doSend) throws IOException {
 		if (!doSend) {
 			LOG.warn("Testing mode enabled: emails won't be delivered.");
 		}
@@ -124,7 +123,7 @@ public class EmailListSender {
 				
 				if (doSend) {
 					SendEmailRequest request = new SendEmailRequest()
-						.withSource(SENDER)
+						.withSource(from)
 						.withDestination(new Destination().withToAddresses(email))
 						.withMessage(new Message()
 							.withSubject(new Content().withData(subject))
@@ -263,7 +262,7 @@ public class EmailListSender {
 			stop = checkReputationRate("BounceRate", BOUNCE_THRESHOLD);
 			stop = checkReputationRate("ComplaintRate", COMPLAINT_THRESHOLD);
 			
-		}, 0, 60, TimeUnit.SECONDS);
+		}, 0, 15, TimeUnit.SECONDS);
 	}
 	
 	private boolean checkReputationRate(String which, double threshold) {
