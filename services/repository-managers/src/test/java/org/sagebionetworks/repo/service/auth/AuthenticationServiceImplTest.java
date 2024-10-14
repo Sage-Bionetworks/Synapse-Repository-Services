@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -123,25 +124,51 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testSignTermsOfUse() {
-		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest();
-		request.setAccessToken(ACCESS_TOKEN);
+	public void testSignTermsOfService() {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(ACCESS_TOKEN)
+			.setTermsOfServiceVersion("1.0.0");
+		
 		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
 		
 		// method under test
-		service.signTermsOfUse(request);
+		service.signTermsOfService(request);
 		
 		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
-		verify(mockAuthenticationManager).signTermsOfUser(userId);
+		verify(mockTosManager).signTermsOfService(userId, "1.0.0");
 	}
 	
 	@Test
-	public void testGetTermsOfUseInfo() {
+	public void testSignTermsOfServiceWithoutVersion() {
+		TermsOfServiceSignRequest request = new TermsOfServiceSignRequest()
+			.setAccessToken(ACCESS_TOKEN)
+			.setTermsOfServiceVersion(null);
+		
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
+		
+		// method under test
+		service.signTermsOfService(request);
+		
+		verify(mockOidcManager).validateAccessToken(ACCESS_TOKEN);
+		verify(mockTosManager).signTermsOfService(userId, null);
+	}
+	
+	@Test
+	public void testGetTermsOfServiceInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
 		
-		when(mockTosManager.getTermsOfUseInfo()).thenReturn(tosInfo);
+		when(mockTosManager.getTermsOfServiceInfo()).thenReturn(tosInfo);
 		
-		assertEquals(tosInfo, service.getTermsOfUseInfo());
+		assertEquals(tosInfo, service.getTermsOfServiceInfo());
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatus() {
+		TermsOfServiceStatus status = new TermsOfServiceStatus();
+		
+		when(mockTosManager.getUserTermsOfServiceStatus(userId)).thenReturn(status);
+		
+		assertEquals(status, service.getUserTermsOfServiceStatus(userId));
 	}
 	
 	@Test
@@ -639,15 +666,11 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
-	public void testHasUserAcceptedTermsOfUseJWT() {
-		when(mockAuthenticationManager.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
+	public void testHasUserAcceptedTermsOfService() {
+		when(mockTosManager.hasUserAcceptedTermsOfService(userId)).thenReturn(true);
 		
 		// method under test
-		assertTrue(service.hasUserAcceptedTermsOfUse(userId));
-		
-		verify(mockAuthenticationManager).hasUserAcceptedTermsOfUse(userId);
-
-		
+		assertTrue(service.hasUserAcceptedTermsOfService(userId));		
 	}
 	
 	@Test

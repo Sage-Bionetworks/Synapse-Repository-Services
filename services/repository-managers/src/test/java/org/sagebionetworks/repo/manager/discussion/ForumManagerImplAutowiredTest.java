@@ -17,8 +17,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.discussion.Forum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,18 +38,14 @@ public class ForumManagerImplAutowiredTest {
 
 	@BeforeEach
 	public void before() {
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserInfo.validateUserInfo(adminUserInfo);
 
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 
 		Node newNode = new Node();

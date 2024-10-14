@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -40,7 +41,7 @@ public interface AuthenticationService {
 	/**
 	 * Identifies a user via access token and signs that user's terms of use
 	 */
-	void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException;
+	void signTermsOfService(TermsOfServiceSignRequest signRequest) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -64,7 +65,7 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException;
+	boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException;
 
 	/**
 	 * Sends a password reset email to the user identified by the given alias (username or email)
@@ -211,6 +212,8 @@ public interface AuthenticationService {
 	 */
 	void revokeAllSessionAccessTokens(Long userId, Long targetUserId);
 
-	TermsOfServiceInfo getTermsOfUseInfo();
+	TermsOfServiceInfo getTermsOfServiceInfo();
+	
+	TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId);
 
 }

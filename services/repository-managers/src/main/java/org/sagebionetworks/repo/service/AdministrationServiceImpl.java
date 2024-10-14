@@ -23,8 +23,6 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -39,7 +37,6 @@ import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -162,18 +159,18 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		adminCheck(userId);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
-		DBOCredential cred = new DBOCredential();
 		if (userSpecs.getPassword() != null) {
 			passwordValidator.validatePassword(userSpecs.getPassword());
-			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
-
-		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
-		touAgreement.setAgreesToTermsOfUse(userSpecs.getTou());
+		
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, cred, touAgreement);
+		
+		// If null, do not sign
+		boolean signTermsOfService = Boolean.TRUE.equals(userSpecs.getTou());
+		
+		UserInfo createdUser = userManager.createOrGetTestUser(userInfo, nu, userSpecs.getPassword(), signTermsOfService);
 
 		if (Boolean.TRUE.equals(userSpecs.getValidatedUser())) {
 			VerificationSubmission submission = new VerificationSubmission()

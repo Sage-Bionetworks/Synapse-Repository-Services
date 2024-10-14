@@ -103,7 +103,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@xx.com");
 		boolean acceptsTermsOfUse = true;
-		userId = userManager.createOrGetTestUser(adminUserInfo, user, acceptsTermsOfUse).getId();
+		userId = userManager.createOrGetTestUser(adminUserInfo, user).getId();
 		boolean isCertified = true;
 		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, isCertified);
 		userInfo = userManager.getUserInfo(userId);

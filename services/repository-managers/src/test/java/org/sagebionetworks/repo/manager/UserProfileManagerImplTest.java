@@ -83,7 +83,6 @@ public class UserProfileManagerImplTest {
 		user.setUserName(USER_NAME);
 		userId = userManager.createUser(user);
 		userInfo = userManager.getUserInfo(userId);
-		userInfo.setAcceptsTermsOfUse(true);
 		usersToDelete.add(userId);
 
 		user = new NewUser();

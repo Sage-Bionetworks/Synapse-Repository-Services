@@ -26,8 +26,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistory;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
@@ -106,21 +104,17 @@ public class OAuthRefreshTokenManagerAutowiredTest {
 
 		// Create two users
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
+
 		NewUser nu1 = new NewUser();
 		nu1.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu1.setUserName(UUID.randomUUID().toString());
-
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-
+		
 		NewUser nu2 = new NewUser();
 		nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu2.setUserName(UUID.randomUUID().toString());
 
-		user1 = userManager.createOrGetTestUser(adminUserInfo, nu1, cred, tou);
-		user2 = userManager.createOrGetTestUser(adminUserInfo, nu2, cred, tou);
+		user1 = userManager.createOrGetTestUser(adminUserInfo, nu1);
+		user2 = userManager.createOrGetTestUser(adminUserInfo, nu2);
 
 		// Create two clients
 		client1 = createOAuthClient(user1, CLIENT_1_NAME, CLIENT_1_URI);

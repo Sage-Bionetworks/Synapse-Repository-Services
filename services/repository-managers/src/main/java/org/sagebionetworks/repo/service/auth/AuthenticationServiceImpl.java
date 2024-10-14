@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -93,19 +94,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@WriteTransaction
-	public void signTermsOfUse(TermsOfServiceSignRequest signRequest) throws NotFoundException {
+	public void signTermsOfService(TermsOfServiceSignRequest signRequest) throws NotFoundException {
 		ValidateArgument.required(signRequest, "The request");
 		ValidateArgument.required(signRequest.getAccessToken(), "Access token contents");
 		
 		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()));
 		
 		// Save the state of acceptance
-		authManager.signTermsOfUser(principalId);
+		tosManager.signTermsOfService(principalId, signRequest.getTermsOfServiceVersion());
 	}
 	
 	@Override
-	public TermsOfServiceInfo getTermsOfUseInfo() {
-		return tosManager.getTermsOfUseInfo();
+	public TermsOfServiceInfo getTermsOfServiceInfo() {
+		return tosManager.getTermsOfServiceInfo();
+	}
+	
+	@Override
+	public TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId) {
+		return tosManager.getUserTermsOfServiceStatus(userId);
 	}
 	
 	@Override
@@ -120,8 +126,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
-		return authManager.hasUserAcceptedTermsOfUse(userId);
+	public boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException {
+		return tosManager.hasUserAcceptedTermsOfService(userId);
 	}
 
 	@Override

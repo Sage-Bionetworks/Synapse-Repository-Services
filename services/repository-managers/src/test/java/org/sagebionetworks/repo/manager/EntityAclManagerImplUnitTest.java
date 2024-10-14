@@ -110,12 +110,10 @@ public class EntityAclManagerImplUnitTest {
 		nonCertifiedUserInfo = new UserInfo(false);
 		nonCertifiedUserInfo.setId(765432L);
 		nonCertifiedUserInfo.setGroups(Collections.singleton(9999L));
-		nonCertifiedUserInfo.setAcceptsTermsOfUse(true);
 
 		certifiedUserInfo = new UserInfo(false);
 		certifiedUserInfo.setId(1234567L);
 		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
-		certifiedUserInfo.setAcceptsTermsOfUse(true);
 
     	userId = 111L;
     	

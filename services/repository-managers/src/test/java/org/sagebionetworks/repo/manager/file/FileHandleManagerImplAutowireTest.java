@@ -133,7 +133,6 @@ public class FileHandleManagerImplAutowireTest {
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo.setAcceptsTermsOfUse(true);
 
 		user = new NewUser();
 		username2 = UUID.randomUUID().toString();
@@ -141,7 +140,6 @@ public class FileHandleManagerImplAutowireTest {
 		user.setUserName(username2);
 		userInfo2 = userManager.getUserInfo(userManager.createUser(user));
 		userInfo2.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo2.setAcceptsTermsOfUse(true);
 		
 		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		anonymousUserInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));

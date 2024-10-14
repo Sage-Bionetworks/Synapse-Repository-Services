@@ -25,8 +25,6 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.helper.MessageToUserObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -65,14 +63,12 @@ public class PersonalAccessTokenManagerAutowiredTest {
 	void beforeEach() {
 		// Create an admin user and a regular user
 		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
+		
 		NewUser newUser = new NewUser();
 		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");
 		newUser.setUserName(UUID.randomUUID().toString());
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, newUser, cred, tou);
+		
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, newUser);
 
 		tokenIdsToDelete = new ArrayList<>();
 		

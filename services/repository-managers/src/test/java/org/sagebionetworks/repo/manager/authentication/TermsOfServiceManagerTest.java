@@ -1,49 +1,56 @@
 package org.sagebionetworks.repo.manager.authentication;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.utils.github.Release;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
 import org.sagebionetworks.repo.util.github.GithubApiException;
 import org.sagebionetworks.util.Clock;
-import org.springframework.http.HttpStatus;
-
-import com.google.common.util.concurrent.ExecutionError;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.semver4j.Semver;
 
 @ExtendWith(MockitoExtension.class)
 public class TermsOfServiceManagerTest {
-	
-	private static String INITIAL_LATEST_VERSION = "0.0.0";
 	
 	@Mock
 	private AuthenticationDAO mockAuthDao;
 	
 	@Mock
 	private GithubApiClient mockGithubClient;
+	
+	@Mock
+	private CountingSemaphore mockCountingSemaphore;
 	
 	@Mock
 	private Clock mockClock;
@@ -54,24 +61,28 @@ public class TermsOfServiceManagerTest {
 	@Mock
 	private TermsOfServiceRequirements mockRequirements;
 	
-	private Release release;
+	private long userId;
 	
 	@BeforeEach
 	public void beforeEach() {
-		release = new Release()
-			.setId(123L)
-			.setName("Latest Release")
-			.setTag_name(INITIAL_LATEST_VERSION);
+		userId = 123;
+	}
+	
+	@Test
+	public void testInitialize() {
+		TermsOfServiceManager managerSpy = Mockito.spy(manager);
+		
+		doReturn(new Semver("1.0.0")).when(managerSpy).refreshLatestVersion();
+		
+		// Call under test
+		managerSpy.initialize();
 	}
 	
 	@Test
 	public void testGetTermsOfUseInfo() {
 		
-		var managerSpy = Mockito.spy(manager);
-		
-		doReturn("2.0.0").when(managerSpy).getLatestVersion();
-		
-		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.of(mockRequirements));
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(mockRequirements);
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("2.0.0");
 		
 		TermsOfServiceInfo expected = new TermsOfServiceInfo()
 			.setLatestTermsOfServiceVersion("2.0.0")
@@ -79,151 +90,307 @@ public class TermsOfServiceManagerTest {
 			.setCurrentRequirements(mockRequirements);
 		
 		// Call under test
-		assertEquals(expected, managerSpy.getTermsOfUseInfo());
+		assertEquals(expected, manager.getTermsOfServiceInfo());
 	}
 	
 	@Test
-	public void testGetTermsOfUseInfoWithNoData() {
+	public void testSignTermsOfService() {
 		
-		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(Optional.empty());
+		Date now = new Date();
 		
-		assertEquals("Terms of Service requirements not initialized.", assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			manager.getTermsOfUseInfo();
-		}).getMessage());
-	}
-	
-	@Test
-	public void testInitialize() {
+		when(mockClock.now()).thenReturn(now);
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("1.0.0");
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("1.0.0")
+		);
 		
-		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(release);
-				
 		// Call under test
-		manager.initialize();
+		manager.signTermsOfService(userId, "1.0.0");
 		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
-		
+		verify(mockAuthDao).addTermsOfServiceAgreement(userId, "1.0.0", now);
 	}
 	
 	@Test
-	public void testInitializeWithException() {
-		RuntimeException ex = new RuntimeException("failed");
+	public void testSignTermsOfServiceWithNoVersion() {
+		
+		Date now = new Date();
+		
+		when(mockClock.now()).thenReturn(now);
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("1.0.0");
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(
+			AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS
+		);
+		
+		// Call under test
+		manager.signTermsOfService(userId, null);
+		
+		verify(mockAuthDao).addTermsOfServiceAgreement(userId, AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion(), now);
+	}
+	
+	@Test
+	public void testSignTermsOfServiceWithVersionLowerThanRequired() {
+		
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("2.0.0");
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("1.0.0")
+		);
+		
+		assertEquals("The version cannot be lower than the current required version (1.0.0).", assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.signTermsOfService(userId, "0.0.0");
+		}).getMessage());
+
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+
+	@Test
+	public void testSignTermsOfServiceWithVersionGreaterThanLatest() {
+		
+		when(mockAuthDao.getTermsOfServiceLatestVersion()).thenReturn("1.0.0");
+			
+		assertEquals("The version cannot be greater than the latest available version (1.0.0).", assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.signTermsOfService(userId, "2.0.0");
+		}).getMessage());
+
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+		
+	@ParameterizedTest
+	@MethodSource("unsupportedSemanticVersions")
+	public void testSignTermsOfServiceWithInvalidVersion(String version, String expectedMessage) {
+				
+		assertEquals(expectedMessage, assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.signTermsOfService(userId, version);
+		}).getMessage());
+		
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(BOOTSTRAP_PRINCIPAL.class)
+	public void testSignTermsOfServiceWithBootstrapUser(BOOTSTRAP_PRINCIPAL principal) {
+		userId = principal.getPrincipalId();
+		
+		assertEquals("The given user cannot sign the terms of service.", assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.signTermsOfService(userId, "2.0.0");
+		}).getMessage());
+
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatus() {
+		Date agreementDate = new Date();
+		
+		when(mockAuthDao.getLatestTermsOfServiceAgreement(userId)).thenReturn(Optional.of(new TermsOfServiceAgreement()
+			.setAgreedOn(agreementDate)
+			.setVersion("1.0.0")
+		));
+		
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setRequirementDate(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
+			.setMinimumTermsOfServiceVersion("1.0.0")
+		);		
+		
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setLastAgreementDate(agreementDate)
+			.setLastAgreementVersion("1.0.0")
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
+		
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatusWithNoAgreement() {
+		when(mockAuthDao.getLatestTermsOfServiceAgreement(userId)).thenReturn(Optional.empty());
+				
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setLastAgreementDate(null)
+			.setLastAgreementVersion(null)
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
+		
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatusWithVersionHigherThanRequirements() {
+		Date agreementDate = new Date();
+		
+		when(mockAuthDao.getLatestTermsOfServiceAgreement(userId)).thenReturn(Optional.of(new TermsOfServiceAgreement()
+			.setAgreedOn(agreementDate)
+			.setVersion("1.0.0")
+		));
+		
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setMinimumTermsOfServiceVersion("0.0.0")
+		);		
+		
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setLastAgreementDate(agreementDate)
+			.setLastAgreementVersion("1.0.0")
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
+		
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatusWithUpcomingRequirements() {
+		when(mockClock.now()).thenReturn(new Date());
+		
+		Date agreementDate = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+		
+		when(mockAuthDao.getLatestTermsOfServiceAgreement(userId)).thenReturn(Optional.of(new TermsOfServiceAgreement()
+			.setAgreedOn(agreementDate)
+			.setVersion("1.0.0")
+		));
+		
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setRequirementDate(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
+			.setMinimumTermsOfServiceVersion("2.0.0")
+		);		
+		
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setLastAgreementDate(agreementDate)
+			.setLastAgreementVersion("1.0.0")
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_SOON);
+		
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatusWithOutdatedVersion() {
+		when(mockClock.now()).thenReturn(new Date());
+		
+		Date agreementDate = Date.from(Instant.now().minus(30, ChronoUnit.DAYS));
+		
+		when(mockAuthDao.getLatestTermsOfServiceAgreement(userId)).thenReturn(Optional.of(new TermsOfServiceAgreement()
+			.setAgreedOn(agreementDate)
+			.setVersion("1.0.0")
+		));
+		
+		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(new TermsOfServiceRequirements()
+			.setRequirementDate(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
+			.setMinimumTermsOfServiceVersion("2.0.0")
+		);		
+		
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setLastAgreementDate(agreementDate)
+			.setLastAgreementVersion("1.0.0")
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
+		
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatusWithAnonymousUser() {
+		userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		
+		assertEquals("Cannot get terms of service status for the anonymous user.", assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.getUserTermsOfServiceStatus(userId);
+		}).getMessage());
+		
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(mode = Mode.EXCLUDE, value = BOOTSTRAP_PRINCIPAL.class, names = {"ANONYMOUS_USER"})
+	public void testGetUserTermsOfServiceStatusWithBootstrapPrincipals(BOOTSTRAP_PRINCIPAL principal) {
+		userId = principal.getPrincipalId();
+		
+		TermsOfServiceStatus expected = new TermsOfServiceStatus()
+				.setUserId(String.valueOf(userId))
+				.setLastAgreementDate(null)
+				.setLastAgreementVersion(null)
+				.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
+
+		// Call under test
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		
+		verifyNoMoreInteractions(mockAuthDao);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(value = TermsOfServiceState.class)
+	public void testHasUserAcceptedTermsOfService(TermsOfServiceState userTosState) {
+		TermsOfServiceManager managerSpy = Mockito.spy(manager);
+		
+		doReturn(new TermsOfServiceStatus()
+			.setUserCurrentTermsOfServiceState(userTosState)
+		).when(managerSpy).getUserTermsOfServiceStatus(userId);
+		
+		// Call under test
+		assertEquals(!TermsOfServiceState.MUST_AGREE_NOW.equals(userTosState), managerSpy.hasUserAcceptedTermsOfService(userId));
+	}
+		
+	@Test
+	public void testRefreshLatestVersion() {
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(new Release()
+			.setName("Latest")
+			.setTag_name("1.0.0")
+		);
+		
+		// Call under test
+		assertEquals(new Semver("1.0.0"), manager.refreshLatestVersion());
+		
+		verify(mockAuthDao).setTermsOfServiceLatestVersion("1.0.0");
+	}
+	
+	@ParameterizedTest
+	@MethodSource("unsupportedSemanticVersions")
+	public void testRefreshLatestVersionWithUnsupportedFormat(String version, String expectedMessage) {
+		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenReturn(
+			new Release()
+				.setName("Latest")
+				.setTag_name(version)
+		);
+		
+		assertEquals(expectedMessage, assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			manager.refreshLatestVersion();
+		}).getMessage());
+		
+		verifyZeroInteractions(mockAuthDao);
+	}
+	
+	@Test
+	public void testRefreshLatestVersionWithGithubApiException() {
+		
+		GithubApiException ex = new GithubApiException("failed");
 		
 		when(mockGithubClient.getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO)).thenThrow(ex);
 		
-		assertEquals(ex, assertThrows(UncheckedExecutionException.class, () -> {
+		assertEquals(ex, assertThrows(GithubApiException.class, () -> {
 			// Call under test
-			manager.initialize();
-		}).getCause());
+			manager.refreshLatestVersion();
+		}));
 		
-		assertNull(manager.getLatestVersionFallback());
+		verifyZeroInteractions(mockAuthDao);
 	}
 	
-	@Test
-	public void testGetLatestVersion() {
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		// Calling a second time fetches it from the cache
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-		
-		expireVersionCache();
-		
-		release.setTag_name("3.0.0");
-		
-		// Now the call refreshes the cache
-		assertEquals("3.0.0", manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-
-	static List<Throwable> getLatestVersionExceptions() {
-		return List.of(
-			new GithubApiException(new RuntimeException("failed")),
-			new GithubApiException("failed", HttpStatus.BAD_GATEWAY, "requestBody"),
-			new GithubApiException("failed", HttpStatus.BAD_GATEWAY, null),
-			new UncheckedExecutionException(new RuntimeException("failed")),
-			new ExecutionError(new Error("bad"))
+	static Stream<Arguments> unsupportedSemanticVersions() {
+		return Stream.of(
+			Arguments.of("1.0.0-beta", "Unsupported version format: should not include pre-release or build metadata."), 
+			Arguments.of("1.0.0+abcd", "Unsupported version format: should not include pre-release or build metadata."), 
+			Arguments.of("1.0", "Version [1.0] is not valid semver.")
 		);
-	}
-	
-	@ParameterizedTest
-	@MethodSource("getLatestVersionExceptions")
-	public void testGetLatestVersionWithExceptionAfterInitialize(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		manager.initialize();
-		
-		expireVersionCache();
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
-		
-		// Call under test
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-		
-	@ParameterizedTest
-	@MethodSource("getLatestVersionExceptions")
-	public void testGetLatestVersionWithExceptionAfterSuccess(Throwable ex) {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		expireVersionCache();
-		
-		when(mockGithubClient.getLatestRelease(any(), any())).thenThrow(ex);
-		
-		// Call under test, get the latest recorded version
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersion());
-		
-		verify(mockGithubClient, times(2)).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-	
-	@Test
-	public void testFetchReleaseWithLatest() {
-		when(mockGithubClient.getLatestRelease(any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(release, manager.fetchRelease("latest"));
-		
-		assertEquals(INITIAL_LATEST_VERSION, manager.getLatestVersionFallback());
-		
-		verify(mockGithubClient).getLatestRelease(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO);
-	}
-	
-	@Test
-	public void testFetchReleaseWithTag() {
-		when(mockGithubClient.getReleaseByTag(any(), any(), any())).thenReturn(release);
-		
-		// Call under test
-		assertEquals(release, manager.fetchRelease("1.0.0"));
-		
-		assertNull(manager.getLatestVersionFallback());
-		
-		verify(mockGithubClient).getReleaseByTag(TermsOfServiceManager.ORG, TermsOfServiceManager.REPO, "1.0.0");
-	}
-	
-	@Test
-	public void testFetchReleaseWithTagAndNonSemanticVersion() {		
-		assertEquals("Expected a semantic version, was: 1.0", assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			manager.fetchRelease("1.0");
-		}).getMessage());
-		
-		assertNull(manager.getLatestVersionFallback());
-		
-		verifyZeroInteractions(mockGithubClient);
-	}
-
-	private void expireVersionCache() {
-		// By default the mock of nanoTime() returns 0, moving the clock forward to the expiration plus 1 second effectively invalidates the cache 
-		when(mockClock.nanoTime()).thenReturn(TermsOfServiceManager.VERSION_CACHE_EXPIRATION.plusSeconds(1).toNanos());
 	}
 }

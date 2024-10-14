@@ -20,7 +20,6 @@ public class UserInfo {
 	private final boolean isAdmin;
 	private Long id;
 	private Date creationDate;
-	private boolean acceptsTermsOfUse;
 	private boolean hasTwoFactorAuthEnabled;
 	private CallersContext context;
 
@@ -80,20 +79,6 @@ public class UserInfo {
 	public boolean isAdmin() {
 		return isAdmin;
 	}
-
-	/**
-	 * @return the acceptsTermsOfUse
-	 */
-	public boolean acceptsTermsOfUse() {
-		return acceptsTermsOfUse;
-	}
-
-	/**
-	 * @param acceptsTermsOfUse the acceptsTermsOfUse to set
-	 */
-	public void setAcceptsTermsOfUse(boolean acceptsTermsOfUse) {
-		this.acceptsTermsOfUse = acceptsTermsOfUse;
-	}
 	
 	public boolean hasTwoFactorAuthEnabled() {
 		return hasTwoFactorAuthEnabled;
@@ -113,7 +98,7 @@ public class UserInfo {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(acceptsTermsOfUse, context, creationDate, groups, hasTwoFactorAuthEnabled, id, isAdmin);
+		return Objects.hash(context, creationDate, groups, hasTwoFactorAuthEnabled, id, isAdmin);
 	}
 
 	@Override
@@ -125,7 +110,7 @@ public class UserInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UserInfo other = (UserInfo) obj;
-		return acceptsTermsOfUse == other.acceptsTermsOfUse && Objects.equals(context, other.context)
+		return Objects.equals(context, other.context)
 				&& Objects.equals(creationDate, other.creationDate) && Objects.equals(groups, other.groups)
 				&& hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled && Objects.equals(id, other.id)
 				&& isAdmin == other.isAdmin;
@@ -134,7 +119,7 @@ public class UserInfo {
 	@Override
 	public String toString() {
 		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
-				+ ", acceptsTermsOfUse=" + acceptsTermsOfUse + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
+				+ ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
 				+ ", context=" + context + "]";
 	}
 	

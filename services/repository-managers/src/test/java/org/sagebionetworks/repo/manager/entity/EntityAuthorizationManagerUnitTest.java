@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.ar.AccessRestrictionStatusDao;
@@ -74,7 +75,6 @@ public class EntityAuthorizationManagerUnitTest {
 	public void before() {
 		boolean isAdmin = false;
 		userInfo = new UserInfo(isAdmin, 123L);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		userInfo.getGroups().add(userInfo.getId());
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -98,11 +98,10 @@ public class EntityAuthorizationManagerUnitTest {
 
 	@Test
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
-		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -120,13 +119,12 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
-		userInfo.setAcceptsTermsOfUse(false);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		expected.setIsCertifiedUser(true);
+		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
@@ -142,7 +140,6 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -166,7 +163,6 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.setAcceptsTermsOfUse(true);
 		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -444,18 +440,18 @@ public class EntityAuthorizationManagerUnitTest {
 	 */
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
 		
 		permissionsState.withDoesEntityExist(true);
-		userInfo.setAcceptsTermsOfUse(false);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		expected.setCanUpload(false);
-		expected.setIsCertifiedUser(true);
 		assertEquals(expected, permissions);
 		
 		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
@@ -472,9 +468,7 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		
 		permissionsState.withDoesEntityExist(true);
-		userInfo.setAcceptsTermsOfUse(true);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
