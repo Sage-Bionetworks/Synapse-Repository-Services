@@ -52,7 +52,7 @@ public class EmailListSender {
 	// SES suggest to stay under 5%
 	private static final double BOUNCE_THRESHOLD = 0.04;
 	// SES suggests to stay under 0.1%
-	private static final double COMPLAINT_THRESHOLD = 0.0008;
+	private static final double COMPLAINT_THRESHOLD = 0.0007;
 	
 	private static String readEmailTemplate(String templatePath) throws IOException {
 		try (InputStream is = TOSUpdateEmailJob.class.getClassLoader().getResourceAsStream(templatePath)) {
