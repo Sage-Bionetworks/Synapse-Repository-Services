@@ -22,8 +22,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQU
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TOS_REQUIREMENTS_MIN_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TWO_FA_STATUS_PRINCIPAL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_CREATION_DATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_AUTHENTICATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CREDENTIAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TOS_AGREEMENT;
@@ -66,7 +66,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -302,14 +301,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		
 		Long id = idGenerator.generateNewId(IdType.TOS_REQUIREMENT_ID);
 		
-		try {
-			jdbcTemplate.update(sql, id, principalId, minVersion, enforceOn);
-		} catch (DuplicateKeyException e) {
-			if (e.getMessage().contains("TOS_REQUIREMENTS_MIN_VERSION")) {
-				throw new IllegalArgumentException("A TOS requirement with the " + minVersion + " minimum version already exists.");
-			}
-			throw e;
-		}
+		jdbcTemplate.update(sql, id, principalId, minVersion, enforceOn);
 		
 		return getCurrentTermsOfServiceRequirements();
 	}

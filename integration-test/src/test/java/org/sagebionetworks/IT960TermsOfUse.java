@@ -1,10 +1,14 @@
 package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +28,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -83,7 +88,6 @@ public class IT960TermsOfUse {
 	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(rejectTOUuserToDelete);
-		
 	}
 	
 	@Test
@@ -147,7 +151,48 @@ public class IT960TermsOfUse {
 		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
 		assertNotNull(status.getLastAgreementDate());
 		assertNotNull(status.getLastAgreementVersion());
-
 	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirments(SynapseAdminClient adminSynapse) throws SynapseException {
+		TermsOfServiceInfo info = synapse.getTermsOfServiceInfo();
+		String latestVersion = info.getLatestTermsOfServiceVersion();
+		String minVersion = info.getCurrentRequirements().getMinimumTermsOfServiceVersion();
+		
+		// Note that this test assumes that the latest version and the min required is different, which should be
+		// the case at the time of this implementation
+		assertNotEquals(latestVersion, minVersion);
+
+		// The test user is created using the min required version 
+		assertEquals(TermsOfServiceState.UP_TO_DATE, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// We set the min version requirements to latest version
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+			.setRequirementDate(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
+			.setMinimumTermsOfServiceVersion(info.getLatestTermsOfServiceVersion());
+		
+		// A normal user cannot set the requirements
+		System.out.println(assertThrows(SynapseForbiddenException.class, () -> {			
+			synapse.updateTermsOfServiceRequirements(requirements);
+		}).getMessage());
+		
+		adminSynapse.updateTermsOfServiceRequirements(requirements);
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_SOON, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// We set the the date in the past to force the requirements
+		adminSynapse.updateTermsOfServiceRequirements(requirements
+			.setRequirementDate(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
+		);
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// Put back the original requirements so other tests don't brake
+		adminSynapse.updateTermsOfServiceRequirements(requirements
+			.setRequirementDate(info.getCurrentRequirements().getRequirementDate())
+			.setMinimumTermsOfServiceVersion(info.getCurrentRequirements().getMinimumTermsOfServiceVersion())
+		);
+	}
+	
  
 }

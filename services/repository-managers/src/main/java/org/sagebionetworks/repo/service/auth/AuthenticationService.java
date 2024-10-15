@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
@@ -42,6 +43,12 @@ public interface AuthenticationService {
 	 * Identifies a user via access token and signs that user's terms of use
 	 */
 	void signTermsOfService(TermsOfServiceSignRequest signRequest) throws NotFoundException;
+	
+	TermsOfServiceInfo getTermsOfServiceInfo();
+	
+	TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId);
+
+	TermsOfServiceInfo updateTermsOfServiceRequirements(Long userId, TermsOfServiceRequirements request);
 	
 	/**
 	 * Gets the current secret key of the user
@@ -211,9 +218,5 @@ public interface AuthenticationService {
 	 * @param userId
 	 */
 	void revokeAllSessionAccessTokens(Long userId, Long targetUserId);
-
-	TermsOfServiceInfo getTermsOfServiceInfo();
-	
-	TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId);
 
 }
