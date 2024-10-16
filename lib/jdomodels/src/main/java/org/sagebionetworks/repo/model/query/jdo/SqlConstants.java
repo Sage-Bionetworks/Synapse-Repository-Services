@@ -1315,15 +1315,15 @@ public class SqlConstants {
 	public static final String DDL_FILE_WEBHOOK_ALLOWED_DOMAIN =						"schema/webhook/Webhook-Allowed-Domain-ddl.sql";
 	
 	
-	public static final String TABLE_AGENT_SESSION = 			"AGENT_SESSION";
-	public static final String COL_AGENT_SESSION_ID =			"ID";
-	public static final String COL_AGENT_SESSION_ETAG = 		"ETAG";
-	public static final String COL_AGENT_SESSION_CREATED_BY =	"CREATED_BY";
-	public static final String COL_AGENT_SESSION_CREATED_ON =	"CREATED_ON";
-	public static final String COL_AGENT_SESSION_MODIFIED_ON =	"MODIFIED_ON";
-	public static final String COL_AGENT_SESSION_SESSION_ID = 	"SESSION_ID";
-	public static final String COL_AGENT_SESSION_AGENT_ID = 	"AGENT_ID";
-	public static final String COL_AGENT_SESSION_ACCESS_LEVEL = "ACCESS_LEVEL";
+	public static final String TABLE_AGENT_SESSION = 				"AGENT_SESSION";
+	public static final String COL_AGENT_SESSION_ID =				"ID";
+	public static final String COL_AGENT_SESSION_ETAG = 			"ETAG";
+	public static final String COL_AGENT_SESSION_CREATED_BY =		"CREATED_BY";
+	public static final String COL_AGENT_SESSION_CREATED_ON =		"CREATED_ON";
+	public static final String COL_AGENT_SESSION_MODIFIED_ON =		"MODIFIED_ON";
+	public static final String COL_AGENT_SESSION_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_AGENT_SESSION_REGISTRATION_ID = 	"REGISTRATION_ID";
+	public static final String COL_AGENT_SESSION_ACCESS_LEVEL = 	"ACCESS_LEVEL";
 	
 	public static final String DDL_AGENT_SESSION = 				"schema/agent/Agent-Session-ddl.sql";
 	

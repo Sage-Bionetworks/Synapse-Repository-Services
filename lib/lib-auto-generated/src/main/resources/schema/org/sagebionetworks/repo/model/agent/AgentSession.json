@@ -23,7 +23,7 @@
 			"format": "date-time",
 			"description": "The date this session was last modified."
 		},
-		"agentId": {
+		"agentRegistrationId": {
 			"type": "string",
 			"description": "Identifies that agent that will be used for this session.  The default value is null, which indicates that the default agent will be used."
 		},

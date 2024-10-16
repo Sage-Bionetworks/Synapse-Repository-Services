@@ -1,0 +1,34 @@
+{
+	"description": "The registration of a custom AWS agent.",
+	"properties": {
+		"agentRegistrationId": {
+			"type": "string",
+			"description": "The unique ID issued by Synapse when this agent was registered. Provide this ID when starting a session to use the registered agent for a session."
+		},
+		"awsAgentId": {
+			"type": "string",
+			"description": "The AWS issued agent ID of the agent."
+		},
+		"awsAliasId": {
+			"type": "string",
+			"description": "The AWS issued agent alias ID. If an alias ID was not provided, a default value of 'TSTALIASID' will be used."
+		},
+		"registeredOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this agent was registered."
+		},
+		"registeredBy": {
+			"type": "integer",
+			"description": "The id of the user that created this registration."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of the agent provided by AWS."
+		},
+		"description": {
+			"type": "string",
+			"description": "The description of the agent provided by AWS."
+		}
+	}
+}

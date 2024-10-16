@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.agent;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ACCESS_LEVEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_AGENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_REGISTRATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_SESSION_ID;
 
 import java.sql.ResultSet;
@@ -46,7 +46,8 @@ public class AgentDaoImpl implements AgentDao {
 					.setStartedBy(rs.getLong(COL_AGENT_SESSION_CREATED_BY))
 					.setStartedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
 					.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
-					.setAgentId(rs.getString(COL_AGENT_SESSION_AGENT_ID)).setEtag(rs.getString(COL_AGENT_SESSION_ETAG));
+					.setAgentRegistrationId(rs.getString(COL_AGENT_SESSION_REGISTRATION_ID))
+					.setEtag(rs.getString(COL_AGENT_SESSION_ETAG));
 		}
 	};
 

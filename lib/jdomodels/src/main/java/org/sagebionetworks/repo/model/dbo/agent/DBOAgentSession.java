@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.agent;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ACCESS_LEVEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_AGENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_REGISTRATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ETAG;
@@ -32,7 +32,9 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 	private Timestamp createdOn;
 	private Timestamp modifiedOn;
 	private String sessionId;
+	@Deprecated
 	private String agentId;
+	private String registrationId;
 	private String accessLevel;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
@@ -42,7 +44,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 			new FieldColumn("createdOn", COL_AGENT_SESSION_CREATED_ON),
 			new FieldColumn("modifiedOn", COL_AGENT_SESSION_MODIFIED_ON),
 			new FieldColumn("sessionId", COL_AGENT_SESSION_SESSION_ID),
-			new FieldColumn("agentId", COL_AGENT_SESSION_AGENT_ID),
+			new FieldColumn("registrationId", COL_AGENT_SESSION_REGISTRATION_ID),
 			new FieldColumn("accessLevel", COL_AGENT_SESSION_ACCESS_LEVEL), };
 
 	@Override
@@ -57,7 +59,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 						.setCreatedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
 						.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
 						.setSessionId(rs.getString(COL_AGENT_SESSION_SESSION_ID))
-						.setAgentId(rs.getString(COL_AGENT_SESSION_AGENT_ID))
+						.setRegistrationId(rs.getString(COL_AGENT_SESSION_REGISTRATION_ID))
 						.setAccessLevel(rs.getString(COL_AGENT_SESSION_ACCESS_LEVEL));
 			}
 
@@ -168,6 +170,15 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 
 	public DBOAgentSession setAgentId(String agentId) {
 		this.agentId = agentId;
+		return this;
+	}
+
+	public String getRegistrationId() {
+		return registrationId;
+	}
+
+	public DBOAgentSession setRegistrationId(String registrationId) {
+		this.registrationId = registrationId;
 		return this;
 	}
 

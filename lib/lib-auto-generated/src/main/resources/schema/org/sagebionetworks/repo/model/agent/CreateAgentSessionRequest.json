@@ -5,9 +5,9 @@
 			"description": "Required. Specifies the access level that the agent will have during this session only.",
 			"$ref": "org.sagebionetworks.repo.model.agent.AgentAccessLevel"
 		},
-		"agentId": {
+		"agentRegistrationId": {
 			"type": "string",
-			"description": "Optional. Most users will not use this parameter.  If you are authorized to test experimental agents, provide the ID of the agent you wish to test."
+			"description": "Optional. When provided, the registered agent will be used for this session.  When excluded the default 'baseline' agent will be used."
 		}
 	}
 }
