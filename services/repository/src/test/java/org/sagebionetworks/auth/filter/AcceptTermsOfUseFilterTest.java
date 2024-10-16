@@ -50,12 +50,12 @@ class AcceptTermsOfUseFilterTest {
 	@Test
 	void testHASAcceptedTermsOfUse() throws Exception {
 		when(mockRequest.getParameter("userId")).thenReturn(userId.toString());
-		when(mockAuthService.hasUserAcceptedTermsOfUse(userId)).thenReturn(true);
+		when(mockAuthService.hasUserAcceptedTermsOfService(userId)).thenReturn(true);
 		
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
+		verify(mockAuthService).hasUserAcceptedTermsOfService(userId);
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
 	}
 	
@@ -66,7 +66,7 @@ class AcceptTermsOfUseFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(userId);
+		verify(mockAuthService, never()).hasUserAcceptedTermsOfService(userId);
 		verify(mockFilterChain).doFilter(mockRequest, mockResponse);
 	}
 	
@@ -78,7 +78,7 @@ class AcceptTermsOfUseFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthService).hasUserAcceptedTermsOfUse(userId);
+		verify(mockAuthService).hasUserAcceptedTermsOfService(userId);
 		
 		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		verify(mockResponse).setStatus((Integer)captor.capture());
@@ -95,7 +95,7 @@ class AcceptTermsOfUseFilterTest {
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 		
-		verify(mockAuthService, never()).hasUserAcceptedTermsOfUse(anyLong());
+		verify(mockAuthService, never()).hasUserAcceptedTermsOfService(anyLong());
 
 		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		verify(mockResponse).setStatus((Integer)captor.capture());

@@ -98,6 +98,8 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -1935,7 +1937,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Signs the terms of use for utilization of Synapse, as identified by an access token
 	 */
-	void signTermsOfUse(String accessToken) throws SynapseException;
+	void signTermsOfUse(String accessToken, String version) throws SynapseException;
 	
 	/**
 	 * 
@@ -1944,7 +1946,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	TermsOfServiceInfo getTermsOfServiceInfo() throws SynapseException;
-
+	
+	/**
+	 * Sets the new terms of service requirements
+	 * 
+	 * @return
+	 * @throws SynapseException
+	 */
+	TermsOfServiceInfo updateTermsOfServiceRequirements(TermsOfServiceRequirements requirements) throws SynapseException;
+	
+	/**
+	 * 
+	 * @return The terms of service status for the current user
+	 * 
+	 * @throws SynapseException
+	 */
+	TermsOfServiceStatus getUserTermsOfServiceStatus() throws SynapseException;	
+	
 	/**
 	 * The first step in OAuth authentication involves sending the user to
 	 * authenticate on an OAuthProvider's web page. Use this method to get a
@@ -4390,6 +4408,5 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	TraceEventsResponse getAgentTrace(TraceEventsRequest request) throws SynapseException;
-
 
 }

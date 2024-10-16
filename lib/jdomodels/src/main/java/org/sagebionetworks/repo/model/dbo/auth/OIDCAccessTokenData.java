@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import java.util.Date;
 import java.util.Objects;
 
-import com.amazonaws.services.glue.model.GetDataCatalogEncryptionSettingsRequest;
-
 public class OIDCAccessTokenData {
 
 	private String tokenId;

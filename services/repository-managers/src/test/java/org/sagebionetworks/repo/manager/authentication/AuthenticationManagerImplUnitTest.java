@@ -98,6 +98,8 @@ public class AuthenticationManagerImplUnitTest {
 	private TwoFactorAuthManager mock2FaManager;
 	@Mock
 	private FeatureManager mockFeatureManager;
+	@Mock
+	private TermsOfServiceManager mockTosManager;
 	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
@@ -299,7 +301,7 @@ public class AuthenticationManagerImplUnitTest {
 		String newReceipt = "newReceipt";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		when(mockTosManager.hasUserAcceptedTermsOfService(eq(userId))).thenReturn(true);
 		Date now = new Date(12345);		
 		when(mockClock.now()).thenReturn(now);
 
@@ -371,7 +373,7 @@ public class AuthenticationManagerImplUnitTest {
 		String newReceipt = "uwu";
 		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
 		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
-		when(mockAuthDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		when(mockTosManager.hasUserAcceptedTermsOfService(eq(userId))).thenReturn(true);
 		Date authTime = new Date(12345L);
 		when(mockClock.now()).thenReturn(authTime);
 		LoginResponse expected = new LoginResponse();

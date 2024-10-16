@@ -117,7 +117,7 @@ public class VirtualTableIntegrationTest {
 		boolean acceptsTermsOfUse = true;
 		String userName = UUID.randomUUID().toString();
 		userInfo = userManager.createOrGetTestUser(adminUserInfo,
-				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
+				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 	}
 
 	@AfterEach

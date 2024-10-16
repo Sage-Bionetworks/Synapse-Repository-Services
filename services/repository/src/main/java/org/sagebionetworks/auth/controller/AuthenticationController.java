@@ -19,7 +19,9 @@ import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceSignRequest;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.oauth.OAuthAccountCreationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -207,9 +209,9 @@ public class AuthenticationController {
 	@RequiredScope({modify})
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2, method = RequestMethod.POST)
-	public void signTermsOfUse(@RequestBody TermsOfServiceSignRequest signRequest)
+	public void signTermsOfService(@RequestBody TermsOfServiceSignRequest signRequest)
 			throws NotFoundException {
-		authenticationService.signTermsOfUse(signRequest);
+		authenticationService.signTermsOfService(signRequest);
 	}
 	
 	/**
@@ -220,7 +222,31 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/info", method = RequestMethod.GET)
 	public @ResponseBody TermsOfServiceInfo getTermsOfServiceInfo() {
-		return authenticationService.getTermsOfUseInfo();
+		return authenticationService.getTermsOfServiceInfo();
+	}
+	
+	/**
+	 * @return The status of the terms of service for the current authenticated user.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/status", method = RequestMethod.GET)
+	public @ResponseBody TermsOfServiceStatus getUserTermsOfServiceStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return authenticationService.getUserTermsOfServiceStatus(userId);
+	}
+	
+	/**
+	 * Updates the terms of service requirements. Only an administrator can perform this operation.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/requirements", method = RequestMethod.PUT)
+	public @ResponseBody TermsOfServiceInfo updateTermsOfServiceRequirement(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody TermsOfServiceRequirements request) {
+		return authenticationService.updateTermsOfServiceRequirements(userId, request);
 	}
 
 	/**

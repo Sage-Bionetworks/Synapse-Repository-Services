@@ -168,7 +168,7 @@ public class SearchWorkerIntegrationTest {
 		
 		String userName = UUID.randomUUID().toString();
 		
-		anotherUser = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), true);
+		anotherUser = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 	}
 
 	private V2WikiPage createWikiPage(UserInfo info){

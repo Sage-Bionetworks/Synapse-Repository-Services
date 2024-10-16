@@ -5,6 +5,10 @@
 			"type": "string",
 			"description": "The ID of the user."
 		},
+		"userCurrentTermsOfServiceState": {
+			"$ref": "org.sagebionetworks.repo.model.auth.TermsOfServiceState",
+			"description": "Defines the user's current ToS state. Used to guide the UI in what the user needs to do with their ToS agreements.  This will always be provided."
+		},
 		"lastAgreementDate": {
 			"type": "string",
 			"format": "date-time",

@@ -1,0 +1,18 @@
+{
+	"type": "string",
+	"description": "The user's current ToS state defines what action if any they will need to take to meet ToS requirements.",
+	"enum": [
+		{
+			"name": "MUST_AGREE_NOW",
+			"description": "The user must agree to the new ToS before they can use the service."
+		},
+		{
+			"name": "MUST_AGREE_SOON",
+			"description": "The user currently has agreed to an older ToS and they will need to agree to the new ToS before new required date."
+		},
+		{
+			"name": "UP_TO_DATE",
+			"description": "The user has agreed to the latest ToS so they are up-to-date"
+		}
+	]
+}

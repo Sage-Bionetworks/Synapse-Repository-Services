@@ -95,7 +95,7 @@ public class DownloadListManifestWorkerIntegrationTest {
 		boolean acceptsTermsOfUse = true;
 		String userName = UUID.randomUUID().toString();
 		user = userManager.createOrGetTestUser(adminUser,
-				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
+				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 		fileHandleIdsToDelete = new ArrayList<>();
 	}
 

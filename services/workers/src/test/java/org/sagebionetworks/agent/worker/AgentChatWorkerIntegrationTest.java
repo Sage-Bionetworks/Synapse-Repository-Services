@@ -1,6 +1,7 @@
 package org.sagebionetworks.agent.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -202,8 +203,7 @@ public class AgentChatWorkerIntegrationTest {
 				System.out.println(response.getResponseText());
 				assertTrue(response.getResponseText().contains(project.getId()));
 				assertTrue(response.getResponseText().contains("Public Data Only"));
-				assertTrue(response.getResponseText().contains("increase"));
-				assertTrue(response.getResponseText().contains("Read your Private Data"));
+				assertFalse(response.getResponseText().contains(project.getName()));
 				
 			}, MAX_WAIT_MS).getResponse();
 		

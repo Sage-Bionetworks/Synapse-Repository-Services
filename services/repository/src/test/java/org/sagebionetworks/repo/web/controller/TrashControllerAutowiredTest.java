@@ -70,7 +70,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		boolean acceptsTermsOfUse = true;
-		testUserId = userManager.createOrGetTestUser(adminUserInfo, user, acceptsTermsOfUse).getId();
+		testUserId = userManager.createOrGetTestUser(adminUserInfo, user).getId();
 		groupMembersDAO.addMembers(
 				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
 				Collections.singletonList(testUserId.toString()));

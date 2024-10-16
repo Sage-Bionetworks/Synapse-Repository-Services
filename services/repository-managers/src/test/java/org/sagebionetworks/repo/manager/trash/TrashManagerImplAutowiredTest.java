@@ -90,7 +90,6 @@ public class TrashManagerImplAutowiredTest {
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		testUserInfo.setAcceptsTermsOfUse(true);
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
 

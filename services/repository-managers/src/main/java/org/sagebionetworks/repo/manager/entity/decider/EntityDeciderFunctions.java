@@ -198,17 +198,6 @@ public enum EntityDeciderFunctions implements AccessDecider {
 		}
 	}),
 	/**
-	 * Deny if the user has not accepted the terms of use.
-	 */
-	DENY_IF_HAS_NOT_ACCEPTED_TERMS_OF_USE((c) -> {
-		if (!c.getUser().acceptsTermsOfUse()) {
-			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(ERR_MSG_YOU_HAVE_NOT_YET_AGREED_TO_THE_SYNAPSE_TERMS_OF_USE)));
-		} else {
-			return Optional.empty();
-		}
-	}),
-	/**
 	 * Deny if the entity to create type is not a project and the user is not
 	 * certified.
 	 */

@@ -165,8 +165,8 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();
 		list.add(new DBOGroupMembers());
-		list.add(new DBOTermsOfUseAgreement());
 		list.add(new DBOUserTwoFaStatus());
+		list.add(new DBOTermsOfUseAgreement());
 		return list;
 	}
 

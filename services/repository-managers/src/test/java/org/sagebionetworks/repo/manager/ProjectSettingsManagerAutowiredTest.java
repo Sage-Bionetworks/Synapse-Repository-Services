@@ -78,7 +78,6 @@ public class ProjectSettingsManagerAutowiredTest {
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo.setAcceptsTermsOfUse(true);
 
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
