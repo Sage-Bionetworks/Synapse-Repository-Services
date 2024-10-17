@@ -1348,6 +1348,12 @@ public class SqlConstants {
 	public static final String COL_AGENT_TRACE_MESSAGE = 		"MESSAGE";
 	public static final String DDL_AGENT_TRACE = 				"schema/agent/Agent-Trace-ddl.sql";
 	
+	public static final String TABLE_PROJECT_STORAGE_USAGE = 				"PROJECT_STORAGE_USAGE_CACHE";
+	public static final String COL_PROJECT_STORAGE_USAGE_PROJECT_ID = 		"PROJECT_ID";
+	public static final String COL_PROJECT_STORAGE_USAGE_UPDATED_ON =		"UPDATED_ON";
+	public static final String COL_PROJECT_STORAGE_USAGE_LOCATION_DATA =	"STORAGE_LOCATION_DATA";
+	public static final String DDL_PROJECT_STORAGE_USAGE = 					"schema/statistics/ProjectStorageUsageCache-ddl.sql";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

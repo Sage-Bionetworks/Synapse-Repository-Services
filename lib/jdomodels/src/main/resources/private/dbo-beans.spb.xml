@@ -185,6 +185,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceLatestVersion"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOProjectStorageUsageCache"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->

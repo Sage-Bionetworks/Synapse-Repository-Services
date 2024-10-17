@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.IdAndVersionFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
@@ -36,7 +35,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionStatus;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -150,25 +148,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 		}
 
 		return data;
-	}
-
-
-	/**
-	 * Replicate the given
-	 * 
-	 * @param indexDao
-	 * @param entityDTOs DTO to be created/updated
-	 * @param ids        All of the ids to be created/updated/deleted.
-	 */
-	void replicateInIndex(TableIndexDAO indexDao, ReplicationType objectType, List<ObjectDataDTO> entityDTOs,
-			List<Long> ids) {
-		indexDao.executeInWriteTransaction((TransactionStatus status) -> {
-			indexDao.deleteObjectData(objectType, ids);
-			indexDao.addObjectData(objectType, entityDTOs);
-			return null;
-		});
-	}
-	
+	}	
 
 	/**
 	 * Will find any deltas between the 'truth' and 'replication'. Deltas are found
