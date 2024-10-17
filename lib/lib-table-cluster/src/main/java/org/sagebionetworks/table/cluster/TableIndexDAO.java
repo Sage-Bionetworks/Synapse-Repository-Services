@@ -646,5 +646,7 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	Optional<CachedQueryDto> getCachedQuery(String requestHash);
+	
+	Map<String, Long> getProjectStorageLocationUsage(long projectId);
 
 }

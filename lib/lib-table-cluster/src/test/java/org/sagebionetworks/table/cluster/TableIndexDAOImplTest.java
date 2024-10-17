@@ -3507,6 +3507,7 @@ public class TableIndexDAOImplTest {
 		objectDataDTO.setModifiedOn(new Date());
 		if(EntityType.file.equals(type)){
 			objectDataDTO.setFileHandleId(888L);
+			objectDataDTO.setFileLocationId(456L);
 			objectDataDTO.setFileSizeBytes(999L);
 			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
 			objectDataDTO.setFileBucket("bucket");
