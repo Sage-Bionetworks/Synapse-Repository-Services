@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 
 /**
@@ -46,7 +48,7 @@ public class NextPageToken {
 	 * @param maxLimit
 	 */
 	public NextPageToken(String token, long defaultLimit, long maxLimit) {
-		if (token == null) {
+		if (StringUtils.isEmpty(token)) {
 			limit = defaultLimit;
 			offset = DEFAULT_OFFSET;
 		} else {
