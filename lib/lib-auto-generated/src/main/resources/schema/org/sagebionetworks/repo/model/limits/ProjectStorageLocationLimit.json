@@ -1,0 +1,17 @@
+{
+	"description": "Set the limit on the number of files bytes for a single project storage location",
+	"properties": {
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project"
+		},
+		"storageLocationId": {
+			"type": "string",
+			"description": "The ID of the storage location"
+		},
+		"maxAllowedFileBytes": {
+			"type": "string",
+			"description": "Sets the limit on the number of file bytes that can be associated with this project storage location."
+		}
+	}
+}
