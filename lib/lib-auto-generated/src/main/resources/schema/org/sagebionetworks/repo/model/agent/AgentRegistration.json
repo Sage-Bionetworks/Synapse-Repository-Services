@@ -18,17 +18,9 @@
 			"format": "date-time",
 			"description": "The date this agent was registered."
 		},
-		"registeredBy": {
-			"type": "integer",
-			"description": "The id of the user that created this registration."
-		},
-		"name": {
-			"type": "string",
-			"description": "The name of the agent provided by AWS."
-		},
-		"description": {
-			"type": "string",
-			"description": "The description of the agent provided by AWS."
+		"type": {
+			"description": "The agent's type.",
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentType"
 		}
 	}
 }

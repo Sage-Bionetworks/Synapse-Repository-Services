@@ -180,6 +180,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhook"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookAllowedDomain"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentRegistration"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentSession"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentTrace"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
@@ -327,8 +328,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookVerification"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.webhook.DBOWebhookAllowedDomain"/>
 				
+				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentRegistration"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.agent.DBOAgentSession"/>
-				
+
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
 						

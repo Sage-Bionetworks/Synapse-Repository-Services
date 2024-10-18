@@ -13,11 +13,16 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.CallersContext;
@@ -32,7 +37,7 @@ public class AgentDaoImplTest {
 
 	@Autowired
 	private AgentDao agentDao;
-	
+
 	@Autowired
 	private AsynchronousJobStatusDAO asyncDao;
 
@@ -41,18 +46,20 @@ public class AgentDaoImplTest {
 
 	private String sessionId;
 	private AgentAccessLevel accessLevel;
-	private String agentId;
-	
+	private AgentRegistrationRequest registrationRequest;
+
 	private AgentChatRequest request;
+	private String registrationId;
 
 	@BeforeEach
 	public void before() {
 		this.sessionId = "sessionId";
 		this.accessLevel = AgentAccessLevel.PUBLICLY_ACCESSIBLE;
-		this.agentId = "123";
+		this.registrationId = "123";
 		this.admin = new UserInfo(true, adminUserId);
 		this.admin.setContext(new CallersContext().setSessionId("abc"));
 		this.request = new AgentChatRequest().setSessionId(sessionId).setChatText("hello");
+		this.registrationRequest = new AgentRegistrationRequest().setAwsAgentId("awsId").setAwsAliasId("awsAlias");
 	}
 
 	@AfterEach
@@ -62,8 +69,10 @@ public class AgentDaoImplTest {
 
 	@Test
 	public void testCreateSession() {
+
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
 		// call under test
-		AgentSession session = agentDao.createSession(adminUserId, accessLevel, agentId);
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId());
 		assertNotNull(session);
 		assertNotNull(session.getSessionId());
 		assertNotNull(session.getEtag());
@@ -73,7 +82,7 @@ public class AgentDaoImplTest {
 		assertEquals(session.getStartedOn(), session.getModifiedOn());
 		assertEquals(adminUserId, session.getStartedBy());
 		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE, session.getAgentAccessLevel());
-		assertEquals(agentId, session.getAgentId());
+		assertEquals(registration.getAgentRegistrationId(), session.getAgentRegistrationId());
 
 		assertEquals(Optional.of(session), agentDao.getAgentSession(session.getSessionId()));
 
@@ -87,8 +96,8 @@ public class AgentDaoImplTest {
 
 	@Test
 	public void testUpdateSession() throws InterruptedException {
-
-		AgentSession session = agentDao.createSession(adminUserId, accessLevel, agentId);
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId());
 		assertNotNull(session);
 
 		Thread.sleep(1001L);
@@ -99,7 +108,7 @@ public class AgentDaoImplTest {
 
 		assertEquals(session.getSessionId(), updated.getSessionId());
 		assertEquals(session.getStartedBy(), updated.getStartedBy());
-		assertEquals(session.getAgentId(), updated.getAgentId());
+		assertEquals(session.getAgentRegistrationId(), registration.getAgentRegistrationId());
 		assertEquals(session.getStartedOn(), updated.getStartedOn());
 		assertTrue(updated.getModifiedOn().getTime() > session.getStartedOn().getTime());
 		assertNotEquals(session.getEtag(), updated.getEtag());
@@ -110,9 +119,11 @@ public class AgentDaoImplTest {
 
 	@Test
 	public void testMultipleSessions() {
-
-		AgentSession one = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE, "one");
-		AgentSession two = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE, "two");
+		AgentRegistration reg = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
+		AgentSession one = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE,
+				reg.getAgentRegistrationId());
+		AgentSession two = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE,
+				reg.getAgentRegistrationId());
 
 		assertNotEquals(one.getSessionId(), two.getSessionId());
 
@@ -130,7 +141,7 @@ public class AgentDaoImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, agentId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId);
 		}).getMessage();
 		assertEquals("userId is required.", message);
 	}
@@ -140,22 +151,21 @@ public class AgentDaoImplTest {
 		accessLevel = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, agentId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId);
 		}).getMessage();
 		assertEquals("accessLevel is required.", message);
 	}
 
 	@Test
-	public void testCreateSessionWithNullAgentId() {
-		agentId = null;
+	public void testCreateSessionWithNullRegistrationId() {
+		registrationId = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, agentId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId);
 		}).getMessage();
-		assertEquals("agentId is required.", message);;
+		assertEquals("registrationId is required.", message);
+		;
 	}
-
-
 
 	@Test
 	public void testUpdateSessionWithNullSessionId() {
@@ -167,7 +177,7 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("sessionId is required.", message);
 	}
-	
+
 	@Test
 	public void testUpdateSessionWithNullAccessLevel() {
 		accessLevel = null;
@@ -178,19 +188,19 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("accessLevel is required.", message);
 	}
-	
+
 	@Test
-	public void testAddMessageWithMultipleJobs()  {
+	public void testAddMessageWithMultipleJobs() {
 		String one = "one";
 		String two = "two";
 		String three = "three";
 		String four = "four";
 		AsynchronousJobStatus jobOne = asyncDao.startJob(admin, request);
 		AsynchronousJobStatus jobTwo = asyncDao.startJob(admin, request);
-		
+
 		long timeOne = 1;
 		long timeTwo = 2;
-		
+
 		// call under test
 		agentDao.addTraceToJob(jobOne.getJobId(), timeOne, one);
 		agentDao.addTraceToJob(jobTwo.getJobId(), timeOne, three);
@@ -205,12 +215,9 @@ public class AgentDaoImplTest {
 				agentDao.listTraceEvents(jobOne.getJobId(), null));
 
 		// job one with non-null filter
-		assertEquals(
-				List.of(
-						new TraceEvent().setMessage(two).setTimestamp(timeTwo)),
+		assertEquals(List.of(new TraceEvent().setMessage(two).setTimestamp(timeTwo)),
 				agentDao.listTraceEvents(jobOne.getJobId(), timeOne));
-		
-		
+
 		// job two with null filter
 		assertEquals(
 				List.of(new TraceEvent().setMessage(three).setTimestamp(timeOne),
@@ -218,15 +225,13 @@ public class AgentDaoImplTest {
 				agentDao.listTraceEvents(jobTwo.getJobId(), null));
 
 		// job two with non-null filter
-		assertEquals(
-				List.of(
-						new TraceEvent().setMessage(four).setTimestamp(timeTwo)),
+		assertEquals(List.of(new TraceEvent().setMessage(four).setTimestamp(timeTwo)),
 				agentDao.listTraceEvents(jobTwo.getJobId(), timeOne));
-		
+
 	}
 
 	@Test
-	public void testAddMessageWithDuplicate()  {
+	public void testAddMessageWithDuplicate() {
 		String one = "one";
 		String two = "two";
 		AsynchronousJobStatus jobOne = asyncDao.startJob(admin, request);
@@ -242,15 +247,14 @@ public class AgentDaoImplTest {
 				agentDao.listTraceEvents(jobOne.getJobId(), null));
 
 		// job one with non-null filter
-		assertEquals(
-				List.of(), agentDao.listTraceEvents(jobOne.getJobId(), timeOne));
+		assertEquals(List.of(), agentDao.listTraceEvents(jobOne.getJobId(), timeOne));
 
 	}
-	
+
 	@Test
 	public void testAddTraceWithNullJobId() {
 		String job = null;
-		long now  =1L;
+		long now = 1L;
 		String eventMessage = "hi";
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -258,11 +262,11 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("jobId is required.", message);
 	}
-	
+
 	@Test
 	public void testAddTraceWithJobNotNumber() {
 		String job = "abc";
-		long now  =1L;
+		long now = 1L;
 		String eventMessage = "hi";
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -270,11 +274,11 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("For input string: \"abc\"", message);
 	}
-	
+
 	@Test
 	public void testAddTraceWithNullMessage() {
 		AsynchronousJobStatus job = asyncDao.startJob(admin, request);
-		long now  =1L;
+		long now = 1L;
 		String eventMessage = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
@@ -282,26 +286,140 @@ public class AgentDaoImplTest {
 		}).getMessage();
 		assertEquals("message is required.", message);
 	}
-	
+
 	@Test
 	public void testListTraceEventWithNullJobId() {
 		String job = null;
-		long now  =1L;
+		long now = 1L;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			agentDao.listTraceEvents(job, now);
 		}).getMessage();
 		assertEquals("jobId is required.", message);
 	}
-	
+
 	@Test
 	public void testListTraceEventWithJobNotNumber() {
 		String job = "abc";
-		long now  =1L;
+		long now = 1L;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			agentDao.listTraceEvents(job, now);
 		}).getMessage();
 		assertEquals("For input string: \"abc\"", message);
+	}
+
+	@Test
+	public void testDBOAgentSessionMigration() {
+		DBOAgentSession dbo = new DBOAgentSession();
+		dbo.setAgentId("123");
+		dbo.setRegistrationId(null);
+		// call under test
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(DBOAgentSession.BOOTSTRAP_REGISTRATION_ID, dbo.getRegistrationId());
+	}
+
+	@Test
+	public void testDBOAgentSessionMigrationWithRegistrationId() {
+		DBOAgentSession dbo = new DBOAgentSession();
+		dbo.setAgentId("123");
+		dbo.setRegistrationId(99L);
+
+		// call under test
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(99L, dbo.getRegistrationId());
+	}
+
+	@Test
+	public void testDBOAgentSessionMigrationWithNullAgentId() {
+		DBOAgentSession dbo = new DBOAgentSession();
+		dbo.setAgentId(null);
+		dbo.setRegistrationId(99L);
+
+		// call under test
+		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
+		assertEquals(99L, dbo.getRegistrationId());
+	}
+
+	@ParameterizedTest
+	@EnumSource(AgentType.class)
+	public void testCreateOrGetRegistration(AgentType type) {
+		registrationRequest.setAwsAgentId("agentId" + type.ordinal());
+
+		// call under test
+		AgentRegistration resp = agentDao.createOrGetRegistration(type, registrationRequest);
+		assertNotNull(resp);
+		assertNotNull(resp.getAgentRegistrationId());
+		assertEquals(registrationRequest.getAwsAgentId(), resp.getAwsAgentId());
+		assertEquals(registrationRequest.getAwsAliasId(), resp.getAwsAliasId());
+		assertNotNull(resp.getRegisteredOn());
+		assertEquals(type, resp.getType());
+
+		// additional call should return the same object
+		assertEquals(resp, agentDao.createOrGetRegistration(type, registrationRequest));
+		assertEquals(resp, agentDao.createOrGetRegistration(type, registrationRequest));
+
+		// call under test
+		assertEquals(Optional.of(resp), agentDao.getRegeistration(resp.getAgentRegistrationId()));
+	}
+
+	@Test
+	public void testGetRegistrationDoesNotExit() {
+		// call under test
+		assertEquals(Optional.empty(), agentDao.getRegeistration("0"));
+	}
+
+	@Test
+	public void testGetRegistrationDoesWithNull() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.getRegeistration(null);
+		}).getMessage();
+		assertEquals("registrationId is required.", message);
+	}
+
+	@Test
+	public void testCreateOrGetRegistrationWithNullType() {
+		AgentType type = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.createOrGetRegistration(type, registrationRequest);
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+
+	@Test
+	public void testCreateOrGetRegistrationWithNullRequest() {
+		AgentType type = AgentType.BASELINE;
+		registrationRequest = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.createOrGetRegistration(type, registrationRequest);
+		}).getMessage();
+		assertEquals("request is required.", message);
+	}
+
+	@Test
+	public void testCreateOrGetRegistrationWithNullRequestAgentId() {
+		AgentType type = AgentType.BASELINE;
+		registrationRequest.setAwsAgentId(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.createOrGetRegistration(type, registrationRequest);
+		}).getMessage();
+		assertEquals("request.awsAgentId is required.", message);
+	}
+
+	@Test
+	public void testCreateOrGetRegistrationWithNullRequestAliasId() {
+		AgentType type = AgentType.BASELINE;
+		registrationRequest.setAwsAliasId(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.createOrGetRegistration(type, registrationRequest);
+		}).getMessage();
+		assertEquals("request.awsAliasId is required.", message);
 	}
 }
