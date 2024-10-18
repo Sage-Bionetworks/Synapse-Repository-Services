@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.limits.ProjectStorageData;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -647,6 +648,11 @@ public interface TableIndexDAO {
 	 */
 	Optional<CachedQueryDto> getCachedQuery(String requestHash);
 	
-	Map<String, Long> getProjectStorageLocationUsage(long projectId);
+	/**
+	 * 
+	 * @param projectId
+	 * @return The project storage data for the project with the given id
+	 */
+	ProjectStorageData computeProjectStorageData(Long projectId);
 
 }

@@ -1,0 +1,23 @@
+{
+	"description": "Internal DTO object that is used to store data about the current storage usage of a project",
+	"properties": {
+		"projectId": {
+			"type": "integer"
+		},
+		"etag": {
+			"type": "string"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"runtimeMs": {
+			"type": "integer"
+		},
+		"storageLocationData": {
+			"type": "map",
+			"key": { "type": "integer" },
+			"value": { "type": "integer" }			
+		}		
+	}
+}

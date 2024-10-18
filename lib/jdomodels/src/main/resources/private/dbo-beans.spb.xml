@@ -185,7 +185,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceLatestVersion"/>
-				<bean class="org.sagebionetworks.repo.model.dbo.statistics.DBOProjectStorageUsageCache"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.limits.DBOProjectStorageData"/>
 			</list>
 		</property>
 		<!-- MySQL Functions to be created/updated -->
@@ -332,6 +332,8 @@
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceRequirements"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreement"/>
+				
+				<bean class="org.sagebionetworks.repo.model.dbo.limits.DBOProjectStorageData"/>
 						
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

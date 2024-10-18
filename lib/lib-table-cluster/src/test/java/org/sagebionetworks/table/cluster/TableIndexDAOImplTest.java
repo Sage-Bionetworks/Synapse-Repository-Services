@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.limits.ProjectStorageData;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -168,7 +169,7 @@ public class TableIndexDAOImplTest {
 		if (tableId != null && tableIndexDAO != null) {
 			tableIndexDAO.deleteTable(tableId);
 		}
-		tableIndexDAO.truncateIndex();
+		//tableIndexDAO.truncateIndex();
 	}
 	
 	/**
@@ -5194,6 +5195,56 @@ public class TableIndexDAOImplTest {
 		}).getMessage();
 		
 		assertTrue(message.contains("Data too long for column 'PATH'"));
+	}
+	
+	@Test
+	public void testComputeProjectStorageData() {
+		Long projectOneId = 123L;
+		Long projectTwoId = 456L;
+		Long projectThreeId = 789L;
+		
+		tableIndexDAO.addObjectData(ReplicationType.ENTITY, List.of(
+			// Project one
+			createObjectDataDTO(projectOneId, EntityType.project, 0),
+			createObjectDataDTO(2L, EntityType.folder, 0).setProjectId(projectOneId),
+			createObjectDataDTO(3L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(1L),
+			createObjectDataDTO(4L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(2048L).setFileLocationId(2L),
+			createObjectDataDTO(5L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(2L),
+			createObjectDataDTO(6L, EntityType.dataset, 0).setProjectId(projectOneId),
+			// Project two
+			createObjectDataDTO(projectTwoId, EntityType.project, 0),
+			createObjectDataDTO(7, EntityType.file, 0).setProjectId(projectTwoId).setFileSizeBytes(4096L).setFileLocationId(1L),
+			// Project three, no files
+			createObjectDataDTO(projectThreeId, EntityType.project, 0)
+		));
+		
+		
+		ProjectStorageData projectOneData = tableIndexDAO.computeProjectStorageData(projectOneId);
+
+		assertNotNull(projectOneData.getRuntimeMs());
+		assertEquals(new ProjectStorageData()
+			.setProjectId(projectOneId)
+			.setStorageLocationData(Map.of("1", 1024L, "2", 3072L))
+			.setRuntimeMs(projectOneData.getRuntimeMs()),
+			projectOneData);
+
+		ProjectStorageData projectTwoData = tableIndexDAO.computeProjectStorageData(projectTwoId);
+
+		assertNotNull(projectTwoData.getRuntimeMs());
+		assertEquals(new ProjectStorageData()
+			.setProjectId(projectTwoId)
+			.setStorageLocationData(Map.of("1", 4096L))
+			.setRuntimeMs(projectTwoData.getRuntimeMs()),
+			projectTwoData);
+
+		ProjectStorageData projectThreeData = tableIndexDAO.computeProjectStorageData(projectThreeId);
+		
+		assertNotNull(projectThreeData.getRuntimeMs());
+		assertEquals(new ProjectStorageData()
+			.setProjectId(projectThreeId)
+			.setStorageLocationData(Collections.emptyMap())
+			.setRuntimeMs(projectThreeData.getRuntimeMs()),
+			projectThreeData);
 	}
 	
 }

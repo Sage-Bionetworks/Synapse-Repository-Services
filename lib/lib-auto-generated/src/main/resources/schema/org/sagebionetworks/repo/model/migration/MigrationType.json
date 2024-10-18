@@ -467,6 +467,10 @@
 			"description": "Table that stores the TOS agreements"
 		},
 		{
+			"name": "PROJECT_STORAGE_DATA",
+			"description": "Table that stores project storage information"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}
