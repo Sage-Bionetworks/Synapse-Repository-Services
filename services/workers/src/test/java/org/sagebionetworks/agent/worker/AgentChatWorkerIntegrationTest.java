@@ -108,7 +108,7 @@ public class AgentChatWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testGetEntityChildernHandler() throws AssertionError, AsynchJobFailedException {
+	public void testGetEntityChildrenHandler() throws AssertionError, AsynchJobFailedException {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
 				null);
 
@@ -130,12 +130,42 @@ public class AgentChatWorkerIntegrationTest {
 					assertNotNull(response);
 					assertEquals(session.getSessionId(), response.getSessionId());
 					assertNotNull(response.getResponseText());
-					System.out.println(response.getResponseText());
 					assertTrue(response.getResponseText().contains(f1.getName()));
 					assertTrue(response.getResponseText().contains(f2.getName()));
 					assertTrue(response.getResponseText().contains(f1.getId()));
 					assertTrue(response.getResponseText().contains(f2.getId()));
 				}, MAX_WAIT_MS).getResponse();
+
+	}
+
+	@Test
+	public void testGetEntityChildrenHandlerWithPagination() throws AssertionError, AsynchJobFailedException {
+		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
+				null);
+
+		// create more than 50 children as one page can show up to 50 entities.
+		for(int i=1; i<100;i++){
+			 entityService.createEntity(admin.getId(), new Folder().setName("f"+i).setParentId(project.getId()),
+					null);
+		}
+
+		AgentSession session = agentService.createSession(admin.getId(),
+				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
+
+		assertNotNull(session);
+		// an empty request will return an empty response.
+		String chatRequest = "What are the names and synIDs of the children of project: " + project.getId();
+
+		//call under test
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
+				(AgentChatResponse response) -> {
+					assertNotNull(response);
+					assertEquals(session.getSessionId(), response.getSessionId());
+					assertNotNull(response.getResponseText());
+					assertTrue(response.getResponseText().contains("f1"));
+					assertTrue(response.getResponseText().contains("f99"));
+				}, MAX_WAIT_MS);
 
 	}
 

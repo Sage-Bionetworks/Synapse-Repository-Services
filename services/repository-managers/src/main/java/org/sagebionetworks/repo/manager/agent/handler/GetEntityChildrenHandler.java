@@ -45,10 +45,14 @@ public class GetEntityChildrenHandler implements ReturnControlHandler {
 		String synId = ParameterUtils.extractParameter(String.class, "synId", event.getParameters())
 				.orElseThrow(() -> new IllegalArgumentException("Parameter 'synId' of type string is required"));
 
+		String nextPageToken = ParameterUtils.extractParameter(String.class, "nextPageToken", event.getParameters())
+				.orElse(null);
+
 		return EntityFactory.createJSONStringForEntity(entityService.getChildren(event.getRunAsUserId(),
 				new EntityChildrenRequest().setParentId(synId).setIncludeSumFileSizes(true)
 						.setIncludeTotalChildCount(true).setSortBy(SortBy.MODIFIED_ON).setSortDirection(Direction.DESC)
-						.setIncludeTypes(Arrays.stream(EntityType.values()).collect(Collectors.toList()))));
+						.setIncludeTypes(Arrays.stream(EntityType.values()).collect(Collectors.toList()))
+						.setNextPageToken(nextPageToken)));
 	}
 
 }
