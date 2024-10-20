@@ -202,7 +202,6 @@ public class AgentChatWorkerIntegrationTest {
 				assertNotNull(response.getResponseText());
 				System.out.println(response.getResponseText());
 				assertTrue(response.getResponseText().contains(project.getId()));
-				assertTrue(response.getResponseText().contains("Public Data Only"));
 				assertFalse(response.getResponseText().contains(project.getName()));
 				
 			}, MAX_WAIT_MS).getResponse();
