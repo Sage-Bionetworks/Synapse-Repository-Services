@@ -61,11 +61,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -234,6 +236,10 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 				.stream().findFirst();
 	}
 	
+	@Autowired
+	@Qualifier("migrationJdbcTemplate")
+	private JdbcTemplate migrationJdbTemplate;
+	
 	@Override
 	public List<UserGroup> getUsersWithoutAgreement(List<Long> userIds) {
 		String sql = "SELECT"
@@ -244,7 +250,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			+ " WHERE U." + COL_USER_GROUP_ID + " IN (" + String.join(",", Collections.nCopies(userIds.size(), "?")) + ")"
 			+ " AND A." + COL_TOS_AGREEMENT_ID + " IS NULL";
 			
-		return jdbcTemplate.query(sql, (rs,  i) -> {
+		return migrationJdbTemplate.query(sql, (rs,  i) -> {
 			Timestamp creationDate = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
 			
 			return new UserGroup()
@@ -256,7 +262,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
-	@WriteTransaction
+	@MigrationWriteTransaction
 	public void batchAddTermsOfServiceAgreement(List<TermsOfServiceAgreement> batch) {
 		String sql = "INSERT INTO " + TABLE_TOS_AGREEMENT + "("
 			+ COL_TOS_AGREEMENT_ID + ", "
@@ -269,7 +275,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			idGenerator.generateNewId(IdType.TOS_AGREEMENT_ID)
 		).collect(Collectors.toList());
 		
-		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+		migrationJdbTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
 			
 			@Override
 			public void setValues(PreparedStatement ps, int i) throws SQLException {
