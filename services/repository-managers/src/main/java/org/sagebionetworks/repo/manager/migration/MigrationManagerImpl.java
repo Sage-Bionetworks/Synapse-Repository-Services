@@ -594,6 +594,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @return
 	 */
 	@Override
+	@MigrationWriteTransaction
 	public RestoreTypeResponse restoreStream(InputStream input, BackupManifest manifest) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
 		if(!this.migratableTableDao.isMigrationTypeRegistered(manifest.getPrimaryType().getMigrationType())) {
