@@ -438,7 +438,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, null));
@@ -447,7 +447,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND REQUIREMENT_ID = :REQUIREMENT_ID"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null, null));
@@ -456,7 +456,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND SUBMITTER_ID = :SUBMITTER_ID"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null, null));
@@ -465,7 +465,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND (REQUIREMENT_ID, SUBMITTER_ID) IN (SELECT DISTINCT REQUIREMENT_ID, SUBMITTER_ID FROM ACCESS_APPROVAL WHERE ACCESSOR_ID =:ACCESSOR_ID)"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, "3", null));
@@ -475,7 +475,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " AND EXPIRED_ON <> 0"
 				+ " AND EXPIRED_ON <= :EXPIRED_ON"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, new Date()));
