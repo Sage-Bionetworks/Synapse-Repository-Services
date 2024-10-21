@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
@@ -424,6 +423,45 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		assertEquals(expected, result);
 	}
+	
+	// Reproduce https://sagebionetworks.jira.com/browse/PLFM-8675
+	@Test
+	public void testListAccessorGroupByAccessorIdWithMultiplePagesAndConsistentOrder() {
+		
+		accessApprovalDAO.createOrUpdateBatch(Arrays.asList(
+			newAccessApproval(individualGroup, accessRequirement), 
+			newAccessApproval(individualGroup, accessRequirement).setAccessorId(individualGroup2.getId()),
+			newAccessApproval(individualGroup2, accessRequirement),
+			newAccessApproval(individualGroup2, accessRequirement).setAccessorId(individualGroup.getId()),
+			newAccessApproval(individualGroup, accessRequirement2),
+			newAccessApproval(individualGroup, accessRequirement2).setAccessorId(individualGroup2.getId())
+		));
+		
+		List<AccessorGroup> expected = Arrays.asList(
+			new AccessorGroup()
+				.setAccessorIds(Arrays.asList(individualGroup.getId(), individualGroup2.getId()))
+				.setAccessRequirementId(accessRequirement.getId().toString())
+				.setSubmitterId(individualGroup.getId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED)),
+			new AccessorGroup()
+				.setAccessorIds(Arrays.asList(individualGroup.getId(), individualGroup2.getId()))
+				.setAccessRequirementId(accessRequirement.getId().toString())
+				.setSubmitterId(individualGroup2.getId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED)),
+			new AccessorGroup()
+				.setAccessorIds(Arrays.asList(individualGroup.getId(), individualGroup2.getId()))
+				.setAccessRequirementId(accessRequirement2.getId().toString())
+				.setSubmitterId(individualGroup.getId())
+				.setExpiredOn(new Date(DBOAccessApprovalDAOImpl.DEFAULT_NOT_EXPIRED))
+		);
+		
+		// Call under test, all results
+		assertEquals(expected, accessApprovalDAO.listAccessorGroup(null, null, null, null, 10L, 0L));
+		// Call under test, first page
+		assertEquals(expected.subList(0, 2), accessApprovalDAO.listAccessorGroup(null, null, null, null, 2L, 0L));
+		// Call under test, second page
+		assertEquals(expected.subList(2, 3), accessApprovalDAO.listAccessorGroup(null, null, null, null, 2L, 2L));
+	}
 
 	@Test
 	public void testConvertToList() {
@@ -438,7 +476,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " FROM ACCESS_APPROVAL"
 				+ " WHERE STATE = 'APPROVED'"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, null));
@@ -447,7 +485,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND REQUIREMENT_ID = :REQUIREMENT_ID"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery("1", null, null, null));
@@ -456,7 +494,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND SUBMITTER_ID = :SUBMITTER_ID"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, "2", null, null));
@@ -465,7 +503,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " WHERE STATE = 'APPROVED'"
 				+ " AND (REQUIREMENT_ID, SUBMITTER_ID) IN (SELECT DISTINCT REQUIREMENT_ID, SUBMITTER_ID FROM ACCESS_APPROVAL WHERE ACCESSOR_ID =:ACCESSOR_ID)"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, "3", null));
@@ -475,7 +513,7 @@ public class DBOAccessApprovalDAOImplTest {
 				+ " AND EXPIRED_ON <> 0"
 				+ " AND EXPIRED_ON <= :EXPIRED_ON"
 				+ " GROUP BY REQUIREMENT_ID, SUBMITTER_ID, EXPIRED_ON"
-				+ " ORDER BY EXPIRED_ON"
+				+ " ORDER BY EXPIRED_ON,REQUIREMENT_ID,SUBMITTER_ID"
 				+ " LIMIT :LIMIT"
 				+ " OFFSET :OFFSET",
 				DBOAccessApprovalDAOImpl.buildAccessorGroupQuery(null, null, null, new Date()));

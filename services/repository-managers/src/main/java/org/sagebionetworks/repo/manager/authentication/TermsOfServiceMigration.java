@@ -9,19 +9,21 @@ import org.sagebionetworks.repo.manager.migration.MigrationTypeListener;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
+import org.sagebionetworks.repo.model.dbo.auth.DBOTermsOfServiceAgreementMigrationDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.util.TemporaryCode;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @TemporaryCode(author = "marco", comment = "This needs to be removed after a release, together with the DBOTermsOfUseAgreement")
 public class TermsOfServiceMigration implements MigrationTypeListener<DBOTermsOfUseAgreement> {
 
-	private AuthenticationDAO authDao;
+	private DBOTermsOfServiceAgreementMigrationDao migrationDao;
 	
-	public TermsOfServiceMigration(AuthenticationDAO authDao) {
-		this.authDao = authDao;
+	public TermsOfServiceMigration(DBOTermsOfServiceAgreementMigrationDao migrationDao) {
+		this.migrationDao = migrationDao;
 	}
 
 	@Override
@@ -30,10 +32,10 @@ public class TermsOfServiceMigration implements MigrationTypeListener<DBOTermsOf
 	}
 
 	@Override
-	public void beforeCreateOrUpdate(List<DBOTermsOfUseAgreement> batch) {}
+	public void beforeCreateOrUpdate(JdbcTemplate jdbcTemplate, List<DBOTermsOfUseAgreement> batch) {}
 
 	@Override
-	public void afterCreateOrUpdate(List<DBOTermsOfUseAgreement> batch) {
+	public void afterCreateOrUpdate(JdbcTemplate jdbcTemplate, List<DBOTermsOfUseAgreement> batch) {
 		if (batch == null || batch.isEmpty()) {
 			return;
 		}
@@ -50,13 +52,12 @@ public class TermsOfServiceMigration implements MigrationTypeListener<DBOTermsOf
 		
 		Date now = new Date();
 				
-		List<TermsOfServiceAgreement> addList = authDao.getUsersWithoutAgreement(userIds).stream().map( u -> new TermsOfServiceAgreement()
+		List<TermsOfServiceAgreement> addList = migrationDao.getUsersWithoutAgreement(jdbcTemplate, userIds).stream().map( u -> new TermsOfServiceAgreement()
 			.setUserId(Long.valueOf(u.getId()))
 			.setAgreedOn(u.getCreationDate() == null ? now : u.getCreationDate())
 			.setVersion(AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion())
 		).collect(Collectors.toList());
 		
-		authDao.batchAddTermsOfServiceAgreement(addList);
+		migrationDao.batchAddTermsOfServiceAgreement(jdbcTemplate, addList);
 	}
-
 }
