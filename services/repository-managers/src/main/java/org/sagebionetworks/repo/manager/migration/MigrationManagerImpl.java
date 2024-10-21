@@ -60,6 +60,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -88,6 +90,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	private BackupFileStream backupFileStream;
 	private SynapseS3Client s3Client;
 	private FileProvider fileProvider;
+	private JdbcTemplate jdbcTemplate;
 
 	/**
 	 * The list of migration listeners
@@ -100,8 +103,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	static Set<MigrationType> PRINCIPAL_TYPES;
 	
 	@Autowired
-	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners) {
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, @Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners) {
 		this.migratableTableDao = migratableTableDao;
+		this.jdbcTemplate = jdbcTemplate;
 		this.stackStatusDao = stackStatusDao;
 		this.backupFileStream = backupFileStream;
 		this.s3Client = s3Client;
@@ -161,7 +165,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 	
 	private void fireBeforeCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch) {
-		getListenersForType(type).forEach( listener -> listener.beforeCreateOrUpdate(batch));
+		getListenersForType(type).forEach( listener -> listener.beforeCreateOrUpdate(jdbcTemplate, batch));
 	}
 		
 	/**
@@ -170,7 +174,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param databaseList - The Database objects that were created or updated.
 	 */
 	private void fireAfterCreateOrUpdateEvent(MigrationType type, List<DatabaseObject<?>> batch){
-		getListenersForType(type).forEach( listener -> listener.afterCreateOrUpdate(batch));
+		getListenersForType(type).forEach( listener -> listener.afterCreateOrUpdate(jdbcTemplate, batch));
 	}
 
 	@Override
@@ -594,6 +598,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @return
 	 */
 	@Override
+	@MigrationWriteTransaction
 	public RestoreTypeResponse restoreStream(InputStream input, BackupManifest manifest) {
 		RestoreTypeResponse response = new RestoreTypeResponse();
 		if(!this.migratableTableDao.isMigrationTypeRegistered(manifest.getPrimaryType().getMigrationType())) {
