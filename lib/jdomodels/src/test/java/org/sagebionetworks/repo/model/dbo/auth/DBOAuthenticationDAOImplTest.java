@@ -294,47 +294,6 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
-	public void testGetUsersWithoutAgreement() {
-		UserGroup ug = new UserGroup();
-		ug.setIsIndividual(true);
-		Long userWithAgreement = userGroupDAO.create(ug);
-	
-		groupsToDelete.add(userWithAgreement.toString());
-		
-		Instant now = Instant.now();
-		
-		authDAO.addTermsOfServiceAgreement(userWithAgreement, "0.0.0", Date.from(now.minus(30, ChronoUnit.DAYS)));
-		authDAO.addTermsOfServiceAgreement(userWithAgreement, "1.0.0", Date.from(now.minus(1, ChronoUnit.DAYS)));
-		
-		List<Long> userIds = List.of(userId, userWithAgreement);
-		
-		List<UserGroup> expected = List.of(
-			new UserGroup().setId(userId.toString())
-		);
-		
-		assertEquals(expected, authDAO.getUsersWithoutAgreement(userIds));		
-	}
-	
-	@Test
-	public void testBatchAddTermsOfServiceAgreement() {
-		UserGroup ug = new UserGroup();
-		ug.setIsIndividual(true);
-		Long anotherUserId = userGroupDAO.create(ug);
-	
-		groupsToDelete.add(anotherUserId.toString());
-		
-		Instant now = Instant.now();
-		
-		TermsOfServiceAgreement one = new TermsOfServiceAgreement().setUserId(userId).setAgreedOn(Date.from(now.minus(1, ChronoUnit.DAYS))).setVersion("1.0.0");
-		TermsOfServiceAgreement two = new TermsOfServiceAgreement().setUserId(anotherUserId).setAgreedOn(Date.from(now.minus(30, ChronoUnit.DAYS))).setVersion("0.0.0");
-		
-		authDAO.batchAddTermsOfServiceAgreement(List.of(one, two));
-		
-		assertEquals(Optional.of(one), authDAO.getLatestTermsOfServiceAgreement(userId));
-		assertEquals(Optional.of(two), authDAO.getLatestTermsOfServiceAgreement(anotherUserId));
-	}
-	
-	@Test
 	public void testGetAndSetTermsOfServiceLatestVersion() {
 
 		assertThrows(NotFoundException.class, () -> {
