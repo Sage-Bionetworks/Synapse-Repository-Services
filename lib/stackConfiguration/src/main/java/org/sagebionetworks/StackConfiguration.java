@@ -878,4 +878,6 @@ public interface StackConfiguration {
 	 * @return
 	 */
 	String getCrossAccountBedrockRoleArn();
+
+	String getCustomHelloWorldBedrockAgentId();
 }

@@ -102,6 +102,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -6335,6 +6337,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public TraceEventsResponse getAgentTrace(TraceEventsRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/agent/chat/trace/"+request.getJobId(), request, TraceEventsResponse.class);
+	}
+
+	@Override
+	public AgentRegistration createOrGetAgentRegistration(AgentRegistrationRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");;
+		return putJSONEntity(getRepoEndpoint(), "/agent/registration/", request, AgentRegistration.class);
+	}
+
+	@Override
+	public AgentRegistration getAgentRegistration(String registrationId) throws SynapseException {
+		ValidateArgument.required(registrationId, "registrationId");
+		return putJSONEntity(getRepoEndpoint(), "/agent/registration/"+registrationId, null, AgentRegistration.class);
 	}
 	
 }

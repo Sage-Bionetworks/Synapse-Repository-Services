@@ -81,6 +81,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -4408,5 +4410,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	TraceEventsResponse getAgentTrace(TraceEventsRequest request) throws SynapseException;
+	
+	/**
+	 * Create or get the AgentRegistration matching the provided request. 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AgentRegistration createOrGetAgentRegistration(AgentRegistrationRequest request) throws SynapseException;
+	
+	/**
+	 * Get the AgentRegistration given its registration ID.
+	 * @param registrationId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	AgentRegistration getAgentRegistration(String registrationId) throws SynapseException;
 
 }

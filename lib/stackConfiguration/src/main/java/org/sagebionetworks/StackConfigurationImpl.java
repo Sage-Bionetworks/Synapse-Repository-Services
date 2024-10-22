@@ -1282,4 +1282,9 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getCrossAccountBedrockRoleArn() {
 		return configuration.getProperty("org.sagebionetworks.cross.account.bedrock.role.arn");
 	}
+	
+	@Override
+	public String getCustomHelloWorldBedrockAgentId() {
+		return configuration.getProperty("org.sagebionetworks.cross.account.bedrock.hello.world.agent.id");
+	}
 }
