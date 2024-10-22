@@ -6,6 +6,8 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -198,5 +200,43 @@ public class AgentController {
 		ValidateArgument.required(request, "request");
 		request.setJobId(jobId);
 		return agentService.getChatTrace(userId, request);
+	}
+
+	/**
+	 * Create or Get the AgentRegistration that matches the provided request. This
+	 * call is idempotent. If a matching AgentRegistration already exists, then it
+	 * will be returned. If the AgentRegistration does not already exist, then it
+	 * will be created.
+	 * 
+	 * </p>
+	 * Only internal users are allowed to register new agents.
+	 * 
+	 * @param userId
+	 * @param request Includes the agent ID and alias.
+	 * @return
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.AGENT_REGISTRATION }, method = RequestMethod.PUT)
+	public @ResponseBody AgentRegistration createOrGetAgentRegistration(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AgentRegistrationRequest request) {
+		return agentService.createOrGetAgentRegistration(userId, request);
+	}
+
+	/**
+	 * Get the AgentRegistration given its id.
+	 * 
+	 * @param userId
+	 * @param agentRegistrationId The Synapse issued agent registration id.
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.AGENT_REGISTRATION_ID }, method = RequestMethod.GET)
+	public @ResponseBody AgentRegistration getAgentRegistration(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String agentRegistrationId) {
+		return agentService.getAgentRegistration(userId, agentRegistrationId);
 	}
 }

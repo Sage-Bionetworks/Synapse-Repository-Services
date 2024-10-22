@@ -20,7 +20,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
@@ -34,7 +37,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
 import software.amazon.awssdk.services.bedrockagentruntime.model.ContentBody;
 import software.amazon.awssdk.services.bedrockagentruntime.model.FunctionResult;
 import software.amazon.awssdk.services.bedrockagentruntime.model.InvocationResultMember;
@@ -56,8 +58,7 @@ public class AgentManagerImpl implements AgentManager {
 	public static final String PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL = "access_level";
 
 	private final AgentDao agentDao;
-	private final BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient;
-	private final BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient;
+	private final AgentClientProvider agentClientProvider;
 	private final String stackBedrockAgentId;
 	private final ReturnControlHandlerProvider handlerProvider;
 	private final Clock clock;
@@ -65,13 +66,11 @@ public class AgentManagerImpl implements AgentManager {
 	private Logger logger;
 
 	@Autowired
-	public AgentManagerImpl(AgentDao agentDao, BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient,
-			BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient, String stackBedrockAgentId,
+	public AgentManagerImpl(AgentDao agentDao, AgentClientProvider agentClientProvider, String stackBedrockAgentId,
 			ReturnControlHandlerProvider handlerProvider, Clock clock, AsynchronousJobStatusDAO statusDao) {
 		super();
 		this.agentDao = agentDao;
-		this.defaultBedrockAgentRuntimeAsyncClient = defaultBedrockAgentRuntimeAsyncClient;
-		this.customBedrockAgentRuntimeAsyncClient = customBedrockAgentRuntimeAsyncClient;
+		this.agentClientProvider = agentClientProvider;
 		this.stackBedrockAgentId = stackBedrockAgentId;
 		this.clock = clock;
 		this.statusDao = statusDao;
@@ -92,14 +91,11 @@ public class AgentManagerImpl implements AgentManager {
 		// only authenticated users can start a chat session.
 		AuthorizationUtils.disallowAnonymous(userInfo);
 
-		if (request.getAgentId() != null && !request.getAgentId().isBlank()) {
-			if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
-				throw new UnauthorizedException("Currently, only internal users can override the agentId.");
-			}
-		}
-		String agentId = (request.getAgentId() == null || request.getAgentId().isBlank()) ? stackBedrockAgentId
-				: request.getAgentId();
-		return agentDao.createSession(userInfo.getId(), request.getAgentAccessLevel(), agentId);
+		AgentRegistration registration = (request.getAgentRegistrationId() == null || request.getAgentRegistrationId().isBlank())
+				? agentDao.createOrGetRegistration(AgentType.BASELINE,
+						new AgentRegistrationRequest().setAwsAgentId(stackBedrockAgentId).setAwsAliasId(TSTALIASID))
+				: getAgentRegistration(request.getAgentRegistrationId());
+		return agentDao.createSession(userInfo.getId(), request.getAgentAccessLevel(), registration.getAgentRegistrationId());
 	}
 
 	@WriteTransaction
@@ -166,14 +162,15 @@ public class AgentManagerImpl implements AgentManager {
 	String invokeAgentWithText(String jobId, AgentSession session, AgentChatRequest request) {
 		boolean enableTrace = request.getEnableTrace() != null ? request.getEnableTrace() : false;
 
-		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(TSTALIASID).sessionId(session.getSessionId()).enableTrace(enableTrace)
-				.inputText(request.getChatText())
+		AgentRegistration agentRegistration = getAgentRegistration(session.getAgentRegistrationId());
+		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
+				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
+				.enableTrace(enableTrace).inputText(request.getChatText())
 				.sessionState(sessionState -> sessionState.promptSessionAttributes(
 						Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString())))
 				.build();
 
-		AgentResponse res = invokeAgentAsync(jobId, session, startRequest);
+		AgentResponse res = invokeAgentAsync(jobId, agentRegistration.getType(), session, startRequest);
 		int count = 0;
 		// When the invocation ID is not null, the agent has requested more information
 		// with a return_control response.
@@ -193,8 +190,8 @@ public class AgentManagerImpl implements AgentManager {
 			List<InvocationResultMember> eventResults = executeEvents(session.getAgentAccessLevel(),
 					res.getReturnControlEvents());
 
-			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder().agentId(session.getAgentId())
-					.agentAliasId(TSTALIASID).sessionId(session.getSessionId())
+			InvokeAgentRequest returnRequest = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
+					.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
 					.sessionState(SessionState.builder().invocationId(res.getInvocationId())
 							.returnControlInvocationResults(eventResults)
 							.promptSessionAttributes(Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL,
@@ -202,10 +199,16 @@ public class AgentManagerImpl implements AgentManager {
 							.build())
 					.enableTrace(enableTrace).build();
 
-			res = invokeAgentAsync(jobId, session, returnRequest);
+			res = invokeAgentAsync(jobId, agentRegistration.getType(), session, returnRequest);
 			count++;
 		}
 		return res.getBuilder().toString();
+	}
+
+	AgentRegistration getAgentRegistration(String registrationId) {
+		return agentDao.getRegeistration(registrationId)
+				.orElseThrow(() -> new IllegalArgumentException(
+						String.format("AgentRegistrationId='%s' does not exist", registrationId)));
 	}
 
 	/**
@@ -215,7 +218,8 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param invokeAgentRequest
 	 * @return
 	 */
-	AgentResponse invokeAgentAsync(String jobId, AgentSession session, InvokeAgentRequest invokeAgentRequest) {
+	AgentResponse invokeAgentAsync(String jobId, AgentType agentType, AgentSession session,
+			InvokeAgentRequest invokeAgentRequest) {
 		try {
 			// This object will capture the response data pushed to the handler.
 			AgentResponse response = new AgentResponse();
@@ -244,8 +248,8 @@ public class AgentManagerImpl implements AgentManager {
 								t.getMessage());
 					}).build();
 
-			CompletableFuture<Void> future = customBedrockAgentRuntimeAsyncClient.invokeAgent(invokeAgentRequest,
-					responseStreamHandler);
+			CompletableFuture<Void> future = agentClientProvider.getBedrockAgentRuntimeAsyncClient(agentType)
+					.invokeAgent(invokeAgentRequest, responseStreamHandler);
 			future.get();
 			return response;
 		} catch (Exception e) {
@@ -372,6 +376,26 @@ public class AgentManagerImpl implements AgentManager {
 		return new TraceEventsResponse().setJobId(request.getJobId())
 				.setPage(agentDao.listTraceEvents(request.getJobId(), request.getNewerThanTimestamp()));
 	}
+	
+
+	@WriteTransaction
+	@Override
+	public AgentRegistration createOrGetAgentRegistration(UserInfo userInfo, AgentRegistrationRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Currently, only internal users can register agents.");
+		}
+		return agentDao.createOrGetRegistration(AgentType.CUSTOM, request);
+	}
+
+	@Override
+	public AgentRegistration getAgentRegistration(UserInfo userInfo, String agentRegistrationId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(agentRegistrationId, "agentRegistrationId");
+		AuthorizationUtils.disallowAnonymous(userInfo);
+		return getAgentRegistration(agentRegistrationId);
+	}
 
 	public static class AgentResponse {
 
@@ -443,5 +467,4 @@ public class AgentManagerImpl implements AgentManager {
 		}
 
 	}
-
 }

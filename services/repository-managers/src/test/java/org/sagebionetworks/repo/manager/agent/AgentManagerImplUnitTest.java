@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -43,7 +44,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -90,6 +94,9 @@ public class AgentManagerImplUnitTest {
 	private BedrockAgentRuntimeAsyncClient mockAgentRuntime;
 
 	@Mock
+	private AgentClientProvider mockAgentClientProvider;
+
+	@Mock
 	private ReturnControlHandlerProvider mockReturnControlHandlerProvider;
 
 	@Mock
@@ -109,10 +116,10 @@ public class AgentManagerImplUnitTest {
 
 	@Mock
 	private ReturnControlHandler mockReturnControlHandlerTwo;
-	
+
 	@Mock
 	private Clock mockClock;
-	
+
 	@Mock
 	private AsynchronousJobStatusDAO mockStatusDao;
 
@@ -130,6 +137,8 @@ public class AgentManagerImplUnitTest {
 	private UserInfo anonymous;
 	private UserInfo nonSageNonAdmin;
 
+	private AgentRegistration agentRegistration;
+	private AgentRegistrationRequest agentRegistrationRequest;
 	private CreateAgentSessionRequest createRequest;
 	private AgentSession session;
 	private String sessionId;
@@ -150,7 +159,7 @@ public class AgentManagerImplUnitTest {
 
 	private InvokeAgentRequest invokeAgentRequest;
 	private InvokeAgentRequest invokeAgentReturnRequest;
-	
+
 	private InvokeAgentRequest invokeAgentRequestWithTrace;
 	private InvokeAgentRequest invokeAgentReturnRequestWithTrace;
 
@@ -158,7 +167,7 @@ public class AgentManagerImplUnitTest {
 
 	private AgentChatRequest chatRequest;
 	private String jobId;
-	
+
 	private TracePart traceInput;
 	private TracePart traceOutput;
 	private String traceOutText;
@@ -168,7 +177,7 @@ public class AgentManagerImplUnitTest {
 	public void before() {
 		stackBedrockAgentId = "stackAgentId";
 		ReflectionTestUtils.setField(manager, "stackBedrockAgentId", stackBedrockAgentId);
-		
+
 		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager.setLoggerProvider(mockLoggerProvider);
 
@@ -189,12 +198,17 @@ public class AgentManagerImplUnitTest {
 
 		nonSageNonAdmin = new UserInfo(false);
 		nonSageNonAdmin.setId(555L);
-		
+
 		invocationId = "someInvocationId";
 
+		agentRegistrationRequest = new AgentRegistrationRequest().setAwsAgentId(stackBedrockAgentId)
+				.setAwsAliasId(AgentManagerImpl.TSTALIASID);
+
+		agentRegistration = new AgentRegistration().setAgentRegistrationId("reg111").setAwsAgentId("awsAgentId222")
+				.setAwsAliasId("awaAgentAlias222");
 		sessionId = "sessionId111";
 		createRequest = new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE)
-				.setAgentId("onetwothree");
+				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId());
 		session = new AgentSession().setSessionId(sessionId).setStartedBy(nonSageNonAdmin.getId())
 				.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE);
 
@@ -228,28 +242,31 @@ public class AgentManagerImplUnitTest {
 				.build();
 		invocationResultMembers = List.of(invocationResultMember);
 
-		var builder = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).enableTrace(false)
-				.inputText(inputText)
-				.sessionState(sessionState -> sessionState.promptSessionAttributes(Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
-		
+		var builder = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
+				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId()).enableTrace(false)
+				.inputText(inputText).sessionState(sessionState -> sessionState.promptSessionAttributes(
+						Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
+
 		invokeAgentRequest = builder.build();
-		
+
 		builder.enableTrace(true);
 		invokeAgentRequestWithTrace = builder.build();
-		
-		var returnBuilder = InvokeAgentRequest.builder().agentId(session.getAgentId())
-				.agentAliasId(AgentManagerImpl.TSTALIASID).sessionId(session.getSessionId()).sessionState(SessionState.builder()
-						.invocationId(invocationId).returnControlInvocationResults(invocationResultMembers)
-						.promptSessionAttributes(Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())).build())
+
+		var returnBuilder = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
+				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
+				.sessionState(SessionState.builder().invocationId(invocationId)
+						.returnControlInvocationResults(invocationResultMembers)
+						.promptSessionAttributes(
+								Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString()))
+						.build())
 				.enableTrace(false);
-		
+
 		invokeAgentReturnRequest = returnBuilder.build();
 		returnBuilder.enableTrace(true);
 		invokeAgentReturnRequestWithTrace = returnBuilder.build();
-		
+
 		jobId = "987321";
-		
+
 		traceInput = DefaultTrace.builder().sessionId(sessionId)
 				.trace(Trace.builder().orchestrationTrace(OrchestrationTrace.builder()
 						.invocationInput(InvocationInput.builder()
@@ -265,14 +282,27 @@ public class AgentManagerImplUnitTest {
 								.rawResponse(RawResponse.builder().content(traceOutText).build()).build())
 						.build()).build())
 				.build();
-		
+
 		traceRequest = new TraceEventsRequest().setJobId(jobId).setNewerThanTimestamp(123L);
+	}
+	
+	@Test
+	public void testCreateSessionWithUnknownRegistrationId() {
+		createRequest.setAgentRegistrationId("unknown");
+		when(mockAgentDao.getRegeistration("unknown")).thenReturn(Optional.empty());
+		
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createSession(sageUser, createRequest);
+		}).getMessage();
+		assertEquals("AgentRegistrationId='unknown' does not exist", message);
 	}
 
 	@Test
 	public void testCreateSessionWithSageUser() {
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
 		when(mockAgentDao.createSession(sageUser.getId(), createRequest.getAgentAccessLevel(),
-				createRequest.getAgentId())).thenReturn(session);
+				createRequest.getAgentRegistrationId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(sageUser, createRequest);
@@ -281,8 +311,9 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithAdmin() {
-		when(mockAgentDao.createSession(admin.getId(), createRequest.getAgentAccessLevel(), createRequest.getAgentId()))
-				.thenReturn(session);
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.createSession(admin.getId(), createRequest.getAgentAccessLevel(),
+				createRequest.getAgentRegistrationId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(admin, createRequest);
@@ -301,19 +332,23 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithNonSageNonAdminWithAgentId() {
-		String message = assertThrows(UnauthorizedException.class, () -> {
-			// call under test
-			manager.createSession(nonSageNonAdmin, createRequest);
-		}).getMessage();
-		assertEquals("Currently, only internal users can override the agentId.", message);
-		verifyZeroInteractions(mockAgentDao);
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		
+		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
+				agentRegistration.getAgentRegistrationId())).thenReturn(session);
+
+		// call under test
+		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
+		assertEquals(session, result);
+		
 	}
 
 	@Test
-	public void testCreateSessionWithNonSageNonAdminWithNullAgentId() {
-		createRequest.setAgentId(null);
+	public void testCreateSessionWithNonSageNonAdminWithNullRegistrationId() {
+		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest)).thenReturn(agentRegistration);
+		createRequest.setAgentRegistrationId(null);
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
-				stackBedrockAgentId)).thenReturn(session);
+				agentRegistration.getAgentRegistrationId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
@@ -321,10 +356,11 @@ public class AgentManagerImplUnitTest {
 	}
 
 	@Test
-	public void testCreateSessionWithNonSageNonAdminWithBlankAgentId() {
-		createRequest.setAgentId("");
+	public void testCreateSessionWithNonSageNonAdminWithBlankRegistrationId() {
+		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest)).thenReturn(agentRegistration);
+		createRequest.setAgentRegistrationId("");
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
-				stackBedrockAgentId)).thenReturn(session);
+				agentRegistration.getAgentRegistrationId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
@@ -478,7 +514,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithNullJobId() {
 		jobId = null;
@@ -488,7 +524,6 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("jobId is required.", message);
 	}
-	
 
 	@Test
 	public void testInvokeAgentWithNullRequest() {
@@ -563,7 +598,10 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testInvokeAgentWithText() {
-		doReturn(new AgentResponse().appendText("foo")).when(manager).invokeAgentAsync(jobId, session, invokeAgentRequest);
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		doReturn(new AgentResponse().appendText("foo")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentRequest);
 
 		// call under test
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
@@ -573,66 +611,82 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testInvokeAgentWithTextWithReturnControl() {
 
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentRequest);
-		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(), returnControlEvents);
-		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId, session, invokeAgentReturnRequest);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
+				returnControlEvents);
+		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentReturnRequest);
 
 		// call under test
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
 		assertEquals("bar", results);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithTextWithReturnControlAndTraceFalse() {
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		chatRequest.setEnableTrace(false);
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentRequest);
-		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(), returnControlEvents);
-		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId, session, invokeAgentReturnRequest);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
+				returnControlEvents);
+		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentReturnRequest);
 
 		// call under test
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
 		assertEquals("bar", results);
 	}
-	
-	
+
 	@Test
 	public void testInvokeAgentWithTextWithReturnControlAndTraceNull() {
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		chatRequest.setEnableTrace(null);
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentRequest);
-		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(), returnControlEvents);
-		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId, session, invokeAgentReturnRequest);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
+				returnControlEvents);
+		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentReturnRequest);
 
 		// call under test
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
 		assertEquals("bar", results);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithTextWithReturnControlAndTraceTrue() {
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		chatRequest.setEnableTrace(true);
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentRequestWithTrace);
-		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(), returnControlEvents);
-		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId, session, invokeAgentReturnRequestWithTrace);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequestWithTrace);
+		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
+				returnControlEvents);
+		doReturn(new AgentResponse().appendText("bar")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentReturnRequestWithTrace);
 
 		// call under test
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
 		assertEquals("bar", results);
 	}
-	
+
 	@Test
 	public void testInvokeAgentWithTextWithReturnControlInfiniteLoop() {
 
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentRequest);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
 		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
 				returnControlEvents);
 		// return control triggers another return control infinite loop.
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
-				.invokeAgentAsync(jobId, session, invokeAgentReturnRequest);
+				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentReturnRequest);
 
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
@@ -644,6 +698,8 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testInvokeAgentAsnchMultipleOnChunk() throws InterruptedException, ExecutionException {
 		when(mockCompletableFuture.get()).thenReturn(null);
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType()))
+				.thenReturn(mockAgentRuntime);
 		// mock two onChunk()
 		doAnswer((InvocationOnMock invocation) -> {
 			InvokeAgentResponseHandler asyncResponseHandler = invocation.getArgument(1);
@@ -657,16 +713,18 @@ public class AgentManagerImplUnitTest {
 		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
 
 		// call under test
-		AgentResponse response = manager.invokeAgentAsync(jobId, session, invokeAgentRequest);
+		AgentResponse response = manager.invokeAgentAsync(jobId, agentRegistration.getType(), session,
+				invokeAgentRequest);
 		assertEquals("onetwo", response.getBuilder().toString());
 		verify(mockLogger).info("onResponse() sessionId: '{}'", session.getSessionId());
 	}
-	
+
 	@Test
 	public void testInvokeAgentAsnchWithOnTrace() throws InterruptedException, ExecutionException {
 		when(mockCompletableFuture.get()).thenReturn(null);
 		doNothing().when(manager).onTrace(any(), any());
-		
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType()))
+				.thenReturn(mockAgentRuntime);
 		// mock two onChunk()
 		doAnswer((InvocationOnMock invocation) -> {
 			InvokeAgentResponseHandler asyncResponseHandler = invocation.getArgument(1);
@@ -682,7 +740,8 @@ public class AgentManagerImplUnitTest {
 		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
 
 		// call under test
-		AgentResponse response = manager.invokeAgentAsync(jobId, session, invokeAgentRequest);
+		AgentResponse response = manager.invokeAgentAsync(jobId, agentRegistration.getType(), session,
+				invokeAgentRequest);
 		assertEquals("onetwo", response.getBuilder().toString());
 		verify(mockLogger).info("onResponse() sessionId: '{}'", session.getSessionId());
 		verify(manager).onTrace(jobId, traceInput);
@@ -696,6 +755,9 @@ public class AgentManagerImplUnitTest {
 		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), payload);
 
 		when(mockCompletableFuture.get()).thenReturn(null);
+
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType()))
+				.thenReturn(mockAgentRuntime);
 		// mock mock a return control call
 		doAnswer((InvocationOnMock invocation) -> {
 			InvokeAgentResponseHandler asyncResponseHandler = invocation.getArgument(1);
@@ -707,12 +769,15 @@ public class AgentManagerImplUnitTest {
 		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
 
 		// call under test
-		AgentResponse response = manager.invokeAgentAsync(jobId, session, invokeAgentRequest);
+		AgentResponse response = manager.invokeAgentAsync(jobId, agentRegistration.getType(), session,
+				invokeAgentRequest);
 		assertEquals(new AgentResponse().setReturnControl(invocationId, returnControlEvents), response);
 	}
 
 	@Test
 	public void testInvokeAgentWithTextWithError() throws InterruptedException, ExecutionException {
+
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType())).thenReturn(mockAgentRuntime);
 		InterruptedException e = new InterruptedException("something");
 		when(mockCompletableFuture.get()).thenThrow(e);
 		// mock two onChunk()
@@ -729,7 +794,7 @@ public class AgentManagerImplUnitTest {
 
 		String message = assertThrows(RuntimeException.class, () -> {
 			// call under test
-			manager.invokeAgentAsync(jobId, session, invokeAgentRequest);
+			manager.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
 		}).getMessage();
 		assertEquals("java.lang.InterruptedException: something", message);
 
@@ -868,8 +933,7 @@ public class AgentManagerImplUnitTest {
 		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId, payload);
 		assertEquals(expected, results);
 	}
-	
-	
+
 	@Test
 	public void testGetChatTrace() {
 		when(mockStatusDao.getJobStatus(jobId))
@@ -880,8 +944,7 @@ public class AgentManagerImplUnitTest {
 		TraceEventsResponse res = manager.getChatTrace(sageUser, traceRequest);
 		assertEquals(new TraceEventsResponse().setJobId(jobId).setPage(events), res);
 	}
-	
-	
+
 	@Test
 	public void testGetChatTraceWithNullTimestamp() {
 		traceRequest.setNewerThanTimestamp(null);
@@ -893,21 +956,21 @@ public class AgentManagerImplUnitTest {
 		TraceEventsResponse res = manager.getChatTrace(sageUser, traceRequest);
 		assertEquals(new TraceEventsResponse().setJobId(jobId).setPage(events), res);
 	}
-	
+
 	@Test
 	public void testGetChatTraceWithUnauthorized() {
 		when(mockStatusDao.getJobStatus(jobId))
 				.thenReturn(new AsynchronousJobStatus().setJobId(jobId).setStartedByUserId(admin.getId()));
-		
-		String message = assertThrows(UnauthorizedException.class,()->{
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.getChatTrace(sageUser, traceRequest);
 		}).getMessage();
 		assertEquals("Only the user that started the job may access the job's trace", message);
-		
+
 		verifyZeroInteractions(mockAgentDao);
 	}
-	
+
 	@Test
 	public void testGetChatTraceWithNullUser() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -916,7 +979,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
-	
+
 	@Test
 	public void testGetChatTraceWithRequest() {
 
@@ -926,7 +989,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("request is required.", message);
 	}
-	
+
 	@Test
 	public void testGetChatTraceWithNullJobId() {
 		traceRequest.setJobId(null);
@@ -936,7 +999,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("request.jobId is required.", message);
 	}
-	
+
 	private InvocationInputMember createInvocationInputMember(String actionGroup, String function) {
 		FunctionParameter paramOne = FunctionParameter.builder().name("oneKey").type("string").value("oneValue")
 				.build();
@@ -946,14 +1009,14 @@ public class AgentManagerImplUnitTest {
 		return InvocationInputMember.builder().functionInvocationInput(FunctionInvocationInput.builder()
 				.actionGroup(actionGroup).function(function).parameters(List.of(paramOne, paramTwo)).build()).build();
 	}
-	
+
 	@Test
 	public void testOnTraceWithInput() {
 		// call under test
 		manager.onTrace(jobId, traceInput);
 		verifyZeroInteractions(mockAgentDao);
 	}
-	
+
 	@Test
 	public void testOnTraceWithOutput() {
 		when(mockClock.currentTimeMillis()).thenReturn(1L);
@@ -961,4 +1024,104 @@ public class AgentManagerImplUnitTest {
 		manager.onTrace(jobId, traceOutput);
 		verify(mockAgentDao).addTraceToJob(jobId, 1L, traceOutText);
 	}
+	
+	@Test
+	public void testRegisterAgentWithAdmin() {
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest)).thenReturn(agentRegistration);
+		// call under test
+		var r = manager.createOrGetAgentRegistration(admin, agentRegistrationRequest);
+		assertEquals(agentRegistration, r);
+	}
+	
+	@Test
+	public void testRegisterAgentWithSager() {
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest)).thenReturn(agentRegistration);
+		// call under test
+		var r = manager.createOrGetAgentRegistration(sageUser, agentRegistrationRequest);
+		assertEquals(agentRegistration, r);
+	}
+	
+	@Test
+	public void testRegisterAgentWithNonSager() {
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.createOrGetAgentRegistration(nonSageNonAdmin, agentRegistrationRequest);
+		}).getMessage();
+		assertEquals("Currently, only internal users can register agents.", message);
+	}
+	
+	@Test
+	public void testRegisterAgentWithAnonymous() {
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.createOrGetAgentRegistration(anonymous, agentRegistrationRequest);
+		}).getMessage();
+		assertEquals("Currently, only internal users can register agents.", message);
+	}
+	
+	@Test
+	public void testRegisterAgentWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createOrGetAgentRegistration(null, agentRegistrationRequest);
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testRegisterAgentWithRequestUser() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.createOrGetAgentRegistration(sageUser, null);
+		}).getMessage();
+		assertEquals("request is required.", message);
+	}
+	
+	
+	@Test
+	public void testGetAgentRegistration() {
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		// call under test
+		var r = manager.getAgentRegistration(nonSageNonAdmin, agentRegistration.getAgentRegistrationId());
+		assertEquals(agentRegistration, r);
+	}
+	
+	@Test
+	public void testGetAgentRegistrationWithNotFound() {
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.empty());
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getAgentRegistration(nonSageNonAdmin, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("AgentRegistrationId='reg111' does not exist", message);
+	}
+	
+	@Test
+	public void testGetAgentRegistrationWithAnonymous() {
+		String message = assertThrows(UnauthorizedException.class, ()->{
+			// call under test
+			manager.getAgentRegistration(anonymous, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("Must login to perform this action", message);
+	}
+	
+	@Test
+	public void testGetAgentRegistrationWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getAgentRegistration(null, agentRegistration.getAgentRegistrationId());
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+	
+	@Test
+	public void testGetAgentRegistrationWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.getAgentRegistration(nonSageNonAdmin, null);
+		}).getMessage();
+		assertEquals("agentRegistrationId is required.", message);
+	}
+	
 }

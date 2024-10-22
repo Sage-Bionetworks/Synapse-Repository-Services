@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.service;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.AgentManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -45,6 +47,18 @@ public class AgentServiceImpl implements AgentService {
 	public TraceEventsResponse getChatTrace(Long userId, TraceEventsRequest request) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return agentManager.getChatTrace(userInfo, request);
+	}
+
+	@Override
+	public AgentRegistration createOrGetAgentRegistration(Long userId, AgentRegistrationRequest request) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return agentManager.createOrGetAgentRegistration(userInfo, request);
+	}
+
+	@Override
+	public AgentRegistration getAgentRegistration(Long userId, String agentRegistrationId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return agentManager.getAgentRegistration(userInfo, agentRegistrationId);
 	}
 
 }

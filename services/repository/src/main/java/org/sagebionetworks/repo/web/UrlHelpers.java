@@ -437,6 +437,8 @@ public class UrlHelpers {
 	public static final String AGENT_CHAT_START = AGENT_CHAT+ASYNC_START_REQUEST;
 	public static final String AGENT_CHAT_GET = AGENT_CHAT +ASYNC_GET_REQUEST;
 	public static final String AGENT_CHAT_TRACE = AGENT_CHAT +"/trace/{jobId}";
+	public static final String AGENT_REGISTRATION = AGENT+"/registration";
+	public static final String AGENT_REGISTRATION_ID = AGENT_REGISTRATION+"/{agentRegistrationId}";
 	
 	/*
 	 * The regular expression is needed in the path variable due to:
