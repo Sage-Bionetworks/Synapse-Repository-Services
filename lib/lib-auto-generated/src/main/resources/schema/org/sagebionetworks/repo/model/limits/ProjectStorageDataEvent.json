@@ -1,8 +1,0 @@
-{
-    "description": "Message used to refresh the project storage cache",
-    "properties": {
-		"projectId": {
-			"type": "integer"
-		}
-	}
-}

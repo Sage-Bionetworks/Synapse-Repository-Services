@@ -165,6 +165,7 @@
 		
 		<!-- Refresh project storage data event trigger -->
 		<ref bean="projectStorageDataRefreshWorkerTrigger"/>
+		<ref bean="projectStorageAccessTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"

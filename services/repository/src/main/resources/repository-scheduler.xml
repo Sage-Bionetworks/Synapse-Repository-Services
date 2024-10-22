@@ -19,6 +19,7 @@
 		<ref bean="memoryLoggerTrigger" />
 		<ref bean="dataSourceMonitorTrigger" />
 		<ref bean="diskMonitorTrigger" />
+		<ref bean="projectStorageAccessTrigger" />
 	</util:list>
 
 	<!-- This is a shared scheduler-->

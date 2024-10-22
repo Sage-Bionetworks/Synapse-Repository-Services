@@ -1,0 +1,14 @@
+{
+	"description": "Event send when project storage changes needs to be propagated.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"
+		}
+	],
+	"properties": {
+		"projectId": {
+			"description": "The id of the project affected by the event",
+			"type": "integer"
+		}
+	}
+}
