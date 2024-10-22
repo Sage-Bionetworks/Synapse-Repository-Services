@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslat
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
+@Deprecated
 public class DBOTermsOfUseAgreement
 		implements MigratableDatabaseObject<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement> {
 

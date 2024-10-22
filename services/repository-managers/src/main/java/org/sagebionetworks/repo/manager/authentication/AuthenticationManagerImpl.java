@@ -82,6 +82,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private FeatureManager featureManager;
 	
+	@Autowired
+	private TermsOfServiceManager tosManager;
+	
 	@Override
 	@WriteTransaction
 	public void setPassword(Long principalId, String password) {
@@ -196,17 +199,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Override
 	public PasswordResetSignedToken createPasswordResetToken(long userId) throws NotFoundException {
 		return passwordResetTokenGenerator.getToken(userId);
-	}
-
-	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
-		return authDAO.hasUserAcceptedToU(id);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void signTermsOfUser(Long principalId) {
-		authDAO.setTermsOfUseAcceptance(principalId, true);
 	}
 
 	@Override
@@ -384,9 +376,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer);
-		boolean acceptsTermsOfUse = authDAO.hasUserAcceptedToU(principalId);
+		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(principalId);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
-		return createLoginResponse(accessToken, acceptsTermsOfUse, newAuthenticationReceipt);
+		return createLoginResponse(accessToken, acceptsTermsOfService, newAuthenticationReceipt);
 	}
 	
 	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {

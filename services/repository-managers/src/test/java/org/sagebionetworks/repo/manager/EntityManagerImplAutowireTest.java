@@ -114,7 +114,6 @@ public class EntityManagerImplAutowireTest {
 		userId = userManager.createUser(nu);
 		userInfo = userManager.getUserInfo(userId);
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo.setAcceptsTermsOfUse(true);
 
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();

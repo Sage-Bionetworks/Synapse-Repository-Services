@@ -195,7 +195,7 @@ public class WebhookWorkerIntegrationTest {
 		webhookDao.addAllowedDomainPattern("^.+\\.sagebase\\.org$");
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"), true);
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"));
 		
 		project = entityManager.getEntity(adminUserInfo, entityManager
 			.createEntity(adminUserInfo, new Project().setName(UUID.randomUUID().toString()), null), Project.class

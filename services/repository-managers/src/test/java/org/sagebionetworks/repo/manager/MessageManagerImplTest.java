@@ -52,11 +52,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -113,9 +110,6 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private EntityAclManager entityAclManager;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
@@ -216,35 +210,25 @@ public class MessageManagerImplTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
-		
 		// Need two users for this test
 		{
 			NewUser nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
-			testUser = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+			testUser = userManager.createOrGetTestUser(adminUserInfo, nu);
 			
 			nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
-			otherTestUser = userManager.createOrGetTestUser(adminUserInfo,nu, cred, tou);
-			
-			tou.setPrincipalId(otherTestUser.getId());
-			basicDao.createOrUpdate(tou);
+			otherTestUser = userManager.createOrGetTestUser(adminUserInfo, nu);
 		}
 		
 		{
 			NewUser nu2 = new NewUser();
 			nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu2.setUserName(UUID.randomUUID().toString());
-			trustedMessageSender = userManager.createOrGetTestUser(adminUserInfo, nu2, cred, tou);
-			tou.setPrincipalId(trustedMessageSender.getId());
-			basicDao.createOrUpdate(tou);
+			trustedMessageSender = userManager.createOrGetTestUser(adminUserInfo, nu2);
+			
 			// now add to trusted users group
 			groupMembersDao.addMembers(
 					""+TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID, 

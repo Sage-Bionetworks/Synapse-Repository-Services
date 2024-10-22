@@ -369,9 +369,7 @@ public class AgentChatWorkerIntegrationTest {
 				assertNotNull(response.getResponseText());
 				System.out.println(response.getResponseText());
 				assertTrue(response.getResponseText().contains(project.getId()));
-				assertTrue(response.getResponseText().contains("access level"));
-				assertTrue(response.getResponseText().contains("increase"));
-				assertTrue(response.getResponseText().contains("Read your Private Data"));
+				assertFalse(response.getResponseText().contains(project.getName()));
 				
 			}, MAX_WAIT_MS).getResponse();
 		

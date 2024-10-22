@@ -15,7 +15,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
@@ -56,10 +55,6 @@ import com.google.common.io.Files;
 public class TrashServiceImplAutowiredTest {
 	@Autowired
 	private AdministrationService adminService;
-
-	// Bypass Auth Service to sign terms of use.
-	@Autowired
-	private AuthenticationManager authManager;
 
 	@Autowired
 	private CertifiedUserService certifiedUserService;
@@ -114,13 +109,11 @@ public class TrashServiceImplAutowiredTest {
 		String username = UUID.randomUUID().toString();
 		user.setEmail(username + "@test.com");
 		user.setUsername(username);
+		user.setTou(true);
 		LoginResponse loginResponse = adminService.createOrGetTestUser(adminUserId, user);
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
 		long createdUserId = Long.valueOf(accessTokenSubject);
 		certifiedUserService.setUserCertificationStatus(adminUserId, createdUserId, true);
-
-		// Before we can create file entities, we must agree to terms of use.
-		authManager.signTermsOfUser(createdUserId);
 
 		return createdUserId;
 	}

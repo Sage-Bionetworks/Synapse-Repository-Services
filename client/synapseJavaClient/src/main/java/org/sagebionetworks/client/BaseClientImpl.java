@@ -1,5 +1,26 @@
 package org.sagebionetworks.client;
 
+import static org.sagebionetworks.client.Method.DELETE;
+import static org.sagebionetworks.client.Method.GET;
+import static org.sagebionetworks.client.Method.POST;
+import static org.sagebionetworks.client.Method.PUT;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.util.InetAddressUtils;
@@ -38,27 +59,6 @@ import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
-import static org.sagebionetworks.client.Method.DELETE;
-import static org.sagebionetworks.client.Method.GET;
-import static org.sagebionetworks.client.Method.POST;
-import static org.sagebionetworks.client.Method.PUT;
-
 /**
  * Low-level Java Client API for REST APIs
  */
@@ -96,8 +96,6 @@ public class BaseClientImpl implements BaseClient {
 	private String drsEndpoint;
 
 	private String authorizationHeader;
-	
-	private boolean acceptsTermsOfUse;
 	
 	//cached value that is derived from repoEndpoint
 	String repoEndpointBaseDomain;
@@ -154,7 +152,6 @@ public class BaseClientImpl implements BaseClient {
 		LoginResponse response = postJSONEntity(authEndpoint, "/login", request, LoginResponse.class);
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, response.getSessionToken());
-		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
 	}
 	
@@ -176,17 +173,7 @@ public class BaseClientImpl implements BaseClient {
 		ValidateArgument.required(request.getPassword(), "LoginRequest.password");
 		LoginResponse response = postJSONEntity(authEndpoint, "/login2", request, LoginResponse.class);
 		setBearerAuthorizationToken(response.getAccessToken());
-		acceptsTermsOfUse = response.getAcceptsTermsOfUse();
 		return response;
-	}
-	
-	@Override
-	public void setAcceptsTermsOfUse(boolean b) {
-		acceptsTermsOfUse = b;
-	}
-	
-	protected boolean acceptsTermsOfUse() {
-		return acceptsTermsOfUse;
 	}
 
 	@Deprecated

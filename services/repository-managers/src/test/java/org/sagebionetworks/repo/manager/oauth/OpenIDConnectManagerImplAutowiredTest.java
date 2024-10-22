@@ -25,8 +25,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
@@ -85,15 +83,12 @@ public class OpenIDConnectManagerImplAutowiredTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		DBOCredential cred = new DBOCredential();
-		cred.setSecretKey("");
+
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu, cred, tou);
+		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
 
 
 		OAuthClient toCreate = new OAuthClient();

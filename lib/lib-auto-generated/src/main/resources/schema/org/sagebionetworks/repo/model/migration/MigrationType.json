@@ -460,7 +460,11 @@
 		},
 		{
 			"name": "TOS_REQUIREMENTS",
-			"description": "Table that the TOS requirements"
+			"description": "Table that stores the TOS requirements"
+		},
+		{
+			"name": "TOS_AGREEMENT",
+			"description": "Table that stores the TOS agreements"
 		},
 		{
 			"name": "CHANGE",

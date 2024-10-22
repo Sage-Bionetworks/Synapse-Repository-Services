@@ -112,7 +112,7 @@ public class DownloadListWorkerIntegrationTest {
 		boolean acceptsTermsOfUse = true;
 		String userName = UUID.randomUUID().toString();
 		user = userManager.createOrGetTestUser(adminUser,
-				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"), acceptsTermsOfUse);
+				new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 		datasetColumn = new ColumnModel();
 		datasetColumn.setName("aString");
 		datasetColumn.setColumnType(ColumnType.STRING);

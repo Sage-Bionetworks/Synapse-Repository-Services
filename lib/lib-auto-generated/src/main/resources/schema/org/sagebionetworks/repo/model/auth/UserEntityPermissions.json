@@ -48,7 +48,7 @@
 		},
 		"canUpload": {
 			"type": "boolean",
-			"description": "Are there any access requirements precluding the user from uploading into this entity (folder or project)?"
+			"description": "Did the user sign the current terms of service?"
 		},
 		"canEnableInheritance": {
 			"type": "boolean",

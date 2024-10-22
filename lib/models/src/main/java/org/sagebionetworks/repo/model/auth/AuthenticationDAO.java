@@ -74,16 +74,21 @@ public interface AuthenticationDAO {
 	 * Replaces the user's secret key with the specified one
 	 */
 	void changeSecretKey(long principalId, String secretKey);
+		
+	/**
+	 * Adds the user agreement for a specific version of the terms of service 
+	 * @param principalId
+	 * @param version
+	 * @param agreedOn
+	 */
+	TermsOfServiceAgreement addTermsOfServiceAgreement(long principalId, String version, Date agreedOn);
 	
 	/**
-	 * Returns whether the user has accepted the terms of use
+	 * 
+	 * @param principalId
+	 * @return The lasted terms of service agreement
 	 */
-	boolean hasUserAcceptedToU(long principalId) throws NotFoundException;
-	
-	/**
-	 * Sets whether the user has accepted, rejected, or not seen the terms of use
-	 */
-	void setTermsOfUseAcceptance(long principalId, Boolean acceptance);
+	Optional<TermsOfServiceAgreement> getLatestTermsOfServiceAgreement(long principalId);
 	
 	/**
 	 * Sets the current TOS requirements
@@ -98,10 +103,22 @@ public interface AuthenticationDAO {
 	/**
 	 * @return The latest terms of service requirements
 	 */
-	Optional<TermsOfServiceRequirements> getCurrentTermsOfServiceRequirements();
+	TermsOfServiceRequirements getCurrentTermsOfServiceRequirements();
+	
+	/**
+	 * 
+	 * @return The latest version of the terms of service
+	 */
+	String getTermsOfServiceLatestVersion();
+	
+	/**
+	 * Sets the latest version of the terms of service
+	 * @param version
+	 */
+	void setTermsOfServiceLatestVersion(String version);
 	
 	// For testing
-	void clearTermsOfServiceRequirements();
+	void clearTermsOfServiceData();
 	
 	/**
 	 * Updates the state of 2fa for the given principal

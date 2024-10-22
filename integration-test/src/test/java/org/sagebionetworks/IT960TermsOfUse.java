@@ -1,16 +1,19 @@
 package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
@@ -26,7 +29,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 @ExtendWith(ITTestExtension.class)
 public class IT960TermsOfUse {
@@ -36,11 +42,9 @@ public class IT960TermsOfUse {
 	private static Project project;
 	private static FileEntity dataset;
 	
-	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
 	
-	public IT960TermsOfUse(SynapseAdminClient adminSynapse, SynapseClient synapse) {
-		this.adminSynapse = adminSynapse;
+	public IT960TermsOfUse(SynapseClient synapse) {
 		this.synapse = synapse;
 	}
 	
@@ -80,36 +84,10 @@ public class IT960TermsOfUse {
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
-	@BeforeEach
-	public void before() throws Exception {
-		synapse.signTermsOfUse(synapse.getAccessToken());
-	}
-	
 	@AfterAll
 	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
 		adminSynapse.deleteEntity(project);
 		adminSynapse.deleteUser(rejectTOUuserToDelete);
-		
-	}
-	
-	@Test
-	public void testRepoSvcWithTermsOfUse() throws Exception {
-		// should be able to see locations (i.e. the location is 'tier 1' data
-		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
-	}
-
-	@Test
-	public void testRepoSvcNoTermsOfUse() throws Exception {
-		FileEntity ds = synapse.getEntity(dataset.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(dataset.getId()));
-		
-		FileEntity idHolder = new FileEntity();
-		idHolder.setId(ds.getId());
-		// an admin should be able to retrieve the entity and download the content
-		ds = adminSynapse.getEntity(idHolder.getId(), FileEntity.class);
-		assertNotNull(synapse.getFileEntityTemporaryUrlForCurrentVersion(idHolder.getId()));
-
 	}
 	
 	@Test
@@ -130,7 +108,91 @@ public class IT960TermsOfUse {
 		
 		assertNotNull(tosInfo.getCurrentRequirements().getMinimumTermsOfServiceVersion());
 		assertNotNull(tosInfo.getCurrentRequirements().getRequirementDate());
-		
 	}
+	
+	@Test
+	public void testSignTermsOfServiceWithVersion(SynapseAdminClient adminSynapse) throws SynapseException, JSONObjectAdapterException {
+		SynapseClient newUser = new SynapseClientImpl();
+		
+		SynapseClientHelper.createUser(adminSynapse, newUser, false, false);
+		
+		TermsOfServiceStatus status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, status.getUserCurrentTermsOfServiceState());
+		
+		newUser.signTermsOfUse(newUser.getAccessToken(), newUser.getTermsOfServiceInfo().getCurrentRequirements().getMinimumTermsOfServiceVersion());
+
+		status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		
+		String latestVersion = newUser.getTermsOfServiceInfo().getLatestTermsOfServiceVersion();
+		
+		// This should work even though we already signed it
+		newUser.signTermsOfUse(newUser.getAccessToken(), latestVersion);
+		
+		status = newUser.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		assertEquals(latestVersion, status.getLastAgreementVersion());
+	}
+	
+	@Test
+	public void testGetUserTermsOfServiceStatus() throws SynapseException {
+		TermsOfServiceStatus status = rejectTOUsynapse.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, status.getUserCurrentTermsOfServiceState());
+		
+		assertNull(status.getLastAgreementDate());
+		assertNull(status.getLastAgreementVersion());
+
+		status = synapse.getUserTermsOfServiceStatus();
+		
+		assertEquals(TermsOfServiceState.UP_TO_DATE, status.getUserCurrentTermsOfServiceState());
+		assertNotNull(status.getLastAgreementDate());
+		assertNotNull(status.getLastAgreementVersion());
+	}
+	
+	@Test
+	public void testUpdateTermsOfServiceRequirments(SynapseAdminClient adminSynapse) throws SynapseException {
+		TermsOfServiceInfo info = synapse.getTermsOfServiceInfo();
+		String latestVersion = info.getLatestTermsOfServiceVersion();
+		String minVersion = info.getCurrentRequirements().getMinimumTermsOfServiceVersion();
+		
+		// Note that this test assumes that the latest version and the min required is different, which should be
+		// the case at the time of this implementation
+		assertNotEquals(latestVersion, minVersion);
+
+		// The test user is created using the min required version 
+		assertEquals(TermsOfServiceState.UP_TO_DATE, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// We set the min version requirements to latest version
+		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
+			.setRequirementDate(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
+			.setMinimumTermsOfServiceVersion(info.getLatestTermsOfServiceVersion());
+		
+		// A normal user cannot set the requirements
+		System.out.println(assertThrows(SynapseForbiddenException.class, () -> {			
+			synapse.updateTermsOfServiceRequirements(requirements);
+		}).getMessage());
+		
+		adminSynapse.updateTermsOfServiceRequirements(requirements);
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_SOON, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// We set the the date in the past to force the requirements
+		adminSynapse.updateTermsOfServiceRequirements(requirements
+			.setRequirementDate(Date.from(Instant.now().minus(1, ChronoUnit.DAYS)))
+		);
+		
+		assertEquals(TermsOfServiceState.MUST_AGREE_NOW, synapse.getUserTermsOfServiceStatus().getUserCurrentTermsOfServiceState());
+		
+		// Put back the original requirements so other tests don't brake
+		adminSynapse.updateTermsOfServiceRequirements(requirements
+			.setRequirementDate(info.getCurrentRequirements().getRequirementDate())
+			.setMinimumTermsOfServiceVersion(info.getCurrentRequirements().getMinimumTermsOfServiceVersion())
+		);
+	}
+	
  
 }

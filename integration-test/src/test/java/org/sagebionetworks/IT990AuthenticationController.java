@@ -48,6 +48,7 @@ public class IT990AuthenticationController {
 	private static String receipt = null;
 	private static final String SYNAPSE_ENDPOINT = "https://www.synapse.org/";
 	private static String emailS3Key, emailAliasS3Key;
+	private static String tosLatestVersion;
 	
 	@BeforeAll
 	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
@@ -59,6 +60,7 @@ public class IT990AuthenticationController {
 		nu.setEmail(email);
 		nu.setUsername(username);
 		nu.setPassword(password);
+		nu.setTou(true);
 
 		LoginResponse loginResponse = adminSynapse.createIntegrationTestUser(nu);
 		String accessTokenSubject = JSONWebTokenHelper.getSubjectFromJWTAccessToken(loginResponse.getAccessToken());
@@ -70,6 +72,8 @@ public class IT990AuthenticationController {
 		SynapseClientHelper.setEndpoints(synapseClient);
 
 		performLogin();
+		
+		tosLatestVersion = synapseClient.getTermsOfServiceInfo().getLatestTermsOfServiceVersion();
 		
 		// Add an alternative email as an alias
 		emailAlias = UUID.randomUUID().toString() + "@foo.com";
@@ -93,7 +97,6 @@ public class IT990AuthenticationController {
 		request.setPassword(password);
 		request.setAuthenticationReceipt(receipt);
 		receipt = synapseClient.loginForAccessToken(request).getAuthenticationReceipt();
-		synapseClient.signTermsOfUse(synapseClient.getAccessToken());
 	}
 	
 	@BeforeEach
@@ -172,15 +175,13 @@ public class IT990AuthenticationController {
 		synapseClient.login(request);
 		String sessionToken = synapseClient.getCurrentSessionToken();
 		// Accept the terms
-		synapseClient.signTermsOfUse(sessionToken);
-		// Reject the terms
-		synapseClient.signTermsOfUse(sessionToken);
+		synapseClient.signTermsOfUse(sessionToken, tosLatestVersion);
 	}
 
 	@Test
 	public void testSignTermsViaAccessToken() throws Exception {
 		String accessToken = synapseClient.getAccessToken();
-		synapseClient.signTermsOfUse(accessToken);
+		synapseClient.signTermsOfUse(accessToken, tosLatestVersion);
 	}
 
 	@Test

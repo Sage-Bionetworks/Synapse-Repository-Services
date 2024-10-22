@@ -54,7 +54,7 @@ public class AcceptTermsOfUseFilter implements Filter {
 		
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
-			if (!authenticationService.hasUserAcceptedTermsOfUse(userId)) {
+			if (!authenticationService.hasUserAcceptedTermsOfService(userId)) {
 				HttpAuthUtil.rejectWithErrorResponse(httpResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;
 			}

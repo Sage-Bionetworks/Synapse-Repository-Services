@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -25,13 +28,15 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceAgreement;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupAliasType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.UserGroupDoaObjectHelper;
@@ -149,8 +154,6 @@ public class MigrationManagerImplAutowireTest {
 			projects.add(entityManager.getEntity(adminUser, id, Project.class));
 			projectIdsLong.add(KeyFactory.stringToKey(id));
 		}
-
-		
 	}
 	
 	@AfterEach
@@ -434,12 +437,7 @@ public class MigrationManagerImplAutowireTest {
 		member.setGroupId(principalId);
 		member.setMemberId(principalId);
 		basicDao.createNew(member);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setAgreesToTermsOfUse(true);
-		tou.setPrincipalId(principalId);
-		basicDao.createNew(tou);
-		
+				
 		MigrationType type =  MigrationType.PRINCIPAL;
 		BackupAliasType backupType = BackupAliasType.TABLE_NAME;
 		long batchSize = 2;
@@ -515,6 +513,50 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(new Long(0), restoreReponse.getRestoredRowCount());
 		// validate all of the data was restored.
 		validateProjectsRestored();
+	}
+
+	@Autowired
+	private AuthenticationDAO authDao;
+	
+	// See PLFM-8653
+	@Test
+	public void testRestoreWithTermsOfServiceMigration() throws IOException {
+		DBOUserGroup user = new DBOUserGroup();
+		
+		user.setId(3500003L);
+		user.setIsIndividual(true);
+		user.setEtag(UUID.randomUUID().toString());
+		user.setCreationDate(new Date());
+		
+		basicDao.createNew(user);
+		
+		TermsOfServiceAgreement existing = authDao.addTermsOfServiceAgreement(3500003, "0.0.0", new Date());
+		
+		InputStream stream = getClass().getClassLoader().getResourceAsStream("MigrationBackupTermsOfUse.zip");
+		
+		Long batchSize = 10_000L;
+		Long minId = 1L;
+		Long maxId = Long.MAX_VALUE;
+		
+		BackupManifest manifest = new BackupManifest()
+			.setAliasType(BackupAliasType.MIGRATION_TYPE_NAME)
+			.setPrimaryType(new TypeData().setMigrationType(MigrationType.PRINCIPAL.name()).setBackupIdColumnName("ID"))
+			.setBatchSize(batchSize)
+			.setMaximumId(minId)
+			.setMaximumId(maxId);
+		
+		// Call under test
+		migrationManager.restoreStream(stream, manifest);
+		
+		// The admin should not create a record
+		assertEquals(Optional.empty(), authDao.getLatestTermsOfServiceAgreement(1));
+		assertFalse(authDao.getLatestTermsOfServiceAgreement(3500000).isEmpty());
+		// 5001 rejected the terms
+		assertTrue(authDao.getLatestTermsOfServiceAgreement(3500001).isEmpty());
+		// 5002 has a creation date
+		assertEquals(Optional.of(new TermsOfServiceAgreement().setUserId(3500002L).setAgreedOn(new Date(1727269894000L)).setVersion("0.0.0")), authDao.getLatestTermsOfServiceAgreement(3500002));
+		// 5003 was already migrated
+		assertEquals(Optional.of(existing), authDao.getLatestTermsOfServiceAgreement(3500003));
 	}
 	
 }

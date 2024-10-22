@@ -1,134 +1,164 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import java.time.Duration;
-
 import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
+import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.utils.github.Release;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.util.github.GithubApiClient;
-import org.sagebionetworks.repo.util.github.GithubApiException;
-import org.sagebionetworks.schema.parser.ParseException;
-import org.sagebionetworks.schema.parser.SchemaIdParser;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ValidateArgument;
+import org.semver4j.Semver;
 import org.springframework.stereotype.Service;
-
-import com.google.common.base.Ticker;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.ExecutionError;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 @Service
 public class TermsOfServiceManager {
-	
-	private static final Logger LOGGER = LogManager.getLogger(TermsOfServiceManager.class);	
 
-	private static final String VERSION_LATEST = "latest";
-	
-	static final Duration VERSION_CACHE_EXPIRATION = Duration.ofHours(24);
-	
+	private static final Logger LOGGER = LogManager.getLogger(TermsOfServiceManager.class);
+
 	static final String ORG = "Sage-Bionetworks";
 	static final String REPO = "Sage-Governance-Documents";
-	
+
 	private static final String TOS_URL_FORMAT = "https://raw.githubusercontent.com/" + ORG + "/" + REPO + "/refs/tags/%s/Terms.md";
-		
+
 	private AuthenticationDAO authDao;
-	
+
 	private GithubApiClient githubClient;
 	
-	private LoadingCache<String, Release> versionCache;
-	
-	private volatile String latestVersionFallback;
-	
+	private Clock clock;
+
 	public TermsOfServiceManager(AuthenticationDAO authDao, GithubApiClient githubClient, Clock clock) {
 		this.authDao = authDao;
 		this.githubClient = githubClient;
-		this.versionCache = CacheBuilder.newBuilder()
-			.ticker(new Ticker() {
-				
-				@Override
-				public long read() {
-					return clock.nanoTime();
-				}
-			})
-			.expireAfterWrite(VERSION_CACHE_EXPIRATION)
-			.build(CacheLoader.from(this::fetchRelease));
+		this.clock = clock;
 	}
-	
+
 	@PostConstruct
 	public void initialize() {
-		// We pre-load the latest version letting the exceptions go through so the server does not start if this fails
-		versionCache.getUnchecked(VERSION_LATEST);
+		refreshLatestVersion();
 	}
 
 	/**
 	 * @return The information about the current terms of service and requirements
 	 */
-	public TermsOfServiceInfo getTermsOfUseInfo() {
+	public TermsOfServiceInfo getTermsOfServiceInfo() {
 		TermsOfServiceInfo tosInfo = new TermsOfServiceInfo();
-		
-		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements()
-				.orElseThrow(() -> new IllegalStateException("Terms of Service requirements not initialized.")));
 
-		String latestVersion = getLatestVersion();
-		
+		tosInfo.setCurrentRequirements(authDao.getCurrentTermsOfServiceRequirements());
+
+		String latestVersion = authDao.getTermsOfServiceLatestVersion();
+
 		tosInfo.setLatestTermsOfServiceVersion(latestVersion);
 		tosInfo.setTermsOfServiceUrl(String.format(TOS_URL_FORMAT, latestVersion));
-		 
+
 		return tosInfo;
 	}
-	
-	String getLatestVersion() {
-		String latestVersion;
+
+	@WriteTransaction
+	public void signTermsOfService(long principalId, String termsOfServiceVersion) {
+		ValidateArgument.requirement(!BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(principalId), "The given user cannot sign the terms of service.");
 		
-		try {
-			latestVersion = versionCache.getUnchecked(VERSION_LATEST).getTag_name();
-		} catch (UncheckedExecutionException | ExecutionError e ) {
-			// We do not want an issue with github to bring down synapse, fallback on the latest known version
-			LOGGER.error("Could not fetch latest version, will fallback to version {}: ", latestVersionFallback, e);
-			if (e.getCause() instanceof GithubApiException) {
-				GithubApiException githubApiEx = (GithubApiException) e.getCause();
-				if (githubApiEx.getResponseBody() != null || githubApiEx.getStatus() != null) {
-					LOGGER.error("Response from github was: {} (status: {})", githubApiEx.getResponseBody(), githubApiEx.getStatus());	
+		Semver versionToSign = parseSemver(termsOfServiceVersion == null ? AuthenticationDAO.DEFAULT_TOS_REQUIREMENTS.getMinimumTermsOfServiceVersion() : termsOfServiceVersion);
+		Semver latestVersion = new Semver(authDao.getTermsOfServiceLatestVersion());
+		
+		ValidateArgument.requirement(versionToSign.isLowerThanOrEqualTo(latestVersion),
+				String.format("The version cannot be greater than the latest available version (%s).", latestVersion.getVersion()));
+		
+		TermsOfServiceRequirements requirements = authDao.getCurrentTermsOfServiceRequirements();		
+		
+		ValidateArgument.requirement(versionToSign.isGreaterThanOrEqualTo(requirements.getMinimumTermsOfServiceVersion()),
+					String.format("The version cannot be lower than the current required version (%s).", requirements.getMinimumTermsOfServiceVersion()));
+		
+		authDao.addTermsOfServiceAgreement(principalId, versionToSign.getVersion(), clock.now());
+	}
+	
+	public TermsOfServiceStatus getUserTermsOfServiceStatus(long userId) {
+		ValidateArgument.requirement(!AuthorizationUtils.isUserAnonymous(userId), "Cannot get terms of service status for the anonymous user.");
+		
+		TermsOfServiceStatus status = new TermsOfServiceStatus()
+			.setUserId(String.valueOf(userId))
+			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
+		
+		// Any user that is bootstrapped is always considered up-to-date (e.g. admin etc)
+		if (BOOTSTRAP_PRINCIPAL.isBootstrapPrincipalId(userId)) {
+			status.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
+		} else {
+			authDao.getLatestTermsOfServiceAgreement(userId).ifPresent( existing -> {
+				status.setLastAgreementDate(existing.getAgreedOn());
+				status.setLastAgreementVersion(existing.getVersion());
+				
+				TermsOfServiceRequirements requirements = authDao.getCurrentTermsOfServiceRequirements();
+				
+				if (new Semver(existing.getVersion()).isGreaterThanOrEqualTo(requirements.getMinimumTermsOfServiceVersion())) {
+					status.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
+				} else if (clock.now().after(requirements.getRequirementDate())) {
+					status.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
+				} else {
+					status.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_SOON);
 				}
-			}
-			// We fallback on the known latest fallback version
-			latestVersion = latestVersionFallback;
+				
+			});
 		}
 		
-		return latestVersion;
+		return status;
+	}
+	
+	@WriteTransaction
+	public TermsOfServiceInfo updateTermsOfServiceRequirements(UserInfo userInfo, TermsOfServiceRequirements requirements) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(requirements, "The requirements");
+		ValidateArgument.required(requirements.getRequirementDate(), "The requirement date");
+		ValidateArgument.required(requirements.getMinimumTermsOfServiceVersion(), "The minimum version");
+		
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only an ACT member or an administrator can perform this operation.");
+		}
+		
+		Semver minVersion = parseSemver(requirements.getMinimumTermsOfServiceVersion());
+		Semver latestVersion = refreshLatestVersion();
+		
+		ValidateArgument.requirement(minVersion.isLowerThanOrEqualTo(latestVersion), "The minium version cannot be greater than the latest available version.");
+		
+		authDao.setCurrentTermsOfServiceRequirements(userInfo.getId(), minVersion.getVersion(), requirements.getRequirementDate());
+		
+		return getTermsOfServiceInfo();
+	}
+	
+	public boolean hasUserAcceptedTermsOfService(long userId) {
+		return !TermsOfServiceState.MUST_AGREE_NOW.equals(getUserTermsOfServiceStatus(userId).getUserCurrentTermsOfServiceState());
 	}
 
-	Release fetchRelease(String tag) {
-		LOGGER.info("Fetching github release for {} version...", tag);
+	public Semver refreshLatestVersion() {
 		
-		Release release;
+		LOGGER.info("Fetching latest ToS version from github...");
+
+		Release latestRelease = githubClient.getLatestRelease(ORG, REPO);
 		
-		if (VERSION_LATEST.equals(tag)) {
-			release = githubClient.getLatestRelease(ORG, REPO);
-			// Makes sure to update the latest version fallback each time we fetch a new value
-			latestVersionFallback = release.getTag_name();
-		} else {
-			try {
-				new SchemaIdParser(tag).semanticVersion();
-			} catch (ParseException e) {
-				throw new IllegalArgumentException("Expected a semantic version, was: " + tag);
-			}
-			
-			release = githubClient.getReleaseByTag(ORG, REPO, tag);
-		}
+		Semver version = parseSemver(latestRelease.getTag_name());
+
+		authDao.setTermsOfServiceLatestVersion(version.getVersion());
+
+		LOGGER.info("Fetching latest ToS version from github...DONE (Name: {}, Tag: {})", latestRelease.getName(),
+				latestRelease.getTag_name());
 		
-		LOGGER.info("Fetching github release for {} version...DONE (Name: {}, Tag: {})", tag, release.getName(), release.getTag_name());
-		
-		return release;
+		return version;
 	}
 	
-	String getLatestVersionFallback() {
-		return latestVersionFallback;
+	private static Semver parseSemver(String version) {
+		ValidateArgument.requiredNotBlank(version, "The version");
+		Semver parsedVersion = new Semver(version);
+		ValidateArgument.requirement(parsedVersion.getPreRelease().isEmpty() && parsedVersion.getBuild().isEmpty(), "Unsupported version format: should not include pre-release or build metadata.");
+		return parsedVersion;
 	}
+
 }

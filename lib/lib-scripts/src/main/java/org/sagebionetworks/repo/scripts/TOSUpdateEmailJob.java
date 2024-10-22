@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class TOSUpdateEmailJob {
 	
 	public static void main(String[] args) throws SQLException, IOException, InterruptedException {
+		String from = "Synapse<tos-noreply@synapse.org>";
 		String subject = "Updates to our Terms of Service and Privacy Policy";
 		String emailTemplatePath = "message/TermsOfServiceUpdateTemplate.html";
 		
@@ -26,7 +27,7 @@ public class TOSUpdateEmailJob {
 			EmailListSender sender = new EmailListSender("TOSUpdate", new JdbcTemplate(dataSource), sendLimit, maxSendRate);
 			
 			try {
-				sender.start(emailCsvFile, subject, emailTemplatePath, doSend);
+				sender.start(emailCsvFile, from, subject, emailTemplatePath, doSend);
 			} finally {
 				sender.shutdown();
 			}

@@ -40,6 +40,7 @@ public class IT502SynapseJavaClientAccountTest {
 	
 	private SynapseAdminClient adminSynapse;
 	private SynapseClient synapse;
+	private String tosLatestVersion;
 	
 	public IT502SynapseJavaClientAccountTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
 		this.adminSynapse = adminSynapse;
@@ -58,6 +59,7 @@ public class IT502SynapseJavaClientAccountTest {
 	public void before() throws SynapseException {
 		adminSynapse.clearAllLocks();
 		s3KeyToDelete = null;
+		tosLatestVersion = synapse.getTermsOfServiceInfo().getLatestTermsOfServiceVersion();
 	}
 	
 	@AfterEach
@@ -103,7 +105,7 @@ public class IT502SynapseJavaClientAccountTest {
 		sc.setSessionToken(loginResponse.getAccessToken());
 		SynapseClientHelper.setEndpoints(sc);
 		sc.setUsername(username);
-		sc.signTermsOfUse(loginResponse.getAccessToken());
+		sc.signTermsOfUse(loginResponse.getAccessToken(), tosLatestVersion);
 		UserProfile up = sc.getMyProfile();
 		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}
@@ -134,7 +136,7 @@ public class IT502SynapseJavaClientAccountTest {
 		sc.setBearerAuthorizationToken(loginResponse.getAccessToken());
 		SynapseClientHelper.setEndpoints(sc);
 		sc.setUsername(username);
-		sc.signTermsOfUse(loginResponse.getAccessToken());
+		sc.signTermsOfUse(loginResponse.getAccessToken(), tosLatestVersion);
 		UserProfile up = sc.getMyProfile();
 		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}

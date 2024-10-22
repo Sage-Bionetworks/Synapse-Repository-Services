@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -60,10 +59,6 @@ import com.google.common.io.Files;
 public class FileUploadServiceImplAutowireTest {
 	@Autowired
 	private AdministrationService adminService;
-
-	// Bypass Auth Service to sign terms of use.
-	@Autowired
-	private AuthenticationManager authManager;
 
 	@Autowired
 	private CertifiedUserService certifiedUserService;
@@ -267,9 +262,6 @@ public class FileUploadServiceImplAutowireTest {
 		externalS3ProjectSetting.setLocations(ImmutableList.of(externalS3StorageLocationId));
 		projectSettingsService.createProjectSetting(userId, externalS3ProjectSetting);
 
-		// Before we can create file entities, we must agree to terms of use.
-		authManager.signTermsOfUser(userId);
-
 		// Create file entities for each file handle.
 		FileEntity synapseFileEntity = new FileEntity();
 		synapseFileEntity.setDataFileHandleId(synapseFileHandle.getId());
@@ -323,9 +315,6 @@ public class FileUploadServiceImplAutowireTest {
 				.withFileToUpload(file).withUserId(userId.toString());
 		S3FileHandle fileHandle = fileHandleManager.uploadLocalFile(fileUploadRequest);
 		fileHandlesToDelete.add(fileHandle);
-
-		// Before we can create file entities, we must agree to terms of use.
-		authManager.signTermsOfUser(userId);
 
 		// Make a FileEntity out of that FileHandle in Folder A.
 		FileEntity fileEntity = new FileEntity();

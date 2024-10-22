@@ -78,7 +78,6 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		userInfo.setAcceptsTermsOfUse(true);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
