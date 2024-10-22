@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.limits.ProjectStorageData;
+import org.sagebionetworks.repo.model.limits.ProjectStorageLocationLimit;
 
 public interface ProjectStorageLimitsDao {
 
@@ -30,6 +31,29 @@ public interface ProjectStorageLimitsDao {
 	 * @return The storage usage data for the project with the given id
 	 */
 	Optional<ProjectStorageData> getStorageData(Long projectId);
+	
+	/**
+	 * Sets the limit for a single storage location
+	 * 
+	 * @param limit
+	 * @return
+	 */
+	ProjectStorageLocationLimit setStorageLocationLimit(long userId, ProjectStorageLocationLimit limit);
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @param storageLocationId
+	 * @return The limit for the given project and storage location ids pair
+	 */
+	Optional<ProjectStorageLocationLimit> getStorageLocationLimit(Long projectId, Long storageLocationId);
+	
+	/**
+	 * 
+	 * @param projectId
+	 * @return All the storage location limits for the given project
+	 */
+	List<ProjectStorageLocationLimit> getStorageLocationLimits(Long projectId);
 
 	void truncateAll();
 }

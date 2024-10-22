@@ -1356,6 +1356,18 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STORAGE_DATA_LOCATION_DATA =		"STORAGE_LOCATION_DATA";
 	public static final String DDL_PROJECT_STORAGE_DATA = 					"schema/limits/ProjectStorageData-ddl.sql";
 	
+	public static final String TABLE_PROJECT_STORAGE_LIMIT = 				"PROJECT_STORAGE_LIMIT";
+	public static final String COL_PROJECT_STORAGE_LIMIT_ID =		 		"ID";
+	public static final String COL_PROJECT_STORAGE_LIMIT_PROJECT_ID = 		"PROJECT_ID";
+	public static final String COL_PROJECT_STORAGE_LIMIT_ETAG =		 		"ETAG";
+	public static final String COL_PROJECT_STORAGE_LIMIT_CREATED_BY =		"CREATED_BY";
+	public static final String COL_PROJECT_STORAGE_LIMIT_CREATED_ON =		"CREATED_ON";
+	public static final String COL_PROJECT_STORAGE_LIMIT_MODIFIED_BY =		"MODIFIED_BY";
+	public static final String COL_PROJECT_STORAGE_LIMIT_MODIFIED_ON =		"MODIFIED_ON";
+	public static final String COL_PROJECT_STORAGE_LIMIT_LOCATION_ID =		"STORAGE_LOCATION_ID";
+	public static final String COL_PROJECT_STORAGE_LIMIT_MAX_BYTES =		"MAX_BYTES";
+	public static final String DDL_PROJECT_STORAGE_LIMIT = 					"schema/limits/ProjectStorageLimit-ddl.sql";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

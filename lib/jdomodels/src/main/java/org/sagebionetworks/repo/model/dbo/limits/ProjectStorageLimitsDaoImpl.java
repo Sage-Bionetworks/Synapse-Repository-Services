@@ -1,11 +1,21 @@
 package org.sagebionetworks.repo.model.dbo.limits;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_LOCATION_DATA;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_PROJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_LOCATION_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_DATA_RUNTIME_MS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_LOCATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_MAX_BYTES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_STORAGE_LIMIT_PROJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STORAGE_DATA;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROJECT_STORAGE_LIMIT;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -19,7 +29,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.json.JSONObject;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.limits.ProjectStorageData;
+import org.sagebionetworks.repo.model.limits.ProjectStorageLocationLimit;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,9 +53,11 @@ public class ProjectStorageLimitsDaoImpl implements ProjectStorageLimitsDao {
 	}
 	
 	private JdbcTemplate jdbcTemplate;
+	private IdGenerator idGenerator;
 	
-	public ProjectStorageLimitsDaoImpl(JdbcTemplate jdbcTemplate) {
+	public ProjectStorageLimitsDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator) {
 		this.jdbcTemplate = jdbcTemplate;
+		this.idGenerator = idGenerator;
 	}
 	
 	@Override
@@ -116,10 +132,78 @@ public class ProjectStorageLimitsDaoImpl implements ProjectStorageLimitsDao {
 		}, projectId);
 	}
 
+	@Override
+	@WriteTransaction
+	public ProjectStorageLocationLimit setStorageLocationLimit(long userId, ProjectStorageLocationLimit limit) {
+		String sql = "INSERT INTO " + TABLE_PROJECT_STORAGE_LIMIT + "("
+			+ COL_PROJECT_STORAGE_LIMIT_ID + ","
+			+ COL_PROJECT_STORAGE_LIMIT_ETAG + ","
+			+ COL_PROJECT_STORAGE_LIMIT_CREATED_BY + ","
+			+ COL_PROJECT_STORAGE_LIMIT_CREATED_ON + ","
+			+ COL_PROJECT_STORAGE_LIMIT_MODIFIED_BY + ","
+			+ COL_PROJECT_STORAGE_LIMIT_MODIFIED_ON + ","
+			+ COL_PROJECT_STORAGE_LIMIT_PROJECT_ID + ","
+			+ COL_PROJECT_STORAGE_LIMIT_LOCATION_ID + ","
+			+ COL_PROJECT_STORAGE_LIMIT_MAX_BYTES 
+			+ ") VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?) as data(ID,ETAG,CREATED_BY,CREATED_ON,MODIFIED_BY,MODIFIED_ON,PROJECT_ID,LOCATION_ID,MAX_BYTES) ON DUPLICATE KEY UPDATE "
+			+ COL_PROJECT_STORAGE_LIMIT_ETAG + "=data.ETAG,"
+			+ COL_PROJECT_STORAGE_LIMIT_MODIFIED_BY + "=data.MODIFIED_BY,"
+			+ COL_PROJECT_STORAGE_LIMIT_MODIFIED_ON + "=data.MODIFIED_ON,"
+			+ COL_PROJECT_STORAGE_LIMIT_PROJECT_ID + "=data.PROJECT_ID,"
+			+ COL_PROJECT_STORAGE_LIMIT_LOCATION_ID + "=data.LOCATION_ID,"
+			+ COL_PROJECT_STORAGE_LIMIT_MAX_BYTES + "=data.MAX_BYTES";
+		
+		Timestamp now = Timestamp.from(Instant.now());
+		
+		Long newId = idGenerator.generateNewId(IdType.PROJECT_STORAGE_LIMIT_ID);		
+		Long projectId = KeyFactory.stringToKey(limit.getProjectId());
+		Long storageLocationId = KeyFactory.stringToKey(limit.getStorageLocationId());
+		
+		jdbcTemplate.update(sql, newId, userId, now, userId, now, projectId, storageLocationId, limit.getMaxAllowedFileBytes());
+		
+		return getStorageLocationLimit(projectId, storageLocationId).orElseThrow();
+	}
+	
+	@Override
+	public Optional<ProjectStorageLocationLimit> getStorageLocationLimit(Long projectId, Long storageLocationId) {
+		return getStorageLocationLimits(projectId, storageLocationId).stream().findFirst();
+	}
+
+	@Override
+	public List<ProjectStorageLocationLimit> getStorageLocationLimits(Long projectId) {
+		return getStorageLocationLimits(projectId, null);
+	}
+	
+	private List<ProjectStorageLocationLimit> getStorageLocationLimits(Long projectId, Long storageLocationId) {
+		String sql = "SELECT " + COL_PROJECT_STORAGE_LIMIT_LOCATION_ID + "," + COL_PROJECT_STORAGE_LIMIT_MAX_BYTES
+			+ " FROM " + TABLE_PROJECT_STORAGE_LIMIT
+			+ " WHERE " + COL_PROJECT_STORAGE_LIMIT_PROJECT_ID + "=?";
+	
+		Object[] args = new Long[storageLocationId == null ? 1 : 2];
+		
+		args[0] = projectId;
+		
+		if (storageLocationId != null) {
+			sql += " AND " + COL_PROJECT_STORAGE_LIMIT_LOCATION_ID + "=?";
+			args[1] = storageLocationId;
+		}
+		
+		sql += " ORDER BY " + COL_PROJECT_STORAGE_LIMIT_LOCATION_ID;
+		
+		String projectIdKey = KeyFactory.keyToString(projectId);
+		
+		return jdbcTemplate.query(sql, (rs,  i) -> new ProjectStorageLocationLimit()
+			.setProjectId(projectIdKey)
+			.setStorageLocationId(String.valueOf(rs.getLong(COL_PROJECT_STORAGE_LIMIT_LOCATION_ID)))
+			.setMaxAllowedFileBytes(rs.getLong(COL_PROJECT_STORAGE_LIMIT_MAX_BYTES)), args);
+		
+	}
+
 	// For testing
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_PROJECT_STORAGE_DATA);
+		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_PROJECT_STORAGE_LIMIT);
 	}
 
 }

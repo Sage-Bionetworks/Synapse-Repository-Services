@@ -10,7 +10,7 @@
 			"description": "The ID of the storage location"
 		},
 		"maxAllowedFileBytes": {
-			"type": "string",
+			"type": "integer",
 			"description": "Sets the limit on the number of file bytes that can be associated with this project storage location."
 		}
 	}
