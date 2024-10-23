@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.model.GetObjectRequest;
@@ -114,6 +115,8 @@ public class MigrationManagerImplTest {
 	FileInputStream mockFileInputStream;
 	@Mock
 	UserInfo mockUser;
+	@Mock
+	JdbcTemplate mockJdbcTemplate;
 	@Captor
 	ArgumentCaptor<Iterable<MigratableDatabaseObject<?, ?>>> iterableCator;
 	@Mock
@@ -509,8 +512,8 @@ public class MigrationManagerImplTest {
 		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verify(mockMigrationListener).beforeCreateOrUpdate(currentBatch);
-		verify(mockMigrationListener).afterCreateOrUpdate(currentBatch);
+		verify(mockMigrationListener).beforeCreateOrUpdate(mockJdbcTemplate, currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(mockJdbcTemplate, currentBatch);
 	}
 	
 	@Test
@@ -524,8 +527,8 @@ public class MigrationManagerImplTest {
 		when(mockMigrationListener.supports(any())).thenReturn(true);
 		// call under test
 		manager.restoreBatch(currentType, currentBatch);
-		verify(mockMigrationListener).beforeCreateOrUpdate(currentBatch);
-		verify(mockMigrationListener).afterCreateOrUpdate(currentBatch);
+		verify(mockMigrationListener).beforeCreateOrUpdate(mockJdbcTemplate, currentBatch);
+		verify(mockMigrationListener).afterCreateOrUpdate(mockJdbcTemplate, currentBatch);
 	}
 	
 	@Test

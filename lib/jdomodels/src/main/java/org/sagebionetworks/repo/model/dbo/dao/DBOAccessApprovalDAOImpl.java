@@ -12,10 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SUBMITTER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,8 +31,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
-import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -366,7 +361,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 				+ COL_ACCESS_APPROVAL_REQUIREMENT_ID + ", "
 				+ COL_ACCESS_APPROVAL_SUBMITTER_ID + ", "
 				+ COL_ACCESS_APPROVAL_EXPIRED_ON
-				+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON
+				+ " ORDER BY " + COL_ACCESS_APPROVAL_EXPIRED_ON + "," + COL_ACCESS_APPROVAL_REQUIREMENT_ID + "," + COL_ACCESS_APPROVAL_SUBMITTER_ID
 				+ " LIMIT :" + LIMIT_PARAM
 				+ " OFFSET :" + OFFSET_PARAM;
 		
