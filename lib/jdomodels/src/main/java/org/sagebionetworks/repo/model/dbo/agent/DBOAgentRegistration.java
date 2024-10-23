@@ -45,7 +45,8 @@ public class DBOAgentRegistration implements MigratableDatabaseObject<DBOAgentRe
 				return new DBOAgentRegistration().setRegistrationId(rs.getLong(COL_AGENT_REG_REGISTRATION_ID))
 						.setAwsAgentId(rs.getString(COL_AGENT_REG_AWS_AGENT_ID))
 						.setAwsAliasId(rs.getString(COL_AGENT_REG_AWS_ALIAS_ID))
-						.setCreatedOn(rs.getLong(COL_AGENT_REG_CREATED_ON));
+						.setCreatedOn(rs.getLong(COL_AGENT_REG_CREATED_ON))
+						.setType(rs.getString(COL_AGENT_REG_TYPE));
 			}
 
 			@Override
