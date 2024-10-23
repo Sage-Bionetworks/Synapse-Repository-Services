@@ -29,6 +29,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private Long modifiedBy;
 	private Date modifiedOn;
 	private Long fileHandleId;
+	private Long fileLocationId;
 	private String fileConcreteType;
 	private String fileBucket;
 	private String fileKey;
@@ -181,6 +182,15 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		this.fileHandleId = fileHandleId;
 		return this;
 	}
+	
+	public Long getFileLocationId() {
+		return fileLocationId;
+	}
+	
+	public ObjectDataDTO setFileLocationId(Long fileLocationId) {
+		this.fileLocationId = fileLocationId;
+		return this;
+	}
 
 	public List<ObjectAnnotationDTO> getAnnotations() {
 		return annotations;
@@ -275,7 +285,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	@Override
 	public int hashCode() {
 		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, description, etag,
-				fileBucket, fileConcreteType, fileHandleId, fileKey, fileMD5, fileName, fileSizeBytes, id,
+				fileBucket, fileConcreteType, fileHandleId, fileLocationId, fileKey, fileMD5, fileName, fileSizeBytes, id,
 				isInSynapseStorage, itemCount, modifiedBy, modifiedOn, name, parentId, path, projectId, subType,
 				version);
 	}
@@ -295,7 +305,8 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				&& Objects.equals(description, other.description) && Objects.equals(etag, other.etag)
 				&& Objects.equals(fileBucket, other.fileBucket)
 				&& Objects.equals(fileConcreteType, other.fileConcreteType)
-				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileKey, other.fileKey)
+				&& Objects.equals(fileHandleId, other.fileHandleId) 
+				&& Objects.equals(fileLocationId, other.fileLocationId) && Objects.equals(fileKey, other.fileKey)
 				&& Objects.equals(fileMD5, other.fileMD5) && Objects.equals(fileName, other.fileName)
 				&& Objects.equals(fileSizeBytes, other.fileSizeBytes) && Objects.equals(id, other.id)
 				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
@@ -312,7 +323,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name
 				+ ", description=" + description + ", subType=" + subType + ", parentId=" + parentId + ", benefactorId="
 				+ benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn="
-				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileConcreteType=" + fileConcreteType
+				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileLocationId=" + fileLocationId + ", fileConcreteType=" + fileConcreteType
 				+ ", fileBucket=" + fileBucket + ", fileKey=" + fileKey + ", fileName=" + fileName + ", fileSizeBytes="
 				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount="
 				+ itemCount + ", path=" + path + ", annotations=" + annotations + "]";

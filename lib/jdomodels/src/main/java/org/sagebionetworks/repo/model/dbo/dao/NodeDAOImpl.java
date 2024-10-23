@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BU
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
@@ -1840,6 +1841,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				dto.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
 				if(rs.wasNull()){
 					dto.setFileHandleId(null);
+				}
+				dto.setFileLocationId(rs.getLong(COL_FILES_STORAGE_LOCATION_ID));
+				if(rs.wasNull()){
+					dto.setFileLocationId(null);
 				}
 				dto.setFileSizeBytes(rs.getLong(COL_FILES_CONTENT_SIZE));
 				if(rs.wasNull()) {

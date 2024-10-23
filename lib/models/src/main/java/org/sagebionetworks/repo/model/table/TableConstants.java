@@ -156,6 +156,7 @@ public class TableConstants {
 	public static final String OBJECT_REPLICATION_COL_MODIFIED_BY			= "MODIFIED_BY";
 	public static final String OBJECT_REPLICATION_COL_MODIFIED_ON			= "MODIFIED_ON";
 	public static final String OBJECT_REPLICATION_COL_FILE_ID				= "FILE_ID";
+	public static final String OBJECT_REPLICATION_COL_FILE_LOCATION_ID		= "FILE_STORAGE_LOCATION_ID";
 	public static final String OBJECT_REPLICATION_COL_FILE_SIZE_BYTES		= "FILE_SIZE_BYTES";
 	public static final String OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE	= "IN_SYNAPSE_STORAGE";
 	public static final String OBJECT_REPLICATION_COL_FILE_MD5				= "FILE_MD5";
@@ -239,6 +240,7 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_MODIFIED_BY 		+ ","
 			+ OBJECT_REPLICATION_COL_MODIFIED_ON 		+ ","
 			+ OBJECT_REPLICATION_COL_FILE_ID 			+ ","
+			+ OBJECT_REPLICATION_COL_FILE_LOCATION_ID	+ ","
 			+ OBJECT_REPLICATION_COL_FILE_SIZE_BYTES 	+ ","
 			+ OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE + ","
 			+ OBJECT_REPLICATION_COL_FILE_MD5			+ ","
@@ -249,7 +251,7 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_NAME			+ ","
 			+ OBJECT_REPLICATION_COL_HASH_CODE			+ ","
 			+ OBJECT_REPLICATION_COL_PATH
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 			+ " ON DUPLICATE KEY UPDATE "
 			+ OBJECT_REPLICATION_COL_CUR_VERSION 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_CREATED_BY 		+ "=?,"
@@ -264,6 +266,7 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_MODIFIED_BY 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_MODIFIED_ON 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_ID 			+ "=?,"
+			+ OBJECT_REPLICATION_COL_FILE_LOCATION_ID	+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_SIZE_BYTES 	+ "=?,"
 			+ OBJECT_REPLICATION_COL_IN_SYNAPSE_STORAGE + "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_MD5 			+ "=?,"

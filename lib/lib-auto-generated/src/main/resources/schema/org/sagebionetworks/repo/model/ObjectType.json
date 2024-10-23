@@ -177,6 +177,10 @@
         {
             "name": "QUERY_CACHE_HIT",
             "description": "An event fired when a user's query hits the query cache."
+        },
+		{
+            "name": "PROJECT_STORAGE_EVENT",
+            "description": "An event fired when project storage change event needs to be propagated."
         }
     ]
 }

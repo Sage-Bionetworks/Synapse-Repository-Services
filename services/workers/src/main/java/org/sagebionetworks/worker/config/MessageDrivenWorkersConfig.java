@@ -7,6 +7,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileEventRecordWorker;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
 import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
+import org.sagebionetworks.limits.workers.ProjectStorageDataRefreshWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
@@ -232,6 +233,29 @@ public class MessageDrivenWorkersConfig {
 				)
 				.withRepeatInterval(2064)
 				.withStartDelay(1045)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean projectStorageDataRefreshWorkerTrigger(ProjectStorageDataRefreshWorker updatedProjectStorageDataWorker) {
+
+		String queueName = stackConfig.getQueueName("REFRESH_PROJECT_STORAGE_DATA");
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(updatedProjectStorageDataWorker);
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("projectStorageDataRefreshWorker")
+						.withSemaphoreMaxLockCount(8)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(3)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(false)
+						.withQueueName(queueName)
+						.withWorker(worker)
+						.build()
+				)
+				.withRepeatInterval(2564)
+				.withStartDelay(3065)
 				.build();
 	}
 	

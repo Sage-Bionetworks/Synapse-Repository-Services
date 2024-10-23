@@ -16,6 +16,14 @@
 		"banner": {
 			"type": "string",
 			"description": "If set, the client should show this banner every time an upload is initiated"
+		},
+		"destinationProjectId": {
+			"type": "string",
+			"description": "The ID of the project where this file will be uploaded."
+		},
+		"projectStorageLocationUsage": {
+			"$ref": "org.sagebionetworks.repo.model.limits.ProjectStorageLocationUsage",
+			"description": "This object includes information about size and limits associated with this project storage location.  Clients should not attempt to upload a file to this location if isOverLimit=true or if (<size_new_file> + sumFileBytes) is greater than maxAllowedFileBytes."
 		}
 	}
 }

@@ -1,0 +1,15 @@
+{
+	"description": "Provides information about file allocations and limits for each storage location associated with a single project.",
+	"properties": {
+		"projectId": {
+			"type": "string",
+			"description": "The ID of the project"
+		},
+		"locations": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.limits.ProjectStorageLocationUsage"
+			}
+		}
+	}
+}

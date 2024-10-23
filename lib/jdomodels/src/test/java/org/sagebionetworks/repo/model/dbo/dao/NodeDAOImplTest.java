@@ -72,6 +72,7 @@ import org.sagebionetworks.repo.model.ProjectListSortColumn;
 import org.sagebionetworks.repo.model.ProjectListType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
@@ -3190,6 +3191,7 @@ public class NodeDAOImplTest {
 		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
 		assertNull(fileDto.getDescription());
 		assertEquals("project/file",fileDto.getPath());
+		assertEquals(fileHandle.getStorageLocationId(), fileDto.getFileLocationId());
 
 		assertNotNull(fileDto.getAnnotations());
 		assertEquals(4, fileDto.getAnnotations().size());
@@ -3212,7 +3214,7 @@ public class NodeDAOImplTest {
 		assertEquals(projectDto.getId(), projectDto.getProjectId());
 		assertEquals(null, projectDto.getFileHandleId());
 		assertEquals(Collections.emptyList(), projectDto.getAnnotations());
-		assertEquals(null, projectDto.getFileHandleId());
+		assertEquals(null, projectDto.getFileLocationId());
 	}
 	
 	@Test
@@ -3541,6 +3543,7 @@ public class NodeDAOImplTest {
 		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		fileHandle = (S3FileHandle) fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;

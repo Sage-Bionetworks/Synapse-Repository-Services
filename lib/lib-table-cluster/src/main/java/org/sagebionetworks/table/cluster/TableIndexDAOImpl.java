@@ -23,6 +23,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_CONCRETE_TYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_KEY;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_MD5;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_NAME;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_FILE_SIZE_BYTES;
@@ -80,6 +81,7 @@ import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.IdAndEtag;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.limits.ProjectStorageData;
 import org.sagebionetworks.repo.model.report.SynapseStorageProjectStats;
 import org.sagebionetworks.repo.model.table.AnnotationType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -172,6 +174,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setFileHandleId(rs.getLong(OBJECT_REPLICATION_COL_FILE_ID));
 		if (rs.wasNull()) {
 			dto.setFileHandleId(null);
+		}
+		dto.setFileLocationId(rs.getLong(OBJECT_REPLICATION_COL_FILE_LOCATION_ID));
+		if (rs.wasNull()) {
+			dto.setFileLocationId(null);
 		}
 		dto.setFileSizeBytes(rs.getLong(OBJECT_REPLICATION_COL_FILE_SIZE_BYTES));
 		if (rs.wasNull()) {
@@ -786,7 +792,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 22;
+				int updateOffset = 23;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -852,7 +858,14 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				}else{
 					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
-				}
+				}				
+				if(dto.getFileLocationId() != null){
+					ps.setLong(parameterIndex++, dto.getFileLocationId());
+					ps.setLong(parameterIndex + updateOffset, dto.getFileLocationId());
+				}else{
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
+					ps.setNull(parameterIndex + updateOffset, java.sql.Types.BIGINT);
+				}				
 				if(dto.getFileSizeBytes() != null) {
 					ps.setLong(parameterIndex++, dto.getFileSizeBytes());
 					ps.setLong(parameterIndex + updateOffset, dto.getFileSizeBytes());
@@ -1641,5 +1654,31 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			return Optional.empty();
 		}
 	}
-
+	
+	@Override
+	public ProjectStorageData computeProjectStorageData(Long projectId) {
+		
+		String sql = "SELECT " + OBJECT_REPLICATION_COL_FILE_LOCATION_ID + ", SUM(" + OBJECT_REPLICATION_COL_FILE_SIZE_BYTES + ") AS TOTAL_BYTES"
+			+ " FROM " + OBJECT_REPLICATION_TABLE 
+			+ " WHERE " + OBJECT_REPLICATION_COL_PROJECT_ID + " = ?"
+			+ " AND " + OBJECT_REPLICATION_COL_FILE_LOCATION_ID + " IS NOT NULL"
+			+ " GROUP BY " + OBJECT_REPLICATION_COL_PROJECT_ID + "," + OBJECT_REPLICATION_COL_FILE_LOCATION_ID
+			+ " ORDER BY " + OBJECT_REPLICATION_COL_PROJECT_ID + "," + OBJECT_REPLICATION_COL_FILE_LOCATION_ID;
+		
+		Map<String, Long> storageLocationData = new HashMap<>();
+		
+		long start = System.currentTimeMillis();
+		
+		template.query(sql, rs -> {
+			storageLocationData.put(
+				rs.getString(OBJECT_REPLICATION_COL_FILE_LOCATION_ID), 
+				rs.getLong("TOTAL_BYTES")
+			);	
+		}, projectId);
+		
+		return new ProjectStorageData()
+			.setProjectId(projectId)
+			.setRuntimeMs(System.currentTimeMillis() - start)
+			.setStorageLocationData(storageLocationData);
+	}	
 }

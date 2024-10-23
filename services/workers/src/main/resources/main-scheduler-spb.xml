@@ -44,6 +44,7 @@
     <context:component-scan base-package="org.sagebionetworks.webhook.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.agent.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.tos.workers" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.limits.workers" annotation-config="false"/>
 
 	<!-- Non worker triggers that come from the repo dependencies -->
 	<import resource="classpath:external-triggers-spb.xml" />
@@ -161,6 +162,10 @@
 		
 		<!-- TOS -->
 		<ref bean="tosLatestVersionRefreshWorkerTrigger"/>
+		
+		<!-- Refresh project storage data event trigger -->
+		<ref bean="projectStorageDataRefreshWorkerTrigger"/>
+		<ref bean="projectStorageAccessTrigger"/>
 	</util:list>
 
 	<bean id="mainScheduler"
