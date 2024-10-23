@@ -285,13 +285,13 @@ public class AgentManagerImplUnitTest {
 
 		traceRequest = new TraceEventsRequest().setJobId(jobId).setNewerThanTimestamp(123L);
 	}
-	
+
 	@Test
 	public void testCreateSessionWithUnknownRegistrationId() {
 		createRequest.setAgentRegistrationId("unknown");
 		when(mockAgentDao.getRegeistration("unknown")).thenReturn(Optional.empty());
-		
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.createSession(sageUser, createRequest);
 		}).getMessage();
@@ -300,7 +300,8 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithSageUser() {
-		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		when(mockAgentDao.createSession(sageUser.getId(), createRequest.getAgentAccessLevel(),
 				createRequest.getAgentRegistrationId())).thenReturn(session);
 
@@ -311,7 +312,8 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithAdmin() {
-		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		when(mockAgentDao.createSession(admin.getId(), createRequest.getAgentAccessLevel(),
 				createRequest.getAgentRegistrationId())).thenReturn(session);
 
@@ -332,20 +334,22 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithNonSageNonAdminWithAgentId() {
-		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
-		
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
 				agentRegistration.getAgentRegistrationId())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-		
+
 	}
 
 	@Test
 	public void testCreateSessionWithNonSageNonAdminWithNullRegistrationId() {
-		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest)).thenReturn(agentRegistration);
+		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest))
+				.thenReturn(agentRegistration);
 		createRequest.setAgentRegistrationId(null);
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
 				agentRegistration.getAgentRegistrationId())).thenReturn(session);
@@ -357,7 +361,8 @@ public class AgentManagerImplUnitTest {
 
 	@Test
 	public void testCreateSessionWithNonSageNonAdminWithBlankRegistrationId() {
-		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest)).thenReturn(agentRegistration);
+		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, agentRegistrationRequest))
+				.thenReturn(agentRegistration);
 		createRequest.setAgentRegistrationId("");
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
 				agentRegistration.getAgentRegistrationId())).thenReturn(session);
@@ -679,7 +684,8 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testInvokeAgentWithTextWithReturnControlInfiniteLoop() {
 
-		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		doReturn(new AgentResponse().setReturnControl(invocationId, returnControlEvents)).when(manager)
 				.invokeAgentAsync(jobId, agentRegistration.getType(), session, invokeAgentRequest);
 		doReturn(invocationResultMembers).when(manager).executeEvents(session.getAgentAccessLevel(),
@@ -777,7 +783,8 @@ public class AgentManagerImplUnitTest {
 	@Test
 	public void testInvokeAgentWithTextWithError() throws InterruptedException, ExecutionException {
 
-		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType())).thenReturn(mockAgentRuntime);
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType()))
+				.thenReturn(mockAgentRuntime);
 		InterruptedException e = new InterruptedException("something");
 		when(mockCompletableFuture.get()).thenThrow(e);
 		// mock two onChunk()
@@ -1024,104 +1031,128 @@ public class AgentManagerImplUnitTest {
 		manager.onTrace(jobId, traceOutput);
 		verify(mockAgentDao).addTraceToJob(jobId, 1L, traceOutText);
 	}
-	
+
 	@Test
 	public void testRegisterAgentWithAdmin() {
-		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest)).thenReturn(agentRegistration);
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest))
+				.thenReturn(agentRegistration);
 		// call under test
 		var r = manager.createOrGetAgentRegistration(admin, agentRegistrationRequest);
 		assertEquals(agentRegistration, r);
 	}
-	
+
 	@Test
 	public void testRegisterAgentWithSager() {
-		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest)).thenReturn(agentRegistration);
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, agentRegistrationRequest))
+				.thenReturn(agentRegistration);
+		// call under test
+		var r = manager.createOrGetAgentRegistration(sageUser, agentRegistrationRequest);
+		assertEquals(agentRegistration, r);
+	}
+
+	@Test
+	public void testRegisterAgentWithSagerNullAlias() {
+		agentRegistrationRequest.setAwsAliasId(null);
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, new AgentRegistrationRequest()
+				.setAwsAgentId(agentRegistrationRequest.getAwsAgentId()).setAwsAliasId(AgentManagerImpl.TSTALIASID)))
+				.thenReturn(agentRegistration);
 		// call under test
 		var r = manager.createOrGetAgentRegistration(sageUser, agentRegistrationRequest);
 		assertEquals(agentRegistration, r);
 	}
 	
 	@Test
+	public void testRegisterAgentWithSagerBlankAlias() {
+		agentRegistrationRequest.setAwsAliasId(" \n");
+		when(mockAgentDao.createOrGetRegistration(AgentType.CUSTOM, new AgentRegistrationRequest()
+				.setAwsAgentId(agentRegistrationRequest.getAwsAgentId()).setAwsAliasId(AgentManagerImpl.TSTALIASID)))
+				.thenReturn(agentRegistration);
+		// call under test
+		var r = manager.createOrGetAgentRegistration(sageUser, agentRegistrationRequest);
+		assertEquals(agentRegistration, r);
+	}
+
+	@Test
 	public void testRegisterAgentWithNonSager() {
-		String message = assertThrows(UnauthorizedException.class, ()->{
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.createOrGetAgentRegistration(nonSageNonAdmin, agentRegistrationRequest);
 		}).getMessage();
 		assertEquals("Currently, only internal users can register agents.", message);
 	}
-	
+
 	@Test
 	public void testRegisterAgentWithAnonymous() {
-		String message = assertThrows(UnauthorizedException.class, ()->{
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.createOrGetAgentRegistration(anonymous, agentRegistrationRequest);
 		}).getMessage();
 		assertEquals("Currently, only internal users can register agents.", message);
 	}
-	
+
 	@Test
 	public void testRegisterAgentWithNullUser() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.createOrGetAgentRegistration(null, agentRegistrationRequest);
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
-	
+
 	@Test
 	public void testRegisterAgentWithRequestUser() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.createOrGetAgentRegistration(sageUser, null);
 		}).getMessage();
 		assertEquals("request is required.", message);
 	}
-	
-	
+
 	@Test
 	public void testGetAgentRegistration() {
-		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.of(agentRegistration));
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
 		// call under test
 		var r = manager.getAgentRegistration(nonSageNonAdmin, agentRegistration.getAgentRegistrationId());
 		assertEquals(agentRegistration, r);
 	}
-	
+
 	@Test
 	public void testGetAgentRegistrationWithNotFound() {
 		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId())).thenReturn(Optional.empty());
 
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.getAgentRegistration(nonSageNonAdmin, agentRegistration.getAgentRegistrationId());
 		}).getMessage();
 		assertEquals("AgentRegistrationId='reg111' does not exist", message);
 	}
-	
+
 	@Test
 	public void testGetAgentRegistrationWithAnonymous() {
-		String message = assertThrows(UnauthorizedException.class, ()->{
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.getAgentRegistration(anonymous, agentRegistration.getAgentRegistrationId());
 		}).getMessage();
 		assertEquals("Must login to perform this action", message);
 	}
-	
+
 	@Test
 	public void testGetAgentRegistrationWithNullUser() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.getAgentRegistration(null, agentRegistration.getAgentRegistrationId());
 		}).getMessage();
 		assertEquals("userInfo is required.", message);
 	}
-	
+
 	@Test
 	public void testGetAgentRegistrationWithNullId() {
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.getAgentRegistration(nonSageNonAdmin, null);
 		}).getMessage();
 		assertEquals("agentRegistrationId is required.", message);
 	}
-	
+
 }

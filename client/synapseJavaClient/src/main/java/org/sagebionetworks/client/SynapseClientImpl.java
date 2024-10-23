@@ -6348,7 +6348,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AgentRegistration getAgentRegistration(String registrationId) throws SynapseException {
 		ValidateArgument.required(registrationId, "registrationId");
-		return putJSONEntity(getRepoEndpoint(), "/agent/registration/"+registrationId, null, AgentRegistration.class);
+		return getJSONEntity(getRepoEndpoint(), "/agent/registration/"+registrationId, AgentRegistration.class);
 	}
 	
 }

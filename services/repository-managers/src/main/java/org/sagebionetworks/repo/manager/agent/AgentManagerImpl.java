@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.LoggerProvider;
@@ -385,6 +386,9 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(request, "request");
 		if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Currently, only internal users can register agents.");
+		}
+		if(StringUtils.isBlank(request.getAwsAliasId())) {
+			request.setAwsAliasId(TSTALIASID);
 		}
 		return agentDao.createOrGetRegistration(AgentType.CUSTOM, request);
 	}
