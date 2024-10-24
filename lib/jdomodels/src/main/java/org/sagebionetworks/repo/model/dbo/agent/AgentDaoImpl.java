@@ -1,24 +1,33 @@
 package org.sagebionetworks.repo.model.dbo.agent;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_AWS_AGENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_AWS_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_REGISTRATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ACCESS_LEVEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_AGENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_REGISTRATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_SESSION_ID;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
+
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
+import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
@@ -37,17 +46,22 @@ public class AgentDaoImpl implements AgentDao {
 	private final DBOBasicDao basicDao;
 	private final JdbcTemplate jdbcTemplate;
 
-	private final RowMapper<AgentSession> SESSION_MAPPER = new RowMapper<AgentSession>() {
+	private final RowMapper<AgentSession> SESSION_MAPPER = (ResultSet rs, int rowNum) -> {
+		return new AgentSession().setSessionId(rs.getString(COL_AGENT_SESSION_SESSION_ID))
+				.setAgentAccessLevel(AgentAccessLevel.valueOf(rs.getString(COL_AGENT_SESSION_ACCESS_LEVEL)))
+				.setStartedBy(rs.getLong(COL_AGENT_SESSION_CREATED_BY))
+				.setStartedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
+				.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
+				.setAgentRegistrationId(rs.getString(COL_AGENT_SESSION_REGISTRATION_ID))
+				.setEtag(rs.getString(COL_AGENT_SESSION_ETAG));
+	};
 
-		@Override
-		public AgentSession mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return new AgentSession().setSessionId(rs.getString(COL_AGENT_SESSION_SESSION_ID))
-					.setAgentAccessLevel(AgentAccessLevel.valueOf(rs.getString(COL_AGENT_SESSION_ACCESS_LEVEL)))
-					.setStartedBy(rs.getLong(COL_AGENT_SESSION_CREATED_BY))
-					.setStartedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
-					.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
-					.setAgentId(rs.getString(COL_AGENT_SESSION_AGENT_ID)).setEtag(rs.getString(COL_AGENT_SESSION_ETAG));
-		}
+	private final RowMapper<AgentRegistration> REGISTATION_MAPPER = (ResultSet rs, int rowNum) -> {
+		return new AgentRegistration().setAgentRegistrationId(rs.getString(COL_AGENT_REG_REGISTRATION_ID))
+				.setAwsAgentId(rs.getString(COL_AGENT_REG_AWS_AGENT_ID))
+				.setAwsAliasId(rs.getString(COL_AGENT_REG_AWS_ALIAS_ID))
+				.setRegisteredOn(rs.getTimestamp(COL_AGENT_REG_CREATED_ON))
+				.setType(AgentType.valueOf(rs.getString(COL_AGENT_REG_TYPE)));
 	};
 
 	@Autowired
@@ -57,17 +71,25 @@ public class AgentDaoImpl implements AgentDao {
 		this.basicDao = basicDao;
 		this.jdbcTemplate = jdbcTemplate;
 	}
+	
+	@PostConstruct
+	public void bootstrap() {
+		jdbcTemplate.update(
+				"INSERT IGNORE INTO AGENT_REGISTRATION (REGISTRATION_ID, AWS_AGENT_ID, AWS_ALIAS_ID, AGENT_TYPE, CREATED_ON) VALUES (?,?,?,?,?)",
+				DBOAgentSession.BOOTSTRAP_REGISTRATION_ID, "KVLLOFNAR0", "TSTALIASID", AgentType.BASELINE.name(),
+				new Timestamp(System.currentTimeMillis()));
+	}
 
 	@WriteTransaction
 	@Override
-	public AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String agentId) {
+	public AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String registrationId) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(accessLevel, "accessLevel");
-		ValidateArgument.required(agentId, "agentId");
+		ValidateArgument.required(registrationId, "registrationId");
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		DBOAgentSession dbo = new DBOAgentSession().setId(idGenerator.generateNewId(IdType.AGENT_SESSION_ID))
 				.setEtag(UUID.randomUUID().toString()).setCreatedBy(userId).setCreatedOn(now).setModifiedOn(now)
-				.setSessionId(UUID.randomUUID().toString()).setAgentId(agentId).setAccessLevel(accessLevel.name());
+				.setSessionId(UUID.randomUUID().toString()).setRegistrationId(Long.parseLong(registrationId)).setAccessLevel(accessLevel.name());
 		basicDao.createNew(dbo);
 		return getAgentSession(dbo.getSessionId()).get();
 	}
@@ -97,7 +119,8 @@ public class AgentDaoImpl implements AgentDao {
 	@WriteTransaction
 	@Override
 	public void truncateAll() {
-		jdbcTemplate.update("DELETE FROM AGENT_SESSION WHERE ID > -1");
+		jdbcTemplate.update("DELETE FROM AGENT_REGISTRATION WHERE REGISTRATION_ID > 1");
+		jdbcTemplate.update("DELETE FROM AGENT_SESSION WHERE ID > 0");
 	}
 
 	@NewWriteTransaction
@@ -124,6 +147,43 @@ public class AgentDaoImpl implements AgentDao {
 				(ResultSet rs, int rowNum) -> {
 					return new TraceEvent().setTimestamp(rs.getLong("TIME_STAMP")).setMessage(rs.getString("MESSAGE"));
 				}, jobIdLong, timestamp);
+	}
+
+	@WriteTransaction
+	@Override
+	public AgentRegistration createOrGetRegistration(AgentType type, AgentRegistrationRequest request) {
+		ValidateArgument.required(type, "type");
+		return getRegistration(request).orElseGet(() -> {
+			long regId = idGenerator.generateNewId(IdType.AGENT_REGISTRATION_ID);
+			jdbcTemplate.update(
+					"INSERT IGNORE INTO AGENT_REGISTRATION (REGISTRATION_ID, AWS_AGENT_ID, AWS_ALIAS_ID, AGENT_TYPE, CREATED_ON) VALUES (?,?,?,?,?)",
+					regId, request.getAwsAgentId(), request.getAwsAliasId(), type.name(), new Timestamp(System.currentTimeMillis()));
+			return getRegistration(request).get();
+		});
+	}
+
+	Optional<AgentRegistration> getRegistration(AgentRegistrationRequest request) {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAwsAgentId(), "request.awsAgentId");
+		ValidateArgument.required(request.getAwsAliasId(), "request.awsAliasId");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT * FROM AGENT_REGISTRATION WHERE AWS_AGENT_ID = ? AND AWS_ALIAS_ID = ?", REGISTATION_MAPPER,
+					request.getAwsAgentId(), request.getAwsAliasId()));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<AgentRegistration> getRegeistration(String registrationId) {
+		ValidateArgument.required(registrationId, "registrationId");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject("SELECT * FROM AGENT_REGISTRATION WHERE REGISTRATION_ID = ?",
+					REGISTATION_MAPPER, registrationId));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 }

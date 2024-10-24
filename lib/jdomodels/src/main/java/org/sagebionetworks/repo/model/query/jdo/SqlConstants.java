@@ -1330,16 +1330,15 @@ public class SqlConstants {
 	public static final String DDL_FILE_WEBHOOK_ALLOWED_DOMAIN =						"schema/webhook/Webhook-Allowed-Domain-ddl.sql";
 	
 	
-	public static final String TABLE_AGENT_SESSION = 			"AGENT_SESSION";
-	public static final String COL_AGENT_SESSION_ID =			"ID";
-	public static final String COL_AGENT_SESSION_ETAG = 		"ETAG";
-	public static final String COL_AGENT_SESSION_CREATED_BY =	"CREATED_BY";
-	public static final String COL_AGENT_SESSION_CREATED_ON =	"CREATED_ON";
-	public static final String COL_AGENT_SESSION_MODIFIED_ON =	"MODIFIED_ON";
-	public static final String COL_AGENT_SESSION_SESSION_ID = 	"SESSION_ID";
-	public static final String COL_AGENT_SESSION_AGENT_ID = 	"AGENT_ID";
-	public static final String COL_AGENT_SESSION_ACCESS_LEVEL = "ACCESS_LEVEL";
-	
+	public static final String TABLE_AGENT_SESSION = 				"AGENT_SESSION";
+	public static final String COL_AGENT_SESSION_ID =				"ID";
+	public static final String COL_AGENT_SESSION_ETAG = 			"ETAG";
+	public static final String COL_AGENT_SESSION_CREATED_BY =		"CREATED_BY";
+	public static final String COL_AGENT_SESSION_CREATED_ON =		"CREATED_ON";
+	public static final String COL_AGENT_SESSION_MODIFIED_ON =		"MODIFIED_ON";
+	public static final String COL_AGENT_SESSION_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_AGENT_SESSION_REGISTRATION_ID = 	"REGISTRATION_ID";
+	public static final String COL_AGENT_SESSION_ACCESS_LEVEL = 	"ACCESS_LEVEL";
 	public static final String DDL_AGENT_SESSION = 				"schema/agent/Agent-Session-ddl.sql";
 	
 	public static final String TABLE_AGENT_TRACE =				"AGENT_TRACE";
@@ -1348,6 +1347,14 @@ public class SqlConstants {
 	public static final String COL_AGENT_TRACE_MESSAGE = 		"MESSAGE";
 	public static final String DDL_AGENT_TRACE = 				"schema/agent/Agent-Trace-ddl.sql";
 	
+	public static final String TABLE_AGENT_REGISTRATION =		"AGENT_REGISTRATION";
+	public static final String COL_AGENT_REG_REGISTRATION_ID = 	"REGISTRATION_ID";
+	public static final String COL_AGENT_REG_AWS_AGENT_ID =		"AWS_AGENT_ID";
+	public static final String COL_AGENT_REG_AWS_ALIAS_ID = 	"AWS_ALIAS_ID";
+	public static final String COL_AGENT_REG_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_AGENT_REG_TYPE =		 		"AGENT_TYPE";
+	public static final String DDL_AGENT_REGISTRATION =			"schema/agent/Agent-Registration-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

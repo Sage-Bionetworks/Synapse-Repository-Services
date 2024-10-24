@@ -1277,4 +1277,14 @@ public class StackConfigurationImpl implements StackConfiguration {
 	public String getCloudFrontDomainName() {
 		return configuration.getProperty("org.sagebionetworks.cloudfront.domainname");
 	}
+
+	@Override
+	public String getCrossAccountBedrockRoleArn() {
+		return configuration.getProperty("org.sagebionetworks.cross.account.bedrock.role.arn");
+	}
+	
+	@Override
+	public String getCustomHelloWorldBedrockAgentId() {
+		return configuration.getProperty("org.sagebionetworks.cross.account.bedrock.hello.world.agent.id");
+	}
 }

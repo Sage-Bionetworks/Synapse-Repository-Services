@@ -1,0 +1,15 @@
+{
+	"description": "...",
+	"name": "AgentType",
+	"type": "string",
+	"enum": [
+		{
+			"name": "BASELINE",
+			"description": "Used to identify the baseline agent that is designed for general interactions with Synaspe."
+		},
+		{
+			"name": "CUSTOM",
+			"description": "Used to identify a custom agent that was designed for specific use case."
+		}
+	]
+}

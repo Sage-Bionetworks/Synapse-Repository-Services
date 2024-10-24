@@ -872,4 +872,12 @@ public interface StackConfiguration {
 	 * @return The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
 	String getCloudFrontDomainName();
+
+	/**
+	 * The ARN of the role to be assumed to make cross account invoke_agent calls.
+	 * @return
+	 */
+	String getCrossAccountBedrockRoleArn();
+
+	String getCustomHelloWorldBedrockAgentId();
 }

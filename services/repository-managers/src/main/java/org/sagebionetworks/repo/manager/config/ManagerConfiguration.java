@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -23,6 +24,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.repo.manager.agent.AgentClientProvider;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
 import org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssociationScanner;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.manager.oauth.OrcidOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookMessageDispatcher;
+import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBORequest;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.DBOSubmission;
@@ -80,6 +83,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockagent.BedrockAgentClient;
 import software.amazon.awssdk.services.bedrockagent.model.ListAgentsRequest;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
+import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClientBuilder;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 @Configuration
 public class ManagerConfiguration {
@@ -281,14 +288,12 @@ public class ManagerConfiguration {
 	public ExecutorService cachedThreadPool() {
 		return Executors.newCachedThreadPool();
 	}
-	
+
 	@Bean
 	@Primary
 	public HttpClient defaultHttpClient() {
-		return HttpClient.newBuilder()
-				.connectTimeout(Duration.of(5, ChronoUnit.SECONDS))
-				.followRedirects(Redirect.NORMAL)
-				.build();
+		return HttpClient.newBuilder().connectTimeout(Duration.of(5, ChronoUnit.SECONDS))
+				.followRedirects(Redirect.NORMAL).build();
 	}
 
 	@Bean
@@ -303,12 +308,42 @@ public class ManagerConfiguration {
 	}
 
 	@Bean
-	public BedrockAgentRuntimeAsyncClient createBedrockAgentRuntimeAsyncClient(
-			AwsCredentialsProvider credentialProvider) {
-		return BedrockAgentRuntimeAsyncClient.builder().credentialsProvider(credentialProvider)
-				// invoke_agent calls can take more than a minute.
-				.httpClientBuilder(NettyNioAsyncHttpClient.builder().readTimeout(Duration.ofMinutes(2)))
-				.region(Region.US_EAST_1).build();
+	public BedrockAgentRuntimeAsyncClientBuilder createBedrockAgentRuntimeAsyncClientBuilder() {
+		return BedrockAgentRuntimeAsyncClient.builder().region(Region.US_EAST_1)
+				.httpClientBuilder(NettyNioAsyncHttpClient.builder().readTimeout(Duration.ofMinutes(2)));
+	}
+
+	@Bean
+	public BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient(
+			AwsCredentialsProvider credentialProvider, BedrockAgentRuntimeAsyncClientBuilder builder) {
+		// This client uses the stack's credentials.
+		return builder.credentialsProvider(credentialProvider).build();
+	}
+
+	@Bean
+	public BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient(
+			AwsCredentialsProvider credentialProvider, BedrockAgentRuntimeAsyncClientBuilder builder,
+			StackConfiguration config) {
+		String rollSessionName = new StringJoiner("-").add(config.getStack()).add(config.getStackInstance())
+				.add(UUID.randomUUID().toString()).toString();
+		// The sts client uses the stack's credentials to assume the role.
+		StsClient stsClient = StsClient.builder().region(Region.US_EAST_1).credentialsProvider(credentialProvider)
+				.build();
+		// The provider will renew the STS credentials provided from assuming the role.
+		StsAssumeRoleCredentialsProvider p = StsAssumeRoleCredentialsProvider.builder()
+				.refreshRequest(AssumeRoleRequest.builder().roleArn(config.getCrossAccountBedrockRoleArn())
+						.roleSessionName(rollSessionName).durationSeconds(60 * 60).build())
+				.stsClient(stsClient).build();
+
+		return builder.credentialsProvider(p).build();
+	}
+
+	@Bean
+	public AgentClientProvider createAgentClientProvider(
+			BedrockAgentRuntimeAsyncClient defaultBedrockAgentRuntimeAsyncClient,
+			BedrockAgentRuntimeAsyncClient customBedrockAgentRuntimeAsyncClient) {
+		return new AgentClientProvider(Map.of(AgentType.BASELINE, defaultBedrockAgentRuntimeAsyncClient,
+				AgentType.CUSTOM, customBedrockAgentRuntimeAsyncClient));
 	}
 
 	@Bean
@@ -317,8 +352,7 @@ public class ManagerConfiguration {
 	}
 
 	@Bean
-	public String stackBedrockAgentId(BedrockAgentClient bedrockAgentClient,
-			BedrockAgentRuntimeAsyncClient bedrockAgentRuntimeAsyncClient, StackConfiguration stackConfig) {
+	public String stackBedrockAgentId(BedrockAgentClient bedrockAgentClient, StackConfiguration stackConfig) {
 		String agentName = new StringJoiner("-").add(stackConfig.getStack()).add(stackConfig.getStackInstance())
 				.add("agent").toString();
 

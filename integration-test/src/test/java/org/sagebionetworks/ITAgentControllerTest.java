@@ -13,6 +13,8 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
@@ -25,12 +27,14 @@ public class ITAgentControllerTest {
 	private static final long MAX_WAIT_MS = 30_000;
 	private static final int MAX_RETIES = 3;
 
-	private SynapseAdminClient adminSynapse;
-	private SynapseClient synapse;
+	private final SynapseAdminClient adminSynapse;
+	private final SynapseClient synapse;
+	private final StackConfiguration config;
 
-	public ITAgentControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+	public ITAgentControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse, StackConfiguration config) {
 		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+		this.config = config;
 	}
 
 	@Test
@@ -51,19 +55,52 @@ public class ITAgentControllerTest {
 		assertEquals(AgentAccessLevel.READ_YOUR_PRIVATE_DATA, updated.getAgentAccessLevel());
 
 		// call under test, empty input should result in empty response.
-		var jobResult = AsyncJobHelper
-				.assertAysncJobResult(synapse, AsynchJobType.AgentChat,
-						new AgentChatRequest().setEnableTrace(true).setChatText("hello").setSessionId(session.getSessionId()), body -> {
-							assertTrue(body instanceof AgentChatResponse);
-							AgentChatResponse r = (AgentChatResponse) body;
-							assertEquals(session.getSessionId(), r.getSessionId());
-							assertNotNull(r.getResponseText());
-						}, MAX_WAIT_MS, MAX_RETIES);
-		
+		var jobResult = AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AgentChat,
+				new AgentChatRequest().setEnableTrace(true).setChatText("hello").setSessionId(session.getSessionId()),
+				body -> {
+					assertTrue(body instanceof AgentChatResponse);
+					AgentChatResponse r = (AgentChatResponse) body;
+					assertEquals(session.getSessionId(), r.getSessionId());
+					assertNotNull(r.getResponseText());
+				}, MAX_WAIT_MS, MAX_RETIES);
+
 		// call under test
 		TraceEventsResponse trace = synapse.getAgentTrace(new TraceEventsRequest().setJobId(jobResult.getJobToken()));
 		assertNotNull(trace);
 		assertEquals(jobResult.getJobToken(), trace.getJobId());
+	}
+
+	@Test
+	public void testChatCustomAgent() throws SynapseException {
+
+		// call under test
+		AgentRegistration reg = adminSynapse.createOrGetAgentRegistration(
+				new AgentRegistrationRequest().setAwsAgentId(config.getCustomHelloWorldBedrockAgentId()));
+		assertNotNull(reg);
+		assertNotNull(reg.getAgentRegistrationId());
+		assertNotNull(reg.getAwsAliasId());
+		assertEquals(config.getCustomHelloWorldBedrockAgentId(), reg.getAwsAgentId());
+		// call under test
+		AgentRegistration reg2 = synapse.getAgentRegistration(reg.getAgentRegistrationId());
+		assertNotNull(reg2);
+		assertEquals(reg, reg2);
+
+		AgentSession session = synapse.createAgentSession(
+				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE)
+						.setAgentRegistrationId(reg.getAgentRegistrationId()));
+		assertNotNull(session);
+
+		// call under test, empty input should result in empty response.
+		var jobResult = AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.AgentChat,
+				new AgentChatRequest().setEnableTrace(true).setChatText("hello").setSessionId(session.getSessionId()),
+				body -> {
+					assertTrue(body instanceof AgentChatResponse);
+					AgentChatResponse r = (AgentChatResponse) body;
+					assertEquals(session.getSessionId(), r.getSessionId());
+					assertTrue(r.getResponseText().toLowerCase().contains("world"));
+					assertNotNull(r.getResponseText());
+				}, MAX_WAIT_MS, MAX_RETIES);
+
 	}
 
 }
