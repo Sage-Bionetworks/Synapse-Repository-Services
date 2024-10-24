@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.service.AgentService;
 import org.sagebionetworks.repo.service.EntityService;
@@ -166,6 +167,9 @@ public class AgentChatWorkerIntegrationTest {
 				null);
 		entitiesToDelete.add(f2.getId());
 
+		Dataset dataset = entityService.createEntity(admin.getId(), new Dataset().setName("dataset1").setParentId(project.getId()), null);
+		entitiesToDelete.add(dataset.getId());
+
 		AgentSession session = agentService.createSession(admin.getId(),
 				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
 
@@ -183,12 +187,13 @@ public class AgentChatWorkerIntegrationTest {
 					assertTrue(response.getResponseText().contains(f2.getName()));
 					assertTrue(response.getResponseText().contains(f1.getId()));
 					assertTrue(response.getResponseText().contains(f2.getId()));
+					assertTrue(response.getResponseText().contains(dataset.getName()));
 				}, MAX_WAIT_MS).getResponse();
 
 	}
 
 	@Test
-	public void testGetFolderEntityChildren() throws AssertionError, AsynchJobFailedException, IOException {
+	public void testGetFolderAndFileEntityChildren() throws AssertionError, AsynchJobFailedException, IOException {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
 				null);
 		entitiesToDelete.add(project.getId());
@@ -209,12 +214,15 @@ public class AgentChatWorkerIntegrationTest {
 				new FileEntity().setName("TestFile1").setParentId(project.getId()).setDataFileHandleId(fileHandle.getId()), null);
 		entitiesToDelete.add(fileOne.getId());
 
+		Dataset dataset = entityService.createEntity(admin.getId(), new Dataset().setName("dataset1").setParentId(project.getId()), null);
+		entitiesToDelete.add(dataset.getId());
+
 		AgentSession session = agentService.createSession(admin.getId(),
 				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
 
 		assertNotNull(session);
 		// an empty request will return an empty response.
-		String chatRequest = "What are the names and synIDs of the folders in the project: " + project.getId();
+		String chatRequest = "What are the names and synIDs of the folders and file in the project: " + project.getId();
 
 		asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
@@ -226,7 +234,8 @@ public class AgentChatWorkerIntegrationTest {
 					assertTrue(response.getResponseText().contains(f2.getName()));
 					assertTrue(response.getResponseText().contains(f1.getId()));
 					assertTrue(response.getResponseText().contains(f2.getId()));
-					assertFalse(response.getResponseText().contains(fileOne.getName()));
+					assertTrue(response.getResponseText().contains(fileOne.getName()));
+					assertFalse(response.getResponseText().contains(dataset.getName()));
 				}, MAX_WAIT_MS);
 
 	}

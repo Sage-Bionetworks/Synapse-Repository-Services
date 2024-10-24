@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.manager.agent.handler;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.manager.agent.parameter.ParameterUtils;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityType;
@@ -50,19 +47,15 @@ public class GetEntityChildrenHandler implements ReturnControlHandler {
 
 		String nextPageToken = ParameterUtils.extractParameter(String.class, "nextPageToken", event.getParameters())
 				.orElse(null);
-		String entityType =  ParameterUtils.extractParameter(String.class, "entityType", event.getParameters())
-				.orElse(null);
-		List<EntityType> entityTypes = new ArrayList<>();
-		if(StringUtils.isEmpty(entityType)){
-			entityTypes.addAll(Arrays.stream(EntityType.values()).collect(Collectors.toList()));
-		}else{
-			entityTypes.add(EntityType.valueOf(entityType));
-		}
+
+		List<EntityType> entityTypes = (List<EntityType>) ParameterUtils.extractParameter(List.class, "entityType", event.getParameters())
+				.orElseGet(() -> List.of(EntityType.values())).stream()
+				.map(e -> EntityType.valueOf(e.toString()))
+				.collect(Collectors.toList());
 
 		return EntityFactory.createJSONStringForEntity(entityService.getChildren(event.getRunAsUserId(),
 				new EntityChildrenRequest().setParentId(synId).setIncludeSumFileSizes(true)
 						.setIncludeTotalChildCount(true).setSortBy(SortBy.MODIFIED_ON).setSortDirection(Direction.DESC)
 						.setIncludeTypes(entityTypes).setNextPageToken(nextPageToken)));
 	}
-
 }

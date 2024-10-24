@@ -39,7 +39,7 @@ public class GetDescriptionHandlerTest {
 
     @Test
     public void testGetEntityDescriptionHandlerWithoutSynId() {
-        returnControlEvent = new ReturnControlEvent(123L, ACTION_GROUP, FUNCTION, Collections.emptyList());
+        returnControlEvent = new ReturnControlEvent(USER_ID, ACTION_GROUP, FUNCTION, Collections.emptyList());
         String resultMessage = assertThrows(IllegalArgumentException.class, () -> {
             getDescriptionHandler.handleEvent(returnControlEvent);
         }).getMessage();
@@ -55,7 +55,7 @@ public class GetDescriptionHandlerTest {
         WikiPage page = new WikiPage().setId("TestPage").setTitle("random page").setMarkdown("markdown");
         WikiPageKey key = new WikiPageKey().setOwnerObjectId(ID)
                 .setOwnerObjectType(ObjectType.ENTITY).setWikiPageId("headerOne");
-        PaginatedResults<WikiHeader> wikiHeaders = PaginatedResults.createWithLimitAndOffset(List.of(wikiHeader), 5l,0l);
+        PaginatedResults<WikiHeader> wikiHeaders = PaginatedResults.createWithLimitAndOffset(List.of(wikiHeader), 5l, 0l);
 
         when(wikiService.getWikiHeaderTree(USER_ID, ID, ObjectType.ENTITY, 5l, 0l))
                 .thenReturn(wikiHeaders);
@@ -64,7 +64,8 @@ public class GetDescriptionHandlerTest {
 
         String result = getDescriptionHandler.handleEvent(returnControlEvent);
         assertEquals("{\"description\":\"random page\\nmarkdown\\n\\n\"}", result);
-        verify(wikiService).getWikiHeaderTree(USER_ID, ID, ObjectType.ENTITY, 5l,0l);
-        verify(wikiService).getWikiPage(USER_ID,key,null);
+        verify(wikiService).getWikiHeaderTree(returnControlEvent.getRunAsUserId(),
+                returnControlEvent.getParameters().get(0).getValue(), ObjectType.ENTITY, 5l, 0l);
+        verify(wikiService).getWikiPage(returnControlEvent.getRunAsUserId(), key, null);
     }
 }

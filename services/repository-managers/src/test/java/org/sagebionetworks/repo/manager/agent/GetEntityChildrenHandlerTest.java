@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.handler.GetEntityChildrenHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
+import org.sagebionetworks.repo.manager.agent.parameter.ParameterUtils;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityType;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.service.EntityService;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,7 +37,6 @@ public class GetEntityChildrenHandlerTest {
     private static final String FUNCTION = "org_sage_zero_get_entity_children";
     private static final String ID = "syn123";
     private static final String TOKEN = "50as50";
-    private static final String ENTITY = "dataset";
     private static final long USER_ID = 123;
 
 
@@ -54,12 +55,12 @@ public class GetEntityChildrenHandlerTest {
     public void before() {
         SYN_ID = new Parameter("synId", "string", ID);
         NEXT_PAGE_TOKEN = new Parameter("nextPageToken", "string", TOKEN);
-        ENTITY_TYPE = new Parameter("entityType", "string", ENTITY);
+        ENTITY_TYPE = new Parameter("entityType", "array", "[\"folder\",\"file\"]");
     }
 
     @Test
     public void testGetEntityChildrenWithoutSynId() {
-        returnControlEvent = new ReturnControlEvent(123L, ACTION_GROUP, FUNCTION, List.of(NEXT_PAGE_TOKEN));
+        returnControlEvent = new ReturnControlEvent(USER_ID, ACTION_GROUP, FUNCTION, List.of(NEXT_PAGE_TOKEN));
         String resultMessage = assertThrows(IllegalArgumentException.class, () -> {
             entityChildrenHandler.handleEvent(returnControlEvent);
         }).getMessage();
@@ -78,7 +79,7 @@ public class GetEntityChildrenHandlerTest {
 
         when(entityService.getChildren(anyLong(), any())).thenReturn(entityChildrenResponse);
         entityChildrenHandler.handleEvent(returnControlEvent);
-        verify(entityService).getChildren(USER_ID, expectedRequest);
+        verify(entityService).getChildren(returnControlEvent.getRunAsUserId(), expectedRequest);
 
     }
 
@@ -94,7 +95,7 @@ public class GetEntityChildrenHandlerTest {
 
         when(entityService.getChildren(anyLong(), any())).thenReturn(entityChildrenResponse);
         entityChildrenHandler.handleEvent(returnControlEvent);
-        verify(entityService).getChildren(USER_ID, expectedRequest);
+        verify(entityService).getChildren(returnControlEvent.getRunAsUserId(), expectedRequest);
 
     }
 
@@ -104,12 +105,12 @@ public class GetEntityChildrenHandlerTest {
 
         EntityChildrenRequest expectedRequest = new EntityChildrenRequest().setParentId(ID).setIncludeSumFileSizes(true)
                 .setIncludeTotalChildCount(true).setSortBy(SortBy.MODIFIED_ON).setSortDirection(Direction.DESC)
-                .setIncludeTypes(List.of(EntityType.dataset))
+                .setIncludeTypes(List.of(EntityType.folder, EntityType.file))
                 .setNextPageToken(null);
 
         when(entityService.getChildren(anyLong(), any())).thenReturn(entityChildrenResponse);
         entityChildrenHandler.handleEvent(returnControlEvent);
-        verify(entityService).getChildren(USER_ID, expectedRequest);
+        verify(entityService).getChildren(returnControlEvent.getRunAsUserId(), expectedRequest);
 
     }
 
@@ -119,12 +120,12 @@ public class GetEntityChildrenHandlerTest {
 
         EntityChildrenRequest expectedRequest = new EntityChildrenRequest().setParentId(ID).setIncludeSumFileSizes(true)
                 .setIncludeTotalChildCount(true).setSortBy(SortBy.MODIFIED_ON).setSortDirection(Direction.DESC)
-                .setIncludeTypes(List.of(EntityType.dataset))
+                .setIncludeTypes(List.of(EntityType.folder, EntityType.file))
                 .setNextPageToken(TOKEN);
 
         when(entityService.getChildren(anyLong(), any())).thenReturn(entityChildrenResponse);
         entityChildrenHandler.handleEvent(returnControlEvent);
-        verify(entityService).getChildren(USER_ID, expectedRequest);
+        verify(entityService).getChildren(returnControlEvent.getRunAsUserId(), expectedRequest);
 
     }
 }

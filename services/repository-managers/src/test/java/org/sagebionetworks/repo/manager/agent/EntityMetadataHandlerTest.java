@@ -39,7 +39,7 @@ public class EntityMetadataHandlerTest {
 
     @Test
     public void testGetEntityMetadataHandlerWithoutSynId() {
-        returnControlEvent = new ReturnControlEvent(123L, ACTION_GROUP, FUNCTION, Collections.emptyList());
+        returnControlEvent = new ReturnControlEvent(USER_ID, ACTION_GROUP, FUNCTION, Collections.emptyList());
         String resultMessage = assertThrows(IllegalArgumentException.class, () -> {
             entityMetadataHandler.handleEvent(returnControlEvent);
         }).getMessage();
@@ -58,7 +58,7 @@ public class EntityMetadataHandlerTest {
         when(entityBundleService.getEntityBundle(USER_ID, ID, entityBundleRequest))
                 .thenReturn(entityBundle);
         entityMetadataHandler.handleEvent(returnControlEvent);
-        verify(entityBundleService).getEntityBundle(USER_ID, ID, entityBundleRequest);
-
+        verify(entityBundleService).getEntityBundle(returnControlEvent.getRunAsUserId(),
+                returnControlEvent.getParameters().get(0).getValue(), entityBundleRequest);
     }
 }
