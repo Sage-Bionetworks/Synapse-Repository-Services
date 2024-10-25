@@ -33,6 +33,14 @@ public class NextPageTokenTest {
 		assertEquals(NextPageToken.DEFAULT_LIMIT+1, token.getLimitForQuery());
 		assertEquals(NextPageToken.DEFAULT_OFFSET, token.getOffset());
 	}
+
+	@Test
+	public void testNextPageTokenIsEmptyString(){
+		NextPageToken token = new NextPageToken("");
+		assertNotNull(token);
+		assertEquals(NextPageToken.DEFAULT_LIMIT+1, token.getLimitForQuery());
+		assertEquals(NextPageToken.DEFAULT_OFFSET, token.getOffset());
+	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testNextPageBadToken(){

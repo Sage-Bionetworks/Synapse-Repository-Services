@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.manager.agent.parameter;
 
+import java.util.List;
+
 public enum ParameterType {
 
-	string(String.class, new StringParser()), integer(Integer.class, new IntegerParser());
+	string(String.class, new StringParser()), integer(Integer.class, new IntegerParser()), array(List.class, new ListParser());
 
 	private ParameterType(Class<?> type, ParameterParser<?> parser) {
 		this.classType = type;

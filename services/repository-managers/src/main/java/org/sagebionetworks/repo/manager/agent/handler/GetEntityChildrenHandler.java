@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.agent.handler;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.agent.parameter.ParameterUtils;
@@ -45,10 +45,17 @@ public class GetEntityChildrenHandler implements ReturnControlHandler {
 		String synId = ParameterUtils.extractParameter(String.class, "synId", event.getParameters())
 				.orElseThrow(() -> new IllegalArgumentException("Parameter 'synId' of type string is required"));
 
+		String nextPageToken = ParameterUtils.extractParameter(String.class, "nextPageToken", event.getParameters())
+				.orElse(null);
+
+		List<EntityType> entityTypes = (List<EntityType>) ParameterUtils.extractParameter(List.class, "entityType", event.getParameters())
+				.orElseGet(() -> List.of(EntityType.values())).stream()
+				.map(e -> EntityType.valueOf(e.toString()))
+				.collect(Collectors.toList());
+
 		return EntityFactory.createJSONStringForEntity(entityService.getChildren(event.getRunAsUserId(),
 				new EntityChildrenRequest().setParentId(synId).setIncludeSumFileSizes(true)
 						.setIncludeTotalChildCount(true).setSortBy(SortBy.MODIFIED_ON).setSortDirection(Direction.DESC)
-						.setIncludeTypes(Arrays.stream(EntityType.values()).collect(Collectors.toList()))));
+						.setIncludeTypes(entityTypes).setNextPageToken(nextPageToken)));
 	}
-
 }
