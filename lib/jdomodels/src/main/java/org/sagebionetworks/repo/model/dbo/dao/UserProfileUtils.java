@@ -91,6 +91,7 @@ public class UserProfileUtils {
 		if(dbo.getCreatedOn() != null) {
 			dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		}
+		dto.setDisplayName(null);
 		return dto;
 	}
 	

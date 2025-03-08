@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -412,6 +413,17 @@ public class DBOUserProfileDAOImplTest {
 
 		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal.getId()));
 		principalAliasDAO.removeAllAliasFromPrincipal(Long.parseLong(principal2.getId()));
+	}
+
+	@Test
+	public void testGetUserProfileNullDisplayName() {
+		UserProfile userProfile = createUserProfile();
+		userProfile.setDisplayName("aUserName");
+		String id = userProfileDAO.create(userProfile);
+
+		UserProfile clone = userProfileDAO.get(id);
+		assertNotNull(clone);
+		assertNull(clone.getDisplayName());
 	}
 
 	private String createUserWithNotificationEmail(Long principalId, String username,
