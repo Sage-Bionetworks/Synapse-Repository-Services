@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  */
 @Component("acceptTermsOfUseFilter")
 public class AcceptTermsOfUseFilter implements Filter {
-	private static final String TOU_UNSIGNED_REASON = "Terms of use have not been signed.";
+	private static final String TOU_UNSIGNED_REASON = "Login to %s to accept the latest Terms of Service.";
 	
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -55,7 +55,10 @@ public class AcceptTermsOfUseFilter implements Filter {
 		// If the user is not anonymous, check if they have accepted the terms of use
 		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
 			if (!authenticationService.hasUserAcceptedTermsOfService(userId)) {
-				HttpAuthUtil.rejectWithErrorResponse(httpResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
+				String hostName = httpRequest.getServerName();
+				HttpAuthUtil.rejectWithErrorResponse(httpResponse,
+						String.format(TOU_UNSIGNED_REASON, HttpAuthUtil.synapseHostFromRepoHostName(hostName)),
+						HttpStatus.FORBIDDEN);
 				return;
 			}
 		}
@@ -72,7 +75,5 @@ public class AcceptTermsOfUseFilter implements Filter {
 	public void destroy() {
 		// nothing to do
 	}
-	
-
 
 }

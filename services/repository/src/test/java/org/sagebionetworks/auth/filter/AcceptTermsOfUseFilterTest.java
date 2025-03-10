@@ -83,7 +83,7 @@ class AcceptTermsOfUseFilterTest {
 		ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
 		verify(mockResponse).setStatus((Integer)captor.capture());
 		assertEquals(new Integer(HttpStatus.SC_FORBIDDEN), captor.getValue());
-		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Terms of use have not been signed.\"}");
+		verify(mockPrintWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"Login to localhost to accept the latest Terms of Service.\"}");
 		
 		verify(mockFilterChain, never()).doFilter(any(), any());
 	}
