@@ -276,49 +276,49 @@ class HttpAuthUtilTest {
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withNullHostName() {
+	void testSynapseHostFromRepoHostName_NullHostName() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName(null);
 		assertEquals("localhost", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withEmptyHostName() {
+	void testSynapseHostFromRepoHostName_EmptyHostName() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("");
 		assertEquals("localhost", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withInvalidHostName() {
+	void testSynapseHostFromRepoHostName_InvalidHostName() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("invalidhost");
 		assertEquals("localhost", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withDevInstanceAndDevStack() {
+	void testSynapseHostFromRepoHostName_DevInstanceAndDevStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-dev.dev.sagebase.org");
 		assertEquals("dev.synapse.org", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withProdInstanceAndDevStack() {
+	void testSynapseHostFromRepoHostName_ProdInstanceAndDevStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-prod.dev.sagebase.org");
 		assertEquals("dev.synapse.org", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withStagingInstanceAndProdStack() {
+	void testSynapseHostFromRepoHostName_StagingInstanceAndProdStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-staging.prod.sagebase.org");
 		assertEquals("staging.synapse.org", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withProdInstanceAndProdStack() {
+	void testSynapseHostFromRepoHostName_ProdInstanceAndProdStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-prod.prod.sagebase.org");
 		assertEquals("synapse.org", result);
 	}
 
 	@Test
-	void testSynapseHostFromRepoHostName_withUnknownInstanceAndStack() {
+	void testSynapseHostFromRepoHostName_UnknownInstanceAndStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-unknown.unknown.sagebase.org");
 		assertEquals("localhost", result);
 	}
