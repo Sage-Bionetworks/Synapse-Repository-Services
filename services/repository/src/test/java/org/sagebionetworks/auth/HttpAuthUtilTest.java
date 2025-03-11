@@ -294,6 +294,12 @@ class HttpAuthUtilTest {
 	}
 
 	@Test
+	void testSynapseHostFromRepoHostName_InvalidHostName2() {
+		String result = HttpAuthUtil.synapseHostFromRepoHostName("invalidhost:3000");
+		assertEquals("localhost", result);
+	}
+
+	@Test
 	void testSynapseHostFromRepoHostName_DevInstanceAndDevStack() {
 		String result = HttpAuthUtil.synapseHostFromRepoHostName("repo-dev.dev.sagebase.org");
 		assertEquals("dev.synapse.org", result);

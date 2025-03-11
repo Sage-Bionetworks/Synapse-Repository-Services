@@ -208,7 +208,7 @@ public class HttpAuthUtil {
 		if (StringUtils.isBlank(hostName)) {
 			return "localhost";
 		}
-		String[] parts = hostName.split("repo-|-\\.|\\.");
+		String[] parts = hostName.split("repo-|\\.");
 		if (parts.length < 3) {
 			return "localhost";
 		}
