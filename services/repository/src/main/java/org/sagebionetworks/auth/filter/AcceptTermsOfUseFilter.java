@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  */
 @Component("acceptTermsOfUseFilter")
 public class AcceptTermsOfUseFilter implements Filter {
-	private static final String TOU_UNSIGNED_REASON = "Login to %s to accept the latest Terms of Service.";
+	private static final String TOU_UNSIGNED_REASON = "Login to https://synapse.org to accept the latest Terms of Service.";
 	
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -57,7 +57,7 @@ public class AcceptTermsOfUseFilter implements Filter {
 			if (!authenticationService.hasUserAcceptedTermsOfService(userId)) {
 				String hostName = httpRequest.getServerName();
 				HttpAuthUtil.rejectWithErrorResponse(httpResponse,
-						String.format(TOU_UNSIGNED_REASON, HttpAuthUtil.synapseHostFromRepoHostName(hostName)),
+						TOU_UNSIGNED_REASON,
 						HttpStatus.FORBIDDEN);
 				return;
 			}

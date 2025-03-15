@@ -202,31 +202,4 @@ public class HttpAuthUtil {
 		reject(resp, er, status);
 	}
 
-	public static String synapseHostFromRepoHostName(String hostName) {
-		// hostname format is repo-<instance>.<stack>.sagebase.org
-		// where <instance> is dev | prod | staging and  <stack> is dev | prod
-		if (StringUtils.isBlank(hostName)) {
-			return "localhost";
-		}
-		String[] parts = hostName.split("repo-|\\.");
-		if (parts.length < 3) {
-			return "localhost";
-		}
-		String instance = parts[1];
-		String stack = parts[2];
-
-		// dev-staging.dev.sagebase.org does not exist
-		if ("dev".equals(stack) && ("dev".equals(instance) || "prod".equals(instance))) {
-			return "dev.synapse.org";
-		} else if ("prod".equals(stack) && "staging".equals(instance)) {
-			return "staging.synapse.org";
-		} else if ("prod".equals(stack)) {
-			return "synapse.org";
-		} else {
-			return "localhost";
-		}
-	}
-
-
-
 }
