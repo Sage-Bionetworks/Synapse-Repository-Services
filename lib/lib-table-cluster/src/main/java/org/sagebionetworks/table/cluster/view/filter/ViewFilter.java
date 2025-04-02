@@ -70,4 +70,5 @@ public interface ViewFilter {
 	 * @return
 	 */
 	Optional<List<ChangeMessage>> getSubViews();
+	
 }

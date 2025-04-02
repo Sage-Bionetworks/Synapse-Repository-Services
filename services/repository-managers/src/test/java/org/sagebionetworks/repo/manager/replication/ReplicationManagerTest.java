@@ -8,8 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -36,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.TableIndexConnectionFactory;
 import org.sagebionetworks.repo.manager.table.TableIndexManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -50,6 +54,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
+import org.sagebionetworks.repo.model.table.ReplicatedEvent;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.SubType;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
@@ -61,6 +66,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.transaction.TransactionStatus;
 
 import com.google.common.collect.ImmutableList;
+
 
 @ExtendWith(MockitoExtension.class)
 public class ReplicationManagerTest {
@@ -100,6 +106,9 @@ public class ReplicationManagerTest {
 
 	@Mock
 	private ViewScopeType mockViewScopeType;
+	
+	@Mock
+	private RepositoryMessagePublisher mockMessagePublisher;
 
 	@Captor
 	private ArgumentCaptor<Iterator<ObjectDataDTO>> iteratorCaptor;
@@ -116,7 +125,7 @@ public class ReplicationManagerTest {
 		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
 		manager = new ReplicationManagerImpl(mockObjectDataProviderFactory, mockTableManagerSupport,
 				mockReplicationMessageManager, mockIndexConnectionFactory, mockIndexProviderFactory,
-				mockLoggerProvider, mockRandom);
+				mockLoggerProvider, mockRandom, mockMessagePublisher);
 		managerSpy = Mockito.spy(manager);
 		ChangeMessage update = new ChangeMessage();
 		update.setChangeType(ChangeType.UPDATE);
@@ -194,9 +203,12 @@ public class ReplicationManagerTest {
 		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
 		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData.iterator());
+		
+		doNothing().when(managerSpy).fireReplicationEvents(mockTableIndexManager, ReplicationType.ENTITY,
+				List.of(333L,111L,222L), ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE);
 
 		// call under test
-		manager.replicate(changes);
+		managerSpy.replicate(changes);
 
 		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
@@ -207,9 +219,10 @@ public class ReplicationManagerTest {
 		List<ObjectDataDTO> actualList = ImmutableList.copyOf(iteratorCaptor.getValue());
 		assertEquals(entityData, actualList);
 	}
-
+	
 	@Test
 	public void testReplicateSingle() {
+
 		String entityId = "syn123";
 		List<Long> entityids = Collections.singletonList(KeyFactory.stringToKey(entityId));
 
@@ -221,9 +234,12 @@ public class ReplicationManagerTest {
 		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
 		when(mockObjectDataProviderFactory.getObjectDataProvider(any())).thenReturn(mockObjectDataProvider);
 		when(mockObjectDataProvider.getObjectData(any(), anyInt())).thenReturn(entityData.iterator());
+		
+		doNothing().when(managerSpy).fireReplicationEvents(mockTableIndexManager, ReplicationType.ENTITY,
+				List.of(123L), ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE);
 
 		// call under test
-		manager.replicate(mainType, entityId);
+		managerSpy.replicate(mainType, entityId);
 
 		verify(mockIndexConnectionFactory).connectToFirstIndex();
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(mainType);
@@ -543,7 +559,7 @@ public class ReplicationManagerTest {
 		assertEquals(result, it);
 
 		verify(mockObjectDataProviderFactory).getObjectDataProvider(ReplicationType.ENTITY);
-		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, filter.getObjectIds());
+		verify(mockObjectDataProvider).streamOverIdsAndChecksumsForObjects(salt, filter.getAllObjectIds());
 	}
 
 	@Test
@@ -654,6 +670,49 @@ public class ReplicationManagerTest {
 		assertFalse(managerSpy.isReplicationSynchronizedForView(viewObjectType, viewId));
 		verify(managerSpy).getFilter(viewId, viewObjectType);
 		verify(managerSpy).createReconcileIterator(mockFilter);
+	}
+	
+	@Test
+	public void testUpdateReplicationTables() {
+		doNothing().when(managerSpy).fireReplicationEvents(mockTableIndexManager, ReplicationType.ENTITY,
+				List.of(2L, 1L), ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE);
+		when(mockIndexConnectionFactory.connectToFirstIndex()).thenReturn(mockTableIndexManager);
+		when(mockObjectDataProviderFactory.getObjectDataProvider(ReplicationType.ENTITY))
+				.thenReturn(mockObjectDataProvider);
+		Iterator<ObjectDataDTO> it = List.of(new ObjectDataDTO()).iterator();
+		when(mockObjectDataProvider.getObjectData(List.of(1L), ReplicationManagerImpl.MAX_ANNOTATION_CHARS))
+				.thenReturn(it);
+		ReplicationDataGroup group = new ReplicationDataGroup(ReplicationType.ENTITY);
+		group.addForCreateOrUpdate(1L);
+		group.addForDelete(2L);
+		// call under test
+		managerSpy.updateReplicationTables(group);
+
+		verify(managerSpy, times(2)).fireReplicationEvents(mockTableIndexManager, ReplicationType.ENTITY,
+				List.of(2L, 1L), ReplicationManagerImpl.MAX_MESSAGE_PAGE_SIZE);
+	}
+	
+	
+	@Test
+	public void testFireReplicationEvents() {
+		List<Long> ids = List.of(1L, 2L, 3L);
+		when(mockTableIndexManager.getDistinctReplicatedPathIds(ReplicationType.ENTITY, ids))
+				.thenReturn(List.of(11L,22L,33L,44L,55L).iterator());
+
+		int pageSize = 2;
+		// call under test
+		managerSpy.fireReplicationEvents(mockTableIndexManager, ReplicationType.ENTITY, ids, pageSize);
+
+		verify(mockMessagePublisher)
+				.fireLocalStackMessage(new ReplicatedEvent().setObjectType(ObjectType.REPLICATED_EVENT)
+						.setReplicatedObjectType(ObjectType.ENTITY).setPathIds(List.of(11L, 22L)));
+		verify(mockMessagePublisher)
+				.fireLocalStackMessage(new ReplicatedEvent().setObjectType(ObjectType.REPLICATED_EVENT)
+						.setReplicatedObjectType(ObjectType.ENTITY).setPathIds(List.of(33L, 44L)));
+		verify(mockMessagePublisher)
+				.fireLocalStackMessage(new ReplicatedEvent().setObjectType(ObjectType.REPLICATED_EVENT)
+						.setReplicatedObjectType(ObjectType.ENTITY).setPathIds(List.of(55L)));
+
 	}
 
 	/**

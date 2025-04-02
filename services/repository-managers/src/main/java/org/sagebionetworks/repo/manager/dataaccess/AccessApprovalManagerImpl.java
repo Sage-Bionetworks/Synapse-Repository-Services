@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ACTAccessRequirementInterface;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalInfo;
@@ -149,8 +150,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
 		
-		ValidateArgument.requirement(accessRequirement.getConcreteType().equals(ACTAccessRequirement.class.getName()),
-				"Do not support access approval deletion for access requirement type: "+accessRequirement.getConcreteType());
+		ValidateArgument.requirement(accessRequirement instanceof ACTAccessRequirementInterface,
+				"Revoke approval not supported for type: "+accessRequirement.getConcreteType());
 		
 		final List<Long> approvals = accessApprovalDAO.listApprovalsByAccessor(accessRequirementId, accessorId);
 		

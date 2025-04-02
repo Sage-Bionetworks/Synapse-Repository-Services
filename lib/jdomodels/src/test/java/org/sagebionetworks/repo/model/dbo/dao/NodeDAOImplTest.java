@@ -15,7 +15,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -75,7 +75,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -103,7 +102,6 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.helper.AccessControlListObjectHelper;
 import org.sagebionetworks.repo.model.helper.DaoObjectHelper;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -3212,6 +3210,7 @@ public class NodeDAOImplTest {
 		assertEquals(fileHandle.getContentMd5(), fileDto.getFileMD5());
 		assertNull(fileDto.getDescription());
 		assertEquals("project/file",fileDto.getPath());
+		assertEquals(String.format("[%d,%d]", ids.get(0),ids.get(1)), fileDto.getPathIds());
 		assertEquals(fileHandle.getStorageLocationId(), fileDto.getFileLocationId());
 
 		assertNotNull(fileDto.getAnnotations());
@@ -3263,6 +3262,7 @@ public class NodeDAOImplTest {
 		assertEquals(fileIdLong, fileDto.getBenefactorId());
 		assertEquals(null, fileDto.getProjectId());
 		assertEquals("file",fileDto.getPath());
+		assertEquals(String.format("[%d]", ids.get(0)), fileDto.getPathIds());
 	}
 	
 	@Test
@@ -3295,6 +3295,7 @@ public class NodeDAOImplTest {
 		assertEquals(null, fileDto.getBenefactorId());
 		assertEquals(projectId, fileDto.getProjectId());
 		assertEquals("project/file",fileDto.getPath());
+		assertEquals(String.format("[%d,%d]", projectId,fileIdLong), fileDto.getPathIds());
 	}
 
 	@Test
@@ -5715,16 +5716,40 @@ public class NodeDAOImplTest {
 			return nodeDao.getEntityHierarchy(n.getId()).orElseThrow();
 		}).collect(Collectors.toList());
 		List<HierarchyInfo> expected = List.of(
-				new HierarchyInfo().setPath("hierarchy").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/folder0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/folder1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/file0").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/folder1/folder2").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/folder1/file1").setProjectId(projectIdLong).setBenefactorId(projectIdLong),
-				new HierarchyInfo().setPath("hierarchy/folder1/folder2/file2").setProjectId(projectIdLong)
+				new HierarchyInfo().setPath("hierarchy").setPathIds(expectedPath(nodes.get(0))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder0").setPathIds(expectedPath(nodes.get(1))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1").setPathIds(expectedPath(nodes.get(2))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/file0").setPathIds(expectedPath(nodes.get(3))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2").setPathIds(expectedPath(nodes.get(4))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/file1").setPathIds(expectedPath(nodes.get(5))).setProjectId(projectIdLong).setBenefactorId(projectIdLong),
+				new HierarchyInfo().setPath("hierarchy/folder1/folder2/file2").setPathIds(expectedPath(nodes.get(6))).setProjectId(projectIdLong)
 				.setBenefactorId(KeyFactory.stringToKey(last.getId()))
 		);
 		assertEquals(expected, results);
+	}
+	
+	/**
+	 * Helper function to build the id path for a node.
+	 * @param parentId
+	 * @return
+	 */
+	String expectedPath(Node node) {
+		StringBuilder builder = new StringBuilder("[");
+		StringJoiner joiner = new StringJoiner(",");
+		expectedPathRecursive(node.getParentId(), joiner);
+		joiner.add(KeyFactory.stringToKey(node.getId()).toString());
+		builder.append(joiner);
+		builder.append("]");
+		return builder.toString();
+	}
+	
+	void expectedPathRecursive(String parentId, StringJoiner joiner) {
+		if(parentId == null) {
+			return;
+		}
+		Node parent = nodeDao.getNode(parentId);
+		expectedPathRecursive(parent.getParentId(), joiner);
+		joiner.add(KeyFactory.stringToKey(parentId).toString());
 	}
 	
 	@Test
@@ -5750,12 +5775,14 @@ public class NodeDAOImplTest {
 
 		// call under test
 		assertEquals(
-				Optional.of(
-						new HierarchyInfo().setBenefactorId(projectIdLong).setPath("the_project").setProjectId(projectIdLong)),
+				Optional.of(new HierarchyInfo().setBenefactorId(projectIdLong).setPath("the_project")
+						.setPathIds(expectedPath(project)).setProjectId(projectIdLong)),
 				nodeDao.getEntityHierarchy(projectId));
 		// call under test
-		assertEquals(Optional.of(new HierarchyInfo().setBenefactorId(folderIdLong).setPath("the_project/the_folder")
-				.setProjectId(projectIdLong)), nodeDao.getEntityHierarchy(folderId));
+		assertEquals(
+				Optional.of(new HierarchyInfo().setBenefactorId(folderIdLong).setPath("the_project/the_folder")
+						.setPathIds(expectedPath(folder)).setProjectId(projectIdLong)),
+				nodeDao.getEntityHierarchy(folderId));
 	}
 	
 	@Test

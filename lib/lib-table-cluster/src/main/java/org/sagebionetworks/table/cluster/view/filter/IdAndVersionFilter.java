@@ -79,10 +79,6 @@ public class IdAndVersionFilter extends AbstractViewFilter {
 		// This filter includes all versions for each object.
 		return super.getFilterSql() + " AND R.OBJECT_ID IN (:objectIds)";
 	}
-
-	public Set<Long> getObjectIds() {
-		return allObjectIds;
-	}
 	
 	@Override
 	public Optional<List<ChangeMessage>> getSubViews() {
@@ -94,6 +90,9 @@ public class IdAndVersionFilter extends AbstractViewFilter {
 		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
 	}
 	
+	public Set<Long> getAllObjectIds() {
+		return allObjectIds;
+	}	
 	
 	@Override
 	public int hashCode() {

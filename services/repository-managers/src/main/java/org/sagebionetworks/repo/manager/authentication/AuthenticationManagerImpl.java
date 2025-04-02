@@ -236,6 +236,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
+	public LoginResponse loginWithNoPasswordOrTwoFaCheck(long principalId, String issuer) {
+		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
+	}
+	
+	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
 				

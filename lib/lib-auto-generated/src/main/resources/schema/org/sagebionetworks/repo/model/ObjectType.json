@@ -181,6 +181,10 @@
 		{
             "name": "PROJECT_STORAGE_EVENT",
             "description": "An event fired when project storage change event needs to be propagated."
+        },
+		{
+            "name": "REPLICATED_EVENT",
+            "description": "An event fired after an object has been replicated."
         }
     ]
 }

@@ -168,6 +168,7 @@ public class TableConstants {
 	public static final String OBJECT_REPLICATION_COL_FILE_NAME			    = "FILE_NAME";
 	public static final String OBJECT_REPLICATION_COL_HASH_CODE			    = "HASH_CODE";
 	public static final String OBJECT_REPLICATION_COL_PATH				    = "PATH";
+	public static final String OBJECT_REPLICATION_COL_PATH_IDS			    = "PATH_IDS";
 
 	// REPLICATION_SYNC_EXPIRATION
 	public static final String REPLICATION_SYNC_EXPIRATION_TABLE			= "REPLICATION_SYNC_EXPIRATION";
@@ -250,8 +251,9 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_KEY			+ ","
 			+ OBJECT_REPLICATION_COL_FILE_NAME			+ ","
 			+ OBJECT_REPLICATION_COL_HASH_CODE			+ ","
-			+ OBJECT_REPLICATION_COL_PATH
-			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+			+ OBJECT_REPLICATION_COL_PATH				+ ","
+			+ OBJECT_REPLICATION_COL_PATH_IDS
+			+ ") VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
 			+ " ON DUPLICATE KEY UPDATE "
 			+ OBJECT_REPLICATION_COL_CUR_VERSION 		+ "=?,"
 			+ OBJECT_REPLICATION_COL_CREATED_BY 		+ "=?,"
@@ -276,8 +278,10 @@ public class TableConstants {
 			+ OBJECT_REPLICATION_COL_FILE_KEY			+ "=?,"
 			+ OBJECT_REPLICATION_COL_FILE_NAME			+ "=?,"
 			+ OBJECT_REPLICATION_COL_HASH_CODE			+ "=?,"
-			+ OBJECT_REPLICATION_COL_PATH				+ "=?";
-	
+			+ OBJECT_REPLICATION_COL_PATH				+ "=?,"
+			+ OBJECT_REPLICATION_COL_PATH_IDS			+ "=?"		
+			;
+
 	public static final String TRUNCATE_OBJECT_REPLICATION_TABLE = 
 			"DELETE FROM "+OBJECT_REPLICATION_TABLE;	
 	

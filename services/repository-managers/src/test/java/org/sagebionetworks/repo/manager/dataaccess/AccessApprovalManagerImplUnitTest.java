@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -151,14 +152,31 @@ public class AccessApprovalManagerImplUnitTest {
 	}
 
 	@Test
-	public void testRevokeAccessApprovalsWithToUAccessRequirement() {
+	public void testRevokeAccessApprovalsWithToS() {
 		String accessRequirementId = "1";
-		String accessorId = ""+userInfo.getId();
+		String accessorId = "" + userInfo.getId();
 		AccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
-		assertThrows(IllegalArgumentException.class, () -> {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
-		});
+		}).getMessage();
+		assertEquals(
+				"Revoke approval not supported for type: org.sagebionetworks.repo.model.TermsOfUseAccessRequirement",
+				message);
+	}
+	
+	@Test
+	public void testRevokeAccessApprovalsWithLock() {
+		String accessRequirementId = "1";
+		String accessorId = "" + userInfo.getId();
+		AccessRequirement accessRequirement = new LockAccessRequirement();
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		}).getMessage();
+		assertEquals(
+				"Revoke approval not supported for type: org.sagebionetworks.repo.model.LockAccessRequirement",
+				message);
 	}
 
 	@Test
@@ -167,6 +185,34 @@ public class AccessApprovalManagerImplUnitTest {
 		String accessorId = ""+userInfo.getId();
 		List<Long> approvals = Arrays.asList(1L, 2L);
 		AccessRequirement accessRequirement = new ACTAccessRequirement();
+		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
+		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
+		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);
+		
+		// Call under test
+		manager.revokeAccessApprovals(userInfo, accessRequirementId, accessorId);
+		
+		verify(mockAccessApprovalDAO).listApprovalsByAccessor(accessRequirementId, accessorId);
+		verify(mockAccessApprovalDAO).revokeBatch(userInfo.getId(), approvals);
+		
+		for (Long id : approvals) {
+			
+			MessageToSend expectedMessage = new MessageToSend()
+					.withUserId(userInfo.getId())
+					.withObjectType(ObjectType.ACCESS_APPROVAL)
+					.withObjectId(id.toString())
+					.withChangeType(ChangeType.UPDATE);
+			
+			verify(mockTransactionMessenger).sendMessageAfterCommit(expectedMessage);
+		}
+	}
+	
+	@Test
+	public void testRevokeAccessApprovalsWithManagedACTAccessRequirement() {
+		String accessRequirementId = "2";
+		String accessorId = ""+userInfo.getId();
+		List<Long> approvals = Arrays.asList(1L, 2L);
+		AccessRequirement accessRequirement = new ManagedACTAccessRequirement();
 		when(mockAccessRequirementDAO.get(accessRequirementId)).thenReturn(accessRequirement);	
 		when(mockAccessApprovalDAO.listApprovalsByAccessor(any(), any())).thenReturn(approvals);
 		when(mockAccessApprovalDAO.revokeBatch(any(), any())).thenReturn(approvals);

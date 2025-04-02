@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +79,7 @@ public interface TableIndexDAO {
 
 	/**
 	 * Query a RowSet from the table.
+	 * 
 	 * @param query
 	 * 
 	 * @return
@@ -86,6 +89,7 @@ public interface TableIndexDAO {
 	/**
 	 * Provides the means to stream over query results without keeping the row data
 	 * in memory.
+	 * 
 	 * @param query
 	 * @param handler
 	 * 
@@ -540,7 +544,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @param stream
 	 * @return The column model ids from the table index
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	List<String> streamTableIndexData(IdAndVersion tableId, CSVWriterStream stream) throws IOException;
 
@@ -634,21 +638,23 @@ public interface TableIndexDAO {
 	/**
 	 * Save the provided query results to the cache.
 	 * 
-	 * @param requestHash The SHA 256 Hex of the query request.
-	 * @param requestJson The JSON of the query request.
-	 * @param resultJson  The JSON of the query results.
-	 * @param runtimeMS   The runtime in MS it took to execute the query.
-	 * @param expiresInSec The number of seconds until this cached result will expire.
+	 * @param requestHash  The SHA 256 Hex of the query request.
+	 * @param requestJson  The JSON of the query request.
+	 * @param resultJson   The JSON of the query results.
+	 * @param runtimeMS    The runtime in MS it took to execute the query.
+	 * @param expiresInSec The number of seconds until this cached result will
+	 *                     expire.
 	 */
 	void saveCachedQuery(String requestHash, String requestJson, String resultJson, long runtimeMS, int expiresInSec);
-	
+
 	/**
 	 * Get a cached query result for the given request hash.
+	 * 
 	 * @param requestHash
 	 * @return
 	 */
 	Optional<CachedQueryDto> getCachedQuery(String requestHash);
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -657,5 +663,72 @@ public interface TableIndexDAO {
 	ProjectStorageData computeProjectStorageData(Long projectId);
 
 	List<Pair<Long, Long>> getProjectStorageLocations(List<Long> projectIds);
+
+	/**
+	 * Get the ids of all values that have a scope that intersects with the provided
+	 * path.
+	 * 
+	 * @param path
+	 * @param type
+	 * @return
+	 */
+	Iterator<Long> getViewsIntersectionForPath(Collection<Long> path, ReplicationType type);
+
+	/**
+	 * Set the scope of a view.
+	 * @param viewId
+	 * @param type
+	 * @param scopeId
+	 */
+	void setViewScope(Long viewId, ReplicationType type, Collection<Long> scopeIds, String idsHash);
+
+	/**
+	 * Get the Ids hash for a view's scope if it exists.
+	 * @param viewId
+	 * @param type
+	 * @return
+	 */
+	Optional<String> getViewScopeIdsHash(Long viewId, ReplicationType type);
+
+	/**
+	 * Delete the scope of a view.
+	 * @param viewId
+	 * @param type
+	 */
+	void deleteViewScope(Long viewId, ReplicationType type);
+
+	/**
+	 * Get an iterator over the distinct combined pathIds of the provided objectIds.
+	 * @param objectType
+	 * @param objectIds
+	 * @return
+	 */
+	Iterator<Long> getDistinctReplicatedPathIds(ReplicationType objectType, List<Long> objectIds);
+	
+	/**
+	 * Create a unique record that indicates a view needs to be updated. The view
+	 * will not be considered for {@link #consumeAllVisibleViewUpdates()} until its
+	 * visiblityTimeoutMS has elapsed. Each call to this method for the same view
+	 * will refresh the visibility timeout of that view, allowing multiple changes
+	 * to accumulate during this period.
+	 * 
+	 * @param viewId              The ID of the view that needs to be updated.
+	 * @param visiblityTimeoutSec The number of seconds until this recored become
+	 *                            visible.
+	 */
+	void setViewAsNeedsUpdate(Long viewId, int visiblityTimeoutSec);
+	
+	/**
+	 * The provided handler will be passed the the ID of the first visible view that
+	 * needs to be updated. If the handler returns without throwing an exception,
+	 * the view update recored will be consumed. If the handler fails with any type
+	 * of exception, the view update recored will not be consumed and the exception
+	 * will be thrown.
+	 * 
+	 * @return True if a view update was consumed. False if there was nothing to
+	 *         consume.
+	 * @throws RuntimeException
+	 */
+	boolean consumeFirstVisibleViewUpdate(ViewUpdateHandler handler);
 
 }

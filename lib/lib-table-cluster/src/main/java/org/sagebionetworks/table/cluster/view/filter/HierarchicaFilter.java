@@ -20,17 +20,23 @@ import org.sagebionetworks.util.ValidateArgument;
 public class HierarchicaFilter extends AbstractViewFilter {
 
 	protected final Set<Long> parentIds;
+	private final Set<Long> scope;
+ 	
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> parentIds, Set<Long> scope) {
+		this(mainType, subTypes, null, null, parentIds, false, scope);
+	}
 
-	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> scope) {
-		this(mainType, subTypes, null, null, scope, false);
+	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> parentIds) {
+		this(mainType, subTypes, null, null, parentIds, false, null);
 	}
 
 	public HierarchicaFilter(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-			Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
+			Set<String> excludeKeys, Set<Long> parentIds, boolean excludeDerivedKeys, Set<Long> scope) {
 		super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
-		ValidateArgument.required(scope, "scope");
-		this.parentIds = scope;
-		this.params.put("parentIds", scope);
+		ValidateArgument.required(parentIds, "parentIds");
+		this.parentIds = parentIds;
+		this.scope = scope;
+		this.params.put("parentIds", parentIds);
 	}
 
 	@Override
@@ -49,13 +55,9 @@ public class HierarchicaFilter extends AbstractViewFilter {
 		return super.getFilterSql() + " AND R.PARENT_ID IN (:parentIds)";
 	}
 
-	public Set<Long> getParentIds() {
-		return parentIds;
-	}
-
 	@Override
 	public Builder newBuilder() {
-		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys);
+		return new Builder(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 	}
 
 	@Override
@@ -67,49 +69,57 @@ public class HierarchicaFilter extends AbstractViewFilter {
 			return Optional.empty();
 		}
 	}
+	
+	public Set<Long> getParentIds() {
+		return parentIds;
+	}
+	
+	public Set<Long> getScope(){
+		return scope;
+	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = super.hashCode();
-		result = prime * result + Objects.hash(parentIds);
+		result = prime * result + Objects.hash(parentIds, scope);
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (!super.equals(obj)) {
+		if (!super.equals(obj))
 			return false;
-		}
-		if (!(obj instanceof HierarchicaFilter)) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		HierarchicaFilter other = (HierarchicaFilter) obj;
-		return Objects.equals(parentIds, other.parentIds);
+		return Objects.equals(parentIds, other.parentIds) && Objects.equals(scope, other.scope);
 	}
 
 	@Override
 	public String toString() {
-		return "HierarchyFilter [scope=" + parentIds + ", mainType=" + mainType + ", subTypes=" + subTypes
-				+ ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys + ", params=" + params + "]";
+		return "HierarchicaFilter [parentIds=" + parentIds + ", scope=" + scope + ", mainType=" + mainType
+				+ ", subTypes=" + subTypes + ", limitObjectIds=" + limitObjectIds + ", excludeKeys=" + excludeKeys
+				+ ", params=" + params + ", excludeDerivedKeys=" + excludeDerivedKeys + "]";
 	}
 
 	public static class Builder extends AbstractBuilder {
 
+		Set<Long> parentIds;
 		Set<Long> scope;
 
 		public Builder(ReplicationType mainType, Set<SubType> subTypes, Set<Long> limitObjectIds,
-				Set<String> excludeKeys, Set<Long> scope, boolean excludeDerivedKeys) {
+				Set<String> excludeKeys, Set<Long> parentIds, boolean excludeDerivedKeys, Set<Long> scope) {
 			super(mainType, subTypes, limitObjectIds, excludeKeys, excludeDerivedKeys);
+			this.parentIds = parentIds;
 			this.scope = scope;
 		}
 
 		@Override
 		public ViewFilter build() {
-			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+			return new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		}
 
 	}

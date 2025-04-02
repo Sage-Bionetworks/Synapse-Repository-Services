@@ -29,6 +29,10 @@
 		{
 			"name": "PROJECT_STORAGE_LIMIT_EXCEEDED",
 			"description": "The project storage limit was exceeded for a given storage location."
+		},
+		{
+			"name": "TWO_FA_ENABLED_REQUIRED",
+			"description": "Two factor authentication must be enabled to perform this operation."
 		}
 	]
 }

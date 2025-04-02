@@ -184,6 +184,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
+		assertTrue(authDAO.isTwoFactorAuthEnabled(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 		TermsOfServiceRequirements requirements = authDAO.getCurrentTermsOfServiceRequirements();
 		assertEquals(requirements.getMinimumTermsOfServiceVersion(), authDAO.getTermsOfServiceLatestVersion());
 	}

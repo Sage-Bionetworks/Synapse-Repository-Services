@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -12,9 +14,13 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.TotpSecret;
+import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
+import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
+import org.sagebionetworks.repo.model.auth.TwoFactorState;
+import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 import org.sagebionetworks.warehouse.WarehouseTestHelperImpl;
 
@@ -23,6 +29,11 @@ import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+
+import dev.samstevens.totp.code.CodeGenerator;
+import dev.samstevens.totp.code.DefaultCodeGenerator;
+import dev.samstevens.totp.time.SystemTimeProvider;
+import dev.samstevens.totp.time.TimeProvider;
 
 /**
  * The extension will setup a {@link SynapseAdminClient} for the admin user, the
@@ -129,14 +140,30 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 		String adminServiceSecret = config.getServiceAuthSecret(StackConfiguration.SERVICE_ADMIN);
 
 		adminSynapse.setBasicAuthorizationCredentials(adminServiceKey, adminServiceSecret);
-		adminSynapse.clearAllLocks();
 
 		// Now obtains the admin user access token through the admin service
 		LoginResponse response = adminSynapse.getUserAccessToken(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-
+		
 		// Clear the auth header to use the bearer token instead with the access token
 		adminSynapse.removeAuthorizationHeader();
 		adminSynapse.setBearerAuthorizationToken(response.getAccessToken());
+		
+		// The default admin user has the 2fa flag enabled but no real secret is bootstrapped, makes sure that 2fa is setup properly
+		if (adminSynapse.get2FaStatus().getStatus().equals(TwoFactorState.DISABLED)) {
+			CodeGenerator codeGenerator = new DefaultCodeGenerator();
+			TimeProvider timeProvider = new SystemTimeProvider();
+			
+			TotpSecret secret = adminSynapse.init2Fa();
+			
+			TwoFactorAuthStatus status = adminSynapse.enable2Fa(new TotpSecretActivationRequest()
+				.setSecretId(secret.getSecretId())
+				.setTotp(codeGenerator.generate(secret.getSecret(), Math.floorDiv(timeProvider.getTime(), 30)))
+			);
+			
+			assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		}
+		
+		adminSynapse.clearAllLocks();
 		
 		s3Client = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance()).build();
@@ -154,6 +181,5 @@ public class ITTestExtension implements BeforeAllCallback, AfterAllCallback, Par
 
 			}
 		}
-	}
-
+	}	
 }

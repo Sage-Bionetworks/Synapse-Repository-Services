@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -1412,7 +1413,21 @@ public class TableModelUtilsTest {
 		assertEquals(expectedMd5Hex, md5Hex, "The MD5 should be the same regardless of order.");
 	}
 	
-	
+	@Test
+	public void testCreateMD5HexOfIds() {
+		assertEquals(TableModelUtils.createMD5HexOfIds(Sets.newHashSet(1L, 3L, 2L)),
+				TableModelUtils.createMD5HexOfIds(Lists.newArrayList("3","2","1")));
+		
+		assertEquals(TableModelUtils.createMD5HexOfIds(Lists.newArrayList("1","2","3")),
+				TableModelUtils.createMD5HexOfIds(Lists.newArrayList("3","2","1")));
+		
+		assertEquals(TableModelUtils.createMD5HexOfIds(new LinkedList<Long>()),
+				TableModelUtils.createMD5HexOfIds(new HashSet<Long>()));
+		
+		assertNotEquals(TableModelUtils.createMD5HexOfIds(Sets.newHashSet(1L, 3L, 2L)),
+				TableModelUtils.createMD5HexOfIds(Lists.newArrayList("3","2","1","4")));
+	}
+
 	@Test
 	public void testGetSelectColumnsFromColumnIdsSingle(){
 		ColumnModel cm = TableModelTestUtils.createColumn(12);

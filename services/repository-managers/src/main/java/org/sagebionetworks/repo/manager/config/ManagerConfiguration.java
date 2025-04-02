@@ -391,5 +391,10 @@ public class ManagerConfiguration {
 			return new RowPFBWriter(tableName, columns, new FileOutputStream(file));
 		};
 	}
+	
+	@Bean
+	int viewUpdateVisibilityTimeoutSeconds() {
+		return 120;
+	}
 
 }

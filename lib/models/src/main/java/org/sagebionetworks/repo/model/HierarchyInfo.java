@@ -8,9 +8,10 @@ import org.json.JSONObject;
 public class HierarchyInfo {
 
 	private String path;
+	private String pathIds;
 	private Long benefactorId;
 	private Long projectId;
-
+	
 	public String getPath() {
 		return path;
 	}
@@ -38,6 +39,15 @@ public class HierarchyInfo {
 		return this;
 	}
 
+	public String getPathIds() {
+		return pathIds;
+	}
+
+	public HierarchyInfo setPathIds(String pathIds) {
+		this.pathIds = pathIds;
+		return this;
+	}
+
 	/**
 	 * Parse the provide JSON.
 	 * 
@@ -56,12 +66,15 @@ public class HierarchyInfo {
 		if (!object.isNull("projectId")) {
 			info.setProjectId(object.getLong("projectId"));
 		}
+		if (!object.isNull("pathIds")) {
+			info.setPathIds(object.getString("pathIds"));
+		}
 		return Optional.of(info);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(benefactorId, path, projectId);
+		return Objects.hash(benefactorId, path, pathIds, projectId);
 	}
 
 	@Override
@@ -74,12 +87,13 @@ public class HierarchyInfo {
 			return false;
 		HierarchyInfo other = (HierarchyInfo) obj;
 		return Objects.equals(benefactorId, other.benefactorId) && Objects.equals(path, other.path)
-				&& Objects.equals(projectId, other.projectId);
+				&& Objects.equals(pathIds, other.pathIds) && Objects.equals(projectId, other.projectId);
 	}
 
 	@Override
 	public String toString() {
-		return "HierarchyInfo [path=" + path + ", benefactorId=" + benefactorId + ", projectId=" + projectId + "]";
+		return "HierarchyInfo [path=" + path + ", pathIds=" + pathIds + ", benefactorId=" + benefactorId
+				+ ", projectId=" + projectId + "]";
 	}
 
 }

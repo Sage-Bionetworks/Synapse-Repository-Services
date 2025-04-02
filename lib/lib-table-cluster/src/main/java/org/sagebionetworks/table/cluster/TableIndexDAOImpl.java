@@ -37,6 +37,7 @@ import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICA
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_OBJECT_VERSION;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PARENT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PATH;
+import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PATH_IDS;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_PROJECT_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_COL_SUBTYPE;
 import static org.sagebionetworks.repo.model.table.TableConstants.OBJECT_REPLICATION_TABLE;
@@ -58,6 +59,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -108,6 +110,7 @@ import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.Grouping;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 import org.sagebionetworks.util.Callback;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -141,10 +144,14 @@ import com.google.common.collect.Sets;
 @Repository
 public class TableIndexDAOImpl implements TableIndexDAO {
 	
+	private static final long PAGE_SIZE_LIMIT = 1000;
+	
 	private static String OBJECT_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ObjectReplication.sql");
 	private static String ANNOTATION_REPLICATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/AnnotationReplication.sql");
 	private static String REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/ReplicationSynchExpiration.sql");
 	private static String QUERY_CACHE_TABLE_CREATE = SQLUtils.loadSQLFromClasspath("schema/QueryCache.sql");
+	private static String VIEW_SCOPE = SQLUtils.loadSQLFromClasspath("schema/ViewScope.sql");
+	private static String VIEW_TO_UPDATE = SQLUtils.loadSQLFromClasspath("schema/ViewToUpdate.sql");
 	private static String GET_ID_AND_CHECKSUMS_SQL_TEMPLATE = SQLUtils.loadSQLFromClasspath("sql/GetIdAndChecksumsTemplate.sql");
 	
 	public static RowMapper<ObjectDataDTO> OBJECT_DATA_ROW_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -198,6 +205,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		dto.setFileKey(rs.getString(OBJECT_REPLICATION_COL_FILE_KEY));
 		dto.setFileName(rs.getString(OBJECT_REPLICATION_COL_FILE_NAME));
 		dto.setPath(rs.getString(OBJECT_REPLICATION_COL_PATH));
+		dto.setPathIds(rs.getString(OBJECT_REPLICATION_COL_PATH_IDS));
 		return dto;
 	};
 	
@@ -755,6 +763,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(ANNOTATION_REPLICATION_TABLE_CREATE);
 		template.update(REPLICATION_SYNCH_EXPIRATION_TABLE_CREATE);
 		template.update(QUERY_CACHE_TABLE_CREATE);
+		template.update(VIEW_SCOPE);
+		template.update(VIEW_TO_UPDATE);
 	}
 
 	@Override
@@ -793,7 +803,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					throws SQLException {
 				ObjectDataDTO dto = sorted.get(i);
 				int parameterIndex = 1;
-				int updateOffset = 23;
+				int updateOffset = 24;
 				
 				ps.setString(parameterIndex++, mainType.name());
 				ps.setLong(parameterIndex++, dto.getId());
@@ -929,6 +939,9 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				
 				ps.setString(parameterIndex++, dto.getPath());
 				ps.setString(parameterIndex + updateOffset, dto.getPath());
+
+				ps.setString(parameterIndex++, dto.getPathIds());
+				ps.setString(parameterIndex + updateOffset, dto.getPathIds());
 				
 			}
 
@@ -1373,6 +1386,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		template.update(TRUNCATE_ANNOTATION_REPLICATION_TABLE);
 		template.update(TRUNCATE_OBJECT_REPLICATION_TABLE);
 		template.update("DELETE FROM QUERY_CACHE");
+		template.update("DELETE FROM VIEW_SCOPE");
+		template.update("DELETE FROM VIEW_TO_UPDATE");
 	}
 
 	@Override
@@ -1704,4 +1719,125 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		
 		return result;
 	}
+
+	@Override
+	public Iterator<Long> getViewsIntersectionForPath(Collection<Long> path, ReplicationType type) {
+		ValidateArgument.required(path, "path");
+		ValidateArgument.required(type, "type");
+		return new PaginationIterator<Long>((long limit, long offset) -> {
+			return getViewsIntersectionForPathPaginated(path, type, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
+
+	private List<Long> getViewsIntersectionForPathPaginated(Collection<Long> path, ReplicationType type, long limit,
+			long offset) {
+		ValidateArgument.required(path, "path");
+		ValidateArgument.required(type, "type");
+		if(path.isEmpty()) {
+			return Collections.emptyList();
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("path", new JSONArray(path).toString());
+		params.addValue("type", type.name());
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedTemplate.queryForList(
+				"SELECT DISTINCT VIEW_ID FROM VIEW_SCOPE WHERE JSON_OVERLAPS(OBJECT_IDS->'$', CAST(:path AS JSON)) "
+				+ "AND OBJECT_TYPE = :type LIMIT :limit OFFSET :offset",
+				params, Long.class);
+	}
+	
+	@Override
+	public void setViewScope(Long viewId, ReplicationType type, Collection<Long> scopeIds, String idsHash) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(scopeIds, "scopeIds");
+		ValidateArgument.required(idsHash, "idsHash");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("vieId", viewId);
+		params.addValue("objectType", type.name());
+		params.addValue("json", new JSONArray(scopeIds).toString());
+		params.addValue("hash", idsHash);
+		namedTemplate
+				.update("INSERT INTO VIEW_SCOPE (VIEW_ID, OBJECT_TYPE, OBJECT_IDS, IDS_HASH) VALUES "
+						+ "(:vieId, :objectType, :json, :hash) ON DUPLICATE KEY UPDATE OBJECT_IDS = :json, IDS_HASH = :hash", params);
+	}
+	
+	@Override
+	public Optional<String> getViewScopeIdsHash(Long viewId, ReplicationType type) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(type, "type");
+		try {
+			return Optional
+					.of(template.queryForObject("SELECT IDS_HASH FROM VIEW_SCOPE WHERE VIEW_ID = ? AND OBJECT_TYPE = ?",
+							String.class, viewId, type.name()));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
+	@Override
+	public void deleteViewScope(Long viewId, ReplicationType type) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(type, "type");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("viewId", viewId);
+		params.addValue("objectType", type.name());
+		namedTemplate.update("DELETE FROM VIEW_SCOPE WHERE VIEW_ID = :viewId AND OBJECT_TYPE = :objectType", params);
+	}
+
+	@Override
+	public Iterator<Long> getDistinctReplicatedPathIds(ReplicationType objectType, List<Long> objectIds) {
+		ValidateArgument.required(objectType, "objectType");
+		ValidateArgument.required(objectIds, "objectIds");
+		return new PaginationIterator<Long>((long limit, long offset) -> {
+			return getDistinctReplicatedPathIds(objectType, objectIds, limit, offset);
+		}, PAGE_SIZE_LIMIT);
+	}
+	
+	List<Long> getDistinctReplicatedPathIds(ReplicationType objectType, List<Long> objectIds, long limit, long offset) {
+		if (objectIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("objectType", objectType.name());
+		params.addValue("objectIds", objectIds);
+		params.addValue("limit", limit);
+		params.addValue("offset", offset);
+		return namedTemplate.queryForList(
+				"SELECT DISTINCT j.value AS distinct_path_id FROM OBJECT_REPLICATION,"
+						+ " JSON_TABLE(OBJECT_REPLICATION.PATH_IDS,'$[*]' COLUMNS (value INT PATH '$')) AS j"
+						+ " WHERE OBJECT_REPLICATION.OBJECT_ID IN (:objectIds) AND OBJECT_TYPE = :objectType"
+						+ " AND OBJECT_REPLICATION.PATH_IDS IS NOT NULL LIMIT :limit OFFSET :offset",
+				params, Long.class);
+	}
+
+	@Override
+	public void setViewAsNeedsUpdate(Long viewId, int visiblityTimeoutSec) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.requirement(visiblityTimeoutSec > 0, "visiblityTimeoutSec must be > 0");
+		template.update(
+				"INSERT INTO VIEW_TO_UPDATE (VIEW_ID, VISIBLE_ON) VALUES (?, (NOW() + INTERVAL ? SECOND))"
+						+ " ON DUPLICATE KEY UPDATE VISIBLE_ON = (NOW() + INTERVAL ? SECOND)",
+				viewId, visiblityTimeoutSec, visiblityTimeoutSec);
+	}
+
+	@Override
+	public boolean consumeFirstVisibleViewUpdate(ViewUpdateHandler handler) {
+		ValidateArgument.required(handler, "handler");
+		return this.writeTransactionTemplate.execute((s) -> {
+			try {
+				Long viewId = template.queryForObject(
+						"SELECT VIEW_ID FROM VIEW_TO_UPDATE WHERE VISIBLE_ON < NOW() LIMIT 1 FOR UPDATE", Long.class);
+				handler.handleViewUpdate(viewId);
+				template.update("DELETE FROM VIEW_TO_UPDATE WHERE VIEW_ID = ?", viewId);
+				return true;
+			} catch (EmptyResultDataAccessException e) {
+				return false;
+			}
+		});
+	}
+
+
+	
 }

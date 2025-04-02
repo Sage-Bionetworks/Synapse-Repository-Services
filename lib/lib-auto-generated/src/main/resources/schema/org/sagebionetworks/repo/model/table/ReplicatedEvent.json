@@ -1,0 +1,21 @@
+{
+	"description": "Event created after data is replcated.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.LocalStackMessage"
+		}
+	],
+	"properties": {
+		"replicatedObjectType": {
+			"$ref": "org.sagebionetworks.repo.model.ObjectType",
+			"description": "The type of object that was replicated"
+		},
+		"pathIds": {
+			"description": "The distinct set of pathIs associated a batch of objects that were replciated.",
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		}
+	}
+}

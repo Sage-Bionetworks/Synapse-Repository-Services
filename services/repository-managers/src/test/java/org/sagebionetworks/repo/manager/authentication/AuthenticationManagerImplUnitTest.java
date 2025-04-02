@@ -340,6 +340,30 @@ public class AuthenticationManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testLoginWithNoPasswordOrTwoFaCheck() {
+		String newReceipt = "newReceipt";
+		when(mockReceiptTokenGenerator.createNewAuthenticationReciept(userId)).thenReturn(newReceipt);
+		when(mockOIDCTokenHelper.createClientTotalAccessToken(userId, issuer)).thenReturn(synapseAccessToken);
+		when(mockTosManager.hasUserAcceptedTermsOfService(eq(userId))).thenReturn(true);
+		Date now = new Date(12345);		
+		when(mockClock.now()).thenReturn(now);
+
+		LoginResponse expected = new LoginResponse();
+		expected.setAcceptsTermsOfUse(true);
+		expected.setAccessToken(synapseAccessToken);
+		expected.setAuthenticationReceipt(newReceipt);
+		
+		// call under test
+		LoginResponse response = authManager.loginWithNoPasswordOrTwoFaCheck(userId, issuer);
+
+		assertEquals(expected, response);
+		
+		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
+		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
+		verify(mockAuthDAO).setAuthenticatedOn(userId, now);
+	}
+	
+	@Test
 	public void testAuthenticatedOn() {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(userId);

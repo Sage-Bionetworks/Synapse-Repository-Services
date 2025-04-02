@@ -142,7 +142,7 @@ public class EntityMetadataIndexProvider implements MetadataIndexProvider {
 		
 		try {
 			Set<Long> allContainers = nodeDao.getAllContainerIds(scope, TableConstants.MAX_CONTAINERS_PER_VIEW);
-			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers);
+			return new HierarchicaFilter(ReplicationType.ENTITY, subTypes, allContainers, scope);
 		} catch (LimitExceededException e) {
 			throw new IllegalStateException(e);
 		}

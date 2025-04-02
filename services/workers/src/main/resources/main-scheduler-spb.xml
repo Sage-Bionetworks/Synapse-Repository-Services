@@ -161,6 +161,9 @@
 		<ref bean="webhookChangeMessageWorkerTrigger"/>
 		<ref bean="webhookMetricsTrigger"/>
 		
+		<ref bean="replicatedToViewWorkerTrigger"/>
+		<ref bean="replicatedToViewConsumerWorkerTrigger"/>
+
 		<!-- TOS -->
 		<ref bean="tosLatestVersionRefreshWorkerTrigger"/>
 		

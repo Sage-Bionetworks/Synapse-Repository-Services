@@ -242,7 +242,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
 		adminCheck(userId);
-		return authManager.loginWithNoPasswordCheck(targetUserId, null);
+		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserId, null);
 	}
 	
 	@Override

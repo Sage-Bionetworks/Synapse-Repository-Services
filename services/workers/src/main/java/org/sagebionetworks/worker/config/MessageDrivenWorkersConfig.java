@@ -11,6 +11,7 @@ import org.sagebionetworks.limits.workers.ProjectStorageDataRefreshWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
 import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
+import org.sagebionetworks.table.worker.ReplicatedToViewWorker;
 import org.sagebionetworks.table.worker.TableSnapshotWorker;
 import org.sagebionetworks.table.worker.UpdateQueryCacheWorker;
 import org.sagebionetworks.webhook.workers.WebhookMessageWorker;
@@ -229,6 +230,29 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(webhookMessageWorker)
+						.build()
+				)
+				.withRepeatInterval(2064)
+				.withStartDelay(1045)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean replicatedToViewWorkerTrigger(ReplicatedToViewWorker inWorker) {
+
+		String queueName = stackConfig.getQueueName("REPLICATED_EVENT_VIEW_SCOPE");
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(inWorker);;
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("replicatedToViewWorker")
+						.withSemaphoreMaxLockCount(2)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(2)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(false)
+						.withQueueName(queueName)
+						.withWorker(worker)
 						.build()
 				)
 				.withRepeatInterval(2064)

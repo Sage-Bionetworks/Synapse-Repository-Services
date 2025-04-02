@@ -39,6 +39,7 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 	private String fileMD5;
 	private Long itemCount;
 	private String path;
+	private String pathIds;
 
 	private List<ObjectAnnotationDTO> annotations;
 
@@ -281,13 +282,22 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 		this.path = path;
 		return this;
 	}
+	
+	public String getPathIds() {
+		return pathIds;
+	}
+
+	public ObjectDataDTO setPathIds(String pathIds) {
+		this.pathIds = pathIds;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
 		return Objects.hash(annotations, benefactorId, createdBy, createdOn, currentVersion, description, etag,
-				fileBucket, fileConcreteType, fileHandleId, fileLocationId, fileKey, fileMD5, fileName, fileSizeBytes, id,
-				isInSynapseStorage, itemCount, modifiedBy, modifiedOn, name, parentId, path, projectId, subType,
-				version);
+				fileBucket, fileConcreteType, fileHandleId, fileKey, fileLocationId, fileMD5, fileName, fileSizeBytes,
+				id, isInSynapseStorage, itemCount, modifiedBy, modifiedOn, name, parentId, path, pathIds, projectId,
+				subType, version);
 	}
 
 	@Override
@@ -305,16 +315,15 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				&& Objects.equals(description, other.description) && Objects.equals(etag, other.etag)
 				&& Objects.equals(fileBucket, other.fileBucket)
 				&& Objects.equals(fileConcreteType, other.fileConcreteType)
-				&& Objects.equals(fileHandleId, other.fileHandleId) 
-				&& Objects.equals(fileLocationId, other.fileLocationId) && Objects.equals(fileKey, other.fileKey)
-				&& Objects.equals(fileMD5, other.fileMD5) && Objects.equals(fileName, other.fileName)
-				&& Objects.equals(fileSizeBytes, other.fileSizeBytes) && Objects.equals(id, other.id)
-				&& Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
+				&& Objects.equals(fileHandleId, other.fileHandleId) && Objects.equals(fileKey, other.fileKey)
+				&& Objects.equals(fileLocationId, other.fileLocationId) && Objects.equals(fileMD5, other.fileMD5)
+				&& Objects.equals(fileName, other.fileName) && Objects.equals(fileSizeBytes, other.fileSizeBytes)
+				&& Objects.equals(id, other.id) && Objects.equals(isInSynapseStorage, other.isInSynapseStorage)
 				&& Objects.equals(itemCount, other.itemCount) && Objects.equals(modifiedBy, other.modifiedBy)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(name, other.name)
 				&& Objects.equals(parentId, other.parentId) && Objects.equals(path, other.path)
-				&& Objects.equals(projectId, other.projectId) && subType == other.subType
-				&& Objects.equals(version, other.version);
+				&& Objects.equals(pathIds, other.pathIds) && Objects.equals(projectId, other.projectId)
+				&& subType == other.subType && Objects.equals(version, other.version);
 	}
 
 	@Override
@@ -323,10 +332,11 @@ public class ObjectDataDTO implements Comparable<ObjectDataDTO> {
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag + ", name=" + name
 				+ ", description=" + description + ", subType=" + subType + ", parentId=" + parentId + ", benefactorId="
 				+ benefactorId + ", projectId=" + projectId + ", modifiedBy=" + modifiedBy + ", modifiedOn="
-				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileLocationId=" + fileLocationId + ", fileConcreteType=" + fileConcreteType
-				+ ", fileBucket=" + fileBucket + ", fileKey=" + fileKey + ", fileName=" + fileName + ", fileSizeBytes="
-				+ fileSizeBytes + ", isInSynapseStorage=" + isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount="
-				+ itemCount + ", path=" + path + ", annotations=" + annotations + "]";
+				+ modifiedOn + ", fileHandleId=" + fileHandleId + ", fileLocationId=" + fileLocationId
+				+ ", fileConcreteType=" + fileConcreteType + ", fileBucket=" + fileBucket + ", fileKey=" + fileKey
+				+ ", fileName=" + fileName + ", fileSizeBytes=" + fileSizeBytes + ", isInSynapseStorage="
+				+ isInSynapseStorage + ", fileMD5=" + fileMD5 + ", itemCount=" + itemCount + ", path=" + path
+				+ ", pathIds=" + pathIds + ", annotations=" + annotations + "]";
 	}
 
 	@Override

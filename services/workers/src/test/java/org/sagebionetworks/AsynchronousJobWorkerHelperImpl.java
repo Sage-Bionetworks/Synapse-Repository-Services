@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -269,6 +270,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private NodeDAO nodeDAO;
 	@Autowired
 	private VirtualTableManager virtualTableManager;
+	@Autowired
+	private EntityService entityService;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -396,24 +399,16 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		view.setColumnIds(schema);
 		view.setScopeIds(scope);
 		view.setIsSearchEnabled(searchEnabled);
-		String viewId = entityManager.createEntity(user, view, null);
-		view = entityManager.getEntity(user, viewId, EntityView.class);
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(view.getScopeIds());
-		viewScope.setViewTypeMask(viewTypeMask);
-		tableViewManager.setViewSchemaAndScope(user, view.getColumnIds(), viewScope, viewId);
-		return view;
+		return entityService.createEntity(user.getId(), view, null);
 	}
 	
 	@Override
 	public void updateEntityView(String viewId, UserInfo user, List<String> schema, List<String> scope, long typeMask) {
-		ViewScope viewScope = new ViewScope();
-		viewScope.setViewEntityType(ViewEntityType.entityview);
-		viewScope.setScope(scope);
-		viewScope.setViewTypeMask(typeMask);
-		
-		tableViewManager.setViewSchemaAndScope(user, schema, viewScope, viewId);
+		EntityView v = entityService.getEntity(user.getId(), viewId, EntityView.class);
+		v.setScopeIds(scope);
+		v.setColumnIds(schema);
+		v.setViewTypeMask(typeMask);
+		entityService.updateEntity(user.getId(), v, false, null);
 	}
 
 	@Override

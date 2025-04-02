@@ -29,26 +29,28 @@ public class HierarchicaFilterTest {
 	private ReplicationType mainType;
 	private Set<SubType> subTypes;
 	private List<String> expectedSubTypes;
-	private Set<Long> scope;
+	private Set<Long> parentIds;
 	private Set<Long> limitObjectIds;
 	private Set<String> excludeKeys;
 	private boolean excludeDerivedKeys;
+	private Set<Long> scope;
 	
 	@BeforeEach
 	public void before() {
 		mainType = ReplicationType.ENTITY;
 		subTypes = Sets.newHashSet(SubType.file);
 		expectedSubTypes = subTypes.stream().map(s -> s.name()).collect(Collectors.toList());
-		scope = Sets.newHashSet(1L, 2L, 3L);
+		parentIds = Sets.newHashSet(1L, 2L, 3L);
 		limitObjectIds = Sets.newHashSet(1L, 3L);
 		excludeKeys = Sets.newHashSet("foo", "bar");
 		excludeDerivedKeys = true;
+		scope = Sets.newHashSet(1L);
 	}
 
 	@Test
 	public void testFilter() {
 		// call under test
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, parentIds);
 		assertEquals(
 				" R.OBJECT_TYPE = :mainType AND R.SUBTYPE IN (:subTypes)"
 						+ " AND R.PARENT_ID IN (:parentIds) AND R.OBJECT_VERSION = R.CURRENT_VERSION",
@@ -59,14 +61,14 @@ public class HierarchicaFilterTest {
 		Map<String, Object> expected = new HashMap<>();
 		expected.put("mainType", mainType.name());
 		expected.put("subTypes", expectedSubTypes);
-		expected.put("parentIds", scope);
+		expected.put("parentIds", parentIds);
 		assertEquals(expected, paramters);
 	}
 
 	@Test
 	public void testFilterBuilder() {
 		// call under test
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope).newBuilder()
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, parentIds).newBuilder()
 				.addExcludeAnnotationKeys(excludeKeys)
 				.addLimitObjectids(limitObjectIds)
 				.setExcludeDerivedKeys(excludeDerivedKeys)
@@ -82,20 +84,20 @@ public class HierarchicaFilterTest {
 		expected.put("subTypes", expectedSubTypes);
 		expected.put("limitObjectIds", limitObjectIds);
 		expected.put("excludeKeys", excludeKeys);
-		expected.put("parentIds", scope);
+		expected.put("parentIds", parentIds);
 		assertEquals(expected, paramters);
 	}
 
 	@Test
 	public void testBuilderWithAllFields() {
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		ViewFilter clone = filter.newBuilder().build();
 		assertEquals(filter, clone);
 	}
 
 	@Test
 	public void testGetLimitedObjectIds() {
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertTrue(optional.isPresent());
@@ -105,7 +107,7 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetLimitedObjectIdswithNull() {
 		limitObjectIds = null;
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		Optional<Set<Long>> optional = filter.getLimitObjectIds();
 		assertNotNull(optional);
 		assertFalse(optional.isPresent());
@@ -114,8 +116,8 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetSubViewsWithEntityAndMultipleParents() {
 		mainType = ReplicationType.ENTITY;
-		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		parentIds = Sets.newHashSet(1L, 2L, 3L);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional
@@ -128,8 +130,8 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetSubViewsWithEntityAndSingleParent() {
 		mainType = ReplicationType.ENTITY;
-		scope = Sets.newHashSet(1L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		parentIds = Sets.newHashSet(1L);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
@@ -139,8 +141,8 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetSubViewsWithSubmissionAndMultipleParents() {
 		mainType = ReplicationType.SUBMISSION;
-		scope = Sets.newHashSet(1L, 2L, 3L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		parentIds = Sets.newHashSet(1L, 2L, 3L);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();
@@ -150,8 +152,8 @@ public class HierarchicaFilterTest {
 	@Test
 	public void testGetSubViewsWithSubmissionAndSingleParent() {
 		mainType = ReplicationType.SUBMISSION;
-		scope = Sets.newHashSet(1L);
-		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, scope, excludeDerivedKeys);
+		parentIds = Sets.newHashSet(1L);
+		HierarchicaFilter filter = new HierarchicaFilter(mainType, subTypes, limitObjectIds, excludeKeys, parentIds, excludeDerivedKeys, scope);
 		// call under test
 		Optional<List<ChangeMessage>> results = filter.getSubViews();
 		Optional<List<ChangeMessage>> expected = Optional.empty();

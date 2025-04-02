@@ -3,6 +3,7 @@ package org.sagebionetworks.worker.config;
 import org.sagebionetworks.auth.workers.ExpiredAccessTokenWorker;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
+import org.sagebionetworks.table.worker.ReplicatedToViewConsumerWorker;
 import org.sagebionetworks.tos.workers.TermsOfServiceLatestVersionRefreshWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
 import org.sagebionetworks.workers.util.semaphore.SemaphoreGatedWorkerStack;
@@ -78,6 +79,30 @@ public class TimerWorkersConfig {
 			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
 			.withRepeatInterval(10 * 60 * 1000)
 			.withStartDelay(10 * 1000)
+			.build();
+		
+	}
+	
+	@Bean
+	public Long replicatedToViewConsumerWorkerRepeatIntervalMS() {
+		return 60_000L;
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean replicatedToViewConsumerWorkerTrigger(ReplicatedToViewConsumerWorker worker,
+			Long replicatedToViewConsumerWorkerRepeatIntervalMS) {
+		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
+		
+		config.setSemaphoreLockKey("replicatedToViewConsumerWorker");
+		config.setProgressingRunner(worker);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockTimeoutSec(30);
+		config.setGate(stackStatusGate);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
+			.withRepeatInterval(replicatedToViewConsumerWorkerRepeatIntervalMS)
+			.withStartDelay(10_000)
 			.build();
 		
 	}

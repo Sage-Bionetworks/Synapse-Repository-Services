@@ -1450,7 +1450,7 @@ public class TableController {
 	 * The resulting PFB file will not include PFB Metadata rows.
 	 * </p>
 	 * Use the returned job id and
-	 * <a href="${GET.entity.id.table.download.csv.async.get.asyncToken}">GET
+	 * <a href="${GET.entity.id.table.download.pfb.async.get.asyncToken}">GET
 	 * /entity/{id}/table/download/pfb/async/get</a> to get the results of the query
 	 * 
 	 * @param userId

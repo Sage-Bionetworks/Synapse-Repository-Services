@@ -1285,12 +1285,23 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static String createSchemaMD5Hex(List<String> columnIds){
-		// Sort the IDs to yield the same MD5 regardless of order.
-		columnIds = new LinkedList<String>(columnIds);
-		Collections.sort(columnIds);
+		return createMD5HexOfIds(columnIds);
+	}
+	
+	/**
+	 * Create the MD5 hex string of the passed collection of ids. Note: The
+	 * resulting MD5 is independent of order.
+	 * 
+	 * @param <T>
+	 * @param ids
+	 * @return
+	 */
+	public static <T extends Comparable<? super T>> String createMD5HexOfIds(Collection<T> ids) {
+		List<T> list = new ArrayList<>(ids);
+		Collections.sort(list);
 		StringBuilder builder = new StringBuilder();
 		builder.append("DEFAULT");
-		for(String id : columnIds){
+		for (T id : list) {
 			builder.append("+");
 			builder.append(id);
 		}
@@ -1302,6 +1313,8 @@ public class TableModelUtils {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	
 	
 	/**
 	 * Create a List of SelectColumn in the same order as the passed list of column model IDs.

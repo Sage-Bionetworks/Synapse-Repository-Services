@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -43,6 +45,7 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
@@ -51,6 +54,7 @@ import org.sagebionetworks.table.cluster.search.RowSearchContent;
 import org.sagebionetworks.table.cluster.search.TableRowData;
 import org.sagebionetworks.table.cluster.search.TableRowSearchProcessor;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.cluster.view.filter.HierarchicaFilter;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.ChangeData;
 import org.sagebionetworks.table.model.Grouping;
@@ -377,7 +381,8 @@ public class TableIndexManagerImpl implements TableIndexManager {
 		ValidateArgument.required(currentSchema, "currentSchema");
 		
 		MetadataIndexProvider provider = metadataIndexProviderFactory.getMetadataIndexProvider(scopeType.getObjectType());
-		ViewFilter filter = provider.getViewFilter(viewId);		
+		ViewFilter filter = provider.getViewFilter(viewId);	
+		setViewScopeIndex(viewId, filter);
 		// copy the data from the entity replication tables to table's index
 		try {
 			tableIndexDao.copyObjectReplicationToView(viewId, filter, currentSchema, provider);			
@@ -1103,5 +1108,55 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	public void swapTableIndex(IndexDescription source, IndexDescription target) {
 		tableIndexDao.swapTableIndex(source.getIdAndVersion(), target.getIdAndVersion());
 	}
+
+	/**
+	 * Set the view's scope index for cases where it applies.
+	 * This method will only update the scope index if it is out-of-date. 
+	 * @param viewId
+	 * @param filter
+	 */
+	void setViewScopeIndex(Long viewId, ViewFilter filter) {
+		ValidateArgument.required(viewId, "viewId");
+		ValidateArgument.required(filter, "filter");
+		// The view scope index only works for hierarchical views.
+		if (filter instanceof HierarchicaFilter) {
+			HierarchicaFilter hierFilter = (HierarchicaFilter)filter;
+			Set<Long> scopeIds = hierFilter.getScope() == null ? Collections.emptySet() : hierFilter.getScope();
+			/*
+			 * Updating the view scope index is expensive so we only do it when there is a
+			 * real change.
+			 */
+			String newHash = TableModelUtils.createMD5HexOfIds(scopeIds);
+			tableIndexDao.getViewScopeIdsHash(viewId, filter.getReplicationType()).ifPresentOrElse(currentHash -> {
+				// Only update the view's scope if it has changed.
+				if (!currentHash.equals(newHash)) {
+					tableIndexDao.setViewScope(viewId, filter.getReplicationType(), scopeIds, newHash);
+				}
+			}, () -> {
+				// No scope exists for this view, so set it.
+				tableIndexDao.setViewScope(viewId, filter.getReplicationType(), scopeIds, newHash);
+			});
+		}
+	}
+	
+	@Override
+	public Iterator<Long> getDistinctReplicatedPathIds(ReplicationType objectType, List<Long> objectIds) {
+		return tableIndexDao.getDistinctReplicatedPathIds(objectType, objectIds);
+	}
+	
+	@Override
+	public Iterator<Long> getViewsIntersectionForPath(Collection<Long> path, ReplicationType type) {
+		return tableIndexDao.getViewsIntersectionForPath(path, type);
+	}
+	@Override
+	public void setViewAsNeedsUpdate(Long viewId, int visiblityTimeoutSec) {
+		tableIndexDao.setViewAsNeedsUpdate(viewId, visiblityTimeoutSec);
+	}
+
+	@Override
+	public boolean consumeFirstVisibleViewUpdate(ViewUpdateHandler handler) {
+		return tableIndexDao.consumeFirstVisibleViewUpdate(handler);
+	}
+
 	
 }

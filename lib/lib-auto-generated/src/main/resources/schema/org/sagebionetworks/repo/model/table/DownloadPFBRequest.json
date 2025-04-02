@@ -1,5 +1,5 @@
 {
-	"description": "Request to download a Portable Format for Biomedical (PFB) file from a a table/view query result.",
+	"description": "Request to download a Portable Format for Biomedical (PFB) file from a table/view query result.",
 	"extends": {
 		"$ref": "org.sagebionetworks.repo.model.table.Query"
 	},

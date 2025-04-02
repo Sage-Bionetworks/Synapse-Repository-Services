@@ -17,6 +17,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseTwoFactorAuthRequiredException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.ErrorResponseCode;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
@@ -50,18 +51,20 @@ import dev.samstevens.totp.time.TimeProvider;
 @ExtendWith(ITTestExtension.class)
 public class ITTwoFactorAuthTest {
 	
-	private SynapseClient synapseClient;
 	private CodeGenerator totpGenerator;
 	private TimeProvider timeProvider;
 
-	public ITTwoFactorAuthTest(SynapseClient synapseClient) {
-		this.synapseClient = synapseClient;
+	public ITTwoFactorAuthTest() {
 		this.totpGenerator = new DefaultCodeGenerator();
 		this.timeProvider = new SystemTimeProvider();
 	}
 
 	@Test
 	public void testEnable2FaRoundTrip(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		SynapseClient synapseClient = new SynapseClientImpl();
+		
+		SynapseClientHelper.createUser(adminClient, synapseClient);
+		
 		assertEquals(TwoFactorState.DISABLED, synapseClient.get2FaStatus().getStatus());
 		
 		// Setup a client that uses a PAT, it should not be able to enroll, enable and disable 2FA
@@ -450,6 +453,41 @@ public class ITTwoFactorAuthTest {
 		} catch (SynapseException e) {
 			
 		}
+	}
+	
+	@Test
+	public void testEnable2FaEnableRequirement(SynapseAdminClient adminClient) throws SynapseException, JSONObjectAdapterException {
+		SynapseClient synapseClient = new SynapseClientImpl();
+		
+		SynapseClientHelper.createUser(adminClient, synapseClient);
+		
+		assertEquals(TwoFactorState.DISABLED, synapseClient.get2FaStatus().getStatus());
+		
+		// A user should normally be able to fetch their profile
+		synapseClient.getMyProfile();
+		
+		// Now enable the 2fa requirement enforcement
+		adminClient.setFeatureStatus(Feature.DISABLE_2FA_REQUIREMENT, new FeatureStatus().setEnabled(false));
+		
+		// Now the user cannot fetch their profile since this is a /repo/v1 API and requires 2fa
+		assertEquals(ErrorResponseCode.TWO_FA_ENABLED_REQUIRED, assertThrows(SynapseUnauthorizedException.class, () -> {
+			synapseClient.getMyProfile();
+		}).getErrorResponseCode());
+		
+		// The user should still be able to enable 2fa
+		TotpSecret secret = synapseClient.init2Fa();
+		
+		TwoFactorAuthStatus status = synapseClient.enable2Fa(new TotpSecretActivationRequest()
+			.setSecretId(secret.getSecretId())
+			.setTotp(generateTotpCode(secret.getSecret()))
+		);
+		
+		assertEquals(TwoFactorState.ENABLED, status.getStatus());
+		
+		// Now the user should be able to access their profile
+		synapseClient.getMyProfile();
+		
+		adminClient.setFeatureStatus(Feature.DISABLE_2FA_REQUIREMENT, new FeatureStatus().setEnabled(true));
 	}
 	
 	private String generateTotpCode(String secret) {

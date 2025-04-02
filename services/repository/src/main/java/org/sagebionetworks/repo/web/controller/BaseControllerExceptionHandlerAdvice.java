@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
 import org.sagebionetworks.repo.web.ProjectStorageLimitExceededException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+import org.sagebionetworks.repo.web.TwoFactorAuthEnabledRequiredException;
 import org.sagebionetworks.repo.web.TwoFactorAuthRequiredException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.WebhookDomainUnsupportedException;
@@ -1099,4 +1100,9 @@ public class BaseControllerExceptionHandlerAdvice {
 		return errorResponse;
 	}
 
+	@ExceptionHandler(TwoFactorAuthEnabledRequiredException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody BaseError handleTwoFactorAuthDisabledException(TwoFactorAuthEnabledRequiredException ex, HttpServletRequest request) {
+		return handleException(ex, request, ex.getMessage(), false, ErrorResponseCode.TWO_FA_ENABLED_REQUIRED);	
+	}
 }

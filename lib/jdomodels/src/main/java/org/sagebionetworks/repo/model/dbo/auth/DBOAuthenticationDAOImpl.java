@@ -395,7 +395,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 		// The migration admin should only be used in specific, non-development stacks
 		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		changeSecretKey(migrationAdminId, StackConfigurationSingleton.singleton().getMigrationAdminAPIKey());
+		
+		// Makes sure the the 2fa flag is enabled for the administrator user, this makes sure that we can run migration and integration tests
+		// since admins are now required to have 2fa enabled (See the TwoFactorAuthRequiredFilter and https://sagebionetworks.jira.com/browse/PLFM-8839). 
+		// Note that this does not boostrap a 2fa otp secret and the admin user needs to enroll into 2fa manually in production.
+		if (!isTwoFactorAuthEnabled(migrationAdminId)) {
+			setTwoFactorAuthState(migrationAdminId, true);
+		}
 		
 		// Makes sure we have the default TOS requirements
 		TermsOfServiceRequirements tosRequirements;

@@ -1837,6 +1837,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					dto.setBenefactorId(h.getBenefactorId().orElse(null));
 					dto.setProjectId(h.getProjectId().orElse(null));
 					dto.setPath(h.getPath());
+					dto.setPathIds(h.getPathIds());
 				});
 
 				dto.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));

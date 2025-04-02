@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,23 +111,23 @@ public class TableIndexDAOImplTest {
 	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	@Autowired
 	private ConnectionFactory tableConnectionFactory;
-	
+
 	// not a bean
 	private TableIndexDAO tableIndexDAO;
 
 	private IdAndVersion tableId;
 	private IndexDescription indexDescription;
-	
+
 	private ViewObjectType objectType;
 	private ViewObjectType otherObjectType;
-	
+
 	private ReplicationType mainType;
 	private Set<SubType> subTypes;
-	
+
 	private ObjectFieldTypeMapper fieldTypeMapper;
-	
+
 	private Long userId;
-	
+
 	@BeforeEach
 	public void before() {
 		objectType = ViewObjectType.ENTITY;
@@ -140,22 +141,22 @@ public class TableIndexDAOImplTest {
 		indexDescription = new TableIndexDescription(tableId);
 		userId = 1L;
 		fieldTypeMapper = new ObjectFieldTypeMapper() {
-			
+
 			@Override
 			public ViewObjectType getObjectType() {
 				return objectType;
 			}
-			
+
 			@Override
 			public ColumnType getParentIdColumnType() {
 				return ColumnType.ENTITYID;
 			}
-			
+
 			@Override
 			public ColumnType getIdColumnType() {
 				return ColumnType.ENTITYID;
 			}
-			
+
 			@Override
 			public ColumnType getBenefactorIdColumnType() {
 				return ColumnType.ENTITYID;
@@ -172,16 +173,17 @@ public class TableIndexDAOImplTest {
 		}
 		tableIndexDAO.truncateIndex();
 	}
-	
+
 	/**
 	 * Helper to setup a table with a new schema.
 	 * 
 	 * @param newSchema
 	 * @param tableId
 	 */
-	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription){
+	public boolean createOrUpdateTable(List<ColumnModel> newSchema, IndexDescription indexDescription) {
 		boolean alterTemp = false;
-		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), alterTemp);
+		List<DatabaseColumnInfo> currentSchema = tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(),
+				alterTemp);
 		List<ColumnChangeDetails> changes = SQLUtils.createReplaceSchemaChange(currentSchema, newSchema);
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 
@@ -194,12 +196,13 @@ public class TableIndexDAOImplTest {
 
 	/**
 	 * Helper to alter the table as needed.
+	 * 
 	 * @param tableId
 	 * @param changes
 	 * @param alterTemp
 	 * @return
 	 */
-	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp){
+	boolean alterTableAsNeeded(IdAndVersion tableId, List<ColumnChangeDetails> changes, boolean alterTemp) {
 		// Lookup the current schema of the index.
 		List<DatabaseColumnInfo> currentIndedSchema = tableIndexDAO.getDatabaseInfo(tableId, alterTemp);
 		tableIndexDAO.provideIndexInfo(currentIndedSchema, tableId, alterTemp);
@@ -208,7 +211,7 @@ public class TableIndexDAOImplTest {
 		changes = SQLUtils.matchChangesToCurrentInfo(currentIndedSchema, changes);
 		return tableIndexDAO.alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
 	/**
 	 * Helper to generate a given number of rows and append them to the given table
 	 * 
@@ -230,43 +233,42 @@ public class TableIndexDAOImplTest {
 		range.setMaximumId(range.getMinimumId() + rowsCount);
 		range.setVersionNumber(1L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
+
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, columns);
-		
+
 		return set.getRows();
 	}
-	
+
 	/**
 	 * Helper to apply a change set to the index.s
+	 * 
 	 * @param rowSet
 	 * @param schema
 	 */
-	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, RowSet rowSet, List<ColumnModel> schema){
-		ListUtils.partition(rowSet.getRows(), 10_000).forEach( rows -> {
-			RowSet batch = new RowSet().setEtag(rowSet.getEtag())
-					.setHeaders(rowSet.getHeaders())
-					.setTableId(rowSet.getTableId())
-					.setRows(rows);
-		
+	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, RowSet rowSet, List<ColumnModel> schema) {
+		ListUtils.partition(rowSet.getRows(), 10_000).forEach(rows -> {
+			RowSet batch = new RowSet().setEtag(rowSet.getEtag()).setHeaders(rowSet.getHeaders())
+					.setTableId(rowSet.getTableId()).setRows(rows);
+
 			SparseChangeSet sparse = TableModelUtils.createSparseChangeSet(batch, schema);
-		
-			for(Grouping grouping: sparse.groupByValidValues()){
+
+			for (Grouping grouping : sparse.groupByValidValues()) {
 				tableIndexDAO.createOrUpdateOrDeleteRows(tableId, grouping);
 			}
-		
+
 		});
-		
+
 	}
-	
+
 	@Test
-	public void testTableEnityTypes(){
+	public void testTableEnityTypes() {
 		TableEntity tableEntity = new TableEntity();
 		assertTrue(tableEntity instanceof Table);
 	}
-	
+
 	@Test
-	public void testFileViewTypes(){
+	public void testFileViewTypes() {
 		EntityView entityView = new EntityView();
 		assertTrue(entityView instanceof Table);
 	}
@@ -277,11 +279,9 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
 		boolean updated = createOrUpdateTable(allTypes, indexDescription);
-		assertTrue(updated,
-				"The table should not have existed so update should be true");
+		assertTrue(updated, "The table should not have existed so update should be true");
 		updated = createOrUpdateTable(allTypes, indexDescription);
-		assertFalse(updated,
-				"The table already existed in that state so it should not have been updated");
+		assertFalse(updated, "The table already existed in that state so it should not have been updated");
 		// Now we should be able to see the columns that were created
 		List<DatabaseColumnInfo> columns = getAllColumnInfo(tableId);
 		// There should be a column for each column in the schema plus one
@@ -300,8 +300,7 @@ public class TableIndexDAOImplTest {
 				extraColumns = 0;
 			}
 			// removed
-			assertEquals(allTypes.size() + 3
-					+ extraColumns, columns.size(),"removed " + removed);
+			assertEquals(allTypes.size() + 3 + extraColumns, columns.size(), "removed " + removed);
 			// Now add a column
 			allTypes.add(removed);
 			createOrUpdateTable(allTypes, indexDescription);
@@ -309,8 +308,7 @@ public class TableIndexDAOImplTest {
 			columns = getAllColumnInfo(tableId);
 			// There should be a column for each column in the schema plus one
 			// ROW_ID, one ROW_VERSION and on ROW_SEARCH_CONTENT .
-			assertEquals(allTypes.size() + 3 + 1,
-					columns.size(), "read " + removed);
+			assertEquals(allTypes.size() + 3 + 1, columns.size(), "read " + removed);
 		}
 	}
 
@@ -333,10 +331,7 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection()
-				.queryForList(
-						"SELECT * FROM "
-								+ SQLUtils.getTableNameForId(tableId,
-										TableIndexType.INDEX));
+				.queryForList("SELECT * FROM " + SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
 		// Row zero
@@ -350,39 +345,20 @@ public class TableIndexDAOImplTest {
 		assertEquals(404004l, row.get("_C4_"));
 
 		// We should be able to update all of the rows
-		rows.get(4).setValues(Arrays.asList(
-			"update", 
-			"99.99", 
-			"3", 
-			"false", 
-			"123", 
-			"123",
-			"syn123", 
-			"456", 
-			"789", 
-			"link2", 
-			"mediumText", 
-			"largeText", 
-			"42",
-			"[\"string\", \"otherstring\"]",
-			"[1111]",
-			"[true]",
-			"[1111]",
-			"[1111]",
-			"[1111]",
-			"{\"foo\": \"bar\"}"
-		));
+		rows.get(4)
+				.setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123", "syn123", "456", "789", "link2",
+						"mediumText", "largeText", "42", "[\"string\", \"otherstring\"]", "[1111]", "[true]", "[1111]",
+						"[1111]", "[1111]", "{\"foo\": \"bar\"}"));
 		rows.get(4).setVersionNumber(5L);
 		rows.get(0).setVersionNumber(5L);
 		// This should not fail
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Check the update
-		result = tableIndexDAO.getConnection().queryForList(
-				"SELECT * FROM "
-						+ SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
+		result = tableIndexDAO.getConnection()
+				.queryForList("SELECT * FROM " + SQLUtils.getTableNameForId(tableId, TableIndexType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
-		
+
 		Map<String, Object> expectedRow = new LinkedHashMap<>();
 		expectedRow.put(ROW_ID, 104L);
 		expectedRow.put(ROW_VERSION, 5L);
@@ -408,10 +384,10 @@ public class TableIndexDAOImplTest {
 		expectedRow.put("_C17_", "[1111]");
 		expectedRow.put("_C18_", "[1111]");
 		expectedRow.put("_C19_", "{\"foo\": \"bar\"}");
-		
+
 		// row four
 		row = result.get(4);
-		
+
 		assertEquals(expectedRow, row);
 	}
 
@@ -419,15 +395,13 @@ public class TableIndexDAOImplTest {
 	public void testGetRowCountForTable() {
 		// Before the table exists the max version should be null
 		Long count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(null, count,
-				"The row count should be null when the table does not exist");
+		assertEquals(null, count, "The row count should be null when the table does not exist");
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		createOrUpdateTable(allTypes, indexDescription);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(new Long(0), count,
-				"The row count should be 0 when the table is empty");
+		assertEquals(new Long(0), count, "The row count should be 0 when the table is empty");
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
@@ -444,7 +418,7 @@ public class TableIndexDAOImplTest {
 		// Check again
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(new Long(rows.size()), count);
-		
+
 		// truncate and get the count again
 		tableIndexDAO.truncateTable(tableId);
 		count = tableIndexDAO.getRowCountForTable(tableId);
@@ -455,39 +429,36 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxVersionForTable() {
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
-		Long maxVersion = tableIndexDAO
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		Long maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(-1L, maxVersion.longValue());
 
 		// Create the table
 		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 2L);
 
-		maxVersion = tableIndexDAO
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(2L, maxVersion.longValue());
 
 		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 4L);
 
-		maxVersion = tableIndexDAO
-				.getMaxCurrentCompleteVersionForTable(tableId);
+		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
 		assertEquals(4L, maxVersion.longValue());
 	}
-	
+
 	@Test
-	public void testGetSchemaHashForTableWithTableDoesNotExist(){
+	public void testGetSchemaHashForTableWithTableDoesNotExist() {
 		tableIndexDAO.deleteTable(tableId);
 		// call under test
 		Optional<String> hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
 		assertTrue(hashOptional.isEmpty());
 	}
-	
+
 	@Test
-	public void testGetSchemaHashForTable(){
+	public void testGetSchemaHashForTable() {
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L
 		Optional<String> hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
 		assertTrue(hashOptional.isEmpty());
-		
+
 		String hash = "some hash";
 		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, hash);
 		hashOptional = tableIndexDAO.getCurrentSchemaMD5Hex(tableId);
@@ -518,9 +489,10 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
-				
+
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -531,80 +503,43 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, results.getRows().size());
 		// test the rowIds
 		long limit = 2;
-		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class), limit).get();
-		
-		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(
-				IdAndVersion.parse("100.3"),
-				IdAndVersion.parse("101.3")
-		);
-		
+		String rowIdSql = SqlElementUtils.buildSqlSelectRowIdAndVersions(
+				query.getTranslatedModel().getFirstElementOfType(QuerySpecification.class), limit).get();
+
+		List<IdAndVersion> expectedRowIdAdVersions = Arrays.asList(IdAndVersion.parse("100.3"),
+				IdAndVersion.parse("101.3"));
+
 		List<IdAndVersion> rowIdAndVersions = tableIndexDAO.getRowIdAndVersions(rowIdSql, query.getParameters());
-		
+
 		assertEquals(expectedRowIdAdVersions, rowIdAndVersions);
-		
+
 		// the first row
 		Row row = results.getRows().get(0);
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList(
-			"string0", 
-			"341003.12",
-			"203000", 
-			"false", 
-			"404000", 
-			"505000", 
-			"syn606000", 
-			"703000", 
-			"803000",
-			"link908000", 
-			"mediumText1004000", 
-			"largeText1104000", 
-			"1203000", 
-			"[\"string1300000\", \"otherstring1300000\"]", 
-			"[1403000]", 
-			"[false]", 
-			"[1604000]", 
-			"[\"syn1706000\"]", 
-			"[1803000]", 
-			"{\"foo\": \"bar1900000\"}"
-		);
+		List<String> expectedValues = Arrays.asList("string0", "341003.12", "203000", "false", "404000", "505000",
+				"syn606000", "703000", "803000", "link908000", "mediumText1004000", "largeText1104000", "1203000",
+				"[\"string1300000\", \"otherstring1300000\"]", "[1403000]", "[false]", "[1604000]", "[\"syn1706000\"]",
+				"[1803000]", "{\"foo\": \"bar1900000\"}");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList(
-			"string1", 
-			"341006.53", 
-			"203001",
-			"true", 
-			"404001", 
-			"505001", 
-			"syn606001", 
-			"703001", 
-			"803001",
-			"link908001", 
-			"mediumText1004001", 
-			"largeText1104001", 
-			"1203001", 
-			"[\"string1300001\", \"otherstring1300001\"]", 
-			"[1403001]", 
-			"[true]", 
-			"[1604001]", 
-			"[\"syn1706001\"]", 
-			"[1803001]",
-			"{\"foo\": \"bar1900001\"}"
-		);
+		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001",
+				"703001", "803001", "link908001", "mediumText1004001", "largeText1104001", "1203001",
+				"[\"string1300001\", \"otherstring1300001\"]", "[1403001]", "[true]", "[1604001]", "[\"syn1706001\"]",
+				"[1803001]", "{\"foo\": \"bar1900001\"}");
 		assertEquals(expectedValues, row.getValues());
 	}
 
 	@Test
 	public void testDoubleQuery() throws ParseException {
 		// Create the table
-		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		List<ColumnModel> doubleColumn = Lists
+				.newArrayList(TableModelTestUtils.createColumn(1L, "col1", ColumnType.DOUBLE));
 		createOrUpdateTable(doubleColumn, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 5);
@@ -625,9 +560,11 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
-		
+
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select * from " + tableId, schemaProvider(doubleColumn), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -675,9 +612,10 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		SchemaProvider schemaProvider = schemaProvider(allTypes);
-		
+
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider, userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -706,9 +644,10 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
-		
+
 		// Now query for the results
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select * from " + tableId, schemaProvider(allTypes), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -721,16 +660,16 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null,
-				null, null, null, null,  null, null, null, null, null, null, null, null, null, null);
+		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null, null, null, null, null, null,
+				null, null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null, null, null, null, null);
+		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null, null, null, null, null, null,
+				null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -758,13 +697,14 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, allTypes);
 		// Now a count query
-		QueryTranslator query = QueryTranslator.builder("select count(*) from " + tableId,
-				schemaProvider(allTypes), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select count(*) from " + tableId, schemaProvider(allTypes), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		List<SelectColumn> expectedHeaders = Lists.newArrayList(TableModelUtils
-				.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
+		List<SelectColumn> expectedHeaders = Lists
+				.newArrayList(TableModelUtils.createSelectColumn("COUNT(*)", ColumnType.INTEGER, null));
 		assertEquals(expectedHeaders, results.getHeaders());
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
@@ -772,10 +712,8 @@ public class TableIndexDAOImplTest {
 		// first and only row.
 		Row row = results.getRows().get(0);
 		assertNotNull(row);
-		assertEquals(null,	row.getRowId(),
-				"RowId should be null for an aggregate function.");
-		assertEquals(null, row.getVersionNumber(),
-				"RowVersion should be null for an aggregate function");
+		assertEquals(null, row.getRowId(), "RowId should be null for an aggregate function.");
+		assertEquals(null, row.getVersionNumber(), "RowVersion should be null for an aggregate function");
 		List<String> expectedValues = Arrays.asList("2");
 		assertEquals(expectedValues, row.getValues());
 	}
@@ -813,15 +751,13 @@ public class TableIndexDAOImplTest {
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
 		QueryTranslator query = QueryTranslator.builder(
-				"select foo, sum(bar) from "
-						+ tableId
+				"select foo, sum(bar) from " + tableId
 						+ " where foo is not null group by foo order by sum(bar) desc limit 1 offset 0",
 				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		assertEquals(schema.size(),
-				results.getHeaders().size());
+		assertEquals(schema.size(), results.getHeaders().size());
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
@@ -867,9 +803,10 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 		// Now create the query
-		QueryTranslator query = QueryTranslator.builder("select * from " + tableId
-				+ " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
-				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select * from " + tableId + " where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0",
+						schemaProvider(schema), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -955,9 +892,9 @@ public class TableIndexDAOImplTest {
 	}
 
 	/**
-	 * Test for the secondary table used to bind file handle IDs to a table.
-	 * Once a file handle is bound to a table, any user with download permission
-	 * will haver permission to download that file from the table.
+	 * Test for the secondary table used to bind file handle IDs to a table. Once a
+	 * file handle is bound to a table, any user with download permission will haver
+	 * permission to download that file from the table.
 	 */
 	@Test
 	public void testBindFileHandles() {
@@ -973,7 +910,7 @@ public class TableIndexDAOImplTest {
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertEquals(expected, results);
 	}
-	
+
 	@Test
 	public void testBindFileHandlesWithOverlap() {
 		// ensure the secondary tables for this index exist
@@ -983,13 +920,13 @@ public class TableIndexDAOImplTest {
 		Set<Long> toBind2 = Set.of(2L, 3L, 4L);
 		// must add 4 and ignore 2 & 3.
 		this.tableIndexDAO.applyFileHandleIdsToTable(tableId, toBind2);
-		Set<Long> toTest = Set.of(5L,4L,3L,2L,1L,0L);
+		Set<Long> toTest = Set.of(5L, 4L, 3L, 2L, 1L, 0L);
 		// Expect to find the intersection of the toBound and toTest.
-		Set<Long> expected = Set.of(4L,3L,2L,1L);
+		Set<Long> expected = Set.of(4L, 3L, 2L, 1L);
 		Set<Long> results = this.tableIndexDAO.getFileHandleIdsAssociatedWithTable(toTest, tableId);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
 	 * When the secondary table does not exist, an empty set should be returned.
 	 */
@@ -1001,12 +938,12 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
-	
+
 	@Test
-	public void testDoesIndexStateMatch(){
+	public void testDoesIndexStateMatch() {
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
-		
+
 		String md5 = "md5hex";
 		this.tableIndexDAO.setCurrentSchemaMD5Hex(tableId, md5);
 		long version = 123;
@@ -1014,324 +951,306 @@ public class TableIndexDAOImplTest {
 		// call under test
 		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertTrue(match);
-		
+
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version+1, md5, false);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version + 1, md5, false);
 		assertFalse(match);
-		
+
 		// call under test
-		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5+1, false);
+		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5 + 1, false);
 		assertFalse(match);
-		
+
 		// call under test
 		match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, true);
 		assertFalse(match);
 	}
-		
+
 	@Test
 	public void testIsSearchEnabledWithNoTable() {
 		// Call under test
-		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
 		assertFalse(result);
 	}
-	
+
 	@Test
 	public void testIsSearchEnabledWithEmptyTable() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Call under test
-		boolean result = tableIndexDAO.isSearchEnabled(tableId); 
+		boolean result = tableIndexDAO.isSearchEnabled(tableId);
 		assertFalse(result);
 	}
-	
+
 	@Test
 	public void testSetSearchEnabledWithFalse() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
-		
+
 		tableIndexDAO.setSearchEnabled(tableId, false);
-		
+
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
-		
+
 		assertFalse(result);
 	}
-	
+
 	@Test
 	public void testSetSearchEnabledWithTrue() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
-		
+
 		tableIndexDAO.setSearchEnabled(tableId, true);
-		
+
 		// Call under test
 		boolean result = tableIndexDAO.isSearchEnabled(tableId);
-		
+
 		assertTrue(result);
 	}
-	
+
 	@Test
 	public void testSetMaxCurrentCompleteVersionForTable() {
 		// ensure the secondary tables for this index exist
 		tableIndexDAO.createSecondaryTables(tableId);
-		
+
 		Long version = 123L;
-		
+
 		// Call under test
 		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, version);
-		
+
 		assertEquals(version, tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId));
-		
+
 	}
-	
+
 	@Test
 	public void testGetTableDataForRowIds() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
-		
+
 		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
-		
+
 		List<TableRowData> expected = rows.stream().map(row -> {
 			List<TypedCellValue> rowData = new ArrayList<>();
-			for (int i=0; i<columns.size(); i++) {
+			for (int i = 0; i < columns.size(); i++) {
 				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
-		
+
 		// Call under test
 		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, columns, rowIds);
-		
+
 		assertEquals(expected, result);
 	}
-	
+
 	@Test
 	public void testGetTableDataForRowIdsWithSubSchema() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
-			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
-			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
-		
+
 		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
-		
+
 		// We want to fetch only the first and third column data
 		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
-		
+
 		List<TableRowData> expected = rows.stream().map(row -> {
 			List<TypedCellValue> rowData = new ArrayList<>();
-			
+
 			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
 			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
-			
+
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
-		
+
 		// Call under test
 		List<TableRowData> result = tableIndexDAO.getTableDataForRowIds(tableId, subSchema, rowIds);
-		
+
 		assertEquals(expected, result);
 	}
-	
+
 	@Test
 	public void testGetTableDataPage() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
-		
+
 		long offset = 0;
 		long limit = 10;
-		
+
 		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
 			List<TypedCellValue> rowData = new ArrayList<>();
-			for (int i=0; i<columns.size(); i++) {
+			for (int i = 0; i < columns.size(); i++) {
 				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
-		
+
 		// Call under test
 		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
-		
+
 		assertEquals(expected, result);
 	}
-		
+
 	@Test
 	public void testGetTableDataPageWithOffset() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
-		
+
 		long offset = 10;
 		long limit = 10;
-		
+
 		List<TableRowData> expected = rows.stream().skip(offset).limit(limit).map(row -> {
 			List<TypedCellValue> rowData = new ArrayList<>();
-			for (int i=0; i<columns.size(); i++) {
+			for (int i = 0; i < columns.size(); i++) {
 				rowData.add(new TypedCellValue(columns.get(i).getColumnType(), row.getValues().get(i)));
 			}
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
-		
+
 		// Call under test
 		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, columns, limit, offset);
-		
+
 		assertEquals(expected, result);
 	}
 
 	@Test
 	public void testGetTableDataPageWithSubSchema() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
-			TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
-			TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(3L, "three", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(4L, "four", ColumnType.DOUBLE));
+
 		createOrUpdateTable(columns, indexDescription);
-		
-		List<Row> rows = generateAndAppendRows(tableId, columns, 100);		
-			
+
+		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
+
 		// We want to fetch only the first and third column data
 		List<ColumnModel> subSchema = Arrays.asList(columns.get(0), columns.get(2));
-		
+
 		long offset = 0;
 		long limit = 10;
-		
+
 		List<TableRowData> expected = rows.stream().limit(limit).map(row -> {
 			List<TypedCellValue> rowData = new ArrayList<>();
-			
+
 			rowData.add(new TypedCellValue(columns.get(0).getColumnType(), row.getValues().get(0)));
 			rowData.add(new TypedCellValue(columns.get(2).getColumnType(), row.getValues().get(2)));
-			
+
 			return new TableRowData(row.getRowId(), rowData);
 		}).collect(Collectors.toList());
-		
+
 		// Call under test
 		List<TableRowData> result = tableIndexDAO.getTableDataPage(tableId, subSchema, limit, offset);
-		
+
 		assertEquals(expected, result);
 	}
-		
+
 	@Test
 	public void testUpdateSearchIndex() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
-		
-		List<RowSearchContent> expectedBatch = rows.stream().map(row -> 
-			new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues()))
-		).collect(Collectors.toList());
-			
+
+		List<RowSearchContent> expectedBatch = rows.stream()
+				.map(row -> new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues())))
+				.collect(Collectors.toList());
+
 		// Call under test
 		tableIndexDAO.updateSearchIndex(tableId, expectedBatch);
-		
+
 		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
 
 		assertEquals(expectedBatch, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
-	
+
 	@Test
 	public void testUpdateSearchIndexWithLargeBatch() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		List<Row> rows = generateAndAppendRows(tableId, columns, 10_000);
-		
-		List<RowSearchContent> batch = rows.stream().map(row -> 
-			new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues()))
-		).collect(Collectors.toList());
-			
-		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {	
+
+		List<RowSearchContent> batch = rows.stream()
+				.map(row -> new RowSearchContent(row.getRowId(), String.join(" - ", row.getValues())))
+				.collect(Collectors.toList());
+
+		assertTimeoutPreemptively(Duration.ofSeconds(5), () -> {
 			// Call under test
 			tableIndexDAO.updateSearchIndex(tableId, batch);
 		});
 	}
-		
+
 	@Test
 	public void testUpdateSearchIndexWithEmptyTable() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-				
+
 		Set<Long> rowIds = ImmutableSet.of(1L, 2L);
-		
-		List<RowSearchContent> batch = Arrays.asList(
-			new RowSearchContent(1L, "something"),
-			new RowSearchContent(2L, "something else")
-		);	
-					
+
+		List<RowSearchContent> batch = Arrays.asList(new RowSearchContent(1L, "something"),
+				new RowSearchContent(2L, "something else"));
+
 		// Call under test
 		tableIndexDAO.updateSearchIndex(tableId, batch);
-		
+
 		assertTrue(tableIndexDAO.fetchSearchContent(tableId, rowIds).isEmpty());
 	}
-	
+
 	@Test
 	public void testClearSearchIndex() {
-		List<ColumnModel> columns = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
-			TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST)
-		);
-		
+		List<ColumnModel> columns = Arrays.asList(TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING),
+				TableModelTestUtils.createColumn(2L, "two", ColumnType.STRING_LIST));
+
 		createOrUpdateTable(columns, indexDescription);
-		
+
 		// Now add some data
 		List<Row> rows = generateAndAppendRows(tableId, columns, 100);
 		Set<Long> rowIds = rows.stream().map(Row::getRowId).collect(Collectors.toSet());
-		
+
 		// Now sets the search content for each row to "search content"
-		List<RowSearchContent> rowsSearchContent = rows.stream().map(row -> new RowSearchContent(row.getRowId(), "search content")).collect(Collectors.toList());
-		
+		List<RowSearchContent> rowsSearchContent = rows.stream()
+				.map(row -> new RowSearchContent(row.getRowId(), "search content")).collect(Collectors.toList());
+
 		tableIndexDAO.updateSearchIndex(tableId, rowsSearchContent);
-		
+
 		// Make sure we have the expected search content
 		assertEquals(rowsSearchContent, tableIndexDAO.fetchSearchContent(tableId, rowIds));
-		
+
 		// Call under test
 		tableIndexDAO.clearSearchIndex(tableId);
 
 		// Makes sure all the rows were cleared and set to null
-		List<RowSearchContent> expected = rows.stream().map(row -> new RowSearchContent(row.getRowId(), null)).collect(Collectors.toList());
-			
+		List<RowSearchContent> expected = rows.stream().map(row -> new RowSearchContent(row.getRowId(), null))
+				.collect(Collectors.toList());
+
 		assertEquals(expected, tableIndexDAO.fetchSearchContent(tableId, rowIds));
 	}
-	
+
 	@Test
-	public void testDoesIndexStateMatchTableDoesNotExist(){
+	public void testDoesIndexStateMatchTableDoesNotExist() {
 		// ensure the secondary tables for this index exist
 		this.tableIndexDAO.createSecondaryTables(tableId);
 		// the status table does not exist for this case.
@@ -1341,16 +1260,16 @@ public class TableIndexDAOImplTest {
 		boolean match = this.tableIndexDAO.doesIndexStateMatch(tableId, version, md5, false);
 		assertFalse(match);
 	}
-	
+
 	@Test
-	public void testGetDistinctLongValues(){
+	public void testGetDistinctLongValues() {
 		// create a table with a long column.
 		ColumnModel column = new ColumnModel();
 		column.setId("12");
 		column.setName("foo");
 		column.setColumnType(ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(column);
-		
+
 		createOrUpdateTable(schema, indexDescription);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
@@ -1360,22 +1279,22 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
 		set.setTableId(tableId.toString());
-		
+
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
+
 		createOrUpdateOrDeleteRows(tableId, set, schema);
-		
+
 		Set<Long> results = tableIndexDAO.getDistinctLongValues(tableId, SQLUtils.getColumnNameForId(column.getId()));
 		Set<Long> expected = Set.of(3000L, 3001L);
 		assertEquals(expected, results);
 	}
-	
+
 	@Test
-	public void testGetCurrentTableColumns(){
+	public void testGetCurrentTableColumns() {
 		// Create the table
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		// Call under test.
@@ -1385,18 +1304,18 @@ public class TableIndexDAOImplTest {
 		DatabaseColumnInfo cd = schema.get(0);
 		assertEquals(ROW_ID, cd.getColumnName());
 		assertTrue(cd.hasIndex(), "ROW_ID is the primary key so it should have an index.");
-		
+
 		cd = schema.get(1);
 		assertEquals(ROW_VERSION, cd.getColumnName());
 		assertFalse(cd.hasIndex());
-		
+
 		cd = schema.get(2);
 		assertEquals(ROW_SEARCH_CONTENT, cd.getColumnName());
 		assertTrue(cd.hasIndex());
 	}
-	
+
 	@Test
-	public void testAlterTableAsNeeded(){
+	public void testAlterTableAsNeeded() {
 		// This will be an add, so the old is null.
 		ColumnModel oldColumn = null;
 		ColumnModel newColumn = new ColumnModel();
@@ -1411,24 +1330,24 @@ public class TableIndexDAOImplTest {
 		boolean wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertTrue(wasAltered);
 		// Check the results
-		List<DatabaseColumnInfo> schema =  getAllColumnInfo(tableId);
+		List<DatabaseColumnInfo> schema = getAllColumnInfo(tableId);
 		assertNotNull(schema);
 		assertEquals(4, schema.size());
 		DatabaseColumnInfo cd = schema.get(3);
 		assertEquals("_C123_", cd.getColumnName());
 		assertFalse(cd.hasIndex());
-		
+
 		// Another update of the same column with no change should not alter the table
 		oldColumn = newColumn;
 		change = new ColumnChangeDetails(oldColumn, newColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 	}
-	
+
 	@Test
 	public void testAlterTableAsNeededWithConvertToBooleanListColumnType() {
 		// PLFM-6247
-		
+
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.BOOLEAN);
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
 		createOrUpdateTable(schema, indexDescription);
@@ -1441,16 +1360,16 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		
+
 		// another update should return false
 		ColumnModel anotherColumn = newColumn;
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 		// should be 2 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
+		assert (tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
-	
+
 	@Test
 	public void testAlterTableAsNeededWithConvertToIntegerListColumnType() {
 		// PLFM-6247
@@ -1466,16 +1385,16 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		
+
 		// another update should return false
 		ColumnModel anotherColumn = newColumn;
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 		// should be 2 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
+		assert (tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
-	
+
 	@Test
 	public void testAlterTableAsNeededWithConvertToStringListColumnType() {
 		// PLFM-6247
@@ -1491,18 +1410,18 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		boolean wasAltered = alterTableAsNeeded(tableId, changes, alterTemp);
 		assertTrue(wasAltered);
-		
+
 		// another update should return false
 		ColumnModel anotherColumn = newColumn;
 		ColumnChangeDetails change = new ColumnChangeDetails(newColumn, anotherColumn);
 		wasAltered = alterTableAsNeeded(tableId, Lists.newArrayList(change), alterTemp);
 		assertFalse(wasAltered);
 		// should be 2 rows
-		assert(tableIndexDAO.getRowCountForTable(tableId) == 2);
+		assert (tableIndexDAO.getRowCountForTable(tableId) == 2);
 	}
 
 	@Test
-	public void testVarCharMaxSize(){
+	public void testVarCharMaxSize() {
 		ColumnModel stringColumn = new ColumnModel();
 		stringColumn.setId("15");
 		stringColumn.setName("syn");
@@ -1539,76 +1458,68 @@ public class TableIndexDAOImplTest {
 		assertEquals(255, info.getMaxSize());
 
 	}
-	
-	// This test would fail with MySQL version 8.0.28 (See https://sagebionetworks.jira.com/browse/PLFM-7471)
+
+	// This test would fail with MySQL version 8.0.28 (See
+	// https://sagebionetworks.jira.com/browse/PLFM-7471)
 	@Test
 	public void testColumnInfoAndCardinalityWithLargeTable() {
 		List<ColumnModel> schema = List.of(
-			new ColumnModel()
-				.setId("0")
-				.setName("aLargeTextColumn")
-				.setMaximumSize(20L)
-				.setColumnType(ColumnType.LARGETEXT), // This is translated into a MEDIUMTEXT
-			new ColumnModel()
-				.setId("1")
-				.setName("aStringListColumn")
-				.setMaximumSize(20L)
-				.setMaximumListLength(2L)
-				.setColumnType(ColumnType.STRING_LIST), // This is translated into a JSON
-			new ColumnModel()
-				.setId("2")
-				.setName("aStringColumn")
-				.setMaximumSize(20L)
-				.setColumnType(ColumnType.STRING)
-				
+				new ColumnModel().setId("0").setName("aLargeTextColumn").setMaximumSize(20L)
+						.setColumnType(ColumnType.LARGETEXT), // This is translated into a MEDIUMTEXT
+				new ColumnModel().setId("1").setName("aStringListColumn").setMaximumSize(20L).setMaximumListLength(2L)
+						.setColumnType(ColumnType.STRING_LIST), // This is translated into a JSON
+				new ColumnModel().setId("2").setName("aStringColumn").setMaximumSize(20L)
+						.setColumnType(ColumnType.STRING)
+
 		);
-		
+
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		int rowNumber = 100_000;
 		List<Row> rows = TableModelTestUtils.createRows(schema, rowNumber);
-		
+
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
 		set.setTableId(tableId.toString());
-		
+
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(range.getMinimumId() + rowNumber);
 		range.setVersionNumber(1L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
+
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 
-		// This should work and return, on 8.0.28 this would wait for the server wait_timeout
+		// This should work and return, on 8.0.28 this would wait for the server
+		// wait_timeout
 		assertTimeoutPreemptively(Duration.ofSeconds(15), () -> {
 			getAllColumnInfo(tableId);
 		});
 	}
-	
+
 	@Test
-	public void testColumnInfoAndCardinality(){
+	public void testColumnInfoAndCardinality() {
 		// create a table with a long column.
 		ColumnModel intColumn = new ColumnModel();
 		intColumn.setId("12");
 		intColumn.setName("foo");
 		intColumn.setColumnType(ColumnType.INTEGER);
-		
+
 		ColumnModel booleanColumn = new ColumnModel();
 		booleanColumn.setId("13");
 		booleanColumn.setName("bar");
 		booleanColumn.setColumnType(ColumnType.BOOLEAN);
-		
+
 		ColumnModel listColumn = new ColumnModel();
 		listColumn.setId("14");
 		listColumn.setName("stringList");
 		listColumn.setColumnType(ColumnType.STRING_LIST);
 		listColumn.setMaximumSize(100L);
 		listColumn.setMaximumListLength(10L);
-		
+
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn, listColumn);
-		
+
 		createOrUpdateTable(schema, indexDescription);
 		// create three rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
@@ -1617,22 +1528,22 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
 		set.setTableId(tableId.toString());
-		
+
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
+
 		createOrUpdateOrDeleteRows(tableId, set, schema);
-		
+
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		assertNotNull(infoList);
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
-		
+
 		assertEquals(6, infoList.size());
-		
+
 		DatabaseColumnInfo info = infoList.get(0);
 		// ROW_ID
 		assertEquals("ROW_ID", info.getColumnName());
@@ -1654,7 +1565,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.INTEGER, info.getColumnType());
-		
+
 		// two
 		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
@@ -1664,7 +1575,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.TINYINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
-		
+
 		info = infoList.get(5);
 		assertEquals("_C14_", info.getColumnName());
 		assertEquals(0L, info.getCardinality());
@@ -1674,31 +1585,31 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.STRING_LIST, info.getColumnType());
 	}
-	
+
 	@Test
-	public void testColumnInfoAndCardinalityWithEmptyTable(){
+	public void testColumnInfoAndCardinalityWithEmptyTable() {
 		// create a table with a long column.
 		ColumnModel intColumn = new ColumnModel();
 		intColumn.setId("12");
 		intColumn.setName("foo");
 		intColumn.setColumnType(ColumnType.INTEGER);
-		
+
 		ColumnModel booleanColumn = new ColumnModel();
 		booleanColumn.setId("13");
 		booleanColumn.setName("bar");
 		booleanColumn.setColumnType(ColumnType.BOOLEAN);
-		
+
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
-		
+
 		createOrUpdateTable(schema, indexDescription);
-				
+
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		assertEquals(5, infoList.size());
-		
+
 		DatabaseColumnInfo info = infoList.get(0);
-		
+
 		// ROW_ID
 		assertEquals("ROW_ID", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1707,7 +1618,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(1);
 		assertEquals("ROW_VERSION", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1716,7 +1627,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(2);
 		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1735,7 +1646,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.INTEGER, info.getColumnType());
-		
+
 		// two
 		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
@@ -1746,20 +1657,20 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.BOOLEAN, info.getColumnType());
 	}
-	
+
 	@Test
-	public void testColumnInfoAndCardinalityWithEmptyTableAndEmptySchema(){
+	public void testColumnInfoAndCardinalityWithEmptyTableAndEmptySchema() {
 		List<ColumnModel> schema = Collections.emptyList();
-		
+
 		createOrUpdateTable(schema, indexDescription);
-				
+
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		assertEquals(3, infoList.size());
-		
+
 		DatabaseColumnInfo info = infoList.get(0);
-		
+
 		// ROW_ID
 		assertEquals("ROW_ID", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1768,7 +1679,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(1);
 		assertEquals("ROW_VERSION", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1777,7 +1688,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(2);
 		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1787,31 +1698,31 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
 	}
-	
+
 	@Test
-	public void testColumnInfoAndCardinalityWithEmptyTableAndNoIndexeableColumn(){
+	public void testColumnInfoAndCardinalityWithEmptyTableAndNoIndexeableColumn() {
 		// create a table with a long column.
 		ColumnModel stringListColumn = new ColumnModel();
 		stringListColumn.setId("12");
 		stringListColumn.setName("foo");
 		stringListColumn.setColumnType(ColumnType.JSON);
-		
+
 		ColumnModel largeTextColumn = new ColumnModel();
 		largeTextColumn.setId("13");
 		largeTextColumn.setName("bar");
 		largeTextColumn.setColumnType(ColumnType.LARGETEXT);
-		
+
 		List<ColumnModel> schema = Lists.newArrayList(stringListColumn, largeTextColumn);
-		
+
 		createOrUpdateTable(schema, indexDescription);
-				
+
 		List<DatabaseColumnInfo> infoList = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(infoList, tableId, 4);
 		infoList = getAllColumnInfo(tableId);
 		assertEquals(5, infoList.size());
-		
+
 		DatabaseColumnInfo info = infoList.get(0);
-		
+
 		// ROW_ID
 		assertEquals("ROW_ID", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1820,7 +1731,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(1);
 		assertEquals("ROW_VERSION", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1829,7 +1740,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.BIGINT, info.getType());
 		assertNull(info.getMaxSize());
 		assertNull(info.getColumnType());
-		
+
 		info = infoList.get(2);
 		assertEquals("ROW_SEARCH_CONTENT", info.getColumnName());
 		assertEquals(TableConstants.COLUMN_NO_CARDINALITY, info.getCardinality());
@@ -1848,7 +1759,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(MySqlColumnType.JSON, info.getType());
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.JSON, info.getColumnType());
-		
+
 		// two
 		info = infoList.get(4);
 		assertEquals("_C13_", info.getColumnName());
@@ -1859,13 +1770,13 @@ public class TableIndexDAOImplTest {
 		assertNull(info.getMaxSize());
 		assertEquals(ColumnType.LARGETEXT, info.getColumnType());
 	}
-	
+
 	@Test
-	public void testIndexAdd(){
+	public void testIndexAdd() {
 		// create the table
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		ColumnModel oldColumn = null;
-		
+
 		// Create a column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
@@ -1881,15 +1792,15 @@ public class TableIndexDAOImplTest {
 		assertNotNull(infoList);
 		assertEquals(4, infoList.size());
 		DatabaseColumnInfo info = infoList.get(3);
-		assertEquals("_C12_idx_",info.getIndexName());
+		assertEquals("_C12_idx_", info.getIndexName());
 	}
-	
+
 	@Test
-	public void testIndexRename(){
+	public void testIndexRename() {
 		// create the table
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		ColumnModel oldColumn = null;
-		
+
 		// Create a column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
@@ -1905,15 +1816,15 @@ public class TableIndexDAOImplTest {
 		assertNotNull(infoList);
 		assertEquals(4, infoList.size());
 		DatabaseColumnInfo info = infoList.get(3);
-		assertEquals("_C12_idx_",info.getIndexName());
-		
+		assertEquals("_C12_idx_", info.getIndexName());
+
 		// Now change the column type
 		oldColumn = newColumn;
 		newColumn = new ColumnModel();
 		newColumn.setId("13");
 		newColumn.setName("bar");
 		newColumn.setColumnType(ColumnType.DATE);
-		
+
 		alterTableAsNeeded(tableId, Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn)), alterTemp);
 		// the index should get renamed
 		optimizeTableIndices(tableId, maxNumberOfIndices);
@@ -1921,15 +1832,15 @@ public class TableIndexDAOImplTest {
 		assertNotNull(infoList);
 		assertEquals(4, infoList.size());
 		info = infoList.get(3);
-		assertEquals("_C13_idx_",info.getIndexName());
+		assertEquals("_C13_idx_", info.getIndexName());
 	}
-	
+
 	@Test
-	public void testIndexDrop(){
+	public void testIndexDrop() {
 		// create the table
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		ColumnModel oldColumn = null;
-		
+
 		// Create a column
 		ColumnModel newColumn = new ColumnModel();
 		newColumn.setId("12");
@@ -1945,8 +1856,8 @@ public class TableIndexDAOImplTest {
 		assertNotNull(infoList);
 		assertEquals(4, infoList.size());
 		DatabaseColumnInfo info = infoList.get(3);
-		assertEquals("_C12_idx_",info.getIndexName());
-		
+		assertEquals("_C12_idx_", info.getIndexName());
+
 		// reduce the number of allowed indices
 		maxNumberOfIndices = 1;
 		// the index should get renamed
@@ -1957,47 +1868,48 @@ public class TableIndexDAOImplTest {
 		assertEquals(4, infoList.size());
 		info = infoList.get(3);
 		assertFalse(info.hasIndex());
-		assertEquals(null,info.getIndexName());
+		assertEquals(null, info.getIndexName());
 	}
-	
+
 	/**
-	 * Helper to get all of the DatabaseColumnInfo about a table. 
+	 * Helper to get all of the DatabaseColumnInfo about a table.
+	 * 
 	 * @param tableId
 	 * @return
 	 */
-	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId, boolean isTemp){
+	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId, boolean isTemp) {
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		tableIndexDAO.provideCardinality(info, tableId);
 		tableIndexDAO.provideIndexInfo(info, tableId, isTemp);
 		tableIndexDAO.provideConstraintInfo(info, tableId, isTemp);
 		return info;
 	}
-	
-	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId){
+
+	public List<DatabaseColumnInfo> getAllColumnInfo(IdAndVersion tableId) {
 		boolean isTemp = false;
 		return getAllColumnInfo(tableId, isTemp);
 	}
-	
+
 	/**
 	 * Helper to optimize the indices for a table.
 	 * 
 	 * @param tableId
 	 * @param maxNumberOfIndices
 	 */
-	public void optimizeTableIndices(IdAndVersion tableId, int maxNumberOfIndices){
+	public void optimizeTableIndices(IdAndVersion tableId, int maxNumberOfIndices) {
 		List<DatabaseColumnInfo> info = getAllColumnInfo(tableId);
 		tableIndexDAO.optimizeTableIndices(info, tableId, maxNumberOfIndices);
 	}
-	
+
 	@Test
-	public void testGetDatabaseInfoEmpty(){
+	public void testGetDatabaseInfoEmpty() {
 		boolean isTemp = false;
 		// table does not exist
 		List<DatabaseColumnInfo> info = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		assertNotNull(info);
 		assertTrue(info.isEmpty());
 	}
-	
+
 	@Test
 	public void testgetDatabaseInfoWithTemp() {
 		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST)
@@ -2013,32 +1925,32 @@ public class TableIndexDAOImplTest {
 		assertEquals(4, info.size());
 		DatabaseColumnInfo fetched = info.get(3);
 		// case changes between OS
-		if(fetched.getConstraintName() != null) {
+		if (fetched.getConstraintName() != null) {
 			fetched.setConstraintName(fetched.getConstraintName().toLowerCase());
 		}
 		DatabaseColumnInfo expected = new DatabaseColumnInfo().setColumnName("_C2_").setHasIndex(false)
 				.setColumnType(ColumnType.STRING_LIST).setType(MySqlColumnType.JSON).setCardinality(0L)
 				.setConstraintName("tempt123_chk_1");
 		assertEquals(expected, fetched);
-		
+
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		assertEquals(Collections.emptyList(), getAllColumnInfo(tableId, isTemp));
 	}
-		
+
 	@Test
-	public void testCreateTempTable(){
+	public void testCreateTempTable() {
 		ColumnModel intColumn = new ColumnModel();
 		intColumn.setId("12");
 		intColumn.setName("foo");
 		intColumn.setColumnType(ColumnType.INTEGER);
-		
+
 		ColumnModel booleanColumn = new ColumnModel();
 		booleanColumn.setId("13");
 		booleanColumn.setName("bar");
 		booleanColumn.setColumnType(ColumnType.BOOLEAN);
-		
+
 		List<ColumnModel> schema = Lists.newArrayList(intColumn, booleanColumn);
-		
+
 		createOrUpdateTable(schema, indexDescription);
 		// create five rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
@@ -2047,21 +1959,21 @@ public class TableIndexDAOImplTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
 		set.setTableId(tableId.toString());
-		
+
 		IdRange range = new IdRange();
 		range.setMinimumId(100L);
 		range.setMaximumId(200L);
 		range.setVersionNumber(3L);
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
-		
+
 		createOrUpdateOrDeleteRows(tableId, set, schema);
-		
+
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		// Create a copy of the table
 		tableIndexDAO.createTemporaryTable(tableId);
 		// populate table with data
 		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
-		
+
 		long count = tableIndexDAO.getTempTableCount(tableId);
 		assertEquals(5L, count);
 		// delete the temp and get the count again
@@ -2071,9 +1983,56 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
-	public void testEntityReplication(){
+	public void testGetDistinctReplicatedPathIds() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L,4L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L, 2L, 3L, 4L));
+
+		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0).setPath("[44,1]");
+		ObjectDataDTO f2 = createObjectDataDTO(2L, EntityType.file, 10).setPathIds("[44,1,2]");
+		ObjectDataDTO f3 = createObjectDataDTO(3L, EntityType.file, 10).setPathIds("[44,1,3]");
+		ObjectDataDTO f4 = createObjectDataDTO(4L, EntityType.file, 10).setPathIds("[44,18,4]");
+		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project, f2,f3,f4));
+
+		// call under test
+		List<Long> distinct = IteratorUtils
+				.toList(tableIndexDAO.getDistinctReplicatedPathIds(ReplicationType.ENTITY, List.of(1L,3L,4L,5L)));
+		
+		assertEquals(List.of(44L,1L,3L,18L,4L), distinct);
+	}
+
+	@Test
+	public void testGetReplicatedPathIdsWithEmptyIds() {
+		// call under test
+		List<Long> distinct = IteratorUtils
+				.toList(tableIndexDAO.getDistinctReplicatedPathIds(ReplicationType.ENTITY, Collections.emptyList()));
+
+		assertEquals(Collections.emptyList(), distinct);
+	}
+
+	@Test
+	public void testGetReplicatedPathIdsWithNullType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getDistinctReplicatedPathIds(null, Collections.emptyList());
+		}).getMessage();
+
+		assertEquals("objectType is required.", message);
+	}
+
+	@Test
+	public void testGetReplicatedPathIdsWithNullList() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getDistinctReplicatedPathIds(ReplicationType.ENTITY, null);
+		}).getMessage();
+
+		assertEquals("objectIds is required.", message);
+	}
+
+	@Test
+	public void testEntityReplication() {
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L, 2L, 3L, 4L));
 
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		ObjectDataDTO folder = createObjectDataDTO(2L, EntityType.folder, 5);
@@ -2091,60 +2050,60 @@ public class TableIndexDAOImplTest {
 		fetched = tableIndexDAO.getObjectData(mainType, dataset.getId(), dataset.getVersion());
 		assertEquals(dataset, fetched);
 	}
-	
+
 	/**
-	 * Test for PLFM-6306: The index failed to replicate because the insert was not handling duplicates. When replicating
-	 * we first delete and then insert but with concurrent inserts and with no data it could lead to a race condition where
-	 * a second thread that wasn't blocked by the first delete (since nothing needed to be deleted) tries to insert the same 
-	 * record. The solution is to allow updating on duplicate.
+	 * Test for PLFM-6306: The index failed to replicate because the insert was not
+	 * handling duplicates. When replicating we first delete and then insert but
+	 * with concurrent inserts and with no data it could lead to a race condition
+	 * where a second thread that wasn't blocked by the first delete (since nothing
+	 * needed to be deleted) tries to insert the same record. The solution is to
+	 * allow updating on duplicate.
 	 */
 	@Test
-	public void testEntityReplicationWithUpdate(){
-		
+	public void testEntityReplicationWithUpdate() {
+
 		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
-		
+
 		// Add the data to the index once
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
-		
+
 		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
-	
+
 		assertEquals(objectData, result);
-		
+
 		// Update the data
 		objectData.setEtag(objectData.getEtag() + "_updated");
 		objectData.getAnnotations().get(0).setValue("updated_annotation");
-		
+
 		// Re-adding to the index should simply update the object without throwing
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
-		
+
 		// Makes sure the data was updated
 		result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
-		
+
 		assertEquals(objectData, result);
-	}
-	
-	@Test
-	public void testEntityReplicationWithDuplicates() {
-		
-		Long objectId = 2L;
-		
-		// Creates two objects with the same id, but with different data
-		List<ObjectDataDTO> objectData = Arrays.asList(
-				createObjectDataDTO(objectId, EntityType.file, 2),
-				createObjectDataDTO(objectId, EntityType.file, 3)				
-		);
-		
-		// This should work, but only the latter should have been added
-		tableIndexDAO.addObjectData(mainType, objectData);
-		
-		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectId, 2L);
-		
-		assertEquals(objectData.get(1), result);
-		
 	}
 
 	@Test
-	public void testEntityReplication_maxStringLength(){
+	public void testEntityReplicationWithDuplicates() {
+
+		Long objectId = 2L;
+
+		// Creates two objects with the same id, but with different data
+		List<ObjectDataDTO> objectData = Arrays.asList(createObjectDataDTO(objectId, EntityType.file, 2),
+				createObjectDataDTO(objectId, EntityType.file, 3));
+
+		// This should work, but only the latter should have been added
+		tableIndexDAO.addObjectData(mainType, objectData);
+
+		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectId, 2L);
+
+		assertEquals(objectData.get(1), result);
+
+	}
+
+	@Test
+	public void testEntityReplication_maxStringLength() {
 		// delete all data
 		long id = 1L;
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(id));
@@ -2159,16 +2118,15 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(project));
 
 		// lookup the column manually
-		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH +
-				" FROM " + ANNOTATION_REPLICATION_TABLE +
-				" WHERE " + ANNOTATION_REPLICATION_COL_OBJECT_TYPE + "='" + objectType.name() 
-				+ "' AND " + ANNOTATION_REPLICATION_COL_OBJECT_ID + "=" + id;
+		String query = "SELECT " + ANNOTATION_REPLICATION_COL_MAX_STRING_LENGTH + " FROM "
+				+ ANNOTATION_REPLICATION_TABLE + " WHERE " + ANNOTATION_REPLICATION_COL_OBJECT_TYPE + "='"
+				+ objectType.name() + "' AND " + ANNOTATION_REPLICATION_COL_OBJECT_ID + "=" + id;
 		long queriedMaxSize = tableIndexDAO.getConnection().queryForObject(query, Long.class);
 		assertEquals(3, queriedMaxSize);
 	}
 
 	@Test
-	public void testEntityReplication_AbstractDoubles(){
+	public void testEntityReplication_AbstractDoubles() {
 		// delete all data
 		long id = 1L;
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(id));
@@ -2186,29 +2144,29 @@ public class TableIndexDAOImplTest {
 		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, id, project.getVersion());
 		assertEquals(project, fetched);
 	}
-	
+
 	@Test
-	public void testEntityReplicationWithNulls(){
+	public void testEntityReplicationWithNulls() {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
-		
+
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		project.setParentId(null);
 		project.setProjectId(null);
 		project.setFileHandleId(null);
 		project.setFileMD5(null);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project));
-		
+
 		// lookup each
 		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, project.getVersion());
 		assertEquals(project, fetched);
 	}
-	
+
 	@Test
-	public void testEntityReplicationWithNullBenefactor(){
+	public void testEntityReplicationWithNullBenefactor() {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
-		
+
 		ObjectDataDTO project = createObjectDataDTO(1L, EntityType.project, 0);
 		project.setBenefactorId(null);
 		try {
@@ -2218,19 +2176,19 @@ public class TableIndexDAOImplTest {
 			// expected
 		}
 	}
-	
+
 	@Test
-	public void testEntityReplicationUpdate(){
+	public void testEntityReplicationUpdate() {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L));
-		
+
 		ObjectDataDTO file = createObjectDataDTO(1L, EntityType.file, 5);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file));
 		// delete before an update
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(file.getId()));
 		file = createObjectDataDTO(1L, EntityType.file, 3);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file));
-		
+
 		// lookup each
 		ObjectDataDTO fetched = tableIndexDAO.getObjectData(mainType, 1L, file.getVersion());
 		assertEquals(file, fetched);
@@ -2240,17 +2198,16 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations_nullFilter() throws ParseException {
 
 		Set<String> annotationNames = Set.of("foo", "bar");
-		
+
 		ViewFilter filter = null;
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames)
-		).getMessage();
+
+		String errorMessage = assertThrows(IllegalArgumentException.class,
+				() -> ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames))
+				.getMessage();
 
 		assertEquals("filter is required.", errorMessage);
 
 	}
-	
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_emptyScope() throws ParseException {
@@ -2258,9 +2215,9 @@ public class TableIndexDAOImplTest {
 		Set<Long> emptyScope = Collections.emptySet();
 
 		Set<String> annotationNames = Set.of("foo", "bar");
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, emptyScope);
-	
+
 		assertEquals(Collections.emptyMap(),
 				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames));
 
@@ -2269,28 +2226,27 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testGetMaxListSizeForAnnotations_nullAnnotationNames() throws ParseException {
 
-		Set<Long> scope = Set.of(222L,333L);
+		Set<Long> scope = Set.of(222L, 333L);
 
 		Set<String> nullAnnotationNames = null;
-			
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
-		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
-				((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, nullAnnotationNames)
-		).getMessage();
+		String errorMessage = assertThrows(IllegalArgumentException.class,
+				() -> ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, nullAnnotationNames))
+				.getMessage();
 
 		assertEquals("annotationNames is required.", errorMessage);
 
 	}
 
-
 	@Test
 	public void testGetMaxListSizeForAnnotations_emptyAnnotationNames() throws ParseException {
 
-		Set<Long> scope = Set.of(222L,333L);
+		Set<Long> scope = Set.of(222L, 333L);
 
 		Set<String> emptyAnnotationNames = Collections.emptySet();
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		assertEquals(Collections.emptyMap(),
@@ -2302,7 +2258,7 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations() throws ParseException {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -2315,8 +2271,7 @@ public class TableIndexDAOImplTest {
 		bar1.setKey("bar");
 		bar1.setValue(Arrays.asList("1", "2", "3"));
 		bar1.setType(AnnotationType.LONG);
-		file1.setAnnotations(Arrays.asList(foo1,bar1));
-
+		file1.setAnnotations(Arrays.asList(foo1, bar1));
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
@@ -2326,10 +2281,9 @@ public class TableIndexDAOImplTest {
 		foo2.setType(AnnotationType.STRING);
 		ObjectAnnotationDTO bar2 = new ObjectAnnotationDTO(file2);
 		bar2.setKey("bar");
-		bar2.setValue(Arrays.asList("1", "2", "3", "4","5"));
+		bar2.setValue(Arrays.asList("1", "2", "3", "4", "5"));
 		bar2.setType(AnnotationType.LONG);
-		file2.setAnnotations(Arrays.asList(foo2,bar2));
-
+		file2.setAnnotations(Arrays.asList(foo2, bar2));
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
@@ -2340,23 +2294,23 @@ public class TableIndexDAOImplTest {
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
 		Set<String> annotationNames = Set.of("foo", "bar");
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
-		HashMap<String,Long> expected = new HashMap<>();
-		expected.put("foo",3L);
-		expected.put("bar",5L);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter,
+				annotationNames);
+		HashMap<String, Long> expected = new HashMap<>();
+		expected.put("foo", 3L);
+		expected.put("bar", 5L);
 		assertEquals(expected, listSizes);
 	}
-
 
 	@Test
 	public void testGetMaxListSizeForAnnotations_noAnnotationsInReplication() throws ParseException {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -2364,7 +2318,6 @@ public class TableIndexDAOImplTest {
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
@@ -2377,10 +2330,11 @@ public class TableIndexDAOImplTest {
 		// Copy the entity data to the table
 		// method under test
 		Set<String> annotationNames = Set.of("foo", "bar");
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-	
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
+
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter,
+				annotationNames);
 		assertEquals(Collections.emptyMap(), listSizes);
 	}
 
@@ -2388,7 +2342,7 @@ public class TableIndexDAOImplTest {
 	public void testGetMaxListSizeForAnnotations_WithObjectIdFilter() throws ParseException {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -2403,8 +2357,7 @@ public class TableIndexDAOImplTest {
 		bar1.setValue(Arrays.asList("1", "2", "3"));
 		bar1.setType(AnnotationType.LONG);
 
-		file1.setAnnotations(Arrays.asList(foo1,bar1));
-
+		file1.setAnnotations(Arrays.asList(foo1, bar1));
 
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
@@ -2416,8 +2369,7 @@ public class TableIndexDAOImplTest {
 		bar2.setKey("bar");
 		bar2.setValue(Arrays.asList("1", "2", "3", "4"));
 		bar2.setType(AnnotationType.LONG);
-		file2.setAnnotations(Arrays.asList(foo2,bar2));
-
+		file2.setAnnotations(Arrays.asList(foo2, bar2));
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 
@@ -2431,44 +2383,44 @@ public class TableIndexDAOImplTest {
 
 		Set<Long> objectIdFilter = Set.of(2L);
 		boolean excludeDerivedKeys = false;
-		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, objectIdFilter, null, scope, excludeDerivedKeys);
-		
+
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, objectIdFilter, null, scope, excludeDerivedKeys,null);
+
 		// method under test
-		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter, annotationNames);
-		HashMap<String,Long> expected = new HashMap<>();
-		expected.put("foo",3L);
-		expected.put("bar",3L);
+		Map<String, Long> listSizes = ((TableIndexDAOImpl) tableIndexDAO).getMaxListSizeForAnnotations(filter,
+				annotationNames);
+		HashMap<String, Long> expected = new HashMap<>();
+		expected.put("foo", 3L);
+		expected.put("bar", 3L);
 		assertEquals(expected, listSizes);
 	}
 
-
 	@Test
-	public void testCopyEntityReplicationToTable(){
+	public void testCopyEntityReplicationToTable() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// both parents
 		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
@@ -2478,7 +2430,7 @@ public class TableIndexDAOImplTest {
 	public void testCopyEntityReplicationToTable_WithListAnnotations() throws ParseException {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
@@ -2504,31 +2456,33 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-	
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// Copy the entity data to the table
 		// method under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select foo from " + tableId, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select foo from " + tableId, schemaProvider(schema), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Query the results
 		RowSet result = tableIndexDAO.query(query);
 		assertEquals(2, result.getRows().size());
-		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"), result.getRows().get(0).getValues());
+		assertEquals(Collections.singletonList("[\"NaN\", \"1.2\", \"Infinity\"]"),
+				result.getRows().get(0).getValues());
 		assertEquals(Collections.singletonList("[\"Infinity\", \"222.222\"]"), result.getRows().get(1).getValues());
 	}
-	
+
 	/*
 	 * PLFM-4336
 	 */
 	@Test
-	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation(){
+	public void testCopyEntityReplicationToTableScopeWithDoubleAnnotation() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
@@ -2544,134 +2498,128 @@ public class TableIndexDAOImplTest {
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
 		file2.setAnnotations(Arrays.asList(double2));
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// both parents
 		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "foo", ColumnType.DOUBLE));
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE));
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(2, count);
 	}
-	
+
 	@Test
-	public void testRestoreTableIndexData(){
+	public void testRestoreTableIndexData() {
 		tableId = IdAndVersion.parse("syn123.45");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 		tableIndexDAO.deleteTable(tableId);
-		
-		List<ColumnModel> schema = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), 
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE)
-		);
-		
+
+		List<ColumnModel> schema = Arrays.asList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST),
+				TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
+
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		List<String[]> rows = Arrays.asList(
-			new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR" , "_C1_", "_C2_", "_DBL_C2_"},
-			new String[] {"2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN"}, 
-			new String[] {"3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity"}
-		);
-		
+				new String[] { "ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "_C1_", "_C2_", "_DBL_C2_" },
+				new String[] { "2", "2", "etag2", "2", "[123, 456, 789]", null, "NaN" },
+				new String[] { "3", "2", "etag3", "2", "[321, 654]", "1.7976931348623157E308", "Infinity" });
+
 		// small batch size to force multiple batches.
 		long maxBytesPerBatch = 10;
 		// call under test
 		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
-		
+
 		long count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(rows.size()-1, count);
-	}
-	
-	@Test
-	public void testRestoreTableIndexDataWithHashCode(){
-		tableId = IdAndVersion.parse("syn123.45");
-		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
-		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		tableIndexDAO.deleteTable(tableId);
-		
-		List<ColumnModel> schema = Arrays.asList(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), 
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE)
-		);
-		
-		createOrUpdateTable(schema, indexDescription);
-		
-		List<String[]> rows = Arrays.asList(
-			new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE", "_C1_", "_C2_", "_DBL_C2_"},
-			new String[] {"2", "2", "etag2", "2","88", "[123, 456, 789]", null, "NaN"}, 
-			new String[] {"3", "2", "etag3", "2", "99","[321, 654]", "1.7976931348623157E308", "Infinity"}
-		);
-		
-		// small batch size to force multiple batches.
-		long maxBytesPerBatch = 10;
-		// call under test
-		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
-		
-		long count = tableIndexDAO.getRowCountForTable(tableId);
-		assertEquals(rows.size()-1, count);
+		assertEquals(rows.size() - 1, count);
 	}
 
 	@Test
-	public void testCopyEntityReplicationToTableScopeEmpty(){
+	public void testRestoreTableIndexDataWithHashCode() {
+		tableId = IdAndVersion.parse("syn123.45");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+		tableIndexDAO.deleteTable(tableId);
+
+		List<ColumnModel> schema = Arrays.asList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST),
+				TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
+
+		createOrUpdateTable(schema, indexDescription);
+
+		List<String[]> rows = Arrays.asList(
+				new String[] { "ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE", "_C1_", "_C2_",
+						"_DBL_C2_" },
+				new String[] { "2", "2", "etag2", "2", "88", "[123, 456, 789]", null, "NaN" },
+				new String[] { "3", "2", "etag3", "2", "99", "[321, 654]", "1.7976931348623157E308", "Infinity" });
+
+		// small batch size to force multiple batches.
+		long maxBytesPerBatch = 10;
+		// call under test
+		tableIndexDAO.restoreTableIndexData(tableId, rows.iterator(), maxBytesPerBatch);
+
+		long count = tableIndexDAO.getRowCountForTable(tableId);
+		assertEquals(rows.size() - 1, count);
+	}
+
+	@Test
+	public void testCopyEntityReplicationToTableScopeEmpty() {
+		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
+		// delete all data
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// both parents
 		Set<Long> scope = new HashSet<Long>();
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 		// Create the view index
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		// Query the results
 		long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(0, count);
 	}
-	
+
 	@Test
-	public void testGetPossibleAnnotationsForContainers(){
+	public void testGetPossibleAnnotationsForContainers() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
 		file1.setParentId(333L);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, containerIds);
-		
+
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
@@ -2691,29 +2639,30 @@ public class TableIndexDAOImplTest {
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(2, cm.getMaximumSize());
 	}
-	
+
 	@Test
-	public void testGetPossibleAnnotationsForContainersExcludingKeys(){
+	public void testGetPossibleAnnotationsForContainersExcludingKeys() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
 		file1.setParentId(333L);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
 		file2.setParentId(222L);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
 		boolean excludeDerivedKeys = false;
-		
-		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Set.of("key0"), containerIds, excludeDerivedKeys);
-		
+
+		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, null, Set.of("key0"), containerIds,
+				excludeDerivedKeys,null);
+
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
-		
+
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
 		// one
@@ -2727,17 +2676,17 @@ public class TableIndexDAOImplTest {
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(2, cm.getMaximumSize());
 	}
-	
+
 	/**
 	 * Test added for PLFM-5034
 	 */
 	@Test
-	public void testGetPossibleAnnotationsForContainersPLFM_5034(){
+	public void testGetPossibleAnnotationsForContainersPLFM_5034() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		String duplicateName = "duplicate";
-		
+
 		// one
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 15);
 		file1.getAnnotations().clear();
@@ -2749,7 +2698,7 @@ public class TableIndexDAOImplTest {
 		annoDto.setType(AnnotationType.STRING);
 		annoDto.setValue("123");
 		file1.getAnnotations().add(annoDto);
-	
+
 		// two
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 12);
 		file2.getAnnotations().clear();
@@ -2762,13 +2711,13 @@ public class TableIndexDAOImplTest {
 		file2.getAnnotations().add(annoDto);
 
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, containerIds);
-		
+
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
@@ -2784,19 +2733,19 @@ public class TableIndexDAOImplTest {
 		Set<ColumnModel> expected = new HashSet<>(2);
 		expected.add(one);
 		expected.add(two);
-		
+
 		assertEquals(expected, new HashSet<>(columns));
 	}
-	
+
 	/**
-	 * Test added for PLFM-5449.
-	 * Add two annotations keys to an entity that only differ by case.
+	 * Test added for PLFM-5449. Add two annotations keys to an entity that only
+	 * differ by case.
 	 * 
 	 */
 	@Test
 	public void testCaseSensitiveAnnotationNamesPLFM_5449() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 		// one
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 1);
 		file1.getAnnotations().clear();
@@ -2809,7 +2758,7 @@ public class TableIndexDAOImplTest {
 		lower.setType(AnnotationType.STRING);
 		lower.setValue("123");
 		file1.getAnnotations().add(lower);
-		//upper
+		// upper
 		ObjectAnnotationDTO upper = new ObjectAnnotationDTO(file1);
 		upper.setKey(key.toUpperCase());
 		upper.setType(AnnotationType.STRING);
@@ -2819,12 +2768,11 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
 	}
 
-	//PLFM-6013
+	// PLFM-6013
 	@Test
-	public void testGetPossibleAnnotationsForContainers_ListColumns(){
+	public void testGetPossibleAnnotationsForContainers_ListColumns() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 
 		String annoKey = "myAnnotation";
 
@@ -2843,7 +2791,7 @@ public class TableIndexDAOImplTest {
 		ObjectAnnotationDTO annotationDTO2 = new ObjectAnnotationDTO(file2);
 		annotationDTO2.setKey(annoKey);
 		annotationDTO2.setType(AnnotationType.STRING);
-		annotationDTO2.setValue(Arrays.asList("12",  "123456", "1234"));
+		annotationDTO2.setValue(Arrays.asList("12", "123456", "1234"));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
 
 		ObjectDataDTO file3 = createObjectDataDTO(4L, EntityType.file, 0);
@@ -2859,9 +2807,9 @@ public class TableIndexDAOImplTest {
 		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, containerIds);
-		
+
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(1, columns.size());
@@ -2872,23 +2820,21 @@ public class TableIndexDAOImplTest {
 		assertEquals(6L, cm.getMaximumSize());
 
 	}
-	
+
 	@Test
 	public void testExpandFromAggregation() {
-		
+
 		ColumnAggregation one = new ColumnAggregation();
 		one.setColumnName("foo");
 		one.setColumnTypeConcat(concatTypes(AnnotationType.STRING, AnnotationType.DOUBLE));
 		one.setMaxStringElementSize(101L);
 		one.setMaxListSize(1L);
 
-
 		ColumnAggregation two = new ColumnAggregation();
 		two.setColumnName("bar");
 		two.setColumnTypeConcat(concatTypes(AnnotationType.DOUBLE, AnnotationType.LONG));
 		two.setMaxStringElementSize(0L);
 		two.setMaxListSize(1L);
-
 
 		ColumnAggregation three = new ColumnAggregation();
 		three.setColumnName("foobar");
@@ -2903,7 +2849,7 @@ public class TableIndexDAOImplTest {
 		four.setMaxListSize(3L);
 
 		// call under test
-		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one,two,three,four));
+		List<ColumnModel> results = TableIndexDAOImpl.expandFromAggregation(Lists.newArrayList(one, two, three, four));
 		assertEquals(6, results.size());
 		// zero
 		ColumnModel cm = results.get(0);
@@ -2942,41 +2888,42 @@ public class TableIndexDAOImplTest {
 		assertEquals(3L, cm.getMaximumListLength());
 		assertEquals(new Long(111), cm.getMaximumSize());
 	}
-	
+
 	/**
 	 * Helper to create a concatenated list of column types delimited with dot ('.')
+	 * 
 	 * @param types
 	 * @return
 	 */
-	public static String concatTypes(AnnotationType...types) {
+	public static String concatTypes(AnnotationType... types) {
 		StringJoiner joiner = new StringJoiner(",");
-		for(AnnotationType type: types) {
+		for (AnnotationType type : types) {
 			joiner.add(type.name());
 		}
 		return joiner.toString();
 	}
-	
+
 	@Test
-	public void testGetPossibleAnnotationsForContainersProject(){
+	public void testGetPossibleAnnotationsForContainersProject() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup some hierarchy.
 		ObjectDataDTO project1 = createObjectDataDTO(2L, EntityType.project, 15);
 		project1.setParentId(111L);
 		ObjectDataDTO project2 = createObjectDataDTO(3L, EntityType.project, 12);
 		project2.setParentId(111L);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(project1, project2));
-		
+
 		Set<IdAndVersion> containerIds = Set.of(IdAndVersion.parse("2"), IdAndVersion.parse("3"));
 		long limit = 5;
 		long offset = 0;
-		
+
 		subTypes = Set.of(SubType.project);
-		
+
 		ViewFilter filter = new IdAndVersionFilter(mainType, subTypes, containerIds);
-	
+
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(limit, columns.size());
@@ -2996,13 +2943,13 @@ public class TableIndexDAOImplTest {
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(2, cm.getMaximumSize());
 	}
-	
+
 	// relevant to PLFM-6344
 	@Test
-	public void testGetPossibleAnnotationsForContainersWithEmptyStringAnnotation(){
+	public void testGetPossibleAnnotationsForContainersWithEmptyStringAnnotation() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		// setup file1 with no annotations
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 0);
 		file1.setParentId(333L);
@@ -3013,7 +2960,7 @@ public class TableIndexDAOImplTest {
 		annotationDTO1.setType(AnnotationType.STRING);
 		annotationDTO1.setValue(Arrays.asList(""));
 		file1.setAnnotations(Collections.singletonList(annotationDTO1));
-		
+
 		// setup file2 with no annotations
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 0);
 		file2.setParentId(222L);
@@ -3024,38 +2971,38 @@ public class TableIndexDAOImplTest {
 		annotationDTO2.setType(AnnotationType.STRING);
 		annotationDTO2.setValue(Arrays.asList("", ""));
 		file2.setAnnotations(Collections.singletonList(annotationDTO2));
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		Set<Long> containerIds = Set.of(222L, 333L);
 		long limit = 5;
 		long offset = 0;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, containerIds);
-		
+
 		// call under test
 		List<ColumnModel> columns = tableIndexDAO.getPossibleColumnModelsForContainers(filter, limit, offset);
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
-		
-		// both column models should have ColumnConstants.DEFAULT_STRING_SIZE as 
+
+		// both column models should have ColumnConstants.DEFAULT_STRING_SIZE as
 		// max size due to empty string(s)
 		ColumnModel cm = columns.get(0);
 		assertEquals(testKey1, cm.getName());
 		assertEquals(ColumnType.STRING, cm.getColumnType());
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
-		
+
 		cm = columns.get(1);
 		assertEquals(testKey2, cm.getName());
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
 		assertEquals(ColumnConstants.DEFAULT_STRING_SIZE, cm.getMaximumSize());
 	}
-	
+
 	@Test
-	public void testGetSumOfChildCRCsForEachParent(){
+	public void testGetSumOfChildCRCsForEachParent() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
 		Long parentThreeId = 444L;
@@ -3064,10 +3011,10 @@ public class TableIndexDAOImplTest {
 		file1.setParentId(parentOneId);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
-		List<Long> parentIds = Lists.newArrayList(parentOneId,parentTwoId,parentThreeId);
+
+		List<Long> parentIds = Lists.newArrayList(parentOneId, parentTwoId, parentThreeId);
 		// call under test
 		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(mainType, parentIds);
 		assertNotNull(results);
@@ -3076,21 +3023,21 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.get(parentTwoId));
 		assertEquals(null, results.get(parentThreeId));
 	}
-	
+
 	@Test
-	public void testGetSumOfChildCRCsForEachParentEmpty(){		
+	public void testGetSumOfChildCRCsForEachParentEmpty() {
 		List<Long> parentIds = new LinkedList<Long>();
 		// call under test
 		Map<Long, Long> results = tableIndexDAO.getSumOfChildCRCsForEachParent(mainType, parentIds);
 		assertNotNull(results);
 		assertTrue(results.isEmpty());
 	}
-	
+
 	@Test
-	public void testGetEntityChildren(){
+	public void testGetEntityChildren() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
 		Long parentThreeId = 444L;
@@ -3099,29 +3046,29 @@ public class TableIndexDAOImplTest {
 		file1.setParentId(parentOneId);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		List<IdAndEtag> results = tableIndexDAO.getObjectChildren(mainType, parentOneId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(new IdAndEtag(file1.getId(), file1.getEtag(), 2L), results.get(0));
-		
+
 		results = tableIndexDAO.getObjectChildren(mainType, parentTwoId);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(new IdAndEtag(file2.getId(), file2.getEtag(), 2L), results.get(0));
-		
+
 		results = tableIndexDAO.getObjectChildren(mainType, parentThreeId);
 		assertNotNull(results);
 		assertEquals(0, results.size());
 	}
-	
+
 	@Test
-	public void testGetSumOfFileSizes(){
+	public void testGetSumOfFileSizes() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		Long parentOneId = 333L;
 		Long parentTwoId = 222L;
 		// setup some hierarchy.
@@ -3129,94 +3076,93 @@ public class TableIndexDAOImplTest {
 		file1.setParentId(parentOneId);
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(parentTwoId);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Arrays.asList(
-				IdAndVersion.parse(file1.getIdVersion()),
-				IdAndVersion.parse(file2.getIdVersion())
-		));
-		
-		assertEquals(file1.getFileSizeBytes()+ file2.getFileSizeBytes(), fileSizes);
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType,
+				Arrays.asList(IdAndVersion.parse(file1.getIdVersion()), IdAndVersion.parse(file2.getIdVersion())));
+
+		assertEquals(file1.getFileSizeBytes() + file2.getFileSizeBytes(), fileSizes);
 	}
-	
+
 	/**
 	 * Test added for PLFM-5176
 	 */
 	@Test
-	public void testGetSumOfFileSizesNoFiles(){
+	public void testGetSumOfFileSizesNoFiles() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
-		
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
+
 		Long parentOneId = 333L;
 		// setup some hierarchy.
 		ObjectDataDTO folder = createObjectDataDTO(2L, EntityType.folder, 2);
 		folder.setParentId(parentOneId);
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(folder));
 		// call under test
-		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, Arrays.asList(IdAndVersion.parse(folder.getIdVersion())));
+		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType,
+				Arrays.asList(IdAndVersion.parse(folder.getIdVersion())));
 		assertEquals(0L, fileSizes);
 	}
-	
+
 	@Test
-	public void testGetSumOfFileSizesNoVersion(){
+	public void testGetSumOfFileSizesNoVersion() {
 		List<IdAndVersion> list = Arrays.asList(IdAndVersion.parse("123.1"), IdAndVersion.parse("456"));
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
+
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getSumOfFileSizes(mainType, list);
 		}).getMessage();
-		
+
 		assertEquals("The object with id syn456 must specify a version.", errorMessage);
 	}
-	
+
 	@Test
-	public void testGetSumOfFileSizesEmpty(){
+	public void testGetSumOfFileSizesEmpty() {
 		List<IdAndVersion> list = Collections.emptyList();
 		// call under test
 		long fileSizes = tableIndexDAO.getSumOfFileSizes(mainType, list);
 		assertEquals(0, fileSizes);
 	}
-	
+
 	@Test
-	public void testGetSumOfFileSizesNull(){
+	public void testGetSumOfFileSizesNull() {
 		List<IdAndVersion> list = null;
-		
+
 		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			 tableIndexDAO.getSumOfFileSizes(mainType, list);
+			tableIndexDAO.getSumOfFileSizes(mainType, list);
 		});
 	}
-	
+
 	@Test
-	public void testReplicationExpiration() throws InterruptedException{
+	public void testReplicationExpiration() throws InterruptedException {
 		Long one = 111L;
 
 		// lock does not exist so it should be the same as expired.
 		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
-		
+
 		long now = System.currentTimeMillis();
 
 		// lock exists but expired in the past.
-		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, now-10);
+		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, now - 10);
 		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
-		
+
 		// setup lock to expire in the future.
 		long timeout = 4 * 1000;
 		long expires = now + timeout;
 		tableIndexDAO.setSynchronizationLockExpiredForObject(mainType, one, expires);
 		assertFalse(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 		// wait for the lock to expire.
-		Thread.sleep(timeout+1);
+		Thread.sleep(timeout + 1);
 		assertTrue(tableIndexDAO.isSynchronizationLockExpiredForObject(mainType, one));
 	}
-	
+
 	@Test
 	public void testArithmeticSelect() throws ParseException {
 		// Create the table
-		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		List<ColumnModel> doubleColumn = Lists
+				.newArrayList(TableModelTestUtils.createColumn(1L, "col1", ColumnType.DOUBLE));
 		createOrUpdateTable(doubleColumn, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
@@ -3235,7 +3181,9 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select 2 + 2, col1/10 from " + tableId, schemaProvider(doubleColumn), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -3246,12 +3194,12 @@ public class TableIndexDAOImplTest {
 		assertEquals("4", results.getRows().get(0).getValues().get(0));
 		assertEquals("5.0", results.getRows().get(0).getValues().get(1));
 	}
-	
+
 	@Test
 	public void testArithmeticPredicateRightHandSide() throws ParseException {
 		// Create the table
-		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		List<ColumnModel> doubleColumn = Lists
+				.newArrayList(TableModelTestUtils.createColumn(1L, "col1", ColumnType.DOUBLE));
 		createOrUpdateTable(doubleColumn, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 1);
@@ -3270,7 +3218,9 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select col1 from " + tableId+" where col1 = -5*10", schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select col1 from " + tableId + " where col1 = -5*10", schemaProvider(doubleColumn), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -3280,33 +3230,34 @@ public class TableIndexDAOImplTest {
 		assertEquals(1, results.getRows().size());
 		assertEquals("-50", results.getRows().get(0).getValues().get(0));
 	}
-	
+
 	/**
 	 * Test for PLFM-4575.
-	 * @throws ParseException 
+	 * 
+	 * @throws ParseException
 	 */
 	@Test
-	public void testDateTimeFunctions() throws ParseException{
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "aDate", ColumnType.DATE));
+	public void testDateTimeFunctions() throws ParseException {
+		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "aDate", ColumnType.DATE));
 		createOrUpdateTable(schema, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// The first row is in the past
 		long now = System.currentTimeMillis();
-		long thritySecondsPast = now - (1000*30);
-		long thritySecondsFuture = now + (1000*30);
+		long thritySecondsPast = now - (1000 * 30);
+		long thritySecondsFuture = now + (1000 * 30);
 		// first row is in the past
-		rows.get(0).getValues().set(0, ""+thritySecondsPast);
+		rows.get(0).getValues().set(0, "" + thritySecondsPast);
 		// second row is in the future
-		rows.get(1).getValues().set(0, ""+thritySecondsFuture);
+		rows.get(1).getValues().set(0, "" + thritySecondsFuture);
 		// apply the rows
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
-		
+
 		long timeFilter = System.currentTimeMillis() - 1000;
-		
+
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select aDate from " + tableId+" where aDate > " + timeFilter, schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator.builder("select aDate from " + tableId + " where aDate > " + timeFilter,
+				schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -3314,15 +3265,15 @@ public class TableIndexDAOImplTest {
 		assertNotNull(results.getRows());
 		assertEquals(tableId.toString(), results.getTableId());
 		assertEquals(1, results.getRows().size());
-		assertEquals(""+thritySecondsFuture, results.getRows().get(0).getValues().get(0));
+		assertEquals("" + thritySecondsFuture, results.getRows().get(0).getValues().get(0));
 	}
-	
+
 	/**
-	 * PLFM-4028 is an error that occurs when any type of column is changed 
-	 * to a type of large text.
+	 * PLFM-4028 is an error that occurs when any type of column is changed to a
+	 * type of large text.
 	 */
 	@Test
-	public void testPLFM_4028WithIndex(){
+	public void testPLFM_4028WithIndex() {
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
 		createOrUpdateTable(schema, indexDescription);
@@ -3332,17 +3283,17 @@ public class TableIndexDAOImplTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		// apply the rows
 		createOrUpdateOrDeleteRows(tableId, rows, schema);
-		
+
 		// the new schema has a large text column with the same name
 		ColumnModel newColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.LARGETEXT);
-		
+
 		List<ColumnChangeDetails> changes = Lists.newArrayList(new ColumnChangeDetails(oldColumn, newColumn));
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
 	@Test
-	public void testPLFM_4028WithoutIndex(){
+	public void testPLFM_4028WithoutIndex() {
 		ColumnModel oldColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
 		List<ColumnModel> schema = Lists.newArrayList(oldColumn);
 		createOrUpdateTable(schema, indexDescription);
@@ -3358,11 +3309,11 @@ public class TableIndexDAOImplTest {
 		boolean alterTemp = false;
 		alterTableAsNeeded(tableId, changes, alterTemp);
 	}
-	
+
 	@Test
 	public void generateProjectStatistics() {
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L,2L,3L, 4L, 5L, 6L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(1L, 2L, 3L, 4L, 5L, 6L));
 
 		// Set up some data to test
 		ObjectDataDTO project1 = createObjectDataDTO(1L, EntityType.project, 0);
@@ -3413,11 +3364,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(project1.getName(), result.get(1).getProjectName());
 		assertEquals((Long) (file1Size + file2Size), result.get(1).getSizeInBytes());
 	}
-	
+
 	@Test
 	public void testPLFM_5445() throws UnsupportedEncodingException, DecoderException {
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "aString", ColumnType.STRING));
+		List<ColumnModel> schema = Lists
+				.newArrayList(TableModelTestUtils.createColumn(1L, "aString", ColumnType.STRING));
 		createOrUpdateTable(schema, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 1);
@@ -3432,10 +3383,11 @@ public class TableIndexDAOImplTest {
 
 	/**
 	 * Create update or delete the given rows in the current table.
+	 * 
 	 * @param rows
 	 * @param schema
 	 */
-	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, List<Row> rows, List<ColumnModel> schema){
+	public void createOrUpdateOrDeleteRows(IdAndVersion tableId, List<Row> rows, List<ColumnModel> schema) {
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<SelectColumn> headers = TableModelUtils.getSelectColumns(schema);
@@ -3449,57 +3401,62 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, schema);
 	}
-	
+
 	/**
 	 * Create a view schema using an ObjectDataDTO as a template.
+	 * 
 	 * @param dto
 	 * 
 	 * @return
 	 */
-	private List<ColumnModel> createSchemaFromObjectDataDTO(ObjectDataDTO dto){
+	private List<ColumnModel> createSchemaFromObjectDataDTO(ObjectDataDTO dto) {
 		List<ColumnModel> schema = new LinkedList<>();
 		// add a column for each annotation
-		if(dto.getAnnotations() != null){
-			for(ObjectAnnotationDTO annoDto: dto.getAnnotations()){
+		if (dto.getAnnotations() != null) {
+			for (ObjectAnnotationDTO annoDto : dto.getAnnotations()) {
 				ColumnModel cm = new ColumnModel();
-				//double lists are not supported at the moment
-				cm.setColumnType(annoDto.getValue().size() > 1 ? ColumnTypeListMappings.listType(annoDto.getType().getColumnType()) : annoDto.getType().getColumnType());
+				// double lists are not supported at the moment
+				cm.setColumnType(annoDto.getValue().size() > 1
+						? ColumnTypeListMappings.listType(annoDto.getType().getColumnType())
+						: annoDto.getType().getColumnType());
 				cm.setName(annoDto.getKey());
-				if(cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.STRING_LIST){
+				if (cm.getColumnType() == ColumnType.STRING || cm.getColumnType() == ColumnType.STRING_LIST) {
 					cm.setMaximumSize(50L);
 				}
-				if(annoDto.getValue().size() > 1){
+				if (annoDto.getValue().size() > 1) {
 					cm.setMaximumListLength(21L);
 				}
 				schema.add(cm);
 			}
 		}
 		// Add all of the default ObjectFields
-		schema.addAll(objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper).getAllColumnModels());
+		schema.addAll(
+				objectFieldModelResolverFactory.getObjectFieldModelResolver(fieldTypeMapper).getAllColumnModels());
 		// assign each column an ID
-		for(int i=0; i<schema.size(); i++){
+		for (int i = 0; i < schema.size(); i++) {
 			ColumnModel cm = schema.get(i);
-			cm.setId(""+i);
+			cm.setId("" + i);
 		}
 		return schema;
 	}
-	
+
 	/**
 	 * Helper to create populated ObjectDataDTO.
+	 * 
 	 * @param id
 	 * @param type
 	 * @param annotationCount
 	 * @return
 	 */
-	private static ObjectDataDTO createObjectDataDTO(long id, EntityType type, int annotationCount){
+	private static ObjectDataDTO createObjectDataDTO(long id, EntityType type, int annotationCount) {
 		ObjectDataDTO objectDataDTO = new ObjectDataDTO();
 		objectDataDTO.setId(id);
 		objectDataDTO.setVersion(2L);
 		objectDataDTO.setCurrentVersion(objectDataDTO.getVersion());
 		objectDataDTO.setCreatedBy(222L);
 		objectDataDTO.setCreatedOn(new Date());
-		objectDataDTO.setEtag("etag"+id);
-		objectDataDTO.setName("name"+id);
+		objectDataDTO.setEtag("etag" + id);
+		objectDataDTO.setName("name" + id);
 		objectDataDTO.setDescription("description" + id);
 		objectDataDTO.setSubType(SubType.valueOf(type.name()));
 		objectDataDTO.setParentId(1L);
@@ -3507,116 +3464,121 @@ public class TableIndexDAOImplTest {
 		objectDataDTO.setProjectId(3L);
 		objectDataDTO.setModifiedBy(333L);
 		objectDataDTO.setModifiedOn(new Date());
-		if(EntityType.file.equals(type)){
+		if (EntityType.file.equals(type)) {
 			objectDataDTO.setFileHandleId(888L);
 			objectDataDTO.setFileLocationId(456L);
 			objectDataDTO.setFileSizeBytes(999L);
-			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
+			objectDataDTO.setFileMD5(Long.toHexString(id * 1000));
 			objectDataDTO.setFileBucket("bucket");
 			objectDataDTO.setFileKey("key");
 			objectDataDTO.setFileName("fileName");
 			objectDataDTO.setFileConcreteType(S3FileHandle.class.getName());
 			objectDataDTO.setPath("parentName/fileName");
+			objectDataDTO.setPathIds("[123, 456]");
 		}
-		if(EntityType.dataset.equals(type)){
+		if (EntityType.dataset.equals(type)) {
 			objectDataDTO.setFileSizeBytes(999L);
-			objectDataDTO.setFileMD5(Long.toHexString(id*1000));
+			objectDataDTO.setFileMD5(Long.toHexString(id * 1000));
 			objectDataDTO.setItemCount(1L);
 		}
 		List<ObjectAnnotationDTO> annos = new LinkedList<ObjectAnnotationDTO>();
-		for(int i=0; i<annotationCount; i++){
+		for (int i = 0; i < annotationCount; i++) {
 			ObjectAnnotationDTO annoDto = new ObjectAnnotationDTO(objectDataDTO);
-			annoDto.setKey("key"+i);
-			annoDto.setType(AnnotationType.values()[i%AnnotationType.values().length]);
-			annoDto.setValue(""+i);
+			annoDto.setKey("key" + i);
+			annoDto.setType(AnnotationType.values()[i % AnnotationType.values().length]);
+			annoDto.setValue("" + i);
 			annos.add(annoDto);
 		}
-		if(!annos.isEmpty()){
+		if (!annos.isEmpty()) {
 			objectDataDTO.setAnnotations(annos);
 		}
 		return objectDataDTO;
 	}
-	
+
 	/**
-	 * Helper to create multiple version of a single object. Each version will have different annotation values.
+	 * Helper to create multiple version of a single object. Each version will have
+	 * different annotation values.
+	 * 
 	 * @param id
 	 * @param type
 	 * @param annotationCount The number of annotations that each version will have.
 	 * @param numberOfVersion The total number of version to create.
 	 * @return Results will include one ObjectDataDTO for each version.
 	 */
-	public List<ObjectDataDTO> createMultipleVersions(long id, EntityType type, int annotationCount, int numberOfVersion){
+	public List<ObjectDataDTO> createMultipleVersions(long id, EntityType type, int annotationCount,
+			int numberOfVersion) {
 		List<ObjectDataDTO> list = new ArrayList<>(numberOfVersion);
-		for(long version=1; version<numberOfVersion+1; version++) {
+		for (long version = 1; version < numberOfVersion + 1; version++) {
 			ObjectDataDTO dto = createObjectDataDTO(id, type, annotationCount);
 			dto.setVersion(version);
-			dto.setCurrentVersion((long)numberOfVersion);
-			for(int annoIndex = 0; annoIndex<annotationCount; annoIndex++) {
+			dto.setCurrentVersion((long) numberOfVersion);
+			for (int annoIndex = 0; annoIndex < annotationCount; annoIndex++) {
 				ObjectAnnotationDTO anno = dto.getAnnotations().get(annoIndex);
 				anno.setObjectVersion(version);
-				anno.setValue(""+annoIndex+"-"+version);
+				anno.setValue("" + annoIndex + "-" + version);
 			}
 			list.add(dto);
 		}
 		return list;
 	}
-	
+
 	/**
 	 * Test for the case where an entity is in the replication but not the view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView(){
+	public void testGetOutOfDateRowsForView_ReplicationRowsMissingFromView() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
 		long limit = 100L;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
-		
+
 		assertNotNull(results);
 		Set<Long> expected = dtos.stream().map(ObjectDataDTO::getId).collect(Collectors.toSet());
 		assertEquals(expected, results);
 	}
-	
+
 	/**
-	 * Test for the cases where and entity has been deleted from replication but remains in the view.
+	 * Test for the cases where and entity has been deleted from replication but
+	 * remains in the view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_DeletedRowsStillInView(){
+	public void testGetOutOfDateRowsForView_DeletedRowsStillInView() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
-		//delete the first row from replication
+
+		// delete the first row from replication
 		List<Long> toDelete = Lists.newArrayList(dtos.get(0).getId());
 		tableIndexDAO.deleteObjectData(mainType, toDelete);
-		
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3624,37 +3586,38 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = new HashSet<Long>(toDelete);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
-	 * Test for the cases where and entity has moved out-of-scope but remains in the view.
+	 * Test for the cases where and entity has moved out-of-scope but remains in the
+	 * view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_MovedOutOfScope(){
+	public void testGetOutOfDateRowsForView_MovedOutOfScope() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		// move the entity out of scope
 		ObjectDataDTO first = dtos.get(0);
 		first.setParentId(9999L);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(mainType, toUpdate);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
-		
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3662,37 +3625,38 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
-	 * Test for the cases where an entity etag differs between replication and the view.
+	 * Test for the cases where an entity etag differs between replication and the
+	 * view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_EtagDoesNotMatch(){
+	public void testGetOutOfDateRowsForView_EtagDoesNotMatch() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		// change the etag of the first entity
 		ObjectDataDTO first = dtos.get(0);
-		first.setEtag(first.getEtag()+"updated");
+		first.setEtag(first.getEtag() + "updated");
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(mainType, toUpdate);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
-		
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3700,31 +3664,31 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
 	 * An update to a ObjectDataDTO that does not change the etag or benefactor
 	 * should still show up with a call to getOutOfDateRowsForView().
 	 */
 	@Test
-	public void testGetOutOfDateRowsForViewWithHashCodeChange(){
+	public void testGetOutOfDateRowsForViewWithHashCodeChange() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		// change the etag of the first entity
 		ObjectDataDTO first = dtos.get(0);
 		int startHashCode = first.hashCode();
@@ -3735,13 +3699,13 @@ public class TableIndexDAOImplTest {
 		anno.setValue(List.of("a new value"));
 		anno.setDerived(true);
 		first.getAnnotations().add(anno);
-		
+
 		assertNotEquals(startHashCode, first.hashCode());
-				
+
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(mainType, toUpdate);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
-		
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3749,37 +3713,38 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
-	 * Test for the cases where an entity benefactor differs between replication and the view.
+	 * Test for the cases where an entity benefactor differs between replication and
+	 * the view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch(){
+	public void testGetOutOfDateRowsForView_BenefactorDoesNotMatch() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		// change the benefactor of the first entity
 		ObjectDataDTO first = dtos.get(0);
-		first.setBenefactorId(first.getBenefactorId()*100);
+		first.setBenefactorId(first.getBenefactorId() * 100);
 		List<Long> toUpdate = Lists.newArrayList(first.getId());
 		tableIndexDAO.deleteObjectData(mainType, toUpdate);
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(first));
-		
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
@@ -3787,19 +3752,19 @@ public class TableIndexDAOImplTest {
 		Set<Long> expected = new HashSet<Long>(toUpdate);
 		assertEquals(expected, results);
 	}
-	
+
 	/**
 	 * Test for the case where the view is up-to-date with replication.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_ViewUpToDate(){
+	public void testGetOutOfDateRowsForView_ViewUpToDate() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 2;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
@@ -3807,67 +3772,68 @@ public class TableIndexDAOImplTest {
 		createOrUpdateTable(schema, indexDescription);
 
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-			
+
 		long limit = 100L;
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertEquals(Collections.emptySet(), results);
 	}
-	
+
 	/**
 	 * Test the limit for getOutOfDateRowsForView()
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_Limit(){
+	public void testGetOutOfDateRowsForView_Limit() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		// all of the rows are out-of-date, but only the last should be returned with a limit of one.
+		// all of the rows are out-of-date, but only the last should be returned with a
+		// limit of one.
 		long limit = 1L;
 
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
 		Set<Long> expected = Set.of(dtos.get(3).getId());
 		assertEquals(expected, results);
 	}
-	
+
 	/**
 	 * Test that types do not match the view type are excluded from the delta.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_FilterTypes(){
+	public void testGetOutOfDateRowsForView_FilterTypes() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		// add a non-file that should not be part of the view but is in the scope.
 		ObjectDataDTO viewDto = createEntityOfType(rowCount, EntityType.entityview, dtos.get(0).getParentId());
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
 		long limit = 100L;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		// call under test
@@ -3878,43 +3844,43 @@ public class TableIndexDAOImplTest {
 		Set<Long> expectedResults = dtos.stream().map(ObjectDataDTO::getId).collect(Collectors.toSet());
 		assertEquals(expectedResults, results);
 	}
-	
+
 	/**
-	 * Test where all types are initially in the view, then the view type is 
-	 * changed to only include files.  All non-files must be removed from the view.
+	 * Test where all types are initially in the view, then the view type is changed
+	 * to only include files. All non-files must be removed from the view.
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView(){
+	public void testGetOutOfDateRowsForView_RemoveTypesNoLongerInView() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		// add a non-file that should not be part of the view but is in the scope.
 		ObjectDataDTO folderDto = createEntityOfType(rowCount, EntityType.folder, dtos.get(0).getParentId());
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		// first row to define the schema
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		// Create the empty view
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		// start including all types
-		
-		subTypes = new HashSet<SubType>(Arrays.asList(SubType.values())) ;
-		
+
+		subTypes = new HashSet<SubType>(Arrays.asList(SubType.values()));
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// add all of the rows to the view.
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		long limit = 100L;
 		// File only type used to indicate the new type is files-only.
 		subTypes = Set.of(SubType.file);
 		filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(results);
@@ -3922,68 +3888,71 @@ public class TableIndexDAOImplTest {
 		Set<Long> expectedResults = Set.of(folderDto.getId());
 		assertEquals(expectedResults, results);
 	}
-	
+
 	/**
 	 * Test the limit for getOutOfDateRowsForView()
 	 */
 	@Test
-	public void testGetOutOfDateRowsForView_EmptyScope(){
+	public void testGetOutOfDateRowsForView_EmptyScope() {
 		Set<Long> scope = Collections.emptySet();
-		
+
 		int rowCount = 2;
 		// Make additional object with a different type
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		long limit = 1L;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		// call under test
 		Set<Long> results = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertEquals(Collections.emptySet(), results);
 	}
-	
+
 	@Test
-	public void testGetOutOfDateRowsForView_NullTableId(){
+	public void testGetOutOfDateRowsForView_NullTableId() {
 		tableId = null;
 		Set<Long> scope = Collections.emptySet();
 		long limit = 1L;
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		});
 	}
-	
+
 	/**
-	 * Create n number of ObjectDataDTO with data in both replications and annotations.
+	 * Create n number of ObjectDataDTO with data in both replications and
+	 * annotations.
+	 * 
 	 * @param count
 	 * @return
 	 */
-	List<ObjectDataDTO> createFileEntityObjectDataDTOs(int count){
+	List<ObjectDataDTO> createFileEntityObjectDataDTOs(int count) {
 		boolean includeMultiValue = false;
 		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
-	
+
 	List<ObjectDataDTO> createFileEntityObjectDataDTOs(int count, boolean includeMultiValue) {
 		return createObjectDTOs(objectType, EntityType.file, count, includeMultiValue);
 	}
-	
-	List<ObjectDataDTO> createObjectDTOs(ViewObjectType objectType, EntityType subType, int count, boolean includeMultiValue){
+
+	List<ObjectDataDTO> createObjectDTOs(ViewObjectType objectType, EntityType subType, int count,
+			boolean includeMultiValue) {
 		List<Long> newIds = new ArrayList<Long>(count);
 		List<ObjectDataDTO> results = new ArrayList<ObjectDataDTO>(count);
-		for(int i=0; i<count; i++) {
-			Long entityId = new Long(i+1);
+		for (int i = 0; i < count; i++) {
+			Long entityId = new Long(i + 1);
 			newIds.add(entityId);
 			ObjectDataDTO file = createObjectDataDTO(entityId, subType, 3);
-			file.setParentId(entityId*100);
-			if(includeMultiValue) {
+			file.setParentId(entityId * 100);
+			if (includeMultiValue) {
 				ObjectAnnotationDTO multiValue = new ObjectAnnotationDTO(file);
 				multiValue.setKey("multiValue");
 				multiValue.setType(AnnotationType.STRING);
-				multiValue.setValue(Lists.newArrayList("one"+i, "two"+i));
+				multiValue.setValue(Lists.newArrayList("one" + i, "two" + i));
 				file.getAnnotations().add(multiValue);
 			}
 			results.add(file);
@@ -3994,9 +3963,10 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, results);
 		return results;
 	}
-	
+
 	/**
 	 * Create an entity of the given type.
+	 * 
 	 * @param index
 	 * @param type
 	 * @param parentId
@@ -4005,9 +3975,9 @@ public class TableIndexDAOImplTest {
 	ObjectDataDTO createEntityOfType(int index, EntityType type, long parentId) {
 		return createObjectDTO(objectType, type, index, parentId);
 	}
-	
+
 	ObjectDataDTO createObjectDTO(ViewObjectType objectType, EntityType subtype, int index, long parentId) {
-		Long id = new Long(index+1);
+		Long id = new Long(index + 1);
 		ObjectDataDTO object = createObjectDataDTO(id, subtype, 3);
 		object.setParentId(parentId);
 		// delete all rows if they already exist
@@ -4016,31 +3986,31 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(object));
 		return object;
 	}
-	
+
 	@Test
 	public void testDeleteRowsFromView() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filter, limit);
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
-		
+
 		// delete the first and last
-		Long[] toDelete = new Long[] {dtos.get(0).getId(), dtos.get(3).getId()};
+		Long[] toDelete = new Long[] { dtos.get(0).getId(), dtos.get(3).getId() };
 		// call under test
 		tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
 		// Deleted rows should now show as deltas
@@ -4050,22 +4020,22 @@ public class TableIndexDAOImplTest {
 		assertTrue(deltas.contains(toDelete[0]));
 		assertTrue(deltas.contains(toDelete[1]));
 	}
-	
+
 	@Test
 	public void testDeleteRowsFromViewEmpty() {
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
 		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
-		
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
 		long limit = 100;
 		// All rows should be in the view.
@@ -4081,53 +4051,51 @@ public class TableIndexDAOImplTest {
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 	}
-	
+
 	@Test
 	public void testDeleteRowsFromViewNullTableId() {
-		Long[] toDelete = new Long[] {123L};
+		Long[] toDelete = new Long[] { 123L };
 		tableId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
 		});
 	}
-	
+
 	@Test
 	public void testDeleteRowsFromViewNullIds() {
 		Long[] toDelete = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.deleteRowsFromViewBatch(tableId, toDelete);
 		});
 	}
-	
+
 	@Test
 	public void testCopyEntityReplicationToViewWithRowFilter() {
 		long limit = 100;
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
-		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);		
+		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
 
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		Long idThatDoesNotExist = 999L;
 		// Only add the first and last row to the view and a row that does not exist
 		Set<Long> rowFilter = Set.of(dtos.get(0).getId(), dtos.get(3).getId(), idThatDoesNotExist);
-		
 
-		
 		ViewFilter filterNoAdditional = new HierarchicaFilter(mainType, subTypes, scope);
-		
+
 		ViewFilter filter = filterNoAdditional.newBuilder().addLimitObjectids(rowFilter).build();
-		
+
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		Set<Long> expectedMissing = Set.of(dtos.get(1).getId(), dtos.get(2).getId());
 		filter = new HierarchicaFilter(mainType, subTypes, scope);
 		Set<Long> deltas = tableIndexDAO.getOutOfDateRowsForView(tableId, filterNoAdditional, limit);
@@ -4147,15 +4115,15 @@ public class TableIndexDAOImplTest {
 		long limit = 100;
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		int rowCount = 4;
-		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);			
-		
+		List<ObjectDataDTO> dtos = createFileEntityObjectDataDTOs(rowCount);
+
 		// Make additional object with a different type but same ids
 		createObjectDTOs(otherObjectType, EntityType.file, rowCount, false);
-		
+
 		Set<Long> scope = dtos.stream().map(ObjectDataDTO::getParentId).collect(Collectors.toSet());
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(dtos.get(0));
 		createOrUpdateTable(schema, indexDescription);
-	
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 		// call under test
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
@@ -4164,14 +4132,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(deltas);
 		assertTrue(deltas.isEmpty());
 	}
-	
+
 	@Test
-	public void testTempTableColumnExceedsCharacterLimit(){
+	public void testTempTableColumnExceedsCharacterLimit() {
 		ColumnModel largeColumn = new ColumnModel();
 		largeColumn.setId("12");
 		largeColumn.setName("foo");
 		largeColumn.setColumnType(ColumnType.LARGETEXT);
-		
+
 		ColumnModel smallColumn = new ColumnModel();
 		smallColumn.setId("13");
 		smallColumn.setName("bar");
@@ -4181,10 +4149,10 @@ public class TableIndexDAOImplTest {
 		List<ColumnModel> schema = List.of(largeColumn, smallColumn);
 
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		// create five rows.
 		List<Row> rows = TableModelTestUtils.createRows(schema, 5);
-		
+
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getSelectColumns(schema));
@@ -4197,32 +4165,36 @@ public class TableIndexDAOImplTest {
 		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
 
 		createOrUpdateOrDeleteRows(tableId, set, schema);
-		
+
 		tableIndexDAO.deleteTemporaryTable(tableId);
 		// Create a copy of the table
 		tableIndexDAO.createTemporaryTable(tableId);
-		
+
 		long charLimit = 12;
 
 		// Call under test, on an empty table the limit does not exceed
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).isPresent());
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit)
+				.isPresent());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit)
+				.isPresent());
 
 		tableIndexDAO.copyAllDataToTemporaryTable(tableId);
 
 		// Call under test
-		assertEquals(rows.get(0).getRowId(),tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).get());
-		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit).isPresent());
+		assertEquals(rows.get(0).getRowId(),
+				tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, largeColumn.getId(), charLimit).get());
+		assertFalse(tableIndexDAO.tempTableColumnExceedsCharacterLimit(tableId, smallColumn.getId(), charLimit)
+				.isPresent());
 	}
-	
+
 	@Test
-	public void testRefreshViewBenefactors() throws ParseException{
+	public void testRefreshViewBenefactors() throws ParseException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
@@ -4239,52 +4211,59 @@ public class TableIndexDAOImplTest {
 		double2.setType(AnnotationType.DOUBLE);
 		file2.setAnnotations(Arrays.asList(double2));
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 
 		// both parents
 		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
-		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+
+		QueryTranslator query = QueryTranslator
+				.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId + " ORDER BY ROW_ID ASC",
+						schemaProvider(schema), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
-		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
-		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
-		
+		assertEquals(Lists.newArrayList(file1.getId().toString(), file1.getBenefactorId().toString()),
+				results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(file2.getId().toString(), file2.getBenefactorId().toString()),
+				results.getRows().get(1).getValues());
+
 		// update the benefactors in the replication table
 		file1.setBenefactorId(new Long(3));
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(file1.getId()));
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1));
-		
+
 		// call under test
 		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
-		
+
 		assertTrue(result);
-		
+
 		// The benefactors should be updated.
 		results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		// file one should change while file two should remain the same.
-		assertEquals(Lists.newArrayList(file1.getId().toString(),file1.getBenefactorId().toString()), results.getRows().get(0).getValues());
-		assertEquals(Lists.newArrayList(file2.getId().toString(),file2.getBenefactorId().toString()), results.getRows().get(1).getValues());
+		assertEquals(Lists.newArrayList(file1.getId().toString(), file1.getBenefactorId().toString()),
+				results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(file2.getId().toString(), file2.getBenefactorId().toString()),
+				results.getRows().get(1).getValues());
 	}
-	
+
 	@Test
-	public void testRefreshViewBenefactorsWithNoChanges() throws ParseException{
+	public void testRefreshViewBenefactorsWithNoChanges() throws ParseException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
@@ -4301,53 +4280,57 @@ public class TableIndexDAOImplTest {
 		double2.setType(AnnotationType.DOUBLE);
 		file2.setAnnotations(Arrays.asList(double2));
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(file2);
 
 		// both parents
 		Set<Long> scope = Set.of(file1.getParentId(), file2.getParentId());
-		
+
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, scope);
 
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		List<Row> expectedRows = List.of(
-			new Row().setRowId(2L).setVersionNumber(2L).setValues(List.of(file1.getId().toString(),file1.getBenefactorId().toString())),
-			new Row().setRowId(3L).setVersionNumber(2L).setValues(List.of(file2.getId().toString(),file2.getBenefactorId().toString()))
-		);
-		
-		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
-		
+				new Row().setRowId(2L).setVersionNumber(2L)
+						.setValues(List.of(file1.getId().toString(), file1.getBenefactorId().toString())),
+				new Row().setRowId(3L).setVersionNumber(2L)
+						.setValues(List.of(file2.getId().toString(), file2.getBenefactorId().toString())));
+
+		QueryTranslator query = QueryTranslator
+				.builder("select ROW_ID, ROW_BENEFACTOR from " + tableId + " ORDER BY ROW_ID ASC",
+						schemaProvider(schema), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
+
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
-		
+
 		assertEquals(expectedRows, results.getRows());
-				
+
 		// call under test
 		boolean result = tableIndexDAO.refreshViewBenefactors(tableId, mainType);
-		
+
 		assertFalse(result);
-		
+
 		// No changes
 		assertEquals(expectedRows, tableIndexDAO.query(query).getRows());
 	}
-	
+
 	@Test
 	public void testRefreshViewBenefactorsWithNullId() {
 		tableId = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.refreshViewBenefactors(tableId, mainType);
 		});
 	}
-	
+
 	@Test
 	public void testRefreshViewBenefactorsWithNullObjectType() {
 		mainType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.refreshViewBenefactors(tableId, mainType);
 		});
@@ -4356,8 +4339,8 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testRoundQuery() throws ParseException {
 		// Create the table
-		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils
-				.createColumn(1L, "col1", ColumnType.DOUBLE));
+		List<ColumnModel> doubleColumn = Lists
+				.newArrayList(TableModelTestUtils.createColumn(1L, "col1", ColumnType.DOUBLE));
 		createOrUpdateTable(doubleColumn, indexDescription);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 2);
@@ -4377,7 +4360,9 @@ public class TableIndexDAOImplTest {
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(tableId, set, doubleColumn);
 		// This is our query
-		QueryTranslator query = QueryTranslator.builder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId).indexDescription(new TableIndexDescription(tableId)).build();
+		QueryTranslator query = QueryTranslator
+				.builder("select round(col1, 2) from " + tableId, schemaProvider(doubleColumn), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -4387,9 +4372,9 @@ public class TableIndexDAOImplTest {
 		assertEquals("1.23", results.getRows().get(0).getValues().get(0));
 		assertEquals("100.19", results.getRows().get(1).getValues().get(0));
 	}
-	
+
 	@Test
-	public void testViewWithMultipleVersions() throws ParseException{
+	public void testViewWithMultipleVersions() throws ParseException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		Long objectIdOne = 22L;
@@ -4397,46 +4382,52 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		int annotationCoun = 1;
 		int versionCount = 2;
-		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
-		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun,
+				versionCount);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun,
+				versionCount);
 		ObjectDataDTO v1 = oneVersion.get(0);
 		ObjectDataDTO v2 = twoVersion.get(1);
-		
+
 		// call under test
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2));
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		Set<SubType> subTypes = Set.of(SubType.file);
 		Set<IdAndVersion> scope = Set.of(
 				IdAndVersion.newBuilder().setId(v1.getId()).setVersion(v1.getVersion()).build(),
-				IdAndVersion.newBuilder().setId(v2.getId()).setVersion(v2.getVersion()).build()
-		);
-		
+				IdAndVersion.newBuilder().setId(v2.getId()).setVersion(v2.getVersion()).build());
+
 		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
-		
+
 		// Copy the entity data to the table
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
-		QueryTranslator query = QueryTranslator.builder("select ROW_ID, ROW_VERSION, `key0` from " + tableId+" ORDER BY ROW_ID ASC", schemaProvider(schema), userId).indexDescription(new TableIndexDescription(tableId)).build();
+
+		QueryTranslator query = QueryTranslator
+				.builder("select ROW_ID, ROW_VERSION, `key0` from " + tableId + " ORDER BY ROW_ID ASC",
+						schemaProvider(schema), userId)
+				.indexDescription(new TableIndexDescription(tableId)).build();
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		assertEquals(2, results.getRows().size());
-		assertEquals(Lists.newArrayList(v1.getId().toString(),v1.getVersion().toString(), "0-1"), results.getRows().get(0).getValues());
-		assertEquals(Lists.newArrayList(v2.getId().toString(),v2.getVersion().toString(), "0-2"), results.getRows().get(1).getValues());
-		
+		assertEquals(Lists.newArrayList(v1.getId().toString(), v1.getVersion().toString(), "0-1"),
+				results.getRows().get(0).getValues());
+		assertEquals(Lists.newArrayList(v2.getId().toString(), v2.getVersion().toString(), "0-2"),
+				results.getRows().get(1).getValues());
+
 		// update the benefactors in the replication table
 		v1.setBenefactorId(new Long(3));
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(v1.getId()));
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1));
 	}
-	
+
 	@Test
 	public void testGetObjectDataWithMultipleVersion() {
 		Long objectId = 22L;
@@ -4445,14 +4436,14 @@ public class TableIndexDAOImplTest {
 		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
 		ObjectDataDTO v1 = objects.get(0);
 		ObjectDataDTO v2 = objects.get(1);
-		
+
 		tableIndexDAO.addObjectData(mainType, objects);
-		
+
 		// Call under test
 		assertEquals(v1, tableIndexDAO.getObjectData(mainType, objectId, v1.getVersion()));
 		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
 	}
-	
+
 	@Test
 	public void testGetObjectDataForCurrentVersionWithMultipleVersions() {
 		Long objectId = 22L;
@@ -4460,14 +4451,14 @@ public class TableIndexDAOImplTest {
 		int versionCount = 2;
 		List<ObjectDataDTO> objects = createMultipleVersions(objectId, EntityType.file, annotationCoun, versionCount);
 		ObjectDataDTO v2 = objects.get(1);
-		
+
 		tableIndexDAO.addObjectData(mainType, objects);
-		
+
 		assertEquals(v2, tableIndexDAO.getObjectData(mainType, objectId, v2.getVersion()));
 		// call under test
 		assertEquals(v2, tableIndexDAO.getObjectDataForCurrentVersion(mainType, objectId));
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatIdAndVersionFilter() {
 		tableId = IdAndVersion.parse("syn123");
@@ -4478,36 +4469,38 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		int annotationCoun = 1;
 		int versionCount = 2;
-		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, oneVersion);
-		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, twoVersion);
-		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, threeVersion);
 		ObjectDataDTO v1 = oneVersion.get(0);
 		ObjectDataDTO v2 = twoVersion.get(1);
 		ObjectDataDTO v3 = threeVersion.get(0);
-		
+
 		// call under test
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(v1, v2, v3));
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(v2);
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		Set<SubType> subTypes = Set.of(SubType.file);
-		
+
 		Set<IdAndVersion> scope = Set.of(
 				IdAndVersion.newBuilder().setId(v1.getId()).setVersion(v1.getVersion()).build(),
 				IdAndVersion.newBuilder().setId(v2.getId()).setVersion(v2.getVersion()).build(),
-				IdAndVersion.newBuilder().setId(v3.getId()).setVersion(v3.getVersion()).build()
-		);
-		
+				IdAndVersion.newBuilder().setId(v3.getId()).setVersion(v3.getVersion()).build());
+
 		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
-		
+
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = 1L;
@@ -4517,9 +4510,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, page.size());
 		assertEquals(objectIdTwo, page.get(0).getId());
 		assertEquals(objectIdThree, page.get(1).getId());
-		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+		assertEquals(2, page.stream().filter(i -> i.getChecksum() != null).count());
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithHierarchyFilter() {
 		tableId = IdAndVersion.parse("syn123");
@@ -4530,25 +4523,28 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		int annotationCoun = 1;
 		int versionCount = 2;
-		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, oneVersion);
-		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, twoVersion);
-		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, threeVersion);
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		Set<SubType> subTypes = Set.of(SubType.file);
 		Set<Long> parentIds = Set.of(1L);
-		
+
 		ViewFilter filter = new HierarchicaFilter(ReplicationType.ENTITY, subTypes, parentIds);
-		
+
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = 1L;
@@ -4558,9 +4554,9 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, page.size());
 		assertEquals(objectIdTwo, page.get(0).getId());
 		assertEquals(objectIdThree, page.get(1).getId());
-		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+		assertEquals(2, page.stream().filter(i -> i.getChecksum() != null).count());
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithFlatFilter() {
 		tableId = IdAndVersion.parse("syn123");
@@ -4571,29 +4567,30 @@ public class TableIndexDAOImplTest {
 		// delete all data
 		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(objectIdOne, objectIdTwo));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		int annotationCoun = 1;
 		int versionCount = 2;
-		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> oneVersion = createMultipleVersions(objectIdOne, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, oneVersion);
-		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> twoVersion = createMultipleVersions(objectIdTwo, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, twoVersion);
-		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun, versionCount);
+		List<ObjectDataDTO> threeVersion = createMultipleVersions(objectIdThree, EntityType.file, annotationCoun,
+				versionCount);
 		tableIndexDAO.addObjectData(mainType, threeVersion);
-		
+
 		// Create the schema for this table
 		List<ColumnModel> schema = createSchemaFromObjectDataDTO(oneVersion.get(0));
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		Set<SubType> subTypes = Set.of(SubType.file);
-		Set<IdAndVersion> scope = Set.of(
-				IdAndVersion.newBuilder().setId(objectIdOne).build(),
+		Set<IdAndVersion> scope = Set.of(IdAndVersion.newBuilder().setId(objectIdOne).build(),
 				IdAndVersion.newBuilder().setId(objectIdTwo).build(),
-				IdAndVersion.newBuilder().setId(objectIdThree).build()
-		);
-		
+				IdAndVersion.newBuilder().setId(objectIdThree).build());
+
 		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
-		
+
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = 1L;
@@ -4603,14 +4600,14 @@ public class TableIndexDAOImplTest {
 		assertEquals(2, page.size());
 		assertEquals(objectIdTwo, page.get(0).getId());
 		assertEquals(objectIdThree, page.get(1).getId());
-		assertEquals(2, page.stream().filter(i->i.getChecksum() != null).count());
+		assertEquals(2, page.stream().filter(i -> i.getChecksum() != null).count());
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithEmptyFilter() {
 		Set<SubType> subTypes = Set.of(SubType.file);
 		Set<IdAndVersion> scope = Collections.emptySet();
-		
+
 		ViewFilter filter = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, scope);
 		Long salt = 123L;
 		Long limit = 2L;
@@ -4620,20 +4617,20 @@ public class TableIndexDAOImplTest {
 		assertNotNull(page);
 		assertTrue(page.isEmpty());
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullFilter() {
 		ViewFilter filter = null;
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = 1L;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
 		}).getMessage();
 		assertEquals("filter is required.", message);
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullSalt() {
 		Set<SubType> subTypes = Set.of(SubType.file);
@@ -4642,13 +4639,13 @@ public class TableIndexDAOImplTest {
 		Long salt = null;
 		Long limit = 2L;
 		Long offset = 1L;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
 		}).getMessage();
 		assertEquals("salt is required.", message);
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullLimit() {
 		Set<SubType> subTypes = Set.of(SubType.file);
@@ -4657,13 +4654,13 @@ public class TableIndexDAOImplTest {
 		Long salt = 123L;
 		Long limit = null;
 		Long offset = 1L;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
 		}).getMessage();
 		assertEquals("limit is required.", message);
 	}
-	
+
 	@Test
 	public void testGetIdAndChecksumsForFilterWithNullOffset() {
 		Set<SubType> subTypes = Set.of(SubType.file);
@@ -4672,79 +4669,84 @@ public class TableIndexDAOImplTest {
 		Long salt = 123L;
 		Long limit = 2L;
 		Long offset = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getIdAndChecksumsForFilter(salt, filter, limit, offset);
 		}).getMessage();
 		assertEquals("offset is required.", message);
 	}
-	
+
 	@Test
 	public void testStreamTableIndexData() throws IOException {
 		tableId = IdAndVersion.parse("syn123");
 		indexDescription = new ViewIndexDescription(tableId, TableType.entityview, -1L);
 		// delete all data
-		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L,3L));
+		tableIndexDAO.deleteObjectData(mainType, Lists.newArrayList(2L, 3L));
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		// setup some hierarchy.
 		ObjectDataDTO file1 = createObjectDataDTO(2L, EntityType.file, 2);
 		file1.setParentId(333L);
-		
+
 		ObjectAnnotationDTO int1 = new ObjectAnnotationDTO(file1);
 		int1.setKey("foo");
 		int1.setValue(Arrays.asList("123", "456", "789"));
 		int1.setType(AnnotationType.LONG);
-		
+
 		ObjectAnnotationDTO double1 = new ObjectAnnotationDTO(file1);
 		double1.setKey("bar");
 		double1.setValue("NaN");
 		double1.setType(AnnotationType.DOUBLE);
-		
+
 		file1.setAnnotations(Arrays.asList(int1, double1));
 		ObjectDataDTO file2 = createObjectDataDTO(3L, EntityType.file, 3);
 		file2.setParentId(222L);
-		
+
 		ObjectAnnotationDTO int2 = new ObjectAnnotationDTO(file2);
 		int2.setKey("foo");
 		int2.setValue(Arrays.asList("321", "654"));
 		int2.setType(AnnotationType.LONG);
-		
+
 		ObjectAnnotationDTO double2 = new ObjectAnnotationDTO(file2);
 		double2.setKey("bar");
 		double2.setValue("Infinity");
 		double2.setType(AnnotationType.DOUBLE);
-		
+
 		file2.setAnnotations(Arrays.asList(int2, double2));
-		
+
 		tableIndexDAO.addObjectData(mainType, Lists.newArrayList(file1, file2));
-		
+
 		// Create the schema for this table
-		List<ColumnModel> schema = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST), TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
+		List<ColumnModel> schema = Lists.newArrayList(
+				TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER_LIST),
+				TableModelTestUtils.createColumn(2L, "bar", ColumnType.DOUBLE));
 
 		// both parents
 		ViewFilter filter = new HierarchicaFilter(mainType, subTypes, Set.of(file1.getParentId(), file2.getParentId()));
 
 		createOrUpdateTable(schema, indexDescription);
-		
+
 		tableIndexDAO.copyObjectReplicationToView(tableId.getId(), filter, schema, fieldTypeMapper);
-		
+
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		
+
 		// Call under test
 		List<String> result = tableIndexDAO.streamTableIndexData(tableId, stream);
-		
+
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
-		
+
 		List<String[]> rows = stream.getRows();
 		assertNotNull(rows.get(1)[4]);
 		assertNotNull(rows.get(2)[4]);
-		
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE" , "_C1_", "_C2_", "_DBL_C2_"}, rows.get(0));
-		assertArrayEquals(new String[] {"2", "2", "etag2", "2", rows.get(1)[4], "[123, 456, 789]", null, "NaN"}, rows.get(1));
-		assertArrayEquals(new String[] {"3", "2", "etag3", "2", rows.get(2)[4], "[321, 654]", "1.7976931348623157E308", "Infinity"}, rows.get(2));
+
+		assertArrayEquals(new String[] { "ROW_ID", "ROW_VERSION", "ROW_ETAG", "ROW_BENEFACTOR", "ROW_HASH_CODE", "_C1_",
+				"_C2_", "_DBL_C2_" }, rows.get(0));
+		assertArrayEquals(new String[] { "2", "2", "etag2", "2", rows.get(1)[4], "[123, 456, 789]", null, "NaN" },
+				rows.get(1));
+		assertArrayEquals(new String[] { "3", "2", "etag3", "2", rows.get(2)[4], "[321, 654]", "1.7976931348623157E308",
+				"Infinity" }, rows.get(2));
 	}
-	
+
 	// Test to reproduce https://sagebionetworks.jira.com/browse/PLFM-7622
 	@Test
 	public void testStreamTableIndexDataWithDoubleAndSchemaChange() throws IOException {
@@ -4752,78 +4754,72 @@ public class TableIndexDAOImplTest {
 		indexDescription = new TableIndexDescription(tableId);
 		// delete all data
 		tableIndexDAO.deleteTable(tableId);
-		
+
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
-		
+
 		ColumnModel intColumn = TableModelTestUtils.createColumn(1L, "foo", ColumnType.INTEGER);
 		ColumnModel stringColumn = TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING);
-		
+
 		// Start off with an int and a string column
-		List<ColumnChangeDetails> schemaChanges = List.of(
-			new ColumnChangeDetails(null, intColumn),
-			new ColumnChangeDetails(null, stringColumn)
-		);
-		
+		List<ColumnChangeDetails> schemaChanges = List.of(new ColumnChangeDetails(null, intColumn),
+				new ColumnChangeDetails(null, stringColumn));
+
 		tableIndexDAO.alterTableAsNeeded(tableId, schemaChanges, false);
 
 		ColumnModel doubleColumn = TableModelTestUtils.createColumn(3L, "foo", ColumnType.DOUBLE);
 		List<ColumnModel> schema = List.of(doubleColumn, stringColumn);
 
 		// Now change the int column to a double column
-		schemaChanges = List.of(
-			new ColumnChangeDetails(intColumn, doubleColumn)
-		);		
-		
+		schemaChanges = List.of(new ColumnChangeDetails(intColumn, doubleColumn));
+
 		boolean isTemp = false;
 		List<DatabaseColumnInfo> currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
 		schemaChanges = SQLUtils.matchChangesToCurrentInfo(currentIndexSchema, schemaChanges);
-		
+
 		tableIndexDAO.alterTableAsNeeded(tableId, schemaChanges, false);
-		
+
 		currentIndexSchema = tableIndexDAO.getDatabaseInfo(tableId, isTemp);
-		
+
 		// The _DBL column is not appended as last
-		assertEquals(
-			List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C2_", "_DBL_C3_"), 
-			currentIndexSchema.stream().map(col -> col.getColumnName()).collect(Collectors.toList())
-		);
-		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C2_", "_DBL_C3_"),
+				currentIndexSchema.stream().map(col -> col.getColumnName()).collect(Collectors.toList()));
+
 		SparseChangeSet rowSet = new SparseChangeSet(tableId.toString(), schema);
-		
+
 		SparseRow rowOne = rowSet.addEmptyRow();
 		rowOne.setRowId(1L);
 		rowOne.setVersionNumber(1L);
 		rowOne.setCellValue(doubleColumn.getId(), "1.0");
 		rowOne.setCellValue(stringColumn.getId(), "a");
-		
+
 		SparseRow rowTow = rowSet.addEmptyRow();
 		rowTow.setRowId(2L);
 		rowTow.setVersionNumber(1L);
 		rowTow.setCellValue(doubleColumn.getId(), "NaN");
 		rowTow.setCellValue(stringColumn.getId(), "b");
-		
+
 		Grouping data = rowSet.groupByValidValues().iterator().next();
-		
+
 		tableIndexDAO.createOrUpdateOrDeleteRows(tableId, data);
-		
+
 		InMemoryCSVWriterStream stream = new InMemoryCSVWriterStream();
-		
+
 		// Call under test
 		List<String> result = tableIndexDAO.streamTableIndexData(tableId, stream);
-		
+
 		assertEquals(schema.stream().map(ColumnModel::getId).collect(Collectors.toList()), result);
-		
+
 		List<String[]> rows = stream.getRows();
-		
-		assertArrayEquals(new String[] {"ROW_ID", "ROW_VERSION", "_C3_", "_DBL_C3_", "_C2_"}, rows.get(0));
-		assertArrayEquals(new String[] {"1", "1", "1.0", null, "a"}, rows.get(1));
-		assertArrayEquals(new String[] {"2", "1", null, "NaN", "b"}, rows.get(2));
+
+		assertArrayEquals(new String[] { "ROW_ID", "ROW_VERSION", "_C3_", "_DBL_C3_", "_C2_" }, rows.get(0));
+		assertArrayEquals(new String[] { "1", "1", "1.0", null, "a" }, rows.get(1));
+		assertArrayEquals(new String[] { "2", "1", null, "NaN", "b" }, rows.get(2));
 	}
-	
+
 	@Test
 	public void testDoesIndexHashMatchSchemaHash() {
 		tableId = IdAndVersion.parse("syn123");
-		
+
 		tableIndexDAO.createTableIfDoesNotExist(indexDescription);
 		tableIndexDAO.createSecondaryTables(tableId);
 
@@ -4833,12 +4829,12 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.setCurrentSchemaMD5Hex(tableId, schemaHash);
 		// call under test
 		assertTrue(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
-		
+
 		allTypes.add(new ColumnModel().setId("999"));
 		// call under test
 		assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
 	}
-	
+
 	@Test
 	public void testDoesIndexHashMatchSchemaHashWithTableDoesNotExist() {
 		tableId = IdAndVersion.parse("syn123");
@@ -4847,164 +4843,139 @@ public class TableIndexDAOImplTest {
 		// call under test
 		assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, allTypes));
 	}
-	
+
 	@Test
 	public void testDoesIndexHashMatchSchemaHashWithTableIdNull() {
 		tableId = null;
 		List<ColumnModel> schema = TableModelTestUtils.createOneOfEachType();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, schema));
 		}).getMessage();
-		assertEquals("tableId is required.",message);
+		assertEquals("tableId is required.", message);
 	}
-	
+
 	@Test
 	public void testDoesIndexHashMatchSchemaHashWithSchemaNull() {
 		tableId = IdAndVersion.parse("syn123");
 		List<ColumnModel> schema = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			assertFalse(tableIndexDAO.doesIndexHashMatchSchemaHash(tableId, schema));
 		}).getMessage();
-		assertEquals("newSchema is required.",message);
+		assertEquals("newSchema is required.", message);
 	}
-	
+
 	@Test
 	public void testSwapTableIndex() {
 		// Create the first table
-		List<ColumnModel> schemaOne = List.of(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
-			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
-		);
-		
+		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(1L, "foo", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST));
+
 		createOrUpdateTable(schemaOne, indexDescription);
 		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
-		
+
 		// Now add some data
-		RowSet set = new RowSet()
-			.setRows(TableModelTestUtils.createRows(schemaOne, 2))
-			.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
-			.setTableId(indexDescription.getIdAndVersion().toString());
-		
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
-		
+		RowSet set = new RowSet().setRows(TableModelTestUtils.createRows(schemaOne, 2))
+				.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
+				.setTableId(indexDescription.getIdAndVersion().toString());
+
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set,
+				new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
+
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
-		
+
 		// Create another table
 		IndexDescription sourceIndexDescription = new TableIndexDescription(IdAndVersion.parse("456"));
-		
-		List<ColumnModel> schemaTwo = List.of(
-			TableModelTestUtils.createColumn(3L, "foo", ColumnType.INTEGER),
-			TableModelTestUtils.createColumn(4L, "bar", ColumnType.STRING),
-			TableModelTestUtils.createColumn(5L, "fooList", ColumnType.INTEGER_LIST),
-			TableModelTestUtils.createColumn(6L, "barList", ColumnType.STRING_LIST)
-		);
-		
+
+		List<ColumnModel> schemaTwo = List.of(TableModelTestUtils.createColumn(3L, "foo", ColumnType.INTEGER),
+				TableModelTestUtils.createColumn(4L, "bar", ColumnType.STRING),
+				TableModelTestUtils.createColumn(5L, "fooList", ColumnType.INTEGER_LIST),
+				TableModelTestUtils.createColumn(6L, "barList", ColumnType.STRING_LIST));
+
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 		createOrUpdateTable(schemaTwo, sourceIndexDescription);
 		tableIndexDAO.createSecondaryTables(sourceIndexDescription.getIdAndVersion());
-		
-		set = new RowSet()
-			.setRows(TableModelTestUtils.createRows(schemaTwo, 3))
-			.setHeaders(TableModelUtils.getSelectColumns(schemaTwo))
-			.setTableId(sourceIndexDescription.getIdAndVersion().toString());
-		
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
-		
+
+		set = new RowSet().setRows(TableModelTestUtils.createRows(schemaTwo, 3))
+				.setHeaders(TableModelUtils.getSelectColumns(schemaTwo))
+				.setTableId(sourceIndexDescription.getIdAndVersion().toString());
+
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set,
+				new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(4L));
+
 		createOrUpdateOrDeleteRows(sourceIndexDescription.getIdAndVersion(), set, schemaTwo);
 		boolean isTemp = false;
-		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
-			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
-		);
-		
-		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
-			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
-		);
-		
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"),
+				tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream()
+						.map(c -> c.getColumnName()).collect(Collectors.toList()));
+
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"),
+				tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream()
+						.map(c -> c.getColumnName()).collect(Collectors.toList()));
+
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
 		assertEquals(3L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
-				
+
 		// Call under test
 		tableIndexDAO.swapTableIndex(sourceIndexDescription.getIdAndVersion(), indexDescription.getIdAndVersion());
-		
+
 		assertEquals(3L, tableIndexDAO.getRowCountForTable(indexDescription.getIdAndVersion()));
 		assertEquals(2L, tableIndexDAO.getRowCountForTable(sourceIndexDescription.getIdAndVersion()));
-		
-		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"), 
-			tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
-		);
-		
-		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"), 
-			tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream().map(c -> c.getColumnName()).collect(Collectors.toList())
-		);
-		
+
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C3_", "_C4_", "_C5_", "_C6_"),
+				tableIndexDAO.getDatabaseInfo(indexDescription.getIdAndVersion(), isTemp).stream()
+						.map(c -> c.getColumnName()).collect(Collectors.toList()));
+
+		assertEquals(List.of("ROW_ID", "ROW_VERSION", "ROW_SEARCH_CONTENT", "_C1_", "_DBL_C1_", "_C2_", "_C3_"),
+				tableIndexDAO.getDatabaseInfo(sourceIndexDescription.getIdAndVersion(), isTemp).stream()
+						.map(c -> c.getColumnName()).collect(Collectors.toList()));
+
 		tableIndexDAO.deleteTable(sourceIndexDescription.getIdAndVersion());
 	}
-	
+
 	@Test
 	public void testQuerySingleColumn() {
-		List<ColumnModel> schemaOne = List.of(
-			TableModelTestUtils.createColumn(1L, "foo", ColumnType.ENTITYID),
-			TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
-			TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST)
-		);
-		
+		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(1L, "foo", ColumnType.ENTITYID),
+				TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST),
+				TableModelTestUtils.createColumn(3L, "barList", ColumnType.INTEGER_LIST));
+
 		createOrUpdateTable(schemaOne, indexDescription);
 		tableIndexDAO.createSecondaryTables(indexDescription.getIdAndVersion());
-		
+
 		// Now add some data
-		RowSet set = new RowSet()
-			.setRows(TableModelTestUtils.createRows(schemaOne, 10))
-			.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
-			.setTableId(indexDescription.getIdAndVersion().toString());
-		
-		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
-		
+		RowSet set = new RowSet().setRows(TableModelTestUtils.createRows(schemaOne, 10))
+				.setHeaders(TableModelUtils.getSelectColumns(schemaOne))
+				.setTableId(indexDescription.getIdAndVersion().toString());
+
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set,
+				new IdRange().setMinimumId(100L).setMaximumId(200L).setVersionNumber(3L));
+
 		// Now fill the table with data
 		createOrUpdateOrDeleteRows(indexDescription.getIdAndVersion(), set, schemaOne);
-		
-		QueryTranslator query = QueryTranslator.builder("select distinct foo from " + tableId + " order by foo limit 5", schemaProvider(schemaOne), userId)
-			.indexDescription(new TableIndexDescription(tableId))
-			.build();
-		
-		List<Long> expected = List.of(
-			6000L, 6001L, 6002L, 6003L, 6004L
-		);
+
+		QueryTranslator query = QueryTranslator.builder("select distinct foo from " + tableId + " order by foo limit 5",
+				schemaProvider(schemaOne), userId).indexDescription(new TableIndexDescription(tableId)).build();
+
+		List<Long> expected = List.of(6000L, 6001L, 6002L, 6003L, 6004L);
 		// Call under test
 		List<Long> result = tableIndexDAO.querySingleColumn(query.getOutputSQL(), query.getParameters(), Long.class);
-		
+
 		assertEquals(expected, result);
 	}
-	
+
 	/**
 	 * Helper to create a schema provider for the given schema.
+	 * 
 	 * @param schema
 	 * @return
 	 */
 	SchemaProvider schemaProvider(List<ColumnModel> schema) {
-		return new SchemaProvider() {
-			
-			@Override
-			public List<ColumnModel> getTableSchema(IdAndVersion tableId) {
-				return schema;
-			}
-			
-			@Override
-			public ColumnModel getColumnModel(String id) {
-				return schema.stream().filter(c->id.equals(c.getId())).findFirst().get();
-			}
-
-			@Override
-			public TableType getTableType(IdAndVersion tableId) {
-				// Unused
-				return null;
-			}
-		};
+		return new BasicSchemaProvider(schema, null);
 	}
-	
+
 	@Test
 	public void testGetConstraintClause() {
 		List<ColumnModel> schemaOne = List.of(TableModelTestUtils.createColumn(2L, "bar", ColumnType.STRING_LIST)
@@ -5023,7 +4994,7 @@ public class TableIndexDAOImplTest {
 				tableIndexDAO.getConstraintClause(constraintName));
 
 	}
-	
+
 	@Test
 	public void testGetConstraintClauseWithNotFound() {
 		String constraintName = "doesNotExist";
@@ -5031,16 +5002,16 @@ public class TableIndexDAOImplTest {
 		assertEquals(Optional.empty(), tableIndexDAO.getConstraintClause(constraintName));
 
 	}
-	
+
 	@Test
 	public void testGetConstraintClauseWithNull() {
 		String constraintName = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			tableIndexDAO.getConstraintClause(constraintName);
 		}).getMessage();
 		assertEquals("constraintName is required.", message);
 	}
-	
+
 	@Test
 	public void testCachedQuery() throws InterruptedException {
 		String requestHash = DigestUtils.sha256Hex(UUID.randomUUID().toString());
@@ -5048,10 +5019,10 @@ public class TableIndexDAOImplTest {
 		String resultJson = "{\"result\": \"foo\"}";
 		long runtimeMS = 10L;
 		int expiresInSec = 3;
-		
+
 		// call under test
 		tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
-		
+
 		// call under test
 		Optional<CachedQueryDto> resultOption = tableIndexDAO.getCachedQuery(requestHash);
 		assertTrue(resultOption.isPresent());
@@ -5061,15 +5032,15 @@ public class TableIndexDAOImplTest {
 		assertEquals(requestJson, result.getRequestJson());
 		assertEquals(resultJson, result.getResultJson());
 		assertEquals(runtimeMS, result.getRuntimeMS());
-		
+
 		// call under test
 		assertEquals(Optional.of(resultJson), tableIndexDAO.getCachedQueryResults(requestHash));
-		
+
 		// call under test
 		assertEquals(Optional.empty(), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
-		
-		Thread.sleep(expiresInSec*1001);
-		
+
+		Thread.sleep(expiresInSec * 1001);
+
 		// call under test
 		assertEquals(Optional.of(requestJson), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
 
@@ -5077,7 +5048,7 @@ public class TableIndexDAOImplTest {
 		resultJson = "{\"result\": \"foo\", \"updated\": true}";
 		// call under test
 		tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
-		
+
 		// call under test
 		Optional<CachedQueryDto> updatedOption = tableIndexDAO.getCachedQuery(requestHash);
 		assertTrue(resultOption.isPresent());
@@ -5089,7 +5060,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(resultJson, updatedResult.getResultJson());
 		assertEquals(runtimeMS, updatedResult.getRuntimeMS());
 	}
-	
+
 	@Test
 	public void testCachedQueryWithDoesNotExist() {
 		String requestHash = "does not exist";
@@ -5097,37 +5068,37 @@ public class TableIndexDAOImplTest {
 		assertEquals(Optional.empty(), tableIndexDAO.getCachedQueryResults(requestHash));
 		assertEquals(Optional.empty(), tableIndexDAO.getExpiredCachedQueryRequest(requestHash));
 	}
-	
+
 	@Test
 	public void testGetCachedQuerysWithNull() {
 		String requestHash = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getCachedQuery(requestHash);
 		}).getMessage();
 		assertEquals("requestHash is required.", message);
 	}
-	
+
 	@Test
 	public void testGetCachedQueryResultsWithNull() {
 		String requestHash = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getCachedQueryResults(requestHash);
 		}).getMessage();
 		assertEquals("requestHash is required.", message);
 	}
-	
+
 	@Test
 	public void testGetCachedQueryRequestWithNull() {
 		String requestHash = null;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.getExpiredCachedQueryRequest(requestHash);
 		}).getMessage();
 		assertEquals("requestHash is required.", message);
 	}
-	
+
 	@Test
 	public void testSaveCachedQueryWithNullHash() {
 		String requestHash = null;
@@ -5135,13 +5106,13 @@ public class TableIndexDAOImplTest {
 		String resultJson = "{\"result\": \"foo\"}";
 		long runtimeMS = 10L;
 		int expiresInSec = 12;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
 		}).getMessage();
 		assertEquals("requestHash is required.", message);
 	}
-	
+
 	@Test
 	public void testSaveCachedQueryWithNullRequest() {
 		String requestHash = DigestUtils.sha256Hex(UUID.randomUUID().toString());
@@ -5149,7 +5120,7 @@ public class TableIndexDAOImplTest {
 		String resultJson = "{\"result\": \"foo\"}";
 		Long runtimeMS = 10L;
 		int expiresInSec = 12;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
 		}).getMessage();
@@ -5163,119 +5134,344 @@ public class TableIndexDAOImplTest {
 		String resultJson = null;
 		Long runtimeMS = 10L;
 		int expiresInSec = 12;
-		String message = assertThrows(IllegalArgumentException.class, ()->{
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			tableIndexDAO.saveCachedQuery(requestHash, requestJson, resultJson, runtimeMS, expiresInSec);
 		}).getMessage();
 		assertEquals("resultJson is required.", message);
 	}
-	
+
 	@Test
-	public void testEntityReplicationWithMaxPath(){
-		
+	public void testEntityReplicationWithMaxPath() {
+
 		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
 		objectData.setPath("a".repeat(TableConstants.MAX_PATH_LENGTH));
-		
+
 		// call under test
 		tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
-		
+
 		ObjectDataDTO result = tableIndexDAO.getObjectData(mainType, objectData.getId(), objectData.getVersion());
-	
+
 		assertEquals(objectData, result);
 	}
-	
-	@Test
-	public void testEntityReplicationWithOverMaxPath(){
-		
-		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
-		objectData.setPath("a".repeat(TableConstants.MAX_PATH_LENGTH+1));
 
-		String message = assertThrows(DataIntegrityViolationException.class, ()->{
+	@Test
+	public void testEntityReplicationWithOverMaxPath() {
+
+		ObjectDataDTO objectData = createObjectDataDTO(2L, EntityType.file, 2);
+		objectData.setPath("a".repeat(TableConstants.MAX_PATH_LENGTH + 1));
+
+		String message = assertThrows(DataIntegrityViolationException.class, () -> {
 			// call under test
 			tableIndexDAO.addObjectData(mainType, Collections.singletonList(objectData));
 		}).getMessage();
-		
+
 		assertTrue(message.contains("Data too long for column 'PATH'"));
 	}
-	
+
 	@Test
 	public void testComputeProjectStorageData() {
 		Long projectOneId = 123L;
 		Long projectTwoId = 456L;
 		Long projectThreeId = 789L;
-		
+
 		tableIndexDAO.addObjectData(ReplicationType.ENTITY, List.of(
-			// Project one
-			createObjectDataDTO(projectOneId, EntityType.project, 0),
-			createObjectDataDTO(2L, EntityType.folder, 0).setProjectId(projectOneId),
-			createObjectDataDTO(3L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(1L),
-			createObjectDataDTO(4L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(2048L).setFileLocationId(2L),
-			createObjectDataDTO(5L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(2L),
-			createObjectDataDTO(6L, EntityType.dataset, 0).setProjectId(projectOneId),
-			// Project two
-			createObjectDataDTO(projectTwoId, EntityType.project, 0),
-			createObjectDataDTO(7, EntityType.file, 0).setProjectId(projectTwoId).setFileSizeBytes(4096L).setFileLocationId(1L),
-			// Project three, no files
-			createObjectDataDTO(projectThreeId, EntityType.project, 0)
-		));
-		
-		
+				// Project one
+				createObjectDataDTO(projectOneId, EntityType.project, 0),
+				createObjectDataDTO(2L, EntityType.folder, 0).setProjectId(projectOneId),
+				createObjectDataDTO(3L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L)
+						.setFileLocationId(1L),
+				createObjectDataDTO(4L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(2048L)
+						.setFileLocationId(2L),
+				createObjectDataDTO(5L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L)
+						.setFileLocationId(2L),
+				createObjectDataDTO(6L, EntityType.dataset, 0).setProjectId(projectOneId),
+				// Project two
+				createObjectDataDTO(projectTwoId, EntityType.project, 0),
+				createObjectDataDTO(7, EntityType.file, 0).setProjectId(projectTwoId).setFileSizeBytes(4096L)
+						.setFileLocationId(1L),
+				// Project three, no files
+				createObjectDataDTO(projectThreeId, EntityType.project, 0)));
+
 		ProjectStorageData projectOneData = tableIndexDAO.computeProjectStorageData(projectOneId);
 
 		assertNotNull(projectOneData.getRuntimeMs());
-		assertEquals(new ProjectStorageData()
-			.setProjectId(projectOneId)
-			.setStorageLocationData(Map.of("1", 1024L, "2", 3072L))
-			.setRuntimeMs(projectOneData.getRuntimeMs()),
-			projectOneData);
+		assertEquals(new ProjectStorageData().setProjectId(projectOneId)
+				.setStorageLocationData(Map.of("1", 1024L, "2", 3072L)).setRuntimeMs(projectOneData.getRuntimeMs()),
+				projectOneData);
 
 		ProjectStorageData projectTwoData = tableIndexDAO.computeProjectStorageData(projectTwoId);
 
 		assertNotNull(projectTwoData.getRuntimeMs());
-		assertEquals(new ProjectStorageData()
-			.setProjectId(projectTwoId)
-			.setStorageLocationData(Map.of("1", 4096L))
-			.setRuntimeMs(projectTwoData.getRuntimeMs()),
-			projectTwoData);
+		assertEquals(new ProjectStorageData().setProjectId(projectTwoId).setStorageLocationData(Map.of("1", 4096L))
+				.setRuntimeMs(projectTwoData.getRuntimeMs()), projectTwoData);
 
 		ProjectStorageData projectThreeData = tableIndexDAO.computeProjectStorageData(projectThreeId);
-		
+
 		assertNotNull(projectThreeData.getRuntimeMs());
-		assertEquals(new ProjectStorageData()
-			.setProjectId(projectThreeId)
-			.setStorageLocationData(Collections.emptyMap())
-			.setRuntimeMs(projectThreeData.getRuntimeMs()),
-			projectThreeData);
+		assertEquals(new ProjectStorageData().setProjectId(projectThreeId)
+				.setStorageLocationData(Collections.emptyMap()).setRuntimeMs(projectThreeData.getRuntimeMs()),
+				projectThreeData);
 	}
-	
+
 	@Test
 	public void testGetProjectStorageLocations() {
-		
+
 		Long projectOneId = 123L;
 		Long projectTwoId = 456L;
 		Long projectThreeId = 789L;
-		
+
 		tableIndexDAO.addObjectData(ReplicationType.ENTITY, List.of(
-			// Project one
-			createObjectDataDTO(projectOneId, EntityType.project, 0),
-			createObjectDataDTO(2L, EntityType.folder, 0).setProjectId(projectOneId),
-			createObjectDataDTO(3L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(1L),
-			createObjectDataDTO(4L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(2048L).setFileLocationId(2L),
-			createObjectDataDTO(5L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L).setFileLocationId(2L),
-			createObjectDataDTO(6L, EntityType.dataset, 0).setProjectId(projectOneId),
-			// Project two
-			createObjectDataDTO(projectTwoId, EntityType.project, 0),
-			createObjectDataDTO(7, EntityType.file, 0).setProjectId(projectTwoId).setFileSizeBytes(4096L).setFileLocationId(1L),
-			// Project three, no files
-			createObjectDataDTO(projectThreeId, EntityType.project, 0)
-		));
-		
-		assertEquals(List.of(
-			Pair.create(projectOneId, 1L),
-			Pair.create(projectOneId, 2L),
-			Pair.create(projectTwoId, 1L)
-		), tableIndexDAO.getProjectStorageLocations(List.of(projectOneId, projectTwoId, projectThreeId)));
-		
+				// Project one
+				createObjectDataDTO(projectOneId, EntityType.project, 0),
+				createObjectDataDTO(2L, EntityType.folder, 0).setProjectId(projectOneId),
+				createObjectDataDTO(3L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L)
+						.setFileLocationId(1L),
+				createObjectDataDTO(4L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(2048L)
+						.setFileLocationId(2L),
+				createObjectDataDTO(5L, EntityType.file, 0).setProjectId(projectOneId).setFileSizeBytes(1024L)
+						.setFileLocationId(2L),
+				createObjectDataDTO(6L, EntityType.dataset, 0).setProjectId(projectOneId),
+				// Project two
+				createObjectDataDTO(projectTwoId, EntityType.project, 0),
+				createObjectDataDTO(7, EntityType.file, 0).setProjectId(projectTwoId).setFileSizeBytes(4096L)
+						.setFileLocationId(1L),
+				// Project three, no files
+				createObjectDataDTO(projectThreeId, EntityType.project, 0)));
+
+		assertEquals(
+				List.of(Pair.create(projectOneId, 1L), Pair.create(projectOneId, 2L), Pair.create(projectTwoId, 1L)),
+				tableIndexDAO.getProjectStorageLocations(List.of(projectOneId, projectTwoId, projectThreeId)));
+
+	}
+
+	@Test
+	public void testViewScopeCRUD() {
+
+		// create
+		tableIndexDAO.setViewScope(1L, ReplicationType.ENTITY, List.of(22L, 33L, 44L), "h2");
+		tableIndexDAO.setViewScope(1L, ReplicationType.SUBMISSION, List.of(11L, 33L, 55L), "h1");
+
+		tableIndexDAO.setViewScope(2L, ReplicationType.ENTITY, List.of(44L, 55L, 66L), "h3");
+		tableIndexDAO.setViewScope(2L, ReplicationType.SUBMISSION, List.of(55L, 77L, 99L), "h4");
+
+		tableIndexDAO.setViewScope(3L, ReplicationType.ENTITY, List.of(66L, 77L, 99L), "h5");
+		tableIndexDAO.setViewScope(3L, ReplicationType.SUBMISSION, List.of(111L, 333L, 555L), "h6");
+
+		// read
+		assertEquals(Set.of(3L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(99L, 77L), ReplicationType.ENTITY))));
+		assertEquals(Set.of(2L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(99L, 77L), ReplicationType.SUBMISSION))));
+		assertEquals(Set.of(1L, 2L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(44L, 55L, 33L), ReplicationType.ENTITY))));
+		assertEquals(Set.of(1L, 3L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(22L, 77L, 22L), ReplicationType.ENTITY))));
+
+		// update
+		tableIndexDAO.setViewScope(1L, ReplicationType.ENTITY, List.of(123L), "hUpdated");
+		assertEquals(Set.of(1L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(123L), ReplicationType.ENTITY))));
+
+		// delete
+		tableIndexDAO.deleteViewScope(1L, ReplicationType.ENTITY);
+		assertEquals(Collections.emptySet(), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(123L), ReplicationType.ENTITY))));
+		assertEquals(Set.of(1L), new HashSet<Long>(IteratorUtils
+				.toList(tableIndexDAO.getViewsIntersectionForPath(List.of(11L, 33L), ReplicationType.SUBMISSION))));
+
+	}
+
+	@Test
+	public void testViewScopeHashCreateUpdateDelete() {
+		// create
+		tableIndexDAO.setViewScope(1L, ReplicationType.ENTITY, List.of(22L, 33L, 44L), "h2");
+		assertEquals(Optional.of("h2"), tableIndexDAO.getViewScopeIdsHash(1L, ReplicationType.ENTITY));
+
+		tableIndexDAO.setViewScope(1L, ReplicationType.SUBMISSION, List.of(11L, 33L, 55L), "h1");
+		assertEquals(Optional.of("h1"), tableIndexDAO.getViewScopeIdsHash(1L, ReplicationType.SUBMISSION));
+		// update
+		tableIndexDAO.setViewScope(1L, ReplicationType.ENTITY, List.of(22L, 3333L), "h3");
+		assertEquals(Optional.of("h3"), tableIndexDAO.getViewScopeIdsHash(1L, ReplicationType.ENTITY));
+		// delete
+		tableIndexDAO.deleteViewScope(1L, ReplicationType.ENTITY);
+		assertEquals(Optional.empty(), tableIndexDAO.getViewScopeIdsHash(1L, ReplicationType.ENTITY));
+		assertEquals(Optional.of("h1"), tableIndexDAO.getViewScopeIdsHash(1L, ReplicationType.SUBMISSION));
+	}
+
+	@Test
+	public void testGetViewScopeIdsHashWithNoView() {
+		// call under test
+		assertEquals(Optional.empty(), tableIndexDAO.getViewScopeIdsHash(99L, ReplicationType.ENTITY));
+	}
+
+	@Test
+	public void testgetViewScopeIdsHashWithNullViewId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getViewScopeIdsHash(null, ReplicationType.ENTITY);
+		}).getMessage();
+		assertEquals("viewId is required.", message);
+	}
+
+	@Test
+	public void testgetViewScopeIdsHashWithNullType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getViewScopeIdsHash(1L, null);
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+
+	@Test
+	public void testSetViewScopeWithNullViewId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewScope(null, ReplicationType.ENTITY, Collections.emptyList(), "hash");
+		}).getMessage();
+		assertEquals("viewId is required.", message);
+	}
+
+	@Test
+	public void testSetViewScopeWithNullHash() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewScope(1L, ReplicationType.ENTITY, Collections.emptyList(), null);
+		}).getMessage();
+		assertEquals("idsHash is required.", message);
+	}
+
+	@Test
+	public void testSetViewScopeWithNullType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewScope(123L, null, Collections.emptyList(), "hash");
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+
+	@Test
+	public void testSetViewScopeWithNullScope() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewScope(123L, ReplicationType.ENTITY, null, "hash");
+		}).getMessage();
+		assertEquals("scopeIds is required.", message);
+	}
+
+	@Test
+	public void testGetViewsIntersectionForPathWithNullPath() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getViewsIntersectionForPath(null, ReplicationType.ENTITY);
+		}).getMessage();
+		assertEquals("path is required.", message);
+	}
+
+	@Test
+	public void testGetViewsIntersectionForPathWithNullType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.getViewsIntersectionForPath(Collections.emptyList(), null);
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+
+	@Test
+	public void testDeleteViewScopeWithNullViewId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.deleteViewScope(null, ReplicationType.ENTITY);
+		}).getMessage();
+		assertEquals("viewId is required.", message);
+	}
+
+	@Test
+	public void testDeleteViewScopeWithNullType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.deleteViewScope(1L, null);
+		}).getMessage();
+		assertEquals("type is required.", message);
+	}
+
+	@Test
+	public void testSetViewAsNeedsUpdate() throws InterruptedException {
+		// call under test
+		tableIndexDAO.setViewAsNeedsUpdate(123L, 20);
+		tableIndexDAO.setViewAsNeedsUpdate(456L, 1);
+		tableIndexDAO.setViewAsNeedsUpdate(123L, 1);
+		// this will not be visible yet
+		tableIndexDAO.setViewAsNeedsUpdate(888L, 100);
+
+		Thread.sleep(2000L);
+
+		Set<Long> consumed = new HashSet<>();
+		int count = 0;
+		while (tableIndexDAO.consumeFirstVisibleViewUpdate(id -> {
+			consumed.add(id);
+		})) {
+			count++;
+			assertTrue(count < 3);
+		}
+
+		assertEquals(Set.of(123L, 456L), consumed);
+	}
+
+	@Test
+	public void testSetViewAsNeedsUpdateWithNullViewId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewAsNeedsUpdate(null, 1);
+		}).getMessage();
+		assertEquals("viewId is required.", message);
 	}
 	
+	@Test
+	public void testSetViewAsNeedsUpdateWithNullLessThanOne() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.setViewAsNeedsUpdate(123L, 0);
+		}).getMessage();
+		assertEquals("visiblityTimeoutSec must be > 0", message);
+	}
+
+	@Test
+	public void testConsumeFirstVisibleViewUpdateWithNothingToDo() throws InterruptedException {
+		// call under test
+		tableIndexDAO.setViewAsNeedsUpdate(999L, 200);
+		assertFalse(tableIndexDAO.consumeFirstVisibleViewUpdate(id -> {
+			// should not get here
+			assertTrue(false);
+		}));
+	}
+
+	@Test
+	public void testConsumeFirstVisibleViewUpdateWithException() throws InterruptedException {
+		tableIndexDAO.setViewAsNeedsUpdate(999L, 1);
+		Thread.sleep(2000L);
+
+		String message = assertThrows(RuntimeException.class, () -> {
+			// call under test
+			tableIndexDAO.consumeFirstVisibleViewUpdate(id -> {
+				throw new RuntimeException("handler error");
+			});
+		}).getMessage();
+		assertEquals("handler error", message);
+		// second try should work
+		Set<Long> consumed = new HashSet<>();
+		assertTrue(tableIndexDAO.consumeFirstVisibleViewUpdate(id -> {
+			consumed.add(id);
+		}));
+		assertEquals(Set.of(999L), consumed);
+	}
+	
+	@Test
+	public void testConsumeFirstVisibleViewUpdateWithNull() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			tableIndexDAO.consumeFirstVisibleViewUpdate(null);
+		}).getMessage();
+		assertEquals("handler is required.", message);
+	}
 }

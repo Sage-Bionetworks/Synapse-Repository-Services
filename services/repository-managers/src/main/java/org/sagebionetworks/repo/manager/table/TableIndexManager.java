@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewScopeType;
 import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
@@ -314,5 +317,47 @@ public interface TableIndexManager {
 	 * @return A version representing the sum of the current versions of all the dependencies for the given index
 	 */
 	long getVersionFromIndexDependencies(IndexDescription index);
+
+	/**
+	 * Find all Views IDs that have a scope that overlaps with provided path.
+	 * @param path
+	 * @param type
+	 * @return
+	 */
+	Iterator<Long> getViewsIntersectionForPath(Collection<Long> path, ReplicationType type);
 	
+	/**
+	 * Get an iterator over the distinct combined pathIds of the provided objectIds.
+	 * @param objectType
+	 * @param objectIds
+	 * @return
+	 */
+	Iterator<Long> getDistinctReplicatedPathIds(ReplicationType objectType, List<Long> objectIds);
+
+	/**
+	 * Create a unique record that indicates a view needs to be updated. The view
+	 * will not be considered for {@link #consumeAllVisibleViewUpdates()} until its
+	 * visiblityTimeoutMS has elapsed. Each call to this method for the same view
+	 * will refresh the visibility timeout of that view, allowing multiple changes
+	 * to accumulate during this period.
+	 * 
+	 * @param viewId              The ID of the view that needs to be updated.
+	 * @param visiblityTimeoutSec The number of seconds until this recored become
+	 *                            visible.
+	 */
+	void setViewAsNeedsUpdate(Long viewId, int visiblityTimeoutSec);
+	
+	/**
+	 * The provided handler will be passed the the ID of the first visible view that
+	 * needs to be updated. If the handler returns without throwing an exception,
+	 * the view update recored will be consumed. If the handler fails with any type
+	 * of exception, the view update recored will not be consumed and the exception
+	 * will be thrown.
+	 * 
+	 * @return True if a view update was consumed. False if there was nothing to
+	 *         consume.
+	 * @throws RuntimeException
+	 */
+	boolean consumeFirstVisibleViewUpdate(ViewUpdateHandler handler);
+
 }

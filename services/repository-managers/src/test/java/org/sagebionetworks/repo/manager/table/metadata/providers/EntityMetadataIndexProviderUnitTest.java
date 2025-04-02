@@ -299,11 +299,11 @@ public class EntityMetadataIndexProviderUnitTest {
 			IdAndVersion.parse("1"),
 			IdAndVersion.parse("2")
 		);
-		Set<Long> fullScope = Set.of(1L,2L,3L);
-		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(fullScope);
+		Set<Long> parentIds = Set.of(1L,2L,3L);
+		when(mockNodeDao.getAllContainerIds((Collection<Long>)any(), anyInt())).thenReturn(parentIds);
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewTypeMask, scope);
-		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Set.of(SubType.file), fullScope);
+		ViewFilter expected = new HierarchicaFilter(ReplicationType.ENTITY, Set.of(SubType.file), parentIds, Set.of(1L,2L));
 		assertEquals(expected, filter);
 	}
 	
