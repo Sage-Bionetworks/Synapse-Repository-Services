@@ -61,7 +61,7 @@ public class ChangeMessageWorkersConfig {
 				.withSemaphoreLockKey("objectReplication")
 				.withSemaphoreMaxLockCount(10)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
-				.withMaxThreadsPerMachine(5)
+				.withMaxThreadsPerMachine(3)
 				.withSingleton(concurrentStackManager)
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
