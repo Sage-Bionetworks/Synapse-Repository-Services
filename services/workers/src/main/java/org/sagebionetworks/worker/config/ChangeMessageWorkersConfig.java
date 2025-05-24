@@ -59,7 +59,7 @@ public class ChangeMessageWorkersConfig {
 		return new WorkerTriggerBuilder()
 			.withStack(ConcurrentWorkerStack.builder()
 				.withSemaphoreLockKey("objectReplication")
-				.withSemaphoreMaxLockCount(12)
+				.withSemaphoreMaxLockCount(10)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
 				.withMaxThreadsPerMachine(3)
 				.withSingleton(concurrentStackManager)
