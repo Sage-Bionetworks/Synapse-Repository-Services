@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
 import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.AESEncryptionUtils;
@@ -70,6 +71,9 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@Mock
 	private AuthenticationDAO mockAuthDao;
+	
+	@Mock
+	private PrincipalAliasDAO mockAliasDao;
 	
 	@Mock
 	private TokenGenerator mockTokenGenerator;
@@ -122,6 +126,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		doNothing().when(manager).assertValidUser(any());
 		doReturn(userEncryptionKey).when(manager).getUserEncryptionKey(any());
 
+		when(mockAliasDao.getUserName(user.getId())).thenReturn("testUser");
 		when(mockTotpManager.generateTotpSecret()).thenReturn(totpSecret);
 		when(mockOtpSecretDao.storeSecret(any(), any())).thenReturn(dbSecret);
 		
@@ -130,7 +135,8 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setDigits(Long.valueOf(TotpManager.DIGITS_COUNT))
 			.setPeriod(Long.valueOf(TotpManager.PERIOD))
 			.setSecret(totpSecret)
-			.setSecretId(dbSecret.getId().toString());
+			.setSecretId(dbSecret.getId().toString())
+			.setUsername("testUser");
 			
 		// Call under test
 		TotpSecret result = manager.init2Fa(user);
@@ -139,6 +145,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 		
 		verify(manager).assertValidUser(user);
 		verify(manager).getUserEncryptionKey(user);
+		verify(mockAliasDao).getUserName(user.getId());
 		verify(mockTotpManager).generateTotpSecret();
 		verify(mockOtpSecretDao).storeSecret(eq(user.getId()), stringCaptor.capture());
 		

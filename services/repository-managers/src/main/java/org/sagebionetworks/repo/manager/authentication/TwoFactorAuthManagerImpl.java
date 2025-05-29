@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
 import org.sagebionetworks.repo.model.auth.TwoFactorState;
 import org.sagebionetworks.repo.model.dbo.otp.DBOOtpSecret;
 import org.sagebionetworks.repo.model.dbo.otp.OtpSecretDao;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -52,15 +53,19 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	private TotpManager totpMananger;
 	private OtpSecretDao otpDao;
 	private AuthenticationDAO authDao;
+	private PrincipalAliasDAO aliasDao;
 	private TokenGenerator tokenGenerator;
 	private StackConfiguration config;
 	private Clock clock;
 	private NotificationManager notificationManager;
+	
+	
 
-	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, NotificationManager notificationManager) {
+	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, PrincipalAliasDAO aliasDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, NotificationManager notificationManager) {
 		this.totpMananger = totpManager;
 		this.otpDao = otpDao;
 		this.authDao = authDao;
+		this.aliasDao = aliasDao;
 		this.tokenGenerator = tokenGenerator;
 		this.config = config;
 		this.clock = clock;
@@ -71,6 +76,8 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	@WriteTransaction
 	public TotpSecret init2Fa(UserInfo user) {
 		assertValidUser(user);
+
+		String username = aliasDao.getUserName(user.getId());
 		
 		String unencryptedSecret = totpMananger.generateTotpSecret();
 		
@@ -79,13 +86,14 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		String encryptedSecret = AESEncryptionUtils.encryptWithAESGCM(unencryptedSecret, userEncryptionKey);
 		
 		Long secretId = otpDao.storeSecret(user.getId(), encryptedSecret).getId();
-
+		
 		return new TotpSecret()
 			.setSecretId(secretId.toString())
 			.setSecret(unencryptedSecret)
 			.setAlg(TotpManager.HASH_ALG.getFriendlyName())
 			.setDigits(Long.valueOf(TotpManager.DIGITS_COUNT))
-			.setPeriod(Long.valueOf(TotpManager.PERIOD));
+			.setPeriod(Long.valueOf(TotpManager.PERIOD))
+			.setUsername(username);
 	}
 
 	@Override
