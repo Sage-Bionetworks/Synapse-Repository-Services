@@ -1,0 +1,9 @@
+{
+	"description": "Response to create a grid presigned URL.",
+	"properties": {
+		"presignedUrl":{
+			"description": "A presigned URL used to establish a websocket connection to the grid session.",
+			"type": "string"
+		}
+	}
+}

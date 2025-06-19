@@ -1,0 +1,13 @@
+{
+	"description": "Request to create a new presigned URL that is used to establish a grid websocket connection.",
+	"properties": {
+		"gridSessionId": {
+			"description": "Identifies the grid session to establish a websocket connection with.",
+			"type": "string"
+		},
+		"replicaId": {
+			"description": "Identifies the replica that will be establishing the websocket connection.",
+			"type": "integer"
+		}
+	}
+}

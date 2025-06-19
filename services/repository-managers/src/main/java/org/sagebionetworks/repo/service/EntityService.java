@@ -426,15 +426,28 @@ public interface EntityService {
 	/**
 	 * Get the type of an entity
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param entityId
-	 * @param vertionNumber (optional) null for current version
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	EntityHeader getEntityHeader(Long userId, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Get the header for an entity
+	 *
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

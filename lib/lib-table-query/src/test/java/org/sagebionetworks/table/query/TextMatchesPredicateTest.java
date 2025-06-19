@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Iterator;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.CharacterStringLiteral;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.TextMatchesMode;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 
 public class TextMatchesPredicateTest {
@@ -27,7 +30,7 @@ public class TextMatchesPredicateTest {
 		assertEquals("TEXT_MATCHES('test')", sql);
 		
 	}
-	
+		
 	@Test
 	public void testTextMatchesPredicateWithCaseInsensitive() throws ParseException {
 		TextMatchesPredicate element = new TableQueryParser("text_MATCHES('test')").textMatchesPredicate();
@@ -36,6 +39,18 @@ public class TextMatchesPredicateTest {
 		String sql = element.toSql();
 		
 		assertEquals("TEXT_MATCHES('test')", sql);
+		
+	}
+
+	@ParameterizedTest
+	@EnumSource(TextMatchesMode.class)
+	public void testTextMatchesPredicateWithSearchMode(TextMatchesMode mode) throws ParseException {
+		TextMatchesPredicate element = new TableQueryParser("TEXT_MATCHES('test' " + mode.getSql() + ")").textMatchesPredicate();
+		
+		// Call under test
+		String sql = element.toSql();
+		
+		assertEquals("TEXT_MATCHES('test' " + mode.getSql() + ")", sql);
 		
 	}
 	
@@ -58,7 +73,8 @@ public class TextMatchesPredicateTest {
 	@Test
 	public void testToSQL() {
 		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesMode searchMode = null;
+		TextMatchesPredicate element = new TextMatchesPredicate(literal, searchMode);
 		
 		// Call under test
 		String sql = element.toSql();
@@ -69,7 +85,8 @@ public class TextMatchesPredicateTest {
 	@Test
 	public void testGetChildren() {
 		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesMode searchMode = null;
+		TextMatchesPredicate element = new TextMatchesPredicate(literal, searchMode);
 		
 		// Call under test
 		Iterator<Element> children = element.getChildren().iterator();
@@ -81,7 +98,8 @@ public class TextMatchesPredicateTest {
 	@Test
 	public void testGetLeftHandSide() throws ParseException {
 		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesMode searchMode = null;
+		TextMatchesPredicate element = new TextMatchesPredicate(literal, searchMode);
 		
 		// Call under test
 		ColumnReference columnReference = (ColumnReference) element.getLeftHandSide().getChild();
@@ -93,7 +111,8 @@ public class TextMatchesPredicateTest {
 	@Test
 	public void testGetRightHandSideValues() {
 		CharacterStringLiteral literal = new CharacterStringLiteral("some string");
-		TextMatchesPredicate element = new TextMatchesPredicate(literal);
+		TextMatchesMode searchMode = null;
+		TextMatchesPredicate element = new TextMatchesPredicate(literal, searchMode);
 		
 		// Call under test
 		Iterator<UnsignedLiteral> rightHandSideValues = element.getRightHandSideValues().iterator();

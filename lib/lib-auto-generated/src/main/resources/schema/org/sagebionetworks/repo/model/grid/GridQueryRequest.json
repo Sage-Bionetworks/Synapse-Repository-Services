@@ -1,0 +1,13 @@
+{
+	"description": "Request to query the grid.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		},
+		"query": {
+			"description": "",
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.Query"
+		}
+	}
+}

@@ -286,6 +286,11 @@
 			<property name="name" value="Sage Bionetworks" />
 			<property name="description" value="Team for Sage Bionetworks workers" />
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+			<property name="id" value="8" />
+			<property name="name" value="Synapse Portal Managers" />
+			<property name="description" value="Team for users authorized to make changes to portals" />
+		</bean>
        </util:list>
 		
 	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>

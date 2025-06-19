@@ -9,12 +9,12 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.manager.doi.DoiManagerImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.service.ServiceProvider;
@@ -113,10 +113,11 @@ public class DoiController {
 	@RequestMapping(value = {UrlHelpers.DOI}, method = RequestMethod.GET)
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody Doi
-	getDoiV2(@RequestParam(value = "id") String objectId,
-			 @RequestParam(value = "type") ObjectType objectType,
+	getDoiV2(@RequestParam(value = "portalId", required = false) String portalId,
+			 @RequestParam(value = "id") String objectId,
+			 @RequestParam(value = "type") DoiObjectType objectType,
 			 @RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException, ServiceUnavailableException {
-		return serviceProvider.getDoiServiceV2().getDoi(objectId, objectType, versionNumber);
+		return serviceProvider.getDoiServiceV2().getDoi(portalId, objectId, objectType, versionNumber);
 	}
 
 	/**
@@ -135,11 +136,11 @@ public class DoiController {
 	@ResponseStatus(HttpStatus.OK)
 	public @ResponseBody
 	DoiAssociation
-	getDoiAssociation(
+	getDoiAssociation(@RequestParam(value = "portalId", required = false) String portalId,
 			@RequestParam(value = "id") String objectId,
-			@RequestParam(value = "type") ObjectType objectType,
+			@RequestParam(value = "type") DoiObjectType objectType,
 			@RequestParam(value = "version", required = false) Long versionNumber) throws NotFoundException, UnauthorizedException {
-		return serviceProvider.getDoiServiceV2().getDoiAssociation(objectId, objectType, versionNumber);
+		return serviceProvider.getDoiServiceV2().getDoiAssociation(portalId, objectId, objectType, versionNumber);
 	}
 
 	/**
@@ -199,11 +200,12 @@ public class DoiController {
 	 */
 	@RequiredScope({view})
 	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
-	public void locate(@RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
-		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) ObjectType objectType,
+	public void locate(@RequestParam(value = "portaId", required = false) String portalId,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
+		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) DoiObjectType objectType,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,
 		   @RequestParam(value = "redirect", required = false, defaultValue = "true") Boolean redirect,
 				HttpServletResponse response) throws IOException {
-		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(objectId, objectType, versionNumber), response);
+		RedirectUtils.handleRedirect(redirect, serviceProvider.getDoiServiceV2().locate(portalId, objectId, objectType, versionNumber), response);
 	}
 }

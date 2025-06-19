@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID;
@@ -17,19 +18,22 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
+import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DBOSubmission>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DATA_ACCESS_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn("accessRequirementId", COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID),
+			new FieldColumn("accessRequirementVersion", COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION),
 			new FieldColumn("dataAccessRequestId", COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID),
 			new FieldColumn("createdBy", COL_DATA_ACCESS_SUBMISSION_CREATED_BY),
 			new FieldColumn("createdOn", COL_DATA_ACCESS_SUBMISSION_CREATED_ON),
@@ -40,6 +44,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 
 	private Long id;
 	private Long accessRequirementId;
+	private Long accessRequirementVersion;
 	private Long dataAccessRequestId;
 	private Long createdBy;
 	private Long createdOn;
@@ -49,7 +54,8 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 
 	@Override
 	public String toString() {
-		return "DBOSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId + ", dataAccessRequestId="
+		return "DBOSubmission [id=" + id + ", accessRequirementId=" + accessRequirementId
+				+ ", accessRequirementVersion=" + accessRequirementVersion + ", dataAccessRequestId="
 				+ dataAccessRequestId + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", etag=" + etag
 				+ ", submissionSerialized=" + Arrays.toString(submissionSerialized) + ", researchProjectId="
 				+ researchProjectId + "]";
@@ -59,14 +65,9 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((accessRequirementId == null) ? 0 : accessRequirementId.hashCode());
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((dataAccessRequestId == null) ? 0 : dataAccessRequestId.hashCode());
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((researchProjectId == null) ? 0 : researchProjectId.hashCode());
 		result = prime * result + Arrays.hashCode(submissionSerialized);
+		result = prime * result + Objects.hash(id, accessRequirementId, accessRequirementVersion, dataAccessRequestId,
+				createdBy, createdOn, etag, researchProjectId);
 		return result;
 	}
 
@@ -79,44 +80,11 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 		if (getClass() != obj.getClass())
 			return false;
 		DBOSubmission other = (DBOSubmission) obj;
-		if (accessRequirementId == null) {
-			if (other.accessRequirementId != null)
-				return false;
-		} else if (!accessRequirementId.equals(other.accessRequirementId))
-			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (dataAccessRequestId == null) {
-			if (other.dataAccessRequestId != null)
-				return false;
-		} else if (!dataAccessRequestId.equals(other.dataAccessRequestId))
-			return false;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (researchProjectId == null) {
-			if (other.researchProjectId != null)
-				return false;
-		} else if (!researchProjectId.equals(other.researchProjectId))
-			return false;
-		if (!Arrays.equals(submissionSerialized, other.submissionSerialized))
-			return false;
-		return true;
+		return Objects.equals(id, other.id) && Objects.equals(accessRequirementId, other.accessRequirementId)
+				&& Objects.equals(accessRequirementVersion, other.accessRequirementVersion)
+				&& Objects.equals(dataAccessRequestId, other.dataAccessRequestId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(etag, other.etag)
+				&& Arrays.equals(submissionSerialized, other.submissionSerialized) && Objects.equals(researchProjectId, other.researchProjectId);
 	}
 
 	public Long getId() {
@@ -133,6 +101,14 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 
 	public void setAccessRequirementId(Long accessRequirementId) {
 		this.accessRequirementId = accessRequirementId;
+	}
+
+	public Long getAccessRequirementVersion() {
+		return accessRequirementVersion;
+	}
+
+	public void setAccessRequirementVersion(Long accessRequirementVersion) {
+		this.accessRequirementVersion = accessRequirementVersion;
 	}
 
 	public Long getDataAccessRequestId() {
@@ -192,6 +168,7 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				DBOSubmission dbo = new DBOSubmission();
 				dbo.setId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ID));
 				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID));
+				dbo.setAccessRequirementVersion(rs.getLong(COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION));
 				dbo.setDataAccessRequestId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_DATA_ACCESS_REQUEST_ID));
 				dbo.setCreatedBy(rs.getLong(COL_DATA_ACCESS_SUBMISSION_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_SUBMISSION_CREATED_ON));
@@ -232,7 +209,22 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 
 	@Override
 	public MigratableTableTranslation<DBOSubmission, DBOSubmission> getTranslator() {
-		return new BasicMigratableTableTranslation<DBOSubmission>();
+		return new MigratableTableTranslation<DBOSubmission, DBOSubmission>() {
+			@TemporaryCode(author = "sandhra.sokhal@sagebase.org", comment = "Extract access requirement version from blob")
+			@Override
+			public DBOSubmission createDatabaseObjectFromBackup(DBOSubmission backup) {
+				if (backup.getAccessRequirementVersion() == null) {
+					Submission submission = SubmissionUtils.readSerializedField(backup.getSubmissionSerialized());
+					backup.setAccessRequirementVersion(submission.getAccessRequirementVersion());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOSubmission createBackupFromDatabaseObject(DBOSubmission dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override

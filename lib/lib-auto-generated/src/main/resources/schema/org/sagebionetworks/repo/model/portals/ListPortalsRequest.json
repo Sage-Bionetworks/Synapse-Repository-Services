@@ -1,0 +1,9 @@
+{
+	"description": "JSON schema for a request to list a page of Portals, the list will be ordered by name.",
+	"properties": {
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
+	}
+}

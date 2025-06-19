@@ -4,16 +4,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_PORTAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -36,6 +37,7 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 
 	static final String SELECT_DOI_BY_ASSOCIATED_OBJECT =
 			"SELECT * FROM " + TABLE_DOI + " WHERE "
+					+ COL_DOI_PORTAL_ID + " = :" + COL_DOI_PORTAL_ID + " AND "
 					+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
 					+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
 					+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
@@ -98,26 +100,35 @@ public class DBODoiAssociationDaoImpl implements DoiAssociationDao {
 	}
 
 	@Override
-	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+	public DoiAssociation getDoiAssociation(String portalId, String objectId, DoiObjectType objectType, Long versionNumber) throws NotFoundException {
 		boolean forUpdate = false;
-		return getDoiAssociation(objectId, objectType, versionNumber, forUpdate);
+		return getDoiAssociation(portalId, objectId, objectType, versionNumber, forUpdate);
 	}
 
 	@MandatoryWriteTransaction
 	@Override
-	public DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException {
+	public DoiAssociation getDoiAssociationForUpdate(String portalId, String objectId, DoiObjectType objectType, Long versionNumber) throws NotFoundException {
 		boolean forUpdate = true;
 		try {
-			return getDoiAssociation(objectId, objectType, versionNumber, forUpdate);
+			return getDoiAssociation(portalId, objectId, objectType, versionNumber, forUpdate);
 		} catch (NotFoundException e) {
 			// We have to catch this exception and return null to avoid a transaction rollback
 			return null;
 		}
 	}
 
-	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber, boolean forUpdate) throws NotFoundException {
+	DoiAssociation getDoiAssociation(String portalId, String objectId, DoiObjectType objectType, Long versionNumber, boolean forUpdate) throws NotFoundException {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
+		paramMap.addValue(COL_DOI_PORTAL_ID, portalId);
+		
+		if (DoiObjectType.ENTITY.equals(objectType)) {
+			// For an entity we normalize the id to its numeric representation, note that before introducing portal resources 
+			// the id of the entity was stored as a long, hence the conversion
+			paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
+		} else {
+			paramMap.addValue(COL_DOI_OBJECT_ID, objectId);		
+		}
+		
 		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
 		if (versionNumber == null) {
 			paramMap.addValue(COL_DOI_OBJECT_VERSION, DBODoi.NULL_OBJECT_VERSION);

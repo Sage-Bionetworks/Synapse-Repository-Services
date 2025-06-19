@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.Timestamp;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class DoiUtils {
@@ -22,11 +22,14 @@ public class DoiUtils {
 		DoiAssociation dto = new DoiAssociation();
 		dto.setAssociationId(dbo.getId().toString());
 		dto.setEtag(dbo.getETag());
-		final ObjectType objectType = ObjectType.valueOf(dbo.getObjectType());
-		if (ObjectType.ENTITY.equals(objectType)) {
-			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
+		dto.setPortalId(dbo.getPortalId().toString());
+		DoiObjectType objectType = DoiObjectType.valueOf(dbo.getObjectType());
+		if (DoiObjectType.ENTITY.equals(objectType)) {
+			// For an entity make sure to maintain the syn prefix convention, note that before introducing portal resources
+			// the id of the entity was stored as a long, hence the conversion
+			dto.setObjectId(KeyFactory.keyToString(Long.valueOf(dbo.getObjectId())));
 		} else {
-			dto.setObjectId(dbo.getObjectId().toString());
+			dto.setObjectId(dbo.getObjectId());
 		}
 		dto.setObjectType(objectType);
 		if (dbo.getObjectVersion().equals(DBODoi.NULL_OBJECT_VERSION)) {
@@ -62,6 +65,9 @@ public class DoiUtils {
 		if (dto.getEtag() == null) {
 			throw new IllegalArgumentException("Etag cannot be null.");
 		}
+		if (dto.getPortalId() == null) {
+			throw new IllegalArgumentException("Portal ID cannot be null.");
+		}
 		if (dto.getObjectId() == null) {
 			throw new IllegalArgumentException("Object ID cannot be null.");
 		}
@@ -74,23 +80,34 @@ public class DoiUtils {
 		if (dto.getUpdatedOn() == null) {
 			throw new IllegalArgumentException("Updated On cannot be null.");
 		}
-
 		DBODoi dbo = new DBODoi();
+		
 		dbo.setId(Long.valueOf(dto.getAssociationId()));
 		dbo.setETag(dto.getEtag());
+		
 		// By convention, a DOI DBO should not be created from a v2 DTO unless the DOI is "Ready"
 		dbo.setDoiStatus(DoiStatus.READY);
-		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
+		dbo.setPortalId(Long.valueOf(dto.getPortalId()));
+		
+		if (DoiObjectType.ENTITY.equals(dto.getObjectType())) {
+			// For an entity we normalize the id to its numeric representation, note that before introducing portal resources
+			// the id of the entity was stored as a long, hence the conversion
+			dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()).toString());
+		} else {
+			dbo.setObjectId(dto.getObjectId());
+		}
 		dbo.setObjectType(dto.getObjectType());
 		if (dto.getObjectVersion() == null) {
 			dbo.setObjectVersion(DBODoi.NULL_OBJECT_VERSION);
 		} else {
 			dbo.setObjectVersion(dto.getObjectVersion());
 		}
+		
 		dbo.setCreatedBy(Long.valueOf(dto.getAssociatedBy()));
 		dbo.setCreatedOn(new Timestamp(dto.getAssociatedOn().getTime()));
 		dbo.setUpdatedBy(Long.valueOf(dto.getUpdatedBy()));
 		dbo.setUpdatedOn(new Timestamp(dto.getUpdatedOn().getTime()));
+		
 		return dbo;
 	}
 }

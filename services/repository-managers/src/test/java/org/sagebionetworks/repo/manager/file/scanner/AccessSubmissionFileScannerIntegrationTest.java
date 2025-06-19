@@ -174,6 +174,7 @@ public class AccessSubmissionFileScannerIntegrationTest {
 			
 			return submissionHelper.create(submission -> {
 				submission.setRequestId(requestId);
+				submission.setAccessRequirementVersion(ar.getVersionNumber());
 				submission.setModifiedBy(userId);
 				submission.setAccessRequirementId(ar.getId().toString());
 				submission.setDucFileHandleId(utils.generateFileHandle(userId));

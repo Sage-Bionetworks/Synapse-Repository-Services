@@ -18,14 +18,13 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientImpl;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
 public class DataciteClientImpl implements DataciteClient {
 
-	@Autowired
 	private DataciteMetadataTranslator metadataTranslator;
 
-	@Autowired
 	private DataciteXmlTranslator xmlTranslator;
 
 	private static final Integer TIME_OUT = 30 * 1000; // 30 seconds
@@ -35,7 +34,10 @@ public class DataciteClientImpl implements DataciteClient {
 	private String PASSWORD;
 	private final SimpleHttpClient client;
 
-	public DataciteClientImpl(DataciteClientConfig config) {
+	public DataciteClientImpl(DataciteClientConfig config, DataciteMetadataTranslator metadataTranslator, DataciteXmlTranslator xmlTranslator) {
+		this.metadataTranslator = metadataTranslator;
+		this.xmlTranslator = xmlTranslator;
+		
 		// Configure HTTP client for use
 		SimpleHttpClientConfig httpClientConfig = new SimpleHttpClientConfig();
 		httpClientConfig.setSocketTimeoutMs(TIME_OUT);

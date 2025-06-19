@@ -5,6 +5,22 @@
 		"searchExpression": {
 			"type": "string",
 			"description": "The search expression to match against the table rows."
+		},
+		"searchMode": {
+			"type": "string",
+            "description": "The search mode for the filter",
+            "name": "TextMatchesMode",
+            "id": "org.sagebionetworks.repo.model.table.TextMatchesMode",
+            "enum": [
+                {
+                    "name": "NATURAL_LANGUAGE",
+                    "description": "Default mode, case insensitive full text search."
+                },
+                {
+                    "name": "BOOLEAN",
+                    "description": "Boolean mode, see https://dev.mysql.com/doc/refman/8.4/en/fulltext-boolean.html for more details."
+                }
+            ]
 		}
 	}
 }

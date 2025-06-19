@@ -8,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_PORTAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_DOI;
@@ -17,14 +18,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.dbo.portals.DBOPortal;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
@@ -35,6 +38,7 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
 			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
+			new FieldColumn("portalId", COL_DOI_PORTAL_ID),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
 			new FieldColumn("objectType", COL_DOI_OBJECT_TYPE),
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
@@ -53,8 +57,9 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 					dbo.setId(rs.getLong(COL_DOI_ID));
 					dbo.setETag(rs.getString(COL_DOI_ETAG));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
-					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
-					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
+					dbo.setPortalId(rs.getLong(COL_DOI_PORTAL_ID));
+					dbo.setObjectId(rs.getString(COL_DOI_OBJECT_ID));
+					dbo.setObjectType(DoiObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
 					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
@@ -103,16 +108,22 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setDoiStatus(DoiStatus doiStatus) {
 		this.doiStatus = doiStatus;
 	}
-	public Long getObjectId() {
+	public Long getPortalId() {
+		return portalId;
+	}
+	public void setPortalId(Long portalId) {
+		this.portalId = portalId;
+	}
+	public String getObjectId() {
 		return objectId;
 	}
-	public void setObjectId(Long objectId) {
+	public void setObjectId(String objectId) {
 		this.objectId = objectId;
 	}
 	public String getObjectType() {
 		return objectType.name();
 	}
-	public void setObjectType(ObjectType objectType) {
+	public void setObjectType(DoiObjectType objectType) {
 		this.objectType = objectType;
 	}
 	public Long getObjectVersion() {
@@ -145,100 +156,43 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 	public void setUpdatedOn(Timestamp updatedOn) {
 		this.updatedOn = updatedOn;
 	}
-
 	@Override
 	public String toString() {
-		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
-				+ doiStatus + ", objectId=" + objectId + ", objectType="
-				+ objectType + ", objectVersion=" + objectVersion
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn +"]";
+		return String.format(
+			"DBODoi [id=%s, eTag=%s, doiStatus=%s, portalId=%s, objectId=%s, objectType=%s, objectVersion=%s, createdBy=%s, createdOn=%s, updatedBy=%s, updatedOn=%s]",
+			id, eTag, doiStatus, portalId, objectId, objectType, objectVersion, createdBy, createdOn, updatedBy, updatedOn);
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + ((doiStatus == null) ? 0 : doiStatus.hashCode());
-		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
-		result = prime * result + ((objectType == null) ? 0 : objectType.hashCode());
-		result = prime * result + ((objectVersion == null) ? 0 : objectVersion.hashCode());
-		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
-		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
-		return result;
+		return Objects.hash(createdBy, createdOn, doiStatus, eTag, id, objectId, objectType, objectVersion, portalId, updatedBy, updatedOn);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (!(obj instanceof DBODoi)) {
 			return false;
-		if (getClass() != obj.getClass())
-			return false;
+		}
 		DBODoi other = (DBODoi) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
-		if (doiStatus != other.doiStatus)
-			return false;
-		if (eTag == null) {
-			if (other.eTag != null)
-				return false;
-		} else if (!eTag.equals(other.eTag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (objectId == null) {
-			if (other.objectId != null)
-				return false;
-		} else if (!objectId.equals(other.objectId))
-			return false;
-		if (objectType != other.objectType)
-			return false;
-		if (objectVersion == null) {
-			if (other.objectVersion != null)
-				return false;
-		} else if (!objectVersion.equals(other.objectVersion))
-			return false;
-		if (updatedBy == null) {
-			if (other.updatedBy != null)
-				return false;
-		} else if (!updatedBy.equals(other.updatedBy))
-			return false;
-		if (updatedOn == null) {
-			if (other.updatedOn != null)
-				return false;
-		} else if (!updatedOn.equals(other.updatedOn))
-			return false;
-		return true;
+		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn) && doiStatus == other.doiStatus && Objects.equals(eTag, other.eTag)
+			&& Objects.equals(id, other.id) && Objects.equals(objectId, other.objectId) && objectType == other.objectType && Objects.equals(objectVersion, other.objectVersion)
+			&& Objects.equals(portalId, other.portalId) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(updatedOn, other.updatedOn);
 	}
 
 	private Long id;
 	private String eTag;
 	private DoiStatus doiStatus;
-	private Long objectId;
-	private ObjectType objectType;
+	private Long portalId;
+	private String objectId;
+	private DoiObjectType objectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;
 	private Long updatedBy;
 	private Timestamp updatedOn;
-
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -247,7 +201,14 @@ public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	@Override
 	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return new BasicMigratableTableTranslation<>() {
+			public DBODoi createDatabaseObjectFromBackup(DBODoi dbo) {
+				if (dbo.getPortalId() == null) {
+					dbo.setPortalId(DBOPortal.SYNAPSE_PORTAL_ID);
+				}
+				return dbo;
+			};
+		};
 	}
 
 	@Override

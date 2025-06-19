@@ -1,0 +1,16 @@
+{
+	"description": "JSON schema for a list of Portals",
+	"properties": {
+		"page": {
+			"type": "array",
+			"description": "A page of portals that match the request filters.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.portals.Portal"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Forward this token to get the next page of results."
+		}
+	}
+}

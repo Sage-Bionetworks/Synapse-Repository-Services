@@ -1,6 +1,7 @@
 package org.sagebionetworks.doi.datacite;
 
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
+import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATORS;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR_NAME;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -39,6 +41,7 @@ import org.xml.sax.SAXException;
 /*
  * Translates DataCite metadata from XML to our DoiV2 object.
  */
+@Component
 public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	public DataciteMetadata translate(String xml) {
@@ -56,6 +59,7 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 	static DataciteMetadata translateUtil(Document dom) {
 		DataciteMetadata doi = new Doi();
 
+		doi.setPublisher(getPublisher(dom));
 		doi.setCreators(getCreators(dom));
 		doi.setTitles(getTitles(dom));
 		doi.setPublicationYear(Long.valueOf(getPublicationYear(dom)));
@@ -130,6 +134,10 @@ public class DataciteXmlTranslatorImpl implements DataciteXmlTranslator {
 
 	static String getPublicationYear(Document dom) {
 		return dom.getElementsByTagNameNS("*", PUBLICATION_YEAR).item(0).getTextContent();
+	}
+	
+	static String getPublisher(Document dom) {
+		return dom.getElementsByTagNameNS("*", PUBLISHER).item(0).getTextContent();
 	}
 
 	static DoiResourceType getResourceType(Document dom) {

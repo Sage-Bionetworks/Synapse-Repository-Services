@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.dbo.portals.PortalDao;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
@@ -53,6 +54,8 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	private CountingSemaphore mockSemaphoreDao;
 	@Mock
 	private AccessRequirementDAO mockAccessRequirementDao;
+	@Mock
+	private PortalDao mockPortalDao;
 	
 	private List<EntityBootstrapData> bootstrapData;
 	
@@ -82,16 +85,17 @@ public class EntityBootstrapperSemaphoreUnitTest {
 
 	@Test
 	public void testBootsrapSemaphore() throws Exception {
-		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("token"));
+		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.of("token"));
 		when(mockNodeDao.getNodeIdForPath(bootstrapData.get(0).getEntityPath())).thenReturn(null, bootstrapData.get(0).getEntityId().toString()); // Should force node creation
 		when(mockNodeDao.bootstrapNode(any(Node.class), any(Long.class))).thenReturn(node);
 		bootstrapper.bootstrapAll();
-		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
+		verify(mockSemaphoreDao, times(2)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
 		verify(mockUserGroupDao).bootstrapUsers();
 		verify(mockUserProfileDao).bootstrapProfiles();
 		verify(mockGroupMembersDao).bootstrapGroups();
 		verify(mockAuthenticationDao).bootstrap();
 		verify(mockAccessRequirementDao).bootstrap();
+		verify(mockPortalDao).bootstrap();
 		verify(mockNodeDao).bootstrapNode(any(Node.class), any(Long.class));
 		verify(mockAclDao).create(any(AccessControlList.class), any(ObjectType.class));
 		verify(mockSemaphoreDao).releaseLock("ENTITYBOOTSTRAPPERLOCK", "token");
@@ -99,17 +103,18 @@ public class EntityBootstrapperSemaphoreUnitTest {
 	
 	@Test
 	public void testBootstrapSemaphoreException() throws Exception {
-		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("token"));
+		when(mockSemaphoreDao.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(Optional.empty(), Optional.of("token"));
 		when(mockNodeDao.getNodeIdForPath(bootstrapData.get(0).getEntityPath())).thenReturn(null, bootstrapData.get(0).getEntityId().toString()); // Should force node creation
 		when(mockNodeDao.bootstrapNode(any(Node.class), any(Long.class))).thenThrow(new IllegalArgumentException());
 		assertThrows(IllegalArgumentException.class, ()->{
 			bootstrapper.bootstrapAll();
 		});
-		verify(mockSemaphoreDao, times(4)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
+		verify(mockSemaphoreDao, times(2)).attemptToAcquireLock("ENTITYBOOTSTRAPPERLOCK", 30L, 1, EntityBootstrapperImpl.class.getName());
 		verify(mockUserGroupDao).bootstrapUsers();
 		verify(mockUserProfileDao).bootstrapProfiles();
 		verify(mockGroupMembersDao).bootstrapGroups();
 		verify(mockAuthenticationDao).bootstrap();
+		verify(mockPortalDao).bootstrap();
 		verify(mockSemaphoreDao).releaseLock("ENTITYBOOTSTRAPPERLOCK", "token");
 	}
 

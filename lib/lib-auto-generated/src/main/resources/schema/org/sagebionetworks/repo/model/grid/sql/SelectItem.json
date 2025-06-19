@@ -1,0 +1,9 @@
+{
+	"type": "object",
+	"properties": {
+		"expression": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression",
+			"description": "The expression to select."
+		}
+	}
+}

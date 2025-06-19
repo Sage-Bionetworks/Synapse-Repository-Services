@@ -20,6 +20,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -484,6 +485,31 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(new Long(0), restoreReponse.getRestoredRowCount());
 		// validate all of the data was restored.
 		validateProjectsRestored();
+	}
+	
+	/**
+	 * In PLFM-8841 we changed the type of the objectId column in the DOI association table from BIGINT to VARCHAR. 
+	 * This test makes sure that a backup of a DBO with a column of type Long can be restored to a DBO with the 
+	 * same column but with type String.
+	 */
+	@Test
+	public void testRestoreStreamWithCompatibleDataTypeChange() {
+		
+		InputStream stream = getClass().getClassLoader().getResourceAsStream("DoiMigrationBackup.zip");
+		
+		Long batchSize = 50_000L;
+		Long minId = 9617856L;
+		Long maxId = 9617858L;
+		
+		BackupManifest manifest = new BackupManifest()
+			.setAliasType(BackupAliasType.MIGRATION_TYPE_NAME)
+			.setPrimaryType(new TypeData().setMigrationType(MigrationType.DOI.name()).setBackupIdColumnName("ID"))
+			.setBatchSize(batchSize)
+			.setMaximumId(minId)
+			.setMaximumId(maxId);		
+
+		// Call under test
+		migrationManager.restoreStream(stream, manifest);
 	}
 	
 }

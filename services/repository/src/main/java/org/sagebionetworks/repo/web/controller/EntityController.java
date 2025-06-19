@@ -724,7 +724,7 @@ public class EntityController {
 			HttpHeaders header, boolean newVersion, String activityId, HttpServletRequest request)
 			throws IOException, NotFoundException, ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
-		Entity entity = JSONEntityHttpMessageConverter.readEntity(request.getReader());
+		Entity entity = JSONEntityHttpMessageConverterHelper.readEntity(request.getReader());
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId);
 		// Return the result
@@ -804,6 +804,29 @@ public class EntityController {
 			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
 		return serviceProvider.getEntityService().getEntityHeader(userId, id);
+	}
+
+	/**
+	 * Get the EntityHeader of an Entity given its ID and version number. The EntityHeader is a light
+	 * weight object with basic information about an Entity includes its type.
+	 *
+	 * @param userId
+	 * @param id      The ID of the Entity to get the EntityHeader for.
+	 * @param versionNumber      The version number of the Entity to get the EntityHeader for.
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ID_VERSION_NUMBER_TYPE }, method = RequestMethod.GET)
+	public @ResponseBody EntityHeader getEntityType(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id, @PathVariable Long versionNumber,
+			HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Get the type of an entity by ID.
+		return serviceProvider.getEntityService().getEntityHeader(userId, id, versionNumber);
 	}
 
 	/**

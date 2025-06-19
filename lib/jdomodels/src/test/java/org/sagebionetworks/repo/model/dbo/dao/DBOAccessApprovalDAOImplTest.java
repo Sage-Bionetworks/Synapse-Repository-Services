@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -34,8 +35,19 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
+import org.sagebionetworks.repo.model.dataaccess.AccessType;
+import org.sagebionetworks.repo.model.dataaccess.AccessorChange;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroup;
+import org.sagebionetworks.repo.model.dataaccess.Request;
+import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SortDirection;
+import org.sagebionetworks.repo.model.dataaccess.Submission;
+import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +71,15 @@ public class DBOAccessApprovalDAOImplTest {
 		
 	@Autowired
 	NodeDAO nodeDao;
+
+	@Autowired
+	SubmissionDAO submissionDAO;
+
+	@Autowired
+	ResearchProjectDAO researchProjectDAO;
+
+	@Autowired
+	RequestDAO requestDAO;
 	
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;
@@ -66,6 +87,8 @@ public class DBOAccessApprovalDAOImplTest {
 	private Node node2 = null;
 	private AccessRequirement accessRequirement = null;
 	private AccessRequirement accessRequirement2 = null;
+	private ResearchProject researchProject = null;
+	private Request request = null;
 	private AccessApproval accessApproval = null;
 	private AccessApproval accessApproval2 = null;
 	private AccessApproval accessApproval3 = null;
@@ -76,6 +99,7 @@ public class DBOAccessApprovalDAOImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		accessApprovalDAO.clear();
+		submissionDAO.truncateAll();
 		accessRequirementDAO.truncateAll();
 		
 		individualGroup = new UserGroup();
@@ -105,6 +129,21 @@ public class DBOAccessApprovalDAOImplTest {
 		id = accessRequirement2.getId();
 		assertNotNull(id);
 
+		//create a research project
+		researchProject = ResearchProjectTestUtils.createNewDto();
+		researchProject.setAccessRequirementId(accessRequirement.getId().toString());
+		researchProject = researchProjectDAO.create(researchProject);
+
+		// create request
+		request = RequestTestUtils.createNewRequest();
+		request.setAccessRequirementId(accessRequirement.getId().toString());
+		request.setResearchProjectId(researchProject.getId());
+		AccessorChange add = new AccessorChange();
+		add.setUserId(individualGroup.getId());
+		add.setType(AccessType.GAIN_ACCESS);
+		request.setAccessorChanges(Arrays.asList(add));
+		request = requestDAO.create(request);
+
 		if (participateAndDownload == null) {
 			participateAndDownload = new ArrayList<ACCESS_TYPE>();
 			participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
@@ -124,7 +163,14 @@ public class DBOAccessApprovalDAOImplTest {
 	@AfterEach
 	public void tearDown() throws Exception{
 		accessApprovalDAO.clear();
-		accessRequirementDAO.truncateAll();
+		submissionDAO.truncateAll();
+
+		if (request != null) {
+			requestDAO.delete(request.getId());
+		}
+		if (researchProject != null) {
+			researchProjectDAO.delete(researchProject.getId());
+		}
 		if (node!=null && nodeDao!=null) {
 			nodeDao.delete(node.getId());
 			node = null;
@@ -139,6 +185,8 @@ public class DBOAccessApprovalDAOImplTest {
 		if (individualGroup2 != null) {
 			userGroupDAO.delete(individualGroup2.getId());
 		}
+
+		accessRequirementDAO.truncateAll();
 	}
 	
 	public static AccessApproval newAccessApproval(UserGroup principal, AccessRequirement ar) throws DatastoreException {
@@ -876,7 +924,6 @@ public class DBOAccessApprovalDAOImplTest {
 		
 		List<Long> expected = Collections.emptyList();
 		List<Long> result = accessApprovalDAO.listApprovalsBySubmitter(accessRequirementId, submitterId, accessorIds);
-		
 		assertEquals(expected, result);
 	}
 	
@@ -1279,5 +1326,103 @@ public class DBOAccessApprovalDAOImplTest {
 		List<AccessApproval> results = accessApprovalDAO.searchAccessApprovals(accessorId, accessRequirementId, sort, 10, 0);
 		
 		assertEquals(expected, results);
+	}
+
+	@Test
+	public void testSearchAccessApprovalsForSubmission() {
+		Date createdOn = new Date();
+
+		Long s1 = Long.parseLong(submissionDAO.createSubmission(createSubmission(accessRequirement, researchProject,
+				System.currentTimeMillis(), individualGroup.getId()).setSubmittedOn(createdOn)).getSubmissionId());
+		Long s2 = Long.parseLong(submissionDAO.createSubmission(createSubmission(accessRequirement, researchProject,
+				System.currentTimeMillis() + 1000, individualGroup2.getId()).setSubmittedOn(createdOn)).getSubmissionId());
+		Long s3 = Long.parseLong(submissionDAO.createSubmission(createSubmission(accessRequirement2, researchProject,
+				System.currentTimeMillis() + 2000, individualGroup.getId()).setSubmittedOn(createdOn)).getSubmissionId());
+
+		String accessorId = individualGroup.getId();
+		Set<Long> submissionIds = Set.of(s1, s2, s3);
+
+		// create access approval with initial version of access requirement
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		ap1 = accessApprovalDAO.create(ap1);
+
+		// create access approval with updated version of access requirement
+		accessRequirement.setVersionNumber(accessRequirement.getVersionNumber()+1);
+		AccessApproval ap2 = newAccessApproval(individualGroup, accessRequirement);
+		ap2 = accessApprovalDAO.create(ap2);
+
+		// create access approval with initial version of access requirement
+		AccessApproval ap3 = newAccessApproval(individualGroup, accessRequirement2);
+		ap3 = accessApprovalDAO.create(ap3);
+
+		Map<Long, AccessApproval> expected = Map.of(s1, ap1, s3, ap3);
+
+		//call under test
+		Map<Long, AccessApproval> result = accessApprovalDAO.searchAccessApprovalsForSubmission(submissionIds, accessorId);
+		assertNotNull(result);
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testSearchAccessApprovalsForSubmissionWithNonExistingAccessor() {
+		Date createdOn = new Date();
+		Long s1 = Long.parseLong(submissionDAO.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(),
+				individualGroup.getId()).setSubmittedOn(createdOn)).getSubmissionId());
+
+		//call under test
+		Map<Long, AccessApproval> result = accessApprovalDAO.searchAccessApprovalsForSubmission(Set.of(s1), "123");
+		assertTrue(result.isEmpty());
+	}
+
+	@Test
+	public void testSearchAccessApprovalsForSubmissionWithNonExistingSubmissionID() {
+		Date createdOn = new Date();
+		Long s1 = Long.parseLong(submissionDAO.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(),
+				individualGroup.getId()).setSubmittedOn(createdOn)).getSubmissionId());
+
+		AccessApproval ap1 = newAccessApproval(individualGroup, accessRequirement);
+		accessApprovalDAO.create(ap1);
+
+		//call under test
+		Map<Long, AccessApproval> result = accessApprovalDAO.searchAccessApprovalsForSubmission(Set.of(123L), individualGroup.getId());
+		assertTrue(result.isEmpty());
+	}
+
+	@Test
+	public void testSearchAccessApprovalsForSubmissionWithoutSubmissionIDs() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			accessApprovalDAO.searchAccessApprovalsForSubmission(null, "123");
+		}).getMessage();
+		assertEquals("submissionIDs is required and must not be empty.", message);
+	}
+
+	@Test
+	public void testSearchAccessApprovalsForSubmissionWithoutAccessorId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			accessApprovalDAO.searchAccessApprovalsForSubmission(Set.of(1L, 2L), null);
+		}).getMessage();
+		assertEquals("accessorId is required.", message);
+	}
+
+	private Submission createSubmission(AccessRequirement accessRequirement, ResearchProject researchProject, long modifiedOn, String submitter) {
+		Submission dto = new Submission();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setAccessRequirementVersion(accessRequirement.getVersionNumber());
+		dto.setRequestId(request.getId());
+		AccessorChange change = new AccessorChange();
+		change.setType(AccessType.GAIN_ACCESS);
+		change.setUserId(submitter);
+		dto.setAccessorChanges(new ArrayList<>(Arrays.asList(change)));
+		dto.setAttachments(Arrays.asList("1"));
+		dto.setDucFileHandleId("2");
+		dto.setIrbFileHandleId("3");
+		dto.setIsRenewalSubmission(false);
+		dto.setSubmittedBy(submitter);
+		dto.setSubmittedOn(new Date());
+		dto.setModifiedBy(submitter);
+		dto.setModifiedOn(new Date(modifiedOn));
+		dto.setResearchProjectSnapshot(researchProject);
+		dto.setState(SubmissionState.SUBMITTED);
+		return dto;
 	}
 }

@@ -177,7 +177,6 @@
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-apigatewayv2</artifactId>
 		</dependency>
-		
 		<!-- AWS V2 dependencies -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>

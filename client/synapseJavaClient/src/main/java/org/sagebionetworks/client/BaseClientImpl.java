@@ -12,8 +12,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -25,7 +23,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.apache.http.protocol.HTTP;
-import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
@@ -47,7 +44,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.simpleHttpClient.Header;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClient;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
@@ -75,7 +71,7 @@ public class BaseClientImpl implements BaseClient {
 	protected static final String APPLICATION_JWT = "application/jwt";
 	
 	private static final String CONTENT_LENGTH = "Content-Length";
-	private static final String CONTENT_TYPE = "Content-Type";
+	protected static final String CONTENT_TYPE = "Content-Type";
 	protected static final String ACCEPT = "Accept";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
@@ -89,7 +85,6 @@ public class BaseClientImpl implements BaseClient {
 
 	private String userAgent;
 	private String username;
-	private String apiKey;
 	private String repoEndpoint;
 	private String authEndpoint;
 	private String fileEndpoint;
@@ -343,26 +338,6 @@ public class BaseClientImpl implements BaseClient {
 		this.username = username;
 	}
 
-	@Override
-	public String getApiKey() {
-		return this.apiKey;
-	}
-
-	@Override
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
-	}
-
-	/**
-	 * @category Authentication
-	 * @throws SynapseException
-	 */
-	@Override
-	public void invalidateApiKey() throws SynapseException {
-		deleteUri(authEndpoint, "/secretKey");
-		this.apiKey = null;
-	}
-
 	/**
 	 * 
 	 * @param ipAddress
@@ -524,7 +499,7 @@ public class BaseClientImpl implements BaseClient {
 	 * @category JSONObject Requests
 	 */
 	protected JSONObject getJson(String endpoint, String uri) throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+		SimpleHttpResponse response = dispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		validateContentType(response, APPLICATION_JSON);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
@@ -543,7 +518,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected JSONObject postJson(String endpoint, String uri, String jsonString,
 			Map<String, String> parameters) throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint, uri,
+		SimpleHttpResponse response = dispatchSynapseRequest(endpoint, uri,
 				POST, jsonString, defaultPOSTPUTHeaders, parameters);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
@@ -560,7 +535,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected JSONObject putJson(String endpoint, String uri, String jsonToPut)
 			throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint, uri,
+		SimpleHttpResponse response = dispatchSynapseRequest(endpoint, uri,
 				PUT, jsonToPut, defaultPOSTPUTHeaders, null);
 		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
@@ -590,7 +565,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected String getStringDirect(String endpoint, String uri)
 			throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+		SimpleHttpResponse response = dispatchSynapseRequest(
 				endpoint, uri, GET, null, defaultGETDELETEHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 		return response.getContent();
@@ -624,7 +599,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected String postStringDirect(String endpoint, String uri, String data)
 			throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+		SimpleHttpResponse response = dispatchSynapseRequest(
 				endpoint, uri, POST, data, defaultPOSTPUTHeaders, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 		return response.getContent();
@@ -648,7 +623,7 @@ public class BaseClientImpl implements BaseClient {
 	 */
 	protected void deleteUri(String endpoint, String uri, Map<String, String> parameters)
 			throws SynapseException {
-		SimpleHttpResponse response = signAndDispatchSynapseRequest(
+		SimpleHttpResponse response = dispatchSynapseRequest(
 				endpoint, uri, DELETE, null, defaultGETDELETEHeaders, parameters);
 		ClientUtils.checkStatusCodeAndThrowException(response);
 	}
@@ -693,7 +668,7 @@ public class BaseClientImpl implements BaseClient {
 			if(requestBody != null){
 				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+			SimpleHttpResponse response = dispatchSynapseRequest(endpoint,
 					url, PUT, jsonString, defaultPOSTPUTHeaders, null);
 			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
@@ -744,7 +719,7 @@ public class BaseClientImpl implements BaseClient {
 			if (requestBody != null) {
 				jsonString = EntityFactory.createJSONStringForEntity(requestBody);
 			}
-			SimpleHttpResponse response = signAndDispatchSynapseRequest(endpoint,
+			SimpleHttpResponse response = dispatchSynapseRequest(endpoint,
 					url, POST, jsonString, defaultPOSTPUTHeaders, params);
 			ClientUtils.checkStatusCodeAndThrowException(response);
 		} catch (JSONObjectAdapterException e) {
@@ -860,53 +835,6 @@ public class BaseClientImpl implements BaseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-
-	/**
-	 * @param url
-	 * @param headers
-	 * @throws SynapseClientException
-	 */
-	protected void addDigitalSignature(String url, Map<String, String> headers) throws SynapseClientException {
-		ValidateArgument.required(url, "url");
-		ValidateArgument.required(headers, "headers");
-		String timeStamp = (new DateTime()).toString();
-		String uriRawPath = null; 
-		try {
-			uriRawPath = (new URI(url)).getRawPath(); // chop off the query, if any
-		} catch (URISyntaxException e) {
-			throw new SynapseClientException(e);
-		}
-		String signature = HMACUtils.generateHMACSHA1Signature(username, uriRawPath, timeStamp, apiKey);
-		headers.put(AuthorizationConstants.USER_ID_HEADER, username);
-		headers.put(AuthorizationConstants.SIGNATURE_TIMESTAMP, timeStamp);
-		headers.put(AuthorizationConstants.SIGNATURE, signature);
-	}
-
-	/**
-	 * @param endpoint
-	 * @param uri
-	 * @param requestMethod
-	 * @param requestContent
-	 * @param requestHeaders
-	 * @param userAgent
-	 * @param parameters
-	 * @param errorHandler
-	 * @return
-	 * @throws SynapseException
-	 */
-	protected SimpleHttpResponse signAndDispatchSynapseRequest(String endpoint,
-			String uri, Method requestMethod, String requestContent,
-			Map<String, String> requestHeaders, Map<String, String> parameters)
-					throws SynapseException {
-		Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
-		modHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(endpoint + uri, modHeaders);
-		}
-		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
-	}
-
-	
 	
 	/**
 	 * Convert exceptions emanating from the service to
@@ -923,14 +851,16 @@ public class BaseClientImpl implements BaseClient {
 			Method requestMethod, String requestContent,
 			Map<String, String> requestHeaders, Map<String, String> parameters)
 					throws SynapseException {
-
 		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}
 
+		Map<String, String> modHeaders = new HashMap<String, String>(requestHeaders);
+		modHeaders.put(USER_AGENT, userAgent);
+
 		String requestUrl = ClientUtils.createRequestUrl(endpoint, uri, parameters);
-		return performRequestWithRetry(requestUrl, requestMethod, requestContent, requestHeaders);
+		return performRequestWithRetry(requestUrl, requestMethod, requestContent, modHeaders);
 	}
 
 	/**

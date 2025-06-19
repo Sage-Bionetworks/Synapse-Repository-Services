@@ -307,7 +307,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 		verify(mockVerificationDao).getCurrentVerificationSubmissionForUser(user.getId());
 		verifyZeroInteractions(mockAclDao);
 	}
-	
+
 	@Test
 	public void testIsAccessRequirementReviewer() {
 		

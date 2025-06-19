@@ -200,17 +200,6 @@ public class BaseClientImplTest {
 	}
 
 	@Test
-	public void testInvalidateAPIKey() throws Exception {
-		when(mockClient.delete(any(SimpleHttpRequest.class))).thenReturn(mockResponse);
-		when(mockResponse.getStatusCode()).thenReturn(200);
-		baseClient.invalidateApiKey();
-		;
-		ArgumentCaptor<SimpleHttpRequest> captor = ArgumentCaptor.forClass(SimpleHttpRequest.class);
-		verify(mockClient).delete(captor.capture());
-		assertEquals("https://repo-prod.prod.sagebase.org/auth/v1/secretKey", captor.getValue().getUri());
-	}
-
-	@Test
 	public void testPutFileToURLWithNullURL() throws Exception {
 		assertThrows(IllegalArgumentException.class, () -> {
 			baseClient.putFileToURL(null, mockFile, "contentType");
@@ -841,30 +830,6 @@ public class BaseClientImplTest {
 		assertEquals("https://repo-prod.prod.sagebase.org/entityId", captor.getValue().getUri());
 	}
 
-	@Test
-	public void testAddDigitalSignatureWithNullURL() throws Exception {
-		assertThrows(IllegalArgumentException.class, () -> {
-			baseClient.addDigitalSignature(null, new HashMap<String, String>());
-		});
-	}
-
-	@Test
-	public void testAddDigitalSignatureWithNullHeaders() throws Exception {
-		assertThrows(IllegalArgumentException.class, () -> {
-			baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", null);
-		});
-	}
-
-	@Test
-	public void testAddDigitalSignature() throws Exception {
-		baseClient.setUsername("username");
-		baseClient.setApiKey("apiKey");
-		HashMap<String, String> headers = new HashMap<String, String>();
-		baseClient.addDigitalSignature("https://repo-prod.prod.sagebase.org/entityId", headers);
-		assertEquals("username", headers.get(AuthorizationConstants.USER_ID_HEADER));
-		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE_TIMESTAMP));
-		assertNotNull(headers.get(AuthorizationConstants.SIGNATURE));
-	}
 
 	@Test
 	public void testPerformRequestWithRetryWithNullURL() throws Exception {

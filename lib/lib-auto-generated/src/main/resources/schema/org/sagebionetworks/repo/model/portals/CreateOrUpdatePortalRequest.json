@@ -1,0 +1,13 @@
+{
+	"description": "JSON schema for a request to create or update a Portal.",
+	"properties": {
+		"name": {
+			"description": "The name of the portal, must be unique.",
+			"type": "string"
+		},
+		"url": {
+			"description": "The base URL of the portal, must be unique.",
+			"type": "string"
+		}
+	}
+}

@@ -1,0 +1,10 @@
+{
+	"description": "Response to an Update grid SQL request.",
+	"type": "object",
+	"properties": {
+		"updatedRowCount": {
+			"description": "The number of rows updated with this request.",
+			"type": "integer"
+		}
+	}
+}

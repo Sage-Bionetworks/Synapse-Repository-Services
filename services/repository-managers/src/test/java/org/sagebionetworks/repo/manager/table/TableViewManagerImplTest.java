@@ -266,6 +266,12 @@ public class TableViewManagerImplTest {
 	}
 	
 	@Test
+	public void testValidateSchemaAndScopeNullSchema() {
+		List<String> schemaWithNullElement = Arrays.asList(new String[] {"1", null, "3"});
+		assertThrows(IllegalArgumentException.class, ()->{manager.validateViewSchemaAndScope(schemaWithNullElement, viewScope);});
+	}
+	
+	@Test
 	public void testValidateSchemaAndScopeOverLimit(){
 		IllegalArgumentException overLimit = new IllegalArgumentException("Over limit");
 		doThrow(overLimit).when(mockTableManagerSupport).validateScope(any(), anySet());

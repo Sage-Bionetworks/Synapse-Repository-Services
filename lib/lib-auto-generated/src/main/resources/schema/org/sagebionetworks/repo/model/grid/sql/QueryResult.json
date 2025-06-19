@@ -1,0 +1,20 @@
+{
+	"description": "Tabular query results from a SQL query.",
+	"type": "object",
+	"properties": {
+		"columnNames": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "The column names from the select."
+		},
+		"rows": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.sql.Row"
+			},
+			"description": "The page of rows."
+		}
+	}
+}

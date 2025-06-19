@@ -1725,6 +1725,66 @@ public class NodeDAOImplTest {
 		}).getMessage();
 		assertEquals("Resource: 'syn123' does not exist", message);
 	}
+
+	@Test
+	public void testGetEntityHeaderForVersion() throws Exception {
+		Node parent = privateCreateNew("parent");
+		parent.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Get the header of this node
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
+		assertNotNull(parentHeader);
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), parentHeader.getType());
+		assertEquals("parent", parentHeader.getName());
+		assertEquals(parentId, parentHeader.getId());
+
+		Node child = privateCreateNew("child");
+		Long childVersion = 1L; // This will be the first version of this node
+		child.setNodeType(EntityType.file);
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		toDelete.add(childId);
+		assertNotNull(childId);
+
+		// Call under test: get the versioned header of this node
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId, childVersion);
+		assertNotNull(childHeader);
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.file), childHeader.getType());
+		assertEquals("child", childHeader.getName());
+		assertEquals(childId, childHeader.getId());
+		assertEquals(childVersion, childHeader.getVersionNumber());
+	}
+
+	@Test
+	public void testGetEntityHeaderByVersionDoesNotExist() throws NotFoundException, DatastoreException{
+		Node parent = privateCreateNew("parent");
+		parent.setNodeType(EntityType.project);
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		// Get the header of this node
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
+		assertNotNull(parentHeader);
+		assertEquals(EntityTypeUtils.getEntityTypeClassName(EntityType.project), parentHeader.getType());
+		assertEquals("parent", parentHeader.getName());
+		assertEquals(parentId, parentHeader.getId());
+
+		Node child = privateCreateNew("child");
+		Long childVersion = 1L; // This will be the first version of this node
+		child.setNodeType(EntityType.file);
+		child.setParentId(parentId);
+		String childId = nodeDao.createNew(child);
+		toDelete.add(childId);
+		assertNotNull(childId);
+
+		// Call under test: Verify that a different version of the child does not exist
+		String message = assertThrows(NotFoundException.class, ()->{
+			nodeDao.getEntityHeader(childId, childVersion + 1);
+		}).getMessage();
+		assertEquals("Resource: '" + childId + "." + (childVersion + 1) + "' does not exist", message);
+	}
 	
 	@Test
 	public void testGetEntityPathId() throws Exception {

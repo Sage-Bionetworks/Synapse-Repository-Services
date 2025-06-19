@@ -191,6 +191,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "PORTAL",
+			"description": "Table that stores portal information"
+		},
+		{
 			"name": "DOI",
 			"description": "TODO: Auto-generated description"
 		},
@@ -473,6 +477,18 @@
 		{
 			"name": "PROJECT_STORAGE_LIMIT",
 			"description": "Table that stores project storage limits"
+		},
+		{
+			"name": "GRID_SESSION",
+			"description": "Table that tracks grid sessions."
+		},
+		{
+			"name": "GRID_REPLICA",
+			"description": "Table that tracks grid replica."
+		},
+		{
+			"name": "GRID_PATCH",
+			"description": "Table that tracks grid replica patches."
 		},
 		{
 			"name": "CHANGE",

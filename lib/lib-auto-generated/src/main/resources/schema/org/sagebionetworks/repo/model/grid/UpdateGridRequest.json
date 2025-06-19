@@ -1,0 +1,17 @@
+{
+	"description": "Request to update the grid by executing a SQL update command.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		},
+		"replicaId": {
+			"description": "Identifies the replica that will be establishing the websocket connection.",
+			"type": "integer"
+		},
+		"update": {
+			"description": "Defines the update.",
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.Update"
+		}
+	}
+}

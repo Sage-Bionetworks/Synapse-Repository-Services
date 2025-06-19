@@ -1,0 +1,9 @@
+{
+	"description": "Request to create a new replica. A replica represents an 'in-memory' grid document identifed by a unique replicaId.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The ID of the grid seesion.",
+			"type": "string"
+		}
+	}
+}

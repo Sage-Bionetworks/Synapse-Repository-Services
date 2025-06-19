@@ -31,7 +31,9 @@ import org.sagebionetworks.repo.model.VersionableEntity;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Translator;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dbo.portals.DBOPortal;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -164,11 +166,11 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				if (versionNumber == null && (entity instanceof FileEntity)) {
 					// For File Entities, we assume that the user wants the DOI of the most recent version, if it exists.
 					Long currentVersionNumber = ((VersionableEntity) entity).getVersionNumber();
-					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, currentVersionNumber));
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(DBOPortal.SYNAPSE_PORTAL_ID.toString(), entityId, DoiObjectType.ENTITY, currentVersionNumber));
 				} else { // Handle non-versionable entities and other types of versionable entities
 					// For other versionable entity types (e.g. tables), the 'current version' is mutable.
 					// In this case, we get the DOI of the specified version, which may be null.
-					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(entityId, ObjectType.ENTITY, versionNumber));
+					eb.setDoiAssociation(serviceProvider.getDoiServiceV2().getDoiAssociation(DBOPortal.SYNAPSE_PORTAL_ID.toString(), entityId, DoiObjectType.ENTITY, versionNumber));
 				}
 			} catch (NotFoundException e) {
 				// does not exist

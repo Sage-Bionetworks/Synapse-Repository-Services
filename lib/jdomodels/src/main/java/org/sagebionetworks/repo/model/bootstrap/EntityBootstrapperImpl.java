@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.dbo.portals.PortalDao;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -65,6 +66,9 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDao;
+	
+	@Autowired
+	private PortalDao portalDao;
 
 	private List<EntityBootstrapData> bootstrapEntities;
 	/**
@@ -111,6 +115,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		groupMembersDAO.bootstrapGroups();
 		authDAO.bootstrap();
 		accessRequirementDao.bootstrap();
+		portalDao.bootstrap();
 		
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
 		// Map the default users to their ids

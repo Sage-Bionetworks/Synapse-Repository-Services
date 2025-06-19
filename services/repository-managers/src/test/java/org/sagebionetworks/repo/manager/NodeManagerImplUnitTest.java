@@ -1017,6 +1017,66 @@ public class NodeManagerImplUnitTest {
 	
 	@Test
 	public void testGetNodeHeader(){
+		EntityHeader header = createTestEntityHeaders(1).get(0);
+		String id = header.getId();
+
+		when(mockAuthManager.hasAccess(any(UserInfo.class), eq(id), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getEntityHeader(id)).thenReturn(header);
+
+		// Call under test
+		EntityHeader result = nodeManager.getNodeHeader(mockUserInfo, id);
+
+		assertNotNull(result);
+		assertEquals(result, header);
+	}
+
+	@Test
+	public void testGetNodeHeaderUnauthorized(){
+		EntityHeader header = createTestEntityHeaders(1).get(0);
+		String id = header.getId();
+
+		when(mockAuthManager.hasAccess(any(UserInfo.class), eq(id), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied("Mock unauthorized"));
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> nodeManager.getNodeHeader(mockUserInfo, id));
+
+		verify(mockNodeDao, never()).getEntityHeader(any(String.class));
+	}
+
+	@Test
+	public void testGetNodeHeaderWithVersion(){
+		EntityHeader header = createTestEntityHeaders(1).get(0);
+		String id = header.getId();
+		Long versionNumber = 2L;
+		header.setVersionNumber(versionNumber);
+
+		when(mockAuthManager.hasAccess(any(UserInfo.class), eq(id), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getEntityHeader(id, versionNumber)).thenReturn(header);
+
+		// Call under test
+		EntityHeader result = nodeManager.getNodeHeader(mockUserInfo, id, versionNumber);
+
+		assertNotNull(result);
+		assertEquals(result, header);
+	}
+
+	@Test
+	public void testGetNodeHeaderWithVersionUnauthorized(){
+		EntityHeader header = createTestEntityHeaders(1).get(0);
+		String id = header.getId();
+		Long versionNumber = 2L;
+		header.setVersionNumber(versionNumber);
+
+		when(mockAuthManager.hasAccess(any(UserInfo.class), eq(id), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationStatus.accessDenied("Mock unauthorized"));
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> nodeManager.getNodeHeader(mockUserInfo, id, versionNumber));
+
+		verify(mockNodeDao, never()).getEntityHeader(any(String.class), any(Long.class));
+	}
+
+	@Test
+	public void testGetNodeHeaderList(){
 		List<EntityHeader> allResults = createTestEntityHeaders(3);
 		List<Reference> refs = Lists.newArrayList(new Reference(), new Reference(), new Reference(), new Reference());
 		refs.get(0).setTargetId(allResults.get(0).getId());

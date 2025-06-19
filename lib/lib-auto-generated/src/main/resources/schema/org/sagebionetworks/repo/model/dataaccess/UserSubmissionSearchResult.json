@@ -1,0 +1,41 @@
+{
+	"title": "User Data Access Submission Search Result Item",
+	"description": "The result item in a User Data Access Submission Search",
+	"properties": {
+		"id": {
+			"description": "The id of the submission",
+			"type": "string"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"accessRequirementId": {
+			"description": "The id of the access requirement the submission is for",
+			"type": "string"
+		},
+		"accessRequirementVersion": {
+			"description": "The version of the requirement that the submission refers to",
+			"type": "string"
+		},
+		"accessRequirementName": {
+			"description": "The name of the access requirement",
+			"type": "string"
+		},
+		"submitterId": {
+			"description": "The principal ID of the person who created the submission",
+			"type": "string"
+		},
+		"state": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+		},
+		"userAccessApproval": {
+			"description": "The access approval for the user in the context of the submission.",
+			"$ref": "org.sagebionetworks.repo.model.AccessApproval"
+		}
+	}
+}

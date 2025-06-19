@@ -1,0 +1,25 @@
+{
+	"type": "object",
+	"properties": {
+		"expression": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression",
+			"description": "The expression to order by."
+		},
+		"direction": {
+			"type": "string",
+			"name": "OrderByDirection",
+			"id": "org.sagebionetworks.repo.model.grid.slq.OrderByDirection",
+			"enum": [
+				{
+					"name": "ASC",
+					"description": "Ascending sort order"
+				},
+				{
+					"name": "DESC",
+					"description": "Descending sort order"
+				}
+			],
+			"description": "The ordering direction (default is ASC)."
+		}
+	}
+}

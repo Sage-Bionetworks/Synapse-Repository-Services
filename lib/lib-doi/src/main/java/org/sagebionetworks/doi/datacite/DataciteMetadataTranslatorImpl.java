@@ -16,7 +16,6 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_ID
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ORCID_URI;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER;
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER_VALUE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE_GENERAL;
@@ -39,6 +38,7 @@ import org.sagebionetworks.repo.model.doi.v2.DoiNameIdentifier;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
 import org.sagebionetworks.repo.model.doi.v2.NameIdentifierScheme;
+import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -48,6 +48,7 @@ import org.apache.xml.serialize.XMLSerializer;
 /*
  * Translates our DoiV2 object into well-formed DataCite XML.
  */
+@Component
 public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslator {
 
 	private static final String VALID_ORCID_REGEX = "[0-9]{4}\\-[0-9]{4}\\-[0-9]{4}-[0-9]{3}[0-9, X]";
@@ -88,7 +89,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		resource.appendChild(createIdentifierElement(dom, doiUri));
 		resource.appendChild(createCreatorsElement(dom, doi.getCreators()));
 		resource.appendChild(createTitlesElement(dom, doi.getTitles()));
-		resource.appendChild(createPublisherElement(dom));
+		resource.appendChild(createPublisherElement(dom, doi.getPublisher()));
 		resource.appendChild(createPublicationYearElement(dom, String.valueOf(doi.getPublicationYear())));
 		resource.appendChild(createResourceTypeElement(dom, doi.getResourceType()));
 		return dom;
@@ -141,10 +142,10 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		return titlesElement;
 	}
 
-	static Element createPublisherElement(Document dom) {
-		Element publisher = dom.createElement(PUBLISHER);
-		publisher.setTextContent(PUBLISHER_VALUE);
-		return publisher;
+	static Element createPublisherElement(Document dom, String publisher) {
+		Element publisherElement = dom.createElement(PUBLISHER);
+		publisherElement.setTextContent(publisher);
+		return publisherElement;
 	}
 
 	static Element createPublicationYearElement(Document dom, String publicationYear) {
@@ -175,6 +176,7 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 	}
 	
 	public static void validateAdherenceToDataciteSchema(DataciteMetadata doi) throws IllegalArgumentException {
+		validateDoiPublisher(doi.getPublisher());
 		validateDoiCreators(doi.getCreators());
 		validateDoiTitles(doi.getTitles());
 		validateDoiPublicationYear(doi.getPublicationYear());
@@ -275,6 +277,15 @@ public class DataciteMetadataTranslatorImpl implements DataciteMetadataTranslato
 		}
 		if (resourceType.getResourceTypeGeneral() == null) {
 			throw new IllegalArgumentException("DOI Resource Type must have property \"ResourceTypeGeneral\"");
+		}
+	}
+	
+	static void validateDoiPublisher(String publisher) {
+		if (publisher == null) {
+			throw new IllegalArgumentException("DOI metadata must have property \"Publisher\"");
+		}
+		if (publisher.length() == 0) {
+			throw new IllegalArgumentException("Publisher must be at least 1 character long.");
 		}
 	}
 }

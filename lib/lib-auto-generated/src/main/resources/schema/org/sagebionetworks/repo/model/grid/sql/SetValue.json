@@ -1,0 +1,14 @@
+{
+	"description": "Set the value of a column.",
+	"type": "object",
+	"properties": {
+		"columnName": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.ColumnReference",
+			"description": "Name of the column to set."
+		},
+		"value": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.Literal",
+			"description": "The value to set."
+		}
+	}
+}

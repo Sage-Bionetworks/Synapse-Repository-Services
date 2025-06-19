@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager.doi;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.util.UUID;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -13,9 +15,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiAdminManagerImplAutowiredTest {
 
@@ -29,7 +31,7 @@ public class DoiAdminManagerImplAutowiredTest {
 	private Long testUserId;
 	private UserInfo adminUserInfo;
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
@@ -40,7 +42,7 @@ public class DoiAdminManagerImplAutowiredTest {
 		testUserId = userManager.createUser(user);
 	}
 	
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		userManager.deletePrincipal(adminUserInfo, testUserId);
 	}
@@ -50,8 +52,10 @@ public class DoiAdminManagerImplAutowiredTest {
 		doiAdminManager.clear(adminUserId);
 	}
 
-	@Test(expected=UnauthorizedException.class)
+	@Test
 	public void testNotAdmin() throws Exception {
-		doiAdminManager.clear(testUserId);
+		assertThrows(UnauthorizedException.class, () -> {			
+			doiAdminManager.clear(testUserId);
+		});
 	}
 }

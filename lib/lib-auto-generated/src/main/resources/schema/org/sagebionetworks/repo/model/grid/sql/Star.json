@@ -1,0 +1,9 @@
+{
+	"description": "Indicates an asterisk (*).",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression"
+		}
+	]
+}

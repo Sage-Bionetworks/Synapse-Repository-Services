@@ -1,6 +1,7 @@
 package org.sagebionetworks.doi.datacite;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -14,13 +15,13 @@ import java.util.Base64;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -30,7 +31,7 @@ import org.sagebionetworks.simpleHttpClient.SimpleHttpRequest;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class DataciteClientImplTest {
 
 	@Mock
@@ -49,6 +50,7 @@ public class DataciteClientImplTest {
 	private ArgumentCaptor<String> stringCaptor;
 
 	private DataciteClientImpl dataciteClient;
+	
 	private Doi doi;
 	private DataciteMetadata metadata;
 	private final String URI = "10.9999/syn1234test";
@@ -59,15 +61,17 @@ public class DataciteClientImplTest {
 	private final String ENCODED_AUTH = "Basic " + Base64.getEncoder().encodeToString((CONFIG_USR + ":" + CONFIG_PWD).getBytes());
 
 
-	@Before
+	@BeforeEach
 	public void before() {
 		when(config.getUsername()).thenReturn(CONFIG_USR);
 		when(config.getPassword()).thenReturn(CONFIG_PWD);
 		when(config.getDataciteDomain()).thenReturn(CONFIG_URL);
-		dataciteClient = new DataciteClientImpl(config);
+		
+		dataciteClient = new DataciteClientImpl(config, mockMetadataTranslator, mockXmlTranslator);
+		
+		// This is needed since the client is built in the constructor
 		ReflectionTestUtils.setField(dataciteClient, "client", mockHttpClient);
-		ReflectionTestUtils.setField(dataciteClient, "xmlTranslator", mockXmlTranslator);
-		ReflectionTestUtils.setField(dataciteClient, "metadataTranslator", mockMetadataTranslator);
+		
 		doi = new Doi();
 		metadata = new Doi();
 	}
@@ -91,10 +95,12 @@ public class DataciteClientImplTest {
 		verify(mockXmlTranslator, times(1)).translate("test string");
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testGetIoException() throws Exception {
 		when(mockHttpClient.get(any(SimpleHttpRequest.class))).thenThrow(new IOException());
-		dataciteClient.get(URI);
+		assertThrows(ServiceUnavailableException.class, () -> {
+			dataciteClient.get(URI);
+		});
 	}
 
 	@Test
@@ -115,11 +121,14 @@ public class DataciteClientImplTest {
 		verify(mockMetadataTranslator, times(1)).translate(any(DataciteMetadata.class), eq(URI));
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testRegisterMetadataIoException() throws Exception {
 		when(mockMetadataTranslator.translate(any(Doi.class), any(String.class))).thenReturn("<test xml>");
 		when(mockHttpClient.put(any(SimpleHttpRequest.class), any(String.class))).thenThrow(new IOException());
-		dataciteClient.registerMetadata(metadata, URI);
+		
+		assertThrows(ServiceUnavailableException.class, () -> {			
+			dataciteClient.registerMetadata(metadata, URI);
+		});
 	}
 
 	@Test
@@ -137,10 +146,13 @@ public class DataciteClientImplTest {
 		assertEquals("https://" + CONFIG_URL + "/doi/" + URI, requestCaptor.getValue().getUri());
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testRegisterDoiIoException() throws Exception {
 		when(mockHttpClient.put(any(SimpleHttpRequest.class), any(String.class))).thenThrow(new IOException());
-		dataciteClient.registerDoi(URI, URL);
+		
+		assertThrows(ServiceUnavailableException.class, () -> {
+			dataciteClient.registerDoi(URI, URL);
+		});
 	}
 
 	@Test
@@ -157,10 +169,13 @@ public class DataciteClientImplTest {
 		assertEquals("https://" + CONFIG_URL+ "/metadata/" + URI, requestCaptor.getValue().getUri());
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testDeactivateIoException() throws Exception {
 		when(mockHttpClient.delete(any(SimpleHttpRequest.class))).thenThrow(new IOException());
-		dataciteClient.deactivate(URI);
+		
+		assertThrows(ServiceUnavailableException.class, () -> {
+			dataciteClient.deactivate(URI);
+		});
 	}
 
 	@Test
@@ -168,48 +183,66 @@ public class DataciteClientImplTest {
 		assertEquals("doi="+ URI +"\nurl=" + URL, registerDoiRequestBody(URI, URL));
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void testNoContent() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_NO_CONTENT);
+		assertThrows(RuntimeException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_NO_CONTENT);
+		});
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void testUnauthorized() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_UNAUTHORIZED);
+		assertThrows(RuntimeException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_UNAUTHORIZED);
+		});
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void testForbidden() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_FORBIDDEN);
+		assertThrows(RuntimeException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_FORBIDDEN);
+		});
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testNotFound() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_NOT_FOUND);
+		assertThrows(NotFoundException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_NOT_FOUND);
+		});
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void testBadRequest() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_BAD_REQUEST);
+		assertThrows(RuntimeException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_BAD_REQUEST);
+		});
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testUnsupportedMediaType() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_UNSUPPORTED_MEDIA_TYPE);
+		assertThrows(ServiceUnavailableException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_UNSUPPORTED_MEDIA_TYPE);
+		});
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testRegisterDoiPreconditionFailed() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_PRECONDITION_FAILED);
+		assertThrows(NotFoundException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_PRECONDITION_FAILED);
+		});
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testInternalServerError() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+		assertThrows(ServiceUnavailableException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+		});
 	}
 
-	@Test(expected = ServiceUnavailableException.class)
+	@Test
 	public void testServiceUnavailable() throws Exception {
-		handleHttpErrorCode(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		assertThrows(ServiceUnavailableException.class, () -> {
+			handleHttpErrorCode(HttpStatus.SC_SERVICE_UNAVAILABLE);
+		});
 	}
 }

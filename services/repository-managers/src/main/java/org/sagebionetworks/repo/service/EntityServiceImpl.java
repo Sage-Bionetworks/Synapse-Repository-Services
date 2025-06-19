@@ -519,6 +519,12 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
+	public EntityHeader getEntityHeader(Long userId, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityHeader(userInfo, entityId, versionNumber);
+	}
+	
+	@Override
 	public PaginatedResults<EntityHeader> getEntityHeader(Long userId,
 			List<Reference> references) throws NotFoundException,
 			DatastoreException, UnauthorizedException {

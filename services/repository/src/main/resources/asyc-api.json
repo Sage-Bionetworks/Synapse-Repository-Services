@@ -1,0 +1,140 @@
+{
+	"asyncapi": "3.0.0",
+	"info": {
+		"title": "Collaborative Grid Operations API",
+		"version": "1.0.0",
+		"description": "API for synchronizing collaborative grid state using operation-based CRDTs over WebSockets."
+	},
+	"servers": {
+		"ws": {
+			"protocol": "wss",
+			"host": "{baseUrl}:{port}",
+			"variables": {
+				"baseUrl": {
+					"default": "localhost",
+					"description": "The base URL of the WebSocket server."
+				},
+				"port": {
+					"default": "8080",
+					"description": "The port of the WebSocket server."
+				}
+			}
+		}
+	},
+	"channels": {
+		"grid": {
+			"address": "/grid",
+			"description": "Channel for exchanging CRDT operations for a specific grid session.",
+			"bindings": {
+				"ws": {
+					"method": "POST",
+					"query": {
+						"type": "object",
+						"properties": {
+							"gridSessionId": {
+								"type": "string",
+								"description": "The unique identifier for the grid session"
+							},
+							"replicaId": {
+								"type": "string",
+								"description": "The unique identifier of the subscribing replica."
+							}
+						}
+					},
+					"headers": {
+						"type": "object",
+						"properties": {
+							"Authorization": {
+								"type": "string",
+								"description": "Value must be 'Bearer <token>'.  This is the same header required for all authetnicted HTTP requests."
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"operations": {
+		"eventsSend": {
+			"title": "Send Events",
+			"description": "Send live events to all other replicas in the collaboration.",
+			"channel": {
+				"$ref": "#/channels/grid"
+			},
+			"action": "send"
+		},
+		"eventsReceive": {
+			"title": "Receive Events",
+			"description": "Receive live events from all other replicas in the collaboration. If an event is received out-of-order (event_id > version.replica_id.sequence + 1), it should be ignored, and sychronization should be started. Duplicate events should also be ignored.",
+			"channel": {
+				"$ref": "#/channels/grid"
+			},
+			"action": "receive"
+		},
+		"sendVersion": {
+			"title": "Send Version",
+			"description": "Send a replica's version to the hub to start the synchroniziation process. If the hub detects the sender is missing event, then then the missing events will be sent to be sent to: eventSend",
+			"channel": {
+				"$ref": "#/channels/grid"
+			},
+			"action": "send"
+		},
+		"receiveVersion": {
+			"title": "Receive Version",
+			"description": "Receive the current version of the hub.  If the hub's vesion does not match the replica's version, all missing events that orginate for recipenant should be sent to: eventSend.",
+			"channel": {
+				"$ref": "#/channels/grid"
+			},
+			"action": "receive"
+		}
+	},
+	"components": {
+		"messages": {
+			"GridOperation": {
+				"summary": "Represents a CRDT operation to be applied to the grid state.",
+				"payload": {
+					"type": "object",
+					"properties": {
+						"replicaId": {
+							"type": "string",
+							"description": "The unique identifier of the replica that generated this operation."
+						},
+						"operationType": {
+							"type": "string",
+							"description": "The type of CRDT operation (e.g., 'insertRow', 'updateCell', 'deleteColumn')."
+						},
+						"data": {
+							"type": "object",
+							"description": "The data associated with the operation."
+						}
+					},
+					"required": [
+						"replicaId",
+						"operationType",
+						"data"
+					]
+				}
+			}
+		},
+		"schemas": {
+			"VersionVector": {
+				"type": "object",
+				"properties": {
+					"vector": {
+						"type": "array",
+						"items": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		},
+		"securitySchemes": {
+			"bearerAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	}
+}

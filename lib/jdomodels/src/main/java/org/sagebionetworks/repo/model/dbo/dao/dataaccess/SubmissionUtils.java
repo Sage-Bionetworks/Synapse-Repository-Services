@@ -25,6 +25,7 @@ public class SubmissionUtils {
 	public static void copyDtoToDbo(Submission dto, DBOSubmission dbo) throws DatastoreException{
 		dbo.setId(Long.parseLong(dto.getId()));
 		dbo.setAccessRequirementId(Long.parseLong(dto.getAccessRequirementId()));
+		dbo.setAccessRequirementVersion(dto.getAccessRequirementVersion());
 		dbo.setDataAccessRequestId(Long.parseLong(dto.getRequestId()));
 		dbo.setCreatedBy(Long.parseLong(dto.getSubmittedBy()));
 		dbo.setCreatedOn(dto.getSubmittedOn().getTime());

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
@@ -185,6 +186,15 @@ public interface AccessApprovalDAO {
 	 * @return
 	 */
 	List<AccessApproval> searchAccessApprovals(String accessorId, String accessRequirementId, List<AccessApprovalSearchSort> sort, long limit, long offset);
+
+	/**
+	 * Fetches access approvals for the given accessor id and set of submission ids.
+	 *
+	 * @param submissionIDs required
+	 * @param accessorId required
+	 * @return
+	 */
+	Map<Long, AccessApproval> searchAccessApprovalsForSubmission(Set<Long> submissionIDs, String accessorId);
 	
 	// For testing
 	

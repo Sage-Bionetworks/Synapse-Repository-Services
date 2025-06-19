@@ -155,7 +155,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	public static final String UNAUTHORIZED_PROXY_FILE_HANDLE_MSG = "Only the creator of the ProxyStorageLocationSettings or a user with the 'create' permission on ProxyStorageLocationSettings.benefactorId can create a ProxyFileHandle using this storage location ID.";
 	
-	public static final long PRESIGNED_URL_EXPIRE_TIME_S = 30; // 30 secs
+	public static final long PRESIGNED_URL_EXPIRE_TIME_S = 60*15; // 15 minutes
 	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = PRESIGNED_URL_EXPIRE_TIME_S * 1000;
 
 	public static final int MAX_REQUESTS_PER_CALL = 100;

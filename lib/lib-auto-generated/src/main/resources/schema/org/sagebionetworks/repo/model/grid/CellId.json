@@ -1,0 +1,13 @@
+{
+	"description": "The immutable (stable) identifier for a cell.",
+	"properties": {
+		"rowId": {
+			"type": "string",
+			"description": "The unique identifier for this cell's row"
+		},
+		"columnName": {
+			"type": "string",
+			"description": "The unique name for this cell's column"
+		}
+	}
+}

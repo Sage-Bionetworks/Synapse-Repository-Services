@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrapImpl.OBJECTS_TO_BOOTSTRAP;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
@@ -354,5 +358,15 @@ public class SynapseSchemaBootstrapImplTest {
 		assertEquals(jsonSchema.getAllOf().get(0).get$ref(), versionInfo.get$id());
 	}
 
+
+	@Test
+	public void testBootstrapSchemasForAllEntityTypes() {
+		EntityType[] entityTypes = EntityType.values();
+		for(EntityType type: entityTypes) {
+			Class<? extends Entity> clazz = EntityTypeUtils.getClassForType(type);
+			// Make sure the entity type has a schema in the bootstrap list
+			assertTrue(OBJECTS_TO_BOOTSTRAP.contains(clazz.getName()));
+		}
+	}
 
 }

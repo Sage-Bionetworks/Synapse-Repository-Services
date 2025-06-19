@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dataaccess.OpenSubmission;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.Renewal;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
+import org.sagebionetworks.repo.model.dataaccess.SortDirection;
 import org.sagebionetworks.repo.model.dataaccess.Submission;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfo;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
@@ -49,6 +50,9 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSortField;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResult;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -433,13 +437,46 @@ public class SubmissionManagerImpl implements SubmissionManager{
 		ValidateArgument.required(submissionId, "submissionId");
 		
 		Submission submission = submissionDao.getSubmission(submissionId);
-		
+
+		if(isUserAnAccessor(userInfo, submission)){
+			return submission;
+		}
+
 		authorizationManager.canReviewAccessRequirementSubmissions(userInfo, submission.getAccessRequirementId())
 			.checkAuthorizationOrElseThrow();
 
 		return submission;
 	}
-	
+
+	@Override
+	public AccessApproval getUserAccessApproval(UserInfo userInfo, String submissionId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(submissionId, "submissionId");
+
+		Submission submission = submissionDao.getSubmission(submissionId);
+
+		if (!isUserAnAccessor(userInfo, submission)) {
+			throw new UnauthorizedException("The user is not an accessor to the submission.");
+		}
+
+		AccessApproval accessApproval = accessApprovalDao.getByPrimaryKey(Long.parseLong(submission.getAccessRequirementId()),
+				submission.getAccessRequirementVersion(), submission.getSubmittedBy(), userInfo.getId().toString());
+
+		return accessApproval;
+	}
+
+	boolean isUserAnAccessor(UserInfo userInfo, Submission submission) {
+		ValidateArgument.required(submission, "submission");
+
+		if (submission.getAccessorChanges() == null || submission.getAccessorChanges().isEmpty()) {
+			return false;
+		}
+
+		return submission.getAccessorChanges().stream()
+				.map(accessorChange -> Long.parseLong(accessorChange.getUserId()))
+				.anyMatch(id -> id.equals(userInfo.getId()));
+	}
+
 	@Override
 	public SubmissionSearchResponse searchSubmissions(UserInfo userInfo, SubmissionSearchRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
@@ -523,7 +560,6 @@ public class SubmissionManagerImpl implements SubmissionManager{
 
 	/**
 	 * @param approvals
-	 * @param expiredOn
 	 * @return
 	 */
 	public static Date getLatestExpirationDate(List<AccessApproval> approvals) {
@@ -536,6 +572,48 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 		return expiredOn;
+	}
+
+	@Override
+	public UserSubmissionSearchResponse searchUserSubmissions(UserInfo userInfo, UserSubmissionSearchRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+
+		NextPageToken token = new NextPageToken(request.getNextPageToken());
+		List<SubmissionSearchSort> sort = request.getSort() == null || request.getSort().isEmpty() ?
+				List.of(new SubmissionSearchSort().setField(SubmissionSortField.CREATED_ON).setDirection(SortDirection.DESC)) : request.getSort();
+
+		List<Submission> submissions = submissionDao.searchAllSubmissions(SubmissionReviewerFilterType.ALL,
+				sort, userInfo.getId().toString(),request.getAccessRequirementId(), null, request.getSubmissionState(),
+				token.getLimitForQuery(), token.getOffset());
+
+		if (submissions.isEmpty()) {
+			return new UserSubmissionSearchResponse().setResults(Collections.emptyList());
+		}
+
+		Set<Long> submissionIds = submissions.stream().map(s -> Long.valueOf(s.getId())).collect(Collectors.toSet());
+		Map<Long, AccessApproval> accessApprovalForSubmission = accessApprovalDao.searchAccessApprovalsForSubmission(submissionIds, userInfo.getId().toString());
+
+		Set<Long> arIds = submissions.stream().map(s -> Long.valueOf(s.getAccessRequirementId())).collect(Collectors.toSet());
+		Map<Long, String> arNamesMap = accessRequirementDao.getAccessRequirementNames(arIds);
+
+		List<UserSubmissionSearchResult> resultList = submissions.stream()
+				.map(submission -> new UserSubmissionSearchResult()
+						.setId(submission.getId())
+						.setCreatedOn(submission.getSubmittedOn())
+						.setModifiedOn(submission.getModifiedOn())
+						.setAccessRequirementId(submission.getAccessRequirementId())
+						.setAccessRequirementVersion(submission.getAccessRequirementVersion().toString())
+						.setAccessRequirementName(arNamesMap.get(Long.parseLong(submission.getAccessRequirementId())))
+						.setSubmitterId(submission.getSubmittedBy())
+						.setState(submission.getState())
+						.setUserAccessApproval(accessApprovalForSubmission.get(Long.parseLong(submission.getId()))))
+				.collect(Collectors.toList());
+
+		UserSubmissionSearchResponse response = new UserSubmissionSearchResponse();
+		response.setResults(resultList);
+		response.setNextPageToken(token.getNextPageTokenForCurrentResults(submissions));
+		return response;
 	}
 
 	@Override

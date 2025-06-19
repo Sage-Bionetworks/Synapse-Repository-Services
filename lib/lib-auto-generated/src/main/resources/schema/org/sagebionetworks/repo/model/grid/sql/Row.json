@@ -1,0 +1,17 @@
+{
+	"description": "",
+	"type": "object",
+	"properties": {
+		"rowId": {
+			"type": "string",
+			"description": "The unique identifier for this row.  Will be excluded for aggregate queries."
+		},
+		"values": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Cell values for a single row of a query result."
+		}
+	}
+}

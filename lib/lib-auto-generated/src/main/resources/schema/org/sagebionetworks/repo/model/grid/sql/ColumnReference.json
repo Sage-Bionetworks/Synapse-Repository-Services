@@ -1,0 +1,14 @@
+{
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression"
+		}
+	],
+	"properties": {
+		"column": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.Identifier",
+			"description": "The column identifier."
+		}
+	}
+}

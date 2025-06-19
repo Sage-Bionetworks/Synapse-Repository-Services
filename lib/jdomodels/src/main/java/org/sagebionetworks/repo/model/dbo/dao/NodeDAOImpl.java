@@ -1196,7 +1196,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		return header.get(0);
 	}
-	
+
+	@Override
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		List<EntityHeader> header = getEntityHeader(Collections.singletonList(new Reference().setTargetId(nodeId).setTargetVersionNumber(versionNumber)));
+		if(header.size() != 1){
+			throw new NotFoundException(String.format(RESOURCE_DOES_NOT_EXIST, nodeId + "." + versionNumber));
+		}
+		return header.get(0);
+	}
+
 	@Override
 	public List<EntityHeader> getEntityHeader(List<Reference> references) {
 		ValidateArgument.required(references, "references");

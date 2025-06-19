@@ -764,7 +764,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("attachment%3B%20filename%3D%22testName%22%3B%20filename%2A%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
-		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
+		assertEquals("900", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
@@ -809,7 +809,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("attachment%3B%20filename%3D%22testName%2C_.%20-%2B%28%29%22%3B%20filename%2A%3Dutf-8%27%27testName%252C%255F.%2520%252D%252B%2528%2529", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
-		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
+		assertEquals("900", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
@@ -852,7 +852,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("/testkey", redirectUrl.getPath());
 		assertEquals("attachment%3B%20filename%3D%22testName%22%3B%20filename%2A%3Dutf-8%27%27testName", queryStrings.get("response-content-disposition").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
-		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
+		assertEquals("900", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
@@ -896,7 +896,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("/testkey", redirectUrl.getPath());
 		assertEquals("text%2Fplain", queryStrings.get("response-content-type").get(0));
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
-		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
+		assertEquals("900", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));
@@ -938,7 +938,7 @@ public class FileHandleManagerImplTest {
 		assertEquals("data.dev.sagebase.org", redirectUrl.getHost());
 		assertEquals("/testkey", redirectUrl.getPath());
 		assertEquals("K123456", queryStrings.get("Key-Pair-Id").get(0));
-		assertEquals("30", queryStrings.get("X-Amz-Expires").get(0));
+		assertEquals("900", queryStrings.get("X-Amz-Expires").get(0));
 		assertNotNull(queryStrings.get("Signature"));
 		assertNotNull(queryStrings.get("Expires"));
 		assertNotNull(queryStrings.get("X-Amz-Date"));

@@ -639,6 +639,14 @@ public class NodeManagerImpl implements NodeManager {
 		authorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return nodeDao.getEntityHeader(entityId);
 	}
+
+	@Override
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		authorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return nodeDao.getEntityHeader(entityId, versionNumber);
+	}
 	
 	@Override
 	public List<EntityHeader> getNodeHeader(UserInfo userInfo,

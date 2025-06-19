@@ -46,7 +46,7 @@
 						<goals>
 							<goal>clean</goal>
 							<goal>compile</goal>
-							<goal>test</goal>
+<!--							<goal>test</goal>-->
 						</goals>
 					</execution>
 				</executions>

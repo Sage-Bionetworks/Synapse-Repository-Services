@@ -586,6 +586,28 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testCanAccessPortal() throws Exception {				
+		String portalId = "123";
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+		
+		when(mockAclManager.canAccess(userInfo.getGroups(), portalId, ObjectType.PORTAL, accessType)).thenReturn(true);
+		
+		// admin can always access
+		assertEquals(AuthorizationStatus.authorized(), authorizationManager.canAccess(userInfo, portalId, ObjectType.PORTAL, accessType));
+	}
+	
+	@Test
+	public void testCanAccessPortalUnauthorized() throws Exception {				
+		String portalId = "123";
+		ACCESS_TYPE accessType = ACCESS_TYPE.UPDATE;
+		
+		when(mockAclManager.canAccess(userInfo.getGroups(), portalId, ObjectType.PORTAL, accessType)).thenReturn(false);
+		
+		// admin can always access
+		assertEquals(AuthorizationStatus.accessDenied("Unauthorized to access Portal 123 for UPDATE"), authorizationManager.canAccess(userInfo, portalId, ObjectType.PORTAL, accessType));
+	}
+	
+	@Test
 	public void testCanDownloadVerificationSubmission() throws Exception {
 		String verificationId = "123";
 		long verificationIdLong = Long.parseLong(verificationId);

@@ -23,7 +23,8 @@ public class AuthorizationConstants {
 		DATA_ACCESS_NOTFICATIONS_SENDER(3412389L), // The synapse user used to send data access notifications
 		SYNAPSE_TESTING_GROUP(6L),
 		SAGE_BIONETWORKS(273957L), // All Sage employees.
-		PLAN_MANAGERS(7L); // Plan managers team, including project limits managers
+		PLAN_MANAGERS(7L),
+		PORTAL_MANAGERS(8L); // Users that can manage Portals
 
 		private final long principalId;
 		

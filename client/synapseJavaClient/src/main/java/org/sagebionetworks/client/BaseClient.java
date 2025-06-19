@@ -112,10 +112,6 @@ public interface BaseClient {
 	public String getUserName();
 
 	public void setUsername(String userName);
-
-	public String getApiKey();
-
-	public void setApiKey(String apiKey);
 	
 	/**
 	 * Sets the ip address of the user that this client is performing actions for.
@@ -161,8 +157,6 @@ public interface BaseClient {
 	 * Invalidate all access tokens
 	 */
 	void logoutAllForAccessToken() throws SynapseException;
-
-	public void invalidateApiKey() throws SynapseException;
 
 	/**
 	 * Set the sessionId, which is used to identify a series of requests made by this client to the current repoEndpoint

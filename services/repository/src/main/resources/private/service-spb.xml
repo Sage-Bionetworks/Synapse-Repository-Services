@@ -28,6 +28,9 @@
 	<bean id="jwtTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.JWTTypeSerializerImpl" />
 
+	<bean id="formEncodedMessageConverter"
+		class="org.sagebionetworks.repo.web.controller.FormEncodedMessageConverter" />
+
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
 		Controller -->
 	<bean id="deadlockWatcher"

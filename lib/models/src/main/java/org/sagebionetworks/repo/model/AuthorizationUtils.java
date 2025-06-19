@@ -118,4 +118,16 @@ public class AuthorizationUtils {
 		
 		return false;
 	}
+	
+	public static boolean isPortalManagerOrAdmin(UserInfo userInfo) {
+		if (userInfo.isAdmin()) {
+			return true;
+		}
+		
+		if (userInfo.getGroups() != null) {
+			return userInfo.getGroups().contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PORTAL_MANAGERS.getPrincipalId());
+		}
+		
+		return false;
+	}
 }

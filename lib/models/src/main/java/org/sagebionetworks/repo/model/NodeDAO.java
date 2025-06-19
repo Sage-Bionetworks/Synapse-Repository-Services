@@ -240,6 +240,16 @@ public interface NodeDAO {
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the header information for a particular version of an entity.
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return the entity header
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get a list of entity headers from a list of references.
 	 * @param references
 	 * @return

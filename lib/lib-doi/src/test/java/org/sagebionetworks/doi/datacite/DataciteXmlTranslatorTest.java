@@ -1,6 +1,6 @@
 package org.sagebionetworks.doi.datacite;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_IDENTIFIER;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl.getSchemeUri;
@@ -19,9 +19,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.xerces.jaxp.DocumentBuilderFactoryImpl;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
@@ -47,7 +46,7 @@ public class DataciteXmlTranslatorTest {
 	private DoiResourceType resourceType;
 
 
-	@Before
+	@BeforeEach
 	public void before() throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		dbf.setNamespaceAware(true);
@@ -94,6 +93,7 @@ public class DataciteXmlTranslatorTest {
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(DoiResourceTypeGeneral.Dataset);
 		expectedMetadata.setResourceType(resourceType);
+		expectedMetadata.setPublisher("Synapse");
 	}
 
 	@Test

@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.manager.dataaccess.RequestManager;
 import org.sagebionetworks.repo.manager.dataaccess.ResearchProjectManager;
 import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager;
 import org.sagebionetworks.repo.manager.dataaccess.SubmissionManager;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
@@ -24,6 +25,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -138,4 +141,17 @@ public class DataAccessServiceImpl implements DataAccessService {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getSubmission(user, submissionId);
 	}
+
+	@Override
+	public AccessApproval getUserAccessApproval(Long userId, String submissionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getUserAccessApproval(user, submissionId);
+	}
+
+	@Override
+	public UserSubmissionSearchResponse searchUserSubmissions(Long userId, UserSubmissionSearchRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.searchUserSubmissions(user, request);
+	}
+
 }

@@ -47,6 +47,7 @@
 				<ref bean="jsonObjectHttpMessageConverter" />
 				<ref bean="jwtTypeSerializer" />
 				<ref bean="objectTypeSerializer" />
+				<ref bean="formEncodedMessageConverter"/>
 			</list>
 		</property>
 	</bean>

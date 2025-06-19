@@ -21,6 +21,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -41,6 +43,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.model.TextMatchesMode;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -1381,6 +1384,24 @@ public class QueryTranslatorTest {
 		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0)",
 				query.getOutputSQL());
 		assertEquals(ImmutableMap.of("b0", "some text"), query.getParameters());
+		assertTrue(query.isIncludeSearch());
+	}
+	
+	@ParameterizedTest
+	@EnumSource(TextMatchesMode.class)
+	public void testQueryWithTextMatchesAndSearchMode(TextMatchesMode searchMode) throws ParseException {
+
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		sql = "select foo from syn123 WHERE TEXT_MATCHES('\"some text\" @3' " + searchMode.getSql() + ")";
+		
+		QueryTranslator query = QueryTranslator.builder(sql, userId).schemaProvider(mockSchemaProvider)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123 WHERE MATCH(ROW_SEARCH_CONTENT) AGAINST(:b0 " + searchMode.getSql() + ")",
+				query.getOutputSQL());
+		assertEquals(ImmutableMap.of("b0", "\"some text\" @3"), query.getParameters());
 		assertTrue(query.isIncludeSearch());
 	}
 

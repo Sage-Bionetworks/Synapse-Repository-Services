@@ -23,6 +23,10 @@
 		"resourceType": {
 			"description": "Required. Describes the type of media that the DOI Metadata refers to.",
 			"$ref": "org.sagebionetworks.repo.model.doi.v2.DoiResourceType"
+		},
+		"publisher": {
+			"description": "The publisher of the DOI, for a portal DOI matches the Portal name",
+			"type": "string"
 		}
 	}
 }

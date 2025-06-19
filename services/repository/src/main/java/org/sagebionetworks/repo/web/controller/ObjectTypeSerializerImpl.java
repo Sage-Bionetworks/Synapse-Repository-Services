@@ -27,7 +27,7 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
  * @author jmhill
  * 
  */
-public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
+public class ObjectTypeSerializerImpl implements ObjectTypeSerializer {
 	
 	public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 

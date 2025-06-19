@@ -54,7 +54,7 @@ public class JSONEntityHttpMessageStreamReadWrite {
 		JSONEntityHttpMessageConverter.writeToStream(sample, out, set);
 		// Create the input stream
 		ByteArrayInputStream in  = new ByteArrayInputStream(out.toByteArray());
-		String back = JSONEntityHttpMessageConverter.readToString(in, set);
+		String back = JSONEntityHttpMessageConverterHelper.readToString(in, set);
 		assertEquals("CharSet: "+set, sample, back);
 	}
 	

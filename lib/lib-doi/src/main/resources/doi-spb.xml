@@ -14,12 +14,6 @@
        ">
 
     <context:annotation-config />
-
-    <bean id="metadataTranslator" class="org.sagebionetworks.doi.datacite.DataciteMetadataTranslatorImpl"/>
-    <bean id="xmlTranslator" class="org.sagebionetworks.doi.datacite.DataciteXmlTranslatorImpl"/>
-    <bean id="dataciteClientConfig" class="org.sagebionetworks.doi.datacite.StackDataciteConfigProvider"/>
-    <bean id="dataciteClient" class="org.sagebionetworks.doi.datacite.DataciteClientImpl">
-        <constructor-arg index="0" ref="dataciteClientConfig"/>
-    </bean>
+    <context:component-scan base-package="org.sagebionetworks.doi" annotation-config="false"/>
 
 </beans>

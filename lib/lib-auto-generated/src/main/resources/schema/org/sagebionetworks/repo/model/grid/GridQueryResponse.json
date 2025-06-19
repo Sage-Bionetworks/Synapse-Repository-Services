@@ -1,0 +1,13 @@
+{
+	"description": "",
+	"type": "object",
+	"properties": {
+		"results": {
+			"description": "",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.sql.QueryResult"
+			}
+		}
+	}
+}

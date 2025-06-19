@@ -122,6 +122,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUpdateRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
+import org.sagebionetworks.repo.model.table.TextMatchesMode;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -3375,6 +3376,21 @@ public class TableWorkerIntegrationTest {
 			assertEquals(2, resultBundle.getQueryResult().getQueryResults().getRows().size());
 			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(1).getRowId());
 			assertEquals(expectedIds, resultBundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+		
+		// works using boolean mode
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId + " where text_matches('\"singlevalue value\" @3' IN BOOLEAN MODE)", null, null, (queryResult) -> {
+			assertEquals(1, queryResult.getQueryResults().getRows().size());
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId());
+			assertEquals(expectedIds, queryResult.getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+		});
+		
+		// works using boolean mode in a query filter
+		waitForConsistentQueryBundle(adminUserInfo, new Query().setSql("select * from " + tableId).setAdditionalFilters(List.of(
+			new TextMatchesQueryFilter().setSearchExpression("\"singlevalue value\" @3").setSearchMode(TextMatchesMode.BOOLEAN))), queryOptions, (resultBundle) -> {
+				assertEquals(1, resultBundle.getQueryResult().getQueryResults().getRows().size());
+				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId());
+				assertEquals(expectedIds, resultBundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 		});
 		
 	}

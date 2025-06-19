@@ -88,7 +88,7 @@ public class DataAccessAuthorizationManagerImpl implements DataAccessAuthorizati
 		
 		return AuthorizationStatus.authorized();
 	}
-	
+
 	@Override
 	public boolean isAccessRequirementReviewer(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");

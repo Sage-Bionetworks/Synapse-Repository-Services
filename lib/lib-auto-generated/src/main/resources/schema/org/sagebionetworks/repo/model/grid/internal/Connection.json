@@ -1,0 +1,17 @@
+{
+	"description": "Connection information from a presigned URL.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The unique sessionId that identifies the grid session.",
+			"type": "integer"
+		},
+		"replicaId": {
+			"description": "The replica ID of the client connection.",
+			"type": "integer"
+		},
+		"userId": {
+			"type": "integer",
+			"description": "The ID of the user that establilshed this connection."
+		}
+	}
+}

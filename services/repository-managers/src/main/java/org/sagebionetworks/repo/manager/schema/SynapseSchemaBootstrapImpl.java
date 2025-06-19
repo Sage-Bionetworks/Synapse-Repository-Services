@@ -12,8 +12,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.docker.DockerRepository;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -21,6 +23,13 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
+import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.DatasetCollection;
+import org.sagebionetworks.repo.model.table.EntityView;
+import org.sagebionetworks.repo.model.table.MaterializedView;
+import org.sagebionetworks.repo.model.table.SubmissionView;
+import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -44,8 +53,20 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	 * The Synapse objects that can be referenced in JSON schemas and therefore must
 	 * exist in the repository.
 	 */
-	public static final List<String> OBJECTS_TO_BOOTSTRAP = Lists.newArrayList(FileEntity.class.getName(),
-			Folder.class.getName(), Project.class.getName());
+	public static final List<String> OBJECTS_TO_BOOTSTRAP = Lists.newArrayList(
+			FileEntity.class.getName(),
+			Folder.class.getName(),
+			Project.class.getName(),
+			TableEntity.class.getName(),
+			EntityView.class.getName(),
+			Dataset.class.getName(),
+			DatasetCollection.class.getName(),
+			SubmissionView.class.getName(),
+			MaterializedView.class.getName(),
+			VirtualTable.class.getName(),
+			DockerRepository.class.getName(),
+			Link.class.getName()
+		);
 
 	@Autowired
 	private JsonSchemaManager jsonSchemaManager;
@@ -180,37 +201,53 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	 * @return
 	 */
 	List<ObjectSchema> loadAllSchemasAndReferences(List<String> schemaClassNames) {
-		Set<String> visitedId = new HashSet<String>();
-		Map<String, ObjectSchemaImpl> loadedSchemas = new LinkedHashMap<String, ObjectSchemaImpl>();
+		Set<String> visitedIds = new HashSet<String>();
+		Map<String, ObjectSchema> loadedSchemas = new LinkedHashMap<>();
 		for (String idToLoad : schemaClassNames) {
-			loadAllSchemasRecursive(loadedSchemas, idToLoad, visitedId);
+			ObjectSchema schema = translator.loadSchemaFromClasspath(idToLoad);
+			loadAllSchemasRecursive(loadedSchemas, visitedIds, schema);
 		}
 		return loadedSchemas.values().stream().collect(Collectors.toList());
 	}
 
+
 	/**
 	 * Depth-first recursive walk of the entire schema hierarchy, so dependencies
 	 * are added before the object that depend on them.
-	 * 
-	 * @param loadedSchemas
-	 * @param schemaClassName
+	 *
+	 * @param loadedSchemas a mapping of loaded schema class names to the ObjectSchema
+	 * @param visitedIds    the set of visited schema classes to prevent infinite loops
+	 * @param schema        the schema to walk through
 	 */
-	private void loadAllSchemasRecursive(Map<String, ObjectSchemaImpl> loadedSchemas, String schemaClassName,
-			Set<String> visitedId) {
-		if (schemaClassName == null || loadedSchemas.containsKey(schemaClassName)) {
-			// schema is already loaded.
-			return;
+	private void loadAllSchemasRecursive(Map<String, ObjectSchema> loadedSchemas, Set<String> visitedIds, ObjectSchema schema) {
+		String schemaId = schema.getId();
+		if (schemaId != null) {
+			if (loadedSchemas.containsKey(schemaId)) {
+				// schema is already loaded.
+				return;
+			}
+			// loop detection
+			if (!visitedIds.add(schemaId)) {
+				return;
+			}
 		}
-		// loop detection
-		if (!visitedId.add(schemaClassName)) {
-			return;
+
+		// If this schema has a ref, then load the referenced schema recursively.
+		if (schema.getRef() != null) {
+			ObjectSchema referencedSchema = translator.loadSchemaFromClasspath(schema.getRef());
+			loadAllSchemasRecursive(loadedSchemas, visitedIds, referencedSchema);
 		}
-		ObjectSchemaImpl loaded = translator.loadSchemaFromClasspath(schemaClassName);
-		// load all of the references of this schema
-		loaded.getSubSchemaIterator().forEachRemaining((ObjectSchema subSchema) -> {
-			loadAllSchemasRecursive(loadedSchemas, subSchema.getRef(), visitedId);
-		});
-		loadedSchemas.put(schemaClassName, loaded);
+
+		// Walk through the schema to continue loading all references
+		schema.getSubSchemaIterator().forEachRemaining((ObjectSchema subSchema) ->
+				loadAllSchemasRecursive(loadedSchemas, visitedIds, subSchema)
+		);
+
+
+		// Add the schema to the end of the insertion-ordered loaded schemas map (ensure the references are added first)
+		if (schemaId != null) {
+			loadedSchemas.put(schemaId, schema);
+		}
 	}
 
 }

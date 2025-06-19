@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -47,7 +48,7 @@ public interface DoiAssociationDao {
 	 * @return The DTO for the specified DOI.
 	 * @throws NotFoundException An existing DOI was not found
 	 */
-	DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
+	DoiAssociation getDoiAssociation(String portalId, String objectId, DoiObjectType objectType, Long versionNumber) throws NotFoundException;
 
 	/**
 	 * Gets the DOI for the specified object for update. If version number is null,
@@ -60,5 +61,5 @@ public interface DoiAssociationDao {
 	 *                      the most recent version
 	 * @return The DTO for the specified DOI, or null if it does not exist.
 	 */
-	DoiAssociation getDoiAssociationForUpdate(String objectId, ObjectType objectType, Long versionNumber) throws NotFoundException;
+	DoiAssociation getDoiAssociationForUpdate(String portalId, String objectId, DoiObjectType objectType, Long versionNumber) throws NotFoundException;
 }

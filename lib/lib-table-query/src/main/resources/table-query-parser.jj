@@ -256,7 +256,6 @@ TOKEN [IGNORE_CASE]: {
   >
 }
 
-
 /* Synapse Functions */
 TOKEN [IGNORE_CASE]: {
   < current_user_function: "CURRENT_USER" >
@@ -337,6 +336,12 @@ TOKEN [IGNORE_CASE]:{
 | < div: "DIV">
 }
 
+/* Text Matches Modes */
+TOKEN [IGNORE_CASE]: {
+  <text_matches_mode_boolean: "BOOLEAN MODE">
+| <text_matches_mode_natural: "NATURAL LANGUAGE MODE">
+}
+
 TOKEN [IGNORE_CASE]: {
   < entity_id: "syn"(["0"-"9"])+("."(["0"-"9"])+)?>
 }
@@ -378,6 +383,7 @@ TOKEN: {
 | < right_curly_brace: "}">
 | < tilde: "~">
 }
+
 QueryExpression queryExpression():
 {
 	WithListElement withListElement = null;
@@ -1239,11 +1245,26 @@ SynapseFunctionName synapseFunctionName():
 TextMatchesPredicate textMatchesPredicate():
 {
 	CharacterStringLiteral searchExpression = null;
+	TextMatchesMode searchMode = null;
 }
 {
-	<text_matches><left_paren> { searchExpression = characterStringLiteral(); } <right_paren>
+	<text_matches>
+	<left_paren> { searchExpression = characterStringLiteral(); }
+	[
+		<in> searchMode = textMatchesMode()
+	]
+	<right_paren>
 	
-	{ return new TextMatchesPredicate(searchExpression); }
+	{ return new TextMatchesPredicate(searchExpression, searchMode); }
+}
+
+TextMatchesMode textMatchesMode():
+{
+    Token searchMode = null;
+}
+{
+    searchMode = <text_matches_mode_boolean> { return TextMatchesMode.BOOLEAN; }
+    | searchMode = <text_matches_mode_natural> { return TextMatchesMode.NATURAL_LANGUAGE; }
 }
 
 MySqlFunction mysqlFunction():

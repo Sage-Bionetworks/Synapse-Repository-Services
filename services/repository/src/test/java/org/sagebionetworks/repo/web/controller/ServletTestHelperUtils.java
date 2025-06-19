@@ -155,7 +155,7 @@ public class ServletTestHelperUtils {
 	public static Entity readResponseEntity(MockHttpServletResponse response)
 			throws Exception {
 		StringReader reader = new StringReader(response.getContentAsString());
-		return JSONEntityHttpMessageConverter.readEntity(reader);
+		return JSONEntityHttpMessageConverterHelper.readEntity(reader);
 	}
 
 	/**
@@ -165,7 +165,7 @@ public class ServletTestHelperUtils {
 	public static JSONObjectAdapterImpl readResponseJSON(
 			MockHttpServletResponse response) throws Exception {
 		StringReader reader = new StringReader(response.getContentAsString());
-		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		String json = JSONEntityHttpMessageConverterHelper.readToString(reader);
 		return new JSONObjectAdapterImpl(json);
 	}
 	
@@ -178,7 +178,7 @@ public class ServletTestHelperUtils {
 	 */
 	public static <T extends JSONEntity> T readResponse(MockHttpServletResponse response, Class<? extends T> clazz) throws Exception {
 		StringReader reader = new StringReader(response.getContentAsString());
-		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		String json = JSONEntityHttpMessageConverterHelper.readToString(reader);
 		return EntityFactory.createEntityFromJSONString(json, clazz);
 	}
 

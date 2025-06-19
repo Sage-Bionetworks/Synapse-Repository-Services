@@ -1,0 +1,35 @@
+{
+	"description": "Basic information about a grid session.",
+	"properties": {
+		"sessionId": {
+			"description": "The unique sessionId that identifies the grid session.",
+			"type": "string"
+		},
+		"startedBy": {
+			"description": "The user that started this session.",
+			"type": "string"
+		},
+		"startedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the session was started."
+		},
+		"etag": {
+			"description": "Changes when the session chagnes.",
+			"type": "string"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the session was last changed."
+		},
+		"lastReplicaIdClient": {
+			"description": "The last replica ID issued to a client. Client replica IDs are incremented.",
+			"type": "integer"
+		},
+		"lastReplicaIdService": {
+			"description": "The last replica ID issued to a service. Service replica IDs are decremented.",
+			"type": "integer"
+		}
+	}
+}

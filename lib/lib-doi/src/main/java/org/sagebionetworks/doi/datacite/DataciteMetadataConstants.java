@@ -5,12 +5,6 @@ package org.sagebionetworks.doi.datacite;
  */
 class DataciteMetadataConstants {
 
-
-	/**
-	 * DOI Publisher is always Synapse.
-	 */
-	static final String PUBLISHER_VALUE = "Synapse";
-
 	//XML, Datacite required attributes
 	static final String NAMESPACE = "xmlns";
 	static final String NAMESPACE_VALUE = "http://datacite.org/schema/kernel-4";

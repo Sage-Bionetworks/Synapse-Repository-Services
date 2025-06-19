@@ -73,8 +73,8 @@ public class ObjectTypeSerializerTest {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		// Now write the object to the stream
 		HttpHeaders headers = new HttpHeaders();
-		headers.add("Content-Type", "application/xml; charset=UTF-8");
-		objectTypeSerializer.serializer(out, headers, project, MediaType.APPLICATION_XML);
+		headers.add("Content-Type", "application/json; charset=UTF-8");
+		objectTypeSerializer.serializer(out, headers, project, MediaType.APPLICATION_JSON);
 		
 		// Now reverse the process
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());

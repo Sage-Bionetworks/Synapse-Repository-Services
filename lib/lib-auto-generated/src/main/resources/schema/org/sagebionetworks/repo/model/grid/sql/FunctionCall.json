@@ -1,0 +1,77 @@
+{
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression"
+		}
+	],
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The name of the fuction.",
+			"name": "FunctionName",
+			"id": "org.sagebionetworks.repo.model.grid.sql.FunctionName",
+			"enum": [
+				{
+					"name": "AVG",
+					"description": "Return the average value of the argument."
+				},
+				{
+					"name": "COUNT",
+					"description": "Return a count of the number of rows returned."
+				},
+				{
+					"name": "COUNT_DISTINCT",
+					"description": "Return the count of a number of different values."
+				},
+				{
+					"name": "MAX",
+					"description": "Return the maximum value"
+				},
+				{
+					"name": "MIN",
+					"description": "Return the minimum value."
+				},
+				{
+					"name": "STD",
+					"description": "Return the population standard deviation."
+				},
+				{
+					"name": "STDPOP",
+					"description": "Return the population standard deviation."
+				},
+				{
+					"name": "STDDEV_SAMP",
+					"description": "Return the sample standard deviation."
+				},
+				{
+					"name": "SUM",
+					"description": "Return the sum."
+				},
+				{
+					"name": "VAR_POP",
+					"description": "Return the population standard variance."
+				},
+				{
+					"name": "VAR_SAMP",
+					"description": "Return the sample variance"
+				},
+				{
+					"name": "VARIANCE",
+					"description": "Return the population standard variance."
+				}
+			]
+		},
+		"arguments": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression"
+			},
+			"description": "An array of arguments passed to the function."
+		},
+		"distinct": {
+			"type": "boolean",
+			"description": "Indicates if the 'DISTINCT' keyword was used (for aggregate functions)."
+		}
+	}
+}

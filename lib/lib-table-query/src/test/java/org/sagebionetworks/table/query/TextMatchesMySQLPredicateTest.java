@@ -10,14 +10,16 @@ import java.util.Collections;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Element;
 import org.sagebionetworks.table.query.model.PredicateLeftHandSide;
 import org.sagebionetworks.table.query.model.TextMatchesMySQLPredicate;
 import org.sagebionetworks.table.query.model.TextMatchesPredicate;
+import org.sagebionetworks.table.query.model.TextMatchesMode;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +50,23 @@ public class TextMatchesMySQLPredicateTest {
 		verify(mockInputPredicate).getSearchExpression();
 		verify(mockLiteral).toSql(any(), any());
 	}
+	
+	@ParameterizedTest
+	@EnumSource(TextMatchesMode.class)
+	public void testToSQLWithSearchMode(TextMatchesMode searchMode) {
+		when(mockInputPredicate.getSearchExpression()).thenReturn(mockLiteral);
+		when(mockInputPredicate.getSearchMode()).thenReturn(searchMode);
+		doNothing().when(mockLiteral).toSql(any(), any());
+		
+		// Call under test
+		String sql = predicate.toSql();
+		
+		assertEquals("MATCH(ROW_SEARCH_CONTENT) AGAINST( " + searchMode.getSql() + ")", sql);
+		
+		verify(mockInputPredicate).getSearchExpression();
+		verify(mockInputPredicate).getSearchMode();
+		verify(mockLiteral).toSql(any(), any());
+	}	
 	
 	@Test
 	public void testGetChildren() {		

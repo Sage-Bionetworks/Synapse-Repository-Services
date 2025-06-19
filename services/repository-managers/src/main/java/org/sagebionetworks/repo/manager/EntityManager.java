@@ -135,13 +135,26 @@ public interface EntityManager {
 	 * 
 	 * @param userInfo
 	 * @param entityId
-	 * @param versionNumber (optional) null means current version.
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
 	EntityHeader getEntityHeader(UserInfo userInfo, String entityId)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Get the entity header.
+	 *
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

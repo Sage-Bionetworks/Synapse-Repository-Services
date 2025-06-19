@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
@@ -23,6 +24,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStateChangeRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionStatus;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -338,7 +341,8 @@ public class DataAccessController {
 	}
 	
 	/**
-	 * Fetch a submission by its id. If the user is a not part of the ACT they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
+	 * Fetch a submission by its id. If the user is a not accessor to the submission or part of the ACT,
+	 * they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
 	 * 
 	 * @param userId
 	 * @param submissionId
@@ -354,4 +358,44 @@ public class DataAccessController {
 			@PathVariable String submissionId) {
 		return serviceProvider.getDataAccessService().getSubmission(userId, submissionId);
 	}
+
+	/**
+	 * Fetch an access approval for a submission.If the user is an accessor in the submission they can fetch their own
+	 * access approval information specific to a submission.
+	 *
+	 * @param userId
+	 * @param submissionId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_ACCESS_APPROVAL_FOR_SUBMISSION, method = RequestMethod.GET)
+	public @ResponseBody AccessApproval getUserAccessApproval(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String submissionId) {
+		return serviceProvider.getDataAccessService().getUserAccessApproval(userId, submissionId);
+	}
+
+	/**
+	 * Retrieve a list of submissions for a given access requirement ID, where the calling user is an accessor.
+	 *
+	 * Allows to optionally filter by accessRequirement Ids, submission state and sort by the associated fields in the <a href="${org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort}">SubmissionSearchSort</a>.
+	 *
+	 *
+	 * @param userId
+	 * @param submissionSearchRequest
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_USER_REQUESTS, method = RequestMethod.POST)
+	public @ResponseBody UserSubmissionSearchResponse searchUserSubmissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UserSubmissionSearchRequest submissionSearchRequest ) throws NotFoundException {
+		return serviceProvider.getDataAccessService().searchUserSubmissions(userId, submissionSearchRequest);
+	}
+
 }

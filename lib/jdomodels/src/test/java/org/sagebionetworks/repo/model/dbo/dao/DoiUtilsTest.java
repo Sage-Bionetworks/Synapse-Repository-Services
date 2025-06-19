@@ -1,27 +1,29 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.sql.Timestamp;
 import java.util.Date;
 
-import org.junit.Test;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
-import org.sagebionetworks.util.TemporaryCode;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 
 public class DoiUtilsTest {
 
 	private static final Long createdBy = 1L;
 	private static final Long updatedBy = 7L;
 	private static final Timestamp createdOn = new Timestamp((new Date()).getTime());
-	private static final ObjectType objectType = ObjectType.ENTITY;
+	private static final DoiObjectType objectType = DoiObjectType.ENTITY;
 	private static final DoiStatus doiStatus = DoiStatus.CREATED;
 	private static final String eTag = "eTag";
 	private static final Long id = 2L;
+	private static final Long portalId = 5L;
 	private static final Long objectId = 3L;
 	private static final Long objectVersion = 4L;
 	private static final Timestamp updatedOn = new Timestamp((new Date()).getTime());
@@ -38,6 +40,7 @@ public class DoiUtilsTest {
 		assertEquals(doiStatus, doiStatus);
 		assertEquals(eTag, dto.getEtag());
 		assertEquals(id.toString(), dto.getAssociationId());
+		assertEquals(portalId.toString(), dto.getPortalId());
 		assertEquals("syn" + objectId.toString(), dto.getObjectId());
 		assertEquals(objectVersion, dto.getObjectVersion());
 		assertEquals(updatedOn.getTime(), dto.getUpdatedOn().getTime());
@@ -46,11 +49,11 @@ public class DoiUtilsTest {
 	@Test
 	public void testConvertToDtoV2NotEntity() {
 		DBODoi dbo = setUpDbo();
-		dbo.setObjectType(ObjectType.WIKI);
+		dbo.setObjectType(DoiObjectType.PORTAL_RESOURCE);
 		// Call under test
 		DoiAssociation dto = DoiUtils.convertToDtoV2(dbo);
 		assertEquals(objectId.toString(), dto.getObjectId());
-		assertEquals(ObjectType.WIKI, dto.getObjectType());
+		assertEquals(DoiObjectType.PORTAL_RESOURCE, dto.getObjectType());
 	}
 
 	@Test
@@ -75,7 +78,7 @@ public class DoiUtilsTest {
 		assertEquals(DoiStatus.READY.name(), dbo.getDoiStatus());
 		assertEquals(eTag, dbo.getETag());
 		assertEquals(id, dbo.getId());
-		assertEquals(objectId, dbo.getObjectId());
+		assertEquals(objectId.toString(), dbo.getObjectId());
 		assertEquals(objectVersion, dbo.getObjectVersion());
 		assertEquals(updatedOn.getTime(), dbo.getUpdatedOn().getTime());
 	}
@@ -89,82 +92,113 @@ public class DoiUtilsTest {
 		assertEquals((Long)DBODoi.NULL_OBJECT_VERSION, dbo.getObjectVersion());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertToDtoV2NullDbo() {
 		DBODoi dbo = null;
 		// Note DBO is null, so it should not be converted to a DTO.
-		// Call under test.
-		DoiUtils.convertToDtoV2(dbo);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test.			
+			DoiUtils.convertToDtoV2(dbo);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullDto() {
 		DoiAssociation dto = null;
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullId() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setAssociationId(null); // Omit required field
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullAssociatedBy() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setAssociatedBy(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullAssociatedOn() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setAssociatedOn(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullEtag() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setEtag(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
+	}
+	
+	@Test
+	public void testConvertV2ToDboNullPortalId() {
+		DoiAssociation dto = setUpDtoV2();
+		dto.setPortalId(null); // Omit required field.
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullObjectId() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setObjectId(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullObjectType() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setObjectType(null); // Omit required field.
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullUpdatedBy() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setUpdatedBy(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testConvertV2ToDboNullUpdatedOn() {
 		DoiAssociation dto = setUpDtoV2();
 		dto.setUpdatedOn(null); // Omit required field.
-		// Call under test
-		DoiUtils.convertToDbo(dto);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			DoiUtils.convertToDbo(dto);
+		});
 	}
 
 	private static DBODoi setUpDbo() {
@@ -176,7 +210,8 @@ public class DoiUtilsTest {
 		dbo.setDoiStatus(doiStatus);
 		dbo.setETag(eTag);
 		dbo.setId(id);
-		dbo.setObjectId(objectId);
+		dbo.setPortalId(portalId);
+		dbo.setObjectId(objectId.toString());
 		dbo.setObjectVersion(objectVersion);
 		dbo.setUpdatedOn(updatedOn);
 		return dbo;
@@ -189,6 +224,7 @@ public class DoiUtilsTest {
 		dto.setObjectType(objectType);
 		dto.setEtag(eTag);
 		dto.setAssociationId(id.toString());
+		dto.setPortalId(portalId.toString());
 		dto.setObjectId(objectId.toString());
 		dto.setObjectVersion(objectVersion);
 		dto.setUpdatedBy(updatedBy.toString());

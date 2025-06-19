@@ -626,33 +626,53 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			throw new OAuthClientNotVerifiedException("The OAuth client (" + clientId + ") is not verified.");
 		}
 	}
+	
+	private void revokeAccessToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
+		// retrieve the refresh token ID from the JWT
+		Claims claims = oidcTokenManager.parseJWT(revocationRequest.getToken()).getBody();
+		
+		String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
+		
+		if (refreshTokenId != null) {
+			// Revoking a refresh token also revokes the access tokens
+			oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
+		} else {
+			// If the token was not issued with a refresh token we revoke the access token only
+			oidcTokenManager.revokeOIDCAccessToken(claims.getId());
+		}
+	}
+	
+	/*
+	 * throws NotFoundException is token does not exist
+	 */
+	private void revokeRefreshToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
+		// retrieve the token ID using the token
+		OAuthRefreshTokenInformation metadata = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(verifiedClientId, revocationRequest.getToken());
+		oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
+		
+	}
 
 	@WriteTransaction
 	@Override
 	public void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) {
-		switch (revocationRequest.getToken_type_hint()) {
-			case access_token: 
-				// retrieve the refresh token ID from the JWT
-				Claims claims = oidcTokenManager.parseJWT(revocationRequest.getToken()).getBody();
-				
-				String refreshTokenId = claims.get(OIDCClaimName.refresh_token_id.name(), String.class);
-				
-				if (refreshTokenId != null) {
-					// Revoking a refresh token also revokes the access tokens
-					oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, refreshTokenId);
-				} else {
-					// If the token was not issued with a refresh token we revoke the access token only
-					oidcTokenManager.revokeOIDCAccessToken(claims.getId());
-				}
-				
+		if (revocationRequest.getToken_type_hint()==null) {
+			// client omitted hint so we have to guess
+			try {
+				revokeRefreshToken(verifiedClientId, revocationRequest);
+			} catch (NotFoundException e) {
+				revokeAccessToken(verifiedClientId, revocationRequest);
+			}
+		} else {
+			switch (revocationRequest.getToken_type_hint()) {
+			case access_token:
+				revokeAccessToken(verifiedClientId, revocationRequest);
 				return;
 			case refresh_token: 
-				// retrieve the token ID using the token
-				OAuthRefreshTokenInformation metadata = oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(verifiedClientId, revocationRequest.getToken());
-				oauthRefreshTokenManager.revokeRefreshToken(verifiedClientId, metadata.getTokenId());
+				revokeRefreshToken(verifiedClientId, revocationRequest);
 				return;
 			default:
 				throw new OAuthBadRequestException(OAuthErrorCode.unsupported_token_type, "Unable to revoke a token with token_type_hint=" + revocationRequest.getToken_type_hint().name());
+			}
 		}
 	}
 

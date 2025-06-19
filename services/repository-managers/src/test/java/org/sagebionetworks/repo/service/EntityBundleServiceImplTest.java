@@ -56,9 +56,11 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dbo.portals.DBOPortal;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundle;
 import org.sagebionetworks.repo.model.entitybundle.v2.EntityBundleCreate;
@@ -71,12 +73,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.service.DoiServiceV2;
-import org.sagebionetworks.repo.service.EntityBundleService;
-import org.sagebionetworks.repo.service.EntityBundleServiceImpl;
-import org.sagebionetworks.repo.service.EntityService;
-import org.sagebionetworks.repo.service.ServiceProvider;
-import org.sagebionetworks.repo.service.WikiService;
 import org.sagebionetworks.repo.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.service.discussion.DiscussionService;
 import org.sagebionetworks.repo.service.table.TableServices;
@@ -122,6 +118,7 @@ public class EntityBundleServiceImplTest {
 	private static final String DUMMY_FILE = "Test File";
 	private static final String STUDY_ID = "1";
 	private static final String FILE_ID = "syn2";
+	private static final String PORTAL_ID = DBOPortal.SYNAPSE_PORTAL_ID.toString();
 	private static final long FILE_VERSION = 3L;
 	private static final String TABLE_ID = "syn3";
 	private static final long TABLE_VERSION = 5L;
@@ -240,10 +237,10 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeDOIAssociation(true);
 		DoiAssociation doi = new DoiAssociation();
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectId(entityId);
 		doi.setObjectVersion(null);
-		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenReturn(doi);
+		when(mockDoiServiceV2.getDoiAssociation(PORTAL_ID, entityId, DoiObjectType.ENTITY, null)).thenReturn(doi);
 		// Call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
@@ -257,17 +254,17 @@ public class EntityBundleServiceImplTest {
 		request.setIncludeEntity(true);
 		request.setIncludeDOIAssociation(true);
 		DoiAssociation doi = new DoiAssociation();
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectId(FILE_ID);
 		doi.setObjectVersion(FILE_VERSION); // The DOI should be tied to a version even though the bundle request has no version!
 
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(FILE_ID))).thenReturn(file);
-		when(mockDoiServiceV2.getDoiAssociation(FILE_ID, ObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
+		when(mockDoiServiceV2.getDoiAssociation(PORTAL_ID, FILE_ID, DoiObjectType.ENTITY, FILE_VERSION)).thenReturn(doi);
 
 		// Call under test. Note the bundle requests 'null' version
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, FILE_ID, request);
 
-		verify(mockDoiServiceV2, never()).getDoiAssociation(FILE_ID, ObjectType.ENTITY, null);
+		verify(mockDoiServiceV2, never()).getDoiAssociation(PORTAL_ID, FILE_ID, DoiObjectType.ENTITY, null);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
 	}
@@ -278,19 +275,19 @@ public class EntityBundleServiceImplTest {
 		request.setIncludeEntity(true);
 		request.setIncludeDOIAssociation(true);
 		DoiAssociation doi = new DoiAssociation();
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectId(TABLE_ID);
 		doi.setObjectVersion(null);
 
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(TABLE_ID))).thenReturn(table);
-		when(mockDoiServiceV2.getDoiAssociation(TABLE_ID, ObjectType.ENTITY, null)).thenReturn(doi);
+		when(mockDoiServiceV2.getDoiAssociation(PORTAL_ID, TABLE_ID, DoiObjectType.ENTITY, null)).thenReturn(doi);
 
 		// Call under test. Note the bundle requests 'null' version
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, TABLE_ID, request);
 
 		// For Tables, unlike Files, we should get the DOI without a version:
-		verify(mockDoiServiceV2).getDoiAssociation(TABLE_ID, ObjectType.ENTITY, null);
-		verify(mockDoiServiceV2, never()).getDoiAssociation(TABLE_ID, ObjectType.ENTITY, TABLE_VERSION);
+		verify(mockDoiServiceV2).getDoiAssociation(PORTAL_ID, TABLE_ID, DoiObjectType.ENTITY, null);
+		verify(mockDoiServiceV2, never()).getDoiAssociation(PORTAL_ID, TABLE_ID, DoiObjectType.ENTITY, TABLE_VERSION);
 		assertNotNull(bundle);
 		assertEquals(doi, bundle.getDoiAssociation());
 	}
@@ -301,12 +298,12 @@ public class EntityBundleServiceImplTest {
 		EntityBundleRequest request = new EntityBundleRequest();
 		request.setIncludeDOIAssociation(true);
 		String entityId = "syn123";
-		when(mockDoiServiceV2.getDoiAssociation(entityId, ObjectType.ENTITY, null)).thenThrow(new NotFoundException(""));
+		when(mockDoiServiceV2.getDoiAssociation(PORTAL_ID, entityId, DoiObjectType.ENTITY, null)).thenThrow(new NotFoundException(""));
 		// Call under test
 		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, request);
 		assertNotNull(bundle);
 		assertNull(bundle.getDoiAssociation());
-		verify(mockDoiServiceV2).getDoiAssociation(entityId, ObjectType.ENTITY, null);
+		verify(mockDoiServiceV2).getDoiAssociation(PORTAL_ID, entityId, DoiObjectType.ENTITY, null);
 	}
 	
 	@Test

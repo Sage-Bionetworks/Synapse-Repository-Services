@@ -264,13 +264,6 @@ public interface StackConfiguration {
 	 */
 	public boolean getSearchEnabled();
 
-	/**
-	 * Is the DOI feature enabled?
-	 * 
-	 * @return
-	 */
-	public boolean getDoiEnabled();
-
 	public boolean getDoiDataciteEnabled();
 
 	/**

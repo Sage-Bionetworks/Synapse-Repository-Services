@@ -1,10 +1,12 @@
 package org.sagebionetworks.table.worker;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -70,9 +72,11 @@ public class PFBDownloadWorker implements AsyncJobRunner<DownloadPFBRequest, Dow
 		File temp = fileProvider.createTempFile(jobName, ".avro");
 		try {
 			jobProgressCallback.updateProgress("running query...", 0L, 100L);
+			// Add a blank metadata row for now.
+			Metadata metadata = new Metadata().setNodes(Collections.emptyList());
 			QueryResultBundle qrb = tableQueryManager.runQueryAsStream(jobProgressCallback, user, request, t -> {
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
-				return writerProvider.createWriter(request.getPfbEntityName(), schema, temp);
+				return writerProvider.createWriter(request.getPfbEntityName(), schema, metadata, temp);
 			});
 			jobProgressCallback.updateProgress("saving results...", 0L, 100L);
 			S3FileHandle fileHandle = fileHandleManager

@@ -758,6 +758,7 @@ public class SqlConstants {
 	public static final String COL_DOI_ID               = "ID";
 	public static final String COL_DOI_ETAG             = "ETAG";
 	public static final String COL_DOI_DOI_STATUS       = "DOI_STATUS";
+	public static final String COL_DOI_PORTAL_ID        = "PORTAL_ID";
 	public static final String COL_DOI_OBJECT_ID        = "OBJECT_ID";
 	public static final String COL_DOI_OBJECT_TYPE      = "OBJECT_TYPE";
 	public static final String COL_DOI_OBJECT_VERSION   = "OBJECT_VERSION";
@@ -1068,6 +1069,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_SUBMISSION_ETAG = 					"ETAG";
 	public static final String COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED = 	"SUBMISSION_SERIALIZED";
 	public static final String COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID = 	"RESEARCH_PROJECT_ID";
+	public static final String COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_VERSION = 	"ACCESS_REQUIREMENT_VERSION";
 
 	// DataAccessSubmissionStatus
 	public static final String DDL_DATA_ACCESS_SUBMISSION_STATUS = 					"schema/DataAccessSubmissionStatus-ddl.sql";
@@ -1370,6 +1372,60 @@ public class SqlConstants {
 	public static final String COL_PROJECT_STORAGE_LIMIT_MAX_BYTES =		"MAX_BYTES";
 	public static final String DDL_PROJECT_STORAGE_LIMIT = 					"schema/limits/ProjectStorageLimit-ddl.sql";
 	
+	// Portal table
+	public static final String TABLE_PORTAL = 			"PORTAL";
+	public static final String COL_PORTAL_ID = 			"ID";
+	public static final String COL_PORTAL_ETAG = 		"ETAG";
+	public static final String COL_PORTAL_CREATED_BY = 	"CREATED_BY";
+	public static final String COL_PORTAL_CREATED_ON = 	"CREATED_ON";
+	public static final String COL_PORTAL_MODIFIED_BY = "MODIFIED_BY";
+	public static final String COL_PORTAL_MODIFIED_ON = "MODIFIED_ON";
+	public static final String COL_PORTAL_NAME = 		"NAME";
+	public static final String COL_PORTAL_ENDPOINT = 	"ENDPOINT";	
+	public static final String DDL_PORTAL = "schema/portals/Portal-ddl.sql";
+	
+	// Grid tables
+	public static final String TABLE_GRID_SESSION = 				"GRID_SESSION";
+	public static final String COL_GRID_SESSION_ID = 				"ID";
+	public static final String COL_GRID_SESSION_ETAG = 				"ETAG";
+	public static final String COL_GRID_SESSION_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_GRID_SESSION_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_GRID_SESSION_MODIFIED_ON = 		"MODIFIED_ON";
+	public static final String COL_GRID_SESSION_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_GRID_SESSION_REP_ID_CLIENT =		"REP_ID_CLIENT";
+	public static final String COL_GRID_SESSION_REP_ID_SERVICE =	"REP_ID_SERVICE";
+	public static final String DDL_GRID_SESSION = "schema/grid/Grid-Session-ddl.sql";
+	
+	public static final String TABLE_GRID_REPLICA =					"GRID_REPLICA";
+	public static final String COL_GRID_REPLICA_ID =				"ID";
+	public static final String COL_GRID_REPLICA_REPLICA_ID =		"REPLICA_ID";
+	public static final String COL_GRID_REPLICA_CREATE_BY =			"CREATED_BY";
+	public static final String COL_GRID_REPLICA_CREATE_ON =			"CREATED_ON";
+	public static final String COL_GRID_REPLICA_SESSION_ID =		"SESSION_ID";	
+	public static final String COL_GRID_REPLICA_IS_AGENT =			"IS_AGENT";	
+	public static final String DDL_GRID_REPLICA = "schema/grid/Grid-Replica-ddl.sql";
+	
+	public static final String TABLE_GRID_CONNECTION = 				"GRID_CONNECTION";
+	public static final String COL_GRID_CON_CONNECTION_ID = 		"CONNECTION_ID";
+	public static final String COL_GRID_CON_SESSION_ID = 			"SESSION_ID";
+	public static final String COL_GRID_CON_REPLICA_ID =			"REPLICA_ID";
+	public static final String COL_GRID_CON_CREATED_BY =			"CREATED_BY";
+	public static final String COL_GRID_CON_CREATED_ON = 			"CREATED_ON";
+	public static final String COL_GRID_CON_SOURCE = 				"SOURCE";
+	public static final String DDL_GRID_CONNECTION = "schema/grid/Grid-Connection-ddl.sql"; 
+	
+	public static final String TABLE_GRID_PATCH = 					"GRID_PATCH";
+	public static final String COL_GRID_PAT_ID =					"ID";
+	public static final String COL_GRID_PAT_SESSION_ID = 			"SESSION_ID";
+	public static final String COL_GRID_PAT_PATCH_ID_REP = 			"PATCH_ID_REP";
+	public static final String COL_GRID_PAT_PATCH_ID_SEQ = 			"PATCH_ID_SEQ";
+	public static final String COL_GRID_PAT_CREATED_ON = 			"CREATED_ON";
+	public static final String COL_GRID_PAT_EXPIRES_ON = 			"EXPIRES_ON";
+	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
+	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
+
+
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

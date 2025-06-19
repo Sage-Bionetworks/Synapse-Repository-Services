@@ -218,6 +218,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationStatus.accessDenied("Unexpected access type "+accessType);
 				}
 			}
+			case PORTAL: {
+				if (aclManager.canAccess(userInfo.getGroups(), objectId, objectType, accessType)) {
+					return AuthorizationStatus.authorized();
+				} else {
+					return AuthorizationStatus.accessDenied("Unauthorized to access Portal "+objectId+" for "+accessType);
+				}
+			}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

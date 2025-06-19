@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 
 @FunctionalInterface
@@ -17,5 +18,5 @@ public interface RowPFBWriterProvider {
 	 * @return
 	 * @throws IOException
 	 */
-	RowPFBWriter createWriter(String tableName, List<ColumnModel> columns, File file) throws IOException;
+	RowPFBWriter createWriter(String tableName, List<ColumnModel> columns, Metadata metadata, File file) throws IOException;
 }

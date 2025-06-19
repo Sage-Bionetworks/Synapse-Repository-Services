@@ -185,6 +185,10 @@
 		{
             "name": "REPLICATED_EVENT",
             "description": "An event fired after an object has been replicated."
+        },
+		{
+            "name": "PORTAL",
+            "description": "A representation of a Synapse portal."
         }
     ]
 }

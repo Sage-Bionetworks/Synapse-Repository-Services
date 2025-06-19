@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterAll;
@@ -16,18 +17,23 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResourceTypeGeneral;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiTitle;
+import org.sagebionetworks.repo.model.portals.CreateOrUpdatePortalRequest;
 
 @ExtendWith(ITTestExtension.class)
 public class IT065SynapseJavaClientDoiV2Test {
@@ -84,22 +90,54 @@ public class IT065SynapseJavaClientDoiV2Test {
 	}
 
 	@Test
-	public void testGetNotFoundException() throws SynapseException {
-		
+	public void testGetNotFoundException() throws SynapseException {		
 		assertThrows(SynapseNotFoundException.class, () -> {			
-			synapse.getDoiAssociation("syn8395713", ObjectType.ENTITY, null);
+			synapse.getDoiAssociation(null, "syn8395713", DoiObjectType.ENTITY, null);
 		});
 	}
 
 	@Test
 	public void testGetPortalUrl() throws SynapseException {
-		assertNotNull(synapse.getPortalUrl("syn1236464", ObjectType.ENTITY, 5L));
+		assertNotNull(synapse.getPortalUrl(null, "syn1236464", DoiObjectType.ENTITY, 5L));
+	}
+	
+	@Test
+	public void testExternalPortalDoiRoundTrip() throws SynapseException, InterruptedException {
+ 		String portalId = adminSynapse.createPortal(new CreateOrUpdatePortalRequest().setName("My Portal").setUrl("https://myportal.synapse.org")).getId();
+ 		
+		final Doi externalDoi = (Doi) setUpRequestDoi()
+			.setPortalId(portalId)
+			.setObjectType(DoiObjectType.PORTAL_RESOURCE)
+			.setObjectId("DATASET.123")
+			.setObjectVersion(null);
+		
+		// A non-admin should not be able to create a DOI for a portal resource
+		assertThrows(SynapseForbiddenException.class, () -> {
+			createOrUpdateDoiRetrieveAndValidate(externalDoi);
+		});
+
+		AccessControlList portalAcl = adminSynapse.getPortalAcl(portalId);
+		
+		portalAcl.getResourceAccess().add(new ResourceAccess()
+			.setPrincipalId(Long.valueOf(synapse.getMyProfile().getOwnerId()))
+			.setAccessType(Set.of(ACCESS_TYPE.UPDATE))
+		);
+		
+		adminSynapse.updatePortalAcl(portalAcl);
+		
+		Doi result = createOrUpdateDoiRetrieveAndValidate(externalDoi);
+		
+		assertEquals("My Portal", result.getPublisher());
+		
+		adminSynapse.clearDoi();
+		adminSynapse.deletePortal(portalId);
 	}
 
 	private static Doi setUpRequestDoi() {
 		Doi doi = new Doi();
+		
 		doi.setObjectId(entity.getId());
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 
 		doi.setPublicationYear(2018L);
@@ -130,6 +168,7 @@ public class IT065SynapseJavaClientDoiV2Test {
 				assertNotEquals(e.getJobStatus().getJobState(), AsynchJobState.FAILED);
 			}
 		}
+		
 		Doi doiRetrieved = response.getDoi();
 
 		assertNotNull(doiRetrieved);
@@ -140,12 +179,11 @@ public class IT065SynapseJavaClientDoiV2Test {
 		assertEquals(doiRetrieved.getCreators(), doiToMint.getCreators());
 		assertEquals(doiRetrieved.getResourceType(), doiToMint.getResourceType());
 		assertEquals(doiRetrieved.getPublicationYear(), doiToMint.getPublicationYear());
+		assertNotNull(doiRetrieved.getPublisher());
 		String expectedUser = synapse.getMyProfile().getOwnerId();
 		assertEquals(doiRetrieved.getAssociatedBy(), expectedUser);
 		assertEquals(doiRetrieved.getUpdatedBy(), expectedUser);
 		assertNotNull(doiRetrieved.getEtag());
-		assertEquals(entity.getId(), doiRetrieved.getObjectId());
-		assertEquals(ObjectType.ENTITY, doiRetrieved.getObjectType());
 		assertNotNull(doiRetrieved.getUpdatedOn());
 
 		return doiRetrieved;

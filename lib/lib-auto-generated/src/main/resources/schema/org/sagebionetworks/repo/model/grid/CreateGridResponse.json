@@ -1,0 +1,14 @@
+{
+	"description": "The response to creating a new grid sesion.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"gridSession": {
+			"description": "The sessionId that identifies the grid session.",
+			"$ref":"org.sagebionetworks.repo.model.grid.GridSession"
+		}
+	}
+}

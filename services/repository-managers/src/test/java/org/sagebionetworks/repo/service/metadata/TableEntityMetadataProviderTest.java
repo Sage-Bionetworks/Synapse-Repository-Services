@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,14 +21,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.service.metadata.EntityEvent;
-import org.sagebionetworks.repo.service.metadata.EventType;
-import org.sagebionetworks.repo.service.metadata.TableEntityMetadataProvider;
 
 import com.google.common.collect.Lists;
 
@@ -176,6 +175,15 @@ public class TableEntityMetadataProviderTest  {
 		provider.validateEntity(table, event);
 
 		assertTrue(table.getIsSearchEnabled());
+	}
+	
+	@Test
+	public void testValidateTableEntityithNullColumnList() {
+		List<String> schemaWithNullElement = Arrays.asList(new String[] {"1", null, "3"});
+		table.setColumnIds(schemaWithNullElement);
+		
+		// Call under test
+		assertThrows(IllegalArgumentException.class, ()->{provider.validateEntity(table, event);});
 	}
 	
 }

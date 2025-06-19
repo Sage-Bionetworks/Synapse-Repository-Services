@@ -1,7 +1,8 @@
 package org.sagebionetworks.doi.datacite;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATORS;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.CREATOR_NAME;
@@ -17,7 +18,6 @@ import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.NAME_ID
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.ORCID_URI;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLICATION_YEAR;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER;
-import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.PUBLISHER_VALUE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE;
 import static org.sagebionetworks.doi.datacite.DataciteMetadataConstants.RESOURCE_TYPE_GENERAL;
@@ -50,9 +50,8 @@ import java.util.Calendar;
 import java.util.List;
 
 import org.apache.xerces.dom.DocumentImpl;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.doi.v2.DataciteMetadata;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiCreator;
@@ -76,7 +75,8 @@ public class DataciteMetadataTranslatorTest {
 	private DoiTitle t2;
 
 	private long publicationYear = 2000L;
-
+	private String publisher = "Synapse";
+	
 	private String uri = "10.1234/syn0000000";
 	private String validOrcid = "0000-0003-1415-9269";
 
@@ -84,7 +84,7 @@ public class DataciteMetadataTranslatorTest {
 	private DoiResourceTypeGeneral resourceTypeGeneral = DoiResourceTypeGeneral.Dataset;
 
 
-	@Before
+	@BeforeEach
 	public void before(){
 		// Create a new DOM before each test
 		dom = new DocumentImpl();
@@ -114,6 +114,7 @@ public class DataciteMetadataTranslatorTest {
 		resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(resourceTypeGeneral);
 		metadata.setResourceType(resourceType);
+		metadata.setPublisher(publisher);
 	}
 
 	@Test
@@ -176,10 +177,10 @@ public class DataciteMetadataTranslatorTest {
 
 	@Test
 	public void createPublisherElementTest() {
-		Element actual = createPublisherElement(dom);
+		Element actual = createPublisherElement(dom, publisher);
 
 		assertEquals(PUBLISHER, actual.getTagName());
-		assertEquals(PUBLISHER_VALUE, actual.getTextContent());
+		assertEquals(publisher, actual.getTextContent());
 	}
 
 
@@ -252,16 +253,21 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiCreators(metadata.getCreators());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testInvalidNullCreatorsList() {
-		// Call under test
-		validateDoiCreators(null);
+		
+		assertThrows(IllegalArgumentException.class, () -> {			
+			// Call under test
+			validateDoiCreators(null);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testEmptyCreatorsList() {
-		// Call under test
-		validateDoiCreators(new ArrayList<>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiCreators(new ArrayList<>());
+		});
 	}
 
 	@Test
@@ -272,20 +278,26 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiCreator(creator);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullCreatorName() {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName(null);
-		// Call under test
-		validateDoiCreator(creator);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiCreator(creator);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testEmptyCreatorName() {
 		DoiCreator creator = new DoiCreator();
 		creator.setCreatorName("");
-		// Call under test
-		validateDoiCreator(creator);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiCreator(creator);
+		});
 	}
 
 	@Test
@@ -297,31 +309,40 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiNameIdentifier(nameIdentifier);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNameIdWithoutScheme() {
 		DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
 		nameIdentifier.setNameIdentifierScheme(null);
 		nameIdentifier.setIdentifier(validOrcid);
-		// Call under test
-		validateDoiNameIdentifier(nameIdentifier);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiNameIdentifier(nameIdentifier);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNameIdInvalidOrcidFormat() {
 		DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
 		nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
 		nameIdentifier.setIdentifier("123-424-253-53X");
-		// Call under test
-		validateDoiNameIdentifier(nameIdentifier);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiNameIdentifier(nameIdentifier);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNameIdInvalidOrcidCheckDigit() {
 		DoiNameIdentifier nameIdentifier = new DoiNameIdentifier();
 		nameIdentifier.setNameIdentifierScheme(NameIdentifierScheme.ORCID);
 		nameIdentifier.setIdentifier("0000-0003-1415-926X");
-		// Call under test
-		validateDoiNameIdentifier(nameIdentifier);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiNameIdentifier(nameIdentifier);
+		});
 	}
 
 	@Test
@@ -330,16 +351,20 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiTitles(metadata.getTitles());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullTitlesList() {
-		// Call under test
-		validateDoiTitles(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiTitles(null);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testEmptyTitlesList() {
-		// Call under test
-		validateDoiTitles(new ArrayList<>());
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiTitles(new ArrayList<>());
+		});
 	}
 
 	@Test
@@ -350,20 +375,26 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiTitle(title);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullTitleName() {
 		DoiTitle title = new DoiTitle();
 		title.setTitle(null);
-		// Call under test
-		validateDoiTitle(title);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiTitle(title);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testEmptyTitleName() {
 		DoiTitle title = new DoiTitle();
 		title.setTitle("");
-		// Call under test
-		validateDoiTitle(title);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiTitle(title);
+		});
 	}
 
 	@Test
@@ -373,23 +404,29 @@ public class DataciteMetadataTranslatorTest {
 	}
 
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullPublicationYear() {
-		// Call under test
-		validateDoiPublicationYear(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiPublicationYear(null);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testAncientPublicationYear() {
-		// Call under test
-		validateDoiPublicationYear(30L);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiPublicationYear(30L);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testFuturePublicationYear() {
 		// Can't mint a DOI more than 1 year in the future
 		// Call under test
-		validateDoiPublicationYear((((long) Calendar.getInstance().get(Calendar.YEAR)) + 2L));
+		assertThrows(IllegalArgumentException.class, () -> {
+			validateDoiPublicationYear((((long) Calendar.getInstance().get(Calendar.YEAR)) + 2L));
+		});
 	}
 
 	@Test
@@ -400,17 +437,38 @@ public class DataciteMetadataTranslatorTest {
 		validateDoiResourceType(resourceType);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullResourceType() {
-		// Call under test
-		validateDoiResourceType(null);
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiResourceType(null);
+		});
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testNullResourceTypeGeneral() {
 		DoiResourceType resourceType = new DoiResourceType();
 		resourceType.setResourceTypeGeneral(null);
-		// Call under test
-		validateDoiResourceType(resourceType);
+		
+		assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			validateDoiResourceType(resourceType);
+		});
+	}
+	
+	@Test
+	public void testValidateDoiPublisherWithNull() {
+		
+		assertEquals("DOI metadata must have property \"Publisher\"", assertThrows(IllegalArgumentException.class, () -> {
+			DataciteMetadataTranslatorImpl.validateDoiPublisher(null);
+		}).getMessage());
+	}
+	
+	@Test
+	public void testValidateDoiPublisherWithEmpty() {
+		
+		assertEquals("Publisher must be at least 1 character long.", assertThrows(IllegalArgumentException.class, () -> {
+			DataciteMetadataTranslatorImpl.validateDoiPublisher("");
+		}).getMessage());
 	}
 }

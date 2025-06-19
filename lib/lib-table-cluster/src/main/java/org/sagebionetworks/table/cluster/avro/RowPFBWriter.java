@@ -8,6 +8,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.sagebionetworks.avro.pfb.model.Entity;
+import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
@@ -20,7 +21,7 @@ public class RowPFBWriter implements RowHandler {
 	private final Schema objectSchema;
 	private final Schema entitySchema;
 
-	public RowPFBWriter(String tableName, List<ColumnModel> columns, OutputStream out) throws IOException {
+	public RowPFBWriter(String tableName, List<ColumnModel> columns, Metadata metadata, OutputStream out) throws IOException {
 		this.tableName = tableName;
 		this.columns = columns;
 		this.objectSchema = ColumnTypeAvro.toAvro(tableName, columns);
@@ -29,6 +30,9 @@ public class RowPFBWriter implements RowHandler {
 
 		writer = new DataFileWriter<>(new SpecificDatumWriter<>(entitySchema));
 		writer.create(entitySchema, out);
+		// the first row must be metadata
+		writer.append(new Entity(entitySchema).setId(null).setName("Metadata")
+				.setObject(metadata));
 	}
 
 	@Override

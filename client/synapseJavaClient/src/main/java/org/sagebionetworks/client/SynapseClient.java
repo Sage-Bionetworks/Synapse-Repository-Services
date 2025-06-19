@@ -131,6 +131,8 @@ import org.sagebionetworks.repo.model.dataaccess.SubmissionPage;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionState;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.UserSubmissionSearchResponse;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
@@ -151,6 +153,7 @@ import org.sagebionetworks.repo.model.docker.DockerCommit;
 import org.sagebionetworks.repo.model.docker.DockerCommitSortBy;
 import org.sagebionetworks.repo.model.doi.v2.Doi;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
@@ -210,6 +213,14 @@ import org.sagebionetworks.repo.model.form.FormGroup;
 import org.sagebionetworks.repo.model.form.FormRejection;
 import org.sagebionetworks.repo.model.form.ListRequest;
 import org.sagebionetworks.repo.model.form.ListResponse;
+import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
+import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
+import org.sagebionetworks.repo.model.grid.CreateGridRequest;
+import org.sagebionetworks.repo.model.grid.CreateGridResponse;
+import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
+import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
+import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -237,6 +248,10 @@ import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
 import org.sagebionetworks.repo.model.oauth.OIDCTokenResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
+import org.sagebionetworks.repo.model.portals.CreateOrUpdatePortalRequest;
+import org.sagebionetworks.repo.model.portals.ListPortalsRequest;
+import org.sagebionetworks.repo.model.portals.ListPortalsResponse;
+import org.sagebionetworks.repo.model.portals.Portal;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
@@ -353,8 +368,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get the current status of the stack
 	 */
-	public StackStatus getCurrentStackStatus() 
-			throws SynapseException;
+	public StackStatus getCurrentStackStatus() throws SynapseException;
 	
 	/**
 	 * Is the passed alias available and valid?
@@ -1181,15 +1195,15 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<ProjectHeader> getProjectsForTeamDeprecated(Long teamId, ProjectListSortColumn sortColumn, SortDirection sortDirection,
 			Integer limit, Integer offset) throws SynapseException;
 
-	public DoiAssociation getDoiAssociation(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
+	DoiAssociation getDoiAssociation(String portalId, String objectId, DoiObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public Doi getDoi(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
+	Doi getDoi(String portalId, String objectId, DoiObjectType objectType, Long objectVersion) throws SynapseException;
 
-	public String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
+	String createOrUpdateDoiAsyncStart(Doi doi) throws SynapseException;
 
-	public DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+	DoiResponse createOrUpdateDoiAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
-	public String getPortalUrl(String objectId, ObjectType objectType, Long objectVersion) throws SynapseException;
+	String getPortalUrl(String portalId, String objectId, DoiObjectType objectType, Long objectVersion) throws SynapseException;
 
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
 
@@ -2253,6 +2267,18 @@ public interface SynapseClient extends BaseClient {
 	 * Note: if the access token is not associated with a refresh token, it cannot be revoked.
 	 */
 	void revokeToken(OAuthTokenRevocationRequest revocationRequest) throws SynapseException;
+
+	/**
+	 * Revokes a refresh token using the token itself, or a supplied access token,
+	 * passing the token as a Form URL Encoded Payload
+	 * Note: if the access token is not associated with a refresh token, it cannot be revoked.
+	 * 
+	 * Note: The client must be authenticated using the client id and secret of the
+	 * OAuth client making the request.  I.e., it is the OAuth client, not an Synapse user
+	 * who is making this request.
+	 * @throws UnsupportedEncodingException 
+	 */
+	void revokeTokenURLEncoded(String token) throws SynapseException, UnsupportedEncodingException;
 
 	/**
 	 * Updates the metadata for a particular refresh token.
@@ -3372,6 +3398,15 @@ public interface SynapseClient extends BaseClient {
 	org.sagebionetworks.repo.model.dataaccess.Submission getDataAccessSubmission(String submissionId) throws SynapseException;
 
 	/**
+	 * Fetch their own access approval information specific to a submission, as long as the user is an accessor in the submission.
+	 *
+	 * @param submissionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessApproval getUserAccessApproval(String submissionId) throws SynapseException;
+
+	/**
 	 * Retrieve a page of submissions.
 	 * Only ACT member can perform this action.
 	 * 
@@ -4189,6 +4224,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	SubmissionSearchResponse searchDataAccessSubmissions(SubmissionSearchRequest request) throws SynapseException;
+
+	/**
+	 * Performs a search through the data access submissions as long as user is accessor.
+	 *
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	UserSubmissionSearchResponse searchUserSubmissions(UserSubmissionSearchRequest request) throws SynapseException;
 	
 	/**
 	 * Performs a search through the available access requirements matching the criteria in the given request.
@@ -4455,5 +4499,73 @@ public interface SynapseClient extends BaseClient {
 	 */
 	DownloadPFBResult downloadPFBFromTableAsyncGet(String asyncJobToken, String tableId)
 			throws SynapseException, SynapseResultNotReadyException;
+	
+	Portal createPortal(CreateOrUpdatePortalRequest request) throws SynapseException;
+	
+	Portal updatePortal(String portalId, CreateOrUpdatePortalRequest request) throws SynapseException;
 
+	Portal getPortal(String portalId) throws SynapseException;
+	
+	ListPortalsResponse listPortals(ListPortalsRequest request) throws SynapseException;
+	
+	void deletePortal(String portalId) throws SynapseException;
+	
+	AccessControlList getPortalAcl(String portalId) throws SynapseException;
+	
+	AccessControlList updatePortalAcl(AccessControlList acl) throws SynapseException;
+
+	/**
+	 * Start an asynchronous job to create a grid session.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String createGridSessoinAsyncStart(CreateGridRequest request) throws SynapseException;
+
+	/**
+	 * Get the results of an asynchronous job to create a grid session.
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	CreateGridResponse createGridSessionAsyncGet(String asyncJobToken)
+			throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get a grid session.
+	 * @param sessionId
+	 * @return
+	 * @throws SynapseException
+	 */
+	GridSession getGridSession(String sessionId) throws SynapseException;
+
+	/**
+	 * Create a grid replica.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	CreateReplicaResponse createGridReplica(CreateReplicaRequest request) throws SynapseException;
+
+	/**
+	 * Get a grid replica
+	 * @param sessionId
+	 * @param replicaId
+	 * @return
+	 * @throws SynapseException
+	 */
+	GridReplica getGridReplica(String sessionId, Long replicaId) throws SynapseException;
+
+	/**
+	 * Create a websocket presigned URL to connect to a grid.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	CreateGridPresignedUrlResponse createGridPresignedUrl(CreateGridPresignedUrlRequest request)
+			throws SynapseException;
+
+	
 }
+

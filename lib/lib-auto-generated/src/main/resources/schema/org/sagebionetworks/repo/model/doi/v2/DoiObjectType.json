@@ -1,0 +1,14 @@
+{
+    "description": "The type of objects that support DOI minting",
+    "type": "string",
+    "enum": [
+        {
+            "name": "ENTITY",
+            "description": "A DOI for a Synapse entity"
+        },
+		{
+			"name": "PORTAL_RESOURCE",
+			"description": "A DOI for a resource that is represented in a Synapse Portal"
+		}
+	]
+}

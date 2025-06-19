@@ -2,10 +2,19 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
+import java.net.http.WebSocket.Listener;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -153,6 +162,60 @@ public class AsyncJobHelper {
 			return response;
 		}
 		
+	}
+	
+	/**
+	 * Wait for the given message to appear on the queue.
+	 * @param code
+	 * @param key
+	 * @param incomingMessages
+	 * @return
+	 * @throws InterruptedException
+	 */
+	public static boolean waitForMessage(int code, String key, BlockingQueue<String> incomingMessages) throws InterruptedException {
+		String message = null;
+		do {
+			message = incomingMessages.poll(10, TimeUnit.SECONDS);
+			JSONArray response = new JSONArray(message);
+			if(response.length() > 1){
+				if(response.getInt(0) == 8) {
+					if(key.equals(response.getString(1))) {
+						return true;
+					}
+				}
+			}
+		} while (message != null);
+		return false;
+	}
+	
+	
+
+	/**
+	 * Create a websocket connection that will post all received messages to the
+	 * passed queue.
+	 * 
+	 * @param presignedUrl
+	 * @param incomingMessages
+	 * @return
+	 * @throws URISyntaxException
+	 */
+	public static WebSocket createConnection(String presignedUrl, BlockingQueue<String> incomingMessages)
+			throws URISyntaxException {
+		HttpClient client = HttpClient.newHttpClient();
+		return client.newWebSocketBuilder().buildAsync(new URI(presignedUrl), new Listener() {
+
+			@Override
+			public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+				try {
+					incomingMessages.put(data.toString());
+				} catch (InterruptedException e) {
+					webSocket.sendClose(4999, "closing");
+					throw new RuntimeException(e);
+				}
+				webSocket.request(1);
+				return null;
+			}
+		}).join();
 	}
 
 }

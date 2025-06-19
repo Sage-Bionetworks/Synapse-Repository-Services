@@ -1,0 +1,58 @@
+{
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression"
+		}
+	],
+	"properties": {
+		"left": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression",
+			"description": "The left-hand side expression."
+		},
+		"operator": {
+			"type": "string",
+			"description": "The comparison operator.",
+			"name": "BinaryOperator",
+			"id": "org.sagebionetworks.repo.model.grid.sql.BinaryOperator",
+			"enum": [
+				{
+					"name": "EQUALS",
+					"description": ""
+				},
+				{
+					"name": "NOT_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "GREATER_THAN",
+					"description": ""
+				},
+				{
+					"name": "LESS_THAN",
+					"description": ""
+				},
+				{
+					"name": "GREATER_THAN_OR_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "LESS_THAN_OR_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "AND",
+					"description": ""
+				},
+				{
+					"name": "OR",
+					"description": ""
+				}
+			]
+		},
+		"right": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.SqlExpression",
+			"description": "The right-hand side expression."
+		}
+	}
+}

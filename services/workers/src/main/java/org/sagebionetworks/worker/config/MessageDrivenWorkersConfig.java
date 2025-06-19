@@ -7,6 +7,7 @@ import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileEventRecordWorker;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
 import org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker;
+import org.sagebionetworks.grid.workers.GridEventBrokerWorker;
 import org.sagebionetworks.limits.workers.ProjectStorageDataRefreshWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
@@ -279,6 +280,28 @@ public class MessageDrivenWorkersConfig {
 						.build()
 				)
 				.withRepeatInterval(2564)
+				.withStartDelay(3065)
+				.build();
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean gridMessageBrokerWorkerTrigger(GridEventBrokerWorker gridMessageBroker) {
+
+		String queueName = stackConfig.getQueueName("GRID_WEBSOCKET_MESSAGE");
+
+		return new WorkerTriggerBuilder()
+				.withStack(ConcurrentWorkerStack.builder()
+						.withSemaphoreLockKey("gridMessageBrokerWorker")
+						.withSemaphoreMaxLockCount(8)
+						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
+						.withMaxThreadsPerMachine(3)
+						.withSingleton(concurrentStackManager)
+						.withCanRunInReadOnly(false)
+						.withQueueName(queueName)
+						.withWorker(gridMessageBroker)
+						.build()
+				)
+				.withRepeatInterval(989)
 				.withStartDelay(3065)
 				.build();
 	}

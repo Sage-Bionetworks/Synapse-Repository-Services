@@ -1,0 +1,26 @@
+{
+	"description": "Information about a replica.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The ID of the grid seesion.",
+			"type": "string"
+		},
+		"replicaId": {
+			"description": "The unique identifier for the new replica.",
+			"type": "integer"
+		},
+		"createdBy": {
+			"description": "The user that created this replica.",
+			"type": "string"
+		},
+		"isAgentReplica": {
+			"description": "When true, this replica belongs to the createdBy user's agent.",
+			"type": "boolean"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the user created this replica."
+		}
+	}
+}

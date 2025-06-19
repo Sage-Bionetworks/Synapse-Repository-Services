@@ -1,0 +1,23 @@
+{
+	"description": "A request to search through the user data access submissions",
+	"properties": {
+		"accessRequirementId": {
+			"type": "string",
+			"description": "Filter by the id of the access requirement of the submissions."
+		},
+		"submissionState": {
+			"description": "Filter by the state of the submissions",
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionState"
+		},
+		"sort": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.SubmissionSearchSort"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of a request."
+		}
+	}
+}

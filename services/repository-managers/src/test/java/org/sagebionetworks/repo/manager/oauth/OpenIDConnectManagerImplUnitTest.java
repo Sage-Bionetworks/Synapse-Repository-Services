@@ -1637,11 +1637,33 @@ public class OpenIDConnectManagerImplUnitTest {
 		revocationRequest.setToken(accessToken);
 		revocationRequest.setToken_type_hint(TokenTypeHint.access_token);
 
-		UserInfo adminUserInfo = new UserInfo(true);
 		when(oidcTokenManager.parseJWT(accessToken)).thenReturn(mockJWT);
 		when(mockJWT.getBody()).thenReturn(mockClaims);
 		String tokenId = "98765";
 		when(mockClaims.get(OIDCClaimName.refresh_token_id.name(), String.class)).thenReturn(tokenId);
+
+		// Call under test
+		openIDConnectManagerImpl.revokeToken(oauthClient.getClient_id(), revocationRequest);
+
+		verify(oidcTokenManager).parseJWT(accessToken);
+		verify(oauthRefreshTokenManager).revokeRefreshToken(oauthClient.getClient_id(), tokenId);
+	}
+
+	@Test
+	public void testRevokeRefreshTokenWithAccessTokenWithoutHint() {
+		String accessToken = "this would be a signed JWT string";
+		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
+		revocationRequest.setToken(accessToken);
+		revocationRequest.setToken_type_hint(null);
+
+		when(oidcTokenManager.parseJWT(accessToken)).thenReturn(mockJWT);
+		when(mockJWT.getBody()).thenReturn(mockClaims);
+		String tokenId = "98765";
+		when(mockClaims.get(OIDCClaimName.refresh_token_id.name(), String.class)).thenReturn(tokenId);
+
+		// will try to treat the access token as a refresh token but get back a NotFoundEcdeption
+		when(oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(oauthClient.getClient_id(), accessToken)).
+			thenThrow(new NotFoundException("not found"));
 
 		// Call under test
 		openIDConnectManagerImpl.revokeToken(oauthClient.getClient_id(), revocationRequest);
@@ -1679,6 +1701,24 @@ public class OpenIDConnectManagerImplUnitTest {
 		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
 		revocationRequest.setToken(refreshToken);
 		revocationRequest.setToken_type_hint(TokenTypeHint.refresh_token);
+
+		when(oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(oauthClient.getClient_id(), refreshToken)).thenReturn(retrievedMetadata);
+
+		// Call under test
+		openIDConnectManagerImpl.revokeToken(oauthClient.getClient_id(), revocationRequest);
+
+		verify(oauthRefreshTokenManager).revokeRefreshToken(oauthClient.getClient_id(), tokenId);
+	}
+
+	@Test
+	public void testRevokeRefreshTokenWithRefreshTokenWithoutHint() {
+		String refreshToken = "some-refresh-token";
+		String tokenId = "1234567";
+		OAuthRefreshTokenInformation retrievedMetadata = new OAuthRefreshTokenInformation();
+		retrievedMetadata.setTokenId(tokenId);
+		OAuthTokenRevocationRequest revocationRequest = new OAuthTokenRevocationRequest();
+		revocationRequest.setToken(refreshToken);
+		revocationRequest.setToken_type_hint(null);
 
 		when(oauthRefreshTokenManager.getRefreshTokenMetadataWithToken(oauthClient.getClient_id(), refreshToken)).thenReturn(retrievedMetadata);
 

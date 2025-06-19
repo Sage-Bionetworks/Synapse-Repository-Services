@@ -215,31 +215,6 @@ public class IT990AuthenticationController {
 
 		assertFalse(EmailValidationUtil.doesFileExist(missingAliasS3Key, 2000L));
 	}
-	
-	@Test
-	public void testGetSecretKey() throws Exception {
-		String apikey = synapseClient.retrieveApiKey();
-		assertNotNull(apikey);
-		System.out.println(apikey);
-		
-		// Use the API key
-		synapseClient.deleteSessionTokenHeader();
-		synapseClient.setUsername(username);
-		synapseClient.setApiKey(apikey);
-		
-		// Should work
-		synapseClient.getMyProfile();
-	}
-	
-	@Test
-	public void testInvalidateSecretKey() throws Exception {
-		String apikey = synapseClient.retrieveApiKey();
-		synapseClient.invalidateApiKey();
-		String secondKey = synapseClient.retrieveApiKey();
-		
-		// Should be different from the first one
-		assertFalse(apikey.equals(secondKey));
-	}
 
 	@Test
 	public void testGetOAuth2AuthenticationUrl() throws SynapseException{

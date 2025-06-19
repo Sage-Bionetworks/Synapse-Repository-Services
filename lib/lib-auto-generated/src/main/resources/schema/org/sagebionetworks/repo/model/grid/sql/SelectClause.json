@@ -1,0 +1,24 @@
+{
+	"description": "Object model describing the SELECT statment of a SQL query.",
+	"properties": {
+		"setQuantifier": {
+			"description": "Optional.",
+			"type": "string",
+			"name": "SetQuantifier",
+			"id": "org.sagebionetworks.repo.model.grid.slq.SetQuantifier",
+			"enum": [
+				{
+					"name": "DISNTICT",
+					"description": "When set will remove duplicates from the query resutls."
+				}
+			]
+		},
+		"selectList": {
+			"description": "One ore more select items.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.sql.SelectItem"
+			}
+		}
+	}
+}

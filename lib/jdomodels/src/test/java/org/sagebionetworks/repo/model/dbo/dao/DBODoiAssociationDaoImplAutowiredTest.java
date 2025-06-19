@@ -1,31 +1,33 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Date;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.portals.DBOPortal;
 import org.sagebionetworks.repo.model.doi.v2.DoiAssociation;
+import org.sagebionetworks.repo.model.doi.v2.DoiObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.IllegalTransactionStateException;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODoiAssociationDaoImplAutowiredTest {
 
@@ -37,23 +39,22 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 
 	private DoiAssociation dto;
 	private String associatedById;
-	private String updatedById;
+	private final String portalId = DBOPortal.SYNAPSE_PORTAL_ID.toString();
 	private final String objectId = KeyFactory.keyToString(112233L);
-	private final ObjectType objectType = ObjectType.ENTITY;
+	private final DoiObjectType objectType = DoiObjectType.ENTITY;
 	private final Long versionNumber = 1L;
 	private final String etag = "etag";
-
-
-	@Before
+	
+	@BeforeEach
 	public void before() throws Exception {
 		assertNotNull(doiAssociationDao);
 		assertNotNull(doiAdminDao);
 		associatedById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
-		updatedById = "42";
 		// Create a DOI DTO with fields necessary to create a new one.
 		dto = new DoiAssociation();
 		dto.setAssociatedBy(associatedById);
 		dto.setUpdatedBy(associatedById);
+		dto.setPortalId(portalId);
 		dto.setObjectId(objectId);
 		dto.setObjectType(objectType);
 		dto.setObjectVersion(versionNumber);
@@ -62,7 +63,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		dto.setUpdatedOn(new Date());
 	}
 
-	@After
+	@AfterEach
 	public void after() throws Exception {
 		doiAdminDao.clear();
 	}
@@ -76,6 +77,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertNotNull(createdDto);
 		assertNotNull(createdDto.getAssociationId());
 		assertEquals(etag, createdDto.getEtag());
+		assertEquals(portalId, createdDto.getPortalId());
 		assertEquals(objectId, createdDto.getObjectId());
 		assertEquals(versionNumber, createdDto.getObjectVersion());
 		assertEquals(objectType, createdDto.getObjectType());
@@ -110,6 +112,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		assertNotNull(retrievedDto);
 		assertEquals(createdDto.getAssociationId(), retrievedDto.getAssociationId());
 		assertEquals(createdDto.getEtag(), retrievedDto.getEtag());
+		assertEquals(createdDto.getPortalId(), retrievedDto.getPortalId());
 		assertEquals(createdDto.getObjectId(), retrievedDto.getObjectId());
 		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
 		assertEquals(createdDto.getObjectType(), retrievedDto.getObjectType());
@@ -123,7 +126,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	public void testGetFromTriple() {
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 		// Call under test
-		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getPortalId(), createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
 		assertNotNull(retrievedDto);
 		assertEquals(createdDto.getAssociationId(), retrievedDto.getAssociationId());
 	}
@@ -143,21 +146,25 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		dto.setObjectVersion(null);
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 		// Call under test
-		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getPortalId(), createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
 		assertEquals(createdDto.getAssociationId(), retrievedDto.getAssociationId());
 		assertEquals(createdDto.getObjectVersion(), retrievedDto.getObjectVersion());
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testGetZeroObjects() {
-		// This ID shouldn't exist in the database
-		doiAssociationDao.getDoiAssociation("12345");
+		assertThrows(NotFoundException.class, () -> {			
+			// This ID shouldn't exist in the database
+			doiAssociationDao.getDoiAssociation("12345");
+		});
 	}
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testGetZeroObjectFromThreeTuple() {
-		// This ID shouldn't exist in the database
-		doiAssociationDao.getDoiAssociation("12345", ObjectType.ENTITY, null);
+		assertThrows(NotFoundException.class, () -> {
+			// This ID shouldn't exist in the database
+			doiAssociationDao.getDoiAssociation(portalId, "12345", DoiObjectType.ENTITY, null);
+		});
 	}
 
 
@@ -183,7 +190,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 	public void getDoiAssociationForUpdateNotInTransaction() {
 		try {
 			// Call under test
-			doiAssociationDao.getDoiAssociationForUpdate(dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
+			doiAssociationDao.getDoiAssociationForUpdate(dto.getPortalId(), dto.getObjectId(), dto.getObjectType(), dto.getObjectVersion());
 			fail("Expected IllegalTransactionStateException");
 		} catch (IllegalTransactionStateException e) {
 			// expected IllegalTransactionStateException since we are not in a read committed transaction
@@ -195,7 +202,7 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		dto.setObjectVersion(null);
 		DoiAssociation createdDto = doiAssociationDao.createDoiAssociation(dto);
 		// Call under test
-		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
+		DoiAssociation retrievedDto = doiAssociationDao.getDoiAssociation(createdDto.getPortalId(), createdDto.getObjectId(), createdDto.getObjectType(), createdDto.getObjectVersion());
 		assertEquals(createdDto, retrievedDto);
 	}
 
@@ -230,23 +237,30 @@ public class DBODoiAssociationDaoImplAutowiredTest {
 		doiAssociationDao.createDoiAssociation(dto);
 	}
 
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void testGetNotFoundException() {
-		// Note that this DOI was never created
-		doiAssociationDao.getDoiAssociation("8675309");
+		assertThrows(NotFoundException.class, () -> {
+			// Note that this DOI was never created
+			doiAssociationDao.getDoiAssociation("8675309");
+		});
 	}
 
-	@Test(expected=NotFoundException.class)
+	@Test
 	public void handleIncorrectResultSizeOfZero() {
 		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 0);
-		// Call under test. If there are 0 items, we should rethrow a NotFoundException
-		DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
+		
+		assertThrows(NotFoundException.class, () -> {
+			// Call under test. If there are 0 items, we should rethrow a NotFoundException
+			DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
+		});
 	}
 
-	@Test(expected=IllegalStateException.class)
+	@Test
 	public void handleIncorrectResultSizeOfMoreThanOne() {
 		IncorrectResultSizeDataAccessException e = new IncorrectResultSizeDataAccessException(1, 2);
-		// Call under test. If there are 2+ items, we should rethrow an IllegalStateException.
-		DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
+		assertThrows(IllegalStateException.class, () -> {
+			// Call under test. If there are 2+ items, we should rethrow an IllegalStateException.
+			DBODoiAssociationDaoImpl.handleIncorrectResultSizeException(e);
+		});
 	}
 }

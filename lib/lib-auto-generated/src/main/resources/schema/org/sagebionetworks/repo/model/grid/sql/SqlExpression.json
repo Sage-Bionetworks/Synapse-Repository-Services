@@ -1,0 +1,10 @@
+{
+	"description": "A generic SQL expression.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Required. Full name of the exact type used."
+		}
+	}
+}

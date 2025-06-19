@@ -14,6 +14,7 @@ import org.sagebionetworks.file.worker.AddFilesToDownloadListWorker;
 import org.sagebionetworks.file.worker.BulkFileDownloadWorker;
 import org.sagebionetworks.file.worker.FileHandleArchivalRequestWorker;
 import org.sagebionetworks.file.worker.FileHandleRestoreRequestWorker;
+import org.sagebionetworks.grid.workers.GridCreateWorker;
 import org.sagebionetworks.migration.worker.MigrationWorker;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -564,4 +565,26 @@ public class AsyncJobWorkersConfig {
 			.build();
 	}
 
+	@Bean
+	public SimpleTriggerFactoryBean gridCreateWorkerTrigger(ConcurrentManager concurrentStackManager, GridCreateWorker createWorker) {
+		
+		String queueName = stackConfig.getQueueName("GRID_CREATE");		
+		MessageDrivenRunner worker = new AsyncJobRunnerAdapter<>(jobStatusManager, userManager, createWorker);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("gridCreateWorker")
+				.withSemaphoreMaxLockCount(5)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(3)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(false)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(987)
+			.withStartDelay(1025)
+			.build();
+	}
 }
