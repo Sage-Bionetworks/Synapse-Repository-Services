@@ -202,7 +202,7 @@
 
 	<bean id="transferManager" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createTransferManager" scope="singleton" />
-	
+
 	<bean id="messageDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMessageDAOImpl"
 		scope="singleton" />
     

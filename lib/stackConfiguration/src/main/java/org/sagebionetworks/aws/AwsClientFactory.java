@@ -9,6 +9,9 @@ import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
 import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2ClientBuilder;
 import com.amazonaws.services.appconfigdata.AWSAppConfigData;
 import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
+import com.amazonaws.services.lambda.AWSLambda;
+import com.amazonaws.services.lambda.AWSLambdaClient;
+import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.athena.AmazonAthena;
@@ -256,6 +259,17 @@ public class AwsClientFactory {
 	 */
 	public static AmazonApiGatewayV2 createAmazonApiGatewayClient() {
 		return AmazonApiGatewayV2ClientBuilder.standard()
+				.withRegion(Regions.US_EAST_1)
+				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+				.build();
+	}
+
+	/**
+	 *
+	 * @return An instance of AWSLambdaClient using the Synapse credential chain
+	 */
+	public static AWSLambda createLambdaClient() {
+		return AWSLambdaClientBuilder.standard()
 				.withRegion(Regions.US_EAST_1)
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
