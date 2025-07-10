@@ -294,6 +294,7 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 	}
 
 	@Override
+	@WriteTransaction
 	public void deleteLeastRecentlyUsedTokensOverLimit(String userId, String clientId, Long maxNumberOfTokens) {
 		ValidateArgument.required(userId, "Principal ID");
 		ValidateArgument.required(clientId, "Client ID");
@@ -303,5 +304,14 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 		params.addValue(PARAM_CLIENT_ID, clientId);
 		params.addValue(PARAM_MAX_NUM_TOKENS, maxNumberOfTokens);
 		namedParameterJdbcTemplate.update(DELETE_LEAST_RECENTLY_USED_ACTIVE_TOKENS, params);
+	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteAllTokens(String userId) {
+		ValidateArgument.required(userId, "Principal ID");
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PARAM_PRINCIPAL_ID, userId);
+		namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_OAUTH_REFRESH_TOKEN + " WHERE " + COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID + " = :" + PARAM_PRINCIPAL_ID, params);
 	}
 }

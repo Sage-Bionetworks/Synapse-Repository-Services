@@ -1,0 +1,25 @@
+{
+    "description": "GA4GH Visa",
+ 	"properties": {
+		"type":{
+			"$ref": "org.sagebionetworks.repo.model.oauth.GA4GHVisaType",
+			"description": "The visa type to be matched.  Note: Custom types are not supported."
+		},
+		"asserted":{
+			"type": "integer",
+			"description": "Seconds since unix epoch that represents when the Visa Assertion Source made the claim."
+		},
+		"value":{
+			"type": "string",
+			"description": "A string that represents any of the scope, process, identifier and version of the assertion."
+		},
+		"source":{
+			"type": "string",
+			"description": "A URL Claim that provides at a minimum the organization that made the assertion."
+		},
+		"by":{
+			"$ref": "org.sagebionetworks.repo.model.oauth.GA4GHByType",
+			"description": "The level or type of authority within the 'source' organization of the assertion."
+		}
+	}
+}

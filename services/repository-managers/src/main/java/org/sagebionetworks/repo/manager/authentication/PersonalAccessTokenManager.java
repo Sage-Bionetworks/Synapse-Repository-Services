@@ -51,4 +51,10 @@ public interface PersonalAccessTokenManager {
 	 * @param tokenId
 	 */
 	void revokeToken(UserInfo userInfo, String tokenId);
+	
+	/**
+	 * Revokes all PATs for a user.
+	 * @param userId
+	 */
+	void revokeAllTokens(Long userId);
 }

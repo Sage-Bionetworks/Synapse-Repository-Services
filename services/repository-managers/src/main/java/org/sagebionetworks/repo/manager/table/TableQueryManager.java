@@ -145,5 +145,7 @@ public interface TableQueryManager {
 	QueryResultBundle runQueryAsStream(ProgressCallback progressCallback, UserInfo user, Query request,
 			RowHandlerProvider provider) throws TableUnavailableException, NotFoundException, TableFailedException,
 			LockUnavilableException, IOException;
+
+	public Long getMaxBytesPerRequest();
 	
 }

@@ -50,11 +50,20 @@ public interface PersonalAccessTokenDao {
 	void deleteToken(String tokenId);
 
 	/**
+	 * Deletes the token records for a particular user.
+	 * 
+	 * @param userId
+	 */
+	void deleteAllTokens(String userId);
+	
+	/**
 	 * Deletes the least-recently used personal access tokens for a particular user, if the number of tokens is over the limit.
 	 * The number of remaining active personal access tokens will be the specified limit.
 	 * @param userId
 	 * @param maxNumberOfTokens the maximum
 	 */
 	void deleteLeastRecentlyUsedTokensOverLimit(String userId, Long maxNumberOfTokens);
+	
+	
 
 }

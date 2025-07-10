@@ -42,12 +42,12 @@ public class PatchRowHandler implements RowHandler {
 	private LogicalTimestamp lastRowRef;
 
 	public PatchRowHandler(PatchStore patchStore, String sessionId, Long replicaId, List<ColumnModel> schema,
-			int rowsPerPatch) {
+			Long maxRowSizeBytes) {
 		super();
 		ValidateArgument.required(patchStore, "patchStore");
 		this.patchStore = patchStore;
 		this.sessionId = sessionId;
-		this.rowsPerPatch = rowsPerPatch;
+		this.rowsPerPatch = PatchUtils.calculateRowsPerPatch(maxRowSizeBytes);
 
 		this.currentPatch = new Patch()
 				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L));
@@ -138,6 +138,10 @@ public class PatchRowHandler implements RowHandler {
 	@Override
 	public void close() throws IOException {
 		saveCurrentPatch();
+	}
+
+	public int getRowsPerPatch() {
+		return rowsPerPatch;
 	}
 
 }

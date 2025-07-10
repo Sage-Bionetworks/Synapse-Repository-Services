@@ -499,4 +499,12 @@ public class PersonalAccessTokenManagerImplUnitTest {
 		
 		verifyZeroInteractions(mockNotificationManager);
 	}
+	
+	@Test
+	public void testDeleteAllTokens() {
+		// method under test
+		personalAccessTokenManager.revokeAllTokens(USER_ID);
+		
+		verify(mockPersonalAccessTokenDao).deleteAllTokens(USER_ID.toString());
+	}
 }

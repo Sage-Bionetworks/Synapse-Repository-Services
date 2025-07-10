@@ -7,7 +7,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_SERVICE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SESSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_GRID_SESSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_SESSION;
 
@@ -34,6 +36,8 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 	private String sessionId;
 	private Long repIdClient;
 	private Long repIdService;
+	private Long sourceId;
+	private String schemaId;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_SESSION_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -43,7 +47,9 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 			new FieldColumn("modifiedOn", COL_GRID_SESSION_MODIFIED_ON),
 			new FieldColumn("sessionId", COL_GRID_SESSION_SESSION_ID),
 			new FieldColumn("repIdClient", COL_GRID_SESSION_REP_ID_CLIENT),
-			new FieldColumn("repIdService", COL_GRID_SESSION_REP_ID_SERVICE), };
+			new FieldColumn("repIdService", COL_GRID_SESSION_REP_ID_SERVICE),
+			new FieldColumn("sourceId", COL_GRID_SESSION_SOURCE_ID),
+			new FieldColumn("schemaId", COL_GRID_SESSION_SCHEMA_ID), };
 
 	@Override
 	public TableMapping<DBOGridSession> getTableMapping() {
@@ -60,6 +66,8 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 				dbo.setSessionId(rs.getString(COL_GRID_SESSION_SESSION_ID));
 				dbo.setRepIdClient(rs.getLong(COL_GRID_SESSION_REP_ID_CLIENT));
 				dbo.setRepIdService(rs.getLong(COL_GRID_SESSION_REP_ID_SERVICE));
+				dbo.setSourceId(rs.getLong(COL_GRID_SESSION_SOURCE_ID));
+				dbo.setSchemaId(rs.getString(COL_GRID_SESSION_SCHEMA_ID));
 				return dbo;
 			}
 
@@ -168,21 +176,42 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 		return repIdClient;
 	}
 
-	public void setRepIdClient(Long repIdClient) {
+	public DBOGridSession setRepIdClient(Long repIdClient) {
 		this.repIdClient = repIdClient;
+		return this;
 	}
 
 	public Long getRepIdService() {
 		return repIdService;
 	}
 
-	public void setRepIdService(Long repIdService) {
+	public DBOGridSession setRepIdService(Long repIdService) {
 		this.repIdService = repIdService;
+		return this;
+	}
+
+	public Long getSourceId() {
+		return sourceId;
+	}
+
+	public DBOGridSession setSourceId(Long sourceId) {
+		this.sourceId = sourceId;
+		return this;
+	}
+
+	public String getSchemaId() {
+		return schemaId;
+	}
+
+	public DBOGridSession setSchemaId(String schemaId) {
+		this.schemaId = schemaId;
+		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, etag, id, modifiedOn, repIdClient, repIdService, sessionId);
+		return Objects.hash(createdBy, createdOn, etag, id, modifiedOn, repIdClient, repIdService, schemaId, sessionId,
+				sourceId);
 	}
 
 	@Override
@@ -197,14 +226,15 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(repIdClient, other.repIdClient)
-				&& Objects.equals(repIdService, other.repIdService) && Objects.equals(sessionId, other.sessionId);
+				&& Objects.equals(repIdService, other.repIdService) && Objects.equals(schemaId, other.schemaId)
+				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sourceId, other.sourceId);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOGridSession [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedOn=" + modifiedOn + ", sessionId=" + sessionId + ", repIdClient=" + repIdClient
-				+ ", repIdService=" + repIdService + "]";
+				+ ", repIdService=" + repIdService + ", sourceId=" + sourceId + ", schemaId=" + schemaId + "]";
 	}
 
 }

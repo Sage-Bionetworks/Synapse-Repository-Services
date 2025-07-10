@@ -72,7 +72,7 @@ public class DoiManagerImplTest {
 	private String portalId;
 	private DoiObjectType doiObjectType;
 	
-	private static final String objectId = "syn584322";
+	private static String objectId = "syn584322";
 	private static final String associationId = "4567";
 	
 	private static final Long version = 4L;
@@ -509,6 +509,7 @@ public class DoiManagerImplTest {
 	
 	@Test
 	public void testGetLocationWithExternalPortal() {
+		objectId = "DATASET.123.&";
 		portalId = "456";
 
 		when(mockPortalManager.getPortal(portalId)).thenReturn(new Portal().setUrl("https://myportal.synapse.org"));
@@ -516,7 +517,7 @@ public class DoiManagerImplTest {
 		// Call under test
 		String actual = doiManager.getLocation(portalId, objectId, doiObjectType, version);
 		
-		assertEquals("https://myportal.synapse.org/doi?objectId="+objectId, actual);
+		assertEquals("https://myportal.synapse.org/doi?objectId=DATASET.123.%26", actual);
 	}
 
 	@Test
@@ -528,6 +529,24 @@ public class DoiManagerImplTest {
 			+ "&id=" + objectId
 			+ "&type=" + doiObjectType.name()
 			+ "&version=" + version;
+
+		// Call under test
+		assertEquals(expected, doiManager.generateLocationRequestUrl(inputDto));
+	}
+
+	@Test
+	public void testGenerateLocationRequestUrlEncodedId() {
+		String objectId = "{\"foo\":\"bar\"}";
+		String encodedObjectId = "%7B%22foo%22%3A%22bar%22%7D";
+
+		inputDto.setObjectId(objectId);
+		when(mockConfig.getStack()).thenReturn(stack);
+
+		String expected = expectedRepoEndpoint + DoiManagerImpl.LOCATE_RESOURCE_PATH
+				+ "?portalId=" + portalId
+				+ "&id=" + encodedObjectId
+				+ "&type=" + doiObjectType.name()
+				+ "&version=" + version;
 
 		// Call under test
 		assertEquals(expected, doiManager.generateLocationRequestUrl(inputDto));

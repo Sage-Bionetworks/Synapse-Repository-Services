@@ -30,7 +30,7 @@ import org.opensearch.client.transport.aws.AwsSdk2Transport;
 import org.opensearch.client.transport.aws.AwsSdk2TransportOptions;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.avro.pfb.model.Metadata;
-import org.sagebionetworks.aws.v2.AwsCrdentialPoviderV2;
+import org.sagebionetworks.aws.v2.AwsCredentialsProviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
 import org.sagebionetworks.repo.manager.agent.AgentClientProvider;
@@ -331,7 +331,7 @@ public class ManagerConfiguration {
 
 	@Bean
 	public AwsCredentialsProvider createAwsCredentialProviderV2() {
-		return AwsCrdentialPoviderV2.createCredentialProvider();
+		return AwsCredentialsProviderV2.createCredentialProvider();
 	}
 
 	@Bean

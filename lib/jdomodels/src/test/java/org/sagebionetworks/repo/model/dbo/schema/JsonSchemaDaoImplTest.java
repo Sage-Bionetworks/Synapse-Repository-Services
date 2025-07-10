@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ClasspathUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ContextConfiguration;
@@ -50,7 +51,7 @@ public class JsonSchemaDaoImplTest {
 
 	@Autowired
 	private OrganizationDao organizationDao;
-	
+
 	@Autowired
 	private JsonSchemaTestHelper jsonSchemaTestHelper;
 
@@ -178,8 +179,8 @@ public class JsonSchemaDaoImplTest {
 	@Test
 	public void testCreateJsonBlobIfDoesNotExist() {
 		// call under test
-		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
-		String blobIdTwo = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
+		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
+		String blobIdTwo = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
 		assertEquals(blobIdOne, blobIdTwo);
 	}
 
@@ -187,13 +188,13 @@ public class JsonSchemaDaoImplTest {
 	public void testCreateJsonBlobIfDoesNotExistNullJson() {
 		schema = null;
 		assertThrows(IllegalArgumentException.class, () -> {
-			jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
+			jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
 		});
 	}
 
 	@Test
 	public void testGetJsonBlobId() {
-		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
+		String blobIdOne = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
 		// call under test
 		String blobIdTwo = jsonSchemaDao.getJsonBlobId(schemaJsonSha256Hex);
 		assertEquals(blobIdOne, blobIdTwo);
@@ -218,7 +219,7 @@ public class JsonSchemaDaoImplTest {
 
 	public void setupSchemaIdAndBlobId() {
 		schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, adminUserId);
-		blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema);
+		blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
 	}
 
 	@Test
@@ -800,7 +801,7 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.findLatestVersionId(schemaId);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaId() throws JSONObjectAdapterException {
 		int index = 0;
@@ -811,33 +812,33 @@ public class JsonSchemaDaoImplTest {
 		String schemaId = jsonSchemaDao.getSchemaId(two.getOrganizationName(), two.getSchemaName());
 		assertEquals(two.getSchemaId(), schemaId);
 	}
-	
+
 	@Test
 	public void testGetSchemaIdWithNotFound() throws JSONObjectAdapterException {
 		String organizationName = "some.org";
 		String schemaName = "some.schema";
-		String message = assertThrows(NotFoundException.class, ()->{
+		String message = assertThrows(NotFoundException.class, () -> {
 			// call under test
 			jsonSchemaDao.getSchemaId(organizationName, schemaName);
 		}).getMessage();
 		assertEquals("JSON schema not found for organization name 'some.org' and schema name: 'some.schema'", message);
 	}
-	
+
 	@Test
 	public void testGetSchemaIdWithNullOrganizationName() throws JSONObjectAdapterException {
 		String organizationName = null;
 		String schemaName = "some.schema";
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			jsonSchemaDao.getSchemaId(organizationName, schemaName);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaIdWithNullSchemaName() throws JSONObjectAdapterException {
 		String organizationName = "some.org";
 		String schemaName = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			jsonSchemaDao.getSchemaId(organizationName, schemaName);
 		});
@@ -901,7 +902,7 @@ public class JsonSchemaDaoImplTest {
 				stillExists.getSchemaName());
 		assertEquals(stillExists.getSchemaId(), schemaId);
 	}
-	
+
 	@Test
 	public void testDeleteVersionWithVersionBoundToObject() throws JSONObjectAdapterException {
 		int index = 0;
@@ -919,7 +920,7 @@ public class JsonSchemaDaoImplTest {
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
 	}
-	
+
 	@Test
 	public void testDeleteVersionWithSchemaBoundToObject() throws JSONObjectAdapterException {
 		int index = 0;
@@ -937,7 +938,7 @@ public class JsonSchemaDaoImplTest {
 		// call under test
 		jsonSchemaDao.deleteSchemaVersion(one.getVersionId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaWithVersionBoundToObject() throws JSONObjectAdapterException {
 		int index = 0;
@@ -955,7 +956,7 @@ public class JsonSchemaDaoImplTest {
 		// call under test
 		jsonSchemaDao.deleteSchema(one.getVersionId());
 	}
-	
+
 	@Test
 	public void testDeleteSchemaWithSchemaBoundToObject() throws JSONObjectAdapterException {
 		int index = 0;
@@ -1103,10 +1104,11 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(2, page.size());
 		assertInfoMatch(versions.get(2), page.get(0));
 		assertInfoMatch(versions.get(3), page.get(1));
-		
+
 		Organization org = organizationDao.getOrganizationByName(organizationName);
 		JsonSchemaInfo info = page.get(0);
-		// See PLFM-6411.  The created on of the schema should not match the organization created on.
+		// See PLFM-6411. The created on of the schema should not match the organization
+		// created on.
 		assertFalse(org.getCreatedOn().equals(info.getCreatedOn()));
 	}
 
@@ -1372,7 +1374,7 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(one.getSchemaId(), dbo.getDependsOnSchemaId().toString());
 		assertNull(dbo.getDependsOnVersionId());
 	}
-	
+
 	@Test
 	public void testBindSchemaToObject() throws JSONObjectAdapterException {
 		int index = 0;
@@ -1422,14 +1424,14 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
 
 	}
-	
+
 	@Test
 	public void testBindSchemaToObjectWithEnableDerivedFalse() throws JSONObjectAdapterException {
 		int index = 0;
 		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
 		bindSchemaRequest.withEnableDerived(false);
-		
+
 		// call under test
 		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
 		assertNotNull(result);
@@ -1440,13 +1442,13 @@ public class JsonSchemaDaoImplTest {
 		assertEquals(bindSchemaRequest.getObjectType(), result.getObjectType());
 		assertEquals(false, result.getEnableDerivedAnnotations());
 	}
-	
+
 	@Test
 	public void testBindSchemaToObjectWithEnableDerivedNotSet() throws JSONObjectAdapterException {
 		int index = 0;
 		JsonSchemaVersionInfo one = createNewSchemaVersion("my.org.edu-one", index++);
 		bindSchemaRequest.withSchemaId(one.getSchemaId());
-		
+
 		// call under test
 		JsonSchemaObjectBinding result = jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
 		assertNotNull(result);
@@ -1547,7 +1549,7 @@ public class JsonSchemaDaoImplTest {
 		}).getMessage();
 		assertEquals("JSON Schema binding was not found for ObjectId: '-1' ObjectType: 'entity'", message);
 	}
-	
+
 	@Test
 	public void testGetSchemaBindingForObjectWithNullObjectId() throws JSONObjectAdapterException {
 		Long objectId = null;
@@ -1556,7 +1558,7 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
 		});
 	}
-	
+
 	@Test
 	public void testGetSchemaBindingForObjectWithNullObjectType() throws JSONObjectAdapterException {
 		Long objectId = -1L;
@@ -1565,7 +1567,7 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.getSchemaBindingForObject(objectId, type);
 		});
 	}
-	
+
 	@Test
 	public void testClearBoundSchema() throws JSONObjectAdapterException {
 		int index = 0;
@@ -1578,53 +1580,51 @@ public class JsonSchemaDaoImplTest {
 		assertNotNull(binding);
 		// call under test
 		jsonSchemaDao.clearBoundSchema(binding.getObjectId(), binding.getObjectType());
-		assertThrows(NotFoundException.class, ()->{
-			jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(),
-					bindSchemaRequest.getObjectType());
+		assertThrows(NotFoundException.class, () -> {
+			jsonSchemaDao.getSchemaBindingForObject(bindSchemaRequest.getObjectId(), bindSchemaRequest.getObjectType());
 		});
 	}
-	
+
 	@Test
 	public void testClearBoundSchemaWithNullObjectId() throws JSONObjectAdapterException {
 		Long objectId = null;
 		BoundObjectType objectType = BoundObjectType.entity;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			jsonSchemaDao.clearBoundSchema(objectId, objectType);
 		});
 	}
-	
+
 	@Test
 	public void testClearBoundSchemaWithNullObjectType() throws JSONObjectAdapterException {
 		Long objectId = 123L;
 		BoundObjectType objectType = null;
-		assertThrows(IllegalArgumentException.class, ()->{
+		assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			jsonSchemaDao.clearBoundSchema(objectId, objectType);
 		});
 	}
-	
+
 	@Test
 	public void testGetObjectIdsBoundToSchemaIterator() throws JSONObjectAdapterException {
 		int index = 0;
 		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
-		
+
 		// Bind the schema to a first object
 		bindSchemaRequest.withSchemaId(info.getSchemaId());
 		bindSchemaRequest.withVersionId(info.getVersionId());
 		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
-		
+
 		// Bind the schema to a 2nd object
 		Long otherObjectId = objectId + 1;
-		BindSchemaRequest otherBindSchemaRequest = new BindSchemaRequest()
-				.withCreatedBy(adminUserId).withObjectId(otherObjectId)
-				.withObjectType(BoundObjectType.entity);
+		BindSchemaRequest otherBindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId)
+				.withObjectId(otherObjectId).withObjectType(BoundObjectType.entity);
 		otherBindSchemaRequest.withSchemaId(info.getSchemaId());
 		otherBindSchemaRequest.withVersionId(info.getVersionId());
 		jsonSchemaDao.bindSchemaToObject(otherBindSchemaRequest);
-		
+
 		List<Long> expected = Arrays.asList(objectId, otherObjectId);
-		
+
 		// calls under test
 		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator(info.getSchemaId());
 		List<Long> results = new LinkedList<>();
@@ -1633,14 +1633,14 @@ public class JsonSchemaDaoImplTest {
 		}
 		assertEquals(expected, results);
 	}
-	
+
 	@Test
 	public void testGetObjectIdsBoundToSchemaIteratorWithNoBindings() throws JSONObjectAdapterException {
 		Iterator<Long> objectIds = jsonSchemaDao.getObjectIdsBoundToSchemaIterator("fakeSchemaId");
 		// call under test
 		assertFalse(objectIds.hasNext());
 	}
-	
+
 	@Test
 	public void testGetObjectIdsBoundToSchemaIteratorWithNullSchemaId() {
 		// call under test
@@ -1648,43 +1648,42 @@ public class JsonSchemaDaoImplTest {
 			jsonSchemaDao.getObjectIdsBoundToSchemaIterator(null);
 		});
 	}
-	
+
 	@Test
 	public void testGetNextPageForEntitiesBoundToSchema() throws JSONObjectAdapterException {
 		int index = 0;
 		JsonSchemaVersionInfo info = createNewSchemaVersion("my.org.edu-foo.bar-1.0.1", index++);
-		
+
 		// first binding
 		bindSchemaRequest.withSchemaId(info.getSchemaId());
 		bindSchemaRequest.withVersionId(info.getVersionId());
 		jsonSchemaDao.bindSchemaToObject(bindSchemaRequest);
-		
+
 		// Bind the schema to a 2nd object
 		Long secondObjectId = objectId + 1;
-		BindSchemaRequest secondbindSchemaRequest = new BindSchemaRequest()
-				.withCreatedBy(adminUserId).withObjectId(secondObjectId)
-				.withObjectType(BoundObjectType.entity);
+		BindSchemaRequest secondbindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId)
+				.withObjectId(secondObjectId).withObjectType(BoundObjectType.entity);
 		secondbindSchemaRequest.withSchemaId(info.getSchemaId());
 		secondbindSchemaRequest.withVersionId(info.getVersionId());
 		jsonSchemaDao.bindSchemaToObject(secondbindSchemaRequest);
-		
+
 		// Bind the schema to a 3rd object
 		Long thirdObjectId = objectId + 2;
-		BindSchemaRequest thirdBindSchemaRequest = new BindSchemaRequest()
-				.withCreatedBy(adminUserId).withObjectId(thirdObjectId)
-				.withObjectType(BoundObjectType.entity);
+		BindSchemaRequest thirdBindSchemaRequest = new BindSchemaRequest().withCreatedBy(adminUserId)
+				.withObjectId(thirdObjectId).withObjectType(BoundObjectType.entity);
 		thirdBindSchemaRequest.withSchemaId(info.getSchemaId());
 		thirdBindSchemaRequest.withVersionId(info.getVersionId());
 		jsonSchemaDao.bindSchemaToObject(thirdBindSchemaRequest);
-		
-		// call under test, limit of 2, offset 1, should get us the second and third object
+
+		// call under test, limit of 2, offset 1, should get us the second and third
+		// object
 		Long limit = 2L;
 		Long offset = 1L;
 		List<Long> results = jsonSchemaDao.getNextPageForEntitiesBoundToSchema(info.getSchemaId(), limit, offset);
 		assertEquals(results.get(0), secondObjectId);
 		assertEquals(results.get(1), thirdObjectId);
 	}
-	
+
 	@Test
 	public void testGetNextPageForVersionIdsOfDependants() throws Exception {
 		// demonstrates the WITH RECURSIVE query also gets dependants of dependants
@@ -1706,15 +1705,16 @@ public class JsonSchemaDaoImplTest {
 		dependencies = new ArrayList<>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(three.getSchemaId()));
 		JsonSchemaVersionInfo five = createNewSchemaVersion("my.org.edu-five", index++, dependencies);
-		
+
 		long limit = 100;
 		long offset = 0;
-		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId(), four.getVersionId(), five.getVersionId());
+		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId(), four.getVersionId(),
+				five.getVersionId());
 		// call under test
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertEquals(result, expected);
 	}
-	
+
 	@Test
 	public void testGetNextPageForVersionIdsOfDependantsWithSpecificPageAndSize() throws Exception {
 		int index = 0;
@@ -1731,17 +1731,18 @@ public class JsonSchemaDaoImplTest {
 		dependencies = new ArrayList<SchemaDependency>();
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
 		JsonSchemaVersionInfo four = createNewSchemaVersion("my.org.edu-four", index++, dependencies);
-		
+
 		long limit = 2;
 		long offset = 1;
-		// should get us ids for schema three and four, because we offset by 1 (skip two)
+		// should get us ids for schema three and four, because we offset by 1 (skip
+		// two)
 		// call under test
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertTrue(result.size() == 2);
 		assertEquals(result.get(0), three.getVersionId());
 		assertEquals(result.get(1), four.getVersionId());
 	}
-	
+
 	@Test
 	public void testGetNextForVersionIdsOfDependantsWithUnreferencedSchema() throws Exception {
 		int index = 0;
@@ -1757,7 +1758,7 @@ public class JsonSchemaDaoImplTest {
 		// four depends on none
 		dependencies = new ArrayList<>();
 		JsonSchemaVersionInfo four = createNewSchemaVersion("my.org.edu-four", index++, dependencies);
-		
+
 		long limit = 100;
 		long offset = 0;
 		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId());
@@ -1765,7 +1766,7 @@ public class JsonSchemaDaoImplTest {
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertEquals(result, expected);
 	}
-	
+
 	@Test
 	public void testGetNextPageForVersionIdsOfDependantsWithDuplicates() throws Exception {
 		int index = 0;
@@ -1779,7 +1780,7 @@ public class JsonSchemaDaoImplTest {
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(one.getSchemaId()));
 		dependencies.add(new SchemaDependency().withDependsOnSchemaId(two.getSchemaId()));
 		JsonSchemaVersionInfo three = createNewSchemaVersion("my.org.edu-three", index++, dependencies);
-		
+
 		long limit = 100;
 		long offset = 0;
 		List<String> expected = Arrays.asList(two.getVersionId(), three.getVersionId());
@@ -1787,16 +1788,43 @@ public class JsonSchemaDaoImplTest {
 		List<String> result = jsonSchemaDao.getNextPageForVersionIdsOfDependants(one.getSchemaId(), limit, offset);
 		assertEquals(result, expected);
 	}
-	
+
 	@Test
 	public void testGetNextPageForVersionIdsOfDependantsWithNullSchemaId() throws Exception {
 		String schemaId = null;
 		long limit = 100;
 		long offset = 0;
 		// call under test
-		String message = assertThrows(IllegalArgumentException.class, () -> { 
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			jsonSchemaDao.getNextPageForVersionIdsOfDependants(schemaId, limit, offset);
 		}).getMessage();
 		assertEquals(message, "schemaId is required.");
 	}
+
+	@Test
+	public void testCreateJsonBlobWithLargeSchema() throws Exception {
+		schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, adminUserId);
+		String schemaString = ClasspathUtil.loadFromClasspath("mc2.Biospecimen.schema.json");
+		JsonSchema schema = EntityFactory.createEntityFromJSONString(schemaString, JsonSchema.class);
+		// call under test
+		blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, JsonSchemaDaoImpl.MAX_SCHEMA_CHARS);
+
+		JsonSchemaVersionInfo info = jsonSchemaDao.createNewVersion(schemaId, semanticVersion, createdBy, blobId);
+
+		JsonSchema fetched = jsonSchemaDao.getSchema(info.getVersionId());
+		assertEquals(schema, fetched);
+	}
+	
+	@Test
+	public void testCreateJsonBlobOverLimit() throws Exception {
+		schemaId = jsonSchemaDao.createSchemaIfDoesNotExist(organizationId, schemaName, adminUserId);
+		String schemaString = ClasspathUtil.loadFromClasspath("mc2.Biospecimen.schema.json");
+		JsonSchema schema = EntityFactory.createEntityFromJSONString(schemaString, JsonSchema.class);
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, 100);
+		}).getMessage();
+		assertEquals("The provided schema has 220465 characters which exceeds the maximum of 100 characters", message);
+	}
+
 }

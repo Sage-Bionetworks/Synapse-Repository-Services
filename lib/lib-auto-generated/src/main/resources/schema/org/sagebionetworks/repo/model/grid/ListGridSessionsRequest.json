@@ -1,0 +1,13 @@
+{
+	"description": "Request to list a user's active grid sessions.",
+	"properties": {
+		"sourceId": {
+			"description": "Optional. When provided, only sessions with this synId will be returned.",
+			"type": "string"
+		},
+		"nextPageToken": {
+			"description": "Forward the returned 'nextPageToken' to get the next page of results.",
+			"type": "string"
+		}
+	}
+}

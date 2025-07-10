@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
+import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -42,12 +44,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthenticationManagerImpl implements AuthenticationManager {
-
-	public static final long LOCK_TIMOUTE_SEC = 5*60;
-
-	public static final int MAX_CONCURRENT_LOCKS = 10;
-
-	public static final String ACCOUNT_LOCKED_MESSAGE = "This account has been locked. Reason: too many requests. Please try again in five minutes.";
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -84,6 +80,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Autowired
 	private TermsOfServiceManager tosManager;
+	
+	@Autowired
+	private UserStatusDao userStatusDao;
 	
 	@Override
 	@WriteTransaction
@@ -379,11 +378,19 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
+		validateAccountStatus(principalId);
+		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer);
 		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(principalId);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfService, newAuthenticationReceipt);
+	}
+	
+	private void validateAccountStatus(long principalId) {
+		if (userStatusDao.isDisabled(principalId)) {
+			throw new UnauthorizedException("Your account has been disabled. Please contact support for assistance.");
+		}
 	}
 	
 	private static LoginResponse createLoginResponse(String accessToken, boolean acceptsTermsOfUse, String newReceipt) {

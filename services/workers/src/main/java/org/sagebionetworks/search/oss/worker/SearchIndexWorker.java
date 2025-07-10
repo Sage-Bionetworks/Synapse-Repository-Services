@@ -1,10 +1,10 @@
 package org.sagebionetworks.search.oss.worker;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
-import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.oss.SearchManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +20,7 @@ import java.util.List;
 @Service
 public class SearchIndexWorker implements BatchChangeMessageDrivenRunner {
 
-    @Autowired
-    private WorkerLogger workerLogger;
+    static private Logger log = LogManager.getLogger(SearchIndexWorker.class);
 
     @Autowired
     private SearchManager searchManager;
@@ -31,11 +30,10 @@ public class SearchIndexWorker implements BatchChangeMessageDrivenRunner {
     public void run(ProgressCallback progressCallback, List<ChangeMessage> changes) throws RecoverableMessageException {
         try {
             searchManager.documentChangeMessages(changes);
-        } catch (TemporarilyUnavailableException e) {
-            workerLogger.logWorkerFailure(SearchIndexWorker.class.getName(), e, true);
-            throw new RecoverableMessageException();
-        } catch (Exception e) {
-            workerLogger.logWorkerFailure(SearchIndexWorker.class.getName(), e, false);
+        } catch (RecoverableMessageException e) {
+            throw e;
+        } catch (Throwable e) {
+            log.error("SearchIndexWorker Failed", e);
             throw e;
         }
     }

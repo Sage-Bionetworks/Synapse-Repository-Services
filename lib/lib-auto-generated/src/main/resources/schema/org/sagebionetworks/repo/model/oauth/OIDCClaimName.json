@@ -109,6 +109,10 @@
     {
       "name": "token_type",
       "description": "The TokenType of this token."
+    },
+    {
+      "name": "ga4gh_passport_v1",
+      "description": "GA4GH Passport"
     }
   ]
 }

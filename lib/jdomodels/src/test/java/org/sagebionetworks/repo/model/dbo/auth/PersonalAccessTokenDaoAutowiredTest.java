@@ -225,4 +225,16 @@ public class PersonalAccessTokenDaoAutowiredTest {
 		// method under test
 		assertThrows(NotFoundException.class, () -> personalAccessTokenDao.getLastUsedDate("999999999999"));
 	}
+	
+	@Test
+	void testDeleteAllTokens() {
+		AccessTokenRecord token1 = createTokenRecord(userId, new Date());
+		AccessTokenRecord token2 = createTokenRecord(userId, new Date());
+
+		// Call under test
+		personalAccessTokenDao.deleteAllTokens(userId);
+
+		assertThrows(NotFoundException.class, () -> personalAccessTokenDao.getTokenRecord(token1.getId()));
+		assertThrows(NotFoundException.class, () -> personalAccessTokenDao.getTokenRecord(token2.getId()));
+	}
 }

@@ -82,6 +82,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 	public static final int MAX_SCHEMA_NAME_CHARS = 250;
 	public static final int MAX_SEMANTIC_VERSION_CHARS = 250;
 	private static final long PAGE_SIZE_LIMIT = 10000L;
+	public static final int MAX_SCHEMA_CHARS = 1 << 24; // 2^24 is max size for MEDIUMTEXT
 	
 	public static final String GET_DEPENDANT_VERSIONS_SQL = DDLUtilsImpl.loadSQLFromClasspath("sql/GetDependantVersionIds.sql");
 
@@ -181,9 +182,15 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		jdbcTemplate.update("DELETE FROM " + TABLE_JSON_SCHEMA);
 	}
 
-	String createJsonBlobIfDoesNotExist(JsonSchema schema) {
+	String createJsonBlobIfDoesNotExist(JsonSchema schema, int maxSize) {
 		ValidateArgument.required(schema, "schema");
 		NormalizedJsonSchema normalized = new NormalizedJsonSchema(schema);
+		String schemaString = normalized.getNormalizedSchemaJson();
+		if (schemaString.length() >= maxSize) {
+			throw new IllegalArgumentException(
+					String.format("The provided schema has %d characters which exceeds the maximum of %d characters",
+							schemaString.length(), maxSize));
+		}
 		try {
 			return getJsonBlobId(normalized.getSha256Hex());
 		} catch (NotFoundException e) {
@@ -191,7 +198,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 			jdbcTemplate.update(
 					"INSERT IGNORE INTO " + TABLE_JSON_SCHEMA_BLOB + " (" + COL_JSON_SCHEMA_BLOB_ID + ","
 							+ COL_JSON_SCHEMA_BLOB_BLOB + "," + COL_JSON_SCHEMA_BLOB_SHA256 + ") VALUES (?,?,?)",
-					blobId, normalized.getNormalizedSchemaJson(), normalized.getSha256Hex());
+					blobId, schemaString, normalized.getSha256Hex());
 			return getJsonBlobId(normalized.getSha256Hex());
 		}
 	}
@@ -297,7 +304,7 @@ public class JsonSchemaDaoImpl implements JsonSchemaDao {
 		}
 		String schemaId = createSchemaIfDoesNotExist(request.getOrganizationId(), request.getSchemaName(),
 				request.getCreatedBy());
-		String blobId = createJsonBlobIfDoesNotExist(request.getJsonSchema());
+		String blobId = createJsonBlobIfDoesNotExist(request.getJsonSchema(), MAX_SCHEMA_CHARS);
 		JsonSchemaVersionInfo info = createNewVersion(schemaId, request.getSemanticVersion(), request.getCreatedBy(),
 				blobId);
 		bindDependencies(info.getVersionId(), request.getDependencies());

@@ -30,6 +30,14 @@
 		"lastReplicaIdService": {
 			"description": "The last replica ID issued to a service. Service replica IDs are decremented.",
 			"type": "integer"
+		},
+		"gridJsonSchema$Id": {
+			"description": "The $id of the JSON schema that will be used for model validation in this grid session.",
+			"type": "string"
+		},
+		"sourceEntityId": {
+			"description": "The synId of the table/view/csv that this grid was cloned from.",
+			"type": "string"
 		}
 	}
 }

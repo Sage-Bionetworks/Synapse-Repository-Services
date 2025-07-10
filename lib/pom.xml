@@ -41,6 +41,8 @@
 		<module>database-semaphore</module>
 		<module>lib-scripts</module>
 		<module>lib-pfb</module>
+		<module>lib-grid</module>
+		<module>lib-grid-db</module>
 	</modules>
 
 </project>

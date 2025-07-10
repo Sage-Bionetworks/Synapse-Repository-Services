@@ -84,6 +84,12 @@ public interface OAuthRefreshTokenDao {
 	 * @param tokenId
 	 */
 	void deleteToken(String tokenId);
+	
+	/**
+	 * Delete all the tokens for the user
+	 * @param userId
+	 */
+	void deleteAllTokens(String userId);
 
 	/**
 	 * Delete all refresh tokens associated with both the specified user and specified client

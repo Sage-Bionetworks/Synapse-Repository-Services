@@ -442,7 +442,7 @@ public class UrlHelpers {
 	
 	public static final String GRID = "/grid";
 	public static final String GRID_SESSION = GRID + "/session";
-	public static final String GRID_SESSION_ID = GRID + "/{sessionId}";
+	public static final String GRID_SESSION_ID = GRID_SESSION + "/{sessionId}";
 	public static final String GRID_SESSION_ASYNC_START = GRID_SESSION + ASYNC_START_REQUEST;
 	public static final String GRID_SESSION_ASYNC_GET = GRID_SESSION + ASYNC_GET_REQUEST;
 	
@@ -456,6 +456,7 @@ public class UrlHelpers {
 	public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
+	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
 	
 	/*
 	 * The regular expression is needed in the path variable due to:

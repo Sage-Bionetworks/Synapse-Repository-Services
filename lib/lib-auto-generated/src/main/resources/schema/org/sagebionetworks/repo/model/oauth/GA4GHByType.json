@@ -1,0 +1,26 @@
+{
+	"description": "The level or type of authority within the 'source' organization of the assertion.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "self",
+			"description":"The Visa Identity for which the assertion is being made and the person who made the assertion is the same person."
+		},
+		{
+			"name": "peer",
+			"description":"A person at the source organization has made this assertion on behalf of the Visa Identity’s person, and the person who is making the assertion has the same Visa Type and value in that source organization."
+		},
+		{
+			"name": "system",
+			"description":"The source organization’s information system has made the assertion based on system data or metadata that it stores."
+		},
+		{
+			"name": "so",
+			"description":"The person making the assertion within the source organization possesses direct authority to bind the organization to their assertion that the Visa Identity did possess such authority at the time the assertion was made."
+		},
+		{
+			"name": "dac",
+			"description":" Data Access Committee or other authority that is responsible as a grantee decision-maker for the given value and source claims pair."
+		}
+	]
+}

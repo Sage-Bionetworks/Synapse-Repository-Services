@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 
 @Service
 public class ChangeMessageToOpenSearchDocumentTranslator {
@@ -26,7 +28,7 @@ public class ChangeMessageToOpenSearchDocumentTranslator {
         this.wikiPageDao = wikiPageDao;
     }
 
-    public Document generateSearchDocumentIfNecessary(ChangeMessage change) {
+    public Optional<Document> generateSearchDocumentIfNecessary(ChangeMessage change) {
         switch (change.getObjectType()) {
             case ENTITY:
                 return entityChange(change.getObjectId());
@@ -43,11 +45,11 @@ public class ChangeMessageToOpenSearchDocumentTranslator {
      * @param entityId
      * @return
      */
-    Document entityChange(String entityId) {
+    Optional<Document> entityChange(String entityId) {
         if (!searchDocumentDriver.doesEntityExistInRepository(entityId)) {
             return createDeleteDocument(entityId);
         } else {
-            return searchDocumentDriver.formulateSearchDocument(entityId);
+            return Optional.of(searchDocumentDriver.formulateSearchDocument(entityId));
         }
     }
 
@@ -58,7 +60,7 @@ public class ChangeMessageToOpenSearchDocumentTranslator {
      * @param wikiId
      * @return
      */
-    Document wikiChange(String wikiId) {
+    Optional<Document> wikiChange(String wikiId) {
         // Lookup the owner of the page
         try {
             WikiPageKey key = wikiPageDao.lookupWikiKey(wikiId);
@@ -71,7 +73,7 @@ public class ChangeMessageToOpenSearchDocumentTranslator {
             // Nothing to do if the wiki does not exist
             log.info("Wiki not found for id: " + wikiId + " Message: " + e.getMessage());
         }
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -80,10 +82,10 @@ public class ChangeMessageToOpenSearchDocumentTranslator {
      * @param entityId
      * @return
      */
-    Document createDeleteDocument(String entityId) {
+    Optional<Document> createDeleteDocument(String entityId) {
         Document document = new Document();
         document.setType(DocumentTypeNames.delete);
         document.setId(entityId);
-        return document;
+        return Optional.of(document);
     }
 }

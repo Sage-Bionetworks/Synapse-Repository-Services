@@ -11,6 +11,7 @@ import java.net.http.WebSocket;
 import java.net.http.WebSocket.Listener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
@@ -27,11 +28,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
@@ -44,16 +53,27 @@ import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.repo.service.GridService;
+import org.sagebionetworks.repo.service.JsonSchemaServices;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -74,7 +94,16 @@ public class GridEventBrokerWorkerIntegrationTest {
 	private EntityManager entityManager;
 
 	@Autowired
+	private EntityService entityService;
+
+	@Autowired
+	private JsonSchemaServices jsonSchemaService;
+
+	@Autowired
 	private ColumnModelManager columnManager;
+
+	@Autowired
+	private FileHandleManager fileHandleManager;
 
 	private UserInfo admin;
 
@@ -241,6 +270,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 					assertNotNull(response);
 					assertNotNull(response.getGridSession());
 				}, MAX_WAIT_MS).getResponse().getGridSession();
+		
+		assertNotNull(session);
+		assertEquals(table.getId(), session.getSourceEntityId());
 
 		// Create replica One
 		GridReplica replicaOne = gridServie
@@ -276,6 +308,121 @@ public class GridEventBrokerWorkerIntegrationTest {
 			}
 		}, incomingMessagesOne));
 
+	}
+
+	@Test
+	public void testGridWithViewQueryAndBoundSchema() throws Exception {
+		// setup a view
+		Project project = entityService.createEntity(admin.getId(), new Project().setName("test"), null);
+		Folder folder = entityService.createEntity(admin.getId(),
+				new Folder().setName("folder").setParentId(project.getId()), null);
+
+		String annotationName = "anInt";
+		String jsonSchem$id = createJsonSchema(Map.of(annotationName, new JsonSchema().setType(Type.integer)))
+				.getNewVersionInfo().get$id();
+
+		ExternalFileHandle fh = fileHandleManager.createExternalFileHandle(admin, new ExternalFileHandle()
+				.setContentType("text/plain").setFileName("foo.bar").setExternalURL("https://something.org"));
+		FileEntity file = entityService.createEntity(admin.getId(),
+				new FileEntity().setName("file").setParentId(folder.getId()).setDataFileHandleId(fh.getId()), null);
+
+		Annotations annos = entityService.getEntityAnnotations(admin.getId(), file.getId());
+		annos.setAnnotations(Map.of(annotationName,
+				new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("9090"))));
+		entityService.updateEntityAnnotations(admin.getId(), file.getId(), annos);
+		asynchronousJobWorkerHelper.waitForEntityReplication(admin, file.getId(), MAX_WAIT_MS);
+
+		// Bind the schema to the file.
+		entityService.bindSchemaToEntity(admin.getId(),
+				new BindSchemaToEntityRequest().setEntityId(file.getId()).setSchema$id(jsonSchem$id));
+
+		List<ColumnModel> schema = List.of(new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER));
+		schema = columnManager.createColumnModels(admin, schema);
+		List<String> colIds = schema.stream().map(c -> c.getId()).collect(Collectors.toList());
+		EntityView view = entityService
+				.createEntity(
+						admin.getId(), new EntityView().setParentId(project.getId()).setName("aView")
+								.setColumnIds(colIds).setScopeIds(List.of(folder.getId())).setViewTypeMask(0x01L),
+						null);
+
+		String sql = String.format("select * from %s", view.getId());
+
+		// create a grid using the table
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new CreateGridRequest().setInitialQuery(new Query().setSql(sql)), (CreateGridResponse response) -> {
+					assertNotNull(response);
+					assertNotNull(response.getGridSession());
+				}, MAX_WAIT_MS).getResponse().getGridSession();
+		assertNotNull(session);
+		assertEquals(view.getId(), session.getSourceEntityId());
+		assertEquals(jsonSchem$id, session.getGridJsonSchema$Id());
+
+		// Create replica One
+		GridReplica replicaOne = gridServie
+				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
+				.getReplica();
+
+		String urlOne = gridServie
+				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
+						.setGridSessionId(session.getSessionId()).setReplicaId(replicaOne.getReplicaId()))
+				.getPresignedUrl();
+		assertNotNull(urlOne);
+
+		BlockingQueue<String> incomingMessagesOne = new LinkedBlockingQueue<>();
+		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
+		waitForConnected(incomingMessagesOne);
+
+		// start the synchronize
+		wsOne.sendText("[1,99,\"synchronize-clock\",[]]", true).join();
+		assertTrue(waitForMessage((a) -> {
+			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
+				Patch patch = PatchCompactSerializable.deserialize(a.getJSONArray(2));
+				assertNotNull(patch);
+				assertEquals(new LogicalTimestamp().setReplicaId(66534L).setSequenceNumber(1L), patch.getPatchId());
+				assertEquals(15L, patch.getSpan());
+				// find the constant that contains the table's value
+				Optional<NewConstant> op = patch.getOperations().stream().filter(o -> (o instanceof NewConstant))
+						.map(c -> (NewConstant) c).filter(c -> ConType.LONG.equals(c.getValue().getType()))
+						.filter(c -> Long.valueOf(9090).equals(c.getValue().getValue())).findFirst();
+				assertTrue(op.isPresent());
+				return true;
+			} else {
+				return false;
+			}
+		}, incomingMessagesOne));
+
+	}
+
+	/**
+	 * Helper to create a schema
+	 * 
+	 * @return
+	 * @throws Exception
+	 */
+	CreateSchemaResponse createJsonSchema(Map<String, JsonSchema> properties) throws Exception {
+		Organization org=  getOrCreateOrganization(admin.getId(), "gridtestorg");
+		String jsonSchemaName = "exampleSchema";
+		JsonSchema jsonSchema = new JsonSchema().set$id(org.getName() + "-" + jsonSchemaName).setProperties(properties);
+
+		return asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new CreateSchemaRequest().setDryRun(false).setSchema(jsonSchema), (CreateSchemaResponse response) -> {
+					assertNotNull(response);
+				}, MAX_WAIT_MS).getResponse();
+	}
+	
+	/**
+	 * Helper to get or create a schema organization.
+	 * @param userId
+	 * @param name
+	 * @return
+	 */
+	Organization getOrCreateOrganization(Long userId, String name) {
+		try {
+			return jsonSchemaService.getOrganizationByName(admin.getId(), name);
+		} catch (NotFoundException e) {
+			return jsonSchemaService.createOrganization(admin.getId(),
+					new CreateOrganizationRequest().setOrganizationName(name));
+		}
 	}
 
 	/**

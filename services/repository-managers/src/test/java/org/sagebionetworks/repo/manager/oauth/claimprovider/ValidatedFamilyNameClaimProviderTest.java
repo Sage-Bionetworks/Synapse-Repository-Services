@@ -8,19 +8,19 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.verification.VerificationState;
 import org.sagebionetworks.repo.model.verification.VerificationStateEnum;
 import org.sagebionetworks.repo.model.verification.VerificationSubmission;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ValidatedFamilyNameClaimProviderTest {
 	
 	@Mock
@@ -35,7 +35,7 @@ public class ValidatedFamilyNameClaimProviderTest {
 	
 	private VerificationSubmission verificationSubmission;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
 		verificationSubmission = new VerificationSubmission();
 		when(mockUserProfileManager.getCurrentVerificationSubmission(Long.parseLong(USER_ID))).thenReturn(verificationSubmission);
@@ -48,7 +48,7 @@ public class ValidatedFamilyNameClaimProviderTest {
 		// method under test
 		assertNotNull(claimProvider.getDescription());
 		// method under test
-		assertNull(claimProvider.getClaim(USER_ID, null));
+		assertNull(claimProvider.getClaim(USER_ID,null,  null, null));
 		
 		VerificationState verificationState = new VerificationState();
 		verificationState.setState(VerificationStateEnum.APPROVED);
@@ -58,6 +58,6 @@ public class ValidatedFamilyNameClaimProviderTest {
 		verificationSubmission.setLastName(FAMILY_NAME);
 		
 		// method under test
-		assertEquals(FAMILY_NAME, claimProvider.getClaim(USER_ID, null));
+		assertEquals(FAMILY_NAME, claimProvider.getClaim(USER_ID, null, null, null));
 	}
 }

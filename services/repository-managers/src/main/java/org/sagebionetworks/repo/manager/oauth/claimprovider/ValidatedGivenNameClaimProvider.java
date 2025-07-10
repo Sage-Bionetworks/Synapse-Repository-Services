@@ -24,7 +24,7 @@ public class ValidatedGivenNameClaimProvider implements OIDCClaimProvider {
 	}
 
 	@Override
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint) {
 		VerificationSubmission verificationSubmission = userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
 		if (VerificationHelper.isVerified(verificationSubmission)) {
 			return verificationSubmission.getFirstName();

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,10 +15,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.util.ClasspathUtil;
 
 @ExtendWith(MockitoExtension.class)
 public class PatchRowHandlerTest {
@@ -28,7 +31,7 @@ public class PatchRowHandlerTest {
 	private String sessionId;
 	private Long replicaId;
 	private List<ColumnModel> schema;
-	private int maxRowsPerPatch;
+	private Long maxRowSizeBytes;
 
 	@BeforeEach
 	public void before() {
@@ -36,15 +39,16 @@ public class PatchRowHandlerTest {
 		replicaId = 19L;
 		schema = List.of(new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
 				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
-		maxRowsPerPatch = 100;
+		maxRowSizeBytes = 100L;
 	}
 
 	@Test
 	public void testNoColumnsNoRows() throws IOException {
 		schema = Collections.emptyList();
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowsPerPatch)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
 			// no row to add
+			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
 		}
 		verify(mockStore, times(1)).savePatch(any(), any(), any());
 		// This patch has been tested with the JSON-Joy TypeScript library.
@@ -57,8 +61,9 @@ public class PatchRowHandlerTest {
 	public void testWithColumnNoRows() throws IOException {
 
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowsPerPatch)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
 			// no row to add
+			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
 		}
 		verify(mockStore, times(1)).savePatch(any(), any(), any());
 		// This patch has been tested with the JSON-Joy TypeScript library.
@@ -72,7 +77,7 @@ public class PatchRowHandlerTest {
 	public void testWithRows() throws IOException {
 
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowsPerPatch)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
 			handler.nextRow(new Row().setValues(Arrays.asList("one", "101")));
 			handler.nextRow(new Row().setValues(Arrays.asList("two", "202")));
 			handler.nextRow(new Row().setValues(Arrays.asList("three", "303")));
@@ -90,20 +95,21 @@ public class PatchRowHandlerTest {
 
 	@Test
 	public void testWithRowsWithOneRowPerPatch() throws IOException {
-		maxRowsPerPatch = 1;
+		maxRowSizeBytes = Long.MAX_VALUE;
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowsPerPatch)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
 			handler.nextRow(new Row().setValues(Arrays.asList("one", "101")));
 			handler.nextRow(new Row().setValues(Arrays.asList("two", "202")));
 			handler.nextRow(new Row().setValues(Arrays.asList("three", "303")));
+			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
 		}
 		verify(mockStore, times(3)).savePatch(any(), any(), any());
 		// All three patch has been tested with the JSON-Joy TypeScript library.
 		// The first patch includes the grid setup and the first row
 		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L),
 				"[[[19,1]],[2],[0,\"0.0.2\"],[3],[6],[6],[10,1,[[\"doc_version\",2],[\"columnNames\",3],"
-				+ "[\"columnOrder\",4],[\"rows\",5]]],[9,[0,0],1],[0,\"aString\"],[0,0],[0,\"anInt\"],"
-				+ "[0,1],[11,3,[[0,8],[1,10]]],[14,4,4,[9,11]],[3],[0,\"one\"],[0,101],[11,15,[[0,16],[1,17]]],[14,5,5,[15]]]");
+						+ "[\"columnOrder\",4],[\"rows\",5]]],[9,[0,0],1],[0,\"aString\"],[0,0],[0,\"anInt\"],"
+						+ "[0,1],[11,3,[[0,8],[1,10]]],[14,4,4,[9,11]],[3],[0,\"one\"],[0,101],[11,15,[[0,16],[1,17]]],[14,5,5,[15]]]");
 		// second patch includes only the second row.
 		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(20L),
 				"[[[19,20]],[3],[0,\"two\"],[0,202],[11,20,[[0,21],[1,22]]],[14,5,19,[20]]]");
@@ -111,6 +117,24 @@ public class PatchRowHandlerTest {
 		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(25L),
 				"[[[19,25]],[3],[0,\"three\"],[0,303],[11,25,[[0,26],[1,27]]],[14,5,24,[25]]]");
 
+	}
+
+	@Test
+	public void testEachType() throws IOException {
+		boolean hasDefault = false;
+		schema = TableModelTestUtils.createOneOfEachType(hasDefault);
+		List<Row> rows = TableModelTestUtils.createRows(schema, 3,
+				new TableModelTestUtils.ValueOptions().includeSpace(false));
+
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+			rows.forEach(r -> {
+				handler.nextRow(r);
+			});
+			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
+		}
+		String expectedPatch = ClasspathUtil.loadFromClasspath("AllTypesPatch.json");
+		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L),
+				expectedPatch);
 	}
 
 }

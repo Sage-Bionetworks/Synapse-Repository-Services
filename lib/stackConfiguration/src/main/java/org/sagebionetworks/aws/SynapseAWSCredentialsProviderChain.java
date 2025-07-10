@@ -28,7 +28,10 @@ public class SynapseAWSCredentialsProviderChain extends AWSCredentialsProviderCh
 	SynapseAWSCredentialsProviderChain(PropertyProvider propertyProvider, AWSCredentialsProvider defaultProvider) {
 		super(new MavenSettingsAWSCredentialsProvider(propertyProvider),
 				new SynapseSystemPropertiesAWSCredentialsProvider(propertyProvider),
-				defaultProvider);
+				defaultProvider,
+				// while v2 of the AWS client includes ProfileCredentialsProvider in the 
+				// default providers chain, v1 does not include it.
+				new ProfileCredentialsProviderV2V1Adapter());
 	}
 
 	/**

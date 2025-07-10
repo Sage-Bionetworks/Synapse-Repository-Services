@@ -3,14 +3,13 @@ package org.sagebionetworks.repo.manager.oauth.claimprovider;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class UserIdClaimProviderTest {
 	
 	@InjectMocks
@@ -18,9 +17,6 @@ public class UserIdClaimProviderTest {
 	
 	private static final String USER_ID = "101";
 	
-	@Before
-	public void setUp() {
-	}
 
 	@Test
 	public void testClaim() {
@@ -29,6 +25,6 @@ public class UserIdClaimProviderTest {
 		// method under test
 		assertNotNull(claimProvider.getDescription());
 		// method under test
-		assertEquals(USER_ID, claimProvider.getClaim(USER_ID, null));
+		assertEquals(USER_ID, claimProvider.getClaim(USER_ID, null, null, null));
 	}
 }

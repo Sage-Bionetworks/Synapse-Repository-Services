@@ -26,7 +26,7 @@ public class ValidatedAtClaimProvider implements OIDCClaimProvider {
 	}
 
 	@Override
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint) {
 		VerificationSubmission verificationSubmission = userProfileManager.getCurrentVerificationSubmission(Long.parseLong(userId));
 		Date approvalDate = VerificationHelper.getApprovalDate(verificationSubmission);
 		if (approvalDate==null) {

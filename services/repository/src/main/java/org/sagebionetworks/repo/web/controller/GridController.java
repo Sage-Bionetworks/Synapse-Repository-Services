@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.service.GridService;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -134,7 +136,7 @@ public class GridController {
 	 * 
 	 * @param userId
 	 * @param sessionId - The grid session ID.
-	 * @param replicaId  - The ID of the replica.
+	 * @param replicaId - The ID of the replica.
 	 * @return
 	 */
 	@RequiredScope({ view })
@@ -168,6 +170,41 @@ public class GridController {
 		ValidateArgument.required(request, "request");
 		request.setGridSessionId(sessionId);
 		return gridService.createPresignedUrl(userId, request);
+	}
+
+	/**
+	 * List a user's active grid sessions that match the provided request.
+	 * <p>
+	 * Forward the provided nextPageToken to get the next page of results.
+	 * </p>
+	 * 
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.GRID_SESSION_LIST }, method = RequestMethod.POST)
+	public @ResponseBody ListGridSessionsResponse listActiveGridSessions(
+			@RequestBody(required = true) ListGridSessionsRequest request,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return gridService.listActiveGridSessions(userId, request);
+	}
+
+	/**
+	 * Delete a grid session.
+	 * <p>
+	 * Note: Only the user that created a grid session may delete it.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param gridSessionId The session ID to delete.
+	 */
+	@RequiredScope({ modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.GRID_SESSION_ID }, method = RequestMethod.DELETE)
+	public void deleteGridSession(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String sessionId) {
+		gridService.deleteGridSession(userId, sessionId);
 	}
 
 }

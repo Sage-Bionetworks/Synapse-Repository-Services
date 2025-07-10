@@ -57,7 +57,7 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
  */
 @Service
 public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProvider {
-	
+		
 	private static final Logger LOG = LogManager.getLogger(PrincipalManagerImpl.class);
 	
 	@Autowired
@@ -83,7 +83,7 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 	
 	@Autowired
 	private TokenGenerator tokenGenerator;
-
+	
 	@Override
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");

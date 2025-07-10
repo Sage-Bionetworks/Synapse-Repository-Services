@@ -188,5 +188,17 @@ class OAuthDaoImplTest {
 		}).getMessage();
 		assertEquals("Authorization code: '123' does not exist", message);
 	}
+	
+	@Test
+	public void testDeleteAllAuthorizationConsents() {
+		oauthDao.saveAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON);
+		oauthDao.saveAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON);
+		
+		// Method under test
+		oauthDao.deleteAllAuthorizationConsents(userId);
+		
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, SCOPE_HASH, GRANTED_ON));
+		assertFalse(oauthDao.lookupAuthorizationConsent(userId, clientId, OTHER_SCOPE_HASH, GRANTED_ON));
+	}
 
 }

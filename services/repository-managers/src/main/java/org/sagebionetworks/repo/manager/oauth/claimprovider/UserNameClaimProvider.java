@@ -22,7 +22,7 @@ public class UserNameClaimProvider implements OIDCClaimProvider {
 	}
 
 	@Override
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint) {
 		return principalAliasDao.getUserName(Long.valueOf(userId));
 	}
 

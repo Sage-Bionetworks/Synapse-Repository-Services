@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidatorImpl;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -60,6 +61,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetToken;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext;
+import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -100,6 +102,8 @@ public class AuthenticationManagerImplUnitTest {
 	private FeatureManager mockFeatureManager;
 	@Mock
 	private TermsOfServiceManager mockTosManager;
+	@Mock
+	private UserStatusDao mockUserStatusDao;
 	
 	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
@@ -413,6 +417,17 @@ public class AuthenticationManagerImplUnitTest {
 		verify(mockReceiptTokenGenerator).createNewAuthenticationReciept(userId);
 		verify(mockOIDCTokenHelper).createClientTotalAccessToken(userId, issuer);
 		verify(mockAuthDAO).setAuthenticatedOn(userId, authTime);
+	}
+	
+	@Test
+	public void testGetLoginResponseAfterSuccessfulAuthenticationWithDisabledUser(){
+		when(mockUserStatusDao.isDisabled(userId)).thenReturn(true);
+		
+		assertEquals("Your account has been disabled. Please contact support for assistance.", assertThrows(UnauthorizedException.class, () -> {
+			authManager.getLoginResponseAfterSuccessfulAuthentication(userId, issuer);	
+		}).getMessage());
+		
+		verifyZeroInteractions(mock2FaManager, mockAuthDAO);
 	}
 
 	///////////////////////////////////////////

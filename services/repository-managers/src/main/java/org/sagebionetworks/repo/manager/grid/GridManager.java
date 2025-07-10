@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
@@ -131,6 +133,10 @@ public interface GridManager extends PatchStore {
 	 * @return {@link Optional#empty()} If the replica is up-to-date.
 	 */
 	Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
+
+	ListGridSessionsResponse listActiveGridSessions(UserInfo user, ListGridSessionsRequest request);
+
+	void deleteGridSession(UserInfo user, String gridSessionId);
 
 
 

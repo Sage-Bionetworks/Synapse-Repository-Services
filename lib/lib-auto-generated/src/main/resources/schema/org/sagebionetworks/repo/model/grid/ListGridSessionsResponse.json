@@ -1,0 +1,16 @@
+{
+	"description": "Response to a request to list a user's active grid session.",
+	"properties": {
+		"page": {
+			"description": "A single page of results that match the request parameters.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.GridSession"
+			}
+		},
+		"nextPageToken": {
+			"description": "Forward this token to get the next page of results.",
+			"type": "string"
+		}
+	}
+}

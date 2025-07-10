@@ -542,4 +542,27 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		}).getMessage();
 		assertEquals("Both 'claims' and 'claimsJson' are not null", message);
 	}
+	
+	@Test
+	public void testDeleteAllTokens() {
+		OAuthClient client2 = createClient(UUID.randomUUID().toString(), "https://baz.bat");
+		// We will create tokens for a second user to verify that tokens for other users are not deleted
+		final String OTHER_USER_ID = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+
+		OAuthRefreshTokenInformation tokenToRevoke1 = createRefreshToken();
+		OAuthRefreshTokenInformation tokenToRevoke2 = createRefreshToken();
+		// Belongs to same user, different client:
+		OAuthRefreshTokenInformation tokenToRevoke3 = createRefreshToken(client2.getClient_id(), userId);
+		// Belongs to different user, same client:
+		OAuthRefreshTokenInformation tokenToNotRevoke = createRefreshToken(client.getClient_id(), OTHER_USER_ID);
+		
+		// Call under test
+		oauthRefreshTokenDao.deleteAllTokens(userId);
+		
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToRevoke1.getTokenId()).isPresent());
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToRevoke2.getTokenId()).isPresent());
+		assertFalse(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToRevoke3.getTokenId()).isPresent());
+		assertTrue(oauthRefreshTokenDao.getRefreshTokenMetadata(tokenToNotRevoke.getTokenId()).isPresent());
+		
+	}
 }

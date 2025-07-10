@@ -1290,8 +1290,7 @@ public class SqlConstants {
 	public static final String DDL_TWO_FA_STATUS =										"schema/UserTwoFaStatus-ddl.sql";
 	public static final String TABLE_TWO_FA_STATUS =	 								"USER_TWO_FA_STATUS";
 	public static final String COL_TWO_FA_STATUS_PRINCIPAL_ID =							"PRINCIPAL_ID";
-	public static final String COL_TWO_FA_STATUS_ENABLED =								"ENABLED";	
-
+	public static final String COL_TWO_FA_STATUS_ENABLED =								"ENABLED";
 	
 	// The webhook tables
 	public static final String TABLE_WEBHOOK = 											"WEBHOOK";
@@ -1394,6 +1393,8 @@ public class SqlConstants {
 	public static final String COL_GRID_SESSION_SESSION_ID = 		"SESSION_ID";
 	public static final String COL_GRID_SESSION_REP_ID_CLIENT =		"REP_ID_CLIENT";
 	public static final String COL_GRID_SESSION_REP_ID_SERVICE =	"REP_ID_SERVICE";
+	public static final String COL_GRID_SESSION_SOURCE_ID =			"SOURCE_ID";
+	public static final String COL_GRID_SESSION_SCHEMA_ID =			"SCHEMA_ID";
 	public static final String DDL_GRID_SESSION = "schema/grid/Grid-Session-ddl.sql";
 	
 	public static final String TABLE_GRID_REPLICA =					"GRID_REPLICA";
@@ -1423,8 +1424,13 @@ public class SqlConstants {
 	public static final String COL_GRID_PAT_EXPIRES_ON = 			"EXPIRES_ON";
 	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
 	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
-
-
+	
+	public static final String TABLE_USER_STATUS					= "USER_STATUS";
+	public static final String COL_USER_STATUS_PRINCIPAL_ID			= "PRINCIPAL_ID";
+	public static final String COL_USER_STATUS_ETAG					= "ETAG";
+	public static final String COL_USER_STATUS_LAST_SEEN_ON			= "LAST_SEEN_ON";
+	public static final String COL_USER_STATUS_DISABLED				= "DISABLED";
+	public static final String DDL_USER_STATUS 						= "schema/UserStatus-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

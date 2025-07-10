@@ -195,6 +195,13 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 		param.addValue(PARAM_TOKEN_ID, tokenId);
 		basicDao.deleteObjectByPrimaryKey(DBOPersonalAccessToken.class, param);
 	}
+	
+	@Override
+	@WriteTransaction
+	public void deleteAllTokens(String userId) {
+		namedParameterJdbcTemplate.update("DELETE FROM " + TABLE_PERSONAL_ACCESS_TOKEN + " WHERE " + COL_PERSONAL_ACCESS_TOKEN_PRINCIPAL_ID+" = :"+PARAM_PRINCIPAL_ID,
+			new MapSqlParameterSource().addValue(PARAM_PRINCIPAL_ID, userId));
+	}
 
 	@Override
 	public void deleteLeastRecentlyUsedTokensOverLimit(String userId, Long maxNumberOfTokens) {

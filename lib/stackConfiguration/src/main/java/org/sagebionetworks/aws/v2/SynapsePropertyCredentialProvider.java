@@ -5,6 +5,7 @@ import java.util.Properties;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.utils.StringUtils;
 
 /**
@@ -14,13 +15,21 @@ import software.amazon.awssdk.utils.StringUtils;
 public class SynapsePropertyCredentialProvider implements AwsCredentialsProvider {
 
 	private final String name;
-	private final AwsCredentials credentials;
+	private AwsCredentials credentials;
 
 	public SynapsePropertyCredentialProvider(String name, Properties props) {
 		super();
 		String key = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.key")) : null;
 		String id = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.id")) : null;
-		credentials = key != null && id != null ? AwsBasicCredentials.create(id, key) : null;
+		String token = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.session.token")) : null;
+		credentials = null;
+		if (key != null && id != null) {
+			if (StringUtils.isEmpty(token)) {
+				credentials =  AwsBasicCredentials.create(id, key);
+			} else {
+				credentials =  AwsSessionCredentials.create(id, key, token);
+			}
+		}
 		this.name = name;
 	}
 

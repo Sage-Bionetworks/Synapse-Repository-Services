@@ -5,6 +5,7 @@
 # src_folder - the folder within which the source code is found
 # org_sagebionetworks_stack_iam_id - the id of the developer's AWS secret key
 # org_sagebionetworks_stack_iam_key - the developer's AWS secret key
+# org_sagebionetworks_stack_iam_session_token - the developer's STS token
 # org_sagebionetworks_stackEncryptionKey - the stack encryption key, common to all dev builds
 # org_sagebionetworks_search_enabled - when set to "true", will enable search feature and its tests
 # rds_password - the password for the build database, common to all dev builds
@@ -42,6 +43,10 @@ fi
 AWS_CREDS=""
 if [ -n "${org_sagebionetworks_stack_iam_id}" ]  && [ -n "${org_sagebionetworks_stack_iam_key}" ]; then
 	AWS_CREDS="-Dorg.sagebionetworks.stack.iam.id=${org_sagebionetworks_stack_iam_id} -Dorg.sagebionetworks.stack.iam.key=${org_sagebionetworks_stack_iam_key} "
+
+	if [ -n "${org_sagebionetworks_stack_iam_session_token}" ]; then
+		AWS_CREDS=${AWS_CREDS}"-Dorg.sagebionetworks.stack.iam.session.token=${org_sagebionetworks_stack_iam_session_token} "
+	fi
 fi
 
 MVN_GOAL=install

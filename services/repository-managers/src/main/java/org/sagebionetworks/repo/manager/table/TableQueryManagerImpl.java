@@ -844,4 +844,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
         }
     }
 
+	@Override
+	public Long getMaxBytesPerRequest() {
+		return maxBytesPerRequest;
+	}
+
 }

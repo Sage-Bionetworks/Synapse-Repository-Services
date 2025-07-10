@@ -23,7 +23,7 @@ public class IsCertifiedClaimProvider implements OIDCClaimProvider {
 	}
 
 	@Override
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint) {
 		return UserInfoHelper.isCertified(userManager.getUserInfo(Long.parseLong(userId)));
 	}
 

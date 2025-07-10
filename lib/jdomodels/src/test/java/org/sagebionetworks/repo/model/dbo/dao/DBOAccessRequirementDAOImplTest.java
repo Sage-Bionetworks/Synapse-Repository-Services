@@ -697,7 +697,44 @@ public class DBOAccessRequirementDAOImplTest {
 	}
 	
 	@Test
-	public void testMapAccessRequirmentsToProject() {
+	public void testGetAccessRequirementConcreteTypes() {
+		AccessRequirement ar1 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo"));
+		AccessRequirement ar2 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name"));
+		AccessRequirement ar3 = accessRequirementDAO.create(newEntityAccessRequirement(individualGroup, node, "foo").setName("name2"));
+		
+		Map<String, String> expected = Map.of(
+			ar1.getId().toString(), ar1.getConcreteType(),
+			ar2.getId().toString(), ar2.getConcreteType(),
+			ar3.getId().toString(), ar3.getConcreteType()
+		);
+		
+		Map<String, String> result = accessRequirementDAO.getConcreteTypes(Set.of(ar1.getId().toString(), ar2.getId().toString(), ar3.getId().toString(), "0"));
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementConcreteTypesWithEmptyList() {
+		
+		Map<String, String> expected = Collections.emptyMap();
+		
+		Map<String, String> result = accessRequirementDAO.getConcreteTypes(Collections.emptySet());
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetAccessRequirementConcreteTypesWithNullList() {
+		
+		Map<String, String> expected = Collections.emptyMap();
+		
+		Map<String, String> result = accessRequirementDAO.getConcreteTypes(null);
+		
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testMapAccessRequirementsToProject() {
 		
 		Node projectOne = nodeDaoHelper.create((n)->{
 			n.setNodeType(EntityType.project);

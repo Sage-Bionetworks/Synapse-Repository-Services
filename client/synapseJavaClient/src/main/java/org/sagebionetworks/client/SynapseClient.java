@@ -221,6 +221,8 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -4566,6 +4568,20 @@ public interface SynapseClient extends BaseClient {
 	CreateGridPresignedUrlResponse createGridPresignedUrl(CreateGridPresignedUrlRequest request)
 			throws SynapseException;
 
+	/**
+	 * List the active grid sessions for the current user.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListGridSessionsResponse listGridSessions(ListGridSessionsRequest request) throws SynapseException;
+
+	/**
+	 * Delete a grid session.
+	 * @param sessionId
+	 * @throws SynapseException
+	 */
+	void deleteGridSession(String sessionId) throws SynapseException;
 	
 }
 

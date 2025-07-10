@@ -132,4 +132,10 @@ public class OAuthDaoImpl implements OAuthDao {
 		basicDao.deleteObjectByPrimaryKey(DBOAuthorizationCode.class, param);
 		return result;
 	}
+	
+	@WriteTransaction
+	@Override
+	public void deleteAllAuthorizationConsents(Long userId) {
+		jdbcTemplate.update("DELETE FROM "+TABLE_AUTHORIZATION_CONSENT+" WHERE "+COL_AUTHORIZATION_CONSENT_USER_ID+"=?", userId);
+	}
 }

@@ -28,9 +28,11 @@ public interface OIDCClaimProvider {
 	 * @param userId the ID of the user for which this claim is provided.  This value is always provided and never null.
 	 * @param details the details of the request (e.g. for the team claim type the list of team IDs to check)
 	 * A null value means to provide the 'standard' claim value for the specified user and the claim name.
-	 * @return an object convertable to JSON in the resulting JSON Web Token.  The conversion is
+	 * @param oauthEndpoint the OIDC issuer web end point
+	 * @return an object convertible to JSON in the resulting JSON Web Token.  The conversion is
 	 * done by the FasterXML Object mapper which supports a variety of types including String, boolean, 
 	 * number and collections of the above.
 	 */
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details);
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint);
+	
 }

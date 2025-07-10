@@ -5,17 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class GivenNameClaimProviderTest {
 	
 	@Mock
@@ -30,7 +30,7 @@ public class GivenNameClaimProviderTest {
 	
 	private UserProfile userProfile;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
 		userProfile = new UserProfile();
 		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
@@ -44,14 +44,14 @@ public class GivenNameClaimProviderTest {
 		// method under test
 		assertNotNull(claimProvider.getDescription());
 		// method under test
-		assertEquals(GIVEN_NAME, claimProvider.getClaim(USER_ID, null));
+		assertEquals(GIVEN_NAME, claimProvider.getClaim(USER_ID, null, null, null));
 	}
 
 	@Test
 	public void testClaimMissing() {
 		userProfile.setFirstName(null);
 		// method under test
-		assertNull(claimProvider.getClaim(USER_ID, null));
+		assertNull(claimProvider.getClaim(USER_ID, null, null, null));
 	}
 
 }

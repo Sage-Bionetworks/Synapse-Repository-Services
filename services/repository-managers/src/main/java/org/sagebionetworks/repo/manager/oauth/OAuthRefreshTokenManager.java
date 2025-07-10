@@ -120,6 +120,13 @@ public interface OAuthRefreshTokenManager {
 	void revokeRefreshToken(String clientId, String tokenId) throws NotFoundException, UnauthorizedException;
 
 	/**
+	 * Revokes all the refresh tokens for the user
+	 * 
+	 * @param userId
+	 */
+	void revokeAllRefreshTokens(Long userId);
+	
+	/**
 	 * Updates a token's metadata.
 	 *
 	 * @param userInfo

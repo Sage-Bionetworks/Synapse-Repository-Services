@@ -97,6 +97,7 @@
 							<org.sagebionetworks.stack.instance>${org.sagebionetworks.stack.instance}</org.sagebionetworks.stack.instance>
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
 							<org.sagebionetworks.stack.iam.key>${org.sagebionetworks.stack.iam.key}</org.sagebionetworks.stack.iam.key>
+							<org.sagebionetworks.stack.iam.session.token>${org.sagebionetworks.stack.iam.session.token}</org.sagebionetworks.stack.iam.session.token>
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
 							<org.sagebionetworks.repository.database.connection.url>${org.sagebionetworks.repository.database.connection.url}</org.sagebionetworks.repository.database.connection.url>
 							<org.sagebionetworks.id.generator.database.connection.url>${org.sagebionetworks.id.generator.database.connection.url}</org.sagebionetworks.id.generator.database.connection.url>

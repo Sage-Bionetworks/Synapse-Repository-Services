@@ -11,18 +11,16 @@ import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -48,23 +46,30 @@ public class SearchManagerImpl implements SearchManager {
     }
 
     @Override
-    public void documentChangeMessages(List<ChangeMessage> messages) throws TemporarilyUnavailableException {
+    public void documentChangeMessages(List<ChangeMessage> messages) {
         try {
-            List<BulkOperation> operations = messages.stream().map(message -> {
-                Document document = translator.generateSearchDocumentIfNecessary(message);
-                if (document.getType() == DocumentTypeNames.add) {
-                    return BulkOperation.of(op -> op
-                            .index(idx -> idx
-                                    .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
-                                    .id(document.getId())
-                                    .document(document.getFields())));
-                } else {
-                    return BulkOperation.of(op -> op
-                            .delete(idx -> idx
-                                    .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
-                                    .id(document.getId())));
-                }
-            }).collect(Collectors.toList());
+            List<BulkOperation> operations = messages.stream()
+                    .map(translator::generateSearchDocumentIfNecessary)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(document -> {
+                        if (DocumentTypeNames.add == document.getType()) {
+                            return BulkOperation.of(op -> op
+                                    .index(idx -> idx
+                                            .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
+                                            .id(document.getId())
+                                            .document(document.getFields())));
+                        } else {
+                            return BulkOperation.of(op -> op
+                                    .delete(idx -> idx
+                                            .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
+                                            .id(document.getId())));
+                        }
+                    }).collect(Collectors.toList());
+
+            if (operations.isEmpty()) {
+                return;
+            }
 
             BulkResponse response = openSearchClient.bulk(req -> req.operations(operations));
 
@@ -73,6 +78,7 @@ public class SearchManagerImpl implements SearchManager {
                     .peek(item -> log.error("Document {} has error {}.", item.id(), item.error())).count();
 
             if (hasError > 0L) {
+                log.error("The OpenSearch response has {} error", hasError);
                 throw new RecoverableMessageException();
             }
         } catch (OpenSearchException | IOException e) {

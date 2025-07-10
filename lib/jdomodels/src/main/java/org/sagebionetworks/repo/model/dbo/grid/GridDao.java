@@ -17,9 +17,11 @@ public interface GridDao {
 	 * Create a new grid session.
 	 * 
 	 * @param userId
+	 * @param schemaId
+	 * @param tableId
 	 * @return
 	 */
-	GridSession createGridSession(Long userId);
+	GridSession createGridSession(CreateGridSession create);
 
 	/**
 	 * Get the user that started the grid session.
@@ -116,10 +118,10 @@ public interface GridDao {
 	 * @return
 	 */
 	Optional<PatchInfo> getPatchInfo(String sessionId, LogicalTimestamp patchId);
-	
 
 	/**
 	 * List all of the missing patches give a clock
+	 * 
 	 * @param sessionId
 	 * @param clock
 	 * @param limit
@@ -127,6 +129,23 @@ public interface GridDao {
 	 */
 	List<LogicalTimestamp> listMissingPatchIdsForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
 
+	/**
+	 * List the active grid session for a user filtered by the provided sourceId.
+	 * @param userId
+	 * @param sourceId The synID of the grid data source.
+	 * @return
+	 */
+	List<GridSession> listActiveGridSession(Long userId, String sourceId, Long limit, Long offset);
+	
+	/**
+	 * List all active grid sessions started by the provided user.
+	 * @param userId
+	 * @return
+	 */
+	List<GridSession> listActiveGridSession(Long userId, Long limit, Long offset);
+	
+	void deleteGridSession(String sessionId);
+	
 	void truncateAll();
 
 }

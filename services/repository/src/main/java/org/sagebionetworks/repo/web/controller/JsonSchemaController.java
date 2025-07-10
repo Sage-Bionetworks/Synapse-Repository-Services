@@ -48,6 +48,38 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * under that Organization's name-space. The Organization's name-space is
  * referenced using the Organization's name, which is also the root of all
  * schema $ids within the Organization.
+ * </p>
+ * 
+ * 
+ * <p>
+ * <b>Binding JSON schemas to Entities:</b>
+ * <ul>
+ * <li><a href="${PUT.entity.id.schema.binding}">PUT /entity/{id}/schema/binding</a></li>
+ * <li><a href="${GET.entity.id.schema.binding}">GET /entity/{id}/schema/binding</a></li>
+ * <li><a href="${DELETE.entity.id.schema.binding}">DELETE /entity/{id}/schema/binding</a></li>
+ * </ul>
+ * </p>
+ * <p>
+ * <b>Entity schema validation results:</b>
+ * <ul>
+ * <li><a href="${GET.entity.id.schema.validation}">GET /entity/{id}/schema/validation</a></li>
+ * <li><a href="${GET.entity.id.schema.validation.statistics}">GET /entity/{id}/schema/validation/statistics</a></li>
+ * <li><a href="${POST.entity.id.schema.validation.invalid}">POST /entity/{id}/schema/validation/invalid</a></li>
+ * <li><a href="${GET.entity.id.derivedKeys}">GET /entity/{id}/derivedKeys</a></li>
+ * </ul>
+ * </p>  
+ * 
+ * <b>Service Limits</b>
+ * <table border="1">
+ * <tr>
+ * <th>resource</th>
+ * <th>limit</th>
+ * </tr>
+ * <tr>
+ * <td>Maximum number of characters in a JSON schema</td>
+ * <td>2^24 characters</td>
+ * </tr>
+ * </table>
  *
  */
 @Controller

@@ -16,7 +16,7 @@ public enum ColumnTypeToConType {
 	// filehandle
 	FILEHANDLEID(ColumnType.FILEHANDLEID, new LongTranslator()),
 	// entity id.
-	ENTITYID(ColumnType.ENTITYID, new LongTranslator()),
+	ENTITYID(ColumnType.ENTITYID, new StringTranslator()),
 	// submission id
 	SUBMISSIONID(ColumnType.SUBMISSIONID, new LongTranslator()),
 	// evaluation id

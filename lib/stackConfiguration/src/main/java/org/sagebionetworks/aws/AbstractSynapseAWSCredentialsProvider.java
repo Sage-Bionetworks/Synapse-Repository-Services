@@ -5,6 +5,7 @@ import java.util.Properties;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.util.StringUtils;
 
 /**
@@ -17,6 +18,7 @@ public abstract class AbstractSynapseAWSCredentialsProvider implements AWSCreden
 	public static final String AWS_CREDENTIALS_WERE_NOT_FOUND = "AWS credentials were not found.";
 	public static final String ORG_SAGEBIONETWORKS_STACK_IAM_ID = "org.sagebionetworks.stack.iam.id";
 	public static final String ORG_SAGEBIONETWORKS_STACK_IAM_KEY = "org.sagebionetworks.stack.iam.key";
+	public static final String ORG_SAGEBIONETWORKS_STACK_SESSION_TOKEN = "org.sagebionetworks.stack.iam.session.token";
 	
 	/**
 	 * Search the provided Properties for the credentials.
@@ -27,8 +29,13 @@ public abstract class AbstractSynapseAWSCredentialsProvider implements AWSCreden
 			if (properties != null) {
 				String accessKey = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_IAM_ID));
 				String secretKey = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
+				String sessionToken = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_SESSION_TOKEN));
 				if (accessKey != null && secretKey != null) {
-					return new BasicAWSCredentials(accessKey, secretKey);
+					if (!StringUtils.isNullOrEmpty(sessionToken)) {
+						return new BasicSessionCredentials(accessKey, secretKey, sessionToken);
+					} else {
+						return new BasicAWSCredentials(accessKey, secretKey);
+					}
 				}
 			}
 			throw new IllegalStateException(AWS_CREDENTIALS_WERE_NOT_FOUND);

@@ -200,7 +200,7 @@ public class DoiController {
 	 */
 	@RequiredScope({view})
 	@RequestMapping(value = {DoiManagerImpl.LOCATE_RESOURCE_PATH}, method = RequestMethod.GET)
-	public void locate(@RequestParam(value = "portaId", required = false) String portalId,
+	public void locate(@RequestParam(value = DoiManagerImpl.PORTAL_ID_PATH_PARAM, required = false) String portalId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_ID_PATH_PARAM) String objectId,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_TYPE_PATH_PARAM) DoiObjectType objectType,
 		   @RequestParam(value = DoiManagerImpl.OBJECT_VERSION_PATH_PARAM, required = false) Long versionNumber,

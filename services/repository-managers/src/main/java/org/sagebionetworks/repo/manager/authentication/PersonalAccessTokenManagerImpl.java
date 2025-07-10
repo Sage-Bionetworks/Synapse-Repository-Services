@@ -235,4 +235,10 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 		
 		notificationManager.sendTemplatedNotification(userManager.getUserInfo(Long.valueOf(record.getUserId())), NOTIFICATION_TPL_PAT_REMOVED, "Personal Access Token Removed", notificationContext);
 	}
+	
+	@Override
+	@WriteTransaction
+	public void revokeAllTokens(Long userId) {
+		personalAccessTokenDao.deleteAllTokens(userId.toString());
+	}
 }

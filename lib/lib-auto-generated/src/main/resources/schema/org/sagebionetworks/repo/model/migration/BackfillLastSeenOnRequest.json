@@ -1,0 +1,14 @@
+{
+	"description": "Request to backfill the lastSeenOn status for existing users.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {
+		"maxUsersCount": {
+			"description": "The maximum number of users to process in the request, at least 500;",
+			"type": "integer"
+		}
+	}
+}

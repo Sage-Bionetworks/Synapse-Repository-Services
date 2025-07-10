@@ -15,10 +15,12 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -52,7 +54,7 @@ public class ChangeMessageToOpenSearchDocumentTranslatorTest {
         when(mockSearchDocumentDriver.formulateSearchDocument(anyString())).thenReturn(document);
 
         // call under test
-        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage);
+        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).get();
         assertEquals(document, doc);
     }
 
@@ -62,7 +64,7 @@ public class ChangeMessageToOpenSearchDocumentTranslatorTest {
         when(mockSearchDocumentDriver.doesEntityExistInRepository(any())).thenReturn(false);
 
         // call under test
-        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage);
+        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).get();
         assertEquals(document.getId(), doc.getId());
         assertEquals(DocumentTypeNames.delete, doc.getType());
         assertNull(doc.getFields());
@@ -78,7 +80,7 @@ public class ChangeMessageToOpenSearchDocumentTranslatorTest {
         when(mockSearchDocumentDriver.formulateSearchDocument(anyString())).thenReturn(document);
 
         // call under test
-        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage);
+        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).get();
         assertEquals(document, doc);
     }
 
@@ -93,7 +95,7 @@ public class ChangeMessageToOpenSearchDocumentTranslatorTest {
         when(mockSearchDocumentDriver.doesEntityExistInRepository(any())).thenReturn(false);
 
         // call under test
-        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage);
+        Document doc = messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).get();
         assertEquals(document.getId(), doc.getId());
         assertEquals(DocumentTypeNames.delete, doc.getType());
         assertNull(doc.getFields());
@@ -108,7 +110,18 @@ public class ChangeMessageToOpenSearchDocumentTranslatorTest {
                 .setOwnerObjectId(document.getId()).setOwnerObjectType(ObjectType.WIKI));
 
         // call under test
-        assertNull(messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage));
+        assertTrue(messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).isEmpty());
+    }
+
+    @Test
+    public void testWikiGenerateSearchDocumentIfNecessaryGenerateEmptyDocOnNotfoundException() {
+        changeMessage.setObjectType(ObjectType.WIKI);
+        document.setType(DocumentTypeNames.delete);
+
+        when(mockWikiPageDao.lookupWikiKey(anyString())).thenThrow(NotFoundException.class);
+
+        // call under test
+        assertTrue(messageToOpenSearchDocumentTranslator.generateSearchDocumentIfNecessary(changeMessage).isEmpty());
     }
 
     @Test

@@ -1,6 +1,7 @@
 package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -23,6 +24,8 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 
 @ExtendWith(ITTestExtension.class)
 public class ITGridControllerTest {
@@ -47,6 +50,11 @@ public class ITGridControllerTest {
 				}, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
 
 		GridSession session = resposne.getGridSession();
+		ListGridSessionsResponse listResp = synapse.listGridSessions(new ListGridSessionsRequest());
+		assertNotNull(listResp);
+		assertNotNull(listResp.getPage());
+		assertTrue(listResp.getPage().contains(session));
+
 
 		// call under test
 		GridSession clone = synapse.getGridSession(session.getSessionId());
@@ -75,6 +83,14 @@ public class ITGridControllerTest {
 		ws.sendText(new JSONArray("[8,\"ping\"]").toString(), true).join();
 		assertTrue(AsyncJobHelper.waitForMessage(8, "pong", incomingMessages));
 		ws.sendClose(4999, "closing").join();
+		
+		// call under test
+		synapse.deleteGridSession(session.getSessionId());
+		
+		listResp = synapse.listGridSessions(new ListGridSessionsRequest());
+		assertNotNull(listResp);
+		assertNotNull(listResp.getPage());
+		assertFalse(listResp.getPage().contains(session));
 	}
 
 }

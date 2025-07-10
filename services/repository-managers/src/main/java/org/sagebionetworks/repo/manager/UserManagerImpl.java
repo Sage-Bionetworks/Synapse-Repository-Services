@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
@@ -52,6 +53,7 @@ public class UserManagerImpl implements UserManager {
 	private final PrincipalAliasDAO principalAliasDAO;
 	private final NotificationEmailDAO notificationEmailDao;
 	private final PrincipalOIDCBindingDao principalOidcBindingDao;
+	private final UserStatusDao userStatusDao;
 	
 	/**
 	 * Testing purposes only
@@ -64,7 +66,7 @@ public class UserManagerImpl implements UserManager {
 	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO,
 			AuthenticationDAO authDAO, PrincipalAliasDAO principalAliasDAO, NotificationEmailDAO notificationEmailDao,
 			PrincipalOIDCBindingDao principalOIDCBindingDao,
-			DBOBasicDao basicDAO) {
+			DBOBasicDao basicDAO, UserStatusDao userStatusDao) {
 		super();
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
@@ -73,6 +75,7 @@ public class UserManagerImpl implements UserManager {
 		this.principalAliasDAO = principalAliasDAO;
 		this.notificationEmailDao = notificationEmailDao;
 		this.principalOidcBindingDao = principalOIDCBindingDao;
+		this.userStatusDao = userStatusDao;
 		this.basicDAO = basicDAO;
 	}
 
@@ -98,13 +101,16 @@ public class UserManagerImpl implements UserManager {
 			});
 		}
 		
+		Date createdOn = new Date();
+		
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
-		individualGroup.setCreationDate(new Date());
+		individualGroup.setCreationDate(createdOn);
 		Long principalId = userGroupDAO.create(individualGroup);
 		
 		// Make some credentials for this user
 		authDAO.createNew(principalId);
+		userStatusDao.setLastSeenOn(List.of(principalId), createdOn);
 		
 		// Create a new user profile.
 		UserProfile userProfile = new UserProfile();

@@ -9,15 +9,17 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class GridServiceImpl implements GridService {
-	
+
 	@Autowired
 	private UserManager userManager;
-	
+
 	@Autowired
 	private GridManager gridManager;
 
@@ -43,6 +45,18 @@ public class GridServiceImpl implements GridService {
 	public GridReplica getReplica(Long userId, String sessionId, Long replicaId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return gridManager.getReplica(user, sessionId, replicaId);
+	}
+
+	@Override
+	public ListGridSessionsResponse listActiveGridSessions(Long userId, ListGridSessionsRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return gridManager.listActiveGridSessions(user, request);
+	}
+
+	@Override
+	public void deleteGridSession(Long userId, String gridSessionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		gridManager.deleteGridSession(user, gridSessionId);
 	}
 
 }

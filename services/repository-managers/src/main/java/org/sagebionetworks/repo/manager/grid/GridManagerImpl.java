@@ -8,12 +8,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
@@ -28,11 +32,19 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridUtils;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
+import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryOptions;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -60,7 +72,7 @@ public class GridManagerImpl implements GridManager {
 
 	public static final String GRID_REPLICA_NOT_FOUND = "Grid replica not found.";
 	public static final String GRID_SESSION_NOT_FOUND = "Grid session not found.";
-	public static final int MAX_ROWS_PER_PATCH = 1000;
+
 	/*
 	 * Note: The S3 bucket that store patches will automatically delete all patch
 	 * files that are 120 days old. We expire each patch in the database after 119
@@ -74,10 +86,12 @@ public class GridManagerImpl implements GridManager {
 	private final String gridPatchBucket;
 	private final S3Client s3Client;
 	private final TableQueryManager tableQueryManager;
+	private final EntityManager entityManager;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
-			StackConfiguration config, S3Client s3Client, TableQueryManager tableQueryManager) {
+			StackConfiguration config, S3Client s3Client, TableQueryManager tableQueryManager,
+			EntityManager entityManager) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -85,6 +99,7 @@ public class GridManagerImpl implements GridManager {
 		this.gridPatchBucket = String.format("%s.grid.patch.sagebase.org", config.getStack());
 		this.s3Client = s3Client;
 		this.tableQueryManager = tableQueryManager;
+		this.entityManager = entityManager;
 	}
 
 	@WriteTransaction
@@ -100,7 +115,7 @@ public class GridManagerImpl implements GridManager {
 		GridSession session = request.getInitialQuery() != null
 				? buildSessionFromQuery(callback, user, request.getInitialQuery())
 				// start with an empty session
-				: gridDao.createGridSession(user.getId());
+				: gridDao.createGridSession(new CreateGridSession().setUserId(user.getId()));
 
 		return new CreateGridResponse().setGridSession(session);
 	}
@@ -114,21 +129,67 @@ public class GridManagerImpl implements GridManager {
 	 * @return
 	 */
 	GridSession buildSessionFromQuery(AsyncJobProgressCallback callback, UserInfo user, Query initialQuery) {
-		GridSession session = gridDao.createGridSession(user.getId());
-		GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.INTERNAL);
+
 		try {
+			/*
+			 * The first query will determine the size of each row and fetch a row sample
+			 * that we can use to determine the schema.
+			 */
+			QueryResultBundle pre = tableQueryManager.querySinglePage(callback, user,
+					new Query().setSql(initialQuery.getSql()).setLimit(1L),
+					new QueryOptions().withReturnMaxRowsPerPage(true).withRunQuery(true).withReturnSelectColumns(true));
+			RowSet rowSet = pre.getQueryResult().getQueryResults();
+			String tableId = rowSet.getTableId();
+
+			String schemaId = getSchemaId(user, tableId, rowSet.getRows());
+			Long maxRowSizeBytes = getMaxRowSizeBytes(pre.getMaxRowsPerPage());
+
+			GridSession session = gridDao.createGridSession(
+					new CreateGridSession().setUserId(user.getId()).setSourceId(tableId).setSchemaId(schemaId));
+			GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false,
+					EventSource.INTERNAL);
+
+			// The second query is a full query to build all of the patches from the query
+			// results.
 			tableQueryManager.runQueryAsStream(callback, user, initialQuery, t -> {
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
 				return new PatchRowHandler(this, session.getSessionId(), replica.getReplicaId(), schema,
-						MAX_ROWS_PER_PATCH);
+						maxRowSizeBytes);
 			});
+
+			return session;
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			callback.updateProgress("Waiting for table/view to become available...", 1L, 100L);
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		return session;
+	}
+
+	/**
+	 * Calculate the maximum size of a row given the maximum number of rows per
+	 * page. Note: This is a function of the
+	 * {@link TableQueryManager#getMaxBytesPerRequest()}.
+	 * 
+	 * @param maxRowsPerPage
+	 * @return
+	 */
+	Long getMaxRowSizeBytes(Long maxRowsPerPage) {
+		if (maxRowsPerPage <= 1L) {
+			return Long.MAX_VALUE;
+		}
+		return this.tableQueryManager.getMaxBytesPerRequest() / maxRowsPerPage;
+	}
+
+	String getSchemaId(UserInfo user, String tableId, List<Row> rows) {
+		if (EntityType.entityview.equals(entityManager.getEntityType(tableId)) && rows != null && rows.size() > 0) {
+			String firstRowId = KeyFactory.keyToString(rows.get(0).getRowId());
+			JsonSchemaObjectBinding binding = entityManager.getBoundSchema(user, firstRowId);
+			if (binding != null && binding.getJsonSchemaVersionInfo() != null) {
+				return binding.getJsonSchemaVersionInfo().get$id();
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -333,6 +394,28 @@ public class GridManagerImpl implements GridManager {
 		return Optional.of(s3Client
 				.getObjectAsBytes(GetObjectRequest.builder().bucket(gridPatchBucket).key(patch.getS3Key()).build())
 				.asString(StandardCharsets.UTF_8));
+	}
+
+	@Override
+	public ListGridSessionsResponse listActiveGridSessions(UserInfo user, ListGridSessionsRequest request) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(request, "request");
+		AuthorizationUtils.disallowAnonymous(user);
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<GridSession> page = request.getSourceId() != null
+				? gridDao.listActiveGridSession(user.getId(), request.getSourceId(), nextPageToken.getLimitForQuery(),
+						nextPageToken.getOffset())
+				: gridDao.listActiveGridSession(user.getId(), nextPageToken.getLimitForQuery(),
+						nextPageToken.getOffset());
+		return new ListGridSessionsResponse().setPage(page)
+				.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+	}
+
+	@Override
+	public void deleteGridSession(UserInfo user, String sessionId) {
+		// User must have access to the session in order to delete it.
+		validGridSessionAccess(user, sessionId);
+		gridDao.deleteGridSession(sessionId);
 	}
 
 }

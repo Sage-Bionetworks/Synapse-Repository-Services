@@ -4,13 +4,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class EmailVerifiedClaimProviderTest {
 
 	@InjectMocks
@@ -24,7 +24,7 @@ public class EmailVerifiedClaimProviderTest {
 		// method under test
 		assertNotNull(claimProvider.getDescription());	
 		// method under test
-		assertTrue((Boolean)claimProvider.getClaim("101", null));
+		assertTrue((Boolean)claimProvider.getClaim("101", null, null, null));
 	}
 
 }

@@ -491,6 +491,10 @@
 			"description": "Table that tracks grid replica patches."
 		},
 		{
+			"name": "USER_STATUS",
+			"description": "Table that stores user status information"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

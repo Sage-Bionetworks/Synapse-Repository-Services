@@ -123,8 +123,5 @@ public interface UserManager {
 	 * Clear all user
 	 */
 	void truncateAll();
-
-
-	
 	
 }

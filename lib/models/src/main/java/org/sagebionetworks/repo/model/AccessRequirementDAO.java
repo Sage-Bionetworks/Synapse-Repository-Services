@@ -81,6 +81,14 @@ public interface AccessRequirementDAO {
 	String getConcreteType(String accessRequirementId);
 
 	/**
+	 * Retrieve the concreteTypes of each of a list of access requirements.
+	 * 
+	 * @param accessRequirementId
+	 * @return
+	 */
+	Map<String,String> getConcreteTypes(Set<String> accessRequirementIds);
+
+	/**
 	 * Retrieve the statistic of access requirements for list of given subjectIds
 	 * 
 	 * @param subjectIds

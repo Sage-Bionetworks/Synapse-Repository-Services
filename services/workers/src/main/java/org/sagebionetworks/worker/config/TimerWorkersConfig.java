@@ -3,6 +3,7 @@ package org.sagebionetworks.worker.config;
 import org.sagebionetworks.auth.workers.ExpiredAccessTokenWorker;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
+import org.sagebionetworks.principal.worker.InactiveUsersWorker;
 import org.sagebionetworks.table.worker.ReplicatedToViewConsumerWorker;
 import org.sagebionetworks.tos.workers.TermsOfServiceLatestVersionRefreshWorker;
 import org.sagebionetworks.worker.utils.StackStatusGate;
@@ -102,6 +103,24 @@ public class TimerWorkersConfig {
 		return new WorkerTriggerBuilder()
 			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
 			.withRepeatInterval(replicatedToViewConsumerWorkerRepeatIntervalMS)
+			.withStartDelay(10_000)
+			.build();
+		
+	}
+	
+	@Bean
+	public SimpleTriggerFactoryBean inactiveUsersWorkerTrigger(InactiveUsersWorker worker) {
+		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
+		
+		config.setSemaphoreLockKey("inactiveUsersWorker");
+		config.setProgressingRunner(worker);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockTimeoutSec(30);
+		config.setGate(stackStatusGate);
+		
+		return new WorkerTriggerBuilder()
+			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
+			.withRepeatInterval(30 * 60 * 1000)
 			.withStartDelay(10_000)
 			.build();
 		

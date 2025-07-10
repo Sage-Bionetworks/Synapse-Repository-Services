@@ -1,0 +1,26 @@
+{
+	"description": "The visa type.  Note: Custom types are not supported.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "AffiliationAndRole",
+			"description":"The person's role within the identity’s affiliated institution."
+		},
+		{
+			"name": "AcceptedTermsAndPolicies",
+			"description":"The person has acknowledged the specific terms, policies, and conditions (or meet particular criteria) as indicated by the value claim."
+		},
+		{
+			"name": "ResearcherStatus",
+			"description":"The person has been acknowledged to be a researcher of a particular type or standard."
+		},
+		{
+			"name": "ControlledAccessGrants",
+			"description":"A dataset or other object for which controlled access has been granted to this Visa Identity."
+		},
+		{
+			"name": "LinkedIdentities",
+			"description":"The identity of the Visa is the same as the identity or identities listed in the value claim."
+		}
+	]
+}

@@ -92,5 +92,12 @@ public interface OpenIDConnectManager {
 	 */
 	void revokeToken(String verifiedClientId, OAuthTokenRevocationRequest revocationRequest) throws NotFoundException;
 
+	/**
+	 * Revoke all access tokens and refresh tokens for a user, also revokes personal access tokens and OAuth consent.
+	 * Meant to be used internally, does not perform any authorization checks.
+	 * 
+	 * @param userId
+	 */
+	void revokeUserAccess(Long userId);
 
 }

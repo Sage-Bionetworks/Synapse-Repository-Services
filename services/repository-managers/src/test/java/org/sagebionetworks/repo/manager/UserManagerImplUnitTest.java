@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOIDCBindingDao;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -79,6 +80,8 @@ public class UserManagerImplUnitTest {
 	private NotificationEmailDAO notificationEmailDao;
 	@Mock
 	private PrincipalOIDCBindingDao mockPrincipalOidcDao;
+	@Mock
+	private UserStatusDao mockUserStatusDao;
 	
 	@InjectMocks
 	private UserManagerImpl userManager;
@@ -461,6 +464,7 @@ public class UserManagerImplUnitTest {
 		assertEquals(expectedGroup.setCreationDate(ugCaptor.getValue().getCreationDate()), ugCaptor.getValue());
 		
 		verify(mockAuthDAO).createNew(userId);
+		verify(mockUserStatusDao).setLastSeenOn(List.of(userId), ugCaptor.getValue().getCreationDate());
 		
 		UserProfile expectedProfile = new UserProfile()
 			.setOwnerId(userId.toString())

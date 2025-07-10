@@ -1,0 +1,14 @@
+{
+	"description": "Results for a lastSeenOn backfill request.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.migration.AdminResponse"
+        }
+    ],
+	"properties": {
+		"count": {
+			"description": "The count of users processed in the request.",
+			"type": "integer"
+		}
+	}
+}

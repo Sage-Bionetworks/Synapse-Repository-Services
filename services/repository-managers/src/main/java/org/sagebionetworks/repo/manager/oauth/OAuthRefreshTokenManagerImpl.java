@@ -210,6 +210,12 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 		oauthRefreshTokenDao.deleteToken(tokenId);
 	}
+	
+	@Override
+	@WriteTransaction
+	public void revokeAllRefreshTokens(Long userId) {
+		oauthRefreshTokenDao.deleteAllTokens(userId.toString());
+	}
 
 	@WriteTransaction
 	@Override

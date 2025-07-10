@@ -22,7 +22,7 @@ public class OrcidClaimProvider implements OIDCClaimProvider {
 	}
 
 	@Override
-	public Object getClaim(String userId, OIDCClaimsRequestDetails details) {
+	public Object getClaim(String userId, String subject, OIDCClaimsRequestDetails details, String oauthEndpoint) {
 		return userProfileManager.getOrcid(Long.parseLong(userId));
 	}
 

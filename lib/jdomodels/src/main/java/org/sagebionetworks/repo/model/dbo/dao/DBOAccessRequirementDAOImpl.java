@@ -489,6 +489,26 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 	@Override
+	public Map<String,String> getConcreteTypes(Set<String> accessRequirementIds) {
+		
+		if (accessRequirementIds == null || accessRequirementIds.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		
+		String sql = "SELECT " + COL_ACCESS_REQUIREMENT_ID + ", " + COL_ACCESS_REQUIREMENT_CONCRETE_TYPE
+			+ " FROM " + TABLE_ACCESS_REQUIREMENT
+			+ " WHERE " + COL_ACCESS_REQUIREMENT_ID + " IN (:" + COL_ACCESS_REQUIREMENT_ID + ")";
+				
+		return namedJdbcTemplate.query(sql, Map.of(COL_ACCESS_REQUIREMENT_ID, accessRequirementIds), rs -> {
+			Map<String, String> concreteTypesMap = new HashMap<>(accessRequirementIds.size());
+			while (rs.next()) {
+				concreteTypesMap.put(rs.getString(COL_ACCESS_REQUIREMENT_ID), rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
+			}
+			return concreteTypesMap;
+		});
+	}
+	
+	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_ACCESS_REQUIREMENT+ " WHERE ID > ?", AccessRequirementDAO.INVALID_ANNOTATIONS_LOCK_ID);
 	}
