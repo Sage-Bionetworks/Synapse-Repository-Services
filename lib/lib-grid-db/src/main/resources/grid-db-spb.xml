@@ -14,7 +14,9 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
+
+	<bean id="gridIndexManager" class="org.sagebionetworks.grid.db.GridIndexManagerImpl" scope="singleton" />
+
 	<context:component-scan base-package="org.sagebionetworks.grid"/>
 
 	<!-- Import the stack configuration -->
