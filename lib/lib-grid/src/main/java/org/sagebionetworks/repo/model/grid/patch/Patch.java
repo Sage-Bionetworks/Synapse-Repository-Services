@@ -6,12 +6,15 @@ import java.util.List;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
+import org.sagebionetworks.repo.model.grid.patch.operation.OperationView;
+import org.sagebionetworks.repo.model.grid.patch.operation.immutable.ImmutableOperation;
 
 public class Patch {
 
 	private LogicalTimestamp patchId;
 	private String metadata;
 	private List<Operation<?>> operations;
+	private long span = 0; // Cache the span as a performance optimization
 
 	public LogicalTimestamp getPatchId() {
 		return patchId;
@@ -37,28 +40,51 @@ public class Patch {
 
 	public Patch setOperations(List<Operation<?>> operations) {
 		this.operations = operations;
+		if (operations == null) {
+			this.span = 0L;
+		} else {
+			this.span = operations.stream().mapToLong(Operation::getSpan).sum();
+		}
 		return this;
 	}
 
 	/**
 	 * Add a new operation of the provided type to the patch. The newly created
 	 * operation will be issued a correct operationId.
-	 * 
+	 *
 	 * @param <T>
 	 * @param clazz
-	 * @return
+	 * @return the operation, wrapped to ensure immutability. Note that any changes to the operation after this call may
+	 *   break the patch
 	 */
-	public <T extends Operation<T>> T addNewOperation(Class<? extends T> clazz) {
+	public <T extends Operation<T>> ImmutableOperation<T> addNewOperation(Class<? extends T> clazz) {
 		try {
 			T operation = clazz.getDeclaredConstructor().newInstance();
+			return this.addNewOperation(operation);
+		} catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Add a new operation to the patch. The newly created
+	 * operation will be issued a correct operationId.
+	 *
+	 * @param <T>
+	 * @param operation
+	 * @return the operation, wrapped to ensure immutability. Note that any changes to the operation after this call may
+	 *   break the patch
+	 */
+	public <T extends Operation<T>> ImmutableOperation<T> addNewOperation(T operation) {
+		try {
 			if (operations == null) {
 				operations = new ArrayList<>();
 			}
 			operation.setOperationId(LogicalTimestamp.newIncrement(patchId, getSpan()));
 			operations.add(operation);
-			return operation;
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-				| NoSuchMethodException | SecurityException e) {
+			span += operation.getSpan();
+			return ImmutableOperation.of(operation);
+		} catch (IllegalArgumentException | SecurityException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -72,7 +98,7 @@ public class Patch {
 		if (operations == null) {
 			return 0L;
 		}
-		return operations.stream().mapToLong(Operation::getSpan).sum();
+		return this.span;
 	}
 
 	@Override

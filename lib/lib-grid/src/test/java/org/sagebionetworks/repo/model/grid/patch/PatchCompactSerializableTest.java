@@ -119,17 +119,15 @@ public class PatchCompactSerializableTest {
 		// each sequence number should be incremented by the span.
 		Patch expected = new Patch().setMetadata("{\"key\":9}")
 				.setPatchId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L));
-		expected.addNewOperation(InsertArray.class)
-				.setArrayId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
+		expected.addNewOperation(new InsertArray().setArrayId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
 				.setReferenceId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
 				.setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
-						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
-		expected.addNewOperation(InsertArray.class)
-				.setArrayId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(9L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
-				.setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L),
-						new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L),
-						new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(13L)));
+						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))));
+		expected.addNewOperation(new InsertArray().setArrayId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(9L))
+                .setReferenceId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
+                .setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L),
+                        new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L),
+                        new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(13L))));
 		expected.addNewOperation(NewObject.class);
 
 		assertEquals(expected, patch);
@@ -196,7 +194,7 @@ public class PatchCompactSerializableTest {
 		assertEquals(new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(16L), patch.getPatchId());
 		assertNotNull(patch.getOperations());
 		assertEquals(28, patch.getOperations().size());
-		Operation last = patch.getOperations().get(patch.getOperations().size() - 1);
+		Operation<?> last = patch.getOperations().get(patch.getOperations().size() - 1);
 		Map<Integer, LogicalTimestamp> map = new LinkedHashMap<Integer, LogicalTimestamp>();
 		InsertVector expected = new InsertVector()
 				.setOperationId(new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(43L))
