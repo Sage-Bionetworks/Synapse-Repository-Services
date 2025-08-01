@@ -310,15 +310,6 @@ public class GridIndexDaoImpl implements GridIndexDao {
 	@Transactional(readOnly = false)
 	@Override
 	public void truncateAll() {
-		// PLFM-9032 - We removed FK references for performance, so we must delete from each table.
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_ARR WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_CLOCK WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_CON WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_MESSAGE WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_OBJ WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_VAL WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_VEC WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
-		jdbcTempalte.update("DELETE FROM GRID_REPLICA_INDEX WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
 		jdbcTempalte.update("DELETE FROM GRID_REPLICA WHERE SESSION_ID > -1 AND REPLICA_ID > -1");
 	}
 

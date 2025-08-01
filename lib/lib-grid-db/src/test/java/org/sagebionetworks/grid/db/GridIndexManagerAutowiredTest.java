@@ -59,7 +59,7 @@ public class GridIndexManagerAutowiredTest {
         log.info("Applying patches", patches.size());
         for (int i = 0; i < patches.size(); i++) {
             Patch p = patches.get(i);
-            if (i % 100 == 0) {
+            if (i % 5 == 0) {
                 log.info("Applying patch {} of {}: {}", i + 1, patches.size(), p.getPatchId());
             }
             gridIndexManager.applyPatch(sessionId, replicaId, p);
