@@ -146,31 +146,6 @@ public class DBOGridConnection implements MigratableDatabaseObject<DBOGridConnec
 	}
 
 	@Override
-	public int hashCode() {
-		return Objects.hash(connectionId, createdBy, createdOn, replicaId, sessionId, source);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBOGridConnection other = (DBOGridConnection) obj;
-		return Objects.equals(connectionId, other.connectionId) && Objects.equals(createdBy, other.createdBy)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(replicaId, other.replicaId)
-				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(source, other.source);
-	}
-
-	@Override
-	public String toString() {
-		return "DBOConnection [connectionId=" + connectionId + ", sessionId=" + sessionId + ", replicaId=" + replicaId
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", source=" + source + "]";
-	}
-
-	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.GRID_CONNECTION;
 	}
@@ -195,4 +170,31 @@ public class DBOGridConnection implements MigratableDatabaseObject<DBOGridConnec
 		return null;
 	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(connectionId, createdBy, createdOn, id, replicaId, sessionId, source);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOGridConnection other = (DBOGridConnection) obj;
+		return Objects.equals(connectionId, other.connectionId) && Objects.equals(createdBy, other.createdBy)
+				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(id, other.id)
+				&& Objects.equals(replicaId, other.replicaId) && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(source, other.source);
+	}
+
+	@Override
+	public String toString() {
+		return "DBOGridConnection [id=" + id + ", connectionId=" + connectionId + ", sessionId=" + sessionId
+				+ ", replicaId=" + replicaId + ", createdBy=" + createdBy + ", createdOn=" + createdOn + ", source="
+				+ source + "]";
+	}
+	
 }

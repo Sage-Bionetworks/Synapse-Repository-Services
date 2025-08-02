@@ -796,6 +796,45 @@ public class GridIndexDaoImplTest {
 		assertEquals(Optional.of(expected), gridIndexDao.getMessageChain(sessionIdTwo, replicaIdTwo, idTwo));
 	}
 
+	@Test
+	public void testGetRootObject() {
+		gridIndexDao.createReplicaIfNotExists(sessionIdOne, replicaIdOne);
+		ConstantNode con = new ConstantNode().setId(ids.get(0)).setValueFromJson("[123]");
+		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.con, List.of(con.getId()));
+		gridIndexDao.saveNewConstants(sessionIdOne, replicaIdOne, List.of(con));
+		ObjectNode rootObj = new ObjectNode().setId(ids.get(1)).setValue(Map.of("aCon", con.getId()));
+		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.obj, List.of(rootObj.getId()));
+		gridIndexDao.saveObjects(sessionIdOne, replicaIdOne, List.of(rootObj));
+		ValueNode root = new ValueNode().setId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
+				.setValue(rootObj.getId());
+		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.val, List.of(root.getId()));
+		gridIndexDao.saveValues(sessionIdOne, replicaIdOne, List.of(root));
+
+		// call under test
+		assertEquals(Optional.of(rootObj), gridIndexDao.getRootObject(sessionIdOne, replicaIdOne));
+	}
+
+	@Test
+	public void testGetRootObjectWithNoRoot() {
+		// call under test
+		assertEquals(Optional.empty(), gridIndexDao.getRootObject(sessionIdOne, replicaIdOne));
+	}
+	
+	@Test
+	public void testGetRootObjectWithRootNotAnObject() {
+		gridIndexDao.createReplicaIfNotExists(sessionIdOne, replicaIdOne);
+		ConstantNode con = new ConstantNode().setId(ids.get(0)).setValueFromJson("[123]");
+		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.con, List.of(con.getId()));
+		gridIndexDao.saveNewConstants(sessionIdOne, replicaIdOne, List.of(con));
+		ValueNode root = new ValueNode().setId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
+				.setValue(con.getId());
+		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.val, List.of(root.getId()));
+		gridIndexDao.saveValues(sessionIdOne, replicaIdOne, List.of(root));
+
+		// call under test
+		assertEquals(Optional.empty(), gridIndexDao.getRootObject(sessionIdOne, replicaIdOne));
+	}
+
 	/**
 	 * Helper to create a new array.
 	 * 

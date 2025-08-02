@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public interface GridIndexDao {
 
@@ -251,5 +253,25 @@ public interface GridIndexDao {
 	 * @param chainId
 	 */
 	void deleteMessageChain(String sessionId, Long replicaId, Integer chainId);
+
+	/**
+	 * Get the root object of the document.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @return
+	 */
+	Optional<ObjectNode> getRootObject(String sessionId, Long replicaId);
+
+	/**
+	 * Run a custom query against the nodes.
+	 * 
+	 * @param <T>
+	 * @param sql
+	 * @param paramSource
+	 * @param rowMapper
+	 * @return
+	 */
+	<T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper);
 
 }

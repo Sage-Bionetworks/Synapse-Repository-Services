@@ -45,12 +45,12 @@ public class GridDatabaseConfig {
 	}
 
 	@Bean
-	public JdbcTemplate gridDatabaseJdbcTempalte(BasicDataSource gridDatabaseConnectionPool) {
+	public JdbcTemplate gridDatabaseJdbcTemplate(BasicDataSource gridDatabaseConnectionPool) {
 		return new JdbcTemplate(gridDatabaseConnectionPool);
 	}
 
 	@Bean
-	public NamedParameterJdbcTemplate gridDatabaseNamedParameterJdbcTempalte(
+	public NamedParameterJdbcTemplate gridDatabaseNamedParameterJdbcTemplate(
 			BasicDataSource gridDatabaseConnectionPool) {
 		return new NamedParameterJdbcTemplate(gridDatabaseConnectionPool);
 	}

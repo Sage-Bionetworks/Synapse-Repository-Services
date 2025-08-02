@@ -110,4 +110,10 @@ public class GridIndexManagerImpl implements GridIndexManager {
 		dao.deleteMessageChain(sessionId, replicaId, chainId);
 	}
 
+	@Transactional(readOnly = false)
+	@Override
+	public void truncateAll() {
+		dao.truncateAll();
+	}
+
 }

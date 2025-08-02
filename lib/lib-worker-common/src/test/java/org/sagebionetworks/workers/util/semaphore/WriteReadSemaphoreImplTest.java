@@ -290,7 +290,7 @@ public class WriteReadSemaphoreImplTest {
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
 		readRequest = new ReadLockRequest(mockCallback, context, keys);
 		RuntimeException e = new RuntimeException("no");
-		Exception thrown = assertThrows(Exception.class, () -> {
+		Exception thrown = assertThrows(RuntimeException.class, () -> {
 			// call under test
 			semaphore.tryRunWithReadLock(readRequest, (cb) -> {
 				throw e;

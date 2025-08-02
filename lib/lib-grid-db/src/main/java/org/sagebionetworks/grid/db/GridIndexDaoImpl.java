@@ -104,11 +104,11 @@ public class GridIndexDaoImpl implements GridIndexDao {
 				.setMethod(rs.getString("METHOD_NAME")).setCreatedOn(rs.getTimestamp("CREATED_ON"));
 	};
 
-	public GridIndexDaoImpl(@Qualifier("gridDatabaseJdbcTempalte") JdbcTemplate gridDatabaseJdbcTempalte,
-			@Qualifier("gridDatabaseNamedParameterJdbcTempalte") NamedParameterJdbcTemplate gridDatabaseNamedParameterJdbcTempalte) {
+	public GridIndexDaoImpl(@Qualifier("gridDatabaseJdbcTemplate") JdbcTemplate gridDatabaseJdbcTemplate,
+			@Qualifier("gridDatabaseNamedParameterJdbcTemplate") NamedParameterJdbcTemplate gridDatabaseNamedParameterJdbcTemplate) {
 		super();
-		this.jdbcTempalte = gridDatabaseJdbcTempalte;
-		this.namedTemplate = gridDatabaseNamedParameterJdbcTempalte;
+		this.jdbcTempalte = gridDatabaseJdbcTemplate;
+		this.namedTemplate = gridDatabaseNamedParameterJdbcTemplate;
 		createTables(List.of("schema/Grid-Replica-ddl.sql", "schema/Grid-Clock-ddl.sql", "schema/Grid-Index-ddl.sql",
 				"schema/Grid-Array-ddl.sql", "schema/Grid-Vector-ddl.sql", "schema/Grid-Object-ddl.sql",
 				"schema/Grid-Constant-ddl.sql", "schema/Grid-Value-ddl.sql", "schema/Grid-Message-ddl.sql"));
@@ -608,5 +608,25 @@ public class GridIndexDaoImpl implements GridIndexDao {
 		jdbcTempalte.update(
 				"DELETE FROM GRID_REPLICA_MESSAGE WHERE SESSION_ID = ? AND REPLICA_ID = ? AND MESSAGE_ID = ?",
 				sessionId, replicaId, chainId);
+	}
+
+	@Override
+	public Optional<ObjectNode> getRootObject(String gridSessionId, Long replicaId) {
+		List<ValueNode> roots = getValues(gridSessionId, replicaId,
+				List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)));
+		if (roots.isEmpty()) {
+			return Optional.empty();
+		}
+		List<ObjectNode> rootObjects = getObjects(gridSessionId, replicaId,
+				roots.stream().map(v -> v.getValue()).collect(Collectors.toList()));
+		if (rootObjects.isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(rootObjects.get(0));
+	}
+
+	@Override
+	public <T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+		return namedTemplate.query(sql, paramSource, rowMapper);
 	}
 }
