@@ -6,7 +6,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class NewArray implements Operation<NewArray> {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
+
+	public NewArray(LogicalTimestamp operationId) {
+		this.operationId = operationId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -16,11 +20,6 @@ public class NewArray implements Operation<NewArray> {
 	@Override
 	public LogicalTimestamp getOperationId() {
 		return operationId;
-	}
-
-	public NewArray setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
 	}
 
 	@Override

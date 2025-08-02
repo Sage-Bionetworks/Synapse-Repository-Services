@@ -6,7 +6,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class NewString implements Operation<NewString> {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
+
+	public NewString(LogicalTimestamp operationId) {
+		this.operationId = operationId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -16,11 +20,6 @@ public class NewString implements Operation<NewString> {
 	@Override
 	public LogicalTimestamp getOperationId() {
 		return operationId;
-	}
-
-	public NewString setOperationId(LogicalTimestamp id) {
-		this.operationId = id;
-		return this;
 	}
 
 	@Override

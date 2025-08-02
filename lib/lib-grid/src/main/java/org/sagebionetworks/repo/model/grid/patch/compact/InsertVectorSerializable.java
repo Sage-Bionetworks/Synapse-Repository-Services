@@ -22,8 +22,7 @@ public class InsertVectorSerializable implements OperationSerializable<InsertVec
 	@Override
 	public InsertVector deserialize(LogicalTimestamp operationId, JSONArray array) {
 		Long replicaId = operationId.getReplicaId();
-		InsertVector operation = new InsertVector().setOperationId(operationId)
-				.setVectorId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1));
+		LogicalTimestamp vectorId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1);
 		JSONArray mapArray = array.getJSONArray(2);
 		LinkedHashMap<Integer, LogicalTimestamp> map = new LinkedHashMap<>(mapArray.length());
 		for (int i = 0; i < mapArray.length(); i++) {
@@ -32,8 +31,7 @@ public class InsertVectorSerializable implements OperationSerializable<InsertVec
 			LogicalTimestamp valueId = LogicalTimestampCompactSerializable.deserialize(replicaId, value, 1);
 			map.put(key, valueId);
 		}
-		operation.setMap(map);
-		return operation;
+		return new InsertVector(operationId, vectorId, map);
 	}
 
 	@Override

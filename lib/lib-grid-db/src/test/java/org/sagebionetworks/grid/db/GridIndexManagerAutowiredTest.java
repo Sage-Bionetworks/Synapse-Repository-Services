@@ -12,13 +12,11 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
-import org.sagebionetworks.repo.model.grid.patch.operation.immutable.ImmutableOperation;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -79,27 +77,32 @@ public class GridIndexManagerAutowiredTest {
         // Create the patches
         LogicalTimestamp lastRowRef;
         patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(0L));
-        ImmutableOperation<NewObject> obj = patch.addNewOperation(NewObject.class);
-        ImmutableOperation<NewArray> rows = patch.addNewOperation(NewArray.class);
+        NewObject obj = patch.addNewOperation(Operations.newObject());
+        NewArray rows = patch.addNewOperation(Operations.newArray());
         lastRowRef = rows.getOperationId();
-        patch.addNewOperation(new InsertObject().setObjectId(obj.getOperationId())
-                .setMap(Collections.singletonMap("rows", rows.getOperationId())));
+        patch.addNewOperation(
+                Operations.insertObject()
+                        .withObjectId(obj.getOperationId())
+                        .withMap(Collections.singletonMap("rows", rows.getOperationId()))
+        );
 
         savePatch();
         for (long j = 0; j < nRow; j++) {
-            ImmutableOperation<NewVector> row = patch.addNewOperation(NewVector.class);
+            NewVector row = patch.addNewOperation(Operations.newVector());
             Map<Integer, LogicalTimestamp> cellValues = new LinkedHashMap<>();
             for (int i = 0; i < nCol; i++) {
-                ImmutableOperation<NewConstant> newConstant = patch.addNewOperation(new NewConstant().setValue(new ConValue(ConType.STRING, i + "-" + j)));
+                NewConstant newConstant = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, i + "-" + j)));
                 cellValues.put(i, newConstant.getOperationId());
             }
-            patch.addNewOperation(new InsertVector().setVectorId(row.getOperationId())
-                    .setMap(cellValues))
-            ;
+            patch.addNewOperation(Operations.insertVector()
+                    .withVectorId(row.getOperationId())
+                    .withMap(cellValues)
+            );
 
-            ImmutableOperation<InsertArray> insertArrayOperation = patch.addNewOperation(new InsertArray().setArrayId(rows.getOperationId())
-                    .setReferenceId(lastRowRef)
-                    .setElementIds(Collections.singletonList(row.getOperationId()))
+            InsertArray insertArrayOperation = patch.addNewOperation(Operations.insertArray()
+                    .withArrayId(rows.getOperationId())
+                    .withReferenceId(lastRowRef)
+                    .withElementIds(Collections.singletonList(row.getOperationId()))
             );
 
             if (j % rowsPerPatch == 0) {

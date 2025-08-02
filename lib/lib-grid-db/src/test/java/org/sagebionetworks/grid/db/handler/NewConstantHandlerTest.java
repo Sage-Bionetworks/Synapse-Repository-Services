@@ -39,10 +39,15 @@ public class NewConstantHandlerTest {
 		replicaId = 123L;
 
 		constants = List.of(
-				new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-						.setValue(new ConValue(ConType.BOOLEAN, true)),
-				new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
-						.setValue(new ConValue(ConType.STRING, "hello")));
+				new NewConstant(
+						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+						new ConValue(ConType.BOOLEAN, true)
+				),
+				new NewConstant(
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
+						new ConValue(ConType.STRING, "hello")
+				)
+		);
 	}
 
 	@Test

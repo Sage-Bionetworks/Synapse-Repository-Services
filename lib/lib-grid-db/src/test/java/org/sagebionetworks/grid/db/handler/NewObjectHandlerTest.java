@@ -36,8 +36,8 @@ public class NewObjectHandlerTest {
 		sessionId = "sessionOne";
 		replicaId = 123L;
 
-		objects = List.of(new NewObject().setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
-				new NewObject().setOperationId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
+		objects = List.of(new NewObject(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
+				new NewObject(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
 	}
 
 	@Test

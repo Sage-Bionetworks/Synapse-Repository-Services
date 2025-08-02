@@ -6,7 +6,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class NewVector implements Operation<NewVector> {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
+
+	public NewVector(LogicalTimestamp operationId) {
+		this.operationId = operationId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -21,11 +25,6 @@ public class NewVector implements Operation<NewVector> {
 	@Override
 	public long getSpan() {
 		return 1L;
-	}
-
-	public NewVector setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
 	}
 
 	@Override

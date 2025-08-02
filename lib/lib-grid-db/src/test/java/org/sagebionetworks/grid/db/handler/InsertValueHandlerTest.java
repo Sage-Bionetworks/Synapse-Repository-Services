@@ -40,10 +40,17 @@ public class InsertValueHandlerTest {
 		replicaId = 123L;
 
 		inserts = List.of(
-				new InsertValue().setValueId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-						.setReferenceId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)),
-				new InsertValue().setValueId(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L))
-						.setReferenceId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
+				new InsertValue(
+						null,
+						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)
+				),
+				new InsertValue(
+						null,
+						new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
+						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)
+				)
+		);
 	}
 
 	@Test

@@ -30,8 +30,11 @@ public class InsertVectorSerializableTest {
 		LinkedHashMap<Integer, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put(2, new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
 		map.put(0, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertVector expected = new InsertVector().setOperationId(operationId)
-				.setVectorId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)).setMap(map);
+		InsertVector expected = new InsertVector(
+				operationId,
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -48,8 +51,11 @@ public class InsertVectorSerializableTest {
 		LinkedHashMap<Integer, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put(2, new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
 		map.put(0, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertVector expected = new InsertVector().setOperationId(operationId)
-				.setVectorId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertVector expected = new InsertVector(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -66,8 +72,11 @@ public class InsertVectorSerializableTest {
 		LinkedHashMap<Integer, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put(2, new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
 		map.put(0, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertVector expected = new InsertVector().setOperationId(operationId)
-				.setVectorId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertVector expected = new InsertVector(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -84,8 +93,11 @@ public class InsertVectorSerializableTest {
 		LinkedHashMap<Integer, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put(2, new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
 		map.put(0, new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(6L));
-		InsertVector expected = new InsertVector().setOperationId(operationId)
-				.setVectorId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertVector expected = new InsertVector(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test

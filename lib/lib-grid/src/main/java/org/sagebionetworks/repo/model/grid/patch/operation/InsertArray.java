@@ -7,10 +7,18 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class InsertArray implements Operation<InsertArray> {
 
-	private LogicalTimestamp operationId;
-	private LogicalTimestamp arrayId;
-	private LogicalTimestamp referenceId;
-	private List<LogicalTimestamp> elementIds;
+	private final LogicalTimestamp operationId;
+	private final LogicalTimestamp arrayId;
+	private final LogicalTimestamp referenceId;
+	private final List<LogicalTimestamp> elementIds;
+
+	public InsertArray(LogicalTimestamp operationId, LogicalTimestamp arrayId, LogicalTimestamp referenceId,
+			List<LogicalTimestamp> elementIds) {
+		this.operationId = operationId;
+		this.arrayId = arrayId;
+		this.referenceId = referenceId;
+		this.elementIds = elementIds;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -31,33 +39,14 @@ public class InsertArray implements Operation<InsertArray> {
 		return arrayId;
 	}
 
-	public InsertArray setArrayId(LogicalTimestamp arrayId) {
-		this.arrayId = arrayId;
-		return this;
-	}
-
 	public LogicalTimestamp getReferenceId() {
 		return referenceId;
-	}
-
-	public InsertArray setReferenceId(LogicalTimestamp referenceId) {
-		this.referenceId = referenceId;
-		return this;
 	}
 
 	public List<LogicalTimestamp> getElementIds() {
 		return elementIds;
 	}
 
-	public InsertArray setElementIds(List<LogicalTimestamp> elementIds) {
-		this.elementIds = elementIds;
-		return this;
-	}
-
-	public InsertArray setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
-	}
 
 	@Override
 	public int hashCode() {

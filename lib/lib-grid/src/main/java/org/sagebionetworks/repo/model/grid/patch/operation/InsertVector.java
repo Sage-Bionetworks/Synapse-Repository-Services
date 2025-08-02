@@ -7,9 +7,15 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class InsertVector implements Operation<InsertVector> {
 
-	private LogicalTimestamp operationId;
-	private LogicalTimestamp vectorId;
-	private Map<Integer, LogicalTimestamp> map;
+	private final LogicalTimestamp operationId;
+	private final LogicalTimestamp vectorId;
+	private final Map<Integer, LogicalTimestamp> map;
+
+	public  InsertVector(LogicalTimestamp operationId, LogicalTimestamp vectorId, Map<Integer, LogicalTimestamp> map) {
+		this.operationId = operationId;
+		this.vectorId = vectorId;
+		this.map = map;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -30,23 +36,8 @@ public class InsertVector implements Operation<InsertVector> {
 		return vectorId;
 	}
 
-	public InsertVector setVectorId(LogicalTimestamp vectorId) {
-		this.vectorId = vectorId;
-		return this;
-	}
-
 	public Map<Integer, LogicalTimestamp> getMap() {
 		return map;
-	}
-
-	public InsertVector setMap(Map<Integer, LogicalTimestamp> map) {
-		this.map = map;
-		return this;
-	}
-
-	public InsertVector setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
 	}
 
 	@Override

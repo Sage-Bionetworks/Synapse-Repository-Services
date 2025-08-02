@@ -19,7 +19,7 @@ public class NewBinarySerializable implements OperationSerializable<NewBinary> {
 
 	@Override
 	public NewBinary deserialize(LogicalTimestamp id, JSONArray array) {
-		return new NewBinary().setOperationId(id);
+		return new NewBinary(id);
 	}
 
 	@Override

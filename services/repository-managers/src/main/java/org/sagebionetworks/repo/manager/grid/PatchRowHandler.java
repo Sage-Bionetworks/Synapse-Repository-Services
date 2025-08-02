@@ -1,12 +1,5 @@
 package org.sagebionetworks.repo.manager.grid;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -18,15 +11,21 @@ import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializabl
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
-import org.sagebionetworks.repo.model.grid.patch.operation.immutable.ImmutableOperation;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.util.ValidateArgument;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A handler that can build a series of patches from a table row query.
@@ -54,12 +53,12 @@ public class PatchRowHandler implements RowHandler {
 				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L));
 
 		// initialize an empty document
-		ImmutableOperation<NewObject> rootObject = currentPatch.addNewOperation(NewObject.class);
-		NewConstant documentVersion = new NewConstant().setValue(new ConValue(ConType.STRING, "0.1.0"));
-		currentPatch.addNewOperation(documentVersion);
-		ImmutableOperation<NewVector> columnNames = currentPatch.addNewOperation(NewVector.class);
-		ImmutableOperation<NewArray> columnOrder = currentPatch.addNewOperation(NewArray.class);
-		ImmutableOperation<NewArray> rows = currentPatch.addNewOperation(NewArray.class);
+
+		NewObject rootObject = currentPatch.addNewOperation(Operations.newObject());
+		NewConstant documentVersion = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "0.1.0")));
+		NewVector columnNames = currentPatch.addNewOperation(Operations.newVector());
+		NewArray columnOrder = currentPatch.addNewOperation(Operations.newArray());
+		NewArray rows = currentPatch.addNewOperation(Operations.newArray());
 		rowsArrayRef = rows.getOperationId();
 		lastRowRef = rows.getOperationId();
 		Map<String, LogicalTimestamp> objectMap = new LinkedHashMap<>();
@@ -67,12 +66,13 @@ public class PatchRowHandler implements RowHandler {
 		objectMap.put("columnNames", columnNames.getOperationId());
 		objectMap.put("columnOrder", columnOrder.getOperationId());
 		objectMap.put("rows", rows.getOperationId());
-		InsertObject insertIntoRootObject = new InsertObject().setObjectId(rootObject.getOperationId()).setMap(objectMap);
-		currentPatch.addNewOperation(insertIntoRootObject);
-		InsertValue insertRootValue = new InsertValue()
-				.setValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
-				.setReferenceId(rootObject.getOperationId());
-		currentPatch.addNewOperation(insertRootValue);
+		InsertObject insertIntoRootObject = currentPatch.addNewOperation(
+				Operations.insertObject().withObjectId(rootObject.getOperationId()).withMap(objectMap)
+		);
+		InsertValue insertRootValue = currentPatch.addNewOperation(Operations.insertValue()
+				.withValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
+				.withReferenceId(rootObject.getOperationId())
+		);
 
 		if (!schema.isEmpty()) {
 			translators = new Translator[schema.size()];
@@ -82,23 +82,20 @@ public class PatchRowHandler implements RowHandler {
 			for (int i = 0; i < schema.size(); i++) {
 				ColumnModel cm = schema.get(i);
 				// column name
-				NewConstant nameConst = new NewConstant()
-						.setValue(new ConValue(ConType.STRING, cm.getName()));
-				ImmutableOperation<NewConstant> insertedNameConst = currentPatch.addNewOperation(nameConst);
+				NewConstant nameConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, cm.getName())));
 				columnNameMap.put(i, nameConst.getOperationId());
 				// column index
-				NewConstant columnIndex = new NewConstant()
-						.setValue(new ConValue(ConType.LONG, i));
-				ImmutableOperation<NewConstant> columnIndexOperation = currentPatch.addNewOperation(columnIndex);
-				indexList.add(columnIndexOperation.getOperationId());
+				NewConstant columnIndex = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, i)));
+				indexList.add(columnIndex.getOperationId());
 
 				translators[i] = ColumnTypeToConType.lookUpType(cm.getColumnType()).getTranslator();
 
 			}
-			currentPatch.addNewOperation(new InsertVector().setVectorId(columnNames.getOperationId())
-					.setMap(columnNameMap));
-			currentPatch.addNewOperation(new InsertArray().setArrayId(columnOrder.getOperationId())
-					.setReferenceId(columnOrder.getOperationId()).setElementIds(indexList));
+			currentPatch.addNewOperation(Operations.insertVector()
+					.withVectorId(columnNames.getOperationId())
+					.withMap(columnNameMap));
+			currentPatch.addNewOperation(Operations.insertArray().withArrayId(columnOrder.getOperationId())
+					.withReferenceId(columnOrder.getOperationId()).withElementIds(indexList));
 		} else {
 			translators = new Translator[0];
 		}
@@ -117,18 +114,19 @@ public class PatchRowHandler implements RowHandler {
 	 * @param row the table query Row for which metadata should be extracted
 	 * @return the NewObject containing the row metadata.
 	 */
-	private ImmutableOperation<NewObject> getRowMetadata(Row row) {
-		ImmutableOperation<NewObject> metadataObjectForRow = currentPatch.addNewOperation(NewObject.class);
+	private NewObject getRowMetadata(Row row) {
+		NewObject metadataObjectForRow = currentPatch.addNewOperation(Operations.newObject());
 
 		// Create the "synapseRow" object
-		ImmutableOperation<NewObject> synapseRowMetadata = getSynapseRowMetadata(row);
+		NewObject synapseRowMetadata = getSynapseRowMetadata(row);
 
 		// Attach the "synapseRow" object to the row metadata map
 		Map<String, LogicalTimestamp> metadataMapForRow = new LinkedHashMap<>();
 		metadataMapForRow.put("synapseRow", synapseRowMetadata.getOperationId());
 
-		currentPatch.addNewOperation(new InsertObject().setObjectId(metadataObjectForRow.getOperationId())
-				.setMap(metadataMapForRow)
+		currentPatch.addNewOperation(Operations.insertObject()
+				.withObjectId(metadataObjectForRow.getOperationId())
+				.withMap(metadataMapForRow)
 		);
 
 		return metadataObjectForRow;
@@ -149,34 +147,34 @@ public class PatchRowHandler implements RowHandler {
 	 * @param row the table query Row for which Synapse Row metadata should be created
 	 * @return the NewObject containing the synapseRowMetadata
 	 */
-	private ImmutableOperation<NewObject> getSynapseRowMetadata(Row row) {
+	private NewObject getSynapseRowMetadata(Row row) {
 		// Create the `synapseRow` object
-		ImmutableOperation<NewObject> synapseRowMetadata = currentPatch.addNewOperation(NewObject.class);
+		NewObject synapseRowMetadata = currentPatch.addNewOperation(Operations.newObject());
 
 		Map<String, LogicalTimestamp> synapseRowMetadataObjectMap = new LinkedHashMap<>();
 		Long rowId = row.getRowId();
 		if (rowId != null) {
-			ImmutableOperation<NewConstant> rowIdConst = currentPatch.addNewOperation(new NewConstant().setValue(new ConValue(ConType.LONG, rowId)));
+			NewConstant rowIdConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, rowId)));
 			synapseRowMetadataObjectMap.put("rowId", rowIdConst.getOperationId());
 		}
 
 		Long versionNumber = row.getVersionNumber();
 		if (versionNumber != null) {
-			ImmutableOperation<NewConstant> versionNumberConst = currentPatch.addNewOperation(new NewConstant().setValue(new ConValue(ConType.LONG, versionNumber)));
+			NewConstant versionNumberConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, versionNumber)));
 			synapseRowMetadataObjectMap.put("versionNumber", versionNumberConst.getOperationId());
 		}
 
 		String etag = row.getEtag();
 		if (etag != null) {
-			ImmutableOperation<NewConstant> etagConst = currentPatch.addNewOperation(new NewConstant().setValue(new ConValue(ConType.STRING, etag)));
+			NewConstant etagConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, etag)));
 			synapseRowMetadataObjectMap.put("etag", etagConst.getOperationId());
 		}
 
 		if (!synapseRowMetadataObjectMap.isEmpty()) {
 			// fill the `synapseRow` object
-			currentPatch.addNewOperation(new InsertObject()
-                    .setObjectId(synapseRowMetadata.getOperationId())
-					.setMap(synapseRowMetadataObjectMap));
+			currentPatch.addNewOperation(Operations.insertObject()
+                    .withObjectId(synapseRowMetadata.getOperationId())
+					.withMap(synapseRowMetadataObjectMap));
 		}
 		return synapseRowMetadata;
 	}
@@ -187,19 +185,19 @@ public class PatchRowHandler implements RowHandler {
 	 * @param row the table query Row for which Synapse Row metadata should be created
 	 * @return the NewVector containing the row values
 	 */
-	private ImmutableOperation<NewVector> getRowData(Row row) {
-		ImmutableOperation<NewVector> rowValuesVector = currentPatch.addNewOperation(NewVector.class);
+	private NewVector getRowData(Row row) {
+		NewVector rowValuesVector = currentPatch.addNewOperation(Operations.newVector());
 		Map<Integer, LogicalTimestamp> cellValues = new LinkedHashMap<>();
 		for (int i = 0; i < row.getValues().size(); i++) {
 			String cellValue = row.getValues().get(i);
-			ImmutableOperation<NewConstant> con = currentPatch.addNewOperation(
-					new NewConstant().setValue(translators[i].translateNullable(cellValue))
+			NewConstant con = currentPatch.addNewOperation(
+					Operations.newConstant().withValue(translators[i].translateNullable(cellValue))
 			);
 			cellValues.put(i, con.getOperationId());
 		}
-		currentPatch.addNewOperation(new InsertVector()
-				.setVectorId(rowValuesVector.getOperationId())
-				.setMap(cellValues)
+		currentPatch.addNewOperation(Operations.insertVector()
+				.withVectorId(rowValuesVector.getOperationId())
+				.withMap(cellValues)
 		);
 
 		return rowValuesVector;
@@ -208,20 +206,24 @@ public class PatchRowHandler implements RowHandler {
 	@Override
 	public void nextRow(Row row) {
 		this.rowCount++;
-		ImmutableOperation<NewObject> rowObject = currentPatch.addNewOperation(NewObject.class);
+		NewObject rowObject = currentPatch.addNewOperation(Operations.newObject());
 
-		ImmutableOperation<NewVector> rowData = getRowData(row);
-		ImmutableOperation<NewObject> rowMetadata = getRowMetadata(row);
+		NewVector rowData = getRowData(row);
+		NewObject rowMetadata = getRowMetadata(row);
 
 		Map<String, LogicalTimestamp> rowObjectMap = new LinkedHashMap<>();
 		rowObjectMap.put("data", rowData.getOperationId());
 		rowObjectMap.put("metadata", rowMetadata.getOperationId());
-		currentPatch.addNewOperation(new InsertObject().setObjectId(rowObject.getOperationId())
-				.setMap(rowObjectMap));
+		currentPatch.addNewOperation(Operations.insertObject()
+				.withObjectId(rowObject.getOperationId())
+				.withMap(rowObjectMap)
+		);
 
-		ImmutableOperation<InsertArray> insertArray = currentPatch.addNewOperation(new InsertArray().setArrayId(rowsArrayRef)
-				.setReferenceId(lastRowRef)
-				.setElementIds(Collections.singletonList(rowObject.getOperationId())));
+		InsertArray insertArray = currentPatch.addNewOperation(Operations.insertArray()
+				.withArrayId(rowsArrayRef)
+				.withReferenceId(lastRowRef)
+				.withElementIds(Collections.singletonList(rowObject.getOperationId()))
+		);
 
 		lastRowRef = insertArray.getOperationId();
 

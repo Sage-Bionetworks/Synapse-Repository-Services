@@ -3,13 +3,20 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.commons.logging.Log;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class InsertObject implements Operation<InsertObject> {
 
-	private LogicalTimestamp operationId;
-	private LogicalTimestamp objectId;
-	private Map<String, LogicalTimestamp> map;
+	private final LogicalTimestamp operationId;
+	private final LogicalTimestamp objectId;
+	private final Map<String, LogicalTimestamp> map;
+
+	public InsertObject(LogicalTimestamp operationId, LogicalTimestamp objectId, Map<String, LogicalTimestamp> map) {
+		this.operationId = operationId;
+		this.objectId = objectId;
+		this.map = map;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -30,24 +37,11 @@ public class InsertObject implements Operation<InsertObject> {
 		return map;
 	}
 
-	public InsertObject setMap(Map<String, LogicalTimestamp> map) {
-		this.map = map;
-		return this;
-	}
-
-	public InsertObject setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
-	}
 
 	public LogicalTimestamp getObjectId() {
 		return objectId;
 	}
 
-	public InsertObject setObjectId(LogicalTimestamp objectId) {
-		this.objectId = objectId;
-		return this;
-	}
 
 	@Override
 	public int hashCode() {

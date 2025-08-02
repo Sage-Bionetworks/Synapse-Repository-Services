@@ -53,8 +53,18 @@ public class InsertVectorHandlerTest {
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L));
 
-		inserts = List.of(new InsertVector().setVectorId(ids.get(0)).setMap(Map.of(2, ids.get(1), 0, ids.get(2))),
-				new InsertVector().setVectorId(ids.get(3)).setMap(Map.of(1, ids.get(2))));
+		inserts = List.of(
+				new InsertVector(
+						null,
+						ids.get(0),
+						Map.of(2, ids.get(1), 0, ids.get(2))
+				),
+				new InsertVector(
+						null,
+						ids.get(3),
+						Map.of(1, ids.get(2))
+				)
+		);
 
 		constants = List.of(new ConstantNode().setId(ids.get(1)).setValue(111L),
 				new ConstantNode().setId(ids.get(2)).setValue("one"));

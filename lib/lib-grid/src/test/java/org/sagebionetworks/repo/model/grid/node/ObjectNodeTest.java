@@ -60,10 +60,9 @@ public class ObjectNodeTest {
 		value.put("two", ids.get(2));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("one", ids.get(3));
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 
 		// call under test
 		assertTrue(node.attemptInsert(change));
@@ -83,10 +82,9 @@ public class ObjectNodeTest {
 		value.put("two", ids.get(2));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("three", ids.get(1));
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 
 		// call under test
 		assertTrue(node.attemptInsert(change));
@@ -107,10 +105,9 @@ public class ObjectNodeTest {
 		value.put("two", ids.get(2));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("one", ids.get(1));
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 
 		// call under test
 		assertFalse(node.attemptInsert(change));
@@ -130,10 +127,9 @@ public class ObjectNodeTest {
 		value.put("two", ids.get(2));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("two", ids.get(1));
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 
 		// call under test
 		assertFalse(node.attemptInsert(change));
@@ -150,10 +146,9 @@ public class ObjectNodeTest {
 		ObjectNode node = new ObjectNode().setId(ids.get(0));
 		node.setValue(null);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("one", ids.get(1));
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 
 		// call under test
 		assertTrue(node.attemptInsert(change));
@@ -169,8 +164,9 @@ public class ObjectNodeTest {
 		ObjectNode node = new ObjectNode().setId(ids.get(0));
 		node.setValue(null);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
-		change.setMap(null);
+		Map<String, LogicalTimestamp> changeValue = null;
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
+
 
 		// call under test
 		assertFalse(node.attemptInsert(change));
@@ -186,8 +182,8 @@ public class ObjectNodeTest {
 		value.put("one", ids.get(1));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
-		change.setMap(null);
+		Map<String, LogicalTimestamp> changeValue = null;
+		InsertObject change = new InsertObject(null, ids.get(0), null);
 
 		// call under test
 		assertFalse(node.attemptInsert(change));
@@ -205,7 +201,7 @@ public class ObjectNodeTest {
 		value.put("one", ids.get(1));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(2));
+		InsertObject change = new InsertObject(null, ids.get(2), null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			node.attemptInsert(change);
@@ -235,7 +231,7 @@ public class ObjectNodeTest {
 		value.put("one", ids.get(1));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(null);
+		InsertObject change = new InsertObject(null, null, null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			node.attemptInsert(change);
@@ -250,10 +246,9 @@ public class ObjectNodeTest {
 		value.put("one", ids.get(1));
 		node.setValue(value);
 
-		InsertObject change = new InsertObject().setObjectId(ids.get(0));
 		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
 		changeValue.put("one", null);
-		change.setMap(changeValue);
+		InsertObject change = new InsertObject(null, ids.get(0), changeValue);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			node.attemptInsert(change);

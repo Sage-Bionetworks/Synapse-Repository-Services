@@ -6,7 +6,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class NewBinary implements Operation<NewBinary> {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
+
+	public NewBinary(LogicalTimestamp operationId) {
+		this.operationId = operationId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -22,12 +26,7 @@ public class NewBinary implements Operation<NewBinary> {
 	public long getSpan() {
 		return 1L;
 	}
-
-	public NewBinary setOperationId(LogicalTimestamp id) {
-		this.operationId = id;
-		return this;
-	}
-
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(operationId);

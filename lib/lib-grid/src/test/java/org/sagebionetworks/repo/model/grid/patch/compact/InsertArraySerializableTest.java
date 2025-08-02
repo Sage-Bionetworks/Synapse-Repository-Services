@@ -30,9 +30,12 @@ public class InsertArraySerializableTest {
 		InsertArray in = serializable.deserialize(operationId, new JSONArray(json));
 		List<LogicalTimestamp> elements = Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L));
-		InsertArray expected = new InsertArray().setOperationId(operationId)
-				.setArrayId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)).setElementIds(elements);
+		InsertArray expected = new InsertArray(
+				operationId,
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
+				elements
+		);
 		assertEquals(expected, in);
 
 		// call under test
@@ -48,9 +51,12 @@ public class InsertArraySerializableTest {
 		InsertArray in = serializable.deserialize(operationId, new JSONArray(json));
 		List<LogicalTimestamp> elements = Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L));
-		InsertArray expected = new InsertArray().setOperationId(operationId)
-				.setArrayId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)).setElementIds(elements);
+		InsertArray expected = new InsertArray(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
+				elements
+		);
 		assertEquals(expected, in);
 
 		// call under test
@@ -66,9 +72,12 @@ public class InsertArraySerializableTest {
 		InsertArray in = serializable.deserialize(operationId, new JSONArray(json));
 		List<LogicalTimestamp> elements = Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L));
-		InsertArray expected = new InsertArray().setOperationId(operationId)
-				.setArrayId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L)).setElementIds(elements);
+		InsertArray expected = new InsertArray(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L),
+				elements
+		);
 		assertEquals(expected, in);
 
 		// call under test
@@ -84,9 +93,12 @@ public class InsertArraySerializableTest {
 		InsertArray in = serializable.deserialize(operationId, new JSONArray(json));
 		List<LogicalTimestamp> elements = Arrays.asList(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(8L));
-		InsertArray expected = new InsertArray().setOperationId(operationId)
-				.setArrayId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L)).setElementIds(elements);
+		InsertArray expected = new InsertArray(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L),
+				elements
+		);
 		assertEquals(expected, in);
 
 		// call under test

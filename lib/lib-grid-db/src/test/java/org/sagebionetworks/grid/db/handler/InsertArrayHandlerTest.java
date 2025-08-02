@@ -44,14 +44,20 @@ public class InsertArrayHandlerTest {
 		ids = LogicalTimestampTestHelper.createIds(7);
 		batch = List.of(
 				// one
-				new InsertArray().setArrayId(ids.get(0))
-						.setOperationId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L))
-						.setReferenceId(ids.get(0)).setElementIds(List.of(ids.get(1), ids.get(2))),
+				new InsertArray(
+						new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L),
+						ids.get(0),
+						ids.get(0),
+						List.of(ids.get(1), ids.get(2))
+				),
 				// two
-				new InsertArray().setArrayId(ids.get(3))
-						.setOperationId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(1L))
-						.setReferenceId(ids.get(4)).setElementIds(List.of(ids.get(5), ids.get(6))));
-
+				new InsertArray(
+						new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(1L),
+						ids.get(3),
+						ids.get(4),
+						List.of(ids.get(5), ids.get(6))
+				)
+		);
 	}
 
 	@Test

@@ -41,10 +41,17 @@ public class InsertObjectHandlerTest {
 		replicaId = 123L;
 
 		inserts = List.of(
-				new InsertObject().setObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-						.setMap(Map.of("one", new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))),
-				new InsertObject().setObjectId(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L))
-						.setMap(Map.of("two", new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))));
+				new InsertObject(
+						null,
+						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+						Map.of("one", new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
+				),
+				new InsertObject(
+						null,
+						new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
+						Map.of("two", new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))
+				)
+		);
 	}
 
 	@Test

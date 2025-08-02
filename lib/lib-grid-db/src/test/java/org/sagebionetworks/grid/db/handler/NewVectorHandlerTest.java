@@ -35,8 +35,8 @@ public class NewVectorHandlerTest {
 		sessionId = "sessionOne";
 		replicaId = 123L;
 
-		vectors = List.of(new NewVector().setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
-				new NewVector().setOperationId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
+		vectors = List.of(new NewVector(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
+				new NewVector(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
 	}
 
 	@Test

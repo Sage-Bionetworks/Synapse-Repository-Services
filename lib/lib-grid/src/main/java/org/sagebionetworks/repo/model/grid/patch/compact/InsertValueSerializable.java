@@ -20,9 +20,9 @@ public class InsertValueSerializable implements OperationSerializable<InsertValu
 	@Override
 	public InsertValue deserialize(LogicalTimestamp id, JSONArray array) {
 		Long replicaId = id.getReplicaId();
-		return new InsertValue().setOperationId(id)
-				.setValueId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1))
-				.setReferenceId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 2));
+		LogicalTimestamp valueId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1);
+		LogicalTimestamp referenceId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 2);
+		return new InsertValue(id, valueId, referenceId);
 	}
 
 	@Override

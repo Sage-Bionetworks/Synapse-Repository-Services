@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
-import org.sagebionetworks.repo.model.grid.patch.operation.immutable.ImmutableOperation;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 
 public class PatchTest {
 
@@ -30,17 +30,16 @@ public class PatchTest {
 	public void testAddNewOperation() {
 		Patch patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
 		// call under test
-		ImmutableOperation<NewConstant> con = patch.addNewOperation(NewConstant.class);
-		NewConstant expected = new NewConstant().setOperationId(patch.getPatchId());
-		assertEquals(expected, con.getOperation());
+		NewConstant con = patch.addNewOperation(Operations.newConstant());
+		NewConstant expected = new NewConstant(patch.getPatchId(), null);
+		assertEquals(expected, con);
 
 		// call under test
-		ImmutableOperation<NewConstant> con2 = patch.addNewOperation(NewConstant.class);
-		NewConstant expected2 = new NewConstant()
-				.setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L));
-		assertEquals(expected2, con2.getOperation());
+		NewConstant con2 = patch.addNewOperation(Operations.newConstant());
+		NewConstant expected2 = new NewConstant(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L), null);
+		assertEquals(expected2, con2);
 
-		assertEquals(Arrays.asList(con.getOperation(), con2.getOperation()), patch.getOperations());
+		assertEquals(Arrays.asList(con, con2), patch.getOperations());
 		assertEquals(2L, patch.getSpan());
 	}
 
@@ -48,18 +47,16 @@ public class PatchTest {
 	public void testAddNewOperationWithInsertArrays() {
 		Patch patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
 		// call under test
-		ImmutableOperation<InsertArray> op = patch.addNewOperation(new InsertArray().setElementIds(listOne));
-		InsertArray expected = new InsertArray().setElementIds(listOne)
-				.setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
-		assertEquals(expected, op.getOperation());
+		InsertArray op = patch.addNewOperation(Operations.insertArray().withElementIds(listOne));
+		InsertArray expected = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), null, null, listOne);
+		assertEquals(expected, op);
 
 		// call under test
-		ImmutableOperation<InsertArray> op2 = patch.addNewOperation(new InsertArray().setElementIds(listTwo));
-		InsertArray expected2 = new InsertArray().setElementIds(listTwo)
-				.setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(4L));
-		assertEquals(expected2, op2.getOperation());
+		InsertArray op2 = patch.addNewOperation(Operations.insertArray().withElementIds(listTwo));
+		InsertArray expected2 = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(4L), null, null, listTwo);
+		assertEquals(expected2, op2);
 
-		assertEquals(Arrays.asList(op.getOperation(), op2.getOperation()), patch.getOperations());
+		assertEquals(Arrays.asList(op, op2), patch.getOperations());
 
 		// call under test
 		assertEquals(5L, patch.getSpan());
