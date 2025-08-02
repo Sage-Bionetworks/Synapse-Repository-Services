@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -93,8 +94,8 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// rename column b.
 		Patch patch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
-		NewConstant b2 = patch.addNewOperation(NewConstant.class).setValue(new ConValue(ConType.STRING, "b2"));
-		patch.addNewOperation(InsertVector.class).setVectorId(columnNamesVecId).setMap(Map.of(1, b2.getOperationId()));
+		NewConstant b2 = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "b2")));
+		patch.addNewOperation(Operations.insertVector().withVectorId(columnNamesVecId).withMap(Map.of(1, b2.getOperationId())));
 		gridIndexManger.applyPatch(sessionId, replicaId, patch);
 
 		expected.getOrderedColumns().get(1).setName("b2");
@@ -104,11 +105,14 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// insert a new column at zero
 		patch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
-		NewConstant c = patch.addNewOperation(NewConstant.class).setValue(new ConValue(ConType.STRING, "c"));
-		NewConstant two = patch.addNewOperation(NewConstant.class).setValue(new ConValue(ConType.LONG, 2L));
-		patch.addNewOperation(InsertVector.class).setVectorId(columnNamesVecId).setMap(Map.of(2, c.getOperationId()));
-		patch.addNewOperation(InsertArray.class).setArrayId(columnOrderArrayId).setReferenceId(columnOrderArrayId)
-				.setElementIds(List.of(two.getOperationId()));
+		NewConstant c = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "c")));
+		NewConstant two = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, 2L)));
+		patch.addNewOperation(Operations.insertVector().withVectorId(columnNamesVecId).withMap(Map.of(2, c.getOperationId())));
+		patch.addNewOperation(Operations.insertArray()
+				.withArrayId(columnOrderArrayId)
+				.withReferenceId(columnOrderArrayId)
+				.withElementIds(List.of(two.getOperationId()))
+		);
 		gridIndexManger.applyPatch(sessionId, replicaId, patch);
 		assertEquals(List.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(123L)),
 				gridIndexManger.getClock(sessionId, replicaId));
@@ -172,17 +176,16 @@ public class GridReplicaViewManagerImplAutowireTest {
 	}
 
 	void addSynapseMetadataToRow(Patch toExtend, RowView row, SynapseRow toAdd) {
-		toExtend.addNewOperation(InsertObject.class)
-				.setObjectId(row.getRowObject().getMetadata().getSynapseRow().getObjectId()).setMap(Map.of(
-						//
-						"rowId", toExtend.addNewOperation(NewConstant.class)
-								.setValue(new ConValue(ConType.LONG, toAdd.getRowId())).getOperationId()
-						//
-						, "versionNumber", toExtend.addNewOperation(NewConstant.class)
-								.setValue(new ConValue(ConType.LONG, toAdd.getVersionNumber())).getOperationId()
-						//
-						, "etag", toExtend.addNewOperation(NewConstant.class)
-								.setValue(new ConValue(ConType.STRING, toAdd.getEtag())).getOperationId()));
+		toExtend.addNewOperation(Operations.insertObject()
+						.withObjectId(row.getRowObject().getMetadata().getSynapseRow().getObjectId())
+						.withMap(Map.of(
+								//
+								"rowId", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, toAdd.getRowId()))).getOperationId()
+								//
+								, "versionNumber", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, toAdd.getVersionNumber()))).getOperationId()
+								//
+								, "etag", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, toAdd.getEtag()))).getOperationId()))
+				);
 
 	}
 
