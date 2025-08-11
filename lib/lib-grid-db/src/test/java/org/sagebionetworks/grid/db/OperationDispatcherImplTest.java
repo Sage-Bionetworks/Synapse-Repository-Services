@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,8 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
@@ -57,8 +60,16 @@ public class OperationDispatcherImplTest {
 		newVectorTwo = new NewVector(new LogicalTimestamp().setReplicaId(31L).setSequenceNumber(4L));
 		newObjectOne = new NewObject(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
 		newObjectTwo = new NewObject(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L));
-		insertObjectOne = new InsertObject(null, newObjectOne.getOperationId(), null);
-		insertObjectTwo = new InsertObject(null, newObjectTwo.getOperationId(), null);
+		insertObjectOne = new InsertObject(
+				new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L),
+				newObjectOne.getOperationId(),
+				Collections.singletonMap("foo", new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L))
+		);
+		insertObjectTwo = new InsertObject(
+				new LogicalTimestamp().setReplicaId(13L).setSequenceNumber(14L),
+				newObjectTwo.getOperationId(),
+				Collections.singletonMap("bar", new LogicalTimestamp().setReplicaId(15L).setSequenceNumber(16L))
+		);
 
 		sessionId = "session123";
 		replicaId = 99L;
@@ -116,7 +127,7 @@ public class OperationDispatcherImplTest {
 
 		String message = assertThrows(IllegalStateException.class, () -> {
 			// call under test
-			dispatcher.processAll(sessionId, replicaId, List.of(new NewConstant(null, null)));
+			dispatcher.processAll(sessionId, replicaId, List.of(new NewConstant(new LogicalTimestamp().setReplicaId(17L).setSequenceNumber(18L), new ConValue(ConType.STRING, "foo" ))));
 		}).getMessage();
 		assertEquals("Unknown type: new_con", message);
 	}

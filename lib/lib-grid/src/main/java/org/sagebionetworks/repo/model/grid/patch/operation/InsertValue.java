@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class InsertValue implements Operation<InsertValue> {
 
@@ -11,6 +12,10 @@ public class InsertValue implements Operation<InsertValue> {
 	private final LogicalTimestamp referenceId;
 
 	public InsertValue(LogicalTimestamp operationId,  LogicalTimestamp valueId, LogicalTimestamp referenceId) {
+		ValidateArgument.required(operationId, "operationId");
+		ValidateArgument.required(valueId, "valueId");
+		ValidateArgument.required(referenceId, "referenceId");
+
 		this.operationId = operationId;
 		this.valueId = valueId;
 		this.referenceId = referenceId;

@@ -22,17 +22,6 @@ public final class InsertObjectBuilder extends OperationBuilder<InsertObject, In
 
     @Override
     public InsertObject build(LogicalTimestamp operationId) {
-        // If this is invalid, throw an exception or do nothing? The serializer catches invalid patches.
-        // Or maybe the 'PatchBuilder' should know to skip empty inserts?
-        ValidateArgument.required(operationId, "operationId");
-        ValidateArgument.required(this.objectId, "objectId");
-        ValidateArgument.required(this.map, "map");
-        if (this.map.isEmpty()) {
-            // Writing an empty map creates an invalid patch that cannot be parsed by json-joy.
-            // This is a requirement of the patch format.
-            ValidateArgument.failRequirement("InsertObject must have a non-empty map");
-        }
-
         return new InsertObject(operationId, this.objectId, this.map);
     }
 }

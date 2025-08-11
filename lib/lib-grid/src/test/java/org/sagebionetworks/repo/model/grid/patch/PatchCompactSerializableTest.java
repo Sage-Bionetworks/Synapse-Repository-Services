@@ -183,7 +183,7 @@ public class PatchCompactSerializableTest {
 	}
 
 	@Test
-	public void testLoadExampePatches() throws IOException {
+	public void testLoadExamplePatches() throws IOException {
 		String loaded = ClasspathUtil.loadFromClasspath("patch-one.json");
 
 		// call under test
@@ -194,6 +194,9 @@ public class PatchCompactSerializableTest {
 		assertEquals(28, patch.getOperations().size());
 		Operation<?> last = patch.getOperations().get(patch.getOperations().size() - 1);
 		Map<Integer, LogicalTimestamp> map = new LinkedHashMap<Integer, LogicalTimestamp>();
+		map.put(0, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(40L));
+		map.put(1, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(41L));
+		map.put(2, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(42L));
 		InsertVector expected = new InsertVector(
 				new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(43L),
 				new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(38L),

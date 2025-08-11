@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class NewBinary implements Operation<NewBinary> {
 
 	private final LogicalTimestamp operationId;
 
 	public NewBinary(LogicalTimestamp operationId) {
+		ValidateArgument.required(operationId, "operationId");
 		this.operationId = operationId;
 	}
 

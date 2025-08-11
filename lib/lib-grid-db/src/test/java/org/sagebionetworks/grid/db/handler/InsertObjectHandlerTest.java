@@ -39,17 +39,16 @@ public class InsertObjectHandlerTest {
 	public void before() {
 		sessionId = "sessionOne";
 		replicaId = 123L;
-
 		inserts = List.of(
 				new InsertObject(
-						null,
 						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
-						Map.of("one", new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
+						Map.of("one", new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L))
 				),
 				new InsertObject(
-						null,
-						new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
-						Map.of("two", new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))
+						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L),
+						new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L),
+						Map.of("two", new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L))
 				)
 		);
 	}
@@ -60,13 +59,13 @@ public class InsertObjectHandlerTest {
 		when(mockDao.getObjects(sessionId, replicaId,
 				inserts.stream().map(InsertObject::getObjectId).collect(Collectors.toList())))
 				.thenReturn(List.of(new ObjectNode().setId(inserts.get(0).getObjectId()),
-						new ObjectNode().setId(inserts.get(1).getObjectId()).setValueFromJson("{\"two\":[7,8]}")));
+						new ObjectNode().setId(inserts.get(1).getObjectId()).setValueFromJson("{\"two\":[11,12]}")));
 
 		// call under test
 		handler.handleBatch(sessionId, replicaId, inserts);
 		// only the first items should be saved as the second is already set.
 		verify(mockDao).saveObjects(sessionId, replicaId,
-				List.of(new ObjectNode().setId(inserts.get(0).getObjectId()).setValueFromJson("{\"one\":[3,4]}")));
+				List.of(new ObjectNode().setId(inserts.get(0).getObjectId()).setValueFromJson("{\"one\":[5,6]}")));
 	}
 
 	@Test
@@ -80,7 +79,7 @@ public class InsertObjectHandlerTest {
 			// call under test
 			handler.handleBatch(sessionId, replicaId, inserts);
 		}).getMessage();
-		assertEquals("Cannot update an object that does not exist: LogicalTimestamp [replicaId=5, sequenceNumber=6]",
+		assertEquals("Cannot update an object that does not exist: LogicalTimestamp [replicaId=9, sequenceNumber=10]",
 				message);
 
 		verify(mockDao, never()).saveObjects(any(), any(), any());

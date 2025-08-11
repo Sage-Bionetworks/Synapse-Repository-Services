@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class NewVector implements Operation<NewVector> {
 
 	private final LogicalTimestamp operationId;
 
 	public NewVector(LogicalTimestamp operationId) {
+		ValidateArgument.required(operationId, "operationId");
 		this.operationId = operationId;
 	}
 

@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import org.apache.commons.logging.Log;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class InsertObject implements Operation<InsertObject> {
 
@@ -13,6 +14,14 @@ public class InsertObject implements Operation<InsertObject> {
 	private final Map<String, LogicalTimestamp> map;
 
 	public InsertObject(LogicalTimestamp operationId, LogicalTimestamp objectId, Map<String, LogicalTimestamp> map) {
+		ValidateArgument.required(operationId, "operationId");
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(map, "map");
+		if (map.isEmpty()) {
+			// Writing an empty map creates an invalid patch that cannot be parsed by json-joy.
+			// This is a requirement of the patch format.
+			ValidateArgument.failRequirement("InsertObject must have a non-empty map");
+		}
 		this.operationId = operationId;
 		this.objectId = objectId;
 		this.map = map;

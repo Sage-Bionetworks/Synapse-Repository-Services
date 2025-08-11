@@ -5,6 +5,7 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * The new_con operation. See: <a href=
@@ -17,9 +18,9 @@ public class NewConstant implements Operation<NewConstant> {
 	private final boolean isTimestamp;
 
 	public NewConstant(LogicalTimestamp operationId, ConValue value) {
+		ValidateArgument.required(operationId, "operationId");
 		this.operationId = operationId;
 		this.value = value;
-
 		this.isTimestamp = value != null && ConType.TIMESTAMP == value.getType();
 	}
 

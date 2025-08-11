@@ -16,6 +16,8 @@ public class PatchTest {
 
 	private List<LogicalTimestamp> listOne;
 	private List<LogicalTimestamp> listTwo;
+	private LogicalTimestamp arrayId;
+	private LogicalTimestamp referenceId;
 
 	@BeforeEach
 	public void before() {
@@ -24,6 +26,9 @@ public class PatchTest {
 		listTwo = Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L));
+
+		arrayId = new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L);
+		referenceId = new LogicalTimestamp().setReplicaId(13L).setSequenceNumber(14L);
 	}
 
 	@Test
@@ -47,13 +52,13 @@ public class PatchTest {
 	public void testAddNewOperationWithInsertArrays() {
 		Patch patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
 		// call under test
-		InsertArray op = patch.addNewOperation(Operations.insertArray().withElementIds(listOne));
-		InsertArray expected = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), null, null, listOne);
+		InsertArray op = patch.addNewOperation(Operations.insertArray().withElementIds(listOne).withArrayId(arrayId).withReferenceId(referenceId));
+		InsertArray expected = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), arrayId, referenceId, listOne);
 		assertEquals(expected, op);
 
 		// call under test
-		InsertArray op2 = patch.addNewOperation(Operations.insertArray().withElementIds(listTwo));
-		InsertArray expected2 = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(4L), null, null, listTwo);
+		InsertArray op2 = patch.addNewOperation(Operations.insertArray().withElementIds(listTwo).withArrayId(arrayId).withReferenceId(referenceId));
+		InsertArray expected2 = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(4L), arrayId, referenceId, listTwo);
 		assertEquals(expected2, op2);
 
 		assertEquals(Arrays.asList(op, op2), patch.getOperations());

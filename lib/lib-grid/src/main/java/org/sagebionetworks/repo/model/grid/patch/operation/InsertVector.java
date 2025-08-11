@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class InsertVector implements Operation<InsertVector> {
 
@@ -11,7 +12,16 @@ public class InsertVector implements Operation<InsertVector> {
 	private final LogicalTimestamp vectorId;
 	private final Map<Integer, LogicalTimestamp> map;
 
-	public  InsertVector(LogicalTimestamp operationId, LogicalTimestamp vectorId, Map<Integer, LogicalTimestamp> map) {
+	public InsertVector(LogicalTimestamp operationId, LogicalTimestamp vectorId, Map<Integer, LogicalTimestamp> map) {
+		ValidateArgument.required(operationId, "operationId");
+		ValidateArgument.required(vectorId, "vectorId");
+		ValidateArgument.required(map, "map");
+		if (map.isEmpty()) {
+			// Writing an empty map creates an invalid patch that cannot be parsed by json-joy.
+			// This is a requirement of the patch format.
+			ValidateArgument.failRequirement("InsertVector must have a non-empty map");
+		}
+
 		this.operationId = operationId;
 		this.vectorId = vectorId;
 		this.map = map;

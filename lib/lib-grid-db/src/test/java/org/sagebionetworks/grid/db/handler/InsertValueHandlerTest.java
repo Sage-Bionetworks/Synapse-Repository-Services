@@ -41,12 +41,12 @@ public class InsertValueHandlerTest {
 
 		inserts = List.of(
 				new InsertValue(
-						null,
+						new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L),
 						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)
 				),
 				new InsertValue(
-						null,
+						new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L),
 						new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)
 				)

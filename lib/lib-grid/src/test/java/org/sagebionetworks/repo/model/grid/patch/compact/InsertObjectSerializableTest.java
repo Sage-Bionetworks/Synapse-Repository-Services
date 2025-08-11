@@ -106,33 +106,4 @@ public class InsertObjectSerializableTest {
 		String back = serializable.serialize(obj).toString();
 		assertEquals(json, back);
 	}
-
-	@Test
-	public void testSerializeNullMap() {
-		Map<String, LogicalTimestamp> map = null;
-		InsertObject insertObject = new InsertObject(
-				operationId,
-				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
-				map
-		);
-
-		assertThrows(IllegalArgumentException.class, () -> this.serializable.serialize(insertObject),
-				"InsertObject must have a non-empty map"
-		);
-
-	}
-
-	@Test
-	public void testSerializeEmptyMap() {
-		Map<String, LogicalTimestamp> map = new LinkedHashMap<>();
-		InsertObject insertObject = new InsertObject(
-				operationId,
-				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
-				map
-		);
-
-		assertThrows(IllegalArgumentException.class, () -> this.serializable.serialize(insertObject),
-				"InsertObject must have a non-empty map"
-		);
-	}
 }
