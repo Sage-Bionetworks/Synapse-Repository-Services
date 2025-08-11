@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.grid.patch.operation.builder;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
 
 public final class NewVectorBuilder extends OperationBuilder<NewVector, NewVectorBuilder> {

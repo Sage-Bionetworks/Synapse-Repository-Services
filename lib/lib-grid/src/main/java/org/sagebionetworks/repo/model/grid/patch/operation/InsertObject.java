@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.commons.logging.Log;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.ValidateArgument;
 

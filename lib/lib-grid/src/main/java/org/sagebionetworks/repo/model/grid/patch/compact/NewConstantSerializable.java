@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
-import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 
 public class NewConstantSerializable implements OperationSerializable<NewConstant> {
 

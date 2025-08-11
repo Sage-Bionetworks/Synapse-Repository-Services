@@ -202,9 +202,6 @@ public class PatchCompactSerializableTest {
 				new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(38L),
 				map
 		);
-		map.put(0, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(40L));
-		map.put(1, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(41L));
-		map.put(2, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(42L));
 		assertEquals(expected, last);
 	}
 
