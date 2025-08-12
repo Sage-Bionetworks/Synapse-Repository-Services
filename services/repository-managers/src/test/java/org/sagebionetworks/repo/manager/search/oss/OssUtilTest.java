@@ -50,10 +50,7 @@ public class OssUtilTest {
     List<Long> userGroups;
     UserInfo userInfo;
     private SearchQuery query;
-    private SearchRequest searchRequest;
-    private SearchRequest expectedSearchRequestBaseWithQueryTerm;
     private SearchRequest.Builder expectedSearchRequestBaseNoQueryTermSet;
-    private SearchResponse searchResponse;
     private SearchFacetOption searchFacetOption;
     private List<String> q;
     private List<KeyValue> bq;
@@ -70,19 +67,6 @@ public class OssUtilTest {
         q = new ArrayList<>();
         q.add("hello");
         q.add("world");
-
-        expectedSearchRequestBaseWithQueryTerm = new SearchRequest.Builder()
-                .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
-                .query(Query.of(query -> query
-                        .bool(bool -> bool
-                                .must(must -> must
-                                        .multiMatch(multi -> multi
-                                                .query(String.join(" ", q))
-                                        )
-                                )
-                        )
-                ))
-                .build();
 
         expectedSearchRequestBaseNoQueryTermSet = new SearchRequest.Builder()
                 .index(SearchConstants.OPEN_SEARCH_INDEX_NAME);
@@ -205,13 +189,14 @@ public class OssUtilTest {
 
         assertEquals(expectedJson, actualJson);
     }
+
     @Test
     public void testGenerateSearchRequestAdminUserCanAccessAllDocuments() {
         String expectedTerms = q.stream()
                 .collect(Collectors.joining(" "));
 
-        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(List.of(
-                        Query.of(q1 -> q1.multiMatch(mm -> mm.query(expectedTerms)))))));
+        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(
+                Query.of(q1 -> q1.multiMatch(mm -> mm.query(expectedTerms))))));
 
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
@@ -229,24 +214,24 @@ public class OssUtilTest {
 
     @Test
     public void testGenerateSearchRequestWithBoolean() {
-        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
-                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue())))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        )))))));
+        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(Query.of(q1 -> q1.matchAll(m -> m)))
+                .filter(List.of(
+                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())))))
+                ))));
 
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
 
         String actualJson = toJson(request);
         String expectedJson = toJson(expectedRequest);
@@ -257,23 +242,24 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithBooleanSpecialChar() {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
-                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bqSpecialChar.get(0).getKey()).value(FieldValue.of(bqSpecialChar.get(0).getValue())))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        )))))));
+                        Query.of(q1 -> q1.matchAll(m -> m))))
+                .filter(List.of(
+                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bqSpecialChar.get(0).getKey()).value(FieldValue.of(bqSpecialChar.get(0).getValue()))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())
+                                ))))))));
 
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bqSpecialChar));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
 
         String actualJson = toJson(request);
         String expectedJson = toJson(expectedRequest);
@@ -284,26 +270,26 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithNotBoolean() {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                .must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
-                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bqNot.get(0).getKey()).value(FieldValue.of(bqNot.get(0).getValue())))))))
+                .must(Query.of(q1 -> q1.matchAll(m -> m)))
                 .mustNot(Query.of(q3 -> q3.term(TermQuery.of(t -> t.field(bqNot.get(1).getKey()).value(FieldValue.of(bqNot.get(1).getValue()))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        )))))));
+                .filter(List.of(
+                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bqNot.get(0).getKey()).value(FieldValue.of(bqNot.get(0).getValue()))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())
+                                ))))))));
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bqNot));
-        assertEquals(2, request.query().bool().must().size());
+        assertEquals(1, request.query().bool().must().size());
         assertEquals(1, request.query().bool().mustNot().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(2, request.query().bool().filter().size());
 
         String actualJson = toJson(request);
         String expectedJson = toJson(expectedRequest);
@@ -314,16 +300,16 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithFacetOrderDesc() throws JsonProcessingException {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                        .must(List.of(
-                                Query.of(q1 -> q1.matchAll(m -> m)),
-                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue())))))))
-                        .filter(Query.of(tq -> tq.terms(t -> t
-                                .field(FIELD_ACL)
-                                .terms(queryTerm -> queryTerm.value(
-                                        userGroups.stream()
-                                                .map(FieldValue::of)
-                                                .collect(Collectors.toList())
-                                )))))))
+                        .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                        .filter(List.of(
+                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                                Query.of(tq -> tq.terms(t -> t
+                                        .field(FIELD_ACL)
+                                        .terms(queryTerm -> queryTerm.value(
+                                                userGroups.stream()
+                                                        .map(FieldValue::of)
+                                                        .collect(Collectors.toList())
+                                        ))))))))
                 .aggregations(searchFacetOption.getName().name(), Aggregation.of(a -> a
                         .terms(t -> t
                                 .field("node_type")
@@ -334,8 +320,8 @@ public class OssUtilTest {
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq).setFacetOptions(List.of(searchFacetOption)));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
         assertEquals(1, request.aggregations().size());
 
         String actualJson = toJson(request);
@@ -347,16 +333,16 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithFacetOrderAsc() {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                        .must(List.of(
-                                Query.of(q1 -> q1.matchAll(m -> m)),
-                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue())))))))
-                        .filter(Query.of(tq -> tq.terms(t -> t
-                                .field(FIELD_ACL)
-                                .terms(queryTerm -> queryTerm.value(
-                                        userGroups.stream()
-                                                .map(FieldValue::of)
-                                                .collect(Collectors.toList())
-                                )))))))
+                        .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                        .filter(List.of(
+                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                                Query.of(tq -> tq.terms(t -> t
+                                        .field(FIELD_ACL)
+                                        .terms(queryTerm -> queryTerm.value(
+                                                userGroups.stream()
+                                                        .map(FieldValue::of)
+                                                        .collect(Collectors.toList())
+                                        ))))))))
                 .aggregations(searchFacetOption.getName().name(), Aggregation.of(a -> a
                         .terms(t -> t
                                 .field("node_type")
@@ -368,8 +354,8 @@ public class OssUtilTest {
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq)
                 .setFacetOptions(List.of(searchFacetOption.setSortType(SearchFacetSort.ALPHA))));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
         assertEquals(1, request.aggregations().size());
 
         String actualJson = toJson(request);
@@ -381,24 +367,24 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithRangeQuery() {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                .must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
+                .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                .filter(List.of(
                         Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
-                        Query.of((q3 -> q3.range(RangeQuery.of(r -> r.field(keyRange.getKey()).gte(JsonData.of(keyRange.getMin()))))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        )))))));
+                        Query.of((q3 -> q3.range(RangeQuery.of(r -> r.field(keyRange.getKey()).gte(JsonData.of(keyRange.getMin())))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())
+                                ))))))));
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq).setRangeQuery(keyRangeList));
-        assertEquals(3, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(3, request.query().bool().filter().size());
 
     }
 
@@ -419,23 +405,23 @@ public class OssUtilTest {
     @Test
     public void testGenerateSearchRequestWithSizeAndStart() {
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                .must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
-                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue())))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        ))))))).size(10).from(5);
+                .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                .filter(List.of(
+                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())
+                                )))))))).size(10).from(5);
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq).setSize(10l).setStart(5L));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
 
         String actualJson = toJson(request);
         String expectedJson = toJson(expectedRequest);
@@ -447,23 +433,23 @@ public class OssUtilTest {
     public void testGenerateSearchRequestWithReturnFields() {
         List<String> returnFields = List.of(SearchConstants.FIELD_NAME, SearchConstants.FIELD_DESCRIPTION);
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
-                .must(List.of(
-                        Query.of(q1 -> q1.matchAll(m -> m)),
-                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue())))))))
-                .filter(Query.of(tq -> tq.terms(t -> t
-                        .field(FIELD_ACL)
-                        .terms(queryTerm -> queryTerm.value(
-                                userGroups.stream()
-                                        .map(FieldValue::of)
-                                        .collect(Collectors.toList())
-                        ))))))).source(s -> s.filter(f -> f.includes(returnFields)));
+                .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                .filter(List.of(
+                        Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                        Query.of(tq -> tq.terms(t -> t
+                                .field(FIELD_ACL)
+                                .terms(queryTerm -> queryTerm.value(
+                                        userGroups.stream()
+                                                .map(FieldValue::of)
+                                                .collect(Collectors.toList())
+                                )))))))).source(s -> s.filter(f -> f.includes(returnFields)));
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq).setReturnFields(returnFields));
-        assertEquals(2, request.query().bool().must().size());
-        assertEquals(1, request.query().bool().filter().size());
+        assertEquals(1, request.query().bool().must().size());
+        assertEquals(2, request.query().bool().filter().size());
 
         String actualJson = toJson(request);
         String expectedJson = toJson(expectedRequest);
@@ -472,25 +458,24 @@ public class OssUtilTest {
     }
 
     @Test
-    public void testConvertToSynapseSearchResult(){
+    public void testConvertToSynapseSearchResult() {
         DocumentFields document = getDocument();
-        String facetName ="node_type";
+        String facetName = "node_type";
 
         SearchResponse<DocumentFields> response = SearchResponse.searchResponseOf(res -> res.documents(document)
-                .shards(shard ->shard.total(1).failed(0l).successful(1l))
+                .shards(shard -> shard.total(1).failed(0l).successful(1l))
                 .aggregations(facetName, a -> a.
                         sterms(terms -> terms
                                 .buckets(buckets -> buckets.array(Arrays.asList(
                                         StringTermsBucket.of(b -> b.key(facetName).docCount(100L))
-                                ))).sumOtherDocCount(0))).timedOut(false).took(10).hits(hh ->hh.hits(ht ->ht.source(document).id("id")
+                                ))).sumOtherDocCount(0))).timedOut(false).took(10).hits(hh -> hh.hits(ht -> ht.source(document).id("id")
                         .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)).total(t -> t.value(1l).relation(TotalHitsRelation.valueOf("Eq")))));
 
         FacetTypeNames facetType = IndexFieldToSynapseFacetType.getSynapseFacetType(SynapseToCloudSearchField.cloudSearchFieldFor(facetName).getType());
 
 
-
         SearchResults expectedSynapseSearchResults = new SearchResults().setFound(1l).setStart(5l).setFacets(List.of(
-                new Facet().setName("node_type").setType(facetType).setConstraints(List.of(new FacetConstraint().setCount(100l).setValue(facetName)))))
+                        new Facet().setName("node_type").setType(facetType).setConstraints(List.of(new FacetConstraint().setCount(100l).setValue(facetName)))))
                 .setHits(List.of(getHitFromDocument(document)));
 
         //call under test
@@ -499,16 +484,16 @@ public class OssUtilTest {
 
     }
 
-    public  DocumentFields getDocument(){
+    public DocumentFields getDocument() {
         return new DocumentFields()
                 .setAcl(userGroups.stream().map(String::valueOf).collect(Collectors.toList()))
                 .setName("AnyName").setConsortium("cons").setCreated_by("me").setCreated_on(123l)
                 .setModified_by("you").setModified_on(345l).setDescription("description").setDiagnosis("2")
                 .setEtag("1").setNode_type("folder").setOrgan("ear").setTissue("tissue")
-                .setParent_id("p_id").setUpdate_acl(List.of("234","678"));
+                .setParent_id("p_id").setUpdate_acl(List.of("234", "678"));
     }
 
-    public org.sagebionetworks.repo.model.search.Hit getHitFromDocument(DocumentFields document){
+    public org.sagebionetworks.repo.model.search.Hit getHitFromDocument(DocumentFields document) {
         org.sagebionetworks.repo.model.search.Hit synapseHit = new org.sagebionetworks.repo.model.search.Hit();
         synapseHit.setId("id");
         synapseHit.setCreated_by(document.getCreated_by());

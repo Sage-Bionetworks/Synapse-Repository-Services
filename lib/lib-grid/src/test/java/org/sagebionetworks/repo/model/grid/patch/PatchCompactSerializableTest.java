@@ -17,9 +17,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
+import org.sagebionetworks.repo.model.grid.patch.operation.InsertObjectBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
+import org.sagebionetworks.repo.model.grid.patch.operation.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
@@ -203,6 +205,36 @@ public class PatchCompactSerializableTest {
 				map
 		);
 		assertEquals(expected, last);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithConstantArray() {
+		JSONArray value = new JSONArray("[1,2,3,4,5,6]");
+		NewConstantBuilder builder = new NewConstantBuilder().setTimestamp(true)
+				.setValue(new ConValue(ConType.JSON_ARRAY, value));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(17, bytes);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithConstantString() {
+		NewConstantBuilder builder = new NewConstantBuilder().setTimestamp(true)
+				.setValue(new ConValue(ConType.STRING, "this is a small string but it still take up bytes"));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(55, bytes);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithInsertObject() {
+		InsertObjectBuilder builder = new InsertObjectBuilder()
+				.setObjectId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(Long.MAX_VALUE))
+				.setMap(Map.of("one", new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), "two",
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(59, bytes);
 	}
 
 }

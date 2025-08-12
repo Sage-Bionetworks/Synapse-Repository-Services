@@ -56,7 +56,7 @@ public class GridEventBrokerWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		log.info(message);
+		log.info(message.getBody());
 		EventContext context = null;
 		try {
 			context = buildEventContext(message);

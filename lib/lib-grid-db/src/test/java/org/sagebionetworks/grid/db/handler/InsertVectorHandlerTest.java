@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,7 +86,8 @@ public class InsertVectorHandlerTest {
 		when(mockDao.getVectors(sessionId, replicaId, List.of(ids.get(0), ids.get(3)))).thenReturn(currentVectors);
 
 		// call under test
-		handler.handleBatch(sessionId, replicaId, inserts);
+		Set<LogicalTimestamp> changes =  handler.handleBatch(sessionId, replicaId, inserts);
+		assertEquals(Set.of(ids.get(0)), changes);
 
 		// only the first changed, so only it should be saved.
 		verify(mockDao).saveVectors(sessionId, replicaId, List.of(new VectorNode().setId(ids.get(0))

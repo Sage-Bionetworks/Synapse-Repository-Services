@@ -12,8 +12,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,8 +71,13 @@ public class GridIndexManagerImplTest {
 	public void testApplyPatch() {
 		doReturn(false).when(manager).isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId());
 		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(true);
+		Map<IndexType, Set<LogicalTimestamp>> expected = Map.of(IndexType.con,
+				Set.of(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
+		when(mockOperationDispatcher.processAll(sessionId, replicaId, patch.getOperations())).thenReturn(expected);
+
 		// call under test
-		manager.applyPatch(sessionId, replicaId, patch);
+		Map<IndexType, Set<LogicalTimestamp>> changes = manager.applyPatch(sessionId, replicaId, patch);
+		assertEquals(expected, changes);
 		verify(mockDao).createReplicaIfNotExists(sessionId, replicaId);
 		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.val, List.of(rootValueId));
 		verify(mockDao).saveValues(sessionId, replicaId, List.of(new ValueNode().setId(rootValueId)));
@@ -79,7 +87,7 @@ public class GridIndexManagerImplTest {
 				new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(8L));
 		verify(mockDao).setClock(sessionId, replicaId, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(8L));
 	}
-	
+
 	@Test
 	public void testApplyPatchWithNotFirst() {
 		doReturn(false).when(manager).isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId());
@@ -118,7 +126,8 @@ public class GridIndexManagerImplTest {
 		doReturn(true).when(manager).isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId());
 		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(false);
 		// call under test
-		manager.applyPatch(sessionId, replicaId, patch);
+		Map<IndexType, Set<LogicalTimestamp>> changes = manager.applyPatch(sessionId, replicaId, patch);
+		assertEquals(Collections.emptyMap(), changes);
 		verifyZeroInteractions(mockOperationDispatcher);
 		verify(mockDao).createReplicaIfNotExists(sessionId, replicaId);
 		verify(mockDao, never()).setClock(any(), any(), any());

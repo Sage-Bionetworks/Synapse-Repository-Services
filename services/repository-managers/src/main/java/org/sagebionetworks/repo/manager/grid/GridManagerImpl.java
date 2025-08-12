@@ -233,7 +233,7 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public GridSession getGridSession(UserInfo user, String gridSessionId) {
 		validGridSessionAccess(user, gridSessionId);
-		return gridDao.geGridSession(gridSessionId).orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
+		return gridDao.getGridSession(gridSessionId).orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
 	}
 
 	@WriteTransaction

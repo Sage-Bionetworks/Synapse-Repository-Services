@@ -3,27 +3,38 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 import java.util.Objects;
 
 import org.json.JSONArray;
+import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class RowData {
 
-	private JSONArray data;
+	private JSONArray cells;
+	private LogicalTimestamp vectorId;
 
-	public JSONArray getData() {
-		return data;
+	public JSONArray getCells() {
+		return cells;
 	}
 
-	public RowData setData(JSONArray data) {
-		this.data = data;
+	public RowData setCells(JSONArray data) {
+		this.cells = data;
 		return this;
 	}
 
 	String dataToJson() {
-		return data != null ? data.toString() : null;
+		return cells != null ? cells.toString() : null;
+	}
+
+	public LogicalTimestamp getVectorId() {
+		return vectorId;
+	}
+
+	public RowData setVectorId(LogicalTimestamp vectorId) {
+		this.vectorId = vectorId;
+		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(dataToJson());
+		return Objects.hash(dataToJson(), vectorId);
 	}
 
 	@Override
@@ -35,12 +46,12 @@ public class RowData {
 		if (getClass() != obj.getClass())
 			return false;
 		RowData other = (RowData) obj;
-		return Objects.equals(dataToJson(), other.dataToJson());
+		return Objects.equals(dataToJson(), other.dataToJson()) && Objects.equals(vectorId, other.vectorId);
 	}
 
 	@Override
 	public String toString() {
-		return "RowData [data=" + data + "]";
+		return "RowData [data=" + cells + ", vectorId=" + vectorId + "]";
 	}
 
 }

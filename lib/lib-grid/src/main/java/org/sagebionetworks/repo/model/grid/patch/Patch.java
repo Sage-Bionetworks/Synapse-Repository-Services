@@ -57,7 +57,7 @@ public class Patch {
 			}
 			LogicalTimestamp nextId = LogicalTimestamp.newIncrement(patchId, getSpan());
 			T operation = builder.build(nextId);
-			this.operations.add(operation);
+			operations.add(operation);
 			span += operation.getSpan();
 			return operation;
 		} catch (IllegalArgumentException | SecurityException e) {

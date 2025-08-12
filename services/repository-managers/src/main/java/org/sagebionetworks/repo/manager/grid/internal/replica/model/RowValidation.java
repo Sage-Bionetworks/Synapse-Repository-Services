@@ -1,48 +1,61 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+import org.json.JSONObject;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
-public class RowValidation {
+public class RowValidation implements HasConstantIds {
 
-	/**
-	 * The ID of the object that contains both 'isValid' and 'errorMessage'.
-	 */
-	private LogicalTimestamp objectId;
-	private Boolean isValid;
-	private String errorMessage;
+	// the ID of the constant that contains the validation results.
+	private LogicalTimestamp constantId;
+	private ValidationResults validationResults;
 
-	public Boolean getIsValid() {
-		return isValid;
+	public LogicalTimestamp getConstantId() {
+		return constantId;
 	}
 
-	public RowValidation setIsValid(Boolean isValid) {
-		this.isValid = isValid;
+	public RowValidation setConstantId(LogicalTimestamp constantId) {
+		this.constantId = constantId;
 		return this;
 	}
 
-	public String getErrorMessage() {
-		return errorMessage;
+	public ValidationResults getValidationResults() {
+		return validationResults;
 	}
 
-	public RowValidation setErrorMessage(String errorMessage) {
-		this.errorMessage = errorMessage;
-		return this;
-	}
-
-	public LogicalTimestamp getObjectId() {
-		return objectId;
-	}
-
-	public RowValidation setObjectId(LogicalTimestamp objectId) {
-		this.objectId = objectId;
+	public RowValidation setValidationResults(ValidationResults validationResults) {
+		this.validationResults = validationResults;
 		return this;
 	}
 
 	@Override
+	public List<LogicalTimestamp> getConstantIds() {
+		return constantId == null ? Collections.emptyList() : List.of(constantId);
+	}
+
+	@Override
+	public void applyConstants(Map<LogicalTimestamp, ConstantNode> constants) {
+		if (constantId != null) {
+			try {
+				validationResults = EntityFactory.createEntityFromJSONObject(
+						(JSONObject) constants.get(constantId).getValue(), ValidationResults.class);
+			} catch (JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	@Override
 	public int hashCode() {
-		return Objects.hash(errorMessage, isValid, objectId);
+		return Objects.hash(constantId, validationResults);
 	}
 
 	@Override
@@ -54,13 +67,13 @@ public class RowValidation {
 		if (getClass() != obj.getClass())
 			return false;
 		RowValidation other = (RowValidation) obj;
-		return Objects.equals(errorMessage, other.errorMessage) && Objects.equals(isValid, other.isValid)
-				&& Objects.equals(objectId, other.objectId);
+		return Objects.equals(constantId, other.constantId)
+				&& Objects.equals(validationResults, other.validationResults);
 	}
 
 	@Override
 	public String toString() {
-		return "RowValidation [objectId=" + objectId + ", isValid=" + isValid + ", errorMessage=" + errorMessage + "]";
+		return "RowValidation [constantId=" + constantId + ", validationResults=" + validationResults + "]";
 	}
 
 }

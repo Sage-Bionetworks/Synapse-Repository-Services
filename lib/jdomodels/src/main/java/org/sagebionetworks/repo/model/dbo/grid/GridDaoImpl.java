@@ -126,7 +126,7 @@ public class GridDaoImpl implements GridDao {
 				"INSERT INTO GRID_SESSION (ID, ETAG, CREATED_BY, CREATED_ON, MODIFIED_ON, SESSION_ID, REP_ID_CLIENT, REP_ID_SERVICE, SOURCE_ID, SCHEMA_ID)"
 						+ " VALUES(?,UUID(),?,NOw(),NOW(),?,?,?,?,?)",
 				args, argTypes);
-		return geGridSession(sessionId).get();
+		return getGridSession(sessionId).get();
 	}
 
 	@Override
@@ -141,7 +141,7 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
-	public Optional<GridSession> geGridSession(String gridSessionId) {
+	public Optional<GridSession> getGridSession(String gridSessionId) {
 		ValidateArgument.required(gridSessionId, "gridSessionId");
 		try {
 			return Optional.of(jdbcTemplate.queryForObject("SELECT * FROM GRID_SESSION WHERE SESSION_ID = ?",

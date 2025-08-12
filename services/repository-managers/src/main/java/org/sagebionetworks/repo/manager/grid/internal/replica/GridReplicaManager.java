@@ -36,10 +36,10 @@ public interface GridReplicaManager {
 
 	/**
 	 * Called when a response message chain is completed.
-	 * 
+	 * @param callback
 	 * @param connection
 	 * @param methodId
 	 */
-	void onResponseComplete(GridConnectionInfo connection, Integer methodId);
+	void onResponseComplete(ProgressCallback callback, GridConnectionInfo connection, Integer methodId);
 
 }

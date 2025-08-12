@@ -37,8 +37,9 @@ public class SearchController {
 	 * If not authenticated, only public result will be shown.
 	 * See <a href="${org.sagebionetworks.repo.model.search.query.SearchFieldName}">SearchFieldName</a> for the list of searchable fields for use in booleanQuery, rangeQuery, and returnFields
 	 * @param userId
+	 * @param isOpenSearchEnable
 	 * @param searchQuery
-	 * @return search results from CloudSearch
+	 * @return search results from OpenSearch or CloudSearch depending upon parameter isOpenSearchEnable
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)

@@ -38,7 +38,8 @@ public class InternalMessageDispatcher {
 		case ResponseData:
 			return handleResponseData(bundle);
 		case ResponseComplete:
-			gridReplicaManager.onResponseComplete(bundle.getConnection(), bundle.getMessage().getId().get());
+			gridReplicaManager.onResponseComplete(bundle.getProgressCallback(), bundle.getConnection(),
+					bundle.getMessage().getId().get());
 			return true;
 		default:
 			return false;
@@ -72,7 +73,7 @@ public class InternalMessageDispatcher {
 							bundle.getConnection().getSessionId(), bundle.getConnection().getReplicaId(),
 							bundle.getMessage().getId().get()));
 		}
-		
+
 		if (GridReplicaManager.SYNCHRONIZE_CLOCK.equals(chain.get().getMethod())) {
 			Patch patch = PatchCompactSerializable.deserialize((JSONArray) bundle.getMessage().getBody().get());
 			gridReplicaManager.onApplyPatch(bundle.getProgressCallback(), bundle.getConnection(),

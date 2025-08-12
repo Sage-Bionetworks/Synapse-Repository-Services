@@ -1,7 +1,9 @@
 package org.sagebionetworks.grid.db.handler;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.grid.db.GridIndexDao;
@@ -33,9 +35,9 @@ public class InsertArrayHandler implements OperationHandler<InsertArray> {
 	}
 
 	@Override
-	public void handleBatch(String sessionId, Long replicaId, List<InsertArray> batch) {
+	public Set<LogicalTimestamp> handleBatch(String sessionId, Long replicaId, List<InsertArray> batch) {
 		List<ArrayNode> flatBatch = expandInsertArrays(batch);
-
+		Set<LogicalTimestamp> changes = new LinkedHashSet<LogicalTimestamp>();
 		flatBatch.forEach(a -> {
 			/*
 			 * Find the location in the RGA that this node should be inserted following the
@@ -44,9 +46,10 @@ public class InsertArrayHandler implements OperationHandler<InsertArray> {
 			gridDao.findArrayInsertLocation(sessionId, replicaId, a).ifPresent(r -> {
 				a.setReferenceNodeId(r);
 				gridDao.insertIntoArray(sessionId, replicaId, a);
+				changes.add(a.getId());
 			});
 		});
-
+		return changes;
 	}
 
 	/**

@@ -3,15 +3,17 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 
-public class SynapseRow {
+public class SynapseRow implements HasConstantIds {
 
 	/**
 	 * The ID of the object that contains: 'rowId', 'versionNmber', and 'etag'.
@@ -78,7 +80,14 @@ public class SynapseRow {
 		return tempConstantMap == null ? Collections.emptyList() : tempConstantMap.values();
 	}
 
-	public void resovleConstants(Map<LogicalTimestamp, ConstantNode> constants) {
+	@Override
+	public List<LogicalTimestamp> getConstantIds() {
+		return tempConstantMap == null ? Collections.emptyList()
+				: tempConstantMap.values().stream().collect(Collectors.toList());
+	}
+
+	@Override
+	public void applyConstants(Map<LogicalTimestamp, ConstantNode> constants) {
 		if (this.tempConstantMap != null) {
 			LogicalTimestamp rowIdId = this.tempConstantMap.get("rowId");
 			if (rowIdId != null) {

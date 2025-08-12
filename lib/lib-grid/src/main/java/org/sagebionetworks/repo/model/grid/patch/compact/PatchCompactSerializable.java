@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.grid.patch.compact;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
+import org.sagebionetworks.repo.model.grid.patch.operation.OperationBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -93,6 +95,21 @@ public class PatchCompactSerializable {
 		}
 
 		return compact;
+	}
+
+	/**
+	 * Calculate the number of bytes needed to serialize the given operation
+	 * builder, assuming it is issued an operation ID with the maximum size.
+	 * 
+	 * @param <T>
+	 * @param builder
+	 * @return
+	 */
+	public static <T extends Operation<T>> int calculateOperationSizeBytes(OperationBuilder<T> builder) {
+		T op = builder.build(new LogicalTimestamp().setReplicaId(Long.MAX_VALUE).setSequenceNumber(Long.MAX_VALUE));
+		OperationSerializable<T> serializer = (OperationSerializable<T>) map.get(op.getType());
+		JSONArray arr = serializer.serialize(op);
+		return arr.toString().getBytes(StandardCharsets.UTF_8).length;
 	}
 
 	/**

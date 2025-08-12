@@ -1,7 +1,10 @@
 package org.sagebionetworks.grid.db;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +37,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 
 	@Transactional(readOnly = false)
 	@Override
-	public void applyPatch(String sessionId, Long replicaId, Patch patch) {
+	public Map<IndexType, Set<LogicalTimestamp>> applyPatch(String sessionId, Long replicaId, Patch patch) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
 		ValidateArgument.required(patch, "patch");
@@ -45,11 +48,12 @@ public class GridIndexManagerImpl implements GridIndexManager {
 		if (isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId())) {
 			log.info("Patch: {}.{} has already been applied to session: {} replica: {}",
 					patch.getPatchId().getReplicaId(), patch.getPatchId().getSequenceNumber(), sessionId, replicaId);
-			return;
+			return Collections.emptyMap();
 		}
 
 		// Operations are batched and processed by type.
-		operationDispatcher.processAll(sessionId, replicaId, patch.getOperations());
+		Map<IndexType, Set<LogicalTimestamp>> changes = operationDispatcher.processAll(sessionId, replicaId,
+				patch.getOperations());
 
 		LogicalTimestamp patchClock = LogicalTimestamp.newIncrement(patch.getPatchId(), patch.getSpan());
 
@@ -60,6 +64,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 			// The patch is from another replica, so add it to this replica's clock.
 			dao.setClock(sessionId, replicaId, patchClock);
 		}
+		return changes;
 	}
 
 	void createReplicaIfNotExist(String sessionId, Long replicaId) {

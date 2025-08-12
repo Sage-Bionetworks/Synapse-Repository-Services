@@ -98,7 +98,7 @@ public class OssUtil {
                     // Add to must_not if this is a NOT condition
                     boolBuilder.mustNot(termQuery);
                 } else {
-                    boolBuilder.must(termQuery);
+                    boolBuilder.filter(termQuery);
                 }
             });
         }
@@ -119,7 +119,7 @@ public class OssUtil {
                     builder.lte(JsonData.of(query.getMax()));
                 }
 
-                boolBuilder.must(Query.of(q -> q.range(builder.build())));
+                boolBuilder.filter(Query.of(q -> q.range(builder.build())));
 
             });
         }

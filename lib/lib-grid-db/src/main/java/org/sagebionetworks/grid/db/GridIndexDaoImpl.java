@@ -617,8 +617,12 @@ public class GridIndexDaoImpl implements GridIndexDao {
 		if (roots.isEmpty()) {
 			return Optional.empty();
 		}
+		ValueNode root = roots.get(0);
+		if(root == null || root.getValue() == null) {
+			return Optional.empty();
+		}
 		List<ObjectNode> rootObjects = getObjects(gridSessionId, replicaId,
-				roots.stream().map(v -> v.getValue()).collect(Collectors.toList()));
+				List.of(root.getValue()));
 		if (rootObjects.isEmpty()) {
 			return Optional.empty();
 		}
@@ -628,5 +632,22 @@ public class GridIndexDaoImpl implements GridIndexDao {
 	@Override
 	public <T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
 		return namedTemplate.query(sql, paramSource, rowMapper);
+	}
+
+	@Override
+	public Optional<LogicalTimestamp> findExistingConstant(String sessionIdString, Long replicaId, String jsonValue) {
+	    Long sessionId = validateReplica(sessionIdString, replicaId);
+	    try {
+	        return Optional.of(jdbcTempalte.queryForObject(
+	            "SELECT CON_REP, CON_SEQ FROM GRID_REPLICA_CON " +
+	            "WHERE SESSION_ID = ? AND REPLICA_ID = ? AND CON_VAL_HASH = CRC32(JSON_EXTRACT(?, '$')) " +
+	            "AND JSON_EXTRACT(CON_VAL, '$') = JSON_EXTRACT(?, '$') LIMIT 1",
+	            (rs, rowNum) -> new LogicalTimestamp()
+	                .setReplicaId(rs.getLong("CON_REP"))
+	                .setSequenceNumber(rs.getLong("CON_SEQ")),
+	            sessionId, replicaId, jsonValue, jsonValue));
+	    } catch (EmptyResultDataAccessException e) {
+	        return Optional.empty();
+	    }
 	}
 }

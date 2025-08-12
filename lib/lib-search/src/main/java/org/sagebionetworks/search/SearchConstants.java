@@ -35,7 +35,7 @@ public class SearchConstants {
 
 	public static final String OPEN_SEARCH_INDEX_NAME = "entities";
 
-	public static final String IS_OPENSEARCH_ENABLE = "is_opensearch_enable";
+	public static final String IS_OPENSEARCH_ENABLE = "isOpenSearchEnable";
 
 	public static final String DEFAULT_IS_OPENSEARCH_ENABLE = "false";
 

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,7 +98,8 @@ public class InsertArrayHandlerTest {
 		when(mockDao.findArrayInsertLocation(sessionId, replicaId, two)).thenReturn(Optional.of(ids.get(2)));
 
 		// call under test
-		handler.handleBatch(sessionId, replicaId, batch);
+		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, batch);
+		assertEquals(Set.of(two.getId()), changes);
 
 		verify(mockDao).insertIntoArray(sessionId, replicaId, two);
 		assertEquals(ids.get(2), two.getReferenceNodeId());

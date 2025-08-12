@@ -112,6 +112,10 @@ import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAs
 import software.amazon.awssdk.services.opensearchserverless.OpenSearchServerlessClient;
 import software.amazon.awssdk.services.opensearchserverless.model.CollectionDetail;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.ListTopicsRequest;
+import software.amazon.awssdk.services.sns.model.ListTopicsResponse;
+import software.amazon.awssdk.services.sns.model.Topic;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
@@ -488,6 +492,41 @@ public class ManagerConfiguration {
 	@Bean
 	public SqsClient createSqsClient(AwsCredentialsProvider credentialProvider) {
 		return SqsClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+
+	@Bean
+	public SnsClient createSnsClient(AwsCredentialsProvider credentialProvider) {
+		return SnsClient.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+
+	@Bean
+	public String gridReplicaChangeTopicArn(SnsClient client, StackConfiguration config) {
+		return getTopicArnByName(config.getQueueName("GRID_REPLICA_CHANGES"), client);
+	}
+
+	/**
+	 * Helper to lookup a SNS topic by its name.
+	 * 
+	 * @param topicName
+	 * @param snsClient
+	 * @return
+	 */
+	String getTopicArnByName(String topicName, SnsClient snsClient) {
+		String nextToken = null;
+		do {
+			ListTopicsResponse response = snsClient
+					.listTopics(ListTopicsRequest.builder().nextToken(nextToken).build());
+
+			Optional<Topic> foundTopic = response.topics().stream()
+					.filter(topic -> topic.topicArn().endsWith(":" + topicName)).findFirst();
+
+			if (foundTopic.isPresent()) {
+				return foundTopic.get().topicArn();
+			}
+			nextToken = response.nextToken();
+		} while (nextToken != null);
+
+		throw new RuntimeException("Topic not found: " + topicName);
 	}
 
 }

@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
 import java.util.Objects;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 
 public class RowObject {
 
@@ -40,6 +42,22 @@ public class RowObject {
 		return objectId;
 	}
 
+	public ValidationResults getRowValidationResults() {
+		return metadata != null ? metadata.getRowValidationResults() : null;
+	}
+
+	public RowValidation getRowValidation() {
+		return metadata != null ? metadata.getRowValidation() : null;
+	}
+	
+	public SynapseRow getSynapseRow() {
+		return metadata != null ? metadata.getSynapseRow() : null;
+	}
+
+	public JSONArray getCells() {
+		return data != null ? data.getCells() : null;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(data, metadata, objectId);
@@ -62,5 +80,7 @@ public class RowObject {
 	public String toString() {
 		return "RowObject [data=" + data + ", metadata=" + metadata + ", objectId=" + objectId + "]";
 	}
+
+
 
 }

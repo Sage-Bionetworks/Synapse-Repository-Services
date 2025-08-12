@@ -1,8 +1,10 @@
 package org.sagebionetworks.grid.db.handler;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,12 +32,13 @@ public class InsertValueHandler implements OperationHandler<InsertValue> {
 	}
 
 	@Override
-	public void handleBatch(String sessionId, Long replicaId, List<InsertValue> batch) {
+	public Set<LogicalTimestamp> handleBatch(String sessionId, Long replicaId, List<InsertValue> batch) {
 		Map<LogicalTimestamp, ValueNode> current = gridDao
 				.getValues(sessionId, replicaId,
 						batch.stream().map(InsertValue::getValueId).collect(Collectors.toList()))
 				.stream().collect(Collectors.toMap(ValueNode::getId, Function.identity()));
 
+		Set<LogicalTimestamp> changes = new LinkedHashSet<>();
 		List<ValueNode> toChange = new ArrayList<>();
 		batch.forEach(i -> {
 			ValueNode cur = current.get(i.getValueId());
@@ -44,9 +47,11 @@ public class InsertValueHandler implements OperationHandler<InsertValue> {
 			}
 			if (cur.attemptInsert(i)) {
 				toChange.add(cur);
+				changes.add(cur.getId());
 			}
 		});
 		gridDao.saveValues(sessionId, replicaId, toChange);
+		return changes;
 	}
 
 }

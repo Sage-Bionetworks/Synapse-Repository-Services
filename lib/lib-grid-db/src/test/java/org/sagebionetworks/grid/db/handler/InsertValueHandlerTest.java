@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +63,8 @@ public class InsertValueHandlerTest {
 						new ValueNode().setId(inserts.get(1).getValueId()).setValueFromJson("[7,8]")));
 
 		// call under test
-		handler.handleBatch(sessionId, replicaId, inserts);
+		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, inserts);
+		assertEquals(Set.of(inserts.get(0).getValueId()), changes);
 		// only the first items should be saved as the second is already set.
 		verify(mockDao).saveValues(sessionId, replicaId,
 				List.of(new ValueNode().setId(inserts.get(0).getValueId()).setValueFromJson("[3,4]")));

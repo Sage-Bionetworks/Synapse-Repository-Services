@@ -1,8 +1,11 @@
 package org.sagebionetworks.grid.db.handler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -43,9 +46,10 @@ public class NewObjectHandlerTest {
 	@Test
 	public void testHandleBatch() {
 		// call under test
-		handler.handleBatch(sessionId, replicaId, objects);
-		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.obj,
-				objects.stream().map(NewObject::getOperationId).collect(Collectors.toList()));
+		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, objects);
+		List<LogicalTimestamp> objectIds = objects.stream().map(NewObject::getOperationId).collect(Collectors.toList());
+		assertEquals(new LinkedHashSet<>(objectIds), changes);
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.obj, objectIds);
 		verify(mockDao).saveObjects(sessionId, replicaId,
 				objects.stream().map(o -> new ObjectNode().setId(o.getOperationId())).collect(Collectors.toList()));
 	}

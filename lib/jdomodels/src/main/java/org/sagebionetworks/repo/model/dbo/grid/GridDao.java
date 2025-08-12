@@ -37,7 +37,7 @@ public interface GridDao {
 	 * @param gridSessionId
 	 * @return
 	 */
-	Optional<GridSession> geGridSession(String gridSessionId);
+	Optional<GridSession> getGridSession(String gridSessionId);
 
 	/**
 	 * Create a new replica.

@@ -1,8 +1,11 @@
 package org.sagebionetworks.grid.db.handler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -53,9 +56,11 @@ public class NewConstantHandlerTest {
 	@Test
 	public void testHandleBatch() {
 		// call under test
-		handler.handleBatch(sessionId, replicaId, constants);
-		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con,
-				constants.stream().map(NewConstant::getOperationId).collect(Collectors.toList()));
+		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, constants);
+		List<LogicalTimestamp> conIds = constants.stream().map(NewConstant::getOperationId)
+				.collect(Collectors.toList());
+		assertEquals(new LinkedHashSet<>(conIds), changes);
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, conIds);
 		verify(mockDao).saveNewConstants(sessionId, replicaId,
 				constants.stream()
 						.map(c -> new ConstantNode().setId(c.getOperationId()).setValue(c.getValue().getValue()))

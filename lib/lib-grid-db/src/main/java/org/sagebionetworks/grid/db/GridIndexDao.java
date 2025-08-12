@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-public interface GridIndexDao {
+public interface GridIndexDao extends ConstantProvider {
 
 	/**
 	 * Create a new Replica, if it does not already exist. This the first step to

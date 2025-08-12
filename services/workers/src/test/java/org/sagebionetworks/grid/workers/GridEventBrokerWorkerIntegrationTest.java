@@ -30,6 +30,9 @@ import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -60,6 +63,7 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -113,6 +117,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 	@Autowired
 	private GridIndexManager gridIndexManager;
+
+	@Autowired
+	private GridReplicaViewManager gridViewManager;
 
 	private UserInfo admin;
 
@@ -403,14 +410,17 @@ public class GridEventBrokerWorkerIntegrationTest {
 		}, incomingMessagesOne));
 
 		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-			List<LogicalTimestamp> clock = gridIndexManager.getClock(session.getSessionId(), INTERNAL_REPLICA_ID);
-			List<LogicalTimestamp> expected = List
-					.of(new LogicalTimestamp().setReplicaId(INTERNAL_REPLICA_ID).setSequenceNumber(25L));
-			System.out.println(
-					String.format("Waiting for the internal replica's clock to be: '%s' Replicas's current clock: '%s'",
-							expected, clock));
-
-			return Pair.create(expected.equals(clock), null);
+			System.out.println("Waiting for row validation results to change...");
+			Optional<GridHeader> header = gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID);
+			if (header.isEmpty()) {
+				return Pair.create(false, null);
+			}
+			List<RowView> rows = gridViewManager.querySinglePage(header.get(), 100L, 0L);
+			if (rows.size() != 1) {
+				return Pair.create(false, null);
+			}
+			return Pair.create(new ValidationResults().setIsValid(true).equals(rows.get(0).getRowValidationResults()),
+					null);
 		});
 	}
 

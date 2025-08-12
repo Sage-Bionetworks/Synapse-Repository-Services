@@ -85,7 +85,7 @@ public class GridDaoImplTest {
 		assertNull(session.getGridJsonSchema$Id());
 
 		// call under test
-		GridSession back = dao.geGridSession(session.getSessionId()).get();
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 	}
 
@@ -106,7 +106,7 @@ public class GridDaoImplTest {
 		assertEquals("someorg-someschema", session.getGridJsonSchema$Id());
 
 		// call under test
-		GridSession back = dao.geGridSession(session.getSessionId()).get();
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 		assertEquals(session, back);
 	}
@@ -114,7 +114,7 @@ public class GridDaoImplTest {
 	@Test
 	public void getGridSessionDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.geGridSession("doesnotexist"));
+		assertEquals(Optional.empty(), dao.getGridSession("doesnotexist"));
 	}
 
 	@Test
@@ -147,7 +147,7 @@ public class GridDaoImplTest {
 		assertEquals(session.getLastReplicaIdClient() + 1L, replica.getReplicaId());
 
 		// session's etag, modified and last repId should have changed.
-		GridSession updated = dao.geGridSession(session.getSessionId()).get();
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
 		assertNotEquals(updated.getEtag(), session.getEtag());
 		assertTrue(updated.getModifiedOn().getTime() > session.getModifiedOn().getTime());
 		assertEquals(updated.getLastReplicaIdClient(), session.getLastReplicaIdClient() + 1L);
@@ -155,7 +155,7 @@ public class GridDaoImplTest {
 		assertEquals(updated.getLastReplicaIdService(), session.getLastReplicaIdService());
 
 		// the other session should not have changed.
-		assertEquals(other, dao.geGridSession(other.getSessionId()).get());
+		assertEquals(other, dao.getGridSession(other.getSessionId()).get());
 	}
 
 	@Test
@@ -175,7 +175,7 @@ public class GridDaoImplTest {
 		assertEquals(session.getLastReplicaIdService() - 1L, replica.getReplicaId());
 
 		// session's etag, modified and last repId should have changed.
-		GridSession updated = dao.geGridSession(session.getSessionId()).get();
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
 		assertNotEquals(updated.getEtag(), session.getEtag());
 		assertTrue(updated.getModifiedOn().getTime() > session.getModifiedOn().getTime());
 		assertEquals(updated.getLastReplicaIdService(), session.getLastReplicaIdService() - 1L);
