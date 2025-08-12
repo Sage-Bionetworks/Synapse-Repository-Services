@@ -66,10 +66,10 @@ public class PatchRowHandler implements RowHandler {
 		objectMap.put("columnNames", columnNames.getOperationId());
 		objectMap.put("columnOrder", columnOrder.getOperationId());
 		objectMap.put("rows", rows.getOperationId());
-		InsertObject insertIntoRootObject = currentPatch.addNewOperation(
+		currentPatch.addNewOperation(
 				Operations.insertObject().withObjectId(rootObject.getOperationId()).withMap(objectMap)
 		);
-		InsertValue insertRootValue = currentPatch.addNewOperation(Operations.insertValue()
+		currentPatch.addNewOperation(Operations.insertValue()
 				.withValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
 				.withReferenceId(rootObject.getOperationId())
 		);
