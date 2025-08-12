@@ -50,7 +50,7 @@ public class Patch {
 	 * Factory Method that accepts any valid OperationBuilder.
 	 * It generates the ID and asks the builder to construct the final object.
 	 */
-	public <T extends Operation<T>> T addNewOperation(OperationBuilder<T, ?> builder) {
+	public <T extends Operation<T>> T addNewOperation(OperationBuilder<T> builder) {
 		try {
 			if (operations == null) {
 				operations = new ArrayList<>();

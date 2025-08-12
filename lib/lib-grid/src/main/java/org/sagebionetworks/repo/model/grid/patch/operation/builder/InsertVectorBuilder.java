@@ -2,20 +2,19 @@ package org.sagebionetworks.repo.model.grid.patch.operation.builder;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
-import org.sagebionetworks.util.ValidateArgument;
 
 import java.util.Map;
 
-public final class InsertVectorBuilder extends OperationBuilder<InsertVector, InsertVectorBuilder> {
+public final class InsertVectorBuilder extends OperationBuilder<InsertVector> {
     private LogicalTimestamp vectorId;
     private Map<Integer, LogicalTimestamp> map;
 
-    public InsertVectorBuilder withVectorId(LogicalTimestamp objectId) {
+    public InsertVectorBuilder setVectorId(LogicalTimestamp objectId) {
         this.vectorId = objectId;
         return this;
     }
 
-    public InsertVectorBuilder withMap(Map<Integer, LogicalTimestamp> map) {
+    public InsertVectorBuilder setMap(Map<Integer, LogicalTimestamp> map) {
         this.map = map;
         return this;
     }

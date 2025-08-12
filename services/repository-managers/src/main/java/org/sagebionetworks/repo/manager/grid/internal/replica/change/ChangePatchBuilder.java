@@ -12,9 +12,9 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewConstantBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
-import org.sagebionetworks.repo.model.grid.patch.operation.OperationBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.OperationBuilder;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class ChangePatchBuilder implements Closeable, PatchBuilder {

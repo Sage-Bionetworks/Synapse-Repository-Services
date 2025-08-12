@@ -26,9 +26,7 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertObjectBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -101,8 +99,8 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// rename column b.
 		Patch patch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
-		NewConstant b2 = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "b2")));
-		patch.addNewOperation(Operations.insertVector().withVectorId(columnNamesVecId).withMap(Map.of(1, b2.getOperationId())));
+		NewConstant b2 = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, "b2")));
+		patch.addNewOperation(Operations.insertVector().setVectorId(columnNamesVecId).setMap(Map.of(1, b2.getOperationId())));
 		gridIndexManger.applyPatch(sessionId, replicaId, patch);
 
 		expected.getOrderedColumns().get(1).setName("b2");
@@ -112,13 +110,13 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// insert a new column at zero
 		patch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
-		NewConstant c = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "c")));
-		NewConstant two = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, 2L)));
-		patch.addNewOperation(Operations.insertVector().withVectorId(columnNamesVecId).withMap(Map.of(2, c.getOperationId())));
+		NewConstant c = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, "c")));
+		NewConstant two = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, 2L)));
+		patch.addNewOperation(Operations.insertVector().setVectorId(columnNamesVecId).setMap(Map.of(2, c.getOperationId())));
 		patch.addNewOperation(Operations.insertArray()
-				.withArrayId(columnOrderArrayId)
-				.withReferenceId(columnOrderArrayId)
-				.withElementIds(List.of(two.getOperationId()))
+				.setArrayId(columnOrderArrayId)
+				.setReferenceId(columnOrderArrayId)
+				.setElementIds(List.of(two.getOperationId()))
 		);
 		gridIndexManger.applyPatch(sessionId, replicaId, patch);
 		assertEquals(List.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(123L)),
@@ -256,8 +254,9 @@ public class GridReplicaViewManagerImplAutowireTest {
 		ValidationResults validation = new ValidationResults().setIsValid(true);
 		JSONObject validationJson = EntityFactory.createJSONObjectForEntity(validation);
 		LogicalTimestamp conId = patch
-				.addNewOperation(new NewConstantBuilder().setValue(new ConValue(ConType.JSON_OBJECT, validationJson)));
-		patch.addNewOperation(new InsertObjectBuilder().setObjectId(four.getRowMetadata().getObjectId())
+				.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.JSON_OBJECT, validationJson)))
+				.getOperationId();
+		patch.addNewOperation(Operations.insertObject().setObjectId(four.getRowMetadata().getObjectId())
 				.setMap(Map.of("rowValidation", conId)));
 
 		gridIndexManger.applyPatch(sessionId, replicaId, patch);
@@ -274,14 +273,14 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 	void addSynapseMetadataToRow(Patch toExtend, RowView row, SynapseRow toAdd) {
 		toExtend.addNewOperation(Operations.insertObject()
-						.withObjectId(row.getRowObject().getMetadata().getSynapseRow().getObjectId())
-						.withMap(Map.of(
+						.setObjectId(row.getRowObject().getMetadata().getSynapseRow().getObjectId())
+						.setMap(Map.of(
 								//
-								"rowId", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, toAdd.getRowId()))).getOperationId()
+								"rowId", toExtend.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, toAdd.getRowId()))).getOperationId()
 								//
-								, "versionNumber", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, toAdd.getVersionNumber()))).getOperationId()
+								, "versionNumber", toExtend.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, toAdd.getVersionNumber()))).getOperationId()
 								//
-								, "etag", toExtend.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, toAdd.getEtag()))).getOperationId()))
+								, "etag", toExtend.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, toAdd.getEtag()))).getOperationId()))
 				);
 
 	}

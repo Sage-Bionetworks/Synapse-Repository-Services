@@ -82,8 +82,8 @@ public class GridIndexManagerAutowiredTest {
         lastRowRef = rows.getOperationId();
         patch.addNewOperation(
                 Operations.insertObject()
-                        .withObjectId(obj.getOperationId())
-                        .withMap(Collections.singletonMap("rows", rows.getOperationId()))
+                        .setObjectId(obj.getOperationId())
+                        .setMap(Collections.singletonMap("rows", rows.getOperationId()))
         );
 
         savePatch();
@@ -91,18 +91,18 @@ public class GridIndexManagerAutowiredTest {
             NewVector row = patch.addNewOperation(Operations.newVector());
             Map<Integer, LogicalTimestamp> cellValues = new LinkedHashMap<>();
             for (int i = 0; i < nCol; i++) {
-                NewConstant newConstant = patch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, i + "-" + j)));
+                NewConstant newConstant = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, i + "-" + j)));
                 cellValues.put(i, newConstant.getOperationId());
             }
             patch.addNewOperation(Operations.insertVector()
-                    .withVectorId(row.getOperationId())
-                    .withMap(cellValues)
+                    .setVectorId(row.getOperationId())
+                    .setMap(cellValues)
             );
 
             InsertArray insertArrayOperation = patch.addNewOperation(Operations.insertArray()
-                    .withArrayId(rows.getOperationId())
-                    .withReferenceId(lastRowRef)
-                    .withElementIds(Collections.singletonList(row.getOperationId()))
+                    .setArrayId(rows.getOperationId())
+                    .setReferenceId(lastRowRef)
+                    .setElementIds(Collections.singletonList(row.getOperationId()))
             );
 
             if (j % rowsPerPatch == 0) {

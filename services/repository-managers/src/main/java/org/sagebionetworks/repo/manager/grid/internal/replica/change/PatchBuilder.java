@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
-import org.sagebionetworks.repo.model.grid.patch.operation.OperationBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.OperationBuilder;
 
 public interface PatchBuilder {
 

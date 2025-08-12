@@ -5,23 +5,23 @@ import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 
 import java.util.List;
 
-public final class InsertArrayBuilder extends OperationBuilder<InsertArray, InsertArrayBuilder> {
+public final class InsertArrayBuilder extends OperationBuilder<InsertArray> {
     private LogicalTimestamp arrayId;
     private LogicalTimestamp referenceId;
     private List<LogicalTimestamp> elementIds;
 
 
-    public InsertArrayBuilder withArrayId(LogicalTimestamp arrayId) {
+    public InsertArrayBuilder setArrayId(LogicalTimestamp arrayId) {
         this.arrayId = arrayId;
         return this;
     }
 
-    public InsertArrayBuilder withReferenceId(LogicalTimestamp referenceId) {
+    public InsertArrayBuilder setReferenceId(LogicalTimestamp referenceId) {
         this.referenceId = referenceId;
         return this;
     }
 
-    public InsertArrayBuilder withElementIds(List<LogicalTimestamp> elementIds) {
+    public InsertArrayBuilder setElementIds(List<LogicalTimestamp> elementIds) {
         this.elementIds = elementIds;
         return this;
     }

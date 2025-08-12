@@ -52,12 +52,12 @@ public class PatchTest {
 	public void testAddNewOperationWithInsertArrays() {
 		Patch patch = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
 		// call under test
-		InsertArray op = patch.addNewOperation(Operations.insertArray().withElementIds(listOne).withArrayId(arrayId).withReferenceId(referenceId));
+		InsertArray op = patch.addNewOperation(Operations.insertArray().setElementIds(listOne).setArrayId(arrayId).setReferenceId(referenceId));
 		InsertArray expected = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), arrayId, referenceId, listOne);
 		assertEquals(expected, op);
 
 		// call under test
-		InsertArray op2 = patch.addNewOperation(Operations.insertArray().withElementIds(listTwo).withArrayId(arrayId).withReferenceId(referenceId));
+		InsertArray op2 = patch.addNewOperation(Operations.insertArray().setElementIds(listTwo).setArrayId(arrayId).setReferenceId(referenceId));
 		InsertArray expected2 = new InsertArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(4L), arrayId, referenceId, listTwo);
 		assertEquals(expected2, op2);
 

@@ -9,8 +9,6 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
@@ -55,7 +53,7 @@ public class PatchRowHandler implements RowHandler {
 		// initialize an empty document
 
 		NewObject rootObject = currentPatch.addNewOperation(Operations.newObject());
-		NewConstant documentVersion = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, "0.1.0")));
+		NewConstant documentVersion = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, "0.1.0")));
 		NewVector columnNames = currentPatch.addNewOperation(Operations.newVector());
 		NewArray columnOrder = currentPatch.addNewOperation(Operations.newArray());
 		NewArray rows = currentPatch.addNewOperation(Operations.newArray());
@@ -67,11 +65,11 @@ public class PatchRowHandler implements RowHandler {
 		objectMap.put("columnOrder", columnOrder.getOperationId());
 		objectMap.put("rows", rows.getOperationId());
 		currentPatch.addNewOperation(
-				Operations.insertObject().withObjectId(rootObject.getOperationId()).withMap(objectMap)
+				Operations.insertObject().setObjectId(rootObject.getOperationId()).setMap(objectMap)
 		);
 		currentPatch.addNewOperation(Operations.insertValue()
-				.withValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
-				.withReferenceId(rootObject.getOperationId())
+				.setValueId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
+				.setReferenceId(rootObject.getOperationId())
 		);
 
 		if (!schema.isEmpty()) {
@@ -82,20 +80,20 @@ public class PatchRowHandler implements RowHandler {
 			for (int i = 0; i < schema.size(); i++) {
 				ColumnModel cm = schema.get(i);
 				// column name
-				NewConstant nameConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, cm.getName())));
+				NewConstant nameConst = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, cm.getName())));
 				columnNameMap.put(i, nameConst.getOperationId());
 				// column index
-				NewConstant columnIndex = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, i)));
+				NewConstant columnIndex = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, i)));
 				indexList.add(columnIndex.getOperationId());
 
 				translators[i] = ColumnTypeToConType.lookUpType(cm.getColumnType()).getTranslator();
 
 			}
 			currentPatch.addNewOperation(Operations.insertVector()
-					.withVectorId(columnNames.getOperationId())
-					.withMap(columnNameMap));
-			currentPatch.addNewOperation(Operations.insertArray().withArrayId(columnOrder.getOperationId())
-					.withReferenceId(columnOrder.getOperationId()).withElementIds(indexList));
+					.setVectorId(columnNames.getOperationId())
+					.setMap(columnNameMap));
+			currentPatch.addNewOperation(Operations.insertArray().setArrayId(columnOrder.getOperationId())
+					.setReferenceId(columnOrder.getOperationId()).setElementIds(indexList));
 		} else {
 			translators = new Translator[0];
 		}
@@ -125,8 +123,8 @@ public class PatchRowHandler implements RowHandler {
 		metadataMapForRow.put("synapseRow", synapseRowMetadata.getOperationId());
 
 		currentPatch.addNewOperation(Operations.insertObject()
-				.withObjectId(metadataObjectForRow.getOperationId())
-				.withMap(metadataMapForRow)
+				.setObjectId(metadataObjectForRow.getOperationId())
+				.setMap(metadataMapForRow)
 		);
 
 		return metadataObjectForRow;
@@ -154,27 +152,27 @@ public class PatchRowHandler implements RowHandler {
 		Map<String, LogicalTimestamp> synapseRowMetadataObjectMap = new LinkedHashMap<>();
 		Long rowId = row.getRowId();
 		if (rowId != null) {
-			NewConstant rowIdConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, rowId)));
+			NewConstant rowIdConst = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, rowId)));
 			synapseRowMetadataObjectMap.put("rowId", rowIdConst.getOperationId());
 		}
 
 		Long versionNumber = row.getVersionNumber();
 		if (versionNumber != null) {
-			NewConstant versionNumberConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.LONG, versionNumber)));
+			NewConstant versionNumberConst = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, versionNumber)));
 			synapseRowMetadataObjectMap.put("versionNumber", versionNumberConst.getOperationId());
 		}
 
 		String etag = row.getEtag();
 		if (etag != null) {
-			NewConstant etagConst = currentPatch.addNewOperation(Operations.newConstant().withValue(new ConValue(ConType.STRING, etag)));
+			NewConstant etagConst = currentPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, etag)));
 			synapseRowMetadataObjectMap.put("etag", etagConst.getOperationId());
 		}
 
 		if (!synapseRowMetadataObjectMap.isEmpty()) {
 			// fill the `synapseRow` object
 			currentPatch.addNewOperation(Operations.insertObject()
-                    .withObjectId(synapseRowMetadata.getOperationId())
-					.withMap(synapseRowMetadataObjectMap));
+                    .setObjectId(synapseRowMetadata.getOperationId())
+					.setMap(synapseRowMetadataObjectMap));
 		}
 		return synapseRowMetadata;
 	}
@@ -191,13 +189,13 @@ public class PatchRowHandler implements RowHandler {
 		for (int i = 0; i < row.getValues().size(); i++) {
 			String cellValue = row.getValues().get(i);
 			NewConstant con = currentPatch.addNewOperation(
-					Operations.newConstant().withValue(translators[i].translateNullable(cellValue))
+					Operations.newConstant().setValue(translators[i].translateNullable(cellValue))
 			);
 			cellValues.put(i, con.getOperationId());
 		}
 		currentPatch.addNewOperation(Operations.insertVector()
-				.withVectorId(rowValuesVector.getOperationId())
-				.withMap(cellValues)
+				.setVectorId(rowValuesVector.getOperationId())
+				.setMap(cellValues)
 		);
 
 		return rowValuesVector;
@@ -215,14 +213,14 @@ public class PatchRowHandler implements RowHandler {
 		rowObjectMap.put("data", rowData.getOperationId());
 		rowObjectMap.put("metadata", rowMetadata.getOperationId());
 		currentPatch.addNewOperation(Operations.insertObject()
-				.withObjectId(rowObject.getOperationId())
-				.withMap(rowObjectMap)
+				.setObjectId(rowObject.getOperationId())
+				.setMap(rowObjectMap)
 		);
 
 		InsertArray insertArray = currentPatch.addNewOperation(Operations.insertArray()
-				.withArrayId(rowsArrayRef)
-				.withReferenceId(lastRowRef)
-				.withElementIds(Collections.singletonList(rowObject.getOperationId()))
+				.setArrayId(rowsArrayRef)
+				.setReferenceId(lastRowRef)
+				.setElementIds(Collections.singletonList(rowObject.getOperationId()))
 		);
 
 		lastRowRef = insertArray.getOperationId();

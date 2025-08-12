@@ -12,7 +12,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
-import org.sagebionetworks.repo.model.grid.patch.operation.OperationBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.OperationBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
 import org.sagebionetworks.util.ValidateArgument;
 

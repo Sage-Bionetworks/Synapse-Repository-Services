@@ -26,9 +26,9 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertObjectBuilder;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewConstantBuilder;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 
 @ExtendWith(MockitoExtension.class)
 public class ChangePatchBuilderTest {
@@ -128,7 +128,7 @@ public class ChangePatchBuilderTest {
 				.addOperationBuilder(new NewConstantBuilder().setValue(new ConValue(ConType.STRING, "bar")));
 		assertEquals(LogicalTimestamp.newIncrement(currentClock, 1), barId);
 
-		LogicalTimestamp newObId = builder.addOperationBuilder(new NewObjectBuilder());
+		LogicalTimestamp newObId = builder.addOperationBuilder(Operations.newObject());
 		LinkedHashMap<String, LogicalTimestamp> obMap = new LinkedHashMap<>();
 		obMap.put("fooKey", fooResult);
 		obMap.put("barKey", barId);

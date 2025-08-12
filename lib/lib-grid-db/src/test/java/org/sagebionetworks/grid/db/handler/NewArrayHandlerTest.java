@@ -18,6 +18,7 @@ import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewArray;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 
 @ExtendWith(MockitoExtension.class)
 public class NewArrayHandlerTest {
@@ -38,8 +39,8 @@ public class NewArrayHandlerTest {
 		sessionId = "sessionOne";
 		replicaId = 123L;
 
-		arrays = List.of(new NewArray().setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
-				new NewArray().setOperationId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
+		arrays = List.of(new NewArray(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)),
+				new NewArray(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
 	}
 
 	@Test

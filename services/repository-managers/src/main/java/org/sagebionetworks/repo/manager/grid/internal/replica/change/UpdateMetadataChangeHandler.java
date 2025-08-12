@@ -5,9 +5,9 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertObjectBuilder;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewConstantBuilder;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewObjectBuilder;
 import org.springframework.stereotype.Component;
 
 @Component
