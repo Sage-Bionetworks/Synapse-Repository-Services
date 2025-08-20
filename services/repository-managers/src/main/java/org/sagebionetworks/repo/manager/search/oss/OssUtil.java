@@ -6,6 +6,8 @@ import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.LongTermsAggregate;
+import org.opensearch.client.opensearch._types.aggregations.LongTermsBucket;
 import org.opensearch.client.opensearch._types.aggregations.StringTermsAggregate;
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
@@ -28,9 +30,7 @@ import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
 import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.search.IndexFieldToSynapseFacetType;
 import org.sagebionetworks.search.SearchConstants;
-import org.sagebionetworks.search.awscloudsearch.SynapseToCloudSearchField;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.util.CollectionUtils;
 
@@ -144,8 +144,8 @@ public class OssUtil {
                 }
                 SortOrder finalOrder = order;
                 // facet filed value should be exactly same as it is in DocumentField class
-                String filedValue = SynapseToOpenSearchField.OpenSearchFieldFor(facet.getName());
-                aggregations.put(facet.getName().name(), Aggregation.of(a -> a
+                String filedValue = SynapseToOpenSearchAggregationField.openSearchFieldFor(facet.getName());
+                aggregations.put(filedValue, Aggregation.of(a -> a
                         .terms(t -> t
                                 .field(filedValue)
                                 .size(Math.toIntExact(facet.getMaxResultCount()))
@@ -204,24 +204,34 @@ public class OssUtil {
 
         for (Map.Entry<String, Aggregate> entry : aggregationMap.entrySet()) {
             String facetName = entry.getKey();
+
+            Facet facet = new Facet();
+            facet.setName(facetName);
+            FacetTypeNames facetType = OpenSearchFieldType.fieldType(SynapseToOpenSearchAggregationField.synapseFieldFor(facetName));
+            facet.setType(facetType);
+            List<FacetConstraint> constraints = new ArrayList<>();
+
             Aggregate aggregate = entry.getValue();
+
             if (aggregate.isSterms()) {
                 StringTermsAggregate termsAgg = aggregate.sterms();
-                Facet facet = new Facet();
-                facet.setName(facetName);
-                FacetTypeNames facetType = IndexFieldToSynapseFacetType.getSynapseFacetType(SynapseToCloudSearchField.cloudSearchFieldFor(facetName).getType());
-                facet.setType(facetType);
 
-                List<FacetConstraint> constraints = new ArrayList<>();
                 for (StringTermsBucket bucket : termsAgg.buckets().array()) {
                     FacetConstraint constraint = new FacetConstraint();
                     constraint.setValue(bucket.key());
                     constraint.setCount(bucket.docCount());
                     constraints.add(constraint);
                 }
-                facet.setConstraints(constraints);
-                facetList.add(facet);
+            } else if (aggregate.isLterms()) {
+                LongTermsAggregate termsAgg = aggregate.lterms();
+
+                for (LongTermsBucket bucket : termsAgg.buckets().array()) {
+                    constraints.add(new FacetConstraint().setValue(bucket.key()).setCount(bucket.docCount()));
+                }
             }
+
+            facet.setConstraints(constraints);
+            facetList.add(facet);
         }
 
         return facetList;
