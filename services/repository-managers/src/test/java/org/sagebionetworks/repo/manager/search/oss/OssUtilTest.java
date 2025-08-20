@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.search.oss;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 import jakarta.json.Json;
 import jakarta.json.stream.JsonGenerator;
@@ -11,7 +10,9 @@ import org.opensearch.client.json.JsonpMapper;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.LongTermsBucket;
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.RangeQuery;
@@ -37,10 +38,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
 
 public class OssUtilTest {
@@ -295,7 +298,72 @@ public class OssUtilTest {
     }
 
     @Test
-    public void testGenerateSearchRequestWithFacetOrderDesc() throws JsonProcessingException {
+    public void testGenerateSearchRequestWithFacetOrderDesc() {
+        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
+                        .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                        .filter(List.of(
+                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                                Query.of(tq -> tq.terms(t -> t
+                                        .field(FIELD_ACL)
+                                        .terms(queryTerm -> queryTerm.value(
+                                                userGroups.stream()
+                                                        .map(FieldValue::of)
+                                                        .collect(Collectors.toList())
+                                        ))))))))
+
+                .aggregations(Map.of(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.EntityType), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.EntityType))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(300))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Consortium), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Consortium))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.ModifiedOn), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.ModifiedOn))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.ModifiedBy), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.ModifiedBy))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.CreatedOn), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.CreatedOn))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.CreatedBy), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.CreatedBy))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Id), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Id))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Diagnosis), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Diagnosis))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Tissue), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Tissue))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))),
+                        SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Organ), Aggregation.of(a -> a
+                                .terms(t -> t
+                                        .field(SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.Organ))
+                                        .order((List.of(Map.of("_count", SortOrder.Desc))))
+                                        .size(Math.toIntExact(searchFacetOption.getMaxResultCount()))))
+                ));
+
+        SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq)
@@ -310,15 +378,33 @@ public class OssUtilTest {
                         new SearchFacetOption().setName(SearchFieldName.Diagnosis).setSortType(SearchFacetSort.COUNT).setMaxResultCount(300l),
                         new SearchFacetOption().setName(SearchFieldName.Tissue).setSortType(SearchFacetSort.COUNT).setMaxResultCount(300l),
                         new SearchFacetOption().setName(SearchFieldName.Organ).setSortType(SearchFacetSort.COUNT).setMaxResultCount(300l)
-                        )));
+                )));
         assertEquals(1, request.query().bool().must().size());
         assertEquals(2, request.query().bool().filter().size());
         assertEquals(10, request.aggregations().size());
-
+        assertTrue(assertAggregatesEqual(expectedRequest.aggregations(), request.aggregations()));
     }
 
     @Test
     public void testGenerateSearchRequestWithFacetOrderAsc() {
+        expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1
+                        .must(Query.of(q1 -> q1.matchAll(m -> m)))
+                        .filter(List.of(
+                                Query.of(q2 -> q2.term(TermQuery.of(t -> t.field(bq.get(0).getKey()).value(FieldValue.of(bq.get(0).getValue()))))),
+                                Query.of(tq -> tq.terms(t -> t
+                                        .field(FIELD_ACL)
+                                        .terms(queryTerm -> queryTerm.value(
+                                                userGroups.stream()
+                                                        .map(FieldValue::of)
+                                                        .collect(Collectors.toList())
+                                        ))))))))
+                .aggregations("node_type", Aggregation.of(a -> a
+                        .terms(t -> t
+                                .field("node_type")
+                                .order((List.of(Map.of("_count", SortOrder.Asc))))
+                                .size(Math.toIntExact(searchFacetOption.getMaxResultCount())))));
+
+        SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
         SearchRequest request = OssUtil.generateSearchRequest(userInfo, query.setBooleanQuery(bq)
@@ -326,6 +412,10 @@ public class OssUtilTest {
         assertEquals(1, request.query().bool().must().size());
         assertEquals(2, request.query().bool().filter().size());
         assertEquals(1, request.aggregations().size());
+
+        String actualJson = toJson(request);
+        String expectedJson = toJson(expectedRequest);
+        assertEquals(expectedJson, actualJson);
     }
 
     @Test
@@ -424,26 +514,40 @@ public class OssUtilTest {
     @Test
     public void testConvertToSynapseSearchResult() {
         DocumentFields document = getDocument();
-        String filedValue = SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.EntityType);
-        String bucketKey = "project";
+        String nodeType = SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.EntityType);
+        String createdON = SynapseToOpenSearchAggregationField.openSearchFieldFor(SearchFieldName.CreatedOn);
+        String nodeBucketKey = "project";
+        String createdOnBucketKey = "1234567";
         SearchResponse<DocumentFields> response = SearchResponse.searchResponseOf(res -> res.documents(document)
                 .shards(shard -> shard.total(1).failed(0l).successful(1l))
-                .aggregations(filedValue, a -> a.
-                        sterms(terms -> terms
-                                .buckets(buckets -> buckets.array(Arrays.asList(
-                                        StringTermsBucket.of(b -> b.key(bucketKey).docCount(100L))
-                                ))).sumOtherDocCount(0))).timedOut(false).took(10).hits(hh -> hh.hits(ht -> ht.source(document).id("id")
+                .aggregations(Map.of(nodeType, Aggregate.of(a -> a
+                                        .sterms(terms -> terms
+                                                .buckets(buckets -> buckets.array(Arrays.asList(
+                                                        StringTermsBucket.of(b -> b.key(nodeBucketKey).docCount(100L))
+                                                ))).sumOtherDocCount(0))),
+                                createdON, Aggregate.of(a -> a
+                                        .lterms(terms -> terms
+                                                .buckets(buckets -> buckets.array(Arrays.asList(
+                                                        LongTermsBucket.of(b -> b.key(createdOnBucketKey).docCount(100L))
+                                                ))).sumOtherDocCount(0)))
+                        )
+                )
+                .timedOut(false).took(10).hits(hh -> hh.hits(ht -> ht.source(document).id("id")
                         .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)).total(t -> t.value(1l).relation(TotalHitsRelation.valueOf("Eq")))));
 
 
         SearchResults expectedSynapseSearchResults = new SearchResults().setFound(1l).setStart(5l).setFacets(List.of(
-                        new Facet().setName(filedValue).setType(OpenSearchFieldType.fieldType(SynapseToOpenSearchAggregationField.synapseFieldFor(filedValue)))
-                                .setConstraints(List.of(new FacetConstraint().setCount(100l).setValue(bucketKey)))))
+                        new Facet().setName(createdON).setType(OpenSearchFieldType.fieldType(SynapseToOpenSearchAggregationField.synapseFieldFor(createdON)))
+                                .setConstraints(List.of(new FacetConstraint().setCount(100l).setValue(createdOnBucketKey))),
+                        new Facet().setName(nodeType).setType(OpenSearchFieldType.fieldType(SynapseToOpenSearchAggregationField.synapseFieldFor(nodeType)))
+                                .setConstraints(List.of(new FacetConstraint().setCount(100l).setValue(nodeBucketKey)))))
                 .setHits(List.of(getHitFromDocument(document)));
 
         //call under test
         SearchResults results = OssUtil.convertToSynapseSearchResult(response, 5);
-        assertEquals(expectedSynapseSearchResults, results);
+        results.getFacets().sort((o1, o2) -> o1.getName().compareTo(o2.getName()));
+        assertEquals(2, results.getFacets().size());
+        assertEquals(expectedSynapseSearchResults.getFacets(), results.getFacets());
 
     }
 
@@ -481,6 +585,41 @@ public class OssUtilTest {
         searchRequest.serialize(generator, mapper);
         generator.close();
         return writer.toString();
+    }
+
+    public boolean assertAggregatesEqual(Map<String, Aggregation> expected, Map<String, Aggregation> actual) {
+        if (expected == null && actual == null) {
+            return true;
+        }
+        if (expected == null || actual == null) {
+            return false;
+        }
+        if (expected.size() != actual.size()) {
+            return false;
+        }
+
+        // 2. Iterate and compare each entry
+        for (Map.Entry<String, Aggregation> entry : expected.entrySet()) {
+            String key = entry.getKey();
+
+            Aggregation expectedAgg = entry.getValue();
+
+            // Ensure the key exists in the actual map
+            if (!actual.containsKey(key)) {
+                return false;
+            }
+            Aggregation actualAgg = entry.getValue();
+
+            if (!Objects.equals(expectedAgg.terms().field(), actualAgg.terms().field())) {
+                return false;
+            } else if (!Objects.equals(expectedAgg.terms().size(), actualAgg.terms().size())) {
+                return false;
+            } else if (!Objects.equals(expectedAgg.terms().order(), actualAgg.terms().order())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }
