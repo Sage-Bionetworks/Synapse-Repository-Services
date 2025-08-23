@@ -73,7 +73,7 @@ public class MarkdownDaoImplTest {
 		assertEquals(rawMarkdown, jsonPayload.getString(MARKDOWN));
 		assertTrue(jsonPayload.has(OUTPUT));
 		assertEquals("https://www.synapse.org", jsonPayload.getString(BASE_URL));
-		assertEquals("dev-markdown-it-function-mdlambda-i5s7dyGFXgaC", invokeRequest.getFunctionName());
+		assertEquals("dev-markdownit:prod", invokeRequest.getFunctionName());
 
 	}
 
@@ -104,7 +104,7 @@ public class MarkdownDaoImplTest {
 		assertEquals(rawMarkdown, jsonResponse.getString(MARKDOWN));
 		assertTrue(jsonResponse.has(OUTPUT));
 		assertEquals("https://www.synapse.org", jsonResponse.getString(BASE_URL));
-		assertEquals("dev-markdown-it-function-mdlambda-i5s7dyGFXgaC", invokeRequest.getFunctionName());
+		assertEquals("dev-markdownit:prod", invokeRequest.getFunctionName());
 		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 
 	}

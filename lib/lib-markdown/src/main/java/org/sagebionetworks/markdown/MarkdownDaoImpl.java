@@ -16,7 +16,7 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	public static final String OUTPUT = "output";
 	public static final String RESULT = "result";
 	public static final String BASE_URL = "baseURL";
-	public static final String FUNCTION_NAME = "dev-markdown-it-function-mdlambda-i5s7dyGFXgaC";
+	public static final String FUNCTION_NAME = "dev-markdownit:prod";
 
 	@Autowired
 	private AWSLambda lambdaClient;
