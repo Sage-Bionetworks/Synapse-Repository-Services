@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.search.oss;
 
 
+import com.google.common.collect.Lists;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,15 +23,25 @@ import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.core.bulk.DeleteOperation;
 import org.opensearch.client.opensearch.core.bulk.OperationType;
 import org.opensearch.client.opensearch.core.search.Hit;
+import org.opensearch.client.opensearch.core.search.TotalHits;
+import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -57,6 +69,8 @@ public class SearchManagerImplTest {
     LoggerProvider mockLoggerProvider;
     @Mock
     OpenSearchIndexInitializer mockOpenSearchIndexInitializer;
+    @Mock
+    SearchDocumentDriver mockSearchDocumentDriver;
     Document document;
     @Mock
     private OpenSearchClient mockSearchClient;
@@ -69,7 +83,7 @@ public class SearchManagerImplTest {
         document.setType(DocumentTypeNames.add);
         document.setId("syn1");
         document.setFields(new DocumentFields().setName("test").setEtag("etag"));
-        mockSearchManager = new SearchManagerImpl(mockLoggerProvider, mockTranslator, mockOpenSearchIndexInitializer, mockSearchClient);
+        mockSearchManager = new SearchManagerImpl(mockLoggerProvider, mockTranslator, mockOpenSearchIndexInitializer, mockSearchClient, mockSearchDocumentDriver);
     }
 
 
@@ -145,7 +159,7 @@ public class SearchManagerImplTest {
 
         BulkResponseItem itemAdd2 = new BulkResponseItem.Builder()
                 .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)
-                .id(document.getId()+1)
+                .id(document.getId() + 1)
                 .status(403)
                 .operationType(OperationType.Index)
                 .error(errorCause)
@@ -170,7 +184,7 @@ public class SearchManagerImplTest {
         verify(mockLog).error("Document {} has error {}.",
                 document.getId(), errorCause);
         verify(mockLog).error("Document {} has error {}.",
-                document.getId()+1, errorCause);
+                document.getId() + 1, errorCause);
     }
 
     @Test
@@ -260,5 +274,81 @@ public class SearchManagerImplTest {
             mockSearchManager.doesDocumentExist(document.getId(), document.getFields().getEtag());
         });
         verify(mockLog).error(exception);
+    }
+
+    @Test
+    public void testSearch() throws IOException {
+        SearchQuery query = new SearchQuery().setQueryTerm(List.of("hello world"));
+
+        when(mockSearchClient.search(any(SearchRequest.class), any())).thenReturn(SearchResponse.searchResponseOf(sr -> sr
+                .hits(h -> h.hits(List.of(Hit.of(hit -> hit.id(document.getId()).source(document.getFields())
+                        .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)))).total(TotalHits.of(th -> th.value(1L)
+                        .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
+                .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
+
+        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        assertEquals(1l, results.getFound());
+        assertEquals(document.getId(), results.getHits().get(0).getId());
+        verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
+
+        SearchRequest capturedRequest = searchRequestArgumentCaptor.getValue();
+        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedRequest.index().get(0));
+        verify(mockSearchDocumentDriver, times(1)).getAliases(Collections.singletonList(document.getId()));
+    }
+
+    @Test
+    public void testSearchWithPath() throws IOException {
+        SearchQuery query = new SearchQuery().setQueryTerm(List.of("hello world"))
+                .setReturnFields(Lists.newArrayList((SearchConstants.FIELD_PATH)));
+        when(mockSearchDocumentDriver.getEntityPath(document.getId())).thenReturn(new EntityPath());
+        when(mockSearchDocumentDriver.getAliases(any())).thenReturn(List.of(new IdAndAlias("id", "alias")));
+
+        when(mockSearchClient.search(any(SearchRequest.class), any())).thenReturn(SearchResponse.searchResponseOf(sr -> sr
+                .hits(h -> h.hits(List.of(Hit.of(hit -> hit.id(document.getId()).source(document.getFields())
+                        .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)))).total(TotalHits.of(th -> th.value(1L)
+                        .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
+                .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
+
+        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        assertEquals(1l, results.getFound());
+        assertEquals(document.getId(), results.getHits().get(0).getId());
+        verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
+        SearchRequest capturedRequest = searchRequestArgumentCaptor.getValue();
+        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, capturedRequest.index().get(0));
+
+        verify(mockSearchDocumentDriver, times(1)).getEntityPath(document.getId());
+        verify(mockSearchDocumentDriver, times(1)).getAliases(Collections.singletonList(document.getId()));
+    }
+
+    @Test
+    public void testSearchWithPathException() throws IOException {
+        SearchQuery query = new SearchQuery().setQueryTerm(List.of("hello world"))
+                .setReturnFields(Lists.newArrayList((SearchConstants.FIELD_PATH)));
+        when(mockSearchDocumentDriver.getEntityPath(document.getId())).thenThrow(NotFoundException.class);
+
+        when(mockSearchClient.search(any(SearchRequest.class), any())).thenReturn(SearchResponse.searchResponseOf(sr -> sr
+                .hits(h -> h.hits(List.of(Hit.of(hit -> hit.id(document.getId()).source(document.getFields())
+                        .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)))).total(TotalHits.of(th -> th.value(1L)
+                        .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
+                .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
+
+        //call under test
+        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        assertEquals(0, results.getHits().size());
+
+    }
+
+    public SearchResponse<DocumentFields> createSearchResponse() {
+        DocumentFields document = new DocumentFields()
+                .setAcl(List.of("1", "2"))
+                .setName("AnyName").setConsortium("cons").setCreated_by("me").setCreated_on(123l)
+                .setModified_by("you").setModified_on(345l).setDescription("description").setDiagnosis("2")
+                .setEtag("1").setNode_type("folder").setOrgan("ear").setTissue("tissue")
+                .setParent_id("p_id").setUpdate_acl(List.of("234", "678"));
+
+        return SearchResponse.searchResponseOf(res -> res.documents(document)
+                .shards(shard -> shard.total(1).failed(0l).successful(1l))
+                .timedOut(false).took(10).hits(hh -> hh.hits(ht -> ht.source(document).id("id")
+                        .index(SearchConstants.OPEN_SEARCH_INDEX_NAME)).total(t -> t.value(1l).relation(TotalHitsRelation.valueOf("Eq")))));
     }
 }

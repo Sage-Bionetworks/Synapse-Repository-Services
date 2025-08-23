@@ -6,11 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressListener;
 
@@ -34,6 +36,8 @@ public class ReadLockImplTest {
 	private ProgressCallback mockCallback;
 	@Mock
 	private CountingSemaphore mockCountingSemaphore;
+	@Mock
+	private Clock mockClock;
 	@Captor
 	private ArgumentCaptor<ProgressListener> listenerCaptor;
 	private WriteReadSemaphore semaphore;
@@ -49,7 +53,7 @@ public class ReadLockImplTest {
 		keys = new String[] { "one", "two", "three" };
 		maxTimeout = 31L;
 		context = "some context";
-		semaphore = new WriteReadSemaphoreImpl(mockCountingSemaphore, maxNumberOfReaders);
+		semaphore = new WriteReadSemaphoreImpl(mockCountingSemaphore, maxNumberOfReaders, mockClock);
 	}
 
 	@Test
@@ -122,11 +126,12 @@ public class ReadLockImplTest {
 		mockCountingSemaphore = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			new ReadLockImpl(mockCountingSemaphore, maxNumberOfReaders, new ReadLockRequest(mockCallback, context, keys));
+			new ReadLockImpl(mockCountingSemaphore, maxNumberOfReaders,
+					new ReadLockRequest(mockCallback, context, keys));
 		}).getMessage();
 		assertEquals("CountingSemaphore cannot be null", message);
 	}
-	
+
 	@Test
 	public void testConstructorWithNullRequest() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -138,15 +143,14 @@ public class ReadLockImplTest {
 
 	@Test
 	public void testAcqurieLockAndClose() throws LockUnavilableException, Exception {
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(
-				Optional.of("tokenOne"), Optional.of("tokenTwo"),
-				Optional.of("tokenThree"));
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any()))
+				.thenReturn(Optional.of("tokenOne"), Optional.of("tokenTwo"), Optional.of("tokenThree"));
 		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(Optional.empty());
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
 
 		// call under test
 		try (ReadLock lock = semaphore.getReadLock(new ReadLockRequest(mockCallback, context, keys))) {
-			
+
 		}
 
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("one_WRITER_LOCK");
@@ -156,8 +160,9 @@ public class ReadLockImplTest {
 
 		verify(mockCountingSemaphore).attemptToAcquireLock("one_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
 		verify(mockCountingSemaphore).attemptToAcquireLock("two_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
-		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
-		verify(mockCountingSemaphore, times(3)).attemptToAcquireLock(any(), anyLong(), anyInt(),any());
+		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders,
+				context);
+		verify(mockCountingSemaphore, times(3)).attemptToAcquireLock(any(), anyLong(), anyInt(), any());
 
 		verify(mockCallback).addProgressListener(listenerCaptor.capture());
 		ProgressListener listener = listenerCaptor.getValue();
@@ -180,17 +185,18 @@ public class ReadLockImplTest {
 	@Test
 	public void testAcqurieLockWithUnexpiredLock() {
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
-		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(
-				Optional.empty(), Optional.of("some write context"), Optional.empty());
+		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(Optional.empty(),
+				Optional.of("some write context"), Optional.empty());
 
 		String message = assertThrows(LockUnavilableException.class, () -> {
 			// call under test
 			try (ReadLock lock = semaphore.getReadLock(new ReadLockRequest(mockCallback, context, keys))) {
-				
+
 			}
 		}).getMessage();
 
-		assertEquals("Write lock unavailable for key: 'two'. Current lock holder's context: 'some write context'", message);
+		assertEquals("Write lock unavailable for key: 'two'. Current lock holder's context: 'some write context'",
+				message);
 
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("one_WRITER_LOCK");
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("two_WRITER_LOCK");
@@ -205,22 +211,22 @@ public class ReadLockImplTest {
 	@Test
 	public void testAcqurieLockAndCloseWithFailedReadLock() throws IOException {
 		// null signals a failed lock attempt.
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(
-				Optional.of("tokenOne"), Optional.of("tokenTwo"),
-				Optional.empty());
-		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(
-				Optional.empty(), Optional.empty(), Optional.empty(), Optional.of("locked by someone else"));
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any()))
+				.thenReturn(Optional.of("tokenOne"), Optional.of("tokenTwo"), Optional.empty());
+		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(Optional.empty(), Optional.empty(),
+				Optional.empty(), Optional.of("locked by someone else"));
 
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
 
 		String message = assertThrows(LockUnavilableException.class, () -> {
 			// call under test
 			try (ReadLock lock = semaphore.getReadLock(new ReadLockRequest(mockCallback, context, keys))) {
-				
+
 			}
 		}).getMessage();
-		
-		assertEquals("Read lock unavailable for key: 'three'. Current lock holder's context: 'locked by someone else'", message);
+
+		assertEquals("Read lock unavailable for key: 'three'. Current lock holder's context: 'locked by someone else'",
+				message);
 
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("one_WRITER_LOCK");
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("two_WRITER_LOCK");
@@ -230,35 +236,36 @@ public class ReadLockImplTest {
 
 		verify(mockCountingSemaphore).attemptToAcquireLock("one_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
 		verify(mockCountingSemaphore).attemptToAcquireLock("two_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
-		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
+		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders,
+				context);
 		verify(mockCountingSemaphore, times(3)).attemptToAcquireLock(any(), anyLong(), anyInt(), any());
 
 		verify(mockCallback, never()).addProgressListener(any());
 
 		// close checks
 		verify(mockCallback, never()).removeProgressListener(any());
-		// the first two locks must be released even though the third lock attempt failed.
+		// the first two locks must be released even though the third lock attempt
+		// failed.
 		verify(mockCountingSemaphore).releaseLock("one_READER_LOCK", "tokenOne");
 		verify(mockCountingSemaphore).releaseLock("two_READER_LOCK", "tokenTwo");
 		verify(mockCountingSemaphore, times(2)).releaseLock(any(), any());
 	}
-	
+
 	@Test
 	public void testAcqurieLockAndCloseWithReleaseFailed() throws IOException {
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(
-				Optional.of("tokenOne"), Optional.of("tokenTwo"),
-				Optional.of("tokenThree"));
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any()))
+				.thenReturn(Optional.of("tokenOne"), Optional.of("tokenTwo"), Optional.of("tokenThree"));
 		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(Optional.empty());
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
 		// release failure on the first lock should still release the other locks.
 		LockReleaseFailedException releaseException = new LockReleaseFailedException("failed to release");
 		doThrow(releaseException).when(mockCountingSemaphore).releaseLock("one_READER_LOCK", "tokenOne");
 
-		IOException exception = assertThrows(IOException.class, ()->{
+		IOException exception = assertThrows(IOException.class, () -> {
 			// call under test
 			// call under test
 			try (ReadLock lock = semaphore.getReadLock(new ReadLockRequest(mockCallback, context, keys))) {
-				
+
 			}
 		});
 		assertEquals(releaseException, exception.getCause());
@@ -270,7 +277,8 @@ public class ReadLockImplTest {
 
 		verify(mockCountingSemaphore).attemptToAcquireLock("one_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
 		verify(mockCountingSemaphore).attemptToAcquireLock("two_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
-		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders, context);
+		verify(mockCountingSemaphore).attemptToAcquireLock("three_READER_LOCK", maxTimeout, maxNumberOfReaders,
+				context);
 		verify(mockCountingSemaphore, times(3)).attemptToAcquireLock(any(), anyLong(), anyInt(), any());
 
 		verify(mockCallback).addProgressListener(listenerCaptor.capture());
@@ -290,21 +298,21 @@ public class ReadLockImplTest {
 		verify(mockCountingSemaphore).releaseLock("three_READER_LOCK", "tokenThree");
 		verify(mockCountingSemaphore, times(3)).releaseLock(any(), any());
 	}
-	
+
 	@Test
 	public void testAcqurieLockAndCloseWithNullcontext() throws IOException {
-		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any())).thenReturn(
-				Optional.empty());
+		when(mockCountingSemaphore.attemptToAcquireLock(any(), anyLong(), anyInt(), any()))
+				.thenReturn(Optional.empty());
 		when(mockCountingSemaphore.getFirstUnexpiredLockContext(any())).thenReturn(Optional.empty());
 		when(mockCallback.getLockTimeoutSeconds()).thenReturn(maxTimeout);
 
 		String message = assertThrows(LockUnavilableException.class, () -> {
 			// call under test
 			try (ReadLock lock = semaphore.getReadLock(new ReadLockRequest(mockCallback, context, keys))) {
-				
+
 			}
 		}).getMessage();
-		
+
 		assertEquals("Read lock unavailable for key: 'one'. Current lock holder's context: 'null'", message);
 
 		verify(mockCountingSemaphore).getFirstUnexpiredLockContext("one_WRITER_LOCK");

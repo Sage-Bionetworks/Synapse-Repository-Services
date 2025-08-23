@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -18,9 +19,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.helper.MessageToUserObjectHelper;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
@@ -111,6 +116,25 @@ public class OAuthClientManagerImplAutowiredTest {
 		
 		// method under test
 		assertEquals(created, oauthClientManager.getOpenIDConnectClient(userInfo, id));
+		
+		// method under test
+		AccessControlList acl = oauthClientManager.getAccessControlList(adminUserInfo, id);
+		
+		// check acl contents
+		assertEquals(id, acl.getId());
+		assertEquals(AccessControlListUtils.ALLOWED_ACCESS_TYPES.get(ObjectType.OAUTH_CLIENT),
+			acl.getResourceAccess().iterator().next().getAccessType());
+		
+		// change ACL contents
+		Set<ACCESS_TYPE> newPermissions = Set.of(ACCESS_TYPE.READ, ACCESS_TYPE.DELETE, ACCESS_TYPE.UPDATE);
+		acl.getResourceAccess().iterator().next().setAccessType(newPermissions);
+		
+		// method under test
+		oauthClientManager.updateAccessControlList(adminUserInfo, acl.getId(), acl);
+
+		acl = oauthClientManager.getAccessControlList(adminUserInfo, id);
+		// check that the change was persisted
+		assertEquals(newPermissions, acl.getResourceAccess().iterator().next().getAccessType());
 		
 		// method under test
 		OAuthClientList list = oauthClientManager.listOpenIDConnectClients(userInfo, null);

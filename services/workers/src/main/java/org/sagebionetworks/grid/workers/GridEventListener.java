@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventType;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

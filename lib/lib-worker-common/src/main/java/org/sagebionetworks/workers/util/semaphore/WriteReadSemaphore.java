@@ -1,6 +1,7 @@
 package org.sagebionetworks.workers.util.semaphore;
 
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.util.progress.ProgressingCallable;
 
 /**
  * An abstraction to provide both read (shared) or write (exclusive) locks for a
@@ -62,4 +63,30 @@ public interface WriteReadSemaphore {
 	 *                                 cannot be be acquired.
 	 */
 	ReadLock getReadLock(ReadLockRequest request) throws LockUnavilableException;
+
+	/**
+	 * Run the provided runner while holding a read lock. The lock will
+	 * automatically be released when the provided runner returns or throws an
+	 * exception.
+	 * 
+	 * @param <R>
+	 * @param request
+	 * @param runner
+	 * @return
+	 * @throws Exception
+	 */
+	<R> R tryRunWithReadLock(ReadLockRequest request, ProgressingCallable<R> runner);
+
+	/**
+	 * Run the provided runner while holding a write lock. The lock will
+	 * automatically be released when the provided runner returns or throws an
+	 * exception.
+	 * 
+	 * @param <R>
+	 * @param request
+	 * @param runner
+	 * @return
+	 * @throws Exception
+	 */
+	<R> R tryRunWithWriteLock(WriteLockRequest request, ProgressingCallable<R> runner);
 }

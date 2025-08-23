@@ -25,9 +25,11 @@ public class InsertValueSerializableTest {
 
 		// call under test
 		InsertValue val = serializable.deserialize(id, new JSONArray(json));
-		InsertValue expected = new InsertValue().setOperationId(id)
-				.setReferenceId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-				.setValueId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
+		InsertValue expected = new InsertValue(
+				id,
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)
+		);
 		assertEquals(expected, val);
 
 		// call under test
@@ -41,9 +43,11 @@ public class InsertValueSerializableTest {
 
 		// call under test
 		InsertValue val = serializable.deserialize(id, new JSONArray(json));
-		InsertValue expected = new InsertValue().setOperationId(id)
-				.setReferenceId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L))
-				.setValueId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
+		InsertValue expected = new InsertValue(
+				id,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)
+		);
 		assertEquals(expected, val);
 
 		// call under test
@@ -57,9 +61,11 @@ public class InsertValueSerializableTest {
 
 		// call under test
 		InsertValue val = serializable.deserialize(id, new JSONArray(json));
-		InsertValue expected = new InsertValue().setOperationId(id)
-				.setReferenceId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-				.setValueId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
+		InsertValue expected = new InsertValue(
+				id,
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L)
+		);
 		assertEquals(expected, val);
 
 		// call under test
@@ -68,14 +74,16 @@ public class InsertValueSerializableTest {
 	}
 
 	@Test
-	public void testRoundTripWithValueBothMatchesReplcia() {
+	public void testRoundTripWithValueBothMatchesReplica() {
 		String json = "[9,2,4]";
 
 		// call under test
 		InsertValue val = serializable.deserialize(id, new JSONArray(json));
-		InsertValue expected = new InsertValue().setOperationId(id)
-				.setReferenceId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L))
-				.setValueId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
+		InsertValue expected = new InsertValue(
+				id,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L)
+		);
 		assertEquals(expected, val);
 
 		// call under test

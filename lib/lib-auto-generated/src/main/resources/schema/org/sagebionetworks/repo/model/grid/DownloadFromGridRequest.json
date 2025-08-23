@@ -1,0 +1,33 @@
+{
+	"description": "A CSV Grid download request.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		},
+		"writeHeader": {
+			"type": "boolean",
+			"description": "Should the first line contain the columns names as a header in the resulting file?  Set to 'true' to include the headers else, 'false'.  The default value is 'true'."
+		},
+		"includeRowIdAndRowVersion": {
+			"type": "boolean",
+			"description": "Should the first two columns contain the row ID and row version?  The default value is 'true'."
+		},
+		"includeEtag": {
+			"type": "boolean",
+			"description": "Should the first (or third if includeRowIdAndRowVersion is true) column contain the row etag? The default value is 'true'."
+		},
+		"csvTableDescriptor": {
+			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The optional name for the downloaded table."
+		}
+	}
+}

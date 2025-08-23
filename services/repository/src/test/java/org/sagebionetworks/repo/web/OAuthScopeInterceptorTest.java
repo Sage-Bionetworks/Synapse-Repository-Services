@@ -262,7 +262,7 @@ class OAuthScopeInterceptorTest {
 		verify(mockRequest).getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME);
 
 		String expectedError = OAuthErrorCode.insufficient_scope.name();
-		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, modify, offline_access, openid, profile";
+		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, ga4gh_passport_v1, modify, offline_access, openid, profile";
 		String expectedReason = expectedError + ". " + expectedErrorDescription;
 
 		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}"+System.lineSeparator() , os.toString());
@@ -283,7 +283,7 @@ class OAuthScopeInterceptorTest {
 		assertFalse(result);
 
 		String expectedError = OAuthErrorCode.insufficient_scope.name();
-		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, modify, offline_access, openid, profile, view";
+		String expectedErrorDescription = "Request lacks scope(s) required by this service: authorize, download, email, ga4gh_passport_v1, modify, offline_access, openid, profile, view";
 		String expectedReason = expectedError + ". " + expectedErrorDescription;
 		assertEquals("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"" + expectedReason + "\",\"error\":\"" + expectedError + "\",\"error_description\":\"" + expectedErrorDescription + "\"}" + System.lineSeparator(),  os.toString());
 		

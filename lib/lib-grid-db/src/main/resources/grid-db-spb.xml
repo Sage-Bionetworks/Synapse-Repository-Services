@@ -14,10 +14,9 @@
 
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
-	
+
 	<context:component-scan base-package="org.sagebionetworks.grid"/>
 
 	<!-- Import the stack configuration -->
-	<import resource="stack-configuration.spb.xml" />
-	
+    <import resource="stack-configuration.spb.xml" />
 </beans>

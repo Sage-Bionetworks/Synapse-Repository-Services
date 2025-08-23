@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.response;
 
 import org.sagebionetworks.repo.model.grid.EventContext;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 
 public interface GridEventResponsePublisher {
 

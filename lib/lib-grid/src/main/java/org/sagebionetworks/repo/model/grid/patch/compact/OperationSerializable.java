@@ -5,7 +5,7 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
 
-public interface OperationSerializable<T extends Operation<?>> {
+public interface OperationSerializable<T extends Operation> {
 	
 	OperationType getType();
 	

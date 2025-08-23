@@ -1265,6 +1265,32 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 		assertFalse(result.getIsValid());
 		assertEquals("2 schema violations found", result.getValidationErrorMessage());
 	}
+	
+	@Test
+	public void testValidateBatch() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
+		
+		JsonSubject validSubject = setupSubject();
+		validSubject.toJson().put("enumKey", "a");
+		
+		JsonSubject invalidSubject = setupSubject();
+		invalidSubject.toJson().put("enumKey", "c");
+
+		List<JsonSubject> subjects = List.of(validSubject, invalidSubject);
+		
+		// call under test
+		List<ValidationResults> results = manager.validateBatch(schema, subjects);
+
+		assertEquals(2, results.size());
+		
+		ValidationResults validResult = results.get(0);
+		assertTrue(validResult.getIsValid());
+		assertNull(validResult.getValidationErrorMessage());
+
+		ValidationResults invalidResult = results.get(1);
+		assertFalse(invalidResult.getIsValid());
+		assertEquals("#: only 1 subschema matches out of 2", invalidResult.getValidationErrorMessage());
+	}
 
 	/**
 	 * Helper to build a stack trace for the given exception.
@@ -1312,5 +1338,4 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 
 		return subject;
 	}
-
 }

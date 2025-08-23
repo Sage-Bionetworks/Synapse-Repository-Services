@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.grid.patch.compact;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,8 +32,11 @@ public class InsertObjectSerializableTest {
 		LinkedHashMap<String, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put("a", new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
 		map.put("b", new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertObject expected = new InsertObject().setOperationId(operationId)
-				.setObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)).setMap(map);
+		InsertObject expected = new InsertObject(
+				operationId,
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -48,8 +53,11 @@ public class InsertObjectSerializableTest {
 		LinkedHashMap<String, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put("a", new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
 		map.put("b", new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertObject expected = new InsertObject().setOperationId(operationId)
-				.setObjectId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertObject expected = new InsertObject(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -66,8 +74,11 @@ public class InsertObjectSerializableTest {
 		LinkedHashMap<String, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put("a", new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
 		map.put("b", new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		InsertObject expected = new InsertObject().setOperationId(operationId)
-				.setObjectId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertObject expected = new InsertObject(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test
@@ -84,8 +95,11 @@ public class InsertObjectSerializableTest {
 		LinkedHashMap<String, LogicalTimestamp> map = new LinkedHashMap<>();
 		map.put("a", new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(4L));
 		map.put("b", new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(6L));
-		InsertObject expected = new InsertObject().setOperationId(operationId)
-				.setObjectId(new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L)).setMap(map);
+		InsertObject expected = new InsertObject(
+				operationId,
+				new LogicalTimestamp().setReplicaId(12L).setSequenceNumber(2L),
+				map
+		);
 		assertEquals(expected, obj);
 
 		// call under test

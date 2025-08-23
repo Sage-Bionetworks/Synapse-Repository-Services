@@ -94,7 +94,7 @@ public class FacetQueriesTest {
 		expectedParmeters.put("b3", 22L);
 		expectedParmeters.put("b4", 15L);
 		expectedParmeters.put("b5", 38L);
-		expectedParmeters.put("b6", 100L);
+		expectedParmeters.put("b6", 500L);
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
 
 		// two
@@ -140,7 +140,7 @@ public class FacetQueriesTest {
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);
 		expectedParmeters.put("b1", 22L);
-		expectedParmeters.put("b2", 100L);
+		expectedParmeters.put("b2", 500L);
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
 
 		// two
@@ -169,7 +169,7 @@ public class FacetQueriesTest {
 				transformer.getFacetSqlQuery().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", userId);
-		expectedParmeters.put("b1", 100L);
+		expectedParmeters.put("b1", 500L);
 		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
 	}
 

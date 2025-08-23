@@ -14,6 +14,7 @@
 	<context:component-scan base-package="org.sagebionetworks.repo.manager" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.repo.service" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.repo.util" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.grid" annotation-config="false"/>
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
@@ -311,6 +312,10 @@
 
 	<bean id="storageReportManager"
 		  class="org.sagebionetworks.repo.manager.report.StorageReportManagerImpl"
-		  scope="singleton"/>	
+		  scope="singleton"/>
+
+    <bean id="csvWriterProvider"
+          class="org.sagebionetworks.util.csv.CSVWriterProviderImpl"
+          scope="singleton"/>
 		  
 </beans>

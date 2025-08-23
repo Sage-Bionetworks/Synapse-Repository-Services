@@ -7,7 +7,9 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -199,6 +201,54 @@ public class OpenIDConnectController {
 				reverificationRequiredForUpdatedOpenIDConnectClient(userId, oauthClient);
 	}
 	
+
+	/**
+	 * Retrieve the AccessControlList for a specified OAuth Client.
+	 * 
+	 * @param userId
+	 * @param id the ID of the OpenID Client of interest
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ID_ACL, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessControlList getClientACL(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
+			) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().getAccessControlList(userId, id);
+	}
+	
+	/**
+	 * Update the Access Control List for the specified OAuth Client.  The allowed permissions are:
+	 * <p>
+	 * <ul>
+	 * <li>UPDATE: Permission to change the OAuth Client, to see its private fields, and to generate the client secret</li>
+	 * <li>DELETE: Permission to delete the OAuth Client</li>
+	 * <li>READ: Permission to see the ACL</li>
+	 * <li>CHANGE_PERMISSIONS: Permissions to change the ACL</li>
+	 * </ul>
+	 * </p>
+	 * @param userId
+	 * @param acl the updated Access Control List
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({view,modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ACL, method = RequestMethod.PUT)
+	public @ResponseBody
+	AccessControlList updateClientACL(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestBody AccessControlList acl
+			) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().updateAccessControlList(userId, id, acl);
+	}
+	
+
 	
 	/**
 	 * Update the metadata for an existing OAuth 2.0 client.
@@ -538,6 +588,20 @@ public class OpenIDConnectController {
 			@RequestHeader(value = AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER, required=true) String verifiedClientId,
 			@RequestBody OAuthTokenRevocationRequest revokeRequest) throws NotFoundException {
 		serviceProvider.getOpenIDConnectService().revokeToken(verifiedClientId, revokeRequest);
+	}
+
+	/**
+	 * Backfill OAuth client ACLs.  This service can only be called by a Synapse administrator.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_CLIENT_ACL_BACKFILL, method = RequestMethod.POST)
+	public @ResponseBody BackfillCount backfillOauthClientACLs(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
+		return serviceProvider.getOpenIDConnectService().backfillOauthClientACLs(userId);
 	}
 
 }

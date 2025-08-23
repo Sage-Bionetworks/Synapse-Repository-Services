@@ -23,7 +23,7 @@
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 
-		<dependency>
+        <dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-test</artifactId>
 			<scope>test</scope>

@@ -10,8 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
-import org.sagebionetworks.grid.workers.message.JsonRxMessage;
+import org.sagebionetworks.grid.workers.message.JsonRxMessageBase;
 import org.sagebionetworks.grid.workers.message.factory.JsonRxMessageFactory;
 import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher;
 import org.sagebionetworks.repo.model.grid.ErrorEvent;
@@ -20,7 +19,7 @@ import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.NotificationError;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
@@ -32,7 +31,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 
 /**
- * This work pull in JSON-Rx message
+ * This worker pulls in JSON-Rx message
  * (<a href="https://jsonjoy.com/specs/json-rx">JSON Reactive RPC</a>) from the
  * queue. Message can either be from a websocket or internal worker. Factory
  * methods are used to convert each message to an internal POJO.
@@ -57,7 +56,7 @@ public class GridEventBrokerWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		log.info(message);
+		log.info(message.getBody());
 		EventContext context = null;
 		try {
 			context = buildEventContext(message);
@@ -91,7 +90,7 @@ public class GridEventBrokerWorker implements MessageDrivenRunner {
 	 * @param array
 	 * @return
 	 */
-	List<JsonRxMessage> createEvents(EventContext context, JSONArray array) {
+	List<JsonRxMessageBase> createEvents(EventContext context, JSONArray array) {
 		JSONArray child = array.optJSONArray(0);
 		if (child != null) {
 			List<JSONArray> arrays = new ArrayList<>(array.length());
@@ -117,30 +116,16 @@ public class GridEventBrokerWorker implements MessageDrivenRunner {
 	 * @param array
 	 * @return
 	 */
-	JsonRxMessage createEvent(EventContext context, JSONArray array) {
-		int zero = array.optInt(0, -1);
-		if (zero < 1) {
-			throw new IllegalArgumentException("Expected the fist element of the array to be a message code.");
+	JsonRxMessageBase createEvent(EventContext context, JSONArray array) {
+		org.sagebionetworks.repo.model.grid.message.JsonRxMessage message = new org.sagebionetworks.repo.model.grid.message.JsonRxMessage(
+				array);
+		JsonRxMessageFactory<?> factory = factoryTypeMap.get(message.getType());
+		if (factory == null) {
+			throw new IllegalArgumentException(String.format("Unknown message type -- code: %d and method: '%s'",
+					message.getType().getCode(), message.getMethod().orElse("")));
 		}
-		JsonRxMessageType type = JsonRxMessageType.fromCode(zero);
-		Object one = array.opt(1);
-		Object two = array.opt(2);
-		Object three = array.opt(3);
-		String method = one instanceof String ? (String) one : two instanceof String ? (String) two : null;
-		Integer id = one instanceof Number ? ((Number) one).intValue() : null;
-		JSONObject bodyObject = two instanceof JSONObject ? (JSONObject) two
-				: three instanceof JSONObject ? (JSONObject) three : null;
-		JSONArray bodyArray = two instanceof JSONArray ? (JSONArray) two
-				: three instanceof JSONArray ? (JSONArray) three : null;
-		Object body = bodyObject != null ? bodyObject : bodyArray;
-
-		JsonRxMessageFactory<?> factory = factoryTypeMap.get(type);
-		if (factory != null) {
-			return factory.createMessage(context, id, method, body);
-		}
-		throw new IllegalArgumentException(String.format("Unknown message type -- code: %d and method: '%s'",
-				type.getCode(), method != null ? method : ""));
-
+		return factory.createMessage(context, message.getId().orElse(null), message.getMethod().orElse(null),
+				message.getBody().orElse(null));
 	}
 
 	/**

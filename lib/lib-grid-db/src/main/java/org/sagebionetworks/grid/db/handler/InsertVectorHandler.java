@@ -2,8 +2,10 @@ package org.sagebionetworks.grid.db.handler;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -15,9 +17,9 @@ import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
-@Repository
+@Component
 public class InsertVectorHandler implements OperationHandler<InsertVector> {
 
 	private final GridIndexDao gridDao;
@@ -33,7 +35,8 @@ public class InsertVectorHandler implements OperationHandler<InsertVector> {
 	}
 
 	@Override
-	public void handleBatch(String sessionId, Long replicaId, List<InsertVector> batch) {
+	public Set<LogicalTimestamp> handleBatch(String sessionId, Long replicaId, List<InsertVector> batch) {
+		Set<LogicalTimestamp> changeIds = new LinkedHashSet<>();
 
 		// load the constants for each new values
 		Map<LogicalTimestamp, ConstantNode> constants = gridDao
@@ -66,10 +69,11 @@ public class InsertVectorHandler implements OperationHandler<InsertVector> {
 			}
 			if (cur.attemptInsert(i)) {
 				toChange.add(cur);
+				changeIds.add(cur.getId());
 			}
 		});
 		gridDao.saveVectors(sessionId, replicaId, toChange);
-
+		return changeIds;
 	}
 
 }

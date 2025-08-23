@@ -49,8 +49,8 @@ public class MaterializedViewDaoImpl implements MaterializedViewDao {
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
 	@Autowired
-	public MaterializedViewDaoImpl(NamedParameterJdbcTemplate jdbcTemplate) {
-		this.jdbcTemplate = jdbcTemplate;
+	public MaterializedViewDaoImpl(NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.jdbcTemplate = namedJdbcTemplate;
 	}
 
 	@Override

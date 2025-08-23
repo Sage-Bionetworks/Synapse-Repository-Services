@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.json.JSONObject;
@@ -18,6 +19,15 @@ public interface JsonSchemaValidationManager {
 	 */
 	ValidationResults validate(JsonSchema schema, JsonSubject subject);
 
+	/**
+	 * Validates the given batch of subjects against the given schema.
+	 * 
+	 * @param schema
+	 * @param subjects
+	 * @return
+	 */
+	List<ValidationResults> validateBatch(JsonSchema schema, List<JsonSubject> subjects);
+	
 	/**
 	 * Derived annotation are value-key-pairs that are derived from a combination of
 	 * existing annotations combined with a {@link JsonSchema} that defines one or

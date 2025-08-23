@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.search.SearchConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -36,14 +37,19 @@ public class SearchController {
 	 * If not authenticated, only public result will be shown.
 	 * See <a href="${org.sagebionetworks.repo.model.search.query.SearchFieldName}">SearchFieldName</a> for the list of searchable fields for use in booleanQuery, rangeQuery, and returnFields
 	 * @param userId
+	 * @param isOpenSearchEnable
 	 * @param searchQuery
-	 * @return search results from CloudSearch
+	 * @return search results from OpenSearch or CloudSearch depending upon parameter isOpenSearchEnable
 	 */
 	@RequiredScope({view})
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
-	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery) {
-		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
+	SearchResults proxySearch(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = SearchConstants.IS_OPENSEARCH_ENABLE, required = false,
+					defaultValue = SearchConstants.DEFAULT_IS_OPENSEARCH_ENABLE) boolean isOpenSearchEnable,
+			@RequestBody SearchQuery searchQuery) {
+		return serviceProvider.getSearchService().proxySearch(userId, isOpenSearchEnable, searchQuery);
 	}
 }

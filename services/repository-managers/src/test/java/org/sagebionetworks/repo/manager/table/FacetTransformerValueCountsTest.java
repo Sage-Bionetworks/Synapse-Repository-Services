@@ -150,7 +150,7 @@ public class FacetTransformerValueCountsTest {
 				+ " WHERE \"stringColumn\" LIKE 'asdf%'"
 				+ " GROUP BY \"stringColumn\""
 				+ " ORDER BY frequency DESC, value ASC"
-				+ " LIMIT 100";
+				+ " LIMIT 500";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
 		
 		//transformed model will be correct if schema and non-transformed query are correct
@@ -175,7 +175,7 @@ public class FacetTransformerValueCountsTest {
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
 				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
-		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 	
@@ -197,7 +197,7 @@ public class FacetTransformerValueCountsTest {
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
 				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
-		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
+		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 	
@@ -220,7 +220,7 @@ public class FacetTransformerValueCountsTest {
 				+ " GROUP BY _C2_ ORDER BY frequency DESC, value ASC LIMIT :b1";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("selectedValue", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
-		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
+		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 
 	@Test
@@ -235,7 +235,7 @@ public class FacetTransformerValueCountsTest {
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("selectedValue", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
-		assertEquals(100L, facetTransformer.getFacetSqlQuery().getParameters().get("b2"));
+		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b2"));
 	}
 
 	@Test
@@ -250,7 +250,7 @@ public class FacetTransformerValueCountsTest {
 				+ " WHERE ( \"stringColumn\" LIKE 'asdf%' ) AND ( ( ( \"stringColumn\" = 'selectedValue' ) ) )"
 				+ " GROUP BY JSON_EXTRACT(\"jsonColumn\",'$.a')"
 				+ " ORDER BY frequency DESC, value ASC"
-				+ " LIMIT 100";
+				+ " LIMIT 500";
 		
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
 	}

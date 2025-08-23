@@ -1,13 +1,13 @@
 package org.sagebionetworks.repo.manager.oauth;
 
-import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.annotation.PostConstruct;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.KeyPairUtil;
@@ -25,61 +25,45 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.EnumKeyedJsonMapUtil;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 
 @Service
-public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager {
+public class OIDCTokenManagerImpl implements OIDCTokenManager {
 	
 	private static final String NONCE = "nonce";
 	// the time window during which the client will consider the returned claims to be valid
 	private static final long ID_TOKEN_EXPIRATION_TIME_SECONDS = 60L; // a minute
 	
-	private String oidcSignatureKeyId;
-	private PrivateKey oidcSignaturePrivateKey;
 	private JsonWebKeySet jsonWebKeySet;
 
 	@Autowired
 	private StackConfiguration stackConfiguration;
 
 	@Autowired
+	private JwtBuilder jwtBuilder;
+
+	@Autowired
 	private Clock clock;
 
 	@Autowired
 	private OAuthAccessTokenDao accessTokenDao;
-	
-	@Override
+
+	@PostConstruct
 	public void afterPropertiesSet() {
 		List<String> pemEncodedRsaPrivateKeys = stackConfiguration.getOIDCSignatureRSAPrivateKeys();
 		this.jsonWebKeySet = KeyPairUtil.getJSONWebKeySetForPEMEncodedRsaKeys(pemEncodedRsaPrivateKeys);
-		
-		// grab the latest private key to be used for signing
-		KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(pemEncodedRsaPrivateKeys.get(pemEncodedRsaPrivateKeys.size()-1));
-		this.oidcSignaturePrivateKey=keyPair.getPrivate();
-		this.oidcSignatureKeyId = KeyPairUtil.computeKeyId(keyPair.getPublic());
 	}
-
+	
 	@Override
 	public JsonWebKeySet getJSONWebKeySet() {
 		return jsonWebKeySet;
 	}
 
-	private String createSignedJWT(Claims claims) {
-		return Jwts.builder()
-			.setClaims(claims)
-			.setHeaderParam(Header.TYPE, Header.JWT_TYPE)
-			.setHeaderParam(JwsHeader.KEY_ID, oidcSignatureKeyId)
-			.signWith(oidcSignaturePrivateKey, SignatureAlgorithm.RS256)
-			.compact();
-	}
 	
 	@Override
 	public String createOIDCIdToken(
@@ -111,7 +95,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 
 		if (nonce!=null) claims.put(NONCE, nonce);
 
-		return createSignedJWT(claims);
+		return jwtBuilder.createSignedJWT(claims);
 	}
 	
 	String createOIDCaccessToken(
@@ -159,7 +143,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 			);
 		}
 		
-		return createSignedJWT(claims);
+		return jwtBuilder.createSignedJWT(claims);
 	}
 	
 	@Override
@@ -197,7 +181,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 				.setId(record.getId())
 				.setSubject(record.getUserId());
 
-		return createSignedJWT(claims);
+		return jwtBuilder.createSignedJWT(claims);
 	}
 
 	@Override
@@ -242,7 +226,7 @@ public class OIDCTokenManagerImpl implements InitializingBean, OIDCTokenManager 
 			.setIssuedAt(now)
 			.setExpiration(new Date(now.getTime() + expirationInSeconds * 1000));
 
-		return createSignedJWT(claims);
+		return jwtBuilder.createSignedJWT(claims);
 	}
 	
 	@Override

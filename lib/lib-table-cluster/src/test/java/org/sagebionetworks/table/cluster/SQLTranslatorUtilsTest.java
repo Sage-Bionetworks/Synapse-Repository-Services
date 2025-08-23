@@ -1093,7 +1093,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS TRUE )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(LOWER(_C111_),LOWER(JSON_ARRAY(:b0,:b1,:b2))) IS TRUE )", booleanPrimary.toSql());
 
 	}
 
@@ -1114,7 +1114,7 @@ public class SQLTranslatorUtilsTest {
 
 		SQLTranslatorUtils.replaceArrayHasPredicate(booleanPrimary, singleTableMapper);
 
-		assertEquals("( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b0,:b1,:b2)) IS FALSE )", booleanPrimary.toSql());
+		assertEquals("( JSON_OVERLAPS(LOWER(_C111_),LOWER(JSON_ARRAY(:b0,:b1,:b2))) IS FALSE )", booleanPrimary.toSql());
 
 	}
 
@@ -2540,7 +2540,7 @@ public class SQLTranslatorUtilsTest {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(element, mockSchemaProvider);
 		Map<String, Object> parameters = new HashMap<>();
 		SQLTranslatorUtils.translateModel(element, parameters, userId, mapper);
-		assertEquals("SELECT * FROM T123 WHERE ( _C333_ = :b0 OR ( JSON_OVERLAPS(_C111_,JSON_ARRAY(:b1)) IS TRUE ) ) AND ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b2,:b3,:b4)) IS TRUE )",element.toSql());
+		assertEquals("SELECT * FROM T123 WHERE ( _C333_ = :b0 OR ( JSON_OVERLAPS(LOWER(_C111_),LOWER(JSON_ARRAY(:b1))) IS TRUE ) ) AND ( JSON_OVERLAPS(LOWER(_C777_),LOWER(JSON_ARRAY(:b2,:b3,:b4))) IS TRUE )",element.toSql());
 		assertEquals(Map.of(
 			"b0", "yeet",
 			"b1", "yah",
@@ -2569,7 +2569,7 @@ public class SQLTranslatorUtilsTest {
 				+ " )"
 			+ " )"
 			+ " AND ("
-				+ " JSON_OVERLAPS(_C777_,JSON_ARRAY(:b3,:b4,:b5)"
+				+ " JSON_OVERLAPS(LOWER(_C777_),LOWER(JSON_ARRAY(:b3,:b4,:b5))"
 			+ ") IS TRUE )",element.toSql());
 		
 		assertEquals(Map.of(
@@ -2598,7 +2598,7 @@ public class SQLTranslatorUtilsTest {
 			+ " _C333_ = :b0 OR ("
 				+ " JSON_SEARCH(_C111_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL"
 				+ " OR JSON_SEARCH(_C111_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',:b3,'$[*]') IS NOT NULL ) )"
-			+ " AND ( JSON_OVERLAPS(_C777_,JSON_ARRAY(:b4,:b5,:b6)) IS TRUE )",element.toSql());
+			+ " AND ( JSON_OVERLAPS(LOWER(_C777_),LOWER(JSON_ARRAY(:b4,:b5,:b6))) IS TRUE )",element.toSql());
 		
 		assertEquals(Map.of(
 			"b0", "yeet",

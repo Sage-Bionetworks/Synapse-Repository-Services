@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.grid.patch;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.grid.node.ConstantUtils;
+
 public class ConValue {
 	
 	private final ConType type;
@@ -41,6 +43,10 @@ public class ConValue {
 	@Override
 	public String toString() {
 		return "ConValue [type=" + type + ", value=" + value + "]";
+	}
+
+	public String toJson() {
+		return ConstantUtils.constantValueToJson(value);
 	}
 	
 }

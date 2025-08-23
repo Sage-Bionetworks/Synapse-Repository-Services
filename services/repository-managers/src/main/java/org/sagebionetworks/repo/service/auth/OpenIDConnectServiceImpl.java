@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.manager.oauth.OAuthClientManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthRefreshTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -129,6 +131,18 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		oauthClientManager.deleteOpenIDConnectClient(userInfo, id);
 	}
+	
+	@Override
+	public AccessControlList getAccessControlList(Long userId, String id) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oauthClientManager.getAccessControlList(userInfo, id);
+	}
+	
+	@Override
+	public AccessControlList updateAccessControlList(Long userId, String clientId, AccessControlList acl) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oauthClientManager.updateAccessControlList(userInfo, clientId, acl);
+	}
 
 	@Override
 	public OIDConnectConfiguration getOIDCConfiguration(String endpoint) {
@@ -246,4 +260,12 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	public OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(String verifiedClientId, String tokenId) {
 		return oauthRefreshTokenManager.getRefreshTokenMetadata(verifiedClientId, tokenId);
 	}
+	
+	
+	@Override
+	public BackfillCount backfillOauthClientACLs(Long userId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return oauthClientManager.backfillAccessControlLists(userInfo);
+	}
+
 }

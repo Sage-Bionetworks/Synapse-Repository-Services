@@ -176,7 +176,11 @@
 		<!-- Grid workers-->
 		<ref bean="gridMessageBrokerWorkerTrigger"/>
 		<ref bean="gridCreateWorkerTrigger"/>
-		
+		<ref bean="gridReplicaWorkerTrigger"/>
+		<ref bean="gridReplicaValidationWorkerTrigger"/>
+		<ref bean="gridReplicaPatchBuilderWorkerTrigger"/>
+        <ref bean="gridCSVDownloaderWorkerTrigger" />
+
 		<ref bean="inactiveUsersWorkerTrigger"/>
 		
 	</util:list>

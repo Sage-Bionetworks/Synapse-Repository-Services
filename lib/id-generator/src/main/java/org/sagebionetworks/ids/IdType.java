@@ -83,6 +83,7 @@ public enum IdType {
 	PORTAL_ID(1000L),
 	GRID_SESSION_ID((long) 0xffff),
 	GRID_REPLICA_ID(null),
+	GRID_CONNECTION_ID(null),
 	GRID_PATCH_ID(null)
 	;
 	

@@ -62,6 +62,11 @@
 			<artifactId>csv-utilities</artifactId>
 		</dependency>
 
+        <dependency>
+            <groupId>org.sagebionetworks</groupId>
+            <artifactId>lib-auto-generated</artifactId>
+        </dependency>
+
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.sagebionetworks.repo.model.util.DockerNameUtil.REPO_NAME_PATH_SEP;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -46,7 +47,11 @@ import io.jsonwebtoken.Jwt;
 @Service
 public class DockerManagerImpl implements DockerManager {
 	
-	public static final String MANIFEST_MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
+	public static final List<String> MANIFEST_MEDIA_TYPES = Arrays.asList(new String[] {
+			"application/vnd.docker.distribution.manifest.v2+json",
+			"application/vnd.oci.image.index.v1+json",
+			"application/vnd.oci.image.manifest.v1+json"
+	});
 	
 	@Autowired
 	private NodeDAO nodeDao;
@@ -139,7 +144,8 @@ public class DockerManagerImpl implements DockerManager {
 			case push:
 				//we only care about the notification if it is a manifest push, which contains metadata about the repository
 				//the other type of push would be layer blob pushes ("mediaType": "application/octet-stream"), which we don't care about
-				if(!event.getTarget().getMediaType().equals(MANIFEST_MEDIA_TYPE))
+				String mediaType = event.getTarget().getMediaType();
+				if(!MANIFEST_MEDIA_TYPES.contains(mediaType))
 					continue;
 				
 				// need to make sure this is a registry we support

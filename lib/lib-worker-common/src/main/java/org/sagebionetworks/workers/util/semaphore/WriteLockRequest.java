@@ -1,6 +1,7 @@
 package org.sagebionetworks.workers.util.semaphore;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.sagebionetworks.util.progress.ProgressCallback;
 
@@ -13,6 +14,8 @@ public class WriteLockRequest {
 	private final ProgressCallback callback;
 	private final String callersContext;
 	private final String lockKey;
+	private Long waitForReaderMS;
+	private Integer maxReaderWaitAttempts;
 
 	/**
 	 * Request to create a write lock.
@@ -52,6 +55,24 @@ public class WriteLockRequest {
 		return lockKey;
 	}
 
+	public Optional<Long> getWaitForReaderMS() {
+		return Optional.of(waitForReaderMS);
+	}
+
+	public WriteLockRequest setWaitForReaderMS(Long waitForReaderMS) {
+		this.waitForReaderMS = waitForReaderMS;
+		return this;
+	}
+
+	public Optional<Integer> getMaxReaderWaitAttempts() {
+		return Optional.of(maxReaderWaitAttempts);
+	}
+
+	public WriteLockRequest setMaxReaderWaitAttempts(Integer maxReaderWaitAttempts) {
+		this.maxReaderWaitAttempts = maxReaderWaitAttempts;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(callback, callersContext, lockKey);
@@ -75,5 +96,5 @@ public class WriteLockRequest {
 		return "WriteLockRequest [callback=" + callback + ", callersContext=" + callersContext + ", lockKey=" + lockKey
 				+ "]";
 	}
-	
+
 }

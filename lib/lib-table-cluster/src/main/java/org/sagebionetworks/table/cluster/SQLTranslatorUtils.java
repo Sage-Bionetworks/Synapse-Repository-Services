@@ -1065,25 +1065,35 @@ public class SQLTranslatorUtils {
 		return new SearchCondition(orTerms);
 	}
 	
-	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(foo, JSON_ARRAY(1, 2, 3)) IS TRUE
+	// Translate the expression foo HAS (1, 2, 3) -> JSON_OVERLAPS(lower(foo), JSON_ARRAY(lower(1), lower(2), lower(3))) IS TRUE
 	private static SearchCondition createArrayHasSearchCondition(ArrayHasPredicate predicate, ColumnReference columnReference) {
 		
 		// First build the JSON_ARRAY expression with the input values
 		MySqlFunction jsonArrayFunction = new MySqlFunction(MySqlFunctionName.JSON_ARRAY);
 		
 		jsonArrayFunction.startParentheses();
-		
 		predicate.getFirstElementOfType(InValueList.class).getValueExpressions().forEach(jsonArrayFunction::addParameter);
 		
 		MySqlFunction jsonOverlapFunction = new MySqlFunction(MySqlFunctionName.JSON_OVERLAPS);
 		
-		jsonOverlapFunction.startParentheses();
+		jsonOverlapFunction.startParentheses();		
+		// JSON_OVERLAPS in MySQL is case sensitive, we need to wrap the parameters in a LOWER() call to make it case insensitive
+		// (See https://sagebionetworks.jira.com/browse/PLFM-9086)
+		MySqlFunction lowerColumnReference = new MySqlFunction(MySqlFunctionName.LOWER);
 		
-		// The first argument of the JSON_OVERLAPS is the column reference
-		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+		lowerColumnReference.startParentheses();
+		lowerColumnReference.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new ValueExpressionPrimary(columnReference)))))));
+
+		// The first argument of the JSON_OVERLAPS is the column reference (wrapped in the lower() call)
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(lowerColumnReference)))))));
 		
-		// The second argument of the JSON_OVERLAPS is the result of a JSON_ARRAY with the input values
-		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(jsonArrayFunction)))))));
+		MySqlFunction lowerJsonArrayFunction = new MySqlFunction(MySqlFunctionName.LOWER);
+
+		lowerJsonArrayFunction.startParentheses();		
+		lowerJsonArrayFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(jsonArrayFunction)))))));
+		
+		// The second argument of the JSON_OVERLAPS is the result of a JSON_ARRAY with the input values (again wrapped in a lower() call)
+		jsonOverlapFunction.addParameter(new ValueExpression(new NumericValueExpression(new Term(new Factor(null, new NumericPrimary(new NumericValueFunction(lowerJsonArrayFunction)))))));
 		
 		TruthValue truthValue = Boolean.TRUE.equals(predicate.getNot()) ? TruthValue.FALSE : TruthValue.TRUE;
 		

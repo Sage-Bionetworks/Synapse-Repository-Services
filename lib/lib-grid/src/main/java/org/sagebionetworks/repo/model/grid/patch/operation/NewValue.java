@@ -3,14 +3,15 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
-public class NewValue implements Operation<NewValue> {
+public class NewValue implements Operation {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
 
-	public NewValue setOperationId(LogicalTimestamp operationId) {
+	public NewValue(LogicalTimestamp operationId) {
+		ValidateArgument.required(operationId, "operationId");
 		this.operationId = operationId;
-		return this;
 	}
 
 	@Override

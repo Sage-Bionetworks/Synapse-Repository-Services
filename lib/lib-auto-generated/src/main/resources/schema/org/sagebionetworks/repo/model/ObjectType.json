@@ -8,19 +8,19 @@
     "enum": [
         {
             "name": "ENTITY",
-            "description": "TODO: Auto-generated description"
+            "description": "An element of the file hierarchy, e.g., file project, folder"
         },
         {
             "name": "ENTITY_CONTAINER",
-            "description": "TODO: Auto-generated description"
+            "description": "An entity that can contain other entities"
         },
         {
             "name": "PRINCIPAL",
-            "description": "TODO: Auto-generated description"
+            "description": "A user or group of users"
         },
         {
             "name": "ACTIVITY",
-            "description": "TODO: Auto-generated description"
+            "description": "A provenance element, linking entities to provide their history"
         },
         {
             "name": "EVALUATION",
@@ -100,7 +100,7 @@
         },
         {
             "name": "FORM_GROUP",
-            "description": "Grouping of from data."
+            "description": "Grouping of form data."
         },
         {
             "name": "ORGANIZATION",
@@ -116,7 +116,7 @@
         },
         {
             "name": "USER_PROFILE",
-            "description": "TODO: Auto-generated description"
+            "description": "Details about a user, like name and organization"
         },
         {
             "name": "DATA_ACCESS_REQUEST",
@@ -132,7 +132,7 @@
         },
         {
             "name": "MEMBERSHIP_INVITATION",
-            "description": "TODO: Auto-generated description"
+            "description": "An invitation to join a team"
         },
         {
         	"name": "JSON_SCHEMA",
@@ -189,6 +189,10 @@
 		{
             "name": "PORTAL",
             "description": "A representation of a Synapse portal."
+        },
+        {
+            "name": "OAUTH_CLIENT",
+            "description": "An OAuth 2.0 Client."
         }
     ]
 }

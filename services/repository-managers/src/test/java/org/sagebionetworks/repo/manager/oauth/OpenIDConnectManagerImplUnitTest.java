@@ -17,7 +17,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
+import static org.sagebionetworks.repo.manager.oauth.claimprovider.GA4GHPassportClaimProvider.VISA_CLAIM_NAME;
 
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -40,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackEncrypter;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
+import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -68,8 +71,6 @@ import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.oauth.GA4GHByType;
-import org.sagebionetworks.repo.model.oauth.GA4GHVisa;
-import org.sagebionetworks.repo.model.oauth.GA4GHVisaPayload;
 import org.sagebionetworks.repo.model.oauth.GA4GHVisaType;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -102,8 +103,9 @@ import com.google.common.collect.ImmutableList;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwt;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-
+	
 @ExtendWith(MockitoExtension.class)
 public class OpenIDConnectManagerImplUnitTest {
 	private static final String USER_ID = "101";
@@ -153,6 +155,12 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@Mock
 	private NotificationManager mockNotificationManager;
+	
+	@InjectMocks
+	private JwtBuilder jwtBuilder;
+
+	@Mock
+	private JwtBuilder mockJwtBuilder;
 
 	@InjectMocks
 	private OpenIDConnectManagerImpl openIDConnectManagerImpl;
@@ -180,6 +188,9 @@ public class OpenIDConnectManagerImplUnitTest {
 
 	@Mock
 	private Clock mockClock;
+	
+	@Mock
+	private StackConfiguration stackConfiguration;
 	
 	@InjectMocks
 	private EmailClaimProvider mockEmailClaimProvider;
@@ -1357,9 +1368,24 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockAccessRequirementDao.getConcreteTypes(Collections.singleton(ACCESS_REQUIREMENT_ID))).
 			thenReturn(Collections.singletonMap(ACCESS_REQUIREMENT_ID, "org.sagebionetworks.repo.model.ManagedACTAccessRequirement"));
 		
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		
 		// if the client omits a signing algorithm it means it wants the UserInfo as json
 		oauthClient.setUserinfo_signed_response_alg(null);
 		
+		
+		/*
+		 * Since we mock stack configuration we have to reintroduce a (valid, though NOT production)
+		 * RSA key that can be used to sign tokens.
+		 */
+		when(stackConfiguration.getOIDCSignatureRSAPrivateKeys()).thenReturn(
+				Collections.singletonList(JWTTestHelper.TEST_RSA_KEY_PAIR));
+		
+		when(mockJwtBuilder.createSignedJWT(any()))
+		.thenAnswer(invocation -> {
+			Claims claims = (Claims) invocation.getArgument(0);
+			return jwtBuilder.createSignedJWT(claims);});
+	
 		// method under test
 		Map<OIDCClaimName,Object> userInfo = (Map<OIDCClaimName,Object>)openIDConnectManagerImpl.
 				getUserInfo(ACCESS_TOKEN, OAUTH_ENDPOINT);
@@ -1373,11 +1399,17 @@ public class OpenIDConnectManagerImplUnitTest {
 		assertTrue((Boolean)userInfo.get(OIDCClaimName.email_verified));
 		Object passportClaim = userInfo.get(OIDCClaimName.ga4gh_passport_v1);
 		assertNotNull(passportClaim);
-		List<GA4GHVisaPayload> visas = (List<GA4GHVisaPayload>)passportClaim;
-		assertEquals(1, visas.size());
-		GA4GHVisa visa = visas.get(0).getGa4gh_visa_v1();
-		assertEquals(GA4GHByType.dac, visa.getBy());
-		assertEquals(GA4GHVisaType.ControlledAccessGrants, visa.getType());
+		List<String> visaJWTs = (List<String>)passportClaim;
+		assertEquals(1, visaJWTs.size());
+		String visaJWT = visaJWTs.get(0);
+		// parse JWT  and get visa claim
+		String testPemEncodedRsaPrivateKey = stackConfiguration.getOIDCSignatureRSAPrivateKeys().get(0);
+		KeyPair testKeyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(testPemEncodedRsaPrivateKey);
+		JwtParser parser = Jwts.parserBuilder().setSigningKey(testKeyPair.getPrivate()).build();
+		Claims parsedClaims = parser.parseClaimsJws(visaJWT).getBody();
+		Map<String,String> visa  = (Map<String,String>)parsedClaims.get(VISA_CLAIM_NAME); 
+		assertEquals(GA4GHByType.dac.name(), visa.get("by"));
+		assertEquals(GA4GHVisaType.ControlledAccessGrants.name(), visa.get("type"));
 	}
 
 	@Test

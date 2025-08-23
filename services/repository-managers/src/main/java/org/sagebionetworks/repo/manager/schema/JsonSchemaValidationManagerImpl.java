@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import org.apache.commons.lang.StringUtils;
@@ -35,32 +38,53 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 	@Override
 	public ValidationResults validate(JsonSchema jsonSchema, JsonSubject subject) {
 		try {
-			return doValidate(jsonSchema, subject);
+			return doValidate(jsonSchema, Collections.singletonList(subject)).get(0);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	@Override
+	public List<ValidationResults> validateBatch(JsonSchema schema, List<JsonSubject> subjects) {
+		try {
+			return doValidate(schema, subjects);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	ValidationResults doValidate(JsonSchema jsonSchema, JsonSubject subject) throws JSONObjectAdapterException {
-		ValidateArgument.required(subject, "subject");
+	List<ValidationResults> doValidate(JsonSchema jsonSchema, List<JsonSubject> subjects) throws JSONObjectAdapterException {
+		ValidateArgument.requiredNotEmpty(subjects, "subject");
 		boolean useDefaults= false;
 		Schema schemaValidator = loadSchema(jsonSchema, useDefaults);
-		ValidationResults result = new ValidationResults();
-		result.setObjectId(subject.getObjectId());
-		result.setObjectType(subject.getObjectType());
-		result.setObjectEtag(subject.getObjectEtag());
-		result.setSchema$id(jsonSchema.get$id());
-		result.setValidatedOn(new Date());
-		try {
-			schemaValidator.validate(subject.toJson());
-			result.setIsValid(true);
-		} catch (org.everit.json.schema.ValidationException e) {
-			result.setIsValid(false);
-			result.setValidationErrorMessage(e.getErrorMessage());
-			result.setAllValidationMessages(e.getAllMessages());
-			result.setValidationException(new ValidationException(new JSONObjectAdapterImpl(e.toJSON())));
+		
+		List<ValidationResults> results = new ArrayList<>(subjects.size());
+		
+		for (JsonSubject subject : subjects) {
+			ValidateArgument.required(subject, "subject");
+			
+			ValidationResults result = new ValidationResults();
+			
+			result.setObjectId(subject.getObjectId());
+			result.setObjectType(subject.getObjectType());
+			result.setObjectEtag(subject.getObjectEtag());
+			result.setSchema$id(jsonSchema.get$id());
+			result.setValidatedOn(new Date());
+			
+			try {
+				schemaValidator.validate(subject.toJson());
+				result.setIsValid(true);
+			} catch (org.everit.json.schema.ValidationException e) {
+				result.setIsValid(false);
+				result.setValidationErrorMessage(e.getErrorMessage());
+				result.setAllValidationMessages(e.getAllMessages());
+				result.setValidationException(new ValidationException(new JSONObjectAdapterImpl(e.toJSON())));
+			}
+			
+			results.add(result);
 		}
-		return result;
+		
+		return results;
 	}
 
 	@Override

@@ -1465,7 +1465,7 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(result);
-		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(_C13_,JSON_ARRAY(:b0,:b1)) IS TRUE ) )",
+		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(LOWER(_C13_),LOWER(JSON_ARRAY(:b0,:b1))) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b0"));

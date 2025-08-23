@@ -2645,7 +2645,7 @@ public class QueryTranslatorTest {
 				.build();
 
 		String expectedSql = "SELECT _C1_, _C2_, ROW_ID, ROW_VERSION FROM T1"
-				+ " WHERE ( JSON_OVERLAPS(_C2_,JSON_ARRAY(:b0,:b1)) IS TRUE )" + " AND ("
+				+ " WHERE ( JSON_OVERLAPS(LOWER(_C2_),LOWER(JSON_ARRAY(:b0,:b1))) IS TRUE )" + " AND ("
 				+ " JSON_SEARCH(_C1_,'one',:b2 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
 				+ " OR JSON_SEARCH(_C1_,'one',:b3 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL"
 				+ " OR JSON_SEARCH(_C1_,'one',:b4 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL " + ")";

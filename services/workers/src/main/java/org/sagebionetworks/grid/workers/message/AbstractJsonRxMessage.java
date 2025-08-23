@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.EventContext;
 
-public abstract class AbstractJsonRxMessage implements JsonRxMessage {
+public abstract class AbstractJsonRxMessage implements JsonRxMessageBase {
 	
 	private final EventContext context;
 	private final Integer id;

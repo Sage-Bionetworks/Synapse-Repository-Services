@@ -126,7 +126,7 @@ public class GridDaoImpl implements GridDao {
 				"INSERT INTO GRID_SESSION (ID, ETAG, CREATED_BY, CREATED_ON, MODIFIED_ON, SESSION_ID, REP_ID_CLIENT, REP_ID_SERVICE, SOURCE_ID, SCHEMA_ID)"
 						+ " VALUES(?,UUID(),?,NOw(),NOW(),?,?,?,?,?)",
 				args, argTypes);
-		return geGridSession(sessionId).get();
+		return getGridSession(sessionId).get();
 	}
 
 	@Override
@@ -141,7 +141,7 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
-	public Optional<GridSession> geGridSession(String gridSessionId) {
+	public Optional<GridSession> getGridSession(String gridSessionId) {
 		ValidateArgument.required(gridSessionId, "gridSessionId");
 		try {
 			return Optional.of(jdbcTemplate.queryForObject("SELECT * FROM GRID_SESSION WHERE SESSION_ID = ?",
@@ -240,11 +240,12 @@ public class GridDaoImpl implements GridDao {
 		ValidateArgument.required(connection.getReplicaId(), "connection.replicaId");
 		ValidateArgument.required(connection.getCreatedBy(), "connection.createdBy");
 		ValidateArgument.required(connection.getSource(), "connection.source");
+		Long id = idGenerator.generateNewId(IdType.GRID_CONNECTION_ID);
 
 		jdbcTemplate.update(
-				"INSERT INTO GRID_CONNECTION (CONNECTION_ID, SESSION_ID, REPLICA_ID, CREATED_BY, CREATED_ON, SOURCE)"
-						+ " VALUES (?,?,?,?,NOW(),?) ON DUPLICATE KEY UPDATE CONNECTION_ID = ?, CREATED_ON = NOW()",
-				connection.getConnectionId(), connection.getSessionId(), connection.getReplicaId(),
+				"INSERT INTO GRID_CONNECTION (ID, CONNECTION_ID, SESSION_ID, REPLICA_ID, CREATED_BY, CREATED_ON, SOURCE)"
+						+ " VALUES (?,?,?,?,?,NOW(),?) ON DUPLICATE KEY UPDATE CONNECTION_ID = ?, CREATED_ON = NOW()",
+				id, connection.getConnectionId(), connection.getSessionId(), connection.getReplicaId(),
 				connection.getCreatedBy(), connection.getSource().name(), connection.getConnectionId());
 	}
 
@@ -265,6 +266,19 @@ public class GridDaoImpl implements GridDao {
 		return jdbcTemplate.query("SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? ORDER BY REPLICA_ID ASC",
 				CONNECTION_MAPPER, sessionId);
 	}
+
+    @Override
+    public Optional<GridConnectionInfo> getDefaultInternalConnection(String sessionId) {
+        ValidateArgument.required(sessionId, "sessionId");
+        // This will be the largest replica ID that is within the bounds of our internal ID space
+        try {
+            return Optional.ofNullable(jdbcTemplate.queryForObject(
+                    "SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? AND SOURCE = 'INTERNAL' ORDER BY REPLICA_ID DESC LIMIT 1",
+                    CONNECTION_MAPPER, sessionId));
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
 
 	@Override
 	public void removeConnection(String connectionId) {

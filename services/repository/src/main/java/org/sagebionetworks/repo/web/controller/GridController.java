@@ -1,9 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.model.oauth.OAuthScope.download;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.modify;
 import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
+import java.io.IOException;
+
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
@@ -12,12 +18,15 @@ import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.service.GridService;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -206,5 +215,67 @@ public class GridController {
 			@PathVariable String sessionId) {
 		gridService.deleteGridSession(userId, sessionId);
 	}
+
+    /**
+     * Asynchronously start a csv download. Use the returned job id and <a
+     * href="${GET.grid.download.csv.async.get.asyncToken}">GET
+     * /grid/download/csv/async/get</a> to get the results of the query
+     *
+     * @param userId
+     * @param downloadRequest
+     * @return
+     * @throws DatastoreException
+     * @throws NotFoundException
+     * @throws IOException
+     */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+    public @ResponseBody
+    AsyncJobId csvDownloadAsyncStart(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @RequestBody DownloadFromGridRequest downloadRequest)
+            throws DatastoreException, NotFoundException, IOException {
+        ValidateArgument.required(downloadRequest, "Request body");
+        AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, downloadRequest);
+        AsyncJobId asyncJobId = new AsyncJobId();
+        asyncJobId.setToken(job.getJobId());
+        return asyncJobId;
+    }
+
+
+    /**
+     * Asynchronously get the results of a csv download started with <a
+     * href="${POST.grid.download.csv.async.start}">POST
+     * /grid/download/csv/async/start</a>
+     *
+     * <p>
+     * Note: When the result is not ready yet, this method will return a status
+     * code of 202 (ACCEPTED) and the response body will be a <a
+     * href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+     * >AsynchronousJobStatus</a> object.
+     * </p>
+     *
+     * @param userId
+     * @param asyncToken
+     * @return
+     * @throws DatastoreException
+     * @throws NotFoundException
+     * @throws IOException
+     * @throws AsynchJobFailedException
+     * @throws NotReadyException
+     */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+    public @ResponseBody
+    DownloadFromGridResult csvDownloadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+                                               @PathVariable String asyncToken) throws Throwable {
+        ValidateArgument.required(asyncToken, "asyncToken");
+        AsynchronousJobStatus jobStatus = asynchronousJobServices
+                .getJobStatusAndThrow(userId, asyncToken);
+        return (DownloadFromGridResult) jobStatus.getResponseBody();
+    }
+
 
 }

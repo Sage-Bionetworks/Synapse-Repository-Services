@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
 
 public class ValueNodeTest {
 
+	private LogicalTimestamp insertValOperationId;
 	private List<LogicalTimestamp> ids;
 
 	@BeforeEach
@@ -21,7 +22,9 @@ public class ValueNodeTest {
 
 		ids = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
-				new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
+				new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L)
+		);
+		insertValOperationId = new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L);
 	}
 
 	@Test
@@ -51,7 +54,7 @@ public class ValueNodeTest {
 	public void testAttemptInsert() {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		// call under test
-		assertTrue(val.attemptInsert(new InsertValue().setValueId(ids.get(0)).setReferenceId(ids.get(2))));
+		assertTrue(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(0), ids.get(2))));
 		ValueNode expected = new ValueNode().setId(ids.get(0)).setValue(ids.get(2));
 		assertEquals(expected, val);
 	}
@@ -60,7 +63,7 @@ public class ValueNodeTest {
 	public void testAttemptInsertWithCurrentNull() {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(null);
 		// call under test
-		assertTrue(val.attemptInsert(new InsertValue().setValueId(ids.get(0)).setReferenceId(ids.get(2))));
+		assertTrue(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(0), ids.get(2))));
 		ValueNode expected = new ValueNode().setId(ids.get(0)).setValue(ids.get(2));
 		assertEquals(expected, val);
 	}
@@ -69,7 +72,7 @@ public class ValueNodeTest {
 	public void testAttemptInsertWithEqualValue() {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		// call under test
-		assertFalse(val.attemptInsert(new InsertValue().setValueId(ids.get(0)).setReferenceId(ids.get(1))));
+		assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(0), ids.get(1))));
 		ValueNode expected = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		assertEquals(expected, val);
 	}
@@ -78,7 +81,7 @@ public class ValueNodeTest {
 	public void testAttemptInsertWithOlderValue() {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		// call under test
-		assertFalse(val.attemptInsert(new InsertValue().setValueId(ids.get(0)).setReferenceId(ids.get(0))));
+		assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(0), ids.get(0))));
 		ValueNode expected = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		assertEquals(expected, val);
 	}
@@ -98,9 +101,9 @@ public class ValueNodeTest {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			assertFalse(val.attemptInsert(new InsertValue().setValueId(null).setReferenceId(ids.get(0))));
+			assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, null, ids.get(0))));
 		}).getMessage();
-		assertEquals("change.valueId is required.", message);
+		assertEquals("valueId is required.", message);
 	}
 
 	@Test
@@ -108,9 +111,9 @@ public class ValueNodeTest {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			assertFalse(val.attemptInsert(new InsertValue().setValueId(ids.get(0)).setReferenceId(null)));
+			assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(0), null)));
 		}).getMessage();
-		assertEquals("change.referenceId is required.", message);
+		assertEquals("referenceId is required.", message);
 	}
 
 	@Test
@@ -118,7 +121,7 @@ public class ValueNodeTest {
 		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			assertFalse(val.attemptInsert(new InsertValue().setValueId(ids.get(2)).setReferenceId(ids.get(1))));
+			assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(2), ids.get(1))));
 		}).getMessage();
 		assertEquals("The ID of the passed change does not match the ID of this value.", message);
 	}

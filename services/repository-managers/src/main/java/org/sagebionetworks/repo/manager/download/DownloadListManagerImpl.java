@@ -89,6 +89,7 @@ import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ValidateArgument;
+import org.sagebionetworks.util.csv.CSVWriterProvider;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
@@ -134,12 +135,13 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	private FileHandleManager fileHandleManager;
 	private FileProvider fileProvider;
 	private NodeDAO nodeDao;
+    private CSVWriterProvider csvWriterProvider;
 
 	@Autowired
 	public DownloadListManagerImpl(EntityAuthorizationManager entityAuthorizationManager,
 			DownloadListDAO downloadListDao, TableQueryManager tableQueryManager, TableManagerSupport tableManagerSupport,
 			FileHandlePackageManager fileHandlePackageManager, FileHandleManager fileHandleManager, FileProvider fileProvider,
-			NodeDAO nodeDao) {
+			NodeDAO nodeDao, CSVWriterProvider csvWriterProvider) {
 		super();
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.downloadListDao = downloadListDao;
@@ -149,6 +151,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 		this.fileHandleManager = fileHandleManager;
 		this.fileProvider = fileProvider;
 		this.nodeDao = nodeDao;
+        this.csvWriterProvider = csvWriterProvider;
 	}
 
 	@WriteTransaction
@@ -685,7 +688,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 * @throws IOException
 	 */
 	CSVWriter createCSVWriter(CsvTableDescriptor descriptor, File temp) throws IOException {
-		return CSVUtils.createCSVWriter(
+		return csvWriterProvider.createWriter(
 				fileProvider.createWriter(fileProvider.createFileOutputStream(temp), StandardCharsets.UTF_8),
 				descriptor);
 	}

@@ -636,6 +636,36 @@ public class AuthorizationManagerImplUnitTest {
 
 	}
 	
+	@Test
+	public void testCanAccessOAuthClientACLUnauthorized() throws Exception {
+		String oauthClientId="101";
+		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
+		when(mockAclManager.canAccess(userInfo.getGroups(), oauthClientId, ObjectType.OAUTH_CLIENT, accessType)).thenReturn(false);
+		
+		// method under test
+		assertFalse(authorizationManager.canAccess(userInfo, oauthClientId, ObjectType.OAUTH_CLIENT, accessType).isAuthorized());
+	}
+
+	@Test
+	public void testCanAccessOAuthClientACLByAdmin() throws Exception {
+		String oauthClientId="101";
+		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
+		when(mockAclManager.canAccess(ADMIN_INFO.getGroups(), oauthClientId, ObjectType.OAUTH_CLIENT, accessType)).thenReturn(false);
+		
+		// method under test
+		assertTrue(authorizationManager.canAccess(ADMIN_INFO, oauthClientId, ObjectType.OAUTH_CLIENT, accessType).isAuthorized());
+	}
+
+	@Test
+	public void testCanAccessOAuthClientACLAuthorized() throws Exception {
+		String oauthClientId="101";
+		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_PERMISSIONS;
+		when(mockAclManager.canAccess(userInfo.getGroups(), oauthClientId, ObjectType.OAUTH_CLIENT, accessType)).thenReturn(true);
+		
+		// method under test
+		assertTrue(authorizationManager.canAccess(userInfo, oauthClientId, ObjectType.OAUTH_CLIENT, accessType).isAuthorized());
+	}
+
 	private static void addEntityHeaderTo(String id, Collection<EntityHeader>c) {
 		EntityHeader h = new EntityHeader(); 
 		h.setId(id); 

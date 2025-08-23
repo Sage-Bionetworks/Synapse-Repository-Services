@@ -10,16 +10,30 @@ import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdAndAlias;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.Hit;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -31,13 +45,16 @@ public class SearchManagerImpl implements SearchManager {
     private OpenSearchIndexInitializer openSearchIndexInitializer;
 
     private OpenSearchClient openSearchClient;
+    private SearchDocumentDriver searchDocumentDriver;
 
     public SearchManagerImpl(LoggerProvider logProvider, ChangeMessageToOpenSearchDocumentTranslator translator,
-                             OpenSearchIndexInitializer openSearchIndexInitializer, OpenSearchClient synSearchOssClient) {
+                             OpenSearchIndexInitializer openSearchIndexInitializer, OpenSearchClient synSearchOssClient,
+                             SearchDocumentDriver searchDocumentDriver) {
         this.log = logProvider.getLogger(SearchManagerImpl.class.getName());
         this.translator = translator;
         this.openSearchIndexInitializer = openSearchIndexInitializer;
         this.openSearchClient = synSearchOssClient;
+        this.searchDocumentDriver = searchDocumentDriver;
     }
 
     @PostConstruct()
@@ -106,6 +123,79 @@ public class SearchManagerImpl implements SearchManager {
         } catch (OpenSearchException | IOException e) {
             log.error(e);
             throw e;
+        }
+    }
+
+    @Override
+    public SearchResults search(UserInfo userInfo, SearchQuery searchQuery) {
+        try {
+            boolean includePath = false;
+            if (searchQuery.getReturnFields() != null) {
+                // We do not want to pass FIELD_PATH along to the search index as it is not there. So we remove that field
+                // and use includePath to indicate that the FIELD_PATH was requested.
+                //List<T>.remove() returns a boolean indicating whether the return fields previously contained FIELD_PATH
+                includePath = searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
+            }
+
+            // Create the search request
+            SearchRequest searchRequest = OssUtil.generateSearchRequest(userInfo, searchQuery);
+            SearchResults results = OssUtil.convertToSynapseSearchResult(openSearchClient.search(searchRequest, DocumentFields.class), searchRequest.from());
+
+            if (results != null && results.getHits() != null) {
+                if (includePath) {
+                    // FIELD_PATH is resolved here after search results are retrieved from OpenSearch
+                    addPathDataToHits(results.getHits());
+                }
+                addAliasesToHits(results.getHits());
+            }
+            return results;
+        } catch (IOException exception) {
+            log.error(exception);
+            throw new TemporarilyUnavailableException(exception.getMessage());
+        }
+    }
+
+
+    /**
+     * Add path data to the hit list.
+     *
+     * @param hits
+     */
+    public void addPathDataToHits(List<Hit> hits) {
+        // For each hit we need to add the path
+        List<Hit> toRemove = new LinkedList<>();
+        for (Hit hit : hits) {
+            try {
+                EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
+                hit.setPath(path);
+            } catch (NotFoundException e) {
+                // Add a warning and remove it from the hits
+                log.warn("Found a search document that did not exist in the repository: " + hit);
+                // We need to remove this from the hits
+                toRemove.add(hit);
+            }
+        }
+        hits.removeAll(toRemove);
+    }
+
+    /**
+     * Add aliases to the hit list.
+     *
+     * @param hits
+     */
+    public void addAliasesToHits(List<Hit> hits) {
+        // add aliases
+        List<String> ids = new ArrayList<String>();
+        for (Hit hit : hits) {
+            ids.add(hit.getId());
+        }
+        List<IdAndAlias> aliases = searchDocumentDriver.getAliases(ids);
+        Map<String, String> idToAliasMap = new HashMap<String, String>();
+        for (IdAndAlias ia : aliases) {
+            idToAliasMap.put(ia.getId(), ia.getAlias());
+        }
+        for (Hit hit : hits) {
+            hit.setAlias(idToAliasMap.get(hit.getId()));
         }
     }
 }

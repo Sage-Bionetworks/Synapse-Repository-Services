@@ -20,6 +20,9 @@ public class SearchServiceImpl implements SearchService {
 	SearchManager searchManager;
 
 	@Autowired
+	org.sagebionetworks.repo.manager.search.oss.SearchManager ossSearchManager;
+
+	@Autowired
 	UserManager userManager;
 
 
@@ -28,8 +31,13 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	@Override
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery) {
+	SearchResults proxySearch(Long userId, boolean isOpenSearchEnable, SearchQuery searchQuery) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		if (isOpenSearchEnable) {
+			return ossSearchManager.search(userInfo, searchQuery);
+		}
+
 		return searchManager.proxySearch(userInfo, searchQuery);
 	}
 

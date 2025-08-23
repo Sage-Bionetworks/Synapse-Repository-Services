@@ -350,6 +350,7 @@
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.grid.DBOGridSession"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.grid.DBOGridReplica"/>
+				<bean class="org.sagebionetworks.repo.model.dbo.grid.DBOGridConnection"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.grid.DBOGridPatch"/>
 
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOUserStatus"/>

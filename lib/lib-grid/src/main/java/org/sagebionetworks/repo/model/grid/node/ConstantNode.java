@@ -32,10 +32,7 @@ public class ConstantNode implements Node, HasJsonValue<ConstantNode> {
 
 	@Override
 	public String getValueAsJson() {
-		if (value == null) {
-			return "[]";
-		}
-		return new JSONArray().put(value).toString();
+		return ConstantUtils.constantValueToJson(value);
 	}
 
 	@Override

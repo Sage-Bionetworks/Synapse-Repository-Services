@@ -35,6 +35,7 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -294,6 +295,10 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		} catch (EmptyResultDataAccessException e) {
 			throw new IllegalStateException("Could not find row for table=" + tableName + " columnName=" + columnName,
 					e);
+		} catch (IncorrectResultSizeDataAccessException e2) {
+			throw new IncorrectResultSizeDataAccessException(
+					"tableName: "+tableName+", columnName: "+columnName,
+					e2.getExpectedSize(), e2.getActualSize(), e2);
 		}
 	}
 

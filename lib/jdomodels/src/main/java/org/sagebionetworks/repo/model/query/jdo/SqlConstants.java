@@ -1407,6 +1407,7 @@ public class SqlConstants {
 	public static final String DDL_GRID_REPLICA = "schema/grid/Grid-Replica-ddl.sql";
 	
 	public static final String TABLE_GRID_CONNECTION = 				"GRID_CONNECTION";
+	public static final String COL_GRID_CON_ID =			 		"ID";
 	public static final String COL_GRID_CON_CONNECTION_ID = 		"CONNECTION_ID";
 	public static final String COL_GRID_CON_SESSION_ID = 			"SESSION_ID";
 	public static final String COL_GRID_CON_REPLICA_ID =			"REPLICA_ID";

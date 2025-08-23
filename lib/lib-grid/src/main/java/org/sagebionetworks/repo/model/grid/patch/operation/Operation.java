@@ -3,31 +3,24 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 /**
- * Abstraction shared by all patch operations. See: <a href=
- * "https://jsonjoy.com/specs/json-crdt-patch/patch-document/patch-strucure">patch-strucure</a>
+ * Immutable abstraction shared by all patch operations. See: <a href=
+ * "https://jsonjoy.com/specs/json-crdt-patch/patch-document/patch-structure">patch-structure</a>
  */
-public interface Operation<T> {
+public interface Operation {
+
 
 	OperationType getType();
 
 	/**
 	 * Get the operation's ID
-	 * 
+	 *
 	 * @return
 	 */
 	LogicalTimestamp getOperationId();
-	
-	/**
-	 * Set the operation's ID.
-	 * @param timestamp
-	 * @return
-	 */
-	T setOperationId(LogicalTimestamp timestamp);
-	
 
 	/**
 	 * The span is the number of cycles consumed by an operation.
-	 * 
+	 *
 	 * @return
 	 */
 	long getSpan();

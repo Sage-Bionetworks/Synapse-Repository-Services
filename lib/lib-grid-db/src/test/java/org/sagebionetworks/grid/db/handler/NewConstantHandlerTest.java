@@ -1,8 +1,11 @@
 package org.sagebionetworks.grid.db.handler;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -39,18 +42,25 @@ public class NewConstantHandlerTest {
 		replicaId = 123L;
 
 		constants = List.of(
-				new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
-						.setValue(new ConValue(ConType.BOOLEAN, true)),
-				new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
-						.setValue(new ConValue(ConType.STRING, "hello")));
+				new NewConstant(
+						new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
+						new ConValue(ConType.BOOLEAN, true)
+				),
+				new NewConstant(
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
+						new ConValue(ConType.STRING, "hello")
+				)
+		);
 	}
 
 	@Test
 	public void testHandleBatch() {
 		// call under test
-		handler.handleBatch(sessionId, replicaId, constants);
-		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con,
-				constants.stream().map(NewConstant::getOperationId).collect(Collectors.toList()));
+		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, constants);
+		List<LogicalTimestamp> conIds = constants.stream().map(NewConstant::getOperationId)
+				.collect(Collectors.toList());
+		assertEquals(new LinkedHashSet<>(conIds), changes);
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, conIds);
 		verify(mockDao).saveNewConstants(sessionId, replicaId,
 				constants.stream()
 						.map(c -> new ConstantNode().setId(c.getOperationId()).setValue(c.getValue().getValue()))

@@ -85,7 +85,7 @@ public class GridDaoImplTest {
 		assertNull(session.getGridJsonSchema$Id());
 
 		// call under test
-		GridSession back = dao.geGridSession(session.getSessionId()).get();
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 	}
 
@@ -106,7 +106,7 @@ public class GridDaoImplTest {
 		assertEquals("someorg-someschema", session.getGridJsonSchema$Id());
 
 		// call under test
-		GridSession back = dao.geGridSession(session.getSessionId()).get();
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 		assertEquals(session, back);
 	}
@@ -114,7 +114,7 @@ public class GridDaoImplTest {
 	@Test
 	public void getGridSessionDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.geGridSession("doesnotexist"));
+		assertEquals(Optional.empty(), dao.getGridSession("doesnotexist"));
 	}
 
 	@Test
@@ -147,7 +147,7 @@ public class GridDaoImplTest {
 		assertEquals(session.getLastReplicaIdClient() + 1L, replica.getReplicaId());
 
 		// session's etag, modified and last repId should have changed.
-		GridSession updated = dao.geGridSession(session.getSessionId()).get();
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
 		assertNotEquals(updated.getEtag(), session.getEtag());
 		assertTrue(updated.getModifiedOn().getTime() > session.getModifiedOn().getTime());
 		assertEquals(updated.getLastReplicaIdClient(), session.getLastReplicaIdClient() + 1L);
@@ -155,7 +155,7 @@ public class GridDaoImplTest {
 		assertEquals(updated.getLastReplicaIdService(), session.getLastReplicaIdService());
 
 		// the other session should not have changed.
-		assertEquals(other, dao.geGridSession(other.getSessionId()).get());
+		assertEquals(other, dao.getGridSession(other.getSessionId()).get());
 	}
 
 	@Test
@@ -175,7 +175,7 @@ public class GridDaoImplTest {
 		assertEquals(session.getLastReplicaIdService() - 1L, replica.getReplicaId());
 
 		// session's etag, modified and last repId should have changed.
-		GridSession updated = dao.geGridSession(session.getSessionId()).get();
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
 		assertNotEquals(updated.getEtag(), session.getEtag());
 		assertTrue(updated.getModifiedOn().getTime() > session.getModifiedOn().getTime());
 		assertEquals(updated.getLastReplicaIdService(), session.getLastReplicaIdService() - 1L);
@@ -225,8 +225,8 @@ public class GridDaoImplTest {
 	@EnumSource(EventSource.class)
 	public void testConnectionCRUD(EventSource source) throws InterruptedException {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
-		GridReplica r1 = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
-		GridReplica r2 = dao.createReplica(adminUserId, session.getSessionId(), isAgent, eventSource);
+		GridReplica r1 = dao.createReplica(adminUserId, session.getSessionId(), isAgent, source);
+		GridReplica r2 = dao.createReplica(adminUserId, session.getSessionId(), isAgent, source);
 
 		GridConnectionInfo info1 = new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
 				.setCreatedBy(adminUserId).setReplicaId(r1.getReplicaId()).setSessionId(session.getSessionId())
@@ -245,6 +245,14 @@ public class GridDaoImplTest {
 		assertEquals(adminUserId, f1.getCreatedBy());
 		assertEquals(info1.getConnectionId(), f1.getConnectionId());
 
+        // call under test
+        Optional<GridConnectionInfo> defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
+        if (source.equals(EventSource.INTERNAL)) {
+            assertEquals(f1, defaultInternalConnection.get());
+        } else {
+            assertTrue(defaultInternalConnection.isEmpty());
+        }
+
 		// call under test
 		dao.createConnection(info2);
 		// call under test
@@ -254,6 +262,13 @@ public class GridDaoImplTest {
 		assertEquals(r2.getReplicaId(), f2.getReplicaId());
 		assertEquals(adminUserId, f2.getCreatedBy());
 		assertEquals(info2.getConnectionId(), f2.getConnectionId());
+        // call under test
+        defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
+        if (source.equals(EventSource.INTERNAL)) {
+            assertEquals(f1, defaultInternalConnection.get());
+        } else {
+            assertTrue(defaultInternalConnection.isEmpty());
+        }
 
 		// Wait for the new createdOn to be larger
 		Thread.sleep(1001L);
@@ -269,7 +284,7 @@ public class GridDaoImplTest {
 
 		// call under test
 		List<GridConnectionInfo> listed = dao.listConnections(session.getSessionId());
-		List<GridConnectionInfo> expected = List.of(f1, f2);
+		List<GridConnectionInfo> expected = source == EventSource.WEBSOCKET ? List.of(f1, f2) : List.of(f2, f1);
 		assertEquals(expected, listed);
 
 		// call under test
@@ -280,6 +295,13 @@ public class GridDaoImplTest {
 
 		// should still be able to get the second
 		assertEquals(f2, dao.getConnection(info2.getConnectionId()).get());
+        // call under test - if internal, default connection should now be f2
+        defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
+        if (source.equals(EventSource.INTERNAL)) {
+            assertEquals(f2, defaultInternalConnection.get());
+        } else {
+            assertTrue(defaultInternalConnection.isEmpty());
+        }
 	}
 
 	@Test

@@ -19,7 +19,7 @@ public class NewStringSerializable implements OperationSerializable<NewString> {
 
 	@Override
 	public NewString deserialize(LogicalTimestamp id, JSONArray array) {
-		return new NewString().setOperationId(id);
+		return new NewString(id);
 	}
 
 	@Override

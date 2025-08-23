@@ -7,7 +7,6 @@ import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
-import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 
 public class SynchronizeClockMessage implements RequestDataMessage {
 

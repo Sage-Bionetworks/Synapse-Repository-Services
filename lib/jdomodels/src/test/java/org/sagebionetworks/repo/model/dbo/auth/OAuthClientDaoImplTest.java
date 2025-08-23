@@ -21,8 +21,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -68,6 +71,9 @@ public class OAuthClientDaoImplTest {
 
 	@Autowired
 	private OAuthRefreshTokenDao oauthRefreshTokenDao;
+	
+	@Autowired
+	private AccessControlListDAO aclDAO;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -591,6 +597,34 @@ public class OAuthClientDaoImplTest {
 				ONE_YEAR_MILLIS);
 		assertEquals(0, results.getResults().size());
 		assertNull(results.getNextPageToken());
+	}
+	
+	@Test
+	public void testListClientsWithoutACLs() throws Exception {
+		// create two clients, create one acl
+		Long creatorId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		String clientWithACL = createSectorIdentifierAndClient(SECTOR_IDENTIFIER, 
+				creatorId, CLIENT_NAME);
+		String clientWithoutACL = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, 
+				creatorId, "some other client");
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setCreatedBy(clientWithACL);
+		acl.setId(clientWithACL);
+		acl.setCreationDate(new Date());
+		acl.setResourceAccess(Collections.EMPTY_SET);
+		aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
+		
+		// method under test
+		List<OAuthClient> clients = oauthClientDao.listClientsWithoutACLs();
+		
+		// should return just the client not having an ACL
+		assertEquals(1, clients.size());
+		
+		OAuthClient actual = clients.get(0);
+		
+		assertEquals(clientWithoutACL, actual.getClient_id());
+		assertEquals(creatorId.toString(), actual.getCreatedBy());
 	}
 
 }

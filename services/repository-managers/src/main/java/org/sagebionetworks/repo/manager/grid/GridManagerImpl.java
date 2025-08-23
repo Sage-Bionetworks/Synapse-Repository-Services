@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
+import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.EntityType;
@@ -36,6 +37,7 @@ import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
@@ -87,11 +89,12 @@ public class GridManagerImpl implements GridManager {
 	private final S3Client s3Client;
 	private final TableQueryManager tableQueryManager;
 	private final EntityManager entityManager;
+	private final InternalReplicaToHubEventPublisher internalEventPublisher;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
 			StackConfiguration config, S3Client s3Client, TableQueryManager tableQueryManager,
-			EntityManager entityManager) {
+			EntityManager entityManager, InternalReplicaToHubEventPublisher internalEventPublisher) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -100,6 +103,7 @@ public class GridManagerImpl implements GridManager {
 		this.s3Client = s3Client;
 		this.tableQueryManager = tableQueryManager;
 		this.entityManager = entityManager;
+		this.internalEventPublisher = internalEventPublisher;
 	}
 
 	@WriteTransaction
@@ -141,13 +145,17 @@ public class GridManagerImpl implements GridManager {
 			RowSet rowSet = pre.getQueryResult().getQueryResults();
 			String tableId = rowSet.getTableId();
 
-			String schemaId = getSchemaId(user, tableId, rowSet.getRows());
+			Optional<String> schemaIdOp = getSchemaId(user, tableId, rowSet.getRows());
 			Long maxRowSizeBytes = getMaxRowSizeBytes(pre.getMaxRowsPerPage());
 
-			GridSession session = gridDao.createGridSession(
-					new CreateGridSession().setUserId(user.getId()).setSourceId(tableId).setSchemaId(schemaId));
+			GridSession session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())
+					.setSourceId(tableId).setSchemaId(schemaIdOp.orElse(null)));
 			GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false,
 					EventSource.INTERNAL);
+
+			// Always include the entity etag so it is included in the grid metadata. The etag can be used to merge the
+			// grid data back into a Synapse Table or View
+			initialQuery.setIncludeEntityEtag(true);
 
 			// The second query is a full query to build all of the patches from the query
 			// results.
@@ -156,6 +164,17 @@ public class GridManagerImpl implements GridManager {
 				return new PatchRowHandler(this, session.getSessionId(), replica.getReplicaId(), schema,
 						maxRowSizeBytes);
 			});
+
+			String connectionId = UUID.randomUUID().toString();
+			/*
+			 * This call will establish a new internal connection to this replica. It will
+			 * also trigger a new [8,"connected"] event to be sent to the replica's worker.
+			 */
+			internalEventPublisher.publishEventAfterCommit(
+					new EventContext(EventType.CONNECT, EventSource.INTERNAL, connectionId),
+					JsonRxMessageType.Notification, "connection",
+					new Connection().setGridSessionId(GridUtils.gridSessionIdAsLong(session.getSessionId()))
+							.setReplicaId(replica.getReplicaId()).setUserId(user.getId()));
 
 			return session;
 		} catch (LockUnavilableException | TableUnavailableException e) {
@@ -181,15 +200,17 @@ public class GridManagerImpl implements GridManager {
 		return this.tableQueryManager.getMaxBytesPerRequest() / maxRowsPerPage;
 	}
 
-	String getSchemaId(UserInfo user, String tableId, List<Row> rows) {
+	Optional<String> getSchemaId(UserInfo user, String tableId, List<Row> rows) {
 		if (EntityType.entityview.equals(entityManager.getEntityType(tableId)) && rows != null && rows.size() > 0) {
 			String firstRowId = KeyFactory.keyToString(rows.get(0).getRowId());
-			JsonSchemaObjectBinding binding = entityManager.getBoundSchema(user, firstRowId);
-			if (binding != null && binding.getJsonSchemaVersionInfo() != null) {
-				return binding.getJsonSchemaVersionInfo().get$id();
+			try {
+				JsonSchemaObjectBinding binding = entityManager.getBoundSchema(user, firstRowId);
+				return Optional.of(binding.getJsonSchemaVersionInfo().get$id());
+			} catch (NotFoundException e) {
+				return Optional.empty();
 			}
 		}
-		return null;
+		return Optional.empty();
 	}
 
 	/**
@@ -212,7 +233,7 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public GridSession getGridSession(UserInfo user, String gridSessionId) {
 		validGridSessionAccess(user, gridSessionId);
-		return gridDao.geGridSession(gridSessionId).orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
+		return gridDao.getGridSession(gridSessionId).orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
 	}
 
 	@WriteTransaction
@@ -327,6 +348,12 @@ public class GridManagerImpl implements GridManager {
 		gridDao.removeConnection(connectionId);
 	}
 
+    @Override
+    public Optional<GridConnectionInfo> getDefaultInternalConnection(String sessionId) {
+        ValidateArgument.required(sessionId, "sessionId");
+        return gridDao.getDefaultInternalConnection(sessionId);
+    }
+
 	@WriteTransaction
 	@Override
 	public boolean savePatch(EventContext context, LogicalTimestamp patchId, String body) {
@@ -416,6 +443,11 @@ public class GridManagerImpl implements GridManager {
 		// User must have access to the session in order to delete it.
 		validGridSessionAccess(user, sessionId);
 		gridDao.deleteGridSession(sessionId);
+	}
+
+	@Override
+	public Optional<GridConnectionInfo> getConnectionInfoOptional(String connectionId) {
+		return gridDao.getConnection(connectionId);
 	}
 
 }

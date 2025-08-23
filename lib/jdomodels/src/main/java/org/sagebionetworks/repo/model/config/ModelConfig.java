@@ -87,6 +87,7 @@ public class ModelConfig {
 		return new JdbcTemplate(migrationDataSourcePool);
 	}
 
+	@Primary
 	@Bean
 	public NamedParameterJdbcTemplate namedParameterJdbcTemplate(JdbcTemplate jdbcTemplate) {
 		return new NamedParameterJdbcTemplate(jdbcTemplate);

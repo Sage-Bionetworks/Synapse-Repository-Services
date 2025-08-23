@@ -4,16 +4,14 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.WebSocket;
-import java.net.http.WebSocket.Listener;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
 import org.json.JSONArray;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseClient;
@@ -198,24 +196,55 @@ public class AsyncJobHelper {
 	 * @param incomingMessages
 	 * @return
 	 * @throws URISyntaxException
-	 */
+	 */	
 	public static WebSocket createConnection(String presignedUrl, BlockingQueue<String> incomingMessages)
-			throws URISyntaxException {
-		HttpClient client = HttpClient.newHttpClient();
-		return client.newWebSocketBuilder().buildAsync(new URI(presignedUrl), new Listener() {
+		throws URISyntaxException {				
+		WebSocketImpl client = new WebSocketImpl(presignedUrl, incomingMessages);
+		
+		try {
+			client.connectBlocking();
+		} catch (InterruptedException e) {
+			throw new RuntimeException("Failed to connect to WebSocket: " + presignedUrl, e);
+		}
+		
+		return client;
+	}
 
-			@Override
-			public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-				try {
-					incomingMessages.put(data.toString());
-				} catch (InterruptedException e) {
-					webSocket.sendClose(4999, "closing");
-					throw new RuntimeException(e);
-				}
-				webSocket.request(1);
-				return null;
+	public static class WebSocketImpl extends WebSocketClient {
+	
+		private BlockingQueue<String> incomingMessages;
+		
+		public WebSocketImpl(String url, BlockingQueue<String> incomingMessages) {
+			super(URI.create(url));
+			this.incomingMessages = incomingMessages;
+		}
+	
+		@Override
+		public void onOpen(org.java_websocket.handshake.ServerHandshake handshakedata) {
+			LOG.info("WebSocket connection opened: {}, ", handshakedata.getHttpStatusMessage());
+		}
+	
+		@Override
+		public void onClose(int code, String reason, boolean remote) {
+			LOG.info("WebSocket connection closed with code: {}, reason: {}", code, reason);
+		}
+	
+		@Override
+		public void onError(Exception ex) {
+			LOG.error("WebSocket error: ", ex);
+		}
+	
+		@Override
+		public void onMessage(String message) {
+			LOG.info("Message received: {}", message);
+			try {
+				incomingMessages.put(message);
+			} catch (InterruptedException e) {
+				this.close(4999);
+				throw new RuntimeException(e);
 			}
-		}).join();
+		}
+		
 	}
 
 }

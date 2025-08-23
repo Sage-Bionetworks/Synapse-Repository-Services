@@ -24,6 +24,8 @@ import com.amazonaws.services.sqs.model.Message;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AsynchJobQueuePublisherImplTest {
 	
+	private static final String JOB_ID = "123";
+
 	private static long MAX_WAIT = 1000*60*2;
 	
 	@Autowired
@@ -38,7 +40,7 @@ public class AsynchJobQueuePublisherImplTest {
 	@Test
 	public void testPublishRoundTrip() throws Exception{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
-		status.setJobId("123");
+		status.setJobId(JOB_ID);
 		UploadToTableRequest uploadToTableRequest = new UploadToTableRequest();
 		uploadToTableRequest.setTableId("syn8786");
 		uploadToTableRequest.setUploadFileHandleId("333");
@@ -62,7 +64,7 @@ public class AsynchJobQueuePublisherImplTest {
 	public Message waitForOneMessage() throws Exception {
 		return TimeUtils.waitFor(MAX_WAIT, 1000L, () -> {
 			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.TABLE_UPDATE_TRANSACTION);
-			return new Pair<>(message != null, message);
+			return new Pair<>(message != null && message.getBody().equals(JOB_ID), message);
 		});
 	}
 

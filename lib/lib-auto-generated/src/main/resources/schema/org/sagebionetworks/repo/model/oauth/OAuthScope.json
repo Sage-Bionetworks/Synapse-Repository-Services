@@ -15,6 +15,10 @@
       "description": "When used with 'openid' return user profile information in ID token"
     },
     {
+      "name": "ga4gh_passport_v1",
+      "description": "When used with 'openid' return a GA4GH Passport"
+    },
+    {
       "name": "view",
       "description": "Read object metadata"
     },

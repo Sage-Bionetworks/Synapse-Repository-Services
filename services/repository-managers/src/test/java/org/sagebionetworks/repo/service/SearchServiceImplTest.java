@@ -51,7 +51,7 @@ public class SearchServiceImplTest {
 		when(mockSearchManager.proxySearch(userInfo, searchQuery)).thenReturn(searchResults);
 
 		//method under test
-		SearchResults callResults = service.proxySearch(userId, searchQuery);
+		SearchResults callResults = service.proxySearch(userId, false, searchQuery);
 
 		verify(mockUserManager, times(1)).getUserInfo(userId);
 		verify(mockSearchManager, times(1)).proxySearch(userInfo, searchQuery);

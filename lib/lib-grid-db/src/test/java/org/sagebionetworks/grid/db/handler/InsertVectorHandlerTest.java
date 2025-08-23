@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,10 +52,22 @@ public class InsertVectorHandlerTest {
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L),
 				new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L),
-				new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L));
+				new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L),
+				new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L),
+				new LogicalTimestamp().setReplicaId(13L).setSequenceNumber(14L));
 
-		inserts = List.of(new InsertVector().setVectorId(ids.get(0)).setMap(Map.of(2, ids.get(1), 0, ids.get(2))),
-				new InsertVector().setVectorId(ids.get(3)).setMap(Map.of(1, ids.get(2))));
+		inserts = List.of(
+				new InsertVector(
+						ids.get(5),
+						ids.get(0),
+						Map.of(2, ids.get(1), 0, ids.get(2))
+				),
+				new InsertVector(
+						ids.get(6),
+						ids.get(3),
+						Map.of(1, ids.get(2))
+				)
+		);
 
 		constants = List.of(new ConstantNode().setId(ids.get(1)).setValue(111L),
 				new ConstantNode().setId(ids.get(2)).setValue("one"));
@@ -73,7 +86,8 @@ public class InsertVectorHandlerTest {
 		when(mockDao.getVectors(sessionId, replicaId, List.of(ids.get(0), ids.get(3)))).thenReturn(currentVectors);
 
 		// call under test
-		handler.handleBatch(sessionId, replicaId, inserts);
+		Set<LogicalTimestamp> changes =  handler.handleBatch(sessionId, replicaId, inserts);
+		assertEquals(Set.of(ids.get(0)), changes);
 
 		// only the first changed, so only it should be saved.
 		verify(mockDao).saveVectors(sessionId, replicaId, List.of(new VectorNode().setId(ids.get(0))

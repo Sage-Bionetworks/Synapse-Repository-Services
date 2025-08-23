@@ -487,6 +487,10 @@
 			"description": "Table that tracks grid replica."
 		},
 		{
+			"name": "GRID_CONNECTION",
+			"description": "Table that tracks grid connections."
+		},
+		{
 			"name": "GRID_PATCH",
 			"description": "Table that tracks grid replica patches."
 		},

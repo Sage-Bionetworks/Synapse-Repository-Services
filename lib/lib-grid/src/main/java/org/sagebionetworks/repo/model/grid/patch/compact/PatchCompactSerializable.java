@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.grid.patch.compact;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.OperationBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -39,7 +41,7 @@ public class PatchCompactSerializable {
 		patch.setPatchId(LogicalTimestampCompactSerializable.deserialize(header.getJSONArray(0)));
 		JSONObject metadata = header.optJSONObject(1);
 		patch.setMetadata(metadata != null ? metadata.toString() : null);
-		List<Operation<?>> operations = new ArrayList<>(compact.length() - 1);
+		List<Operation> operations = new ArrayList<>(compact.length() - 1);
 		// The first operation ID is the same as the patchId.
 		LogicalTimestamp nextOperationId = LogicalTimestamp.clone(patch.getPatchId());
 		for (int i = 0; i < compact.length() - 1; i++) {
@@ -50,7 +52,7 @@ public class PatchCompactSerializable {
 			if (serializer == null) {
 				throw new IllegalArgumentException("Unknown type: " + type);
 			}
-			Operation<?> operation = serializer.deserialize(nextOperationId, next);
+			Operation operation = serializer.deserialize(nextOperationId, next);
 			operations.add(operation);
 			nextOperationId = LogicalTimestamp.newIncrement(nextOperationId, operation.getSpan());
 		}
@@ -83,7 +85,7 @@ public class PatchCompactSerializable {
 		}
 		compact.put(0, header);
 		for (int i = 0; i < patch.getOperations().size(); i++) {
-			Operation<?> op = patch.getOperations().get(i);
+			Operation op = patch.getOperations().get(i);
 			OperationSerializable<?> serializer = map.get(op.getType());
 			if (serializer == null) {
 				throw new IllegalArgumentException("Unknown type: " + op.getType());
@@ -96,6 +98,21 @@ public class PatchCompactSerializable {
 	}
 
 	/**
+	 * Calculate the number of bytes needed to serialize the given operation
+	 * builder, assuming it is issued an operation ID with the maximum size.
+	 * 
+	 * @param <T>
+	 * @param builder
+	 * @return
+	 */
+	public static <T extends Operation> int calculateOperationSizeBytes(OperationBuilder builder) {
+		Operation op = builder.build(new LogicalTimestamp().setReplicaId(Long.MAX_VALUE).setSequenceNumber(Long.MAX_VALUE));
+		OperationSerializable<T> serializer = (OperationSerializable<T>) map.get(op.getType());
+		JSONArray arr = serializer.serialize((T) op);
+		return arr.toString().getBytes(StandardCharsets.UTF_8).length;
+	}
+
+	/**
 	 * Catpures the generic of OperationSerializable and serializes.
 	 * 
 	 * @param <S>
@@ -105,8 +122,7 @@ public class PatchCompactSerializable {
 	 * @param generalOperation
 	 * @return
 	 */
-	private static <S extends Operation<?>> JSONArray serializeWithHelper(OperationSerializable<S> typedSerializer,
-			Operation<?> generalOperation) {
+	private static <S extends Operation> JSONArray serializeWithHelper(OperationSerializable<S> typedSerializer, Operation generalOperation) {
 		S specificOperation = typedSerializer.getTypeClass().cast(generalOperation);
 		return typedSerializer.serialize(specificOperation);
 	}

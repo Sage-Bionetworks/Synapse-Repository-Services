@@ -32,7 +32,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class FacetTransformerValueCounts implements FacetTransformer {
 	public static final String VALUE_ALIAS = "value";
 	public static final String COUNT_ALIAS = "frequency";
-	public static final long MAX_NUM_FACET_CATEGORIES = 100;
+	public static final long MAX_NUM_FACET_CATEGORIES = 500;
 	
 	
 	private String columnName;

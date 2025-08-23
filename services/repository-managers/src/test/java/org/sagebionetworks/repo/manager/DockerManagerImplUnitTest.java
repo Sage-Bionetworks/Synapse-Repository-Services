@@ -83,7 +83,7 @@ public class DockerManagerImplUnitTest {
 	private static final String TAG = "v1";
 	private static final String DIGEST = "sha256:8900ee859c6808c9f83ce51bf44b508df63d1f2e8a839ca230471f1bac90ee19";
 	
-	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
+	private static final String MEDIA_TYPE = "application/vnd.docker.distribution.manifest.v2+json";
 	
 	private static final String OAUTH_ACCESS_TOKEN = "access token";
 	
@@ -220,6 +220,26 @@ public class DockerManagerImplUnitTest {
 		assertEquals(TAG, commit.getTag());
 	}
 
+	@Test
+	public void testDockerRegistryNotificationPushOCIMediaType() {
+		when(nodeDAO.getNodeTypeById(any())).thenReturn(EntityType.project);
+		when(userManager.getUserInfo(any())).thenReturn(USER_INFO);
+		when(entityManager.createEntity(any(), any(), any())).thenReturn(REPO_ENTITY_ID);
+		when(mockConfig.getDockerRegistryHosts()).thenReturn(Arrays.asList(REGISTRY_HOST));
+		when(dockerNodeDao.getEntityIdForRepositoryName(REPOSITORY_NAME)).thenReturn(null);
+
+		String ociMediaType = "application/vnd.oci.image.manifest.v1+json";
+		
+		DockerRegistryEventList events = 
+				DockerRegistryEventUtil.createDockerRegistryEvent(
+						RegistryEventAction.push, REGISTRY_HOST, USER_ID, REPOSITORY_PATH, TAG, DIGEST, ociMediaType);
+		
+		// method under test:
+		dockerManager.dockerRegistryNotification(events);
+		
+		verify(entityManager).createEntity(eq(USER_INFO), (DockerRepository)any(), (String)eq(null));
+	}
+
 	
 	@Test
 	public void testDockerRegistryNotificationPushExistingEntity() {
@@ -295,6 +315,7 @@ public class DockerManagerImplUnitTest {
 		verify(entityManager, never()).createEntity(any(), any(), anyString());
 		verify(dockerCommitDao, never()).createDockerCommit(anyString(), anyLong(), any());
 	}
+	
 	@Test
 	public void testDockerRegistryNotificationMount() {
 		DockerRegistryEventList events = 

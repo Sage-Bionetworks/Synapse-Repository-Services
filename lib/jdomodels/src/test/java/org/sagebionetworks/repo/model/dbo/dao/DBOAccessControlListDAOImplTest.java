@@ -477,6 +477,24 @@ public class DBOAccessControlListDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testChangeCreatedDate() throws Exception {
+		Node node = nodeList.iterator().next();
+		String rid = node.getId();
+		AccessControlList acl = aclDAO.get(rid, ObjectType.ENTITY);
+		Date origCreationDate = acl.getCreationDate();
+		// try to change the creation date
+		Date newDate = new Date(1000L+acl.getCreationDate().getTime());
+		acl.setCreationDate(newDate);
+		
+		// method under test
+		aclDAO.update(acl, ObjectType.ENTITY);
+		
+		AccessControlList updatedACL = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		// verify that the creation date does NOT change
+		assertEquals(origCreationDate, updatedACL.getCreationDate());
+	}
+	
 	
 	@Test
 	public void testUpdateMultipleGroups() throws Exception {

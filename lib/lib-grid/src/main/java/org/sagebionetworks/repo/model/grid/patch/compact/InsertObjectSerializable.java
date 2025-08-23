@@ -6,6 +6,7 @@ import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class InsertObjectSerializable implements OperationSerializable<InsertObject> {
 
@@ -22,8 +23,7 @@ public class InsertObjectSerializable implements OperationSerializable<InsertObj
 	@Override
 	public InsertObject deserialize(LogicalTimestamp operationId, JSONArray array) {
 		Long replicaId = operationId.getReplicaId();
-		InsertObject operation = new InsertObject().setOperationId(operationId)
-				.setObjectId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1));
+		LogicalTimestamp objectId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1);
 		JSONArray mapArray = array.getJSONArray(2);
 		LinkedHashMap<String, LogicalTimestamp> map = new LinkedHashMap<>(mapArray.length());
 		for (int i = 0; i < mapArray.length(); i++) {
@@ -32,12 +32,13 @@ public class InsertObjectSerializable implements OperationSerializable<InsertObj
 			LogicalTimestamp valueId = LogicalTimestampCompactSerializable.deserialize(replicaId, value, 1);
 			map.put(key, valueId);
 		}
-		operation.setMap(map);
-		return operation;
+
+        return new InsertObject(operationId, objectId, map);
 	}
 
 	@Override
 	public JSONArray serialize(InsertObject operation) {
+		ValidateArgument.required(operation, "operation");
 		Long replicaId = operation.getOperationId().getReplicaId();
 		JSONArray array = new JSONArray();
 		array.put(OperationType.ins_obj.getCode());

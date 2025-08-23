@@ -477,7 +477,7 @@ public class BaseClientImpl implements BaseClient {
 	// Helpers that perform request and return JSONObject
 	//================================================================================
 	
-	protected void validateContentType(SimpleHttpResponse response, String expectedContentType) throws SynapseClientException {
+	protected void validateContentType(SimpleHttpResponse response, String expectedContentType) throws SynapseClientException, UnknownSynapseServerException {
 		// If Synapse returns null there is no content-type header, so check content length
 		// and if equals zero then don't check content type.
 		Header contentLengthHeader = response.getFirstHeader(CONTENT_LENGTH);
@@ -489,7 +489,9 @@ public class BaseClientImpl implements BaseClient {
 		if (contentTypeHeader==null) throw new SynapseClientException("Missing "+CONTENT_TYPE+" header.");
 		String actualContentType = contentTypeHeader.getValue();
 		if (!actualContentType.toLowerCase().startsWith(expectedContentType.toLowerCase())) {
-			throw new SynapseClientException("Expected "+expectedContentType+" but received "+actualContentType);
+			throw new UnknownSynapseServerException(response.getStatusCode(),
+					String.format("Expected %s but received %s. Response reason is %s and content is %s",
+							expectedContentType,actualContentType,response.getStatusReason(), response.getContent()));
 		}
 	}
 

@@ -30,6 +30,8 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -123,9 +125,15 @@ public class ITOpenIDConnectTest {
 	@Test
 	public void testClientNotVerified() throws Exception {
 		OAuthClient client = setUpOAuthClient(false);
-
+		
 		assertFalse(client.getVerified());
 		
+		// check that we can GET and PUT the client's ACL
+		AccessControlList acl = synapse.getOAuthClientACL(client.getClient_id());
+		assertEquals(client.getClient_id(), acl.getId());
+		acl = synapse.updateOAuthClientACL(acl);
+		assertNotNull(acl);
+
 		OAuthClientIdAndSecret secret = synapse.createOAuthClientSecret(client.getClient_id());
 		assertEquals(client.getClient_id(), secret.getClient_id());
 		assertNotNull(secret.getClient_secret());
@@ -677,5 +685,11 @@ public class ITOpenIDConnectTest {
 
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapse.getRefreshTokenMetadata(tokenId));	
+	}
+	
+	@Test
+	public void testBackfillService() throws Exception {
+		BackfillCount count = adminSynapse.backfillOAuthClientACLs();
+		assertEquals(0L, count.getCount());
 	}
 }

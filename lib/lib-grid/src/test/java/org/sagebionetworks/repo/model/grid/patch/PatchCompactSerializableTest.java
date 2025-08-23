@@ -16,13 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
-import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertValue;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertVector;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
-import org.sagebionetworks.repo.model.grid.patch.operation.NewObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.util.ClasspathUtil;
 
 public class PatchCompactSerializableTest {
@@ -57,8 +58,7 @@ public class PatchCompactSerializableTest {
 		Patch expected = new Patch().setMetadata("{\"key\":9}")
 				.setPatchId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
 				.setOperations(Arrays.asList(
-						new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
-								.setValue(new ConValue(ConType.UNDEFINED, null))));
+						new NewConstant(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L), new ConValue(ConType.UNDEFINED, null))));
 		assertEquals(expected, patch);
 
 		// call under test
@@ -75,8 +75,7 @@ public class PatchCompactSerializableTest {
 		Patch expected = new Patch().setMetadata(null)
 				.setPatchId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
 				.setOperations(Arrays.asList(
-						new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
-								.setValue(new ConValue(ConType.UNDEFINED, null))));
+						new NewConstant(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L), new ConValue(ConType.UNDEFINED, null))));
 		assertEquals(expected, patch);
 
 		// call under test
@@ -94,12 +93,10 @@ public class PatchCompactSerializableTest {
 		Patch expected = new Patch().setMetadata("{\"key\":9}")
 				.setPatchId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
 				.setOperations(Arrays.asList(
-						new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
-								.setValue(new ConValue(ConType.LONG, 8L)),
-						new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L))
-								.setValue(new ConValue(ConType.LONG, 7L)),
-						new NewConstant().setOperationId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L))
-								.setValue(new ConValue(ConType.LONG, 5L))));
+						new NewConstant(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L), new ConValue(ConType.LONG, 8L)),
+						new NewConstant(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L), new ConValue(ConType.LONG, 7L)),
+						new NewConstant(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L), new ConValue(ConType.LONG, 5L))
+				));
 		assertEquals(expected, patch);
 
 		// call under test
@@ -119,18 +116,18 @@ public class PatchCompactSerializableTest {
 		// each sequence number should be incremented by the span.
 		Patch expected = new Patch().setMetadata("{\"key\":9}")
 				.setPatchId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L));
-		expected.addNewOperation(InsertArray.class)
+		expected.addNewOperation(Operations.insertArray()
 				.setArrayId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
 				.setReferenceId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))
 				.setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
-						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
-		expected.addNewOperation(InsertArray.class)
+						new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L))));
+		expected.addNewOperation(Operations.insertArray()
 				.setArrayId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(9L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
-				.setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L),
-						new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L),
-						new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(13L)));
-		expected.addNewOperation(NewObject.class);
+                .setReferenceId(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(10L))
+                .setElementIds(Arrays.asList(new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(11L),
+                        new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(12L),
+                        new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(13L))));
+		expected.addNewOperation(Operations.newObject());
 
 		assertEquals(expected, patch);
 		// The patch has a span of 6 even though there are only three operations.
@@ -179,15 +176,14 @@ public class PatchCompactSerializableTest {
 		assertNotNull(patch.getOperations());
 		assertEquals(15, patch.getOperations().size());
 		Operation last = patch.getOperations().get(patch.getOperations().size() - 1);
-		InsertValue expected = new InsertValue()
-				.setOperationId(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(15L))
-				.setReferenceId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))
-				.setValueId(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(1L));
+		InsertValue expected = new InsertValue(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(15L),
+				new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(1L));
 		assertEquals(expected, last);
 	}
 
 	@Test
-	public void testLoadExampePatches() throws IOException {
+	public void testLoadExamplePatches() throws IOException {
 		String loaded = ClasspathUtil.loadFromClasspath("patch-one.json");
 
 		// call under test
@@ -198,13 +194,44 @@ public class PatchCompactSerializableTest {
 		assertEquals(28, patch.getOperations().size());
 		Operation last = patch.getOperations().get(patch.getOperations().size() - 1);
 		Map<Integer, LogicalTimestamp> map = new LinkedHashMap<Integer, LogicalTimestamp>();
-		InsertVector expected = new InsertVector()
-				.setOperationId(new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(43L))
-				.setVectorId(new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(38L)).setMap(map);
 		map.put(0, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(40L));
 		map.put(1, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(41L));
 		map.put(2, new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(42L));
+		InsertVector expected = new InsertVector(
+				new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(43L),
+				new LogicalTimestamp().setReplicaId(65536L).setSequenceNumber(38L),
+				map
+		);
 		assertEquals(expected, last);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithConstantArray() {
+		JSONArray value = new JSONArray("[1,2,3,4,5,6]");
+		NewConstantBuilder builder = Operations.newConstant().setValue(new ConValue(ConType.JSON_ARRAY, value));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(17, bytes);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithConstantString() {
+		NewConstantBuilder builder = new NewConstantBuilder()
+				.setValue(new ConValue(ConType.STRING, "this is a small string but it still take up bytes"));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(55, bytes);
+	}
+
+	@Test
+	public void testCalculateOperationSizeBytesWithInsertObject() {
+		InsertObjectBuilder builder = Operations.insertObject()
+				.setObjectId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(Long.MAX_VALUE))
+				.setMap(Map.of("one", new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L), "two",
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L)));
+		// call under test
+		int bytes = PatchCompactSerializable.calculateOperationSizeBytes(builder);
+		assertEquals(59, bytes);
 	}
 
 }

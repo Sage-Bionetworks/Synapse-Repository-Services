@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -452,6 +453,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			throw new ConflictingUpdateException("E-tags do not match.");
 		}
 		acl.setEtag(UUID.randomUUID().toString());
+		acl.setCreationDate(new Date(origDbo.getCreationDate()));
 
 		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl,
 				origDbo.getId(), ownerType);

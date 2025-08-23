@@ -13,6 +13,6 @@ public interface SearchService {
 	 * @return the results of the search
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(Long userId, SearchQuery searchQuery);
+	SearchResults proxySearch(Long userId, boolean isOpenSearchEnable, SearchQuery searchQuery);
 
 }

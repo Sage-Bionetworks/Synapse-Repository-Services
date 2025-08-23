@@ -2,41 +2,83 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URISyntaxException;
-import java.net.http.WebSocket;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.java_websocket.WebSocket;
 import org.json.JSONArray;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
 @ExtendWith(ITTestExtension.class)
 public class ITGridControllerTest {
+    private static final Logger log = LogManager.getLogger(ITGridControllerTest.class);
+    private List<Entity> entitiesToDelete;
 
 	private static long MAX_TME_MS = 30 * 1000;
+    private static long ASYNC_JOB_POLL_TIME_MS = 1_000L;
 
 	private final SynapseClient synapse;
 
 	public ITGridControllerTest(SynapseClient synapse) {
 		this.synapse = synapse;
 	}
+
+    @BeforeEach
+    public void before() throws SynapseException{
+        entitiesToDelete = new LinkedList<Entity>();
+    }
+
+    @AfterEach
+    public void after() throws Exception {
+        for (Entity entity : entitiesToDelete) {
+            synapse.deleteEntity(entity);
+        }
+    }
 
 	@Test
 	public void testPingGrid() throws AssertionError, SynapseException, URISyntaxException, InterruptedException {
@@ -80,17 +122,89 @@ public class ITGridControllerTest {
 		BlockingQueue<String> incomingMessages = new LinkedBlockingQueue<>();
 		WebSocket ws = AsyncJobHelper.createConnection(urlResponse.getPresignedUrl(), incomingMessages);
 
-		ws.sendText(new JSONArray("[8,\"ping\"]").toString(), true).join();
+		ws.send(new JSONArray("[8,\"ping\"]").toString());
 		assertTrue(AsyncJobHelper.waitForMessage(8, "pong", incomingMessages));
-		ws.sendClose(4999, "closing").join();
-		
+		ws.close(4999, "closing");
+
 		// call under test
 		synapse.deleteGridSession(session.getSessionId());
-		
+
 		listResp = synapse.listGridSessions(new ListGridSessionsRequest());
 		assertNotNull(listResp);
 		assertNotNull(listResp.getPage());
 		assertFalse(listResp.getPage().contains(session));
 	}
 
+    @Test
+    public void testExportGridToCsv() throws Exception {
+        String tableId = createTableForInitialGrid().getId();
+
+        CreateGridResponse createGridResponse = (CreateGridResponse) AsyncJobHelper
+                .assertAysncJobResult(synapse, AsynchJobType.CreateGrid,
+                        new CreateGridRequest()
+                                .setInitialQuery(new Query().setSql("SELECT * FROM " + tableId))
+                        , body -> {
+                    assertInstanceOf(CreateGridResponse.class, body);
+                    CreateGridResponse r = (CreateGridResponse) body;
+                    assertNotNull(r.getGridSession());
+                    assertNotNull(r.getGridSession().getSessionId());
+                }, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
+
+        GridSession session = createGridResponse.getGridSession();
+
+        // call under test (using Grid endpoints, not generic async job endpoints)
+        String jobId = synapse.exportGridAsCsvAsyncStart(new DownloadFromGridRequest().setSessionId(session.getSessionId()));
+        TimeUtils.waitFor(MAX_TME_MS, ASYNC_JOB_POLL_TIME_MS,  () -> {
+            try {
+                DownloadFromGridResult result = synapse.exportGridAsCsvAsyncGet(jobId);
+                assertNotNull(result);
+                assertNotNull(result.getSessionId());
+                assertEquals(session.getSessionId(), result.getSessionId());
+                assertNotNull(result.getResultsFileHandleId());
+                return Pair.create(true, null);
+            } catch (SynapseResultNotReadyException e) {
+                log.info("Grid CSV Export job results not ready: " + e.getMessage());
+                return Pair.create(false, null);
+            }
+        });
+    }
+
+
+    private TableEntity createTableForInitialGrid() throws Exception {
+        // Create a few columns to add to a table entity
+        ColumnModel newColumnModel = new ColumnModel();
+        newColumnModel.setName("one");
+        newColumnModel.setColumnType(ColumnType.STRING);
+
+        final ColumnModel one = synapse.createColumnModel(newColumnModel);
+        // two
+        ColumnModel two = new ColumnModel();
+        two.setName("two");
+        two.setColumnType(ColumnType.STRING);
+        two = synapse.createColumnModel(two);
+        // Create a project to contain it all
+        Project project = new Project();
+        project.setName(UUID.randomUUID().toString());
+        project = synapse.createEntity(project);
+        assertNotNull(project);
+        entitiesToDelete.add(project);
+
+        List<ColumnModel> columns = Arrays.asList(one, two);
+
+        // Create a table entity
+        TableEntity table = synapse.createEntity(new TableEntity()
+                .setName("my table")
+                .setParentId(project.getId())
+                .setColumnIds(columns.stream().map(ColumnModel::getId).collect(Collectors.toList())));
+        entitiesToDelete.add(table);
+        String tableId = table.getId();
+        // Append some rows
+        RowSet set = new RowSet();
+        List<Row> rows = TableModelTestUtils.createRows(columns, 2);
+        set.setRows(rows);
+        set.setHeaders(TableModelUtils.getSelectColumns(columns));
+        set.setTableId(table.getId());
+        synapse.appendRowsToTable(set, 10_000L, tableId);
+        return table;
+    }
 }

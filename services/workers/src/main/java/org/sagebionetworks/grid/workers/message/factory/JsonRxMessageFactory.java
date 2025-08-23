@@ -1,13 +1,13 @@
 package org.sagebionetworks.grid.workers.message.factory;
 
-import org.sagebionetworks.grid.workers.message.JsonRxMessage;
+import org.sagebionetworks.grid.workers.message.JsonRxMessageBase;
 import org.sagebionetworks.repo.model.grid.EventContext;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 
 /**
  * Abstraction for a factory that can build JsonRxMessages.
  */
-public interface JsonRxMessageFactory<T extends JsonRxMessage> {
+public interface JsonRxMessageFactory<T extends JsonRxMessageBase> {
 
 	/**
 	 * The input JSON-Rx type that matches the message built by this factory.

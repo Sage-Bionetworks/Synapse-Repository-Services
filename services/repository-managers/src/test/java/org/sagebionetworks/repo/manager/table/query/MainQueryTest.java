@@ -85,7 +85,7 @@ public class MainQueryTest {
 		assertNotNull(main.getTranslator());
 		assertEquals("SELECT _C1_, _C2_, _C3_, ROW_ID, ROW_VERSION FROM T123_4 WHERE"
 			// selected facet
-			+ " ( ( ( ( JSON_OVERLAPS(_C1_,JSON_ARRAY(:b0)) IS TRUE ) ) ) )"
+			+ " ( ( ( ( JSON_OVERLAPS(LOWER(_C1_),LOWER(JSON_ARRAY(:b0))) IS TRUE ) ) ) )"
 			// additional filter
 			+ " AND ( ( ( _C2_ = :b1 OR _C2_ = :b2 ) )"
 			// original authorization filter

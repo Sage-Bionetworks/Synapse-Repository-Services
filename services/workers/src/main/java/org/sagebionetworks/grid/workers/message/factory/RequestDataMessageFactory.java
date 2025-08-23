@@ -5,7 +5,7 @@ import org.sagebionetworks.grid.workers.message.NewPatchRegistrationMessage;
 import org.sagebionetworks.grid.workers.message.RequestDataMessage;
 import org.sagebionetworks.grid.workers.message.SynchronizeClockMessage;
 import org.sagebionetworks.repo.model.grid.EventContext;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.springframework.stereotype.Component;
 
 @Component

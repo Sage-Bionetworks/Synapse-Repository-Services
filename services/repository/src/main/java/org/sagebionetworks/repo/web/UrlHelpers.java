@@ -452,8 +452,13 @@ public class UrlHelpers {
 	
 	public static final String GRID_SESSION_ID_REPLICA = GRID_SESSION_ID+"/replica";
 	public static final String GRID_SESSION_ID_REPLICA_ID = GRID_SESSION_ID_REPLICA+"/{replicaId}";
-	
-	public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
+
+    public static final String GRID_DOWNLOAD = GRID+"/download";
+    public static final String GRID_DOWNLOAD_CSV = GRID_DOWNLOAD+"/csv";
+    public static final String GRID_DOWNLOAD_CSV_ASYNC_START = GRID_DOWNLOAD_CSV+ASYNC_START_REQUEST;
+    public static final String GRID_DOWNLOAD_CSV_ASYNC_GET = GRID_DOWNLOAD_CSV+ASYNC_GET_REQUEST;
+
+    public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
 	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
@@ -1225,6 +1230,10 @@ public class UrlHelpers {
 	 * OpenID Connect URL constants
 	 */
 	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String OAUTH_2_CLIENT_ACL = OAUTH_2_CLIENT+"/{id}/acl";
+	public static final String OAUTH_2_CLIENT_ID_ACL = OAUTH_2_CLIENT+"/{id}/acl";
+	public static final String OAUTH_2_CLIENT_ACL_BACKFILL =  OAUTH_2_CLIENT+"/acl/backfill";
+	
 	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
 	public static final String OAUTH_2_CLIENT_ID_VERIFICATION_PRECHECK = OAUTH_2_CLIENT+ID+"/verificationPrecheck";
 	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;

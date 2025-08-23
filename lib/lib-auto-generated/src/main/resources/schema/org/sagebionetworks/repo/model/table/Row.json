@@ -12,7 +12,7 @@
         },
         "etag": {
 			"type": "string",
-			"description": "For queries against EntityViews with query.includeEtag=true, this field will contain the etag of the entity.  Will be null for all other cases."
+			"description": "For queries against EntityViews with query.includeEntityEtag=true, this field will contain the etag of the entity.  Will be null for all other cases."
         },
 		"values": {
 			"description": "The values for each column of this row. To delete a row, set this to an empty list: []",

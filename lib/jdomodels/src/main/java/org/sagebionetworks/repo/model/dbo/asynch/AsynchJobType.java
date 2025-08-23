@@ -25,6 +25,8 @@ import org.sagebionetworks.repo.model.file.FileHandleRestoreRequest;
 import org.sagebionetworks.repo.model.file.FileHandleRestoreResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
+import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -96,8 +98,10 @@ public enum AsynchJobType {
 	
 	QUERY_AS_PFB(DownloadPFBRequest.class, DownloadPFBResult.class),
 	
-	GRID_CREATE(CreateGridRequest.class, CreateGridResponse.class)
-	;
+	GRID_CREATE(CreateGridRequest.class, CreateGridResponse.class),
+
+    DOWNLOAD_CSV_FROM_GRID(DownloadFromGridRequest.class, DownloadFromGridResult.class)
+    ;
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

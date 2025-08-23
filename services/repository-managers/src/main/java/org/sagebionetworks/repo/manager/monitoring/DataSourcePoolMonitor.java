@@ -19,7 +19,8 @@ public class DataSourcePoolMonitor {
 		idgen("idGeneratorDataSourcePool"), 
 		main("dataSourcePool"), 
 		migration("migrationDataSourcePool"), 
-		tables("tableDatabaseConnectionPool");
+		tables("tableDatabaseConnectionPool"),
+		grid("gridDatabaseConnectionPool");
 		
 		String beanName;
 		

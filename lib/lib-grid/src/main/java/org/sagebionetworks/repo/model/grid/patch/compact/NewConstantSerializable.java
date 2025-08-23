@@ -12,50 +12,50 @@ public class NewConstantSerializable implements OperationSerializable<NewConstan
 
 	@Override
 	public NewConstant deserialize(LogicalTimestamp id, JSONArray array) {
-		NewConstant con = new NewConstant().setOperationId(id);
+		boolean isTimestamp = false;
 		if (array.length() == 1) {
-			return con.setValue(new ConValue(ConType.UNDEFINED, null));
+			return new NewConstant(id, new ConValue(ConType.UNDEFINED, null));
 		}
 		if (array.length() == 3) {
-			con.setTimestamp(array.getBoolean(2));
+			isTimestamp = array.getBoolean(2);
 		}
 		if (array.isNull(1)) {
-			return con.setValue(new ConValue(ConType.NULL, null));
+			return new NewConstant(id, new ConValue(ConType.NULL, null));
 		}
 
 		Object value = array.get(1);
 		if (value instanceof Boolean) {
-			return con.setValue(new ConValue(ConType.BOOLEAN, value));
+			return new NewConstant(id, new ConValue(ConType.BOOLEAN, value));
 		} else if (value instanceof Double) {
-			return con.setValue(new ConValue(ConType.DOUBLE, value));
+			return new NewConstant(id, new ConValue(ConType.DOUBLE, value));
 		} else if (value instanceof Float) {
-			return con.setValue(new ConValue(ConType.DOUBLE, (Double) value));
+			return new NewConstant(id, new ConValue(ConType.DOUBLE, (Double) value));
 		} else if (value instanceof Integer) {
 			Long longValue = ((Integer) value).longValue();
-			if (con.isTimestamp()) {
-				return con.setValue(new ConValue(ConType.TIMESTAMP,
-						new LogicalTimestamp().setReplicaId(id.getReplicaId()).setSequenceNumber(longValue)));
+			if (isTimestamp) {
+				LogicalTimestamp timestamp = new LogicalTimestamp().setReplicaId(id.getReplicaId()).setSequenceNumber(longValue);
+				return new NewConstant(id, new ConValue(ConType.TIMESTAMP, timestamp));
 			} else {
-				return con.setValue(new ConValue(ConType.LONG, longValue));
+				return new NewConstant(id, new ConValue(ConType.LONG, longValue));
 			}
 		} else if (value instanceof Long) {
-			if (con.isTimestamp()) {
-				return con.setValue(new ConValue(ConType.TIMESTAMP,
-						new LogicalTimestamp().setReplicaId(id.getReplicaId()).setSequenceNumber((Long) value)));
+			if (isTimestamp) {
+				LogicalTimestamp timestamp = new LogicalTimestamp().setReplicaId(id.getReplicaId()).setSequenceNumber((Long) value);
+				return new NewConstant(id, new ConValue(ConType.TIMESTAMP, timestamp));
 			} else {
-				return con.setValue(new ConValue(ConType.LONG, value));
+				return new NewConstant(id, new ConValue(ConType.LONG, value));
 			}
 		} else if (value instanceof String) {
-			return con.setValue(new ConValue(ConType.STRING, value));
+			return new NewConstant(id, new ConValue(ConType.STRING, value));
 		} else if (value instanceof JSONArray) {
-			if (con.isTimestamp()) {
-				return con.setValue(new ConValue(ConType.TIMESTAMP,
-						LogicalTimestampCompactSerializable.deserialize((JSONArray) value)));
+			if (isTimestamp) {
+				LogicalTimestamp timestamp = LogicalTimestampCompactSerializable.deserialize((JSONArray) value);
+				return new NewConstant(id, new ConValue(ConType.TIMESTAMP, timestamp));
 			} else {
-				return con.setValue(new ConValue(ConType.JSON_ARRAY, value));
+				return new NewConstant(id, new ConValue(ConType.JSON_ARRAY, value));
 			}
 		} else if (value instanceof JSONObject) {
-			return con.setValue(new ConValue(ConType.JSON_OBJECT, value));
+			return new NewConstant(id, new ConValue(ConType.JSON_OBJECT, value));
 		} else {
 			throw new IllegalArgumentException("Unknown constant type: " + array.toString());
 		}

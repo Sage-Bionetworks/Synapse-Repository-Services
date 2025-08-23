@@ -23,16 +23,20 @@ public class InsertArraySerializable implements OperationSerializable<InsertArra
 	@Override
 	public InsertArray deserialize(LogicalTimestamp operationId, JSONArray array) {
 		Long replicaId = operationId.getReplicaId();
-		InsertArray insert = new InsertArray().setOperationId(operationId);
-		insert.setArrayId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1));
-		insert.setReferenceId(LogicalTimestampCompactSerializable.deserialize(replicaId, array, 2));
+		LogicalTimestamp arrayId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 1);
+		LogicalTimestamp referenceId = LogicalTimestampCompactSerializable.deserialize(replicaId, array, 2);
 		JSONArray elementsArray = array.getJSONArray(3);
 		List<LogicalTimestamp> elements = new ArrayList<>(elementsArray.length());
-		insert.setElementIds(elements);
 		for (int i = 0; i < elementsArray.length(); i++) {
 			elements.add(LogicalTimestampCompactSerializable.deserialize(replicaId, elementsArray, i));
 		}
-		return insert;
+
+        return new InsertArray(
+                operationId,
+                arrayId,
+                referenceId,
+                elements
+        );
 	}
 
 	@Override

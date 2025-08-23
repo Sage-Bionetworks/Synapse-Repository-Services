@@ -3,10 +3,16 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
-public class NewObject implements Operation<NewObject> {
+public class NewObject implements Operation {
 
-	private LogicalTimestamp operationId;
+	private final LogicalTimestamp operationId;
+
+	public  NewObject(LogicalTimestamp operationId) {
+		ValidateArgument.required(operationId, "operationId");
+		this.operationId = operationId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -21,11 +27,6 @@ public class NewObject implements Operation<NewObject> {
 	@Override
 	public long getSpan() {
 		return 1L;
-	}
-
-	public NewObject setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
 	}
 
 	@Override

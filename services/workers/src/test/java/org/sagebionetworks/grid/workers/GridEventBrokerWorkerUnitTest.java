@@ -30,13 +30,13 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.workers.message.AbstractJsonRxMessage;
-import org.sagebionetworks.grid.workers.message.JsonRxMessage;
+import org.sagebionetworks.grid.workers.message.JsonRxMessageBase;
 import org.sagebionetworks.grid.workers.message.factory.JsonRxMessageFactory;
 import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
-import org.sagebionetworks.repo.model.grid.event.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.context.ApplicationEventPublisher;
@@ -57,7 +57,7 @@ public class GridEventBrokerWorkerUnitTest {
 	private ApplicationEventPublisher mockApplicationEventPublisher;
 
 	@Mock
-	private JsonRxMessageFactory<JsonRxMessage> mockFactory;
+	private JsonRxMessageFactory<JsonRxMessageBase> mockFactory;
 
 	@Mock
 	private EventContext mockContext;
@@ -179,7 +179,7 @@ public class GridEventBrokerWorkerUnitTest {
 		JSONArray batch = new JSONArray("[[1,2],[3,4]]");
 		doReturn(testMessage, testMessageTwo).when(brokerSpy).createEvent(eq(mockContext), arrayCaptor.capture());
 		// call under test
-		List<JsonRxMessage> results = brokerSpy.createEvents(mockContext, batch);
+		List<JsonRxMessageBase> results = brokerSpy.createEvents(mockContext, batch);
 		List<Object> expected = List.of(testMessage, testMessageTwo);
 		assertEquals(results, expected);
 		List<String> arrayString = arrayCaptor.getAllValues().stream().map(a -> a.toString())
@@ -206,7 +206,7 @@ public class GridEventBrokerWorkerUnitTest {
 		JSONArray batch = new JSONArray("[1,2]");
 		doReturn(testMessage).when(brokerSpy).createEvent(eq(mockContext), arrayCaptor.capture());
 		// call under test
-		List<JsonRxMessage> results = brokerSpy.createEvents(mockContext, batch);
+		List<JsonRxMessageBase> results = brokerSpy.createEvents(mockContext, batch);
 		List<Object> expected = List.of(testMessage);
 		assertEquals(results, expected);
 		List<String> arrayString = arrayCaptor.getAllValues().stream().map(a -> a.toString())

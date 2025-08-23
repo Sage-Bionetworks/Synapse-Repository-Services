@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -18,14 +19,22 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
+import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientIdAndSecret;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
@@ -60,11 +69,15 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	
 	private NotificationManager notificationManager;
 	
+	private AccessControlListDAO aclDAO;
+	
 	@Autowired
-	public OAuthClientManagerImpl(OAuthClientDao oauthClientDao, SimpleHttpClient httpClient, AuthorizationManager authManager, UserManager userManager,
+	public OAuthClientManagerImpl(OAuthClientDao oauthClientDao, AccessControlListDAO aclDAO,
+			SimpleHttpClient httpClient, AuthorizationManager authManager, UserManager userManager,
 			NotificationManager notificationManager) {
 		super();
 		this.oauthClientDao = oauthClientDao;
+		this.aclDAO=aclDAO;
 		this.httpClient = httpClient;
 		this.authManager = authManager;
 		this.userManager = userManager;
@@ -167,6 +180,21 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	public static boolean canAdministrate(UserInfo userInfo, String createdBy) {
 		return createdBy.equals(userInfo.getId().toString()) || userInfo.isAdmin();
 	}
+	
+	AccessControlList createAccessControlList(Long creatorId, String oauthClientId) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(oauthClientId);
+		acl.setCreatedBy(creatorId.toString());
+		Date now = new Date(System.currentTimeMillis());
+		acl.setCreationDate(now);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(creatorId);
+		ra.setAccessType(AccessControlListUtils.ALLOWED_ACCESS_TYPES.get(ObjectType.OAUTH_CLIENT));
+		acl.setResourceAccess(Collections.singleton(ra));
+		acl.setModifiedBy(creatorId.toString());
+		acl.setModifiedOn(now);
+		return acl;
+	}
 
 	@WriteTransaction
 	@Override
@@ -186,6 +214,9 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		ensureSectorIdentifierExists(resolvedSectorIdentifier, userInfo.getId());
 
 		OAuthClient client = oauthClientDao.createOAuthClient(oauthClient);
+		
+		AccessControlList acl = createAccessControlList(userInfo.getId(), oauthClient.getClient_id());
+		aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
 		
 		Map<String, Object> notificationContext = new HashMap<>();
 		
@@ -350,6 +381,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			throw new UnauthorizedException("You can only delete your own OAuth client(s).");
 		}
 		
+		aclDAO.delete(id, ObjectType.OAUTH_CLIENT);
 		oauthClientDao.deleteOAuthClient(id);
 		
 		Map<String, Object> notificationContext = new HashMap<>();
@@ -359,6 +391,26 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		UserInfo recipient = userManager.getUserInfo(Long.valueOf(client.getCreatedBy()));
 		
 		notificationManager.sendTemplatedNotification(recipient, NOTIFICATION_TPL_CLIENT_REMOVED, "OAuth Client Removed", notificationContext);
+	}
+	
+	@Override
+	public AccessControlList getAccessControlList(UserInfo userInfo, String clientId) {
+		authManager.canAccess(userInfo, clientId, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return  aclDAO.get(clientId, ObjectType.OAUTH_CLIENT);
+	}
+	
+	@WriteTransaction
+	@Override
+	public AccessControlList updateAccessControlList(UserInfo userInfo, String clientId, AccessControlList acl) {
+		ValidateArgument.required(userInfo, "The user");
+		ValidateArgument.required(clientId, "The OAuth client id");
+		ValidateArgument.required(acl, "The acl");
+		ValidateArgument.requirement(clientId.equals(acl.getId()), "Id in URI must match id in ACL object.");
+		authManager.canAccess(userInfo, acl.getId(), ObjectType.OAUTH_CLIENT, ACCESS_TYPE.CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
+		OAuthClient client = oauthClientDao.getOAuthClient(acl.getId());
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(client.getCreatedBy()));
+		aclDAO.update(acl, ObjectType.OAUTH_CLIENT);
+		return aclDAO.get(acl.getId(), ObjectType.OAUTH_CLIENT);
 	}
 
 	@WriteTransaction
@@ -401,6 +453,22 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		} catch (NotFoundException e) {
 			return false;
 		}
+	}
+	
+	@WriteTransaction
+	@Override
+	public BackfillCount backfillAccessControlLists(UserInfo userInfo) {
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator can backfill OAuth client ACLs.");
+		}
+		List<OAuthClient> clients = oauthClientDao.listClientsWithoutACLs();
+		for (OAuthClient client: clients) {
+			AccessControlList acl = createAccessControlList(Long.parseLong(client.getCreatedBy()), client.getClient_id());
+			aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
+		}
+		BackfillCount result = new BackfillCount();
+		result.setCount((long)clients.size());
+		return result;
 	}
 
 }

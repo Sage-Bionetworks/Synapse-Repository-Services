@@ -41,7 +41,7 @@ public class DockerManagerImplAutowiredTest {
 	private static final String TYPE = "repository";
 	private static final String TAG = "lastest";
 	private static final String DIGEST = "sha256:10010101";
-	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPE;
+	private static final String MEDIA_TYPE = DockerManagerImpl.MANIFEST_MEDIA_TYPES.get(0);
 	
 	private String repositoryPath;
 	

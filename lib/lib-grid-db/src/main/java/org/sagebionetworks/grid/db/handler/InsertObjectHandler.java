@@ -1,8 +1,10 @@
 package org.sagebionetworks.grid.db.handler;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -12,9 +14,9 @@ import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertObject;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
-@Repository
+@Component
 public class InsertObjectHandler implements OperationHandler<InsertObject> {
 
 	private final GridIndexDao gridDao;
@@ -30,8 +32,8 @@ public class InsertObjectHandler implements OperationHandler<InsertObject> {
 	}
 
 	@Override
-	public void handleBatch(String sessionId, Long replicaId, List<InsertObject> batch) {
-
+	public Set<LogicalTimestamp> handleBatch(String sessionId, Long replicaId, List<InsertObject> batch) {
+		Set<LogicalTimestamp> changes = new LinkedHashSet<LogicalTimestamp>();
 		Map<LogicalTimestamp, ObjectNode> current = gridDao
 				.getObjects(sessionId, replicaId,
 						batch.stream().map(InsertObject::getObjectId).collect(Collectors.toList()))
@@ -45,9 +47,11 @@ public class InsertObjectHandler implements OperationHandler<InsertObject> {
 			}
 			if (cur.attemptInsert(i)) {
 				toChange.add(cur);
+				changes.add(cur.getId());
 			}
 		});
 		gridDao.saveObjects(sessionId, replicaId, toChange);
+		return changes;
 	}
 
 }

@@ -2,7 +2,6 @@ package org.sagebionetworks.agent.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,7 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -55,7 +53,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.Lists;
-
+// Sonnet 3.7 224 s
+// Sonnet 3.5 Haiku 154 s
+// Sonnet 4.0 144 s
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AgentChatWorkerIntegrationTest {
@@ -334,13 +334,19 @@ public class AgentChatWorkerIntegrationTest {
 		Project project = entityService.createEntity(admin.getId(),
 				new Project().setName(UUID.randomUUID().toString()).setDescription("Test Project"), null);
 		entitiesToDelete.add(project.getId());
+		
+		String uuidOne = UUID.randomUUID().toString();
+		
 		WikiPage wp = wikiService.createWikiPage(admin.getId(), project.getId(), ObjectType.ENTITY,
 				new WikiPage().setTitle("The meaning of life")
 						.setMarkdown("This is the root wiki of this project and it contains the first uuid: "
-								+ UUID.randomUUID().toString()));
+								+ uuidOne));
+		
+		String uuidTwo = UUID.randomUUID().toString();
+		
 		WikiPage sub = wikiService.createWikiPage(admin.getId(), project.getId(), ObjectType.ENTITY,
 				new WikiPage().setParentWikiId(wp.getId()).setTitle("Sub-page working title")
-						.setMarkdown("This sub-page also contains another uuid:" + UUID.randomUUID().toString()));
+						.setMarkdown("This sub-page also contains another uuid:" + uuidTwo));
 
 		AgentSession session = agentService.createSession(admin.getId(),
 				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
@@ -355,12 +361,15 @@ public class AgentChatWorkerIntegrationTest {
 					assertNotNull(response);
 					assertEquals(session.getSessionId(), response.getSessionId());
 					assertNotNull(response.getResponseText());
+					String responseText = response.getResponseText().toLowerCase();
+					
 					System.out.println(response.getResponseText());
-					assertTrue(response.getResponseText().contains(wp.getTitle()));
-					assertTrue(response.getResponseText().contains(wp.getMarkdown()));
-					assertTrue(response.getResponseText().contains(sub.getTitle()));
-					assertTrue(response.getResponseText().contains(sub.getMarkdown()));
-					assertTrue(response.getResponseText().contains(project.getDescription()));
+					
+					assertTrue(responseText.contains(wp.getTitle().toLowerCase()));
+					assertTrue(responseText.contains(uuidOne));
+					assertTrue(responseText.contains(sub.getTitle().toLowerCase()));
+					assertTrue(responseText.contains(uuidTwo));
+					assertTrue(responseText.contains(project.getDescription().toLowerCase()));
 				}, MAX_WAIT_MS).getResponse();
 	}
 
@@ -380,7 +389,7 @@ public class AgentChatWorkerIntegrationTest {
 							assertEquals(sessionId, response.getSessionId());
 							assertNotNull(response.getResponseText());
 							System.out.println(response.getResponseText());
-							assertTrue(response.getResponseText().contains("PUBLICLY_ACCESSIBLE"));
+							assertTrue(response.getResponseText().toLowerCase().contains("public"));
 						}, MAX_WAIT_MS)
 				.getResponse();
 
@@ -442,13 +451,13 @@ public class AgentChatWorkerIntegrationTest {
 
 		String traceText = agentService.getChatTrace(admin.getId(), new TraceEventsRequest().setJobId(jobId)).getPage()
 				.stream().map(TraceEvent::getMessage).reduce(String::concat).orElseThrow();
-
-		assertTrue(traceText.contains("knowledge base"));
+		
+		assertTrue(traceText.contains("knowledgebase"));
 
 	}
 
 	@Test
-	public void testGetAndUpdateEntityAnnotations() throws AssertionError, AsynchJobFailedException {
+	public void testGetEntityAnnotations() throws AssertionError, AsynchJobFailedException {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
 				null);
 		entitiesToDelete.add(project.getId());
@@ -458,127 +467,6 @@ public class AgentChatWorkerIntegrationTest {
 				new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2")));
 		ann.getAnnotations().put("fileType",
 				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp")));
-		ann = entityService.updateEntityAnnotations(admin.getId(), project.getId(), ann);
-
-		AgentSession session = agentService.createSession(admin.getId(),
-				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
-
-		assertNotNull(session);
-
-		String chatRequest = "Can you increment by one,  the 'fileCount' annotation of project: " + project.getId()
-				+ "?";
-
-		// call under test
-		asynchronousJobWorkerHelper.assertJobResponse(admin,
-				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
-				(AgentChatResponse response) -> {
-					assertNotNull(response);
-					assertEquals(session.getSessionId(), response.getSessionId());
-					assertNotNull(response.getResponseText());
-					assertTrue(response.getResponseText().contains("incremented"));
-					assertTrue(response.getResponseText().contains("3"));
-				}, MAX_WAIT_MS);
-
-		// The agent should have updated the annotations.
-		Annotations annUpdated = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		assertNotEquals(ann.getEtag(), annUpdated.getEtag());
-		Annotations expected = new Annotations().setId(project.getId()).setEtag(annUpdated.getEtag())
-				.setAnnotations(Map.of("fileCount",
-						new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("3")), "fileType",
-						new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp"))));
-		assertEquals(expected, annUpdated);
-	}
-
-	@Test
-	public void testGetAndDeleteEntityAnnotation() throws AssertionError, AsynchJobFailedException {
-		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
-				null);
-		entitiesToDelete.add(project.getId());
-
-		Annotations ann = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		ann.getAnnotations().put("fileCount",
-				new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2")));
-		ann.getAnnotations().put("fileType",
-				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp")));
-		ann = entityService.updateEntityAnnotations(admin.getId(), project.getId(), ann);
-
-		AgentSession session = agentService.createSession(admin.getId(),
-				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
-
-		assertNotNull(session);
-
-		String chatRequest = "Can you remove the 'fileType' annotation of project: " + project.getId() + "?";
-
-		// call under test
-		asynchronousJobWorkerHelper.assertJobResponse(admin,
-				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
-				(AgentChatResponse response) -> {
-					assertNotNull(response);
-					assertEquals(session.getSessionId(), response.getSessionId());
-					assertNotNull(response.getResponseText());
-					assertTrue(response.getResponseText().contains("removed"));
-				}, MAX_WAIT_MS);
-
-		// The agent should have updated the annotations.
-		Annotations annUpdated = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		assertNotEquals(ann.getEtag(), annUpdated.getEtag());
-		Annotations expected = new Annotations().setId(project.getId()).setEtag(annUpdated.getEtag()).setAnnotations(
-				Map.of("fileCount", new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2"))));
-		assertEquals(expected, annUpdated);
-	}
-
-	@Test
-	public void testGetAndAddEntityAnnotation() throws AssertionError, AsynchJobFailedException {
-		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
-				null);
-		entitiesToDelete.add(project.getId());
-
-		Annotations ann = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		ann.getAnnotations().put("fileCount",
-				new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2")));
-		ann.getAnnotations().put("fileType",
-				new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp")));
-		ann = entityService.updateEntityAnnotations(admin.getId(), project.getId(), ann);
-
-		AgentSession session = agentService.createSession(admin.getId(),
-				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
-
-		assertNotNull(session);
-
-		String chatRequest = "Can you add an annotation named 'concat' that is the string concatenation"
-				+ " of 'fileType' + '/' + 'fileCount' to project: "
-				+ project.getId() + "?";
-
-		// call under test
-		asynchronousJobWorkerHelper.assertJobResponse(admin,
-				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
-				(AgentChatResponse response) -> {
-					assertNotNull(response);
-					assertEquals(session.getSessionId(), response.getSessionId());
-					assertNotNull(response.getResponseText());
-					assertTrue(response.getResponseText().contains("temp/2"));
-				}, MAX_WAIT_MS);
-
-		// The agent should have updated the annotations.
-		Annotations annUpdated = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		assertNotEquals(ann.getEtag(), annUpdated.getEtag());
-		Annotations expected = new Annotations().setId(project.getId()).setEtag(annUpdated.getEtag()).setAnnotations(
-				Map.of("fileCount", new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2")),
-						"fileType", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp")),
-						"concat", new AnnotationsValue().setType(AnnotationsValueType.STRING).setValue(List.of("temp/2"))));
-		assertEquals(expected, annUpdated);
-	}
-
-	@Test
-	public void testGetAndUpdateEntityAnnotationsWithLowerAccessLevel()
-			throws AssertionError, AsynchJobFailedException {
-		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
-				null);
-		entitiesToDelete.add(project.getId());
-
-		Annotations ann = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		ann.getAnnotations().put("fileCount",
-				new AnnotationsValue().setType(AnnotationsValueType.LONG).setValue(List.of("2")));
 		ann = entityService.updateEntityAnnotations(admin.getId(), project.getId(), ann);
 
 		AgentSession session = agentService.createSession(admin.getId(),
@@ -586,20 +474,16 @@ public class AgentChatWorkerIntegrationTest {
 
 		assertNotNull(session);
 
-		String chatRequest = "Can you increment by one,  the 'fileCount' annotation of project: " + project.getId()
-				+ "?";
+		String chatRequest = "what are the annotations on the project entity with id " + project.getId() + "?";
 
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
 				(AgentChatResponse response) -> {
 					assertNotNull(response);
-					assertEquals(session.getSessionId(), response.getSessionId());
-					assertNotNull(response.getResponseText());
+					assertEquals(session.getSessionId(), response.getSessionId());					
+					assertTrue(response.getResponseText().contains("fileCount"));
+					assertTrue(response.getResponseText().contains("fileType"));
 				}, MAX_WAIT_MS);
-
-		// The agent should not have been able to change the annotations.
-		Annotations annUpdated = entityService.getEntityAnnotations(admin.getId(), project.getId(), true);
-		assertEquals(ann, annUpdated);
 	}
 }

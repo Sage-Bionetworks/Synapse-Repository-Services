@@ -23,6 +23,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressListener;
 
@@ -33,6 +34,8 @@ public class WriteLockImplTest {
 	private ProgressCallback mockCallback;
 	@Mock
 	private CountingSemaphore mockCountingSemaphore;
+	@Mock
+	private Clock mockClock;
 	@Captor
 	private ArgumentCaptor<ProgressListener> listenerCaptor;
 	private WriteReadSemaphore semaphore;
@@ -48,7 +51,7 @@ public class WriteLockImplTest {
 		maxTimeout = 31L;
 		context = "some context";
 		lockToken = "lock_token";
-		semaphore = new WriteReadSemaphoreImpl(mockCountingSemaphore, 1);
+		semaphore = new WriteReadSemaphoreImpl(mockCountingSemaphore, 1, mockClock);
 	}
 	
 	@Test

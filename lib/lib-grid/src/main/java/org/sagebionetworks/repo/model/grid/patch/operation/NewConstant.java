@@ -2,18 +2,27 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * The new_con operation. See: <a href=
  * "https://jsonjoy.com/specs/json-crdt-patch/patch-document/operation-types">operation-types</a>
  */
-public class NewConstant implements Operation<NewConstant> {
+public class NewConstant implements Operation {
 
-	private LogicalTimestamp operationId;
-	private ConValue value;
-	private boolean isTimestamp;
+	private final LogicalTimestamp operationId;
+	private final ConValue value;
+	private final boolean isTimestamp;
+
+	public NewConstant(LogicalTimestamp operationId, ConValue value) {
+		ValidateArgument.required(operationId, "operationId");
+		this.operationId = operationId;
+		this.value = value;
+		this.isTimestamp = value != null && ConType.TIMESTAMP == value.getType();
+	}
 
 	@Override
 	public OperationType getType() {
@@ -29,27 +38,12 @@ public class NewConstant implements Operation<NewConstant> {
 		return isTimestamp;
 	}
 
-	public NewConstant setTimestamp(boolean isTimestamp) {
-		this.isTimestamp = isTimestamp;
-		return this;
-	}
-
 	public LogicalTimestamp getOperationId() {
 		return operationId;
 	}
 
-	public NewConstant setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
-	}
-
 	public ConValue getValue() {
 		return value;
-	}
-
-	public NewConstant setValue(ConValue value) {
-		this.value = value;
-		return this;
 	}
 
 	@Override

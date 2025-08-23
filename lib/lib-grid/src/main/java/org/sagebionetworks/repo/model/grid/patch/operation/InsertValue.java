@@ -3,12 +3,23 @@ package org.sagebionetworks.repo.model.grid.patch.operation;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.ValidateArgument;
 
-public class InsertValue implements Operation<InsertValue> {
+public class InsertValue implements Operation {
 
-	private LogicalTimestamp operationId;
-	private LogicalTimestamp referenceId;
-	private LogicalTimestamp valueId;
+	private final LogicalTimestamp operationId;
+	private final LogicalTimestamp valueId;
+	private final LogicalTimestamp referenceId;
+
+	public InsertValue(LogicalTimestamp operationId,  LogicalTimestamp valueId, LogicalTimestamp referenceId) {
+		ValidateArgument.required(operationId, "operationId");
+		ValidateArgument.required(valueId, "valueId");
+		ValidateArgument.required(referenceId, "referenceId");
+
+		this.operationId = operationId;
+		this.valueId = valueId;
+		this.referenceId = referenceId;
+	}
 
 	@Override
 	public OperationType getType() {
@@ -24,23 +35,9 @@ public class InsertValue implements Operation<InsertValue> {
 		return referenceId;
 	}
 
-	public InsertValue setReferenceId(LogicalTimestamp referenceId) {
-		this.referenceId = referenceId;
-		return this;
-	}
 
 	public LogicalTimestamp getValueId() {
 		return valueId;
-	}
-
-	public InsertValue setValueId(LogicalTimestamp valueId) {
-		this.valueId = valueId;
-		return this;
-	}
-
-	public InsertValue setOperationId(LogicalTimestamp operationId) {
-		this.operationId = operationId;
-		return this;
 	}
 
 	@Override
