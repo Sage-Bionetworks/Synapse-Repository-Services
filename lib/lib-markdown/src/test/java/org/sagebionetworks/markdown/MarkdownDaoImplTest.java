@@ -40,6 +40,7 @@ public class MarkdownDaoImplTest {
 		MockitoAnnotations.initMocks(this);
 		dao = new MarkdownDaoImpl();
 		dao.setSynapseBaseUrl("https://www.synapse.org");
+		dao.setStack("dev");
 		ReflectionTestUtils.setField(dao, "lambdaClient", mockLambdaClient);
 	}
 

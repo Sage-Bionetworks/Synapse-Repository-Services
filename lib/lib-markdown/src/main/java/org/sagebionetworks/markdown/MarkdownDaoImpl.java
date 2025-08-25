@@ -16,16 +16,18 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	public static final String OUTPUT = "output";
 	public static final String RESULT = "result";
 	public static final String BASE_URL = "baseURL";
-	public static final String FUNCTION_NAME = "dev-markdownit:prod";
+	public static final String FUNCTION_NAME_FMT = "%s-markdownit:prod";
 
 	@Autowired
 	private AWSLambda lambdaClient;
 
 	String synapseBaseUrl;
+	String stack;
 
 	public void setSynapseBaseUrl(String synapseBaseUrl) {
 		this.synapseBaseUrl = synapseBaseUrl;
 	}
+	public void setStack(String stack) { this.stack = stack; }
 
 	@Override
 	public String convertMarkdown(String rawMarkdown, String outputType) throws JSONException, MarkdownClientException {
@@ -47,7 +49,7 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	private String convertToMarkdownWithLambda(String request) throws MarkdownClientException {
 		try {
 			InvokeRequest invokeRequest = new InvokeRequest()
-					.withFunctionName(FUNCTION_NAME)
+					.withFunctionName(String.format(FUNCTION_NAME_FMT, stack))
 					.withPayload(request);
 
 			InvokeResult result = lambdaClient.invoke(invokeRequest);
