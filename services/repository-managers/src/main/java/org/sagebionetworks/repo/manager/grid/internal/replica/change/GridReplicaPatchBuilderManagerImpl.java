@@ -62,8 +62,10 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 	}
 
 	ChangePatchBuilder createChangePatchBuilder(GridConnectionInfo connection, LogicalTimestamp currentClock) {
+		// disable constant caching due to PLFM-9192
+		boolean useCaching = false;
 		return new ChangePatchBuilder(patchPublisher, constantProvider, connection, currentClock,
-				PatchUtils.MAX_BYTES_PER_PATCH);
+				PatchUtils.MAX_BYTES_PER_PATCH,useCaching);
 	}
 
 	void validateChangeSet(IntendedChangeSet changeSet) {
