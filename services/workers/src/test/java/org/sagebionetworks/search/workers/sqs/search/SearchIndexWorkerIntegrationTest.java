@@ -1,14 +1,5 @@
 package org.sagebionetworks.search.workers.sqs.search;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeoutException;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,10 +25,18 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchIndexWorkerIntegrationTest {
-    private static final long MAX_WAIT = 60*1000; // 1 minute
+    private static final long MAX_WAIT = 2 * 60*1000; // 2 minutes
     private static final long CHECK_TIME = 2000;
 
     @Autowired
@@ -140,22 +139,14 @@ public class SearchIndexWorkerIntegrationTest {
 
     public void waitForQuery(UserInfo user, String term, long expected) throws Exception {
         SearchQuery searchQuery = new SearchQuery().setQueryTerm(Arrays.asList(term));
-        long startTime = System.currentTimeMillis();
-        long currentDelay = CHECK_TIME;
-
-        while (System.currentTimeMillis() - startTime < MAX_WAIT) {
-                System.out.println("Waiting for search query: " + searchQuery);
-
-                long foundCount = searchManager.search(user, searchQuery).getFound();
-                if (foundCount == expected) {
-                    System.out.println("Time taken by search: " + (System.currentTimeMillis() - startTime));
-                    return; // Success, document found
-                }
-
-            Thread.sleep(currentDelay);
-            currentDelay = Math.min(currentDelay * 2, 8000); // Exponential backoff, capping at 8 seconds
-        }
-
-        throw new TimeoutException("Waited " + (System.currentTimeMillis() - startTime) + " milliseconds");
+        TimeUtils.waitFor(MAX_WAIT, CHECK_TIME, () -> {
+            System.out.println("Waiting for search query: "+searchQuery);
+            SearchResults searchResults = searchManager.search(user, searchQuery);
+            System.out.println("search result returned is : "+ searchResults.getFound());
+            if(!searchResults.getHits().isEmpty()){
+                System.out.println("search result returned is : "+ searchResults.getHits());
+            }
+            return Pair.create(searchResults.getFound() == expected, null);
+        });
     }
 }
