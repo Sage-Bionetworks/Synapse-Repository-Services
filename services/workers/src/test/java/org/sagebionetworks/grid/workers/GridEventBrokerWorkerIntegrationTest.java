@@ -63,11 +63,13 @@ import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
+import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertVectorBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
@@ -292,7 +294,12 @@ public class GridEventBrokerWorkerIntegrationTest {
 		List<String> colIds = schema.stream().map(c -> c.getId()).collect(Collectors.toList());
 
 		TableEntity table = asynchronousJobWorkerHelper.createTable(admin, "testTable", projectId, colIds, false);
-		List<Row> rows = List.of(new Row().setValues(List.of("9090")));
+		
+		List<Row> rows = List.of(
+			new Row().setValues(List.of("7070")),
+			new Row().setValues(List.of("8080")),
+			new Row().setValues(List.of("9090"))
+		);
 
 		RowReferenceSetResults rrsr = asynchronousJobWorkerHelper.appendRowsToTable(admin, schema, table.getId(), rows,
 				MAX_WAIT_MS);
@@ -326,14 +333,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		// start the synchronize
 		wsOne.send("[1,99,\"synchronize-clock\",[]]");
+		
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
 				Patch patch = PatchCompactSerializable.deserialize(a.getJSONArray(2));
 				assertNotNull(patch);
-				assertEquals(new LogicalTimestamp().setReplicaId(INTERNAL_REPLICA_ID).setSequenceNumber(1L),
-						patch.getPatchId());
-				assertEquals(20L, patch.getSpan());
-				// find the constant that contains the table's value
+				assertEquals(new LogicalTimestamp().setReplicaId(INTERNAL_REPLICA_ID).setSequenceNumber(1L), patch.getPatchId());
+				assertEquals(38L, patch.getSpan());
+				// find the constant that contains the table's last value
 				Optional<NewConstant> op = patch.getOperations().stream().filter(o -> (o instanceof NewConstant))
 						.map(c -> (NewConstant) c).filter(c -> ConType.LONG.equals(c.getValue().getType()))
 						.filter(c -> Long.valueOf(9090).equals(c.getValue().getValue())).findFirst();
@@ -343,16 +350,52 @@ public class GridEventBrokerWorkerIntegrationTest {
 				return false;
 			}
 		}, incomingMessagesOne));
+		
+		GridHeader header = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> 
+			gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID)
+				.map(h -> Pair.create(true, h))
+				.orElse(Pair.create(false, null))
+		);
+		
+		List<RowView> rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			if (page.size() == 3) {
+				return Pair.create(true, page);
+			}
+			return Pair.create(false, null);
+		});
+		
+		// Deletes the first two rows:
+		Patch updatePatch = new Patch()
+			.setPatchId(new LogicalTimestamp().setReplicaId(replicaOne.getReplicaId()).setSequenceNumber(25L));
+		
+		updatePatch.addNewOperation(Operations.delete()
+			.setNodeId(header.getRowsId())
+			.setTimespans(List.of(
+				new Timespan(
+					// Start node
+					rowsView.get(0).getArrNodeId(), 
+					// Length of the span (Gap between the second and first node seq)
+					rowsView.get(1).getArrNodeId().getSequenceNumber() - rowsView.get(0).getArrNodeId().getSequenceNumber() + 1
+				))
+			)
+		);
+		
+		JSONArray patchBody = PatchCompactSerializable.serialize(updatePatch);
+		
+		wsOne.send(String.format("[1,102,\"patch\", %s]", patchBody.toString()));
+		
+		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 102, incomingMessagesOne));
 
 		DownloadFromGridRequest csvDownloadRequest = new DownloadFromGridRequest().setSessionId(session.getSessionId())
-				.setIncludeEtag(false);
-
-		// Create and validate the CSV exported form the grid
+			.setIncludeEtag(false);
+		
+		// Now create and validate the CSV exported form the grid
 		List<String[]> csvContents = createAndDownloadCsvFromGrid(csvDownloadRequest);
 
 		assertEquals(2, csvContents.size());
 		assertArrayEquals(new String[] { "ROW_ID", "ROW_VERSION", "anInt" }, csvContents.get(0));
-		assertArrayEquals(new String[] { "1", "1", "9090" }, csvContents.get(1));
+		assertArrayEquals(new String[] { "3", "1", "9090" }, csvContents.get(1));
 	}
 
 	@Test

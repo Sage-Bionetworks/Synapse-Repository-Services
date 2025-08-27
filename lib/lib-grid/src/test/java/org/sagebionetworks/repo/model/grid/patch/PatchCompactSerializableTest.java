@@ -47,6 +47,7 @@ public class PatchCompactSerializableTest {
 		examplePatches.put(OperationType.ins_obj, Arrays.asList("[10,[1,2],[[\"a\",[3,4]],[\"b\",[5,6]]]]"));
 		examplePatches.put(OperationType.ins_vec, Arrays.asList("[11,[1,2],[[2,[3,4]],[0,[5,6]]]]"));
 		examplePatches.put(OperationType.ins_arr, Arrays.asList("[14,[1,2],[3,4],[[5,6],[7,8]]]"));
+		examplePatches.put(OperationType.del, Arrays.asList("[16,[1,2],[[1,3,4]]]"));
 	}
 
 	@Test
@@ -151,8 +152,7 @@ public class PatchCompactSerializableTest {
 	@EnumSource(OperationType.class)
 	public void testDeserializeAndSerializeEachType(OperationType type) {
 		// we do not currently support these
-		if (OperationType.ins_str.equals(type) || OperationType.ins_bin.equals(type) || OperationType.del.equals(type)
-				|| OperationType.nop.equals(type)) {
+		if (OperationType.ins_str.equals(type) || OperationType.ins_bin.equals(type) || OperationType.nop.equals(type)) {
 			return;
 		}
 		examplePatches.get(type).forEach(example -> {

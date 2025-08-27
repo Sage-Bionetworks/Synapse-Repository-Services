@@ -22,7 +22,7 @@ public class PatchCompactSerializable {
 			new NewValueSerializable(), new NewObjectSerializable(), new NewVectorSerializable(),
 			new NewStringSerializable(), new NewBinarySerializable(), new NewArraySerializable(),
 			new InsertValueSerializable(), new InsertObjectSerializable(), new InsertVectorSerializable(),
-			new InsertArraySerializable());
+			new InsertArraySerializable(), new DeleteSerializable());
 
 	private static Map<OperationType, OperationSerializable<?>> map = serializables.stream()
 			.collect(Collectors.toMap(OperationSerializable::getType, handler -> handler));

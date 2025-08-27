@@ -121,18 +121,17 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 			joiner.add(String.format("JSON_EXTRACT(V1.VEC_VAL, '$.c%d.v')", c.getVectorIndex()));
 		});
 		String select = joiner.toString();
-		StringBuilder wherBuilder = new StringBuilder("");
+		
+		StringBuilder whereBuilder = new StringBuilder(" WHERE IS_DELETED IS FALSE");
+		
 		if (!filters.isEmpty()) {
-			wherBuilder.append(" WHERE ");
-			StringJoiner whereJoiner = new StringJoiner(" AND ");
 			for (int i = 0; i < filters.size(); i++) {
 				ViewFilter f = filters.get(i);
-				whereJoiner.add(f.getConditionSql(i));
+				whereBuilder.append(" AND ").append(f.getConditionSql(i));
 				params.addValue(f.getParameterKey(i), f.getParameterValue());
 			}
-			wherBuilder.append(whereJoiner.toString());
 		}
-		String sql = String.format(GRID_INDEX_VIEW_TEMPLATE, select, wherBuilder.toString());
+		String sql = String.format(GRID_INDEX_VIEW_TEMPLATE, select, whereBuilder.toString());
 
 		List<RowView> page = gridIndexDao.query(sql, params, ROW_VIEW_MAPPER);
 

@@ -46,4 +46,8 @@ public final class Operations {
     public static InsertArrayBuilder insertArray() {
         return new InsertArrayBuilder();
     }
+    
+    public static DeleteBuilder delete() {
+		return new DeleteBuilder();
+	}
 }
