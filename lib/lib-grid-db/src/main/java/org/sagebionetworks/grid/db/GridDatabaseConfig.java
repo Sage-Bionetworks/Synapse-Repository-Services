@@ -22,10 +22,12 @@ public class GridDatabaseConfig {
 		boolean useSSL = config.useSSLConnectionForTablesDatabase();
 
 		String additionalParameters = "";
+		
 		if (useSSL) {
 			additionalParameters = "&verifyServerCertificate=false&useSSL=true&requireSSL=true";
 		}
-		String url = String.format("jdbc:mysql://%1$s/%2$s?rewriteBatchedStatements=true%3$s", endpoint, schema,
+		
+		String url = String.format("jdbc:mysql://%1$s/%2$s?rewriteBatchedStatements=true%3$s&sessionVariables=cte_max_recursion_depth=200000", endpoint, schema,
 				additionalParameters);
 
 		// Use the one instance to create a single connection pool

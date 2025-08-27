@@ -2159,6 +2159,21 @@ public interface SynapseClient extends BaseClient {
 	void deleteOAuthClient(String id) throws SynapseException;
 	
 	/**
+	 * Get the access control list for an OAuth Client
+	 * @param id
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessControlList getOAuthClientACL(String id) throws SynapseException;
+	
+	/**
+	 * Update the access control list for an OAuth Client
+	 * @param acl
+	 * @throws SynapseException
+	 */
+	AccessControlList updateOAuthClientACL(AccessControlList acl) throws SynapseException;
+	
+	/**
 	 * Get a user-readable description of the authentication request.
 	 * This request does not need to be authenticated.
 	 * 

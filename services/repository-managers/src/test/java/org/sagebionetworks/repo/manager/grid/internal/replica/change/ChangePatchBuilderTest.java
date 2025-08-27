@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -57,8 +58,8 @@ public class ChangePatchBuilderTest {
 		maxBytesPerPatch = 300L;
 		con = new GridConnectionInfo().setConnectionId(connectionId).setSessionId(sessionId).setReplicaId(replicaId);
 		currentClock = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(99L);
-		builder = Mockito.spy(
-				new ChangePatchBuilder(mockPatchPublisher, mockConstantProvider, con, currentClock, maxBytesPerPatch));
+		builder = Mockito.spy(new ChangePatchBuilder(mockPatchPublisher, mockConstantProvider, con, currentClock,
+				maxBytesPerPatch, true));
 	}
 
 	@Test
@@ -170,5 +171,40 @@ public class ChangePatchBuilderTest {
 						+ "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 						+ "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"]]",
 				jsonArrayCaptor.getAllValues().get(1).toString());
+	}
+
+	@Test
+	public void testBuildWithCachingDisabled() throws IOException {
+		boolean useCaching = false;
+		builder = Mockito.spy(new ChangePatchBuilder(mockPatchPublisher, mockConstantProvider, con, currentClock,
+				maxBytesPerPatch, useCaching));
+
+		// call under test
+		LogicalTimestamp fooResult = builder
+				.addOperationBuilder(new NewConstantBuilder().setValue(new ConValue(ConType.STRING, "foo")));
+		assertEquals(LogicalTimestamp.newIncrement(currentClock, 1), fooResult);
+		LogicalTimestamp barId = builder
+				.addOperationBuilder(new NewConstantBuilder().setValue(new ConValue(ConType.STRING, "bar")));
+		assertEquals(LogicalTimestamp.newIncrement(currentClock, 2), barId);
+
+		LogicalTimestamp newObId = builder.addOperationBuilder(Operations.newObject());
+		LinkedHashMap<String, LogicalTimestamp> obMap = new LinkedHashMap<>();
+		obMap.put("fooKey", fooResult);
+		obMap.put("barKey", barId);
+		LogicalTimestamp inserObId = builder
+				.addOperationBuilder(new InsertObjectBuilder().setObjectId(newObId).setMap(obMap));
+
+		// adding the same constants again should be a no-op
+		builder.addOperationBuilder(new NewConstantBuilder().setValue(new ConValue(ConType.STRING, "foo")));
+		builder.addOperationBuilder(new NewConstantBuilder().setValue(new ConValue(ConType.STRING, "bar")));
+
+		// call under test
+		builder.close();
+		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture());
+		assertEquals(
+				"[[[3,100]],[0,\"foo\"],[0,\"bar\"],[2],[10,102,[[\"fooKey\",100],[\"barKey\",101]]],[0,\"foo\"],[0,\"bar\"]]",
+				jsonArrayCaptor.getValue().toString());
+
+		verifyZeroInteractions(mockConstantProvider);
 	}
 }

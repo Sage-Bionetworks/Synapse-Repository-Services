@@ -1230,6 +1230,10 @@ public class UrlHelpers {
 	 * OpenID Connect URL constants
 	 */
 	public static final String OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
+	public static final String OAUTH_2_CLIENT_ACL = OAUTH_2_CLIENT+"/{id}/acl";
+	public static final String OAUTH_2_CLIENT_ID_ACL = OAUTH_2_CLIENT+"/{id}/acl";
+	public static final String OAUTH_2_CLIENT_ACL_BACKFILL =  OAUTH_2_CLIENT+"/acl/backfill";
+	
 	public static final String OAUTH_2_CLIENT_ID = OAUTH_2_CLIENT+ID;
 	public static final String OAUTH_2_CLIENT_ID_VERIFICATION_PRECHECK = OAUTH_2_CLIENT+ID+"/verificationPrecheck";
 	public static final String OAUTH_2_CLIENT_SECRET = OAUTH_2_CLIENT+"/secret"+ID;

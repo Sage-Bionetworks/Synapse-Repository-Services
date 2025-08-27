@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewVector;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -132,11 +133,6 @@ public interface GridIndexDao extends ConstantProvider {
 	void setClock(String sessionId, Long replicaId, LogicalTimestamp clock);
 
 	/**
-	 * Delete all grid data from the database.
-	 */
-	void truncateAll();
-
-	/**
 	 * Save a batch of {@link ValueNode} to a replica.
 	 * 
 	 * @param sessionIdString
@@ -213,6 +209,16 @@ public interface GridIndexDao extends ConstantProvider {
 	Optional<LogicalTimestamp> findArrayInsertLocation(String sessionIdString, Long replicaId, ArrayNode toInsert);
 
 	/**
+	 * Marks as deleted all the nodes that belongs to the given arrayId and falls into the given batch of id ranges.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @param arrayId
+	 * @param idRangeBatch A batch of intervals of logical timestamps
+	 */
+	void deleteArrayNodes(String sessionId, Long replicaId, LogicalTimestamp arrayId, List<Timespan> idRangeBatch);
+	
+	/**
 	 * Create the next message ID to start a new message chain.The id resets to zero
 	 * when it reaches 65535.
 	 * 
@@ -273,5 +279,10 @@ public interface GridIndexDao extends ConstantProvider {
 	 * @return
 	 */
 	<T> List<T> query(String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper);
+	
+	/**
+	 * Delete all grid data from the database.
+	 */
+	void truncateAll();
 
 }

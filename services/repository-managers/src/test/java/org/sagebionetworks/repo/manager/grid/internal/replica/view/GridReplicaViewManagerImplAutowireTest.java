@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.view;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
+import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -199,6 +201,56 @@ public class GridReplicaViewManagerImplAutowireTest {
 		
 		// call under test
 		page = gridViewManager.querySinglePage(header, limit, offset);
+		assertEquals(expected, page);
+	}
+	
+	@Test
+	public void testQuerySinglePageWithDeletedRows() throws IOException {
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		LogicalTimestamp expectedClock = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(85L);
+		assertEquals(List.of(expectedClock), gridIndexManger.getClock(sessionId, replicaId));
+
+		Long limit = 100L;
+		Long offset = 0L;
+		
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		List<RowView> allRows = gridViewManager.querySinglePage(header, limit, offset);
+
+		Patch patch = new Patch()
+			.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
+		
+		patch.addNewOperation(Operations.delete()
+			.setNodeId(header.getRowsId())
+			.setTimespans(List.of(
+				// First three rows
+				new Timespan(
+					allRows.get(0).getArrNodeId(),
+					allRows.get(2).getArrNodeId().getSequenceNumber() - allRows.get(0).getArrNodeId().getSequenceNumber() + 1
+				),
+				// 6th row
+				new Timespan(
+					allRows.get(5).getArrNodeId(),
+					1L
+				),
+				// Last two rows
+				new Timespan(
+					allRows.get(allRows.size() - 2).getArrNodeId(),
+					allRows.get(allRows.size() - 1).getArrNodeId().getSequenceNumber() - allRows.get(allRows.size() - 2).getArrNodeId().getSequenceNumber() + 1
+				)
+			))
+		);
+		
+		gridIndexManger.applyPatch(sessionId, replicaId, patch);
+		
+		List<RowView> expected = new ArrayList<>();
+		
+		expected.addAll(allRows.subList(3, 5));
+		expected.addAll(allRows.subList(6, allRows.size() - 2));
+		
+		// call under test
+		List<RowView> page = gridViewManager.querySinglePage(header, limit, offset);
+		
 		assertEquals(expected, page);
 	}
 

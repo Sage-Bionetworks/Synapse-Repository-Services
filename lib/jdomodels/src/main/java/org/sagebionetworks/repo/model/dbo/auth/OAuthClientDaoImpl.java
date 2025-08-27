@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
@@ -12,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
@@ -58,6 +62,13 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	private static final String CLIENT_SQL_SELECT = "SELECT * FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
 			COL_OAUTH_CLIENT_CREATED_BY+" = ? LIMIT ? OFFSET ?";
+	
+	private static final String CLIENT_WITHOUT_ACL_SQL_SELECT = "SELECT oc.*"+
+			" FROM "+TABLE_OAUTH_CLIENT+" oc "+
+			"LEFT OUTER JOIN "+TABLE_ACCESS_CONTROL_LIST+" acl "+
+			" ON oc."+COL_OAUTH_CLIENT_ID+"=acl."+COL_ACL_OWNER_ID+
+			" AND acl."+COL_ACL_OWNER_TYPE+"='OAUTH_CLIENT'"+
+			" WHERE acl."+COL_ACL_ID+" is null";
 	
 	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
@@ -314,6 +325,17 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	private NotFoundException clientNotFoundException(String clientId) {
 		return new NotFoundException("The OAuth client (" + clientId + ") does not exist");
+	}
+	
+	@Override
+	public List<OAuthClient> listClientsWithoutACLs() {
+		List<DBOOAuthClient> dboList = jdbcTemplate.query(CLIENT_WITHOUT_ACL_SQL_SELECT, 
+				(new DBOOAuthClient()).getTableMapping());
+		List<OAuthClient> dtoList = new ArrayList<OAuthClient>();
+		for (DBOOAuthClient dbo : dboList) {
+			dtoList.add(clientDboToDto(dbo));
+		}
+		return dtoList;
 	}
 	
 }

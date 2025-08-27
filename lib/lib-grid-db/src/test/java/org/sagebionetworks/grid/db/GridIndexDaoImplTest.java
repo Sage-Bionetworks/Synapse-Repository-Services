@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.patch.Timespan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -604,19 +605,19 @@ public class GridIndexDaoImplTest {
 
 		List<ArrayNode> valuesOne = List.of(
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(0)).setDataId(ids.get(1))
-						.setReferenceNodeId(arrOneId),
+						.setReferenceNodeId(arrOneId).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(2)).setDataId(ids.get(3))
-						.setReferenceNodeId(ids.get(0)),
+						.setReferenceNodeId(ids.get(0)).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(5))
-						.setReferenceNodeId(ids.get(2)));
+						.setReferenceNodeId(ids.get(2)).setIsDeleted(false));
 
 		List<ArrayNode> valuesTwo = List.of(
 				new ArrayNode().setArrayId(arrTwoId).setNodeId(ids.get(0)).setDataId(ids.get(1))
-						.setReferenceNodeId(arrTwoId),
+						.setReferenceNodeId(arrTwoId).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrTwoId).setNodeId(ids.get(2)).setDataId(ids.get(3))
-						.setReferenceNodeId(ids.get(0)),
+						.setReferenceNodeId(ids.get(0)).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrTwoId).setNodeId(ids.get(4)).setDataId(ids.get(5))
-						.setReferenceNodeId(ids.get(2)));
+						.setReferenceNodeId(ids.get(2)).setIsDeleted(false));
 
 		gridIndexDao.saveIndex(sessionIdOne, replicaIdOne, IndexType.arr, List.of(arrOneId));
 		gridIndexDao.saveIndex(sessionIdTwo, replicaIdTwo, IndexType.arr, List.of(arrTwoId));
@@ -649,7 +650,7 @@ public class GridIndexDaoImplTest {
 
 		// insert a value between 0 and 1
 		ArrayNode toInsert = new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(7))
-				.setReferenceNodeId(valuesOne.get(0).getNodeId());
+				.setReferenceNodeId(valuesOne.get(0).getNodeId()).setIsDeleted(false);
 		gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, toInsert);
 		// the reference of the old node should now point to the new node.
 		valuesOne.get(1).setReferenceNodeId(toInsert.getNodeId());
@@ -676,13 +677,13 @@ public class GridIndexDaoImplTest {
 
 		List<ArrayNode> valuesOne = List.of(
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(1))
-						.setReferenceNodeId(arrOneId),
+						.setReferenceNodeId(arrOneId).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(5)).setDataId(ids.get(3))
-						.setReferenceNodeId(ids.get(4)),
+						.setReferenceNodeId(ids.get(4)).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(0))
-						.setReferenceNodeId(ids.get(5)),
+						.setReferenceNodeId(ids.get(5)).setIsDeleted(false),
 				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(7)).setDataId(ids.get(2))
-						.setReferenceNodeId(ids.get(6)));
+						.setReferenceNodeId(ids.get(6)).setIsDeleted(false));
 
 		valuesOne.forEach(a -> {
 			assertEquals(Optional.of(a.getReferenceNodeId()),
@@ -863,6 +864,114 @@ public class GridIndexDaoImplTest {
 
 		// call under test
 		assertEquals(Optional.empty(), gridIndexDao.getRootObject(sessionIdOne, replicaIdOne));
+	}
+	
+	@Test
+	public void testDeleteArrayNodes() {
+		LogicalTimestamp arrOneId = new LogicalTimestamp().setReplicaId(replicaIdOne).setSequenceNumber(44L);
+		LogicalTimestamp arrTwoId = new LogicalTimestamp().setReplicaId(replicaIdTwo).setSequenceNumber(44L);
+		
+		createArray(sessionIdOne, replicaIdOne, arrOneId);
+		createArray(sessionIdTwo, replicaIdTwo, arrTwoId);
+
+		List<ArrayNode> valuesOne = List.of(
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(1))
+					.setReferenceNodeId(arrOneId),
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(5)).setDataId(ids.get(3))
+					.setReferenceNodeId(ids.get(4)),
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(0))
+					.setReferenceNodeId(ids.get(5)),
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(7)).setDataId(ids.get(2))
+					.setReferenceNodeId(ids.get(6))
+		);
+
+		valuesOne.forEach(a -> {
+			assertEquals(Optional.of(a.getReferenceNodeId()),
+					gridIndexDao.findArrayInsertLocation(sessionIdOne, replicaIdOne, a));
+			gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, a);
+		});
+		
+		List<ArrayNode> valuesTwo = List.of(
+			new ArrayNode().setArrayId(arrTwoId).setNodeId(ids.get(8)).setDataId(ids.get(1))
+					.setReferenceNodeId(arrTwoId).setIsDeleted(false),
+			new ArrayNode().setArrayId(arrTwoId).setNodeId(ids.get(9)).setDataId(ids.get(3))
+					.setReferenceNodeId(ids.get(8)).setIsDeleted(false)
+		);
+		
+		valuesTwo.forEach(a -> {
+			assertEquals(Optional.of(a.getReferenceNodeId()),
+					gridIndexDao.findArrayInsertLocation(sessionIdTwo, replicaIdTwo, a));
+			gridIndexDao.insertIntoArray(sessionIdTwo, replicaIdTwo, a);
+		});
+		
+		List<Timespan> toDelete = valuesOne.stream().map(a -> new Timespan(a.getNodeId(), 1L)).collect(Collectors.toList());
+		
+		// Call under test
+		gridIndexDao.deleteArrayNodes(sessionIdOne, replicaIdOne, arrOneId, toDelete);
+		
+		assertEquals(Collections.emptyList(), gridIndexDao.getArrayNodesInOrder(sessionIdOne, replicaIdOne, arrOneId, limit, offset));
+		assertEquals(valuesTwo, gridIndexDao.getArrayNodesInOrder(sessionIdTwo, replicaIdTwo, arrTwoId, limit, offset));
+		
+	}
+	
+	@Test
+	public void testDeleteAndInsertArrayNodes() {
+		LogicalTimestamp arrOneId = new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(44L);
+		
+		createArray(sessionIdOne, replicaIdOne, arrOneId);
+
+		List<ArrayNode> valuesOne = List.of(
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(1))
+				.setReferenceNodeId(arrOneId).setIsDeleted(false),
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(5)).setDataId(ids.get(3))
+				.setReferenceNodeId(ids.get(4)).setIsDeleted(false),
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(0))
+				.setReferenceNodeId(ids.get(5)).setIsDeleted(false)
+		);
+
+		valuesOne.forEach(a -> {
+			assertEquals(Optional.of(a.getReferenceNodeId()), gridIndexDao.findArrayInsertLocation(sessionIdOne, replicaIdOne, a));
+			gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, a);
+		});
+
+		assertEquals(valuesOne, gridIndexDao.getArrayNodesInOrder(sessionIdOne, replicaIdOne, arrOneId, limit, offset));
+		
+		// Call under test, deletes a node in the middle of the array
+		gridIndexDao.deleteArrayNodes(sessionIdOne, replicaIdOne, arrOneId, List.of(
+			new Timespan(ids.get(5), 1L)
+		));
+		
+		assertEquals(List.of(
+				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(1))
+					.setReferenceNodeId(arrOneId).setIsDeleted(false),
+				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(0))
+					.setReferenceNodeId(ids.get(5)).setIsDeleted(false)
+			), 
+			gridIndexDao.getArrayNodesInOrder(sessionIdOne, replicaIdOne, arrOneId, limit, offset)
+		);
+		
+		// Now insert an additional node after 4
+		valuesOne = List.of(
+			new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(7)).setDataId(ids.get(8))
+				.setReferenceNodeId(ids.get(4)).setIsDeleted(false)
+		);
+		
+		valuesOne.forEach(a -> {
+			assertEquals(Optional.of(a.getReferenceNodeId()), gridIndexDao.findArrayInsertLocation(sessionIdOne, replicaIdOne, a));
+			gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, a);
+		});
+		
+		assertEquals(List.of(
+				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(4)).setDataId(ids.get(1))
+					.setReferenceNodeId(arrOneId).setIsDeleted(false),
+				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(7)).setDataId(ids.get(8))
+					.setReferenceNodeId(ids.get(4)).setIsDeleted(false),
+				new ArrayNode().setArrayId(arrOneId).setNodeId(ids.get(6)).setDataId(ids.get(0))
+					.setReferenceNodeId(ids.get(5)).setIsDeleted(false)
+			),
+			gridIndexDao.getArrayNodesInOrder(sessionIdOne, replicaIdOne, arrOneId, limit, offset)
+		);
+		
 	}
 
 	/**

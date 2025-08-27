@@ -7,6 +7,7 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
+import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
@@ -412,5 +413,11 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public ProjectStorageLocationLimit setProjectStorageLocationLimit(ProjectStorageLocationLimit limit) throws SynapseException {
 		return putJSONEntity(getRepoEndpoint(), "/project/" + limit.getProjectId() + "/storage/limit", limit, ProjectStorageLocationLimit.class);
+	}
+	
+	@Override
+	public BackfillCount backfillOAuthClientACLs() throws SynapseException {
+		String uri = OAUTH_CLIENT + "/acl/backfill";
+		return postJSONEntity(getAuthEndpoint(), uri, null, BackfillCount.class);
 	}
 }

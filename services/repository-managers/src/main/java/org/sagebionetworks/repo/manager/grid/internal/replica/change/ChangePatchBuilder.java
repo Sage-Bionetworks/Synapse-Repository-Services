@@ -24,12 +24,13 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 	private final ConstantProvider constantProvider;
 	private final GridConnectionInfo connection;
 	private final Long maxBytesPerPatch;
+	private final boolean useCaching;
 	private int currentPatchSize;
 	private Patch currentPatch;
 	private final Map<String, LogicalTimestamp> constantCache;
 
 	public ChangePatchBuilder(PatchPublisher patchPublisher, ConstantProvider constantProvider,
-			GridConnectionInfo connection, LogicalTimestamp currentClock, Long maxBytesPerPatch) {
+			GridConnectionInfo connection, LogicalTimestamp currentClock, Long maxBytesPerPatch, boolean useCaching) {
 		this.patchPublisher = patchPublisher;
 		this.constantProvider = constantProvider;
 		this.connection = connection;
@@ -37,6 +38,7 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 		this.constantCache = new HashMap<>();
 		this.currentPatch = new Patch().setPatchId(LogicalTimestamp.newIncrement(currentClock, 1));
 		this.currentPatchSize = EMPTY_PATCH_SIZE_BYTES;
+		this.useCaching = useCaching;
 	}
 
 	@Override
@@ -53,24 +55,28 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 	LogicalTimestamp addConstantOperation(NewConstantBuilder builder) {
 		ValidateArgument.required(builder.getValue(), "builder.value");
 		String jsonValue = builder.getValue().toJson();
+		
+		if(useCaching) {
+			// Return cached constant if exists
+			if (constantCache.containsKey(jsonValue)) {
+				return constantCache.get(jsonValue);
+			}
 
-		// Return cached constant if exists
-		if (constantCache.containsKey(jsonValue)) {
-			return constantCache.get(jsonValue);
-		}
+			// Check database for existing constant
+			Optional<LogicalTimestamp> existing = constantProvider.findExistingConstant(connection.getSessionId(),
+					connection.getReplicaId(), jsonValue);
 
-		// Check database for existing constant
-		Optional<LogicalTimestamp> existing = constantProvider.findExistingConstant(connection.getSessionId(),
-				connection.getReplicaId(), jsonValue);
-
-		if (existing.isPresent()) {
-			constantCache.put(jsonValue, existing.get());
-			return existing.get();
+			if (existing.isPresent()) {
+				constantCache.put(jsonValue, existing.get());
+				return existing.get();
+			}
 		}
 
 		// Add new constant to patch
 		LogicalTimestamp timestamp = addToPatch(builder);
-		constantCache.put(jsonValue, timestamp);
+		if(useCaching) {
+			constantCache.put(jsonValue, timestamp);
+		}
 		return timestamp;
 	}
 

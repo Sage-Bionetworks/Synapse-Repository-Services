@@ -6512,6 +6512,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		deleteUri(getRepoEndpoint(), "/grid/session/" + sessionId);
 	}
 
+	@Override
+	public AccessControlList getOAuthClientACL(String id) throws SynapseException {
+		return getJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+id+ENTITY_ACL_PATH_SUFFIX, AccessControlList.class);
+	}
+
+	@Override
+	public AccessControlList updateOAuthClientACL(AccessControlList acl) throws SynapseException {
+		return putJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_CLIENT+"/"+acl.getId()+ENTITY_ACL_PATH_SUFFIX, 
+				acl, AccessControlList.class);
+	}
     @Override
     public String exportGridAsCsvAsyncStart(DownloadFromGridRequest request) throws SynapseException {
         return startAsynchJob(AsynchJobType.GridCsvDownload, request);

@@ -313,6 +313,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 				"The maximum number of settings.locations is limited to " + MAX_LOCATIONS_PER_PROJECT);
 
 		for (Long uploadId : setting.getLocations()) {
+			ValidateArgument.required(uploadId, "uploadId");
 			try {
 				StorageLocationSetting storageLocationSetting = storageLocationDAO.get(uploadId);
 				if (storageLocationSetting instanceof ExternalS3StorageLocationSetting) {

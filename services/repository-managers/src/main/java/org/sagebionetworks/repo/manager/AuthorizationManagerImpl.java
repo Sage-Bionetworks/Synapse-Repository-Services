@@ -225,6 +225,17 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return AuthorizationStatus.accessDenied("Unauthorized to access Portal "+objectId+" for "+accessType);
 				}
 			}
+			case OAUTH_CLIENT:
+				if (userInfo.isAdmin()) {
+					return AuthorizationStatus.authorized();
+				}
+				// just check the acl
+				boolean oauthClientAccessPermission = aclManager.canAccess(userInfo.getGroups(), objectId, objectType, accessType);
+				if (oauthClientAccessPermission) {
+					return AuthorizationStatus.authorized();
+				} else {
+					return AuthorizationStatus.accessDenied("Unauthorized to access OAuth client "+objectId+" for "+accessType);
+				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}
