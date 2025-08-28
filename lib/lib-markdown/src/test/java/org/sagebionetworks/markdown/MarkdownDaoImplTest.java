@@ -109,4 +109,37 @@ public class MarkdownDaoImplTest {
 		assertEquals(result, dao.convertMarkdown(rawMarkdown, outputType));
 
 	}
+
+
+	@Test
+	public void testConvertMarkdownNullOutput() throws Exception {
+		String rawMarkdown = "## a heading";
+		String outputType = null;
+		JSONObject request = new JSONObject();
+		request.put(MARKDOWN, rawMarkdown);
+		request.put(BASE_URL, "https://www.synapse.org");
+		request.put(OUTPUT, outputType);
+		String result = "<h2 toc=\"true\">a heading</h2>\n";
+		String response = "{\"result\":\"<h2 toc=\\\"true\\\">a heading</h2>\\n\"}";
+		ArgumentCaptor<InvokeRequest> captor = ArgumentCaptor.forClass(InvokeRequest.class);
+		InvokeResult expectedResult = new InvokeResult();
+		ByteBuffer payload = ByteBuffer.wrap(response.getBytes(StandardCharsets.UTF_8));
+		expectedResult.setPayload(payload);
+
+		when(mockLambdaClient.invoke(any(InvokeRequest.class))).thenReturn(expectedResult);
+
+		String actualResult = dao.convertMarkdown(rawMarkdown, outputType);
+
+		verify(mockLambdaClient).invoke(captor.capture());
+		InvokeRequest invokeRequest = captor.getValue();
+		ByteBuffer payloadBuffer = invokeRequest.getPayload();
+		String payloadString = new String(payloadBuffer.array(), StandardCharsets.UTF_8);
+		JSONObject jsonResponse = new JSONObject(payloadString);
+		assertEquals(rawMarkdown, jsonResponse.getString(MARKDOWN));
+		assertFalse(jsonResponse.has(OUTPUT));
+		assertEquals("https://www.synapse.org", jsonResponse.getString(BASE_URL));
+		assertEquals("dev-markdownit:prod", invokeRequest.getFunctionName());
+		assertEquals(result, actualResult);
+
+	}
 }
