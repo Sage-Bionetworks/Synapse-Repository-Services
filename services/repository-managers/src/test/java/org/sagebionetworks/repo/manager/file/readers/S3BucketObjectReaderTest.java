@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
+package org.sagebionetworks.repo.manager.file.readers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.util.AmazonErrorCodes;
 
 import com.amazonaws.AmazonServiceException;
@@ -52,11 +51,6 @@ public class S3BucketObjectReaderTest {
 		objectReader.verifyBucketAccess(BUCKET_NAME);
 
 		verify(mockS3Client).getRegionForBucket(BUCKET_NAME);
-	}
-
-	@Test
-	public void testGetSupportedStorageLocationType() {
-		assertEquals(ExternalS3StorageLocationSetting.class, objectReader.getSupportedStorageLocationType());
 	}
 
 	@Test

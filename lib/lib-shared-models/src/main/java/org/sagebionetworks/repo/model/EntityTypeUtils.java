@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -41,6 +42,8 @@ public class EntityTypeUtils {
 	 * the class of the entity type.
 	 */
 	private static final Map<String, Class<? extends Entity>> className;
+	
+	private static final List<EntityType> fileTypes;
 
 	static {
 		metadataArray = new EntityTypeMetadata[] {
@@ -48,6 +51,8 @@ public class EntityTypeUtils {
 				buildMetadata(EntityType.project, Arrays.asList("DEFAULT"), Project.class, "Project"),
 				// file
 				buildMetadata(EntityType.file, Arrays.asList(Project.class.getName(), Folder.class.getName()), FileEntity.class, "File"),
+				// recordset
+				buildMetadata(EntityType.recordset, Arrays.asList(Project.class.getName(), Folder.class.getName()), RecordSet.class, "Record Set"),
 				// folder
 				buildMetadata(EntityType.folder, Arrays.asList(Project.class.getName(), Folder.class.getName()), Folder.class, "Folder"),
 				// table
@@ -84,6 +89,12 @@ public class EntityTypeUtils {
 		className.put(DatasetCollection.class.getName(), DatasetCollection.class);
 		className.put(MaterializedView.class.getName(), MaterializedView.class);
 		className.put(VirtualTable.class.getName(), VirtualTable.class);
+		className.put(RecordSet.class.getName(), RecordSet.class);
+		
+		fileTypes = new ArrayList<>();
+		
+		fileTypes.add(EntityType.file);
+		fileTypes.add(EntityType.recordset);
 	}
 
 	/**
@@ -241,6 +252,22 @@ public class EntityTypeUtils {
 	 */
 	public static String getDisplayName(EntityType type){
 		return getMetadata(type).getDisplayName();
+	}
+
+	/**
+	 * 
+	 * @param type
+	 * @return True if the given entity type represents a physical file
+	 */
+	public static boolean isFile(EntityType type) {
+		return fileTypes.contains(type);
+	}
+	
+	/**
+	 * @return The list of entity types that represent a physical file
+	 */
+	public static List<EntityType> getFileTypes() {		
+		return fileTypes;
 	}
 
 }

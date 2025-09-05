@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,12 +27,15 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.file.BucketObjectReader;
+import org.sagebionetworks.repo.manager.file.BucketObjectReaderProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -55,7 +57,7 @@ public class BucketOwnerVerifierImplUnitTest {
 	private BucketObjectReader mockObjectReader;
 	
 	@Mock
-	private Map<Class<? extends BucketOwnerStorageLocationSetting>, BucketObjectReader> mockBucketObjectReaderMap;
+	private BucketObjectReaderProvider mockObjectReaderProvider;
 	
 	@InjectMocks
 	private BucketOwnerVerifierImpl bucketOwnerVerifier;
@@ -67,12 +69,11 @@ public class BucketOwnerVerifierImplUnitTest {
 	private BufferedReader mockBufferedReader;
 	
 	@Mock
-	private BucketOwnerStorageLocationSetting mockStorageLocation;
-	
-	@Mock
 	private UserInfo mockUserInfo;
 	
 	private List<PrincipalAlias> principalAliases;
+
+	private BucketOwnerStorageLocationSetting storageLocation;
 
 	@BeforeEach
 	public void before() {
@@ -89,25 +90,26 @@ public class BucketOwnerVerifierImplUnitTest {
 		email2.setType(AliasType.USER_EMAIL);
 		email2.setAlias("institutional-email@institution.edu");
 		principalAliases = Arrays.asList(username, email1, email2);
+		
+		storageLocation = new ExternalS3StorageLocationSetting().setBucket(BUCKET_NAME);
 	}
 	
 	@Test
 	public void testVerifyBucketOwnershipWithNoReader() {
-		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
-		when(mockBucketObjectReaderMap.get(any())).thenReturn(null);
+		storageLocation = Mockito.mock(BucketOwnerStorageLocationSetting.class);
+		when(storageLocation.getBucket()).thenReturn(BUCKET_NAME);
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		});
 		
-		assertEquals("Unsupported storage location type: " + mockStorageLocation.getClass().getSimpleName(), e.getMessage());
+		assertEquals("Unsupported storage location type: " + storageLocation.getClass().getSimpleName(), e.getMessage());
 	}
 	
 	@Test
 	public void testVerifyBucketOwnershipWithNoUser() throws IOException {
 		UserInfo userInfo = null;
-		BucketOwnerStorageLocationSetting storageLocation = mockStorageLocation;
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, ()-> {
 			// Call under test
@@ -134,11 +136,12 @@ public class BucketOwnerVerifierImplUnitTest {
 	
 	@Test
 	public void testVerifyBucketOwnershipWithNoBucket() throws IOException {
-		when(mockStorageLocation.getBucket()).thenReturn(null);
+		storageLocation = Mockito.mock(BucketOwnerStorageLocationSetting.class);
+		when(storageLocation.getBucket()).thenReturn(null);
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, ()-> {
 			// Call under test
-			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		});
 		
 		assertEquals("The bucket is required.", e.getMessage());
@@ -148,8 +151,7 @@ public class BucketOwnerVerifierImplUnitTest {
 	@Test
 	public void testVerifyBucketOwnership() throws IOException {
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
-		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
-		when(mockBucketObjectReaderMap.get(any())).thenReturn(mockObjectReader);
+		when(mockObjectReaderProvider.getBucketObjectReader(any())).thenReturn(mockObjectReader);
 		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 		
 		BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader(OWNER_MARKER);
@@ -157,7 +159,7 @@ public class BucketOwnerVerifierImplUnitTest {
 		doNothing().when(bucketOwnerVerifier).validateOwnerContent(any(), any(), any(), any());
 		
 		// Call under test
-		bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+		bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		
 		verify(mockObjectReader).openStream(BUCKET_NAME, OWNER_MARKER);
 		verify(mockBufferedReader).lines();
@@ -165,10 +167,10 @@ public class BucketOwnerVerifierImplUnitTest {
 	
 	@Test
 	public void testVerifyBucketOwnershipWithBaseKey() throws IOException {
+		storageLocation.setBaseKey(BASE_KEY);
+		
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
-		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
-		when(mockStorageLocation.getBaseKey()).thenReturn(BASE_KEY);
-		when(mockBucketObjectReaderMap.get(any())).thenReturn(mockObjectReader);
+		when(mockObjectReaderProvider.getBucketObjectReader(any())).thenReturn(mockObjectReader);
 		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 				
 		BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
@@ -176,7 +178,7 @@ public class BucketOwnerVerifierImplUnitTest {
 		doNothing().when(bucketOwnerVerifier).validateOwnerContent(any(), any(), any(), any());
 		
 		// Call under test
-		bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+		bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		
 		verify(mockObjectReader).openStream(BUCKET_NAME, OWNER_KEY);
 		verify(mockBufferedReader).lines();
@@ -184,10 +186,10 @@ public class BucketOwnerVerifierImplUnitTest {
 	
 	@Test
 	public void testVerifyBucketOwnershipWithFailedOpenStream() throws IOException {
+		storageLocation.setBaseKey(BASE_KEY);
+		
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
-		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
-		when(mockStorageLocation.getBaseKey()).thenReturn(BASE_KEY);
-		when(mockBucketObjectReaderMap.get(any())).thenReturn(mockObjectReader);
+		when(mockObjectReaderProvider.getBucketObjectReader(any())).thenReturn(mockObjectReader);
 		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 		
 		IllegalStateException ex = new IllegalStateException("Failed to open stream");
@@ -196,7 +198,7 @@ public class BucketOwnerVerifierImplUnitTest {
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		});
 		
 		assertTrue(e.getMessage().contains(ex.getMessage() + ". For security purposes"));
@@ -206,10 +208,10 @@ public class BucketOwnerVerifierImplUnitTest {
 	
 	@Test
 	public void testVerifyBucketOwnershipWithExceptionOnRead() throws IOException {
+		storageLocation.setBaseKey(BASE_KEY);
+		
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
-		when(mockStorageLocation.getBucket()).thenReturn(BUCKET_NAME);
-		when(mockStorageLocation.getBaseKey()).thenReturn(BASE_KEY);
-		when(mockBucketObjectReaderMap.get(any())).thenReturn(mockObjectReader);
+		when(mockObjectReaderProvider.getBucketObjectReader(any())).thenReturn(mockObjectReader);
 		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
 
 		BucketOwnerVerifierImpl bucketOwnerVerifier = setupMockObjectReader();
@@ -218,7 +220,7 @@ public class BucketOwnerVerifierImplUnitTest {
 		
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, mockStorageLocation);
+			bucketOwnerVerifier.verifyBucketOwnership(mockUserInfo, storageLocation);
 		});
 		
 		assertTrue(e.getMessage().contains("Could not read key " + BASE_KEY + "/" + OWNER_MARKER + " from bucket " + BUCKET_NAME + ". For security purposes"));

@@ -6,12 +6,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManager;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,7 +38,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class EntitySchemaValidator implements ObjectSchemaValidator {
 	
-	static Log log = LogFactory.getLog(EntitySchemaValidator.class);	
+	private static final Logger LOG = LogManager.getLogger(EntitySchemaValidator.class);
 
 	private final EntityManager entityManger;
 	private final JsonSchemaManager jsonSchemaManager;
@@ -65,17 +67,37 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 	@Override
 	public void validateObject(String entityId) {
 		ValidateArgument.required(entityId, "entityId");
-
+		
+		final RestrictableObjectDescriptor objectDescriptor = new RestrictableObjectDescriptor()
+			.setId(entityId)
+			.setType(RestrictableObjectType.ENTITY);
+		
 		boolean sendEntityUpdate = false;
-		final RestrictableObjectDescriptor objectDescriptor = new RestrictableObjectDescriptor().setId(entityId)
-				.setType(RestrictableObjectType.ENTITY);
-		Optional<JsonSchemaObjectBinding> binding = entityManger.findBoundSchema(entityId);
-		if(binding.isPresent()) {
-			sendEntityUpdate = validateAgainstBoundSchema(objectDescriptor, binding.get());
-		}else {
+		
+		try {
+			
+			// This can throw a NotFoundException if the entity does not exist
+			EntityType entityType = entityManger.getEntityType(entityId);
+			
+			if (EntityType.recordset.equals(entityType)) {
+				// Validation for a recordset is performed on its content and it is handled by the grid services
+				return;
+			}
+			
+			Optional<JsonSchemaObjectBinding> binding = entityManger.findBoundSchema(entityId);
+			
+			if (binding.isPresent()) {
+				sendEntityUpdate = validateAgainstBoundSchema(objectDescriptor, binding.get());
+			} else {
+				sendEntityUpdate = clearAllBoundSchemaRelatedData(objectDescriptor);
+			}
+			
+		} catch (NotFoundException e) {
+			// If the entity does not exist, we still want to make sure that validation result are cleared
+			LOG.warn("An entity with id {} does not exist, will clear validation data.", entityId);
 			sendEntityUpdate = clearAllBoundSchemaRelatedData(objectDescriptor);
 		}
-		
+			
 		if (sendEntityUpdate) {
 			/*
 			 * When the derived annotations are computed we want to trigger the replication
@@ -83,9 +105,12 @@ public class EntitySchemaValidator implements ObjectSchemaValidator {
 			 * entity we simply publish a non-migratable change that is processed as a
 			 * normal change message
 			 */
-			messenger.publishMessageAfterCommit(new LocalStackChangeMesssage().setObjectId(entityId)
-					.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY).setChangeType(ChangeType.UPDATE)
-					.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
+			messenger.publishMessageAfterCommit(new LocalStackChangeMesssage()
+				.setObjectId(entityId)
+				.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY)
+				.setChangeType(ChangeType.UPDATE)
+				.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId())
+			);
 		}
 	}
 

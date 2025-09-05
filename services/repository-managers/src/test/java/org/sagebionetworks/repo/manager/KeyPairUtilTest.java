@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -83,10 +84,13 @@ public class KeyPairUtilTest {
 	
 	@Test
 	public void testGetRSAKeyPairFromPEM() throws Exception {
-		// just make sure we can extract a private/public key pair
+		// make sure we can extract a private/public key pair
 		KeyPair keyPair = KeyPairUtil.getRSAKeyPairFromPrivateKey(DEV_OIDC_SIGNATURE_RSA_PRIVATE_KEY_PEM);
 		assertNotNull(keyPair.getPrivate());
-		assertNotNull(keyPair.getPublic());
+		RSAPublicKey publicKey = (RSAPublicKey)keyPair.getPublic();
+		assertNotNull(publicKey);
+		// make sure modulus is 256 bytes
+		assertEquals(256, KeyPairUtil.bigIntToBytes(publicKey.getModulus()).length);
 	}
 
 	@Test

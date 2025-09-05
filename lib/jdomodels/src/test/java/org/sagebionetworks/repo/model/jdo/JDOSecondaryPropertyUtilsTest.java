@@ -3,15 +3,20 @@ package org.sagebionetworks.repo.model.jdo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -47,6 +52,62 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(test, JDOSecondaryPropertyUtils.decompressObject(TEST_X_STREAM, bytes));
 	}
 
+	@Test
+	public void testWriteAndReadJsonToEntityList() {
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(1L),
+				new EntityRef().setEntityId("syn222").setVersionNumber(2L));
+		// Call under test
+		String json = JDOSecondaryPropertyUtils.writeEntityListToJson(items);
+		assertNotNull(json);
+		// call under test
+		List<EntityRef> clone = JDOSecondaryPropertyUtils.readJsonToEntityList(json, EntityRef.class);
+		assertEquals(items, clone);
+	}
+	
+	@Test
+	public void testWriteEntityListToJsonWithNull() {
+		assertNull(JDOSecondaryPropertyUtils.writeEntityListToJson(null));
+	}
+	
+	@Test
+	public void testReadJsonToEntityListWithNull() {
+		assertNull(JDOSecondaryPropertyUtils.readJsonToEntityList(null, EntityRef.class));
+	}
+	
+	@Test
+	public void testReadJsonToEntityListWithInvalidJson() {
+		assertThrows(IllegalArgumentException.class, ()->{
+			JDOSecondaryPropertyUtils.readJsonToEntityList("invalid json", EntityRef.class);
+		});
+	}
+	
+	@Test
+	public void testWriteAndReadJsonToStringList() {
+		List<String> items = List.of("one", "two", "three");
+		
+		String json = JDOSecondaryPropertyUtils.writeStringListToJson(items);
+		
+		assertEquals("[\"one\",\"two\",\"three\"]", json);
+		
+		List<String> clone = JDOSecondaryPropertyUtils.readJsonToStringList(json);
+		
+		assertEquals(items, clone);
+	}
+	
+	@Test
+	public void testWriteJsonToStringListWithNull() {
+		List<String> items = null;
+		
+		assertNull(JDOSecondaryPropertyUtils.writeStringListToJson(items));
+
+	}
+	
+	@Test
+	public void testReadJsonToStringListWithNull() {
+		String json = null;
+		
+		assertNull(JDOSecondaryPropertyUtils.readJsonToStringList(json));
+	}
 
 	static class TestObject{
 		int a;

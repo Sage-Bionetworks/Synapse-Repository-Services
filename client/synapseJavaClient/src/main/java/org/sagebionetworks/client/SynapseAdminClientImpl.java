@@ -7,7 +7,6 @@ import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
-import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.simpleHttpClient.SimpleHttpClientConfig;
@@ -413,11 +411,5 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	@Override
 	public ProjectStorageLocationLimit setProjectStorageLocationLimit(ProjectStorageLocationLimit limit) throws SynapseException {
 		return putJSONEntity(getRepoEndpoint(), "/project/" + limit.getProjectId() + "/storage/limit", limit, ProjectStorageLocationLimit.class);
-	}
-	
-	@Override
-	public BackfillCount backfillOAuthClientACLs() throws SynapseException {
-		String uri = OAUTH_CLIENT + "/acl/backfill";
-		return postJSONEntity(getAuthEndpoint(), uri, null, BackfillCount.class);
 	}
 }

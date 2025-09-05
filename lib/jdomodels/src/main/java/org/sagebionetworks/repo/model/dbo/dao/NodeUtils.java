@@ -22,8 +22,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 
 /**
  * Translates JDOs and DTOs.
@@ -93,42 +92,12 @@ public class NodeUtils {
 		if(dto.getScopeIds() != null){
 			rev.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		}
-		rev.setItems(writeItemsToJson(dto.getItems()));
+		rev.setItems(JDOSecondaryPropertyUtils.writeEntityListToJson(dto.getItems()));
 		rev.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getReference()));
 		rev.setIsSearchEnabled(dto.getIsSearchEnabled());
 		rev.setDefiningSQL(dto.getDefiningSQL());
-	}
-	
-	/**
-	 * Read the given JSON into a list of EntityRef items.
-	 * @param json
-	 * @return
-	 */
-	public static List<EntityRef> readJsonToItems(String json){
-		if(json == null) {
-			return null;
-		}
-		try {
-			return EntityFactory.readFromJSONArrayString(json, EntityRef.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-	
-	/**
-	 * Write the given list of entity reference items to JSON.
-	 * @param items
-	 * @return
-	 */
-	public static String writeItemsToJson(List<EntityRef> items) {
-		if(items == null) {
-			return null;
-		}
-		try {
-			return EntityFactory.writeToJSONArrayString(items);
-		} catch (JSONObjectAdapterException e) {
-			throw new IllegalArgumentException(e);
-		}
+		rev.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
+		rev.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
 	}
 
 	/**
@@ -169,9 +138,11 @@ public class NodeUtils {
 		dbo.setColumnModelIds(createByteForIdList(dto.getColumnModelIds()));
 		dbo.setScopeIds(createByteForIdList(dto.getScopeIds()));
 		dbo.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getReference()));
-		dbo.setItems(writeItemsToJson(dto.getItems()));
+		dbo.setItems(JDOSecondaryPropertyUtils.writeEntityListToJson(dto.getItems()));
 		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
 		dbo.setDefiningSQL(dto.getDefiningSQL());
+		dbo.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
+		dbo.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
 		return dbo;
 	}
 	
@@ -285,16 +256,18 @@ public class NodeUtils {
 		if(rev.getActivityId() != null) {
 			dto.setActivityId(rev.getActivityId().toString());
 		} 
-		dto.setReference(JDOSecondaryPropertyUtils.createObejctFromJSON(Reference.class, rev.getReferenceJson()));
+		dto.setReference(JDOSecondaryPropertyUtils.createObjectFromJSON(Reference.class, rev.getReferenceJson()));
 		if(rev.getColumnModelIds() != null){
 			dto.setColumnModelIds(createIdListFromBytes(rev.getColumnModelIds()));
 		}
 		if(rev.getScopeIds() != null){
 			dto.setScopeIds(createIdListFromBytes(rev.getScopeIds()));
 		}
-		dto.setItems(readJsonToItems(rev.getItems()));
+		dto.setItems(JDOSecondaryPropertyUtils.readJsonToEntityList(rev.getItems(), EntityRef.class));
 		dto.setIsSearchEnabled(rev.getIsSearchEnabled());
 		dto.setDefiningSQL(rev.getDefiningSQL());
+		dto.setUpsertKey(JDOSecondaryPropertyUtils.readJsonToStringList(rev.getUpsertKey()));
+		dto.setCsvDescriptor(JDOSecondaryPropertyUtils.createObjectFromJSON(CsvTableDescriptor.class, rev.getCsvDescriptor()));
 	}
 	
 	/**
@@ -344,8 +317,7 @@ public class NodeUtils {
 	 */
 	public static boolean isRootEntityId(String entityId){
 		return KeyFactory.equals(ROOT_ENTITY_ID, entityId);
-	}
-	
+	}	
 
 	/**
 	 * Translate the provided alias.

@@ -8,10 +8,12 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -75,7 +77,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @param json
 	 * @return
 	 */
-	public static <T extends JSONEntity> T createObejctFromJSON(Class<? extends T> type, String json) {
+	public static <T extends JSONEntity> T createObjectFromJSON(Class<? extends T> type, String json) {
 		if (json == null) {
 			return null;
 		}
@@ -105,4 +107,62 @@ public class JDOSecondaryPropertyUtils {
 		}
 	}
 	
+	/**
+	 * Read the given JSON into a list of the given type items.
+	 * 
+	 * @param <T>
+	 * @param json
+	 * @return
+	 */
+	public static <T extends JSONEntity> List<T> readJsonToEntityList(String json, Class<T> clazz) {
+		if (json == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.readFromJSONArrayString(json, clazz);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	/**
+	 * Write the given list of entity reference items to JSON.
+	 * @param <T>
+	 * @param items
+	 * @return
+	 */
+	public static <T extends JSONEntity> String writeEntityListToJson(List<T> items) {
+		if (items == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.writeToJSONArrayString(items);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	public static List<String> readJsonToStringList(String json) {
+		if (json == null) {
+			return null;
+		}
+		
+		JSONArray array = new JSONArray(json);
+		
+		List<String> list = new ArrayList<String>(array.length());
+		
+		for (int i = 0; (i < array.length()); i++) {
+			list.add(array.getString(i));
+		}
+		
+		return list;
+	}
+	
+	public static String writeStringListToJson(List<String> items) {
+		if (items == null) {
+			return null;
+		}
+		
+		return new JSONArray(items).toString();
+	}
 }

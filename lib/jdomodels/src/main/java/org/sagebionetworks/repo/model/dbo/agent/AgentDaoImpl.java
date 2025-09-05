@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_REGISTRATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ACCESS_LEVEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CONTEXT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ETAG;
@@ -28,10 +29,12 @@ import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
+import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.util.JsonEntityUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -53,7 +56,8 @@ public class AgentDaoImpl implements AgentDao {
 				.setStartedOn(rs.getTimestamp(COL_AGENT_SESSION_CREATED_ON))
 				.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
 				.setAgentRegistrationId(rs.getString(COL_AGENT_SESSION_REGISTRATION_ID))
-				.setEtag(rs.getString(COL_AGENT_SESSION_ETAG));
+				.setEtag(rs.getString(COL_AGENT_SESSION_ETAG)).setSessionContext(
+						JsonEntityUtils.fromJsonString(rs.getString(COL_AGENT_SESSION_CONTEXT), SessionContext.class));
 	};
 
 	private final RowMapper<AgentRegistration> REGISTATION_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -82,14 +86,16 @@ public class AgentDaoImpl implements AgentDao {
 
 	@WriteTransaction
 	@Override
-	public AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String registrationId) {
+	public AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String registrationId,
+			SessionContext context) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(accessLevel, "accessLevel");
 		ValidateArgument.required(registrationId, "registrationId");
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		DBOAgentSession dbo = new DBOAgentSession().setId(idGenerator.generateNewId(IdType.AGENT_SESSION_ID))
 				.setEtag(UUID.randomUUID().toString()).setCreatedBy(userId).setCreatedOn(now).setModifiedOn(now)
-				.setSessionId(UUID.randomUUID().toString()).setRegistrationId(Long.parseLong(registrationId)).setAccessLevel(accessLevel.name());
+				.setSessionId(UUID.randomUUID().toString()).setRegistrationId(Long.parseLong(registrationId))
+				.setAccessLevel(accessLevel.name()).setContextJson(JsonEntityUtils.toJsonString(context));
 		basicDao.createNew(dbo);
 		return getAgentSession(dbo.getSessionId()).get();
 	}

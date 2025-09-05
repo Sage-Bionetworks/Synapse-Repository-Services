@@ -10,11 +10,13 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
 import org.sagebionetworks.repo.manager.agent.handler.OpenApiReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
+import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
@@ -28,6 +30,8 @@ import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
+import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
 import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
@@ -71,24 +75,34 @@ public class AgentManagerImpl implements AgentManager {
 	private final AgentDao agentDao;
 	private final AgentClientProvider agentClientProvider;
 	private final String stackBedrockAgentId;
+	private final String stackBedrockGridAgentId;
 	private final ReturnControlHandlerProvider handlerProvider;
 	private final Clock clock;
 	private final AsynchronousJobStatusDAO statusDao;
 	private final FeatureManager featureManager;
+	private final AgentContextValidator contextValidator;
 	private Logger logger;
 
 	@Autowired
-	public AgentManagerImpl(AgentDao agentDao, AgentClientProvider agentClientProvider, String stackBedrockAgentId,
-			ReturnControlHandlerProvider handlerProvider, Clock clock, AsynchronousJobStatusDAO statusDao,
-			FeatureManager featureManager) {
+	public AgentManagerImpl(AgentDao agentDao, AgentClientProvider agentClientProvider,
+			Map<AgentSuffix, String> stackBedrockAgentIds, ReturnControlHandlerProvider handlerProvider, Clock clock,
+			AsynchronousJobStatusDAO statusDao, FeatureManager featureManager, AgentContextValidator contextValidator) {
 		super();
 		this.agentDao = agentDao;
 		this.agentClientProvider = agentClientProvider;
-		this.stackBedrockAgentId = stackBedrockAgentId;
+		this.stackBedrockAgentId = stackBedrockAgentIds.get(AgentSuffix.basic);
+		if (stackBedrockAgentId == null) {
+			throw new IllegalArgumentException("AgentId not found for suffix: " + AgentSuffix.basic);
+		}
+		this.stackBedrockGridAgentId = stackBedrockAgentIds.get(AgentSuffix.grid);
+		if (stackBedrockGridAgentId == null) {
+			throw new IllegalArgumentException("AgentId not found for suffix: " + AgentSuffix.grid);
+		}
 		this.clock = clock;
 		this.statusDao = statusDao;
 		this.handlerProvider = handlerProvider;
 		this.featureManager = featureManager;
+		this.contextValidator = contextValidator;
 	}
 
 	@Autowired
@@ -104,15 +118,20 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(request.getAgentAccessLevel(), "request.agentAccessLevel");
 		// only authenticated users can start a chat session.
 		AuthorizationUtils.disallowAnonymous(userInfo);
+		if (request.getSessionContext() != null) {
+			contextValidator.validate(userInfo, request.getSessionContext());
+		}
+		String baselineAgentId = request.getSessionContext() instanceof GridAgentSessionContext
+				? stackBedrockGridAgentId
+				: stackBedrockAgentId;
 
 		AgentRegistration registration = (request.getAgentRegistrationId() == null
 				|| request.getAgentRegistrationId().isBlank())
 						? agentDao.createOrGetRegistration(AgentType.BASELINE,
-								new AgentRegistrationRequest().setAwsAgentId(stackBedrockAgentId)
-										.setAwsAliasId(TSTALIASID))
+								new AgentRegistrationRequest().setAwsAgentId(baselineAgentId).setAwsAliasId(TSTALIASID))
 						: getAgentRegistration(request.getAgentRegistrationId());
 		return agentDao.createSession(userInfo.getId(), request.getAgentAccessLevel(),
-				registration.getAgentRegistrationId());
+				registration.getAgentRegistrationId(), request.getSessionContext());
 	}
 
 	@WriteTransaction
@@ -249,7 +268,7 @@ public class AgentManagerImpl implements AgentManager {
 						 * response..
 						 */
 						Long runAsUser = getRunAsUser(session);
-						List<ReturnControlEvent> events = extractEvents(runAsUser, payload);
+						List<ReturnControlEvent> events = extractEvents(runAsUser, session.getSessionContext(), payload);
 						response.setReturnControl(payload.invocationId(), events);
 					}).onChunk(chunk -> {
 						String chunktoken = chunk.bytes().asUtf8String();
@@ -384,19 +403,19 @@ public class AgentManagerImpl implements AgentManager {
 	 * @param payload
 	 * @return
 	 */
-	List<ReturnControlEvent> extractEvents(Long userId, ReturnControlPayload payload) {
+	List<ReturnControlEvent> extractEvents(Long userId, SessionContext context, ReturnControlPayload payload) {
 		List<ReturnControlEvent> events = new ArrayList<>();
 		payload.invocationInputs().forEach(iim -> {
-			events.add(fromInvocationInputMember(userId, iim));
+			events.add(fromInvocationInputMember(userId, context, iim));
 		});
 		return events;
 	}
 
-	ReturnControlEvent fromInvocationInputMember(Long userId, InvocationInputMember member) {
+	ReturnControlEvent fromInvocationInputMember(Long userId, SessionContext context, InvocationInputMember member) {
 		if (member.functionInvocationInput() != null) {
 			return fromFunctionInvocationInput(userId, member.functionInvocationInput());
 		} else if (member.apiInvocationInput() != null) {
-			return fromApiInvocationInput(userId, member.apiInvocationInput());
+			return fromApiInvocationInput(userId, context, member.apiInvocationInput());
 		}
 		throw new IllegalArgumentException("Expected either function or api invocation");
 	}
@@ -409,14 +428,14 @@ public class AgentManagerImpl implements AgentManager {
 		return new ReturnControlEvent(userId, input.actionGroup(), input.function(), params);
 	}
 
-	ReturnControlEvent fromApiInvocationInput(Long userId, ApiInvocationInput input) {
+	ReturnControlEvent fromApiInvocationInput(Long userId, SessionContext context, ApiInvocationInput input) {
 		String requestBody = getRequestBody(input.requestBody());
 		List<Parameter> params = new ArrayList<>();
 		input.parameters().forEach(p -> {
 			params.add(new Parameter(p.name(), p.type(), p.value()));
 		});
 		String function = String.format("%s %s", input.httpMethod().toUpperCase(), input.apiPath());
-		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBody);
+		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBody, context);
 	}
 
 	String getRequestBody(ApiRequestBody body) {

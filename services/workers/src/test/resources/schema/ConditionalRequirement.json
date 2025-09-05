@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Conditional Requirement Schema",
+	"type": "object",
+	"properties": {
+		"a": {
+			"type": "integer",
+			"description": "An integer value."
+		},
+		"b": {
+			"type": "string",
+			"description": "A string value, required if 'a' > 100."
+		}
+	},
+	"if": {
+		"properties": {
+			"a": {
+				"minimum": 100
+			}
+		},
+		"required": [
+			"a"
+		]
+	},
+	"then": {
+		"required": [
+			"b"
+		]
+	}
+}

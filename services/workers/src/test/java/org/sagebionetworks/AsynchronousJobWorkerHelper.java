@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
@@ -298,5 +299,13 @@ public interface AsynchronousJobWorkerHelper {
 	 * @throws AssertionError 
 	 */
 	RowReferenceSetResults appendRowsToTable(UserInfo user, List<ColumnModel> schema, String tableId, List<Row> rows, long maxWaitTime) throws Exception;
+
+	/**
+	 * Create or get an Organization.
+	 * @param userId
+	 * @param name
+	 * @return
+	 */
+	Organization getOrCreateOrganization(Long userId, String name);
 
 }

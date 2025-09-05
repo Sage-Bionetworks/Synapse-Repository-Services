@@ -9,6 +9,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 
+import org.bouncycastle.util.BigIntegers;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -24,6 +25,7 @@ import io.jsonwebtoken.Jwt;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.SecurityException;
+
 
 public class JSONWebTokenHelper {
 	public static final String RSA = "RSA";
@@ -91,7 +93,7 @@ public class JSONWebTokenHelper {
 	
 	private static BigInteger base64URLEncodedToBigInteger(String s) {
 		byte[] bytes = Base64.getUrlDecoder().decode(s);
-		return new BigInteger(bytes);
+		return BigIntegers.fromUnsignedByteArray(bytes);
 	}
 
 	public static RSAPublicKey getRSAPublicKeyForJsonWebKeyRSA(JsonWebKeyRSA jwkRsa) {

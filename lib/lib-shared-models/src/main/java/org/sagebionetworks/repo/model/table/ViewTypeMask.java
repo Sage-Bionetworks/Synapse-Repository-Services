@@ -13,7 +13,8 @@ public enum ViewTypeMask {
 	SubmissionView(0x40, EntityType.submissionview),
 	Dataset(0x80, EntityType.dataset),
 	DatasetCollection(0x100, EntityType.datasetcollection),
-	MaterializedView(0x200, EntityType.materializedview);
+	MaterializedView(0x200, EntityType.materializedview),
+	RecordSet(0x400, EntityType.recordset);
 
 	long bitMask;
 	EntityType entityType;

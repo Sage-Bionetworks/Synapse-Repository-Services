@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
+import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
+import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.CallersContext;
@@ -56,6 +58,7 @@ public class AgentDaoImplTest {
 
 	private AgentChatRequest request;
 	private String registrationId;
+	private SessionContext context;
 
 	@BeforeEach
 	public void before() {
@@ -66,6 +69,7 @@ public class AgentDaoImplTest {
 		this.admin.setContext(new CallersContext().setSessionId("abc"));
 		this.request = new AgentChatRequest().setSessionId(sessionId).setChatText("hello");
 		this.registrationRequest = new AgentRegistrationRequest().setAwsAgentId("awsId").setAwsAliasId("awsAlias");
+		this.context = null;
 	}
 
 	@AfterEach
@@ -78,7 +82,7 @@ public class AgentDaoImplTest {
 
 		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
 		// call under test
-		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId());
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId(), context);
 		assertNotNull(session);
 		assertNotNull(session.getSessionId());
 		assertNotNull(session.getEtag());
@@ -93,6 +97,29 @@ public class AgentDaoImplTest {
 		assertEquals(Optional.of(session), agentDao.getAgentSession(session.getSessionId()));
 
 	}
+	
+	@Test
+	public void testCreateSessionWithContext() {
+		context = new GridAgentSessionContext().setGridSessionId("session123").setUsersReplicaId(987L);
+
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
+		// call under test
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId(), context);
+		assertNotNull(session);
+		assertNotNull(session.getSessionId());
+		assertNotNull(session.getEtag());
+		assertNotEquals(session.getEtag(), session.getSessionId());
+		assertNotNull(session.getStartedOn());
+		assertNotNull(session.getModifiedOn());
+		assertEquals(session.getStartedOn(), session.getModifiedOn());
+		assertEquals(adminUserId, session.getStartedBy());
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE, session.getAgentAccessLevel());
+		assertEquals(registration.getAgentRegistrationId(), session.getAgentRegistrationId());
+		assertEquals(context, session.getSessionContext());
+
+		assertEquals(Optional.of(session), agentDao.getAgentSession(session.getSessionId()));
+
+	}
 
 	@Test
 	public void testGetSessionWithNotFound() {
@@ -103,7 +130,7 @@ public class AgentDaoImplTest {
 	@Test
 	public void testUpdateSession() throws InterruptedException {
 		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
-		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId());
+		AgentSession session = agentDao.createSession(adminUserId, accessLevel, registration.getAgentRegistrationId(), context);
 		assertNotNull(session);
 
 		Thread.sleep(1001L);
@@ -127,9 +154,9 @@ public class AgentDaoImplTest {
 	public void testMultipleSessions() {
 		AgentRegistration reg = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
 		AgentSession one = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE,
-				reg.getAgentRegistrationId());
+				reg.getAgentRegistrationId(),context);
 		AgentSession two = agentDao.createSession(adminUserId, AgentAccessLevel.PUBLICLY_ACCESSIBLE,
-				reg.getAgentRegistrationId());
+				reg.getAgentRegistrationId(),context);
 
 		assertNotEquals(one.getSessionId(), two.getSessionId());
 
@@ -147,7 +174,7 @@ public class AgentDaoImplTest {
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, registrationId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId, context);
 		}).getMessage();
 		assertEquals("userId is required.", message);
 	}
@@ -157,7 +184,7 @@ public class AgentDaoImplTest {
 		accessLevel = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, registrationId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId, context);
 		}).getMessage();
 		assertEquals("accessLevel is required.", message);
 	}
@@ -167,7 +194,7 @@ public class AgentDaoImplTest {
 		registrationId = null;
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			agentDao.createSession(adminUserId, accessLevel, registrationId);
+			agentDao.createSession(adminUserId, accessLevel, registrationId, context);
 		}).getMessage();
 		assertEquals("registrationId is required.", message);
 		;
@@ -315,37 +342,6 @@ public class AgentDaoImplTest {
 		assertEquals("For input string: \"abc\"", message);
 	}
 
-	@Test
-	public void testDBOAgentSessionMigration() {
-		DBOAgentSession dbo = new DBOAgentSession();
-		dbo.setAgentId("123");
-		dbo.setRegistrationId(null);
-		// call under test
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(DBOAgentSession.BOOTSTRAP_REGISTRATION_ID, dbo.getRegistrationId());
-	}
-
-	@Test
-	public void testDBOAgentSessionMigrationWithRegistrationId() {
-		DBOAgentSession dbo = new DBOAgentSession();
-		dbo.setAgentId("123");
-		dbo.setRegistrationId(99L);
-
-		// call under test
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(99L, dbo.getRegistrationId());
-	}
-
-	@Test
-	public void testDBOAgentSessionMigrationWithNullAgentId() {
-		DBOAgentSession dbo = new DBOAgentSession();
-		dbo.setAgentId(null);
-		dbo.setRegistrationId(99L);
-
-		// call under test
-		dbo = dbo.getTranslator().createDatabaseObjectFromBackup(dbo);
-		assertEquals(99L, dbo.getRegistrationId());
-	}
 
 	@ParameterizedTest
 	@EnumSource(AgentType.class)

@@ -41,6 +41,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
@@ -188,6 +190,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ?, " + COL_REVISION_COMMENT + " = ?, " + COL_REVISION_LABEL + " = ?, " + COL_REVISION_DESCRIPTION + " = ?, " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS 
 			+ " = ?, " + COL_REVISION_REF_JSON + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
+			+ " = ?, " + COL_REVISION_UPSERT_KEY + " = ?, " + COL_REVISION_CSV_DESCRIPTOR 
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
 	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
@@ -328,7 +331,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_COMMENT + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_COLUMN_MODEL_IDS + ", R." + COL_REVISION_SCOPE_IDS
 			+ ", R." + COL_REVISION_REF_JSON + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
-			+ ", R." + COL_REVISION_DEFINING_SQL;
+			+ ", R." + COL_REVISION_DEFINING_SQL + ", R." + COL_REVISION_UPSERT_KEY + ", R." + COL_REVISION_CSV_DESCRIPTOR;
 	
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS + " FROM " + TABLE_NODE
 			+ " N, " + TABLE_REVISION + " R WHERE N." + COL_NODE_ID + "= R." + COL_REVISION_OWNER_NODE + " AND N."
@@ -378,7 +381,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SELECT_CURRENT_VERSION_FILE_HANDLES = "SELECT N." + COL_NODE_ID + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + " FROM " + TABLE_NODE + " N JOIN " + TABLE_REVISION + " R ON (N."
 			+ COL_NODE_ID + " = R." + COL_REVISION_OWNER_NODE + " AND N." + COL_NODE_CURRENT_REV + " = R."
-			+ COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " = '" + EntityType.file + "' AND N." + COL_NODE_ID
+			+ COL_REVISION_NUMBER + ") WHERE N." + COL_NODE_TYPE + " IN (:" + BIND_NODE_TYPES + ") AND N." + COL_NODE_ID
 			+ " IN (:" + NODE_IDS_LIST_PARAM_NAME + ")";
 	
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_NODE_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
@@ -985,14 +988,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		byte[] newColumns = NodeUtils.createByteForIdList(updatedNode.getColumnModelIds());
 		byte[] newScope = NodeUtils.createByteForIdList(updatedNode.getScopeIds());
 		String newReferences = JDOSecondaryPropertyUtils.createJSONFromObject(updatedNode.getReference());
-		String items = NodeUtils.writeItemsToJson(updatedNode.getItems());
+		String items = JDOSecondaryPropertyUtils.writeEntityListToJson(updatedNode.getItems());
 		Boolean searchEnabled = updatedNode.getIsSearchEnabled();
 		String definingSQL = updatedNode.getDefiningSQL();
 		String newDescription = updatedNode.getDescription();
+		String upsertKey = JDOSecondaryPropertyUtils.writeStringListToJson(updatedNode.getUpsertKey());
+		String csvDescriptor = JDOSecondaryPropertyUtils.createJSONFromObject(updatedNode.getCsvDescriptor());
 
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newDescription, newFileHandleId, newColumns,
-				newScope, newReferences, items, searchEnabled, definingSQL, nodeId, currentRevision);
+				newScope, newReferences, items, searchEnabled, definingSQL, upsertKey, csvDescriptor, nodeId, currentRevision);
 	}
 	
 	@Override
@@ -1560,18 +1565,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, KeyFactory.stringToKey(entityIds));
-		return namedParameterJdbcTemplate.query(
-				SELECT_CURRENT_VERSION_FILE_HANDLES,
-				parameters, new RowMapper<FileHandleAssociation>() {
-
-			@Override
-			public FileHandleAssociation mapRow(ResultSet rs, int rowNum) throws SQLException {
-				FileHandleAssociation fha = new FileHandleAssociation();
-				fha.setAssociateObjectId(rs.getString(1));
-				fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
-				fha.setFileHandleId(rs.getString(2));
-				return fha;
-			}
+		parameters.addValue(BIND_NODE_TYPES, EntityTypeUtils.getFileTypes().stream().map(EntityType::name).collect(Collectors.toList()));
+		return namedParameterJdbcTemplate.query(SELECT_CURRENT_VERSION_FILE_HANDLES, parameters, (rs, rowNum) -> {
+			FileHandleAssociation fha = new FileHandleAssociation();
+			fha.setAssociateObjectId(rs.getString(1));
+			fha.setAssociateObjectType(FileHandleAssociateType.FileEntity);
+			fha.setFileHandleId(rs.getString(2));
+			return fha;
 		});
 	}
 	
@@ -2238,7 +2238,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		IdAndVersion idAndVersion = IdAndVersion.newBuilder().setId(datasetId).build();		
 		
 		return selectRevisionColumnValue(idAndVersion, COL_REVISION_ITEMS, String.class)
-			.map(NodeUtils::readJsonToItems)
+			.map(itemJSon -> JDOSecondaryPropertyUtils.readJsonToEntityList(itemJSon, EntityRef.class))
 			.orElse(Collections.emptyList());
 		
 	}

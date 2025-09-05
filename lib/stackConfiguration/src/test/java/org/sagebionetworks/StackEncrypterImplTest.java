@@ -150,7 +150,7 @@ public class StackEncrypterImplTest {
 		DecryptRequest request = decryptRequestCaptor.getValue();
 		assertNotNull(request);
 		assertEquals(encryptedValue, new String(request.getCiphertextBlob().array()));
-		verify(mockLog).info("Decrypting property 'keyToBeDecrypted'...");
+		verify(mockLog).debug("Decrypting property 'keyToBeDecrypted'...");
 	}
 
 	
@@ -166,7 +166,7 @@ public class StackEncrypterImplTest {
 		assertEquals(encryptedValue, results);
 		// the value should not be decrypted
 		verify(mockAWSKMS, never()).decrypt(decryptRequestCaptor.capture());
-		verify(mockLog).warn("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'keyToBeDecrypted' will not be decrypted.");
+		verify(mockLog).debug("Property: 'org.sagebionetworks.stack.cmk.alias' does not exist so the value of 'keyToBeDecrypted' will not be decrypted.");
 	}
 	
 	

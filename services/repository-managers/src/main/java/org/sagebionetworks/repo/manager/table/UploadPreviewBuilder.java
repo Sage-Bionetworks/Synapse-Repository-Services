@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.worker;
+package org.sagebionetworks.repo.manager.table;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -20,8 +21,6 @@ import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
-import org.sagebionetworks.util.progress.ProgressCallback;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -36,7 +35,6 @@ public class UploadPreviewBuilder {
 	public static final int MAX_ROWS_IN_PARTIAL_SCAN = 1000;
 	public static final int MAX_ROWS_IN_PREVIEW = 5;
 	CSVReader reader;
-	ProgressCallback progressCallback;
 	boolean isFirstLineHeader;
 	List<String[]> startingRow;
 	ColumnModel[] testTypes;
@@ -82,7 +80,7 @@ public class UploadPreviewBuilder {
 		// Make sure the names are unique
 		makeColumnNamesUnique();
 		results.setSuggestedColumns(extractSuggestedColumns());
-		results.setRowsScanned(new Long(rowsScanned));
+		results.setRowsScanned(Long.valueOf(rowsScanned));
 		results.setSampleRows(extractSampleRows());
 		return results;
 	}

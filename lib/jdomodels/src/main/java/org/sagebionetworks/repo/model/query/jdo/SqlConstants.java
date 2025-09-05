@@ -48,6 +48,8 @@ public class SqlConstants {
 	public static final String COL_REVISION_ITEMS			= "ITEMS";
 	public static final String COL_REVISION_SEARCH_ENABLED	= "SEARCH_ENABLED";
 	public static final String COL_REVISION_DEFINING_SQL	= "DEFINING_SQL";
+	public static final String COL_REVISION_UPSERT_KEY		= "UPSERT_KEY";
+	public static final String COL_REVISION_CSV_DESCRIPTOR	= "CSV_DESCRIPTOR";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
 	public static final String TABLE_STACK_STATUS		= "STACK_STATUS";
@@ -1334,6 +1336,7 @@ public class SqlConstants {
 	public static final String COL_AGENT_SESSION_SESSION_ID = 		"SESSION_ID";
 	public static final String COL_AGENT_SESSION_REGISTRATION_ID = 	"REGISTRATION_ID";
 	public static final String COL_AGENT_SESSION_ACCESS_LEVEL = 	"ACCESS_LEVEL";
+	public static final String COL_AGENT_SESSION_CONTEXT =		 	"CONTEXT";
 	public static final String DDL_AGENT_SESSION = 				"schema/agent/Agent-Session-ddl.sql";
 	
 	public static final String TABLE_AGENT_TRACE =				"AGENT_TRACE";

@@ -135,8 +135,8 @@ public class OAuthRefreshTokenDaoImpl implements OAuthRefreshTokenDao {
 
 	public static OAuthRefreshTokenInformation refreshTokenDboToDto(DBOOAuthRefreshToken dbo) {
 		OAuthRefreshTokenInformation dto = new OAuthRefreshTokenInformation();
-		dto.setScopes(JDOSecondaryPropertyUtils.createObejctFromJSON(OAuthScopeList.class, dbo.getScopesJson()).getList());
-		dto.setClaims(JDOSecondaryPropertyUtils.createObejctFromJSON(OIDCClaimsRequest.class, dbo.getClaimsJson()));
+		dto.setScopes(JDOSecondaryPropertyUtils.createObjectFromJSON(OAuthScopeList.class, dbo.getScopesJson()).getList());
+		dto.setClaims(JDOSecondaryPropertyUtils.createObjectFromJSON(OIDCClaimsRequest.class, dbo.getClaimsJson()));
 		dto.setTokenId(dbo.getId().toString());
 		dto.setName(dbo.getName());
 		dto.setPrincipalId(dbo.getPrincipalId().toString());

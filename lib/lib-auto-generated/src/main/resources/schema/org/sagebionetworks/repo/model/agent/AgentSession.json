@@ -30,6 +30,10 @@
 		"etag": {
 			"type": "string",
 			"description": "Will change whenever the session changes."
+		},
+		"sessionContext": {
+			"$ref": "org.sagebionetworks.repo.model.agent.SessionContext",
+			"description": "Provided for sessions with additional context.'"
 		}
 	}
 }

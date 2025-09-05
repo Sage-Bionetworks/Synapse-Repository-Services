@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.java_websocket.WebSocket;
@@ -31,10 +35,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
@@ -44,6 +48,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
@@ -110,7 +115,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	public static final long MAX_WAIT_MS = 120_000;
 
 	@Autowired
-	private GridService gridServie;
+	private GridService gridService;
 
 	@Autowired
 	private UserManager userManager;
@@ -125,16 +130,10 @@ public class GridEventBrokerWorkerIntegrationTest {
 	private EntityService entityService;
 
 	@Autowired
-	private JsonSchemaServices jsonSchemaService;
-
-	@Autowired
 	private ColumnModelManager columnManager;
 
 	@Autowired
 	private FileHandleManager fileHandleManager;
-
-	@Autowired
-	private GridIndexManager gridIndexManager;
 
 	@Autowired
 	private GridReplicaViewManager gridViewManager;
@@ -166,11 +165,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 				}, MAX_WAIT_MS).getResponse().getGridSession();
 
 		// Create a replica
-		GridReplica replica = gridServie
+		GridReplica replica = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
 
-		String presignedUrl = gridServie
+		String presignedUrl = gridService
 				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
 						.setGridSessionId(session.getSessionId()).setReplicaId(replica.getReplicaId()))
 				.getPresignedUrl();
@@ -201,11 +200,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 				}, MAX_WAIT_MS).getResponse().getGridSession();
 
 		// Create replica One
-		GridReplica replicaOne = gridServie
+		GridReplica replicaOne = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
 
-		String urlOne = gridServie
+		String urlOne = gridService
 				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
 						.setGridSessionId(session.getSessionId()).setReplicaId(replicaOne.getReplicaId()))
 				.getPresignedUrl();
@@ -216,11 +215,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 		waitForConnected(incomingMessagesOne);
 
 		// Create replica two.
-		GridReplica replicaTwo = gridServie
+		GridReplica replicaTwo = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
 
-		String urlTwo = gridServie
+		String urlTwo = gridService
 				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
 						.setGridSessionId(session.getSessionId()).setReplicaId(replicaTwo.getReplicaId()))
 				.getPresignedUrl();
@@ -317,11 +316,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 		assertEquals(table.getId(), session.getSourceEntityId());
 
 		// Create replica One
-		GridReplica replicaOne = gridServie
+		GridReplica replicaOne = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
 
-		String urlOne = gridServie
+		String urlOne = gridService
 				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
 						.setGridSessionId(session.getSessionId()).setReplicaId(replicaOne.getReplicaId()))
 				.getPresignedUrl();
@@ -447,11 +446,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 		assertEquals(jsonSchem$id, session.getGridJsonSchema$Id());
 
 		// Create replica One
-		GridReplica replicaOne = gridServie
+		GridReplica replicaOne = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
 
-		String urlOne = gridServie
+		String urlOne = gridService
 				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
 						.setGridSessionId(session.getSessionId()).setReplicaId(replicaOne.getReplicaId()))
 				.getPresignedUrl();
@@ -534,6 +533,92 @@ public class GridEventBrokerWorkerIntegrationTest {
 		assertArrayEquals(new String[] { file.getId().substring("syn".length()), file.getVersionNumber().toString(),
 				file.getEtag(), updateValue }, csvContents.get(1));
 	}
+	
+	@Test
+	public void testGridWithRecordSet() throws Exception {
+		Project project = entityService.createEntity(admin.getId(), new Project().setName("RecordSet Test"), null);
+		
+		byte[] csvContents;
+		
+		try (InputStream is = GridEventBrokerWorkerIntegrationTest.class.getClassLoader().getResourceAsStream("recordset.csv")) {
+			csvContents = IOUtils.toByteArray(is);
+		}
+		
+		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContents, "recordset.csv", ContentType.create("text/csv"), null);
+		
+		RecordSet recordSet = entityService.createEntity(admin.getId(), new RecordSet()
+			.setParentId(project.getId())
+			.setName("recordSet")
+			.setDataFileHandleId(fileHandle.getId())
+			.setUpsertKey(List.of("integer_column")), null);
+		
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+			new CreateGridRequest().setRecordSetId(recordSet.getId()), (CreateGridResponse response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getGridSession());
+			}, MAX_WAIT_MS).getResponse().getGridSession();
+
+		assertEquals(recordSet.getId(), session.getSourceEntityId());
+
+		// Create replica One
+		GridReplica replicaOne = gridService
+			.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
+			.getReplica();
+
+		String urlOne = gridService
+			.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
+				.setGridSessionId(session.getSessionId())
+				.setReplicaId(replicaOne.getReplicaId())
+			).getPresignedUrl();
+
+		BlockingQueue<String> incomingMessagesOne = new LinkedBlockingQueue<>();
+		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
+		waitForConnected(incomingMessagesOne);
+
+		// start the synchronize
+		wsOne.send("[1,99,\"synchronize-clock\",[]]");
+		
+		assertTrue(waitForMessage((a) -> {
+			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
+				return true;
+			} else {
+				return false;
+			}
+		}, incomingMessagesOne));
+		
+		GridHeader header = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> 
+			gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID)
+				.map(h -> {
+					if (h.getOrderedColumns().size() != 4) {
+						return Pair.create(false, h);
+					}
+					return Pair.create(true, h);
+				}).orElse(Pair.create(false, null))
+		);
+		
+		assertEquals(
+			List.of("integer_column", "string_column", "double_column", "boolean_column"), 
+			header.getOrderedColumns().stream().map(Column::getName).collect(Collectors.toList())
+		);
+		
+		List<RowView> rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			if (page.size() == 3) {
+				return Pair.create(true, page);
+			}
+			return Pair.create(false, null);
+		});
+		
+		assertEquals(
+			List.of(
+				"[1,\"test_1\",1.1,true]",
+				"[2,\"test_2\",null,true]",
+				"[3,\"test_3\",3.3,false]"
+			),
+			rowsView.stream().map(r -> r.getRowObject().getData().getCells().toString()).collect(Collectors.toList())
+		);
+		
+	}
 
 	List<String[]> createAndDownloadCsvFromGrid(DownloadFromGridRequest request)
 			throws AsynchJobFailedException, IOException {
@@ -570,7 +655,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	 * @throws Exception
 	 */
 	CreateSchemaResponse createJsonSchema(Map<String, JsonSchema> properties) throws Exception {
-		Organization org = getOrCreateOrganization(admin.getId(), "gridtestorg");
+		Organization org = asynchronousJobWorkerHelper.getOrCreateOrganization(admin.getId(), "gridtestorg");
 		String jsonSchemaName = "exampleSchema";
 		JsonSchema jsonSchema = new JsonSchema().set$id(org.getName() + "-" + jsonSchemaName).setProperties(properties);
 
@@ -578,22 +663,6 @@ public class GridEventBrokerWorkerIntegrationTest {
 				new CreateSchemaRequest().setDryRun(false).setSchema(jsonSchema), (CreateSchemaResponse response) -> {
 					assertNotNull(response);
 				}, MAX_WAIT_MS).getResponse();
-	}
-
-	/**
-	 * Helper to get or create a schema organization.
-	 * 
-	 * @param userId
-	 * @param name
-	 * @return
-	 */
-	Organization getOrCreateOrganization(Long userId, String name) {
-		try {
-			return jsonSchemaService.getOrganizationByName(admin.getId(), name);
-		} catch (NotFoundException e) {
-			return jsonSchemaService.createOrganization(admin.getId(),
-					new CreateOrganizationRequest().setOrganizationName(name));
-		}
 	}
 
 	/**

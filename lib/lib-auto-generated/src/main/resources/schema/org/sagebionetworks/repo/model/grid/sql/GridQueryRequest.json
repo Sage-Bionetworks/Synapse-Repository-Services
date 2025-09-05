@@ -5,8 +5,12 @@
 			"description": "The grid session ID.",
 			"type": "string"
 		},
+		"replicaId": {
+			"description": "The identifier of the replica to query.",
+			"type": "integer"
+		},
 		"query": {
-			"description": "",
+			"description": "SQL-like query to read data from the grid.",
 			"$ref": "org.sagebionetworks.repo.model.grid.sql.Query"
 		}
 	}

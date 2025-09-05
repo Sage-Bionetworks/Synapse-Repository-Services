@@ -1,5 +1,5 @@
 {
-	"description": "Information about a specific session (conversation) with an agent.  Only the acess level can be changed on an existing session.  You will need to start a new session if you wish to use a different agentId.",
+	"description": "Information about a specific session (conversation) with an agent.  Only the access level can be changed on an existing session.  You will need to start a new session if you wish to use a different agentId.",
 	"properties": {
 		"agentAccessLevel": {
 			"description": "Required. Specifies the access level that the agent will have during this session only.",
@@ -8,6 +8,10 @@
 		"agentRegistrationId": {
 			"type": "string",
 			"description": "Optional. When provided, the registered agent will be used for this session.  When excluded the default 'baseline' agent will be used."
+		},
+		"sessionContext": {
+			"$ref": "org.sagebionetworks.repo.model.agent.SessionContext",
+			"description": "Used to provide additional context for chat sessions.  For a grid agent session, provide a: 'org.sagebionetworks.repo.model.agent.GridAgentContext'"
 		}
 	}
 }

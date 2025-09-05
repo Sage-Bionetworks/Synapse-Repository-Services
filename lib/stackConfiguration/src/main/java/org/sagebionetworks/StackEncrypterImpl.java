@@ -82,14 +82,14 @@ public class StackEncrypterImpl implements StackEncrypter {
 		}
 		// Properties are only decrypted if a key alias is provided
 		if(!encryptionEnabled()) {
-			log.warn(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
+			log.debug(String.format(WILL_NOT_DECRYPT_MESSAGE, PROPERTY_KEY_STACK_CMK_ALIAS, propertyKey));
 			return propertyValue;
 		}
 		return decryptedPropertyCache.getUnchecked(propertyKey);
 	}
 
 	private String decryptProperty(String propertyKey) {
-		log.info(String.format(DECRYPTING_PROPERTY, propertyKey));
+		log.debug(String.format(DECRYPTING_PROPERTY, propertyKey));
 		// load the Base64 encoded encrypted string from the properties.
 		String encryptedValueBase64 = configuration.getProperty(propertyKey);
 		return decryptStackEncryptedAndBase64EncodedString(encryptedValueBase64);

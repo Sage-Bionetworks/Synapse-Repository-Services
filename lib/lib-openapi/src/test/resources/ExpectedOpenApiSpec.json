@@ -618,11 +618,18 @@
       "org.sagebionetworks.openapi.pet.Dog": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {"type": "string"},
           "age": {
             "type": "integer",
+            "description": "The age of the dog.",
             "format": "int32"
           }
         },
@@ -633,7 +640,11 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Poodle"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
-        "required": ["name", "age", "concreteType"],
+        "required": [
+          "name",
+          "age",
+          "concreteType"
+        ],
         "discriminator": {"propertyName": "concreteType"}
       },
       "ListWrapperOfPet": {
@@ -646,8 +657,14 @@
       "org.sagebionetworks.openapi.pet.Pet": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {"type": "string"}
         },
         "description": "This interface represents a pet.",
@@ -658,7 +675,10 @@
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Cat"},
           {"$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Pug"}
         ],
-        "required": ["name", "concreteType"],
+        "required": [
+          "name",
+          "concreteType"
+        ],
         "discriminator": {"propertyName": "concreteType"}
       },
       "org.sagebionetworks.repo.model.principal.EmailValidationSignedToken": {
@@ -668,15 +688,31 @@
             "type": "string",
             "enum": ["org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"]
           },
-          "hmac": {"type": "string"},
+          "hmac": {
+            "type": "string",
+            "description": "The hash message authentication code for the message."
+          },
           "version": {
             "type": "integer",
+            "description": "The version of the key used to generate the HMAC.",
             "format": "int32"
           },
-          "expiresOn": {"type": "string"},
-          "createdOn": {"type": "string"},
-          "email": {"type": "string"},
-          "userId": {"type": "string"}
+          "expiresOn": {
+            "type": "string",
+            "description": "The date-time when this token expires."
+          },
+          "createdOn": {
+            "type": "string",
+            "description": "The date-time the token was generated."
+          },
+          "email": {
+            "type": "string",
+            "description": "The email address."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The ID of the user account to which the email address will be added. Null if creating a new account."
+          }
         },
         "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account.",
         "required": ["concreteType"]
@@ -684,17 +720,27 @@
       "org.sagebionetworks.openapi.pet.Husky": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {
             "type": "string",
             "enum": ["org.sagebionetworks.openapi.pet.Husky"]
           },
           "age": {
             "type": "integer",
+            "description": "The age of the dog.",
             "format": "int32"
           },
-          "hasLongHair": {"type": "boolean"},
+          "hasLongHair": {
+            "type": "boolean",
+            "description": "Describes if the husky has long hair."
+          },
           "owners": {
             "type": "array",
             "items": {
@@ -712,30 +758,55 @@
           }
         },
         "description": "Describes the husky breed of Dog.",
-        "required": ["name", "age", "owners", "concreteType"]
+        "required": [
+          "name",
+          "age",
+          "owners",
+          "concreteType"
+        ]
       },
       "org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest": {
         "type": "object",
         "properties": {
-          "token": {"type": "string"},
-          "token_type_hint": {"type": "string"}
+          "token": {
+            "type": "string",
+            "description": "The token to revoke"
+          },
+          "token_type_hint": {
+            "type": "string",
+            "description": "The type of the token to revoke.",
+            "enum": [
+              "access_token",
+              "refresh_token"
+            ]
+          }
         },
         "description": "Request body used by OAuth 2.0 clients to revoke an OAuth 2.0 token. Defined by <a href=\"https://tools.ietf.org/html/rfc7009#section-2.1\">RFC 7009 Section 2.1<\/a>"
       },
       "org.sagebionetworks.openapi.pet.Pug": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {
             "type": "string",
             "enum": ["org.sagebionetworks.openapi.pet.Pug"]
           },
           "age": {
             "type": "integer",
+            "description": "The age of the dog.",
             "format": "int32"
           },
-          "hasLongHair": {"type": "boolean"},
+          "hasLongHair": {
+            "type": "boolean",
+            "description": "Describes if the pug has long hair."
+          },
           "owners": {
             "type": "array",
             "items": {
@@ -753,7 +824,11 @@
           }
         },
         "description": "Describes the pug breed of Dog.",
-        "required": ["name", "age", "concreteType"]
+        "required": [
+          "name",
+          "age",
+          "concreteType"
+        ]
       },
       "org.sagebionetworks.repo.model.oauth.TokenTypeHint": {
         "type": "string",
@@ -765,19 +840,30 @@
       "org.sagebionetworks.openapi.pet.Cat": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {
             "type": "string",
             "enum": ["org.sagebionetworks.openapi.pet.Cat"]
           },
           "numWhiskers": {
             "type": "integer",
+            "description": "The number of whiskers the cat has.",
             "format": "int32"
           }
         },
         "description": "This class describes a Cat.",
-        "required": ["name", "numWhiskers", "concreteType"]
+        "required": [
+          "name",
+          "numWhiskers",
+          "concreteType"
+        ]
       },
       "org.sagebionetworks.repo.model.status.StatusEnum": {
         "type": "string",
@@ -798,17 +884,27 @@
       "org.sagebionetworks.openapi.pet.Terrier": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {
             "type": "string",
             "enum": ["org.sagebionetworks.openapi.pet.Terrier"]
           },
           "age": {
             "type": "integer",
+            "description": "The age of the dog.",
             "format": "int32"
           },
-          "hasLongHair": {"type": "boolean"},
+          "hasLongHair": {
+            "type": "boolean",
+            "description": "Describes if the terrier has long hair."
+          },
           "owners": {
             "type": "array",
             "items": {
@@ -826,15 +922,31 @@
           }
         },
         "description": "Describes the terrier breed of Dog.",
-        "required": ["name", "age", "concreteType"]
+        "required": [
+          "name",
+          "age",
+          "concreteType"
+        ]
       },
       "org.sagebionetworks.repo.model.principal.AccountSetupInfo": {
         "type": "object",
         "properties": {
-          "firstName": {"type": "string"},
-          "lastName": {"type": "string"},
-          "username": {"type": "string"},
-          "password": {"type": "string"},
+          "firstName": {
+            "type": "string",
+            "description": "The user's first name"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "The user's last name"
+          },
+          "username": {
+            "type": "string",
+            "description": "The requested account user name."
+          },
+          "password": {
+            "type": "string",
+            "description": "The password to be applied to the new account."
+          },
           "emailValidationSignedToken": {
             "$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.EmailValidationSignedToken",
             "description": "Signed token containing the the information necessary to create a new account or add an email address to an existing account."
@@ -845,17 +957,27 @@
       "org.sagebionetworks.openapi.pet.Poodle": {
         "type": "object",
         "properties": {
-          "name": {"type": "string"},
-          "hasTail": {"type": "boolean"},
+          "name": {
+            "type": "string",
+            "description": "The name of the Pet."
+          },
+          "hasTail": {
+            "type": "boolean",
+            "description": "Describes if the pet has a tail."
+          },
           "concreteType": {
             "type": "string",
             "enum": ["org.sagebionetworks.openapi.pet.Poodle"]
           },
           "age": {
             "type": "integer",
+            "description": "The age of the dog.",
             "format": "int32"
           },
-          "isFluffy": {"type": "boolean"},
+          "isFluffy": {
+            "type": "boolean",
+            "description": "Describes if the poodle if fluffy."
+          },
           "owner": {
             "$ref": "#/components/schemas/org.sagebionetworks.openapi.pet.Owner",
             "description": "Describes the owner of a Pet."
@@ -871,19 +993,33 @@
           }
         },
         "description": "Describes the poodle breed of Dog.",
-        "required": ["name", "age", "concreteType"]
+        "required": [
+          "name",
+          "age",
+          "concreteType"
+        ]
       },
       "org.sagebionetworks.repo.model.SignedTokenInterface": {
         "type": "object",
         "properties": {
           "concreteType": {"type": "string"},
-          "hmac": {"type": "string"},
+          "hmac": {
+            "type": "string",
+            "description": "The hash message authentication code for the message."
+          },
           "version": {
             "type": "integer",
+            "description": "The version of the key used to generate the HMAC.",
             "format": "int32"
           },
-          "expiresOn": {"type": "string"},
-          "createdOn": {"type": "string"}
+          "expiresOn": {
+            "type": "string",
+            "description": "The date-time when this token expires."
+          },
+          "createdOn": {
+            "type": "string",
+            "description": "The date-time the token was generated."
+          }
         },
         "description": "Interface for signed tokens",
         "oneOf": [{"$ref": "#/components/schemas/org.sagebionetworks.repo.model.principal.EmailValidationSignedToken"}],
@@ -904,7 +1040,10 @@
       },
       "org.sagebionetworks.openapi.pet.Owner": {
         "type": "object",
-        "properties": {"name": {"type": "string"}},
+        "properties": {"name": {
+          "type": "string",
+          "description": "The name of the owner."
+        }},
         "description": "Describes the owner of a Pet."
       },
       "ListOfString": {
@@ -925,6 +1064,7 @@
         "properties": {
           "totalNumberOfResults": {
             "type": "integer",
+            "description": "Calculating the actual totalNumberOfResults is not longer supported. Therefore, for each page, the totalNumberOfResults is estimated using the current page, limit, and offset. When the page size equals the limit, the totalNumberOfResults will be offset+pageSize+ 1. Otherwise, the totalNumberOfResults will be offset+pageSize.",
             "format": "int32"
           },
           "results": {

@@ -24,7 +24,8 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory {
 			DatasetMetadataProvider datasetProvider,
 			DatasetCollectionMetadataProvider datasetCollectionProvider,
 			MaterializedViewMetadataProvider materializedViewProvider,
-			VirtualTableMetadataProvider virtualTableProvider) {
+			VirtualTableMetadataProvider virtualTableProvider,
+			RecordSetMetadataProvider recordSetProvider) {
 		metadataProviders = new HashMap<EntityType, EntityProvider<? extends Entity>>();
 		metadataProviders.put(EntityType.project, projectProvider);
 		metadataProviders.put(EntityType.folder, folderProvider);
@@ -37,6 +38,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory {
 		metadataProviders.put(EntityType.datasetcollection, datasetCollectionProvider);
 		metadataProviders.put(EntityType.materializedview, materializedViewProvider);
 		metadataProviders.put(EntityType.virtualtable, virtualTableProvider);
+		metadataProviders.put(EntityType.recordset, recordSetProvider);
 	}
 
 	@Override

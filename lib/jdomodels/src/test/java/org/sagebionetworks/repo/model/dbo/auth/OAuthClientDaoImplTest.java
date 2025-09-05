@@ -21,14 +21,17 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
+import org.sagebionetworks.repo.model.dbo.dao.AccessControlListUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOOAuthClient;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -65,6 +68,7 @@ public class OAuthClientDaoImplTest {
 	private static final Long ONE_YEAR_DAYS = 365L;
 
 	private List<String> idsToDelete;
+	private List<String> aclIdsToDelete;
 
 	@Autowired
 	private OAuthClientDao oauthClientDao;
@@ -78,6 +82,7 @@ public class OAuthClientDaoImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		idsToDelete = new ArrayList<String>();
+		aclIdsToDelete = new ArrayList<String>();
 		assertNotNull(oauthClientDao);
 	}
 
@@ -86,6 +91,13 @@ public class OAuthClientDaoImplTest {
 		for (String id : idsToDelete) {
 			try {
 				oauthClientDao.deleteOAuthClient(id);
+			} catch (NotFoundException e) {
+				// let pass
+			}
+		}
+		for (String id : aclIdsToDelete) {
+			try {
+				aclDAO.delete(id, ObjectType.OAUTH_CLIENT);
 			} catch (NotFoundException e) {
 				// let pass
 			}
@@ -144,6 +156,18 @@ public class OAuthClientDaoImplTest {
 		return createSectorIdentifierAndClient(SECTOR_IDENTIFIER, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(),
 				CLIENT_NAME);
 	}
+	
+	private AccessControlList createAccessControlList(String oauthClientId, Long creatorId) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(oauthClientId);
+		acl.setCreatedBy(creatorId.toString());
+		acl.setCreationDate(new Date());
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(creatorId);
+		ra.setAccessType(AccessControlListUtils.ALLOWED_ACCESS_TYPES.get(ObjectType.OAUTH_CLIENT));
+		acl.setResourceAccess(Collections.singleton(ra));
+		return acl;
+	}
 
 	private String createSectorIdentifierAndClient(String sectorIdentifierUri, Long userId, String clientName) {
 		SectorIdentifier sectorIdentifier = newSectorIdentifier(sectorIdentifierUri);
@@ -152,6 +176,12 @@ public class OAuthClientDaoImplTest {
 		oauthClient = oauthClientDao.createOAuthClient(oauthClient);
 		assertNotNull(oauthClient.getClient_id());
 		idsToDelete.add(oauthClient.getClient_id());
+		
+		// create an acl for the client
+		AccessControlList acl = createAccessControlList(oauthClient.getClient_id(), userId);
+		aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
+		aclIdsToDelete.add(acl.getId());
+		
 		return oauthClient.getClient_id();
 	}
 
@@ -180,7 +210,7 @@ public class OAuthClientDaoImplTest {
 		assertFalse(dbo.getVerified());
 		assertNotNull(dbo.getJson());
 
-		OAuthClient deser = JDOSecondaryPropertyUtils.createObejctFromJSON(OAuthClient.class, dbo.getJson());
+		OAuthClient deser = JDOSecondaryPropertyUtils.createObjectFromJSON(OAuthClient.class, dbo.getJson());
 		// these should have been serialized
 		assertEquals(dto.getClient_uri(), deser.getClient_uri());
 		assertEquals(dto.getPolicy_uri(), deser.getPolicy_uri());
@@ -350,6 +380,7 @@ public class OAuthClientDaoImplTest {
 	public void testListOAuthClients() {
 		createSectorIdentifierAndClient();
 		long numClients = 2;
+		
 		// At the manager level 'anonymous' can't make a client but it's OK to use the
 		// ID for testing the DAO
 		Long userId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
@@ -361,18 +392,30 @@ public class OAuthClientDaoImplTest {
 			String id = oauthClientDao.createOAuthClient(oauthClient).getClient_id();
 			assertNotNull(id);
 			idsToDelete.add(id);
+			// create an acl for the client
+			AccessControlList acl = createAccessControlList(id, userId2);
+			aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
+			aclIdsToDelete.add(acl.getId());
 		}
 
 		// method under test
-		OAuthClientList list = oauthClientDao.listOAuthClients(null, userId2);
+		// note we want to make sure the query works with a list of principal ids > 1
+		// so we add in an unused id, '0'.  This is just to exercise binding a multi-value
+		// list to a query parameter.
+		OAuthClientList list = oauthClientDao.listOAuthClients(
+			Set.of(userId2, 0L), ACCESS_TYPE.UPDATE, null);
 
 		assertNull(list.getNextPageToken());
 		List<OAuthClient> clients = list.getResults();
 		// we only see our own clients
 		Set<String> actualClientNames = new HashSet<String>();
 		assertEquals(numClients, clients.size());
+		Long previousClientId=null;
 		for (OAuthClient client : clients) {
 			actualClientNames.add(client.getClient_name());
+			Long clientId=Long.parseLong(client.getClient_id());
+			assertTrue(previousClientId==null || previousClientId.compareTo(clientId)<0);
+			previousClientId=clientId;
 		}
 		assertEquals(expectedClientNames, actualClientNames);
 
@@ -380,14 +423,14 @@ public class OAuthClientDaoImplTest {
 		NextPageToken firstPage = new NextPageToken(/* limit */1, /* offset */0);
 
 		// method under test
-		list = oauthClientDao.listOAuthClients(firstPage.toToken(), userId2);
+		list = oauthClientDao.listOAuthClients(Set.of(userId2), ACCESS_TYPE.UPDATE, firstPage.toToken());
 		assertEquals(1, list.getResults().size());
 		NextPageToken nextPage = new NextPageToken(list.getNextPageToken());
 		assertEquals(1L, nextPage.getOffset());
 		assertEquals(2L, nextPage.getLimitForQuery());
 
 		// method under test
-		list = oauthClientDao.listOAuthClients(nextPage.toToken(), userId2);
+		list = oauthClientDao.listOAuthClients(Set.of(userId2), ACCESS_TYPE.UPDATE, nextPage.toToken());
 		assertEquals(1, list.getResults().size());
 		assertNull(list.getNextPageToken()); // no more results
 	}
@@ -597,34 +640,6 @@ public class OAuthClientDaoImplTest {
 				ONE_YEAR_MILLIS);
 		assertEquals(0, results.getResults().size());
 		assertNull(results.getNextPageToken());
-	}
-	
-	@Test
-	public void testListClientsWithoutACLs() throws Exception {
-		// create two clients, create one acl
-		Long creatorId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		String clientWithACL = createSectorIdentifierAndClient(SECTOR_IDENTIFIER, 
-				creatorId, CLIENT_NAME);
-		String clientWithoutACL = createSectorIdentifierAndClient(SECOND_SECTOR_IDENTIFIER, 
-				creatorId, "some other client");
-		
-		AccessControlList acl = new AccessControlList();
-		acl.setCreatedBy(clientWithACL);
-		acl.setId(clientWithACL);
-		acl.setCreationDate(new Date());
-		acl.setResourceAccess(Collections.EMPTY_SET);
-		aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
-		
-		// method under test
-		List<OAuthClient> clients = oauthClientDao.listClientsWithoutACLs();
-		
-		// should return just the client not having an ACL
-		assertEquals(1, clients.size());
-		
-		OAuthClient actual = clients.get(0);
-		
-		assertEquals(clientWithoutACL, actual.getClient_id());
-		assertEquals(creatorId.toString(), actual.getCreatedBy());
 	}
 
 }

@@ -1,15 +1,8 @@
-package org.sagebionetworks.repo.manager.storagelocation;
+package org.sagebionetworks.repo.manager.file;
 
 import java.io.InputStream;
 
-import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
-
 public interface BucketObjectReader {
-	
-	/**
-	 * @return The type of storage location supported by this reader
-	 */
-	Class<? extends BucketOwnerStorageLocationSetting> getSupportedStorageLocationType();
 	
 	/**
 	 * Verifies that we have access to the bucket with the given name

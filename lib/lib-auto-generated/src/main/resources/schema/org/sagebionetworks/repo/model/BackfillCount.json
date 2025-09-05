@@ -1,8 +1,0 @@
-{
-	"description": "Number of OAuth Client ACLs that have been backfilled.",
-	"properties": {
-		"count": {
-			"type": "integer"
-		}
-	}
-}

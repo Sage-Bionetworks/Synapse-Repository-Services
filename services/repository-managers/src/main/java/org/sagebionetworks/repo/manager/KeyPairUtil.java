@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.commons.codec.binary.Base32;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.BigIntegers;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -112,9 +113,13 @@ public class KeyPairUtil {
 			throw new RuntimeException(e);
 		}
 	}
+	// make sure the representation is unsigned (i.e. no leading zero byte)
+	static byte[] bigIntToBytes(BigInteger i) {
+		return BigIntegers.asUnsignedByteArray(i);
+	}
 
-	private static String bigIntToBase64URLEncoded(BigInteger i) {
-		return Base64.getUrlEncoder().withoutPadding().encodeToString(i.toByteArray());
+	static String bytesToBase64URLEncoded(byte[] b) {
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(b);
 	}
 
 	public static JsonWebKeySet getJSONWebKeySetForPEMEncodedRsaKeys(List<String> pemEncodedKeyPairs) {
@@ -132,8 +137,8 @@ public class KeyPairUtil {
 			rsaKey.setUse(KEY_USE_SIGNATURE);
 			rsaKey.setKid(kid);
 			// these are specific to the RSA algorithm
-			rsaKey.setE(bigIntToBase64URLEncoded(rsaPublicKey.getPublicExponent()));
-			rsaKey.setN(bigIntToBase64URLEncoded(rsaPublicKey.getModulus()));
+			rsaKey.setE(bytesToBase64URLEncoded(bigIntToBytes(rsaPublicKey.getPublicExponent())));
+			rsaKey.setN(bytesToBase64URLEncoded(bigIntToBytes(rsaPublicKey.getModulus())));
 			publicKeys.add(rsaKey);
 		}
 		return jsonWebKeySet;

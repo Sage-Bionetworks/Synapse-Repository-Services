@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -185,7 +186,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		if (!newParentId.equals(trash.getOriginalParentId())) {
-			if (node.getNodeType() == EntityType.file || node.getNodeType() == EntityType.folder) {
+			if (EntityTypeUtils.isFile(node.getNodeType()) || EntityType.folder.equals(node.getNodeType())) {
 				// For files and folders restored to a different folder, this is not allowed if the new parent is an
 				// STS folder. This is to ensure that our STS folders don't end up in a bad state. (Note that restoring
 				// to the same original folder is always allowed.)

@@ -3,7 +3,6 @@ package org.sagebionetworks.client;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -317,12 +316,5 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	ProjectStorageLocationLimit setProjectStorageLocationLimit(ProjectStorageLocationLimit limit) throws SynapseException;
-	
-	/**
-	 * Create access control lists for legacy OAuth Clients which have none.
-	 * @return the number of new ACLs created
-	 * @throws SynapseException
-	 */
-	BackfillCount backfillOAuthClientACLs() throws SynapseException;
- 
+
 }

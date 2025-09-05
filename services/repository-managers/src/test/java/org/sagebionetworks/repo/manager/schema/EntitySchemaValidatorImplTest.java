@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
@@ -47,6 +49,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class EntitySchemaValidatorImplTest {
@@ -102,6 +105,7 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithBindingAndUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenReturn(EntityType.file);
 		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.of(binding));
 		
 		doReturn(true).when(manager).validateAgainstBoundSchema(any(), any());
@@ -120,6 +124,7 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithBindingNoUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenReturn(EntityType.file);
 		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.of(binding));
 		
 		doReturn(false).when(manager).validateAgainstBoundSchema(any(), any());
@@ -135,6 +140,7 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithoutBindingAndUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenReturn(EntityType.file);
 		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.empty());
 		
 		doReturn(true).when(manager).clearAllBoundSchemaRelatedData(any());
@@ -154,6 +160,7 @@ public class EntitySchemaValidatorImplTest {
 	
 	@Test
 	public void testValidateObjectWithoutBindingNoUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenReturn(EntityType.file);
 		when(mockEntityManger.findBoundSchema(any())).thenReturn(Optional.empty());
 		
 		doReturn(false).when(manager).clearAllBoundSchemaRelatedData(any());
@@ -174,6 +181,47 @@ public class EntitySchemaValidatorImplTest {
 			// call under test
 			manager.validateObject(entityId);
 		});
+	}
+	
+	@Test
+	public void testValidateObjectWithNotFoundExceptionAndUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenThrow(new NotFoundException("nope"));
+		when(manager.clearAllBoundSchemaRelatedData(objectDescriptor)).thenReturn(true);
+		
+		// call under test
+		manager.validateObject(entityId);
+		
+		LocalStackChangeMesssage expectedMessage = new LocalStackChangeMesssage().setObjectId(entityId)
+			.setObjectType(org.sagebionetworks.repo.model.ObjectType.ENTITY).setChangeType(ChangeType.UPDATE)
+			.setUserId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		verify(mockMessenger).publishMessageAfterCommit(expectedMessage);
+		
+		verifyNoMoreInteractions(mockEntityManger);
+	}
+	
+	@Test
+	public void testValidateObjectWithNotFoundExceptionAndNoUpdate() {
+		when(mockEntityManger.getEntityType(entityId)).thenThrow(new NotFoundException("nope"));
+		when(manager.clearAllBoundSchemaRelatedData(objectDescriptor)).thenReturn(false);
+		
+		// call under test
+		manager.validateObject(entityId);
+		
+		verifyNoMoreInteractions(mockEntityManger);
+	}
+	
+	@Test
+	public void testValidateObjectWithRecordSet() {
+		when(mockEntityManger.getEntityType(entityId)).thenReturn(EntityType.recordset);
+		
+		// call under test
+		manager.validateObject(entityId);
+		
+		verify(manager, never()).validateAgainstBoundSchema(any(), any());
+		verify(manager, never()).clearAllBoundSchemaRelatedData(any());
+		
+		verifyNoMoreInteractions(mockEntityManger, mockMessenger, mockEntityManger);
 	}
 
 	@Test

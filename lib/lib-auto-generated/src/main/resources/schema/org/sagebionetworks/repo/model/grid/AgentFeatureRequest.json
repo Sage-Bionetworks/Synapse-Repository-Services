@@ -1,0 +1,87 @@
+{
+	"description": "Request for a new function to enhance Agent capabilities for tabular data curation.",
+	"properties": {
+		"featureDescription": {
+			"type": "string",
+			"description": "Detailed description of the requested function and how it would help with tabular data curation.",
+			"minLength": 10,
+			"maxLength": 1000
+		},
+		"category": {
+			"name": "FeatureCategory",
+			"description": "Category of the requested feature for better organization and prioritization.",
+			"enum": [
+				{
+					"name": "data_cleaning",
+					"description": ""
+				},
+				{
+					"name": "data_transformation",
+					"description": ""
+				},
+				{
+					"name": "data_validation",
+					"description": ""
+				},
+				{
+					"name": "data_analysis",
+					"description": ""
+				},
+				{
+					"name": "visualization",
+					"description": ""
+				},
+				{
+					"name": "import_export",
+					"description": ""
+				},
+				{
+					"name": "collaboration",
+					"description": ""
+				},
+				{
+					"name": "automation",
+					"description": ""
+				},
+				{
+					"name": "other",
+					"description": ""
+				}
+			],
+			"type": "string"
+		},
+		"priority": {
+			"type": "string",
+			"name": "FeaturePriority",
+			"enum": [
+				{
+					"name": "low",
+					"description": ""
+				},
+				{
+					"name": "medium",
+					"description": ""
+				},
+				{
+					"name": "high",
+					"description": ""
+				},
+				{
+					"name": "critical",
+					"description": ""
+				}
+			],
+			"description": "Suggested priority level for the feature request."
+		},
+		"useCase": {
+			"type": "string",
+			"description": "Specific use case or scenario where this feature would be beneficial.",
+			"maxLength": 500
+		},
+		"userRole": {
+			"type": "string",
+			"description": "Role or type of user who would benefit from this feature (e.g., data analyst, researcher, business user).",
+			"maxLength": 100
+		}
+	}
+}

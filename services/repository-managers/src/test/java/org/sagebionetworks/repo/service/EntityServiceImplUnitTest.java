@@ -204,6 +204,7 @@ public class EntityServiceImplUnitTest {
 		
 		when(mockUserManager.getUserInfo(PRINCIPAL_ID)).thenReturn(userInfo);
 		when(mockEntityManager.getEntityForVersion(userInfo, ENTITY_ID, versionNumber, FileEntity.class)).thenReturn(mockFileEntity);
+		when(mockEntityManager.getEntityType(ENTITY_ID)).thenReturn(EntityType.file);
 		when(mockMetadataProviderFactory.getMetadataProvider(EntityType.file)).thenReturn(Optional.of(mockFileEntityProvider));
 		when(mockFileEntity.getParentId()).thenReturn("789");
 		when(mockEntityManager.getEntityPathAsAdmin("789")).thenReturn(parentPath);		

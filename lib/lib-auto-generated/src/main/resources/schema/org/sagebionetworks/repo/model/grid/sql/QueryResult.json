@@ -14,7 +14,7 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.grid.sql.Row"
 			},
-			"description": "The page of rows."
+			"description": "A single page of rows."
 		}
 	}
 }

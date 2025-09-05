@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -237,6 +238,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 				if(object instanceof FileEntity){
 					FileEntity file = (FileEntity) object;
 					file.setDataFileHandleId(handleOne.getId());
+				}
+				if(object instanceof RecordSet) {
+					RecordSet recordSet = (RecordSet) object;
+					recordSet.setUpsertKey(List.of("foo"));
 				}
 				if(object instanceof TableEntity){
 					TableEntity table = (TableEntity) object;

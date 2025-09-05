@@ -92,7 +92,7 @@ public class ObjectSchemaUtils {
 		}
 
 		if (isPrimitive(schemaType)) {
-			return getSchemaForPrimitiveType(schemaType);
+			return getSchemaForPrimitiveType(objectSchema);
 		}
 		
 		OpenApiJsonSchema jsonSchema = new OpenApiJsonSchema();
@@ -181,7 +181,7 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(property.getType(), "property.type");
 		TYPE propertyType = property.getType();
 		if (isPrimitive(propertyType)) {
-			return getSchemaForPrimitiveType(propertyType);
+			return getSchemaForPrimitiveType(property);
 		} else {
 			OpenApiJsonSchema schema = new OpenApiJsonSchema();
 			if (property.getDescription() != null) {
@@ -409,10 +409,10 @@ public class ObjectSchemaUtils {
 	 * @param type - the primitive type
 	 * @return the OpenApiJsonSchema used to represent this type.
 	 */
-	OpenApiJsonSchema getSchemaForPrimitiveType(TYPE type) {
-		ValidateArgument.required(type, "type");
+	OpenApiJsonSchema getSchemaForPrimitiveType(ObjectSchema in) {
+		ValidateArgument.required(in, "in");
 		OpenApiJsonSchema schema = new OpenApiJsonSchema();
-		switch (type) {
+		switch (in.getType()) {
 		case STRING:
 			schema.setType(Type.string);
 			break;
@@ -427,7 +427,21 @@ public class ObjectSchemaUtils {
 			schema.setType(Type._boolean);
 			break;
 		default:
-			throw new IllegalArgumentException("Unable to translate primitive type " + type);
+			throw new IllegalArgumentException("Unable to translate primitive type " + in.getType());
+		}
+		schema.setDescription(in.getDescription());
+		if(in.getEnum() != null) {
+			List<Object> values = new ArrayList<>();
+			for (EnumValue enumValue: in.getEnum()) {
+				values.add(enumValue.getName());
+			}
+			schema.set_enum(values);
+		}
+		if(in.getMinLength() !=  null) {
+			schema.setMinLength(in.getMinLength().longValue());
+		}
+		if(in.getMaxLength() != null) {
+			schema.setMaxLength(in.getMaxLength().longValue());
 		}
 		return schema;
 	}

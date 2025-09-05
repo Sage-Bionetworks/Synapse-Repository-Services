@@ -8,11 +8,12 @@ import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
+import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 
 public interface AgentDao {
 
-	AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String registrationId);
+	AgentSession createSession(Long userId, AgentAccessLevel accessLevel, String registrationId, SessionContext context);
 
 	Optional<AgentSession> getAgentSession(String sessionId);
 

@@ -126,9 +126,9 @@ public class EntityMetadataIndexProviderUnitTest {
 
 	@Test
 	public void testGetSubTypesForMaskWithMixed() {
-		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.Project.getMask();
+		Long viewTypeMask = ViewTypeMask.File.getMask() | ViewTypeMask.RecordSet.getMask() | ViewTypeMask.Project.getMask();
 
-		Set<SubType> expected = Set.of(SubType.file, SubType.project);
+		Set<SubType> expected = Set.of(SubType.file, SubType.recordset, SubType.project);
 
 		// Call under test
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
@@ -144,8 +144,9 @@ public class EntityMetadataIndexProviderUnitTest {
 		// Call under test
 		Set<SubType> result = provider.getSubTypesForMask(viewTypeMask);
 		
-		Set<SubType> expected = Arrays.stream(ViewTypeMask.values()).map(t -> SubType.valueOf(t.getEntityType().name()))
-				.collect(Collectors.toSet());
+		Set<SubType> expected = Arrays.stream(ViewTypeMask.values())
+			.map(e -> SubType.valueOf(e.getEntityType().name()))
+			.collect(Collectors.toSet());
 
 		assertEquals(expected, result);
 	}

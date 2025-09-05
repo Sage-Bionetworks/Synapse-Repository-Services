@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
+package org.sagebionetworks.repo.manager.file.readers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,7 +14,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
-import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
 
 import com.google.cloud.ReadChannel;
 import com.google.cloud.storage.Blob;
@@ -37,11 +36,6 @@ public class GCBucketObjectReaderTest {
 
 	@Mock
 	private ReadChannel mockReadChannel;
-
-	@Test
-	public void testGetSupportedStorageLocationType() {
-		assertEquals(ExternalGoogleCloudStorageLocationSetting.class, objectReader.getSupportedStorageLocationType());
-	}
 
 	@Test
 	public void testVerifyBucketAccess() {

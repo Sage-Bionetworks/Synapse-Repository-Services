@@ -74,6 +74,17 @@
             	"$ref": "org.sagebionetworks.repo.model.EntityRef"
             }
         },
+		"upsertKey": {
+			"description": "For RecordSet, one or more column names that define this upsert key.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"csvDescriptor": {
+			"description": "For RecordSet, Defines how to both read-from and write-to, this CSV file.",
+			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
         "reference":{
             "type":"object",
             "$ref":"org.sagebionetworks.repo.model.Reference"

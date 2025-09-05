@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.auth;
 
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR;
+import static org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil.PRINCIPAL_IDS_BIND_VAR;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_CLIENT_IS_VERIFIED;
@@ -15,19 +16,30 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_SECRET;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_SECTOR_IDENTIFIER_URI;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_SECTOR_IDENTIFIER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -49,6 +61,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.IncorrectResultSetColumnCountException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class OAuthClientDaoImpl implements OAuthClientDao {
@@ -60,15 +74,26 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private static final String SECTOR_IDENTIFIER_SQL_SELECT = "SELECT COUNT(*) FROM "+TABLE_OAUTH_SECTOR_IDENTIFIER			
 			+" WHERE "+COL_OAUTH_SECTOR_IDENTIFIER_URI+" = ?";
 
-	private static final String CLIENT_SQL_SELECT = "SELECT * FROM "+TABLE_OAUTH_CLIENT+" WHERE "+
-			COL_OAUTH_CLIENT_CREATED_BY+" = ? LIMIT ? OFFSET ?";
-	
-	private static final String CLIENT_WITHOUT_ACL_SQL_SELECT = "SELECT oc.*"+
-			" FROM "+TABLE_OAUTH_CLIENT+" oc "+
-			"LEFT OUTER JOIN "+TABLE_ACCESS_CONTROL_LIST+" acl "+
-			" ON oc."+COL_OAUTH_CLIENT_ID+"=acl."+COL_ACL_OWNER_ID+
-			" AND acl."+COL_ACL_OWNER_TYPE+"='OAUTH_CLIENT'"+
-			" WHERE acl."+COL_ACL_ID+" is null";
+	// list the clients for which the user has the given access in the associated acl
+	// parameters are:
+	// 1. user's principals
+	// 2. access type
+	// 3. limit
+	// 4. offset 
+	private static final String CLIENT_WITH_ACCESS_SQL_SELECT = "SELECT oc.* FROM "+
+			TABLE_OAUTH_CLIENT+" oc, "+
+			TABLE_ACCESS_CONTROL_LIST+" acl, "+
+			TABLE_RESOURCE_ACCESS+" ra, "+
+			TABLE_RESOURCE_ACCESS_TYPE+" rat "+
+			"WHERE "+
+			" oc."+COL_OAUTH_CLIENT_ID+"=acl."+COL_ACL_OWNER_ID+" and "+
+			" acl."+COL_ACL_OWNER_TYPE+"='OAUTH_CLIENT'"+
+			" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_ID+
+			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+" in (:"+PRINCIPAL_IDS_BIND_VAR+")"+
+			" and ra."+COL_RESOURCE_ACCESS_ID + " = rat." + COL_RESOURCE_ACCESS_TYPE_ID+
+			" and rat."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR+
+			" ORDER BY oc."+COL_OAUTH_CLIENT_ID+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME+" ";
 	
 	private static final String CLIENT_SECRET_HASH_SQL_SELECT = "SELECT "+COL_OAUTH_CLIENT_SECRET_HASH+
 			" FROM "+TABLE_OAUTH_CLIENT
@@ -115,10 +140,13 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	// Note, this drop the 'secretHash' fields, which is not part of the DTO
 	public static OAuthClient clientDboToDto(DBOOAuthClient dbo) {
-		OAuthClient dto = JDOSecondaryPropertyUtils.createObejctFromJSON(OAuthClient.class, dbo.getJson());
+		OAuthClient dto = JDOSecondaryPropertyUtils.createObjectFromJSON(OAuthClient.class, dbo.getJson());
 		dto.setClient_id(dbo.getId().toString());
 		dto.setClient_name(dbo.getName());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
@@ -196,11 +224,16 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	}
 	
 	@Override
-	public OAuthClientList listOAuthClients(String nextPageToken, Long userId) {
+	public OAuthClientList listOAuthClients(Set<Long> userGroups, ACCESS_TYPE accessType, String nextPageToken) {
 		NextPageToken nextPage = new NextPageToken(nextPageToken);
-		List<DBOOAuthClient> dboList = jdbcTemplate.query(CLIENT_SQL_SELECT, 
-				new Object[] {userId, nextPage.getLimitForQuery(), nextPage.getOffset()}, 
-				(new DBOOAuthClient()).getTableMapping());
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(PRINCIPAL_IDS_BIND_VAR, userGroups);
+		params.addValue(ACCESS_TYPE_BIND_VAR, accessType.toString());
+		params.addValue(LIMIT_PARAM_NAME, nextPage.getLimitForQuery());
+		params.addValue(OFFSET_PARAM_NAME, nextPage.getOffset());
+		List<DBOOAuthClient> dboList = 
+			namedParameterJdbcTemplate.query(CLIENT_WITH_ACCESS_SQL_SELECT, params, 
+			(new DBOOAuthClient()).getTableMapping());
 		OAuthClientList result = new OAuthClientList();
 		result.setNextPageToken(nextPage.getNextPageTokenForCurrentResults(dboList));
 		List<OAuthClient> dtoList = new ArrayList<OAuthClient>();
@@ -326,16 +359,4 @@ public class OAuthClientDaoImpl implements OAuthClientDao {
 	private NotFoundException clientNotFoundException(String clientId) {
 		return new NotFoundException("The OAuth client (" + clientId + ") does not exist");
 	}
-	
-	@Override
-	public List<OAuthClient> listClientsWithoutACLs() {
-		List<DBOOAuthClient> dboList = jdbcTemplate.query(CLIENT_WITHOUT_ACL_SQL_SELECT, 
-				(new DBOOAuthClient()).getTableMapping());
-		List<OAuthClient> dtoList = new ArrayList<OAuthClient>();
-		for (DBOOAuthClient dbo : dboList) {
-			dtoList.add(clientDboToDto(dbo));
-		}
-		return dtoList;
-	}
-	
 }

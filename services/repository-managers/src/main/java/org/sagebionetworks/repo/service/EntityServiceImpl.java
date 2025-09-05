@@ -338,6 +338,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		FileEntity existingEntity = getEntityForVersion(userInfo, entityId, versionNumber, FileEntity.class);
+		EntityType entityType = entityManager.getEntityType(entityId);
 		
 		// Align the file handle to the new file handle id
 		existingEntity.setDataFileHandleId(updateRequest.getNewFileHandleId());
@@ -345,11 +346,11 @@ public class EntityServiceImpl implements EntityService {
 		EventType eventType = EventType.UPDATE;
 		
 		// Fire the event
-		fireValidateEvent(userInfo, eventType, existingEntity, EntityType.file);
+		fireValidateEvent(userInfo, eventType, existingEntity, entityType);
 		
 		entityManager.updateEntityFileHandle(userInfo, entityId, versionNumber, updateRequest);
 		
-		fireAfterUpdateEntityEvent(userInfo, existingEntity, EntityType.file, false);
+		fireAfterUpdateEntityEvent(userInfo, existingEntity, entityType, false);
 	}
 	
 	@WriteTransaction
@@ -853,6 +854,11 @@ public class EntityServiceImpl implements EntityService {
 			throw new RuntimeException(e);
 		}
 		return entityId;
+	}
+
+	@Override
+	public void truncateAll() {
+		entityManager.truncateAll();
 	}
 
 }

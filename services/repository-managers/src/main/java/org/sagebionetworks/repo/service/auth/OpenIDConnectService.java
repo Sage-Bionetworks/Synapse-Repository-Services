@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.service.auth;
 
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -174,6 +173,4 @@ public interface OpenIDConnectService {
 	OAuthRefreshTokenInformation getRefreshTokenMetadataAsUser(Long userId, String tokenId);
 
 	OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(String verifiedClientId, String tokenId);
-	
-	BackfillCount backfillOauthClientACLs(Long userId);
 }

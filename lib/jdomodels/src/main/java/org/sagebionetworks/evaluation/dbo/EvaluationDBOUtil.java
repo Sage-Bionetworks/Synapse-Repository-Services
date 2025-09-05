@@ -108,7 +108,7 @@ public class EvaluationDBOUtil {
 				throw new DatastoreException(e);
 			}
 		}
-		dto.setQuota(JDOSecondaryPropertyUtils.createObejctFromJSON(SubmissionQuota.class, dbo.getQuotaJson()));
+		dto.setQuota(JDOSecondaryPropertyUtils.createObjectFromJSON(SubmissionQuota.class, dbo.getQuotaJson()));
 	}
 	
 	public static void copyDbosToDtos(List<EvaluationDBO> dbos, List<Evaluation> dtos) throws DatastoreException {

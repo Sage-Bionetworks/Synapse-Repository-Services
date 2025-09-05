@@ -8,11 +8,11 @@
 	"properties": {
 		"initialQuery": {
 			"$ref": "org.sagebionetworks.repo.model.table.Query",
-			"description": "When provided, the grid will be initialized using the provided query against a table or view.  The grid columns will match the query select statement.  One row will be added to the grid for each row returned by the query. Optional."
+			"description": "When provided, the grid will be initialized using the provided query against a table or view. The grid columns will match the query select statement. One row will be added to the grid for each row returned by the query. Optional, if present the recordSetId cannot be included."
 		},
-		"schema$id": {
+		"recordSetId": {
 			"type": "string",
-			"description": "The $id of the JSON schema to be used for model validation.  Note: If the $id includes a semantic version then specific version will be used.  If the $id excludes the semantic version then the latest version of that schema."
+			"description": "When provided, the grid will be initialized using the CSV file stored for the given record set id. The grid columns will match the header of the CSV. Optional, if present the initialQuery cannot be included."
 		}
 	}
 }

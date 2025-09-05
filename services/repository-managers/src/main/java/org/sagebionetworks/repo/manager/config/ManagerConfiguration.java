@@ -10,10 +10,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Redirect;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -411,16 +414,20 @@ public class ManagerConfiguration {
 	}
 
 	@Bean
-	public String stackBedrockAgentId(BedrockAgentClient bedrockAgentClient, StackConfiguration stackConfig) {
-		String agentName = new StringJoiner("-").add(stackConfig.getStack()).add(stackConfig.getStackInstance())
-				.add("agent").toString();
-
-		return bedrockAgentClient.listAgentsPaginator(ListAgentsRequest.builder().build()).stream()
-				.flatMap(a -> a.agentSummaries().stream()).filter(a -> agentName.equals(a.agentName()))
-				.map(a -> a.agentId()).findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("Could not find a bedrock agent named: " + agentName));
-
+	public Map<AgentSuffix, String> stackBedrockAgentIds(BedrockAgentClient bedrockAgentClient,
+			StackConfiguration stackConfig) {
+	    String stackPrefix = stackConfig.getStack() + "-" + stackConfig.getStackInstance() + "-";
+	    
+	    return bedrockAgentClient.listAgentsPaginator(ListAgentsRequest.builder().build()).stream()
+	            .flatMap(a -> a.agentSummaries().stream())
+	            .filter(agent -> agent.agentName().startsWith(stackPrefix))
+	            .collect(Collectors.toMap(
+	                agent -> AgentSuffix.fromSuffix(agent.agentName().substring(stackPrefix.length())),
+	                agent -> agent.agentId(),
+	                (existing, replacement) -> existing
+	            ));
 	}
+	
 
 	@Bean
 	public SimpleTriggerFactoryBean projectStorageAccessTrigger(ProjectStorageLimitsManager manager) {

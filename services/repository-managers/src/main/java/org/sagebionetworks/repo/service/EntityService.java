@@ -750,4 +750,6 @@ public interface EntityService {
 	 */
 	ValidateDefiningSqlResponse validateDefiningSql(ValidateDefiningSqlRequest request);
 
+	void truncateAll();
+
 }

@@ -26,14 +26,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Subscription;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.agent.AgentManagerImpl.AgentResponse;
+import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
 import org.sagebionetworks.repo.manager.agent.handler.HttpCode;
 import org.sagebionetworks.repo.manager.agent.handler.HttpMethod;
 import org.sagebionetworks.repo.manager.agent.handler.OpenApiReturnControlHandler;
@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
+import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -54,6 +55,8 @@ import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
+import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
 import org.sagebionetworks.repo.model.agent.TraceEventsRequest;
 import org.sagebionetworks.repo.model.agent.TraceEventsResponse;
@@ -64,7 +67,6 @@ import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
@@ -127,7 +129,7 @@ public class AgentManagerImplUnitTest {
 
 	@Mock
 	private ReturnControlHandler mockReturnControlHandlerTwo;
-	
+
 	@Mock
 	private OpenApiReturnControlHandler mockOpenApiReturnControlHandler;
 
@@ -136,15 +138,17 @@ public class AgentManagerImplUnitTest {
 
 	@Mock
 	private AsynchronousJobStatusDAO mockStatusDao;
-	
+
 	@Mock
 	private FeatureManager mockFeatureManager;
+	
+	@Mock
+	private AgentContextValidator mockContextValidator;
 
-	@Spy
-	@InjectMocks
 	private AgentManagerImpl manager;
 
 	private String stackBedrockAgentId;
+	private String stackBedrockGridAgentId;
 	private Long adminId;
 	private Long sageTeamId;
 	private Long anonymousUserId;
@@ -164,12 +168,12 @@ public class AgentManagerImplUnitTest {
 	private String actionGroup;
 	private String functionOne;
 	private String functionTwo;
-	
+
 	private String apiFunction;
 	private String apiPath;
 	private HttpMethod apiHttpMethod;
 	private HttpCode apiHttpCode;
-	
+
 	private Parameter parameter;
 	private ReturnControlEvent returnControlEventOne;
 	private ReturnControlEvent returnControlEventTwo;
@@ -198,11 +202,18 @@ public class AgentManagerImplUnitTest {
 	private TracePart traceOutput;
 	private String traceOutText;
 	private TraceEventsRequest traceRequest;
+	private SessionContext sessionContext;
 
 	@BeforeEach
 	public void before() {
 		stackBedrockAgentId = "stackAgentId";
-		ReflectionTestUtils.setField(manager, "stackBedrockAgentId", stackBedrockAgentId);
+		stackBedrockGridAgentId = "stackGridAgentId";
+
+		Map<AgentSuffix, String> idMap = Map.of(AgentSuffix.basic, stackBedrockAgentId, AgentSuffix.grid,
+				stackBedrockGridAgentId);
+
+		manager = Mockito.spy(new AgentManagerImpl(mockAgentDao, mockAgentClientProvider, idMap,
+				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator));
 
 		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager.setLoggerProvider(mockLoggerProvider);
@@ -235,6 +246,7 @@ public class AgentManagerImplUnitTest {
 		sessionId = "sessionId111";
 		createRequest = new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE)
 				.setAgentRegistrationId(agentRegistration.getAgentRegistrationId());
+
 		session = new AgentSession().setSessionId(sessionId).setStartedBy(nonSageNonAdmin.getId())
 				.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE);
 
@@ -254,21 +266,21 @@ public class AgentManagerImplUnitTest {
 		functionTwo = "functionTwo";
 		returnControlEventTwo = new ReturnControlEvent(session.getStartedBy(), actionGroup, functionTwo,
 				List.of(new Parameter("paramTwo", "string", "valueTwo")));
-		
+
 		returnControlEvents = List.of(returnControlEventOne, returnControlEventTwo);
-		
+
 		// Open API function
 		apiFunction = "PUT /foo/{id}";
 		apiPath = "/foo/{id}";
 		apiHttpMethod = HttpMethod.put;
 		apiHttpCode = HttpCode.created;
-		
+
 		requestBody = new JSONObject();
 		requestBody.put("someKey", "someValue");
 		requestBodyString = requestBody.toString();
+		sessionContext = new GridAgentSessionContext().setGridSessionId("98765");
 		returnControlEventApi = new ReturnControlEvent(session.getStartedBy(), actionGroup, apiFunction,
-				List.of(new Parameter("id", "string", "987")), requestBodyString);
-
+				List.of(new Parameter("id", "string", "987")), requestBodyString, null);
 
 		JSONObject response = new JSONObject();
 		response.put("someKey", "someValue");
@@ -342,7 +354,7 @@ public class AgentManagerImplUnitTest {
 		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
 				.thenReturn(Optional.of(agentRegistration));
 		when(mockAgentDao.createSession(sageUser.getId(), createRequest.getAgentAccessLevel(),
-				createRequest.getAgentRegistrationId())).thenReturn(session);
+				createRequest.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(sageUser, createRequest);
@@ -354,11 +366,12 @@ public class AgentManagerImplUnitTest {
 		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
 				.thenReturn(Optional.of(agentRegistration));
 		when(mockAgentDao.createSession(admin.getId(), createRequest.getAgentAccessLevel(),
-				createRequest.getAgentRegistrationId())).thenReturn(session);
+				createRequest.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(admin, createRequest);
 		assertEquals(session, result);
+		verifyZeroInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -369,6 +382,7 @@ public class AgentManagerImplUnitTest {
 		}).getMessage();
 		assertEquals("Must login to perform this action", message);
 		verifyZeroInteractions(mockAgentDao);
+		verifyZeroInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -377,12 +391,12 @@ public class AgentManagerImplUnitTest {
 				.thenReturn(Optional.of(agentRegistration));
 
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
-				agentRegistration.getAgentRegistrationId())).thenReturn(session);
+				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-
+		verifyZeroInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -391,11 +405,12 @@ public class AgentManagerImplUnitTest {
 				.thenReturn(agentRegistration);
 		createRequest.setAgentRegistrationId(null);
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
-				agentRegistration.getAgentRegistrationId())).thenReturn(session);
+				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
+		verifyZeroInteractions(mockContextValidator);
 	}
 
 	@Test
@@ -404,11 +419,43 @@ public class AgentManagerImplUnitTest {
 				.thenReturn(agentRegistration);
 		createRequest.setAgentRegistrationId("");
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
-				agentRegistration.getAgentRegistrationId())).thenReturn(session);
+				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
+		verifyZeroInteractions(mockContextValidator);
+	}
+
+	@Test
+	public void testCreateSessionWithGridContextAndNullRegistrationId() {
+		createRequest.setSessionContext(new GridAgentSessionContext().setGridSessionId("grid123"));
+		createRequest.setAgentRegistrationId(null);
+		agentRegistration.setAwsAgentId(stackBedrockGridAgentId);
+		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, new AgentRegistrationRequest()
+				.setAwsAgentId(stackBedrockGridAgentId).setAwsAliasId(AgentManagerImpl.TSTALIASID)))
+				.thenReturn(agentRegistration);
+		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
+				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
+		
+		// call under test
+		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
+		assertEquals(session, result);
+		verify(mockContextValidator).validate(nonSageNonAdmin, createRequest.getSessionContext());
+	}
+	
+	@Test
+	public void testCreateSessionWithGridContextAndRegistrationId() {
+		createRequest.setSessionContext(new GridAgentSessionContext().setGridSessionId("grid123"));
+		agentRegistration.setAwsAgentId(stackBedrockGridAgentId);
+		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
+				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
+		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		// call under test
+		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
+		assertEquals(session, result);
+		verify(mockContextValidator).validate(nonSageNonAdmin, createRequest.getSessionContext());
 	}
 
 	@Test
@@ -651,6 +698,19 @@ public class AgentManagerImplUnitTest {
 		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
 		assertEquals("foo", results);
 	}
+	
+	@Test
+	public void testInvokeAgentWithTextAndSessionContext() {
+		session.setSessionContext(sessionContext);
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+		doReturn(new AgentResponse().appendText("foo")).when(manager).invokeAgentAsync(jobId,
+				agentRegistration.getType(), session, invokeAgentRequest);
+
+		// call under test
+		String results = manager.invokeAgentWithText(jobId, session, chatRequest);
+		assertEquals("foo", results);
+	}
 
 	@Test
 	public void testInvokeAgentWithTextWithReturnControl() {
@@ -798,7 +858,34 @@ public class AgentManagerImplUnitTest {
 	public void testInvokeAgentWithTextWithOnReturnControl() throws InterruptedException, ExecutionException {
 		ReturnControlPayload payload = DefaultReturnControl.builder().invocationId(invocationId).build();
 		doReturn(session.getStartedBy()).when(manager).getRunAsUser(session);
-		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), payload);
+		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), null, payload);
+
+		when(mockCompletableFuture.get()).thenReturn(null);
+
+		when(mockAgentClientProvider.getBedrockAgentRuntimeAsyncClient(agentRegistration.getType()))
+				.thenReturn(mockAgentRuntime);
+		// mock mock a return control call
+		doAnswer((InvocationOnMock invocation) -> {
+			InvokeAgentResponseHandler asyncResponseHandler = invocation.getArgument(1);
+			asyncResponseHandler.onEventStream((s) -> {
+				s.onSubscribe(mockSubscription);
+				s.onNext(payload);
+			});
+			return mockCompletableFuture;
+		}).when(mockAgentRuntime).invokeAgent(any(InvokeAgentRequest.class), any(InvokeAgentResponseHandler.class));
+
+		// call under test
+		AgentResponse response = manager.invokeAgentAsync(jobId, agentRegistration.getType(), session,
+				invokeAgentRequest);
+		assertEquals(new AgentResponse().setReturnControl(invocationId, returnControlEvents), response);
+	}
+	
+	@Test
+	public void testInvokeAgentWithTextWithOnReturnControlAndContext() throws InterruptedException, ExecutionException {
+		session.setSessionContext(sessionContext);
+		ReturnControlPayload payload = DefaultReturnControl.builder().invocationId(invocationId).build();
+		doReturn(session.getStartedBy()).when(manager).getRunAsUser(session);
+		doReturn(returnControlEvents).when(manager).extractEvents(session.getStartedBy(), sessionContext, payload);
 
 		when(mockCompletableFuture.get()).thenReturn(null);
 
@@ -883,27 +970,23 @@ public class AgentManagerImplUnitTest {
 		assertEquals(expected, results);
 
 	}
-	
+
 	@ParameterizedTest
 	@EnumSource(AgentAccessLevel.class)
 	public void testExecuteEventsWithOpenApiHandler(AgentAccessLevel level) throws Exception {
 		when(mockReturnControlHandlerProvider.getHandler(actionGroup, apiFunction))
 				.thenReturn(Optional.of(mockOpenApiReturnControlHandler));
 		doReturn("one").when(manager).handleEvent(level, mockOpenApiReturnControlHandler, returnControlEventApi);
-		
+
 		when(mockOpenApiReturnControlHandler.getActionGroup()).thenReturn(actionGroup);
 		when(mockOpenApiReturnControlHandler.getPath()).thenReturn(apiPath);
 		when(mockOpenApiReturnControlHandler.getHttpMethod()).thenReturn(apiHttpMethod);
 		when(mockOpenApiReturnControlHandler.getSuccessHttpCode()).thenReturn(apiHttpCode);
 
 		List<InvocationResultMember> expected = List.of(InvocationResultMember.builder()
-				.apiResult(ApiResult.builder()
-						.actionGroup(actionGroup)
-						.apiPath(apiPath)
-						.httpMethod(apiHttpMethod.name())
-						.httpStatusCode(apiHttpCode.getCode())
-						.responseBody(Map.of("TEXT", ContentBody.builder().body("one").build()))
-						.build())
+				.apiResult(ApiResult.builder().actionGroup(actionGroup).apiPath(apiPath)
+						.httpMethod(apiHttpMethod.name()).httpStatusCode(apiHttpCode.getCode())
+						.responseBody(Map.of("TEXT", ContentBody.builder().body("one").build())).build())
 				.build());
 
 		// call under test
@@ -974,7 +1057,7 @@ public class AgentManagerImplUnitTest {
 				"Return_control event execution failed. Will send the following message to the agent: '{}'",
 				expectedMessage);
 	}
-	
+
 	@ParameterizedTest
 	@EnumSource(AgentAccessLevel.class)
 	public void testHandleEventWithFeatrueDisabled(AgentAccessLevel level) throws Exception {
@@ -983,7 +1066,8 @@ public class AgentManagerImplUnitTest {
 
 		// call under test
 		String result = manager.handleEvent(level, mockReturnControlHandlerOne, returnControlEventOne);
-		assertEquals("{\"errorMessage\":\"The feature to allow agents to write to Synapse is currently disabled.\"}", result);
+		assertEquals("{\"errorMessage\":\"The feature to allow agents to write to Synapse is currently disabled.\"}",
+				result);
 	}
 
 	@ParameterizedTest
@@ -1018,7 +1102,7 @@ public class AgentManagerImplUnitTest {
 				new ReturnControlEvent(anonymousUserId, actionGroup, functionTwo, params));
 
 		// call under test
-		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId, payload);
+		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId,null, payload);
 		assertEquals(expected, results);
 	}
 
@@ -1040,7 +1124,7 @@ public class AgentManagerImplUnitTest {
 				new ReturnControlEvent(anonymousUserId, actionGroup, "PUT /foo/two/{another}", params));
 
 		// call under test
-		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId, payload);
+		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId,null, payload);
 		assertEquals(expected, results);
 	}
 
@@ -1061,7 +1145,7 @@ public class AgentManagerImplUnitTest {
 				new ReturnControlEvent(anonymousUserId, actionGroup, functionTwo, params));
 
 		// call under test
-		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId, payload);
+		List<ReturnControlEvent> results = manager.extractEvents(anonymousUserId,null, payload);
 		assertEquals(expected, results);
 	}
 
@@ -1293,7 +1377,7 @@ public class AgentManagerImplUnitTest {
 				new Parameter("twoKey", "string", "twoValue"));
 		InvocationInputMember member = createInvocationInputMember(actionGroup, functionOne);
 		// call under test
-		ReturnControlEvent event = manager.fromInvocationInputMember(adminId, member);
+		ReturnControlEvent event = manager.fromInvocationInputMember(adminId,null, member);
 		ReturnControlEvent expected = new ReturnControlEvent(adminId, actionGroup, functionOne, params);
 		assertEquals(expected, event);
 	}
@@ -1306,7 +1390,7 @@ public class AgentManagerImplUnitTest {
 				new Parameter("twoKey", "string", "twoValue"));
 		InvocationInputMember member = createInvocationInputMemberApi(actionGroup, apiPathOne, "get");
 		// call under test
-		ReturnControlEvent event = manager.fromInvocationInputMember(adminId, member);
+		ReturnControlEvent event = manager.fromInvocationInputMember(adminId,null, member);
 		ReturnControlEvent expected = new ReturnControlEvent(adminId, actionGroup, "GET /foo/one/{id}", params);
 		assertEquals(expected, event);
 	}
@@ -1316,7 +1400,7 @@ public class AgentManagerImplUnitTest {
 		InvocationInputMember member = InvocationInputMember.builder().build();
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.fromInvocationInputMember(adminId, member);
+			manager.fromInvocationInputMember(adminId,null, member);
 		}).getMessage();
 		assertEquals("Expected either function or api invocation", message);
 	}

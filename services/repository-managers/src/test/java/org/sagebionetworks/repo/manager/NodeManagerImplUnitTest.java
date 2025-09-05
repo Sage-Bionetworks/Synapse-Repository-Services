@@ -141,7 +141,7 @@ public class NodeManagerImplUnitTest {
 		newEtag = "newEtag";
 		type = EntityType.file;
 		// Types that have count limits
-		entityTypesWithCountLimits = Sets.newHashSet(EntityType.file, EntityType.folder, EntityType.link);
+		entityTypesWithCountLimits = Sets.newHashSet(EntityType.file, EntityType.recordset, EntityType.folder, EntityType.link);
 		entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		entityPropertyAnnotations.addAnnotation("key", "value");
 

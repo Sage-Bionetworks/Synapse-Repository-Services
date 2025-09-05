@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DatasetCollection;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.service.metadata.EntityViewMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.MaterializedViewMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.service.metadata.ProjectMetadataProvider;
+import org.sagebionetworks.repo.service.metadata.RecordSetMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.SubmissionViewMetadataProvider;
 import org.sagebionetworks.repo.service.metadata.VirtualTableMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,5 +94,12 @@ public class MetadataProviderFactoryTest {
 		assertTrue(provider.get() instanceof DatasetCollectionMetadataProvider);
 	}
 
+	@Test
+	public void testGetRecordSetMetadataProvider() {
+		Optional<EntityProvider<? extends Entity>> provider = metadataProviderFactory.getMetadataProvider(EntityTypeUtils.getEntityTypeForClass(RecordSet.class));
+	
+		assertTrue(provider.isPresent());
+		assertTrue(provider.get() instanceof RecordSetMetadataProvider);
+	}
 
 }

@@ -1,13 +1,11 @@
-package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
+package org.sagebionetworks.repo.manager.file.readers;
 
 import java.io.InputStream;
 import java.nio.channels.Channels;
 import java.util.function.Supplier;
 
 import org.sagebionetworks.googlecloud.SynapseGoogleCloudStorageClient;
-import org.sagebionetworks.repo.manager.storagelocation.BucketObjectReader;
-import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
+import org.sagebionetworks.repo.manager.file.BucketObjectReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,11 +23,6 @@ public class GCBucketObjectReader implements BucketObjectReader {
 
 	@Autowired
 	private SynapseGoogleCloudStorageClient googleCloudStorageClient;
-
-	@Override
-	public Class<? extends BucketOwnerStorageLocationSetting> getSupportedStorageLocationType() {
-		return ExternalGoogleCloudStorageLocationSetting.class;
-	}
 
 	@Override
 	public void verifyBucketAccess(String bucketName) {

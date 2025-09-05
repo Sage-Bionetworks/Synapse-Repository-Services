@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 
 import com.google.common.collect.Lists;
 
@@ -73,6 +74,9 @@ public class NodeUtilsTest {
 		node.setScopeIds(Lists.newArrayList("8","9"));
 		node.setItems(Arrays.asList(new EntityRef().setEntityId("syn123").setVersionNumber(6L)));
 		node.setIsSearchEnabled(true);
+		node.setUpsertKey(List.of("a","b"));
+		node.setCsvDescriptor(new CsvTableDescriptor().setSeparator(",").setIsFirstLineHeader(true));
+		
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
@@ -389,6 +393,8 @@ public class NodeUtilsTest {
 				dbo.getItems());
 		assertTrue(dbo.getIsSearchEnabled());
 		assertEquals("SELECT * FROM syn123", dbo.getDefiningSQL());
+		assertEquals("[\"a\",\"b\"]", dbo.getUpsertKey());
+		assertEquals("{\"separator\":\",\",\"isFirstLineHeader\":true}", dbo.getCsvDescriptor());
 	}
 
 	@Test
@@ -400,35 +406,6 @@ public class NodeUtilsTest {
 		assertFalse(NodeUtils.isBucketSynapseStorage(notSynapseBucket));
 
 		assertNull(NodeUtils.isBucketSynapseStorage(null));
-	}
-	
-	@Test
-	public void testWriteAndReadJsonToItems() {
-		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn111").setVersionNumber(1L),
-				new EntityRef().setEntityId("syn222").setVersionNumber(2L));
-		// Call under test
-		String json = NodeUtils.writeItemsToJson(items);
-		assertNotNull(json);
-		// call under test
-		List<EntityRef> clone = NodeUtils.readJsonToItems(json);
-		assertEquals(items, clone);
-	}
-	
-	@Test
-	public void testWriteItemsToJsonWithNull() {
-		assertNull(NodeUtils.writeItemsToJson(null));
-	}
-	
-	@Test
-	public void testReadJsonToItemsWithNull() {
-		assertNull(NodeUtils.readJsonToItems(null));
-	}
-	
-	@Test
-	public void testReadJsonToItemsWithInvalidJson() {
-		assertThrows(IllegalArgumentException.class, ()->{
-			NodeUtils.readJsonToItems("Not json");
-		});
 	}
 	
 	@Test
@@ -492,6 +469,9 @@ public class NodeUtilsTest {
 		node.setVersionComment("aComment");
 		node.setIsSearchEnabled(true);
 		node.setDefiningSQL("SELECT * FROM syn123");
+		node.setUpsertKey(List.of("a","b"));
+		node.setCsvDescriptor(new CsvTableDescriptor().setSeparator(",").setIsFirstLineHeader(true));
+		
 		return node;
 	}
 

@@ -1,0 +1,29 @@
+{
+	"title": "RecordSet",
+	"description": "Captures record-based metadata as a special type of CSV. The record set content can be curated using the grid services.",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.FileEntity"
+	},
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.VersionableEntity"
+        }
+    ],
+	"properties": {
+		"dataFileHandleId":{
+            "type":"string",
+            "description":"ID of the CSV file associated with this record set."
+        },
+		"upsertKey": {
+			"description": "One or more column names that define this upsert key for this set.  This key is used to determine if a new record should be treated as an update or an insert.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		},
+		"csvDescriptor": {
+			"description": "Defines how to both read-from and write-to, this CSV file. If excluded then all of the default values will be used. Note: The 'isFirstLineHeader' must be true.",
+			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		}
+	}
+}

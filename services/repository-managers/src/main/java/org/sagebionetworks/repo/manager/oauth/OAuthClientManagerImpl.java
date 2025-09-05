@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -176,10 +175,6 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	public static boolean canCreate(UserInfo userInfo) {
 		return !AuthorizationUtils.isUserAnonymous(userInfo);
 	}
-
-	public static boolean canAdministrate(UserInfo userInfo, String createdBy) {
-		return createdBy.equals(userInfo.getId().toString()) || userInfo.isAdmin();
-	}
 	
 	AccessControlList createAccessControlList(Long creatorId, String oauthClientId) {
 		AccessControlList acl = new AccessControlList();
@@ -231,7 +226,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@Override
 	public OAuthClient getOpenIDConnectClient(UserInfo userInfo, String id) {
 		OAuthClient result = oauthClientDao.getOAuthClient(id);
-		if (!canAdministrate(userInfo, result.getCreatedBy())) {
+		if (!authManager.canAccess(userInfo, id, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.UPDATE).isAuthorized()) {
 			PrivateFieldUtils.clearPrivateFields(result);
 		}
 		return result;
@@ -239,13 +234,15 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 
 	@Override
 	public OAuthClientList listOpenIDConnectClients(UserInfo userInfo, String nextPageToken) {
-		return oauthClientDao.listOAuthClients(nextPageToken, userInfo.getId());
+		return oauthClientDao.listOAuthClients(userInfo.getGroups(), ACCESS_TYPE.UPDATE, nextPageToken);
 	}
 
 	@WriteTransaction
 	@Override
 	public boolean reverificationRequiredForUpdatedOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
 		ValidateArgument.requiredNotEmpty(toUpdate.getClient_id(), "Client ID");
+		authManager.canAccess(userInfo, toUpdate.getClient_id(), ObjectType.OAUTH_CLIENT, ACCESS_TYPE.UPDATE)
+			.checkAuthorizationOrElseThrow();
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClient_id());
 		validateOAuthClientForCreateOrUpdate(toUpdate);
 		
@@ -265,9 +262,9 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	public OAuthClient updateOpenIDConnectClient(UserInfo userInfo, OAuthClient toUpdate) throws ServiceUnavailableException {
 		ValidateArgument.requiredNotEmpty(toUpdate.getClient_id(), "Client ID");
 		OAuthClient currentClient = oauthClientDao.selectOAuthClientForUpdate(toUpdate.getClient_id());
-		if (!canAdministrate(userInfo, currentClient.getCreatedBy())) {
-			throw new UnauthorizedException("You can only update your own OAuth client(s).");
-		}
+		authManager.canAccess(userInfo, toUpdate.getClient_id(), ObjectType.OAUTH_CLIENT, ACCESS_TYPE.UPDATE)
+			.checkAuthorizationOrElseThrow();
+		
 		validateOAuthClientForCreateOrUpdate(toUpdate);
 		
 		ValidateArgument.requiredNotEmpty(toUpdate.getEtag(), "etag");
@@ -375,11 +372,9 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@WriteTransaction
 	@Override
 	public void deleteOpenIDConnectClient(UserInfo userInfo, String id) {
-		OAuthClient client = oauthClientDao.getOAuthClient(id);
+		authManager.canAccess(userInfo, id, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 		
-		if (!canAdministrate(userInfo, client.getCreatedBy())) {
-			throw new UnauthorizedException("You can only delete your own OAuth client(s).");
-		}
+		OAuthClient client = oauthClientDao.getOAuthClient(id);
 		
 		aclDAO.delete(id, ObjectType.OAUTH_CLIENT);
 		oauthClientDao.deleteOAuthClient(id);
@@ -416,11 +411,10 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@WriteTransaction
 	@Override
 	public OAuthClientIdAndSecret createClientSecret(UserInfo userInfo, String clientId) {
+		authManager.canAccess(userInfo, clientId, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+		
 		OAuthClient client = oauthClientDao.getOAuthClient(clientId);
 		
-		if (!canAdministrate(userInfo, client.getCreatedBy())) {
-			throw new UnauthorizedException("You can only generate credentials for your own OAuth client(s).");
-		}		
 		String secret = PBKDF2Utils.generateSecureRandomString();
 		String secretHash = PBKDF2Utils.hashPassword(secret, null);
 		oauthClientDao.setOAuthClientSecretHash(clientId, secretHash, UUID.randomUUID().toString());
@@ -454,21 +448,4 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 			return false;
 		}
 	}
-	
-	@WriteTransaction
-	@Override
-	public BackfillCount backfillAccessControlLists(UserInfo userInfo) {
-		if (!userInfo.isAdmin()) {
-			throw new UnauthorizedException("Only an administrator can backfill OAuth client ACLs.");
-		}
-		List<OAuthClient> clients = oauthClientDao.listClientsWithoutACLs();
-		for (OAuthClient client: clients) {
-			AccessControlList acl = createAccessControlList(Long.parseLong(client.getCreatedBy()), client.getClient_id());
-			aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
-		}
-		BackfillCount result = new BackfillCount();
-		result.setCount((long)clients.size());
-		return result;
-	}
-
 }

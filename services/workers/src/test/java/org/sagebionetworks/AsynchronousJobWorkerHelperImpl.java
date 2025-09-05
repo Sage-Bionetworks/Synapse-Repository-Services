@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
+import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.AppendableRowSetRequest;
@@ -56,6 +58,8 @@ import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 import org.sagebionetworks.repo.service.EntityService;
+import org.sagebionetworks.repo.service.JsonSchemaServices;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -272,6 +276,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private VirtualTableManager virtualTableManager;
 	@Autowired
 	private EntityService entityService;
+	@Autowired
+	private JsonSchemaServices jsonSchemaService;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -688,4 +694,13 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 		
 	}
 
+	@Override
+	public Organization getOrCreateOrganization(Long userId, String name) {
+		try {
+			return jsonSchemaService.getOrganizationByName(userId, name);
+		} catch (NotFoundException e) {
+			return jsonSchemaService.createOrganization(userId,
+					new CreateOrganizationRequest().setOrganizationName(name));
+		}
+	}
 }

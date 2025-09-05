@@ -72,7 +72,7 @@ public class ColumnModelUtils {
 		ValidateArgument.required(dbo, "DBOColumnModel");
 		ValidateArgument.required(dbo.getId(), "DBOColumnModel.id");
 		// First read the bytes.
-		ColumnModel model = JDOSecondaryPropertyUtils.createObejctFromJSON(ColumnModel.class, dbo.getJson());
+		ColumnModel model = JDOSecondaryPropertyUtils.createObjectFromJSON(ColumnModel.class, dbo.getJson());
 		model.setId(Long.toString(dbo.getId()));
 		return model;
 	}

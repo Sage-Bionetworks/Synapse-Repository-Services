@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.agent;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ACCESS_LEVEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CONTEXT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_SESSION_ETAG;
@@ -20,12 +21,12 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession, DBOAgentSession> {
-	
+
 	public static final Long BOOTSTRAP_REGISTRATION_ID = 1L;
 
 	private Long id;
@@ -34,11 +35,9 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 	private Timestamp createdOn;
 	private Timestamp modifiedOn;
 	private String sessionId;
-	// will be removed after stack-518
-	@Deprecated
-	private String agentId;
 	private Long registrationId;
 	private String accessLevel;
+	private String contextJson;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_AGENT_SESSION_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -48,7 +47,8 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 			new FieldColumn("modifiedOn", COL_AGENT_SESSION_MODIFIED_ON),
 			new FieldColumn("sessionId", COL_AGENT_SESSION_SESSION_ID),
 			new FieldColumn("registrationId", COL_AGENT_SESSION_REGISTRATION_ID),
-			new FieldColumn("accessLevel", COL_AGENT_SESSION_ACCESS_LEVEL), };
+			new FieldColumn("accessLevel", COL_AGENT_SESSION_ACCESS_LEVEL),
+			new FieldColumn("contextJson", COL_AGENT_SESSION_CONTEXT), };
 
 	@Override
 	public TableMapping<DBOAgentSession> getTableMapping() {
@@ -63,7 +63,8 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 						.setModifiedOn(rs.getTimestamp(COL_AGENT_SESSION_MODIFIED_ON))
 						.setSessionId(rs.getString(COL_AGENT_SESSION_SESSION_ID))
 						.setRegistrationId(rs.getLong(COL_AGENT_SESSION_REGISTRATION_ID))
-						.setAccessLevel(rs.getString(COL_AGENT_SESSION_ACCESS_LEVEL));
+						.setAccessLevel(rs.getString(COL_AGENT_SESSION_ACCESS_LEVEL))
+						.setContextJson(rs.getString(COL_AGENT_SESSION_CONTEXT));
 			}
 
 			@Override
@@ -95,22 +96,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 
 	@Override
 	public MigratableTableTranslation<DBOAgentSession, DBOAgentSession> getTranslator() {
-		return new MigratableTableTranslation<DBOAgentSession, DBOAgentSession>() {
-			
-			@TemporaryCode(author = "john", comment = "Can be removed after the migration from agentId to registrationId is complete")
-			@Override
-			public DBOAgentSession createDatabaseObjectFromBackup(DBOAgentSession backup) {
-				if(backup.getAgentId() != null && backup.getRegistrationId() == null) {
-					backup.setRegistrationId(BOOTSTRAP_REGISTRATION_ID);
-				}
-				return backup;
-			}
-			
-			@Override
-			public DBOAgentSession createBackupFromDatabaseObject(DBOAgentSession dbo) {
-				return dbo;
-			}
-		};
+		return new BasicMigratableTableTranslation<>();
 	}
 
 	@Override
@@ -182,15 +168,6 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 		return this;
 	}
 
-	public String getAgentId() {
-		return agentId;
-	}
-
-	public DBOAgentSession setAgentId(String agentId) {
-		this.agentId = agentId;
-		return this;
-	}
-
 	public Long getRegistrationId() {
 		return registrationId;
 	}
@@ -209,9 +186,18 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 		return this;
 	}
 
+	public String getContextJson() {
+		return contextJson;
+	}
+
+	public DBOAgentSession setContextJson(String contextJson) {
+		this.contextJson = contextJson;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(accessLevel, agentId, createdBy, createdOn, etag, id, modifiedOn, registrationId,
+		return Objects.hash(accessLevel, contextJson, createdBy, createdOn, etag, id, modifiedOn, registrationId,
 				sessionId);
 	}
 
@@ -224,7 +210,7 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 		if (getClass() != obj.getClass())
 			return false;
 		DBOAgentSession other = (DBOAgentSession) obj;
-		return Objects.equals(accessLevel, other.accessLevel) && Objects.equals(agentId, other.agentId)
+		return Objects.equals(accessLevel, other.accessLevel) && Objects.equals(contextJson, other.contextJson)
 				&& Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
 				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(registrationId, other.registrationId)
@@ -234,8 +220,8 @@ public class DBOAgentSession implements MigratableDatabaseObject<DBOAgentSession
 	@Override
 	public String toString() {
 		return "DBOAgentSession [id=" + id + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", modifiedOn=" + modifiedOn + ", sessionId=" + sessionId + ", agentId=" + agentId
-				+ ", registrationId=" + registrationId + ", accessLevel=" + accessLevel + "]";
+				+ ", modifiedOn=" + modifiedOn + ", sessionId=" + sessionId + ", registrationId=" + registrationId
+				+ ", accessLevel=" + accessLevel + ", contextJson=" + contextJson + "]";
 	}
 
 }

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -219,7 +220,7 @@ public class BulkDownloadManagerImplTest {
 		// first request
 		EntityChildrenRequest request = childRequests.get(0);
 		assertEquals(folderId, request.getParentId());
-		assertEquals(Lists.newArrayList(EntityType.file), request.getIncludeTypes());
+		assertEquals(EntityTypeUtils.getFileTypes(), request.getIncludeTypes());
 		// first request should not have a token
 		assertEquals(null, request.getNextPageToken());
 		// second request

@@ -5,10 +5,10 @@
 			"description": "Optional.",
 			"type": "string",
 			"name": "SetQuantifier",
-			"id": "org.sagebionetworks.repo.model.grid.slq.SetQuantifier",
+			"id": "org.sagebionetworks.repo.model.grid.sql.SetQuantifier",
 			"enum": [
 				{
-					"name": "DISNTICT",
+					"name": "DISTINCT",
 					"description": "When set will remove duplicates from the query resutls."
 				}
 			]

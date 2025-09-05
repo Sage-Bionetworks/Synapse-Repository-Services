@@ -17,6 +17,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
@@ -65,7 +67,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("referenceJson", COL_REVISION_REF_JSON),
 		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON),
 		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
-		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL)
+		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL),
+		new FieldColumn("upsertKey", COL_REVISION_UPSERT_KEY),
+		new FieldColumn("csvDescriptor", COL_REVISION_CSV_DESCRIPTOR)
 	};
 	
 	private static final TableMapping<DBORevision> TABLE_MAPPING = new TableMapping<DBORevision>(){
@@ -119,6 +123,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private String userAnnotationsJSON;
 	private Boolean isSearchEnabled;
 	private String definingSQL;
+	private String upsertKey;
+	private String csvDescriptor;
 	
 	// used for migration only
 
@@ -248,6 +254,22 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public void setDefiningSQL(String definingSQL) {
 		this.definingSQL = definingSQL;
 	}
+	
+	public String getUpsertKey() {
+		return upsertKey;
+	}
+	
+	public void setUpsertKey(String upsertKey) {
+		this.upsertKey = upsertKey;
+	}
+	
+	public String getCsvDescriptor() {
+		return csvDescriptor;
+	}
+	
+	public void setCsvDescriptor(String csvDescriptor) {
+		this.csvDescriptor = csvDescriptor;
+	}
 
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -274,24 +296,23 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBORevision other = (DBORevision) obj;
-		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds)
-				&& Objects.equals(comment, other.comment) && Objects.equals(definingSQL, other.definingSQL)
-				&& Objects.equals(description, other.description)
-				&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations)
-				&& Objects.equals(fileHandleId, other.fileHandleId)
-				&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(items, other.items)
-				&& Objects.equals(label, other.label) && Objects.equals(modifiedBy, other.modifiedBy)
-				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
-				&& Objects.equals(referenceJson, other.referenceJson)
-				&& Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds)
-				&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
+		return Objects.equals(activityId, other.activityId) && Arrays.equals(columnModelIds, other.columnModelIds) && Objects.equals(comment, other.comment)
+			&& Objects.equals(csvDescriptor, other.csvDescriptor) && Objects.equals(definingSQL, other.definingSQL) && Objects.equals(description, other.description)
+			&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations) && Objects.equals(fileHandleId, other.fileHandleId)
+			&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(items, other.items) && Objects.equals(label, other.label)
+			&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
+			&& Objects.equals(referenceJson, other.referenceJson) && Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds)
+			&& Objects.equals(upsertKey, other.upsertKey) && Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
 	@Override
@@ -301,20 +322,17 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(columnModelIds);
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(scopeIds);
-		result = prime * result
-				+ Objects.hash(activityId, comment, definingSQL, description, fileHandleId, isSearchEnabled, items,
-						label, modifiedBy, modifiedOn, owner, referenceJson, revisionNumber, userAnnotationsJSON);
+		result = prime * result + Objects.hash(activityId, comment, csvDescriptor, definingSQL, description, fileHandleId, isSearchEnabled, items, label, modifiedBy, modifiedOn,
+			owner, referenceJson, revisionNumber, upsertKey, userAnnotationsJSON);
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
-				+ ", label=" + label + ", comment=" + comment + ", description=" + description + ", modifiedBy="
-				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds="
-				+ Arrays.toString(columnModelIds) + ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items
-				+ ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", referenceJson="
-				+ referenceJson + ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled="
-				+ isSearchEnabled + ", definingSQL=" + definingSQL + "]";
+		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId + ", label=" + label + ", comment=" + comment + ", description="
+			+ description + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds)
+			+ ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", referenceJson="
+			+ referenceJson + ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + ", upsertKey=" + upsertKey
+			+ ", csvDescriptor=" + csvDescriptor + "]";
 	}
 }

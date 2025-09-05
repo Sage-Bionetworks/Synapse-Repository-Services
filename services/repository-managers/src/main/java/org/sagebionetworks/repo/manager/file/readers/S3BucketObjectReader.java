@@ -1,12 +1,10 @@
-package org.sagebionetworks.repo.manager.storagelocation.objectreaders;
+package org.sagebionetworks.repo.manager.file.readers;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.sagebionetworks.aws.SynapseS3Client;
-import org.sagebionetworks.repo.manager.storagelocation.BucketObjectReader;
-import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
-import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
+import org.sagebionetworks.repo.manager.file.BucketObjectReader;
 import org.sagebionetworks.util.AmazonErrorCodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,11 +17,6 @@ public class S3BucketObjectReader implements BucketObjectReader {
 
 	@Autowired
 	private SynapseS3Client s3client;
-
-	@Override
-	public Class<? extends BucketOwnerStorageLocationSetting> getSupportedStorageLocationType() {
-		return ExternalS3StorageLocationSetting.class;
-	}
 	
 	@Override
 	public void verifyBucketAccess(String bucketName) {

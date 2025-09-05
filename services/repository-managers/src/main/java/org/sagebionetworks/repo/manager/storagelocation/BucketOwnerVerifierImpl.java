@@ -5,20 +5,24 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.sagebionetworks.repo.manager.file.BucketObjectReader;
+import org.sagebionetworks.repo.manager.file.BucketObjectReaderProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.GoogleCloudFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.project.BucketOwnerStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalGoogleCloudStorageLocationSetting;
+import org.sagebionetworks.repo.model.project.ExternalS3StorageLocationSetting;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,16 +47,9 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
-
-	private Map<Class<? extends BucketOwnerStorageLocationSetting>, BucketObjectReader> bucketObjectReaderMap;
-
+	
 	@Autowired
-	public void setBucketObjectReader(List<BucketObjectReader> readers) {
-		bucketObjectReaderMap = new HashMap<>(readers.size());
-		readers.forEach(reader -> {
-			bucketObjectReaderMap.put(reader.getSupportedStorageLocationType(), reader);
-		});
-	}
+	private BucketObjectReaderProvider cloudFileReaderProvider;
 
 	@Override
 	public void verifyBucketOwnership(UserInfo userInfo, BucketOwnerStorageLocationSetting storageLocation) {
@@ -76,11 +73,13 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 	}
 
 	BucketObjectReader getObjectReader(BucketOwnerStorageLocationSetting storageLocation) {
-		BucketObjectReader reader = this.bucketObjectReaderMap.get(storageLocation.getClass());
-		if (reader == null) {
+		if (storageLocation instanceof ExternalGoogleCloudStorageLocationSetting) {
+			return cloudFileReaderProvider.getBucketObjectReader(GoogleCloudFileHandle.class);
+		} else if (storageLocation instanceof ExternalS3StorageLocationSetting) {
+			return cloudFileReaderProvider.getBucketObjectReader(S3FileHandle.class);
+		} else {
 			throw new IllegalArgumentException("Unsupported storage location type: " + storageLocation.getClass().getSimpleName());
 		}
-		return reader;
 	}
 	
 	List<String> readOwnerContent(BucketObjectReader reader, String bucketName, String ownerKey) {

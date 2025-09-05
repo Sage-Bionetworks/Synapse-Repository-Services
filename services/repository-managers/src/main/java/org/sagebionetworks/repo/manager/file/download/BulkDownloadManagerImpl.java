@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -49,8 +50,6 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.google.common.collect.Lists;
-
 public class BulkDownloadManagerImpl implements BulkDownloadManager {
 
 	public static final String ONLY_THE_OWNER_MAY_GET_A_DOWNLOAD_ORDER = "Only the owner may get a DownloadOrder";
@@ -84,7 +83,7 @@ public class BulkDownloadManagerImpl implements BulkDownloadManager {
 	public DownloadList addFilesFromFolder(UserInfo user, String folderId) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(folderId, "Folder ID");
-		List<EntityType> includeTypes = Lists.newArrayList(EntityType.file);
+		List<EntityType> includeTypes = EntityTypeUtils.getFileTypes();
 		String nextPageToken = null;
 		do {
 			EntityChildrenRequest entityChildrenRequest = new EntityChildrenRequest();

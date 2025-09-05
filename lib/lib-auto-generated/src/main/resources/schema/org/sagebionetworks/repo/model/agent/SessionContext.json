@@ -1,0 +1,9 @@
+{
+	"description": "Provides additional context for agent sessions.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string"
+		}
+	}
+}

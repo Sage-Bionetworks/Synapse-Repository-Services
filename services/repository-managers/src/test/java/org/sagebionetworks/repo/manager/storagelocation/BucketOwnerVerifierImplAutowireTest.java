@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.storagelocation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,6 +16,9 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.BucketObjectReader;
+import org.sagebionetworks.repo.manager.file.readers.GCBucketObjectReader;
+import org.sagebionetworks.repo.manager.file.readers.S3BucketObjectReader;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -64,16 +66,14 @@ public class BucketOwnerVerifierImplAutowireTest {
 	public void testS3StorageLocationWiring() {
 		BucketOwnerStorageLocationSetting storageLocation = new ExternalS3StorageLocationSetting();
 		BucketObjectReader reader = bucketOwnerVerifier.getObjectReader(storageLocation);
-		assertNotNull(reader);
-		assertEquals(ExternalS3StorageLocationSetting.class, reader.getSupportedStorageLocationType());
+		assertEquals(S3BucketObjectReader.class, reader.getClass());
 	}
 	
 	@Test
 	public void testGCStorageLocationWiring() {
 		BucketOwnerStorageLocationSetting storageLocation = new ExternalGoogleCloudStorageLocationSetting();
 		BucketObjectReader reader = bucketOwnerVerifier.getObjectReader(storageLocation);
-		assertNotNull(reader);
-		assertEquals(ExternalGoogleCloudStorageLocationSetting.class, reader.getSupportedStorageLocationType());
+		assertEquals(GCBucketObjectReader.class, reader.getClass());
 	}
 	
 	@Test

@@ -1,0 +1,18 @@
+{
+	"description": "Additional context provided for grid agent chat sessions.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.agent.SessionContext"
+		}
+	],
+	"properties": {
+		"gridSessionId": {
+			"description": "Required. The grid session ID.",
+			"type": "string"
+		},
+		"usersReplicaId": {
+			"description": "Required. The calling user's grid replica ID.",
+			"type": "integer"
+		}
+	}
+}

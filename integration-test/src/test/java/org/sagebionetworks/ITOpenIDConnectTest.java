@@ -31,7 +31,6 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
@@ -685,11 +684,5 @@ public class ITOpenIDConnectTest {
 
 		assertThrows(SynapseNotFoundException.class, () ->
 				synapse.getRefreshTokenMetadata(tokenId));	
-	}
-	
-	@Test
-	public void testBackfillService() throws Exception {
-		BackfillCount count = adminSynapse.backfillOAuthClientACLs();
-		assertEquals(0L, count.getCount());
 	}
 }

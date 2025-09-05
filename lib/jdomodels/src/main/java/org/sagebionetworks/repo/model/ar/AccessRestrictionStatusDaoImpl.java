@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.ar;
 
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
@@ -78,7 +79,7 @@ public class AccessRestrictionStatusDaoImpl implements AccessRestrictionStatusDa
 			}
 			Boolean isTwoFaRequired = rs.getBoolean(SqlConstants.COL_ACCESS_REQUIREMENT_IS_TWO_FA_REQUIRED);
 			// The user is automatically approved for any requirement on files they create.
-			if (EntityType.file.equals(entityType) && userId.equals(createdBy)) {
+			if (EntityTypeUtils.isFile(entityType) && userId.equals(createdBy)) {
 				approved = true;
 			}
 			Boolean isExemptionEligible = rs.getBoolean(IS_EXEMPTION_ELIGIBLE);

@@ -135,12 +135,12 @@ public class ObjectSchemaUtilsTest {
 		objectSchema = new ObjectSchemaImpl(adpater);
 		objectSchema.setType(TYPE.INTEGER);
 		
-		doReturn(new OpenApiJsonSchema()).when(util).getSchemaForPrimitiveType(any(TYPE.class));
+		doReturn(new OpenApiJsonSchema()).when(util).getSchemaForPrimitiveType(any());
 		doReturn(true).when(util).isPrimitive(any(TYPE.class));
 		
 		assertEquals(new OpenApiJsonSchema(), util.translateObjectSchemaToJsonSchema(objectSchema));
 		verify(util).isPrimitive(TYPE.INTEGER);
-		verify(util).getSchemaForPrimitiveType(TYPE.INTEGER);
+		verify(util).getSchemaForPrimitiveType(objectSchema);
 	}
 
 	@Test
@@ -575,18 +575,20 @@ public class ObjectSchemaUtilsTest {
 	public void testTranslateObjectSchemaPropertyToJsonSchemaWithPrimitiveType() throws JSONObjectAdapterException {
 		OpenApiJsonSchema result = new OpenApiJsonSchema();
 		result.setType(Type.string);
+		result.setDescription("a description");
 		doReturn(result).when(util).getSchemaForPrimitiveType(any());
 		
 		ObjectSchema property;
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl();
 		property = new ObjectSchemaImpl(adpater);
 		property.setType(TYPE.STRING);
+		property.setDescription("a description");
 		
 		doReturn(true).when(util).isPrimitive(any());
 		// call under test
 		assertEquals(result, util.translateObjectSchemaPropertyToJsonSchema(property, "MOCK_ID"));
 		verify(util).isPrimitive(TYPE.STRING);
-		verify(util).getSchemaForPrimitiveType(TYPE.STRING);
+		verify(util).getSchemaForPrimitiveType(property);
 	}
 	
 	@Test
@@ -1069,8 +1071,10 @@ public class ObjectSchemaUtilsTest {
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithUnhandledType() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+			ObjectSchema schema = new ObjectSchemaImpl();
+			schema.setType(TYPE.MAP);
 			// call under test
-			util.getSchemaForPrimitiveType(TYPE.MAP);
+			util.getSchemaForPrimitiveType(schema);
 		});
 		assertEquals("Unable to translate primitive type MAP", exception.getMessage());
 	}
@@ -1079,16 +1083,24 @@ public class ObjectSchemaUtilsTest {
 	public void testGetSchemaForPrimitiveTypeWithBoolean() {
 		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type._boolean);
+		expected.setDescription("desc");
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.BOOLEAN);
+		schema.setDescription("desc");
 		// call under test
-		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.BOOLEAN));
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
 	}
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithNumber() {
 		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.number);
+		expected.setDescription("desc");
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.NUMBER);
+		schema.setDescription("desc");
 		// call under test
-		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.NUMBER));
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
 	}
 	
 	@Test
@@ -1096,16 +1108,55 @@ public class ObjectSchemaUtilsTest {
 		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.integer);
 		expected.setFormat("int32");
+		expected.setDescription("desc");
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.INTEGER);
+		schema.setDescription("desc");
 		// call under test
-		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.INTEGER));
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
 	}
 	
 	@Test
 	public void testGetSchemaForPrimitiveTypeWithString() {
 		OpenApiJsonSchema expected = new OpenApiJsonSchema();
 		expected.setType(Type.string);
+		expected.setDescription("desc");
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.STRING);
+		schema.setDescription("desc");
 		// call under test
-		assertEquals(expected, util.getSchemaForPrimitiveType(TYPE.STRING));
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
+	}
+	
+	@Test
+	public void testGetSchemaForPrimitiveTypeWithStringEnum() {
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.string);
+		expected.setDescription("desc");
+		expected.set_enum(List.of("foo","bar"));
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.STRING);
+		schema.setEnum(new EnumValue[] {new EnumValue("foo"), new EnumValue("bar")});
+		schema.setDescription("desc");
+		// call under test
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
+	}
+	
+	@Test
+	public void testGetSchemaForPrimitiveTypeWithStringLength() {
+		OpenApiJsonSchema expected = new OpenApiJsonSchema();
+		expected.setType(Type.string);
+		expected.setDescription("desc");
+		expected.setMinLength(11L);
+		expected.setMaxLength(21L);
+
+		ObjectSchema schema = new ObjectSchemaImpl();
+		schema.setType(TYPE.STRING);
+		schema.setMinLength(11);
+		schema.setMaxLength(21);
+		schema.setDescription("desc");
+		// call under test
+		assertEquals(expected, util.getSchemaForPrimitiveType(schema));
 	}
 	
 	@Test
@@ -1114,6 +1165,6 @@ public class ObjectSchemaUtilsTest {
 			// call under test
 			util.getSchemaForPrimitiveType(null);
 		});
-		assertEquals("type is required.", exception.getMessage());
+		assertEquals("in is required.", exception.getMessage());
 	}
 }

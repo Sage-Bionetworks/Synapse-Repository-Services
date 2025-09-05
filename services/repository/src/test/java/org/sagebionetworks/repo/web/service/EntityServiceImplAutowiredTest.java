@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -47,6 +49,7 @@ import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Dataset;
 import org.sagebionetworks.repo.model.table.DefiningSqlEntityType;
 import org.sagebionetworks.repo.model.table.MaterializedView;
@@ -904,6 +907,67 @@ public class EntityServiceImplAutowiredTest  {
 		
 		assertThrows(NotFoundException.class, () -> {
 			entityService.validateDefiningSql(request);
+		});
+	}
+	
+	@Test
+	public void testRecordSetCrud() {
+		List<String> upsertKey = List.of("a", "b", "c");
+		CsvTableDescriptor csvDescriptor = new CsvTableDescriptor()
+			.setIsFirstLineHeader(true)
+			.setSeparator(",");
+		
+		RecordSet recordset = new RecordSet();
+		
+		recordset.setName("record-set");
+		recordset.setParentId(project.getId());
+		recordset.setDataFileHandleId(fileHandle1.getId());
+		recordset.setUpsertKey(upsertKey);
+		recordset.setCsvDescriptor(csvDescriptor);
+		
+		// call under test (create and get)
+		recordset = entityService.createEntity(adminUserId, recordset, null);
+		
+		assertNotNull(recordset.getId());
+		
+		assertEquals(upsertKey, recordset.getUpsertKey());
+		assertEquals(csvDescriptor, csvDescriptor);
+		
+		final String recordsetId = recordset.getId();
+		
+		Long currentVersion = recordset.getVersionNumber();
+		
+		recordset.setName("new-record-set-name");
+		
+		boolean newVersion = false;
+		
+		// call under test (update without new version)
+		recordset = entityService.updateEntity(adminUserId, recordset, newVersion, null);
+		
+		assertEquals("new-record-set-name", recordset.getName());
+		assertEquals(currentVersion, recordset.getVersionNumber());
+		
+		recordset.setVersionLabel(null);
+		newVersion = true;
+		
+		// Call under test (update with new version)
+		recordset = entityService.updateEntity(adminUserId, recordset, newVersion, null);
+		assertNotEquals(currentVersion, recordset.getVersionNumber());
+		
+		currentVersion = recordset.getVersionNumber();
+		
+		recordset.setDataFileHandleId(fileHandle2.getId());
+		recordset.setVersionLabel(null);
+		
+		// Call under test (updated with auto-version due to file handle change)
+		recordset = entityService.updateEntity(adminUserId, recordset, newVersion, null);
+		assertNotEquals(currentVersion, recordset.getVersionNumber());
+		
+		// call under test (delete)
+		entityService.deleteEntity(adminUserId, recordsetId);
+		
+		assertThrows(NotFoundException.class, ()->{
+			entityService.getEntity(adminUserId, recordsetId);
 		});
 	}
 }

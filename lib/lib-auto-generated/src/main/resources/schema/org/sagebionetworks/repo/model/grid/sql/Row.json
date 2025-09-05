@@ -1,17 +1,16 @@
 {
-	"description": "",
+	"description": "A single row of a grid query result.",
 	"type": "object",
 	"properties": {
-		"rowId": {
-			"type": "string",
-			"description": "The unique identifier for this row.  Will be excluded for aggregate queries."
-		},
-		"values": {
+		"cellValues": {
 			"type": "array",
 			"items": {
-				"type": "string"
+				"type": "object"
 			},
-			"description": "Cell values for a single row of a query result."
+			"description": "Cell values for a single row of a query result. The first column is at index zero, the second at 1 and so on."
+		},
+		"validationResults": {
+			"$ref": "org.sagebionetworks.repo.model.grid.sql.ValidationResults"
 		}
 	}
 }

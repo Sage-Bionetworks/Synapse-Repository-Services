@@ -178,7 +178,7 @@ public class SubmissionUtils {
 	}
 	
 	public static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
-		return JDOSecondaryPropertyUtils.createObejctFromJSON(SubmissionStatus.class, dbo.getEntityJson());
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(SubmissionStatus.class, dbo.getEntityJson());
 	}
 	
 }

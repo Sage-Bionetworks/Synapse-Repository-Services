@@ -212,7 +212,7 @@ public class NodeManagerImpl implements NodeManager {
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(type, "type");
 		// Limits only apply to files, folders, and links
-		if (EntityType.file.equals(type) 
+		if (EntityTypeUtils.isFile(type)
 				|| EntityType.folder.equals(type)
 				|| EntityType.link.equals(type)) {
 			// There are no limits on the trash or root
@@ -455,7 +455,7 @@ public class NodeManagerImpl implements NodeManager {
 		
 		final String currentFileHandleId = nodeDao.getFileHandleIdForVersion(nodeId, versionNumber);
 		
-		if (!EntityType.file.equals(type) || currentFileHandleId == null) {
+		if (!EntityTypeUtils.isFile(type) || currentFileHandleId == null) {
 			throw new NotFoundException("A file entity with id " + nodeId + " and revision " + versionNumber + " does not exist.");
 		}
 		

@@ -95,7 +95,7 @@ public class NodeTranslationUtils {
 		}
 
 		Field[] filteredFields = Arrays.stream(entityClass.getDeclaredFields())
-				.filter( field -> !ignoredEntityFields.contains(field.getName()) )
+				.filter( field -> !ignoredEntityFields.contains(field.getName()))
 				.toArray(Field[]::new);
 
 		translatableEntityFieldsCache.put(entityClass, filteredFields);

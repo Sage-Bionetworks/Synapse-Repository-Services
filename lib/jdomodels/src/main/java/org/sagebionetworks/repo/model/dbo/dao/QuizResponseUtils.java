@@ -40,7 +40,7 @@ public class QuizResponseUtils {
 	}
 
 	public static PassingRecord extractPassingRecord(DBOQuizResponse dbo) {
-		PassingRecord passingRecord = JDOSecondaryPropertyUtils.createObejctFromJSON(PassingRecord.class,
+		PassingRecord passingRecord = JDOSecondaryPropertyUtils.createObjectFromJSON(PassingRecord.class,
 				dbo.getPassingJson());
 		passingRecord.setResponseId(dbo.getId());
 
@@ -61,6 +61,6 @@ public class QuizResponseUtils {
 	}
 
 	public static QuizResponse copyFromSerializedField(DBOQuizResponse dbo) throws DatastoreException {
-		return JDOSecondaryPropertyUtils.createObejctFromJSON(QuizResponse.class, dbo.getResponseJson());
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(QuizResponse.class, dbo.getResponseJson());
 	}
 }

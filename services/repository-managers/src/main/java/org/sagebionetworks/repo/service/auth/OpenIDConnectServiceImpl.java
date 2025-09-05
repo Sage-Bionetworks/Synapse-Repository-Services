@@ -11,7 +11,6 @@ import org.sagebionetworks.repo.manager.oauth.OAuthRefreshTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.BackfillCount;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
@@ -259,13 +258,6 @@ public class OpenIDConnectServiceImpl implements OpenIDConnectService {
 	@Override
 	public OAuthRefreshTokenInformation getRefreshTokenMetadataAsClient(String verifiedClientId, String tokenId) {
 		return oauthRefreshTokenManager.getRefreshTokenMetadata(verifiedClientId, tokenId);
-	}
-	
-	
-	@Override
-	public BackfillCount backfillOauthClientACLs(Long userId) {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return oauthClientManager.backfillAccessControlLists(userInfo);
 	}
 
 }

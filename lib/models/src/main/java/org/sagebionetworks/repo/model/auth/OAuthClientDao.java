@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.auth;
 
-import java.util.List;
+import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
 import org.sagebionetworks.repo.model.oauth.OAuthClientAuthorizationHistoryList;
 import org.sagebionetworks.repo.model.oauth.OAuthClientList;
@@ -31,12 +32,12 @@ public interface OAuthClientDao {
 	OAuthClient selectOAuthClientForUpdate(String clientId);
 	
 	/**
-	 * 
-	 * @param nextPageToken
-	 * @param createdBy
-	 * @return a paginated list of OAuth clients created by the given user
+	 * @param userGroups the list of principals the user belongs to
+	 * @param accessType the access type the user must have for a client to be in the returned list
+	 * @param nextPageToken 
+	 * @return the list of OAuth Clients in which the given user has the given access
 	 */
-	OAuthClientList listOAuthClients(String nextPageToken, Long createdBy);
+	OAuthClientList listOAuthClients(Set<Long> userGroups, ACCESS_TYPE accessType, String nextPageToken);
 	
 	/**
 	 * Update the indicated OAuth Client
@@ -123,12 +124,4 @@ public interface OAuthClientDao {
 	 * @return a paginated list of clients which have been granted refresh token(s) for the given user.
 	 */
 	OAuthClientAuthorizationHistoryList getAuthorizedClientHistory(String userId, String nextPageToken, Long maxLeaseLengthInDays);
-	
-	/** 
-	 * List the legacy OAuth clients which lack ACLs.
-	 * Since there are only about 200 client, and since this is temporary code,
-	 * we do not paginate.
-	 * @return the IDs of OAuth Clients which lack an ACL
-	 */
-	List<OAuthClient> listClientsWithoutACLs();
 }
