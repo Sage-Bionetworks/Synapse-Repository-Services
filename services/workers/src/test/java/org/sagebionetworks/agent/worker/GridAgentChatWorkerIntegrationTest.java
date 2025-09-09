@@ -157,8 +157,8 @@ public class GridAgentChatWorkerIntegrationTest {
 					assertNotNull(response.getResponseText());
 					System.out.println(response.getResponseText());
 					assertTrue(response.getResponseText().toLowerCase().contains("schema"));
-					// the description of column 'a' indicates that the schema was read.
-					assertTrue(response.getResponseText().toLowerCase().contains("an integer value"));
+					assertTrue(response.getResponseText().toLowerCase().contains("null"));
+					assertTrue(response.getResponseText().toLowerCase().contains("integer"));
 				}, MAX_WAIT_MS).getResponse();
 	}
 

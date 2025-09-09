@@ -75,7 +75,6 @@ import org.sagebionetworks.repo.model.grid.patch.operation.NewConstant;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertVectorBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
-import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaResponse;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
@@ -91,8 +90,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.repo.service.GridService;
-import org.sagebionetworks.repo.service.JsonSchemaServices;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -146,6 +143,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	@BeforeEach
 	public void before() {
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		entityManager.truncateAll();
 	}
 
 	@AfterEach
@@ -588,12 +586,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 		
 		GridHeader header = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> 
 			gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID)
-				.map(h -> {
-					if (h.getOrderedColumns().size() != 4) {
-						return Pair.create(false, h);
-					}
-					return Pair.create(true, h);
-				}).orElse(Pair.create(false, null))
+				.map(h -> Pair.create(true, h))
+				.orElse(Pair.create(false, null))
 		);
 		
 		assertEquals(

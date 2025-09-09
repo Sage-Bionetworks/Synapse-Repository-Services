@@ -14,9 +14,6 @@ import org.sagebionetworks.repo.model.grid.patch.operation.Operation;
 import org.sagebionetworks.repo.model.grid.patch.operation.OperationType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OperationDispatcherImpl implements OperationDispatcher {
@@ -28,9 +25,10 @@ public class OperationDispatcherImpl implements OperationDispatcher {
 				.collect(Collectors.toMap(OperationHandler::getOperationType, Function.identity()));
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED)
 	@Override
-	public Map<IndexType, Set<LogicalTimestamp>> processAll(String sessionId, Long replicaId, List<Operation> operations) {
+	@GridTransaction(readOnly = false)
+	public Map<IndexType, Set<LogicalTimestamp>> processAll(String sessionId, Long replicaId, List<Operation> operations) {		
+		
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
 		ValidateArgument.required(operations, "operations");

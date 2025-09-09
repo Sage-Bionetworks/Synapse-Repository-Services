@@ -1,0 +1,14 @@
+{
+  "description": "A CurationTaskProperties for record-based metadata",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTaskProperties"
+    }
+  ],
+  "properties": {
+    "recordSetId": {
+      "type": "string",
+      "description": "The synId of the RecordSet that will contain all record-based metadata for a specific type.  This RecordSet will be used to start new grid sessions for both 'upsert' and record-based curation for this type."
+    }
+  }
+}

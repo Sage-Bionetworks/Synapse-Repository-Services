@@ -27,7 +27,7 @@
 		<property name="defaultTransactionIsolation" value="#{ T(java.sql.Connection).TRANSACTION_READ_COMMITTED}"/>
 	</bean>
 	
-	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<bean id="semaphoreTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<constructor-arg ref="dataSourcePool"></constructor-arg>
 	</bean>
 	

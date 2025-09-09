@@ -65,9 +65,9 @@ public class ModelConfig {
 		return dataSource;
 	}
 
-	@Bean
-	// Primary transaction manager used by the database semaphore
-	@Primary
+	// This is the primary transaction manager used by the application, it is also used by the semaphore
+	// but under a different name for clarity
+	@Bean(name = {"txManager", "semaphoreTransactionManager"})
 	public PlatformTransactionManager txManager(DataSource dataSourcePool) {
 		return new DataSourceTransactionManager(dataSourcePool);
 	}

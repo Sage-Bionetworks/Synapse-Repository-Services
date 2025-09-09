@@ -1,0 +1,18 @@
+{
+  "description": "A CurationTaskProperties for file-based data, describing where data is uploaded and a view which contains the annotations.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTaskProperties"
+    }
+  ],
+  "properties": {
+    "uploadFolderId": {
+      "type": "string",
+      "description": "The synId of the folder where data files of this type are to be uploaded."
+    },
+    "fileViewId": {
+      "type": "string",
+      "description": "The synId of the FileView that shows all data of this type.  This FileView will be used to start new grid sessions for file annotation curation."
+    }
+  }
+}

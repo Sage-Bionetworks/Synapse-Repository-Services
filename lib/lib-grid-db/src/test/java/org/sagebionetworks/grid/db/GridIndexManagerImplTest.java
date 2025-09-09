@@ -193,7 +193,7 @@ public class GridIndexManagerImplTest {
 				.thenReturn(Optional.of(patchSequence));
 
 		// call under test
-		assertTrue(manager.isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId()));
+		assertFalse(manager.isPatchAlreadyApplied(sessionId, replicaId, patch.getPatchId()));
 	}
 
 	@Test

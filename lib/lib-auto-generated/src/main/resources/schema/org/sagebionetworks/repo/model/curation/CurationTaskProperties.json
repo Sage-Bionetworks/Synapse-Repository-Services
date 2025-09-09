@@ -1,0 +1,10 @@
+{
+  "description": "The properties of a CurationTask",
+  "type": "interface",
+  "properties": {
+    "concreteType": {
+      "type": "string",
+      "description": "Indicates which implementation of CurationTaskProperties this object represents. Possible values include: 'org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties' and 'org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties'."
+    }
+  }
+}

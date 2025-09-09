@@ -14,12 +14,9 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.READ_COMMITTED, transactionManager = "gridTransactionManager")
+@GridTransaction(readOnly = true)
 public class GridIndexManagerImpl implements GridIndexManager {
 
 	public static final int MAX_MESSAGE_ID = 65535;
@@ -28,15 +25,15 @@ public class GridIndexManagerImpl implements GridIndexManager {
 
 	private final GridIndexDao dao;
 	private final OperationDispatcher operationDispatcher;
-
+	
 	public GridIndexManagerImpl(GridIndexDao dao, OperationDispatcher operationDispatcher) {
 		super();
 		this.dao = dao;
 		this.operationDispatcher = operationDispatcher;
 	}
 
-	@Transactional(readOnly = false)
 	@Override
+	@GridTransaction(readOnly = false)
 	public Map<IndexType, Set<LogicalTimestamp>> applyPatch(String sessionId, Long replicaId, Patch patch) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
@@ -87,16 +84,16 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	 */
 	boolean isPatchAlreadyApplied(String sessionId, Long replicaId, LogicalTimestamp patchId) {
 		return dao.getClockSequenceNumber(sessionId, replicaId, patchId.getReplicaId())
-				.map(seq -> patchId.getSequenceNumber() <= seq).orElse(false);
+				.map(seq -> patchId.getSequenceNumber() < seq).orElse(false);
 	}
-
+	
 	@Override
 	public List<LogicalTimestamp> getClock(String sessionId, Long replicaId) {
 		return dao.getClock(sessionId, replicaId);
 	}
-
-	@Transactional(readOnly = false)
+	
 	@Override
+	@GridTransaction(readOnly = false)
 	public MessageChain startMessageChain(String sessionId, Long replicaId, String method) {
 		createReplicaIfNotExist(sessionId, replicaId);
 		Integer id = dao.createNextMessageId(sessionId, replicaId, MAX_MESSAGE_ID);
@@ -109,14 +106,14 @@ public class GridIndexManagerImpl implements GridIndexManager {
 		return dao.getMessageChain(sessionId, replicaId, chainId);
 	}
 
-	@Transactional(readOnly = false)
 	@Override
+	@GridTransaction(readOnly = false)
 	public void completeMessageChain(String sessionId, Long replicaId, Integer chainId) {
 		dao.deleteMessageChain(sessionId, replicaId, chainId);
 	}
 
-	@Transactional(readOnly = false)
 	@Override
+	@GridTransaction(readOnly = false)
 	public void truncateAll() {
 		dao.truncateAll();
 	}

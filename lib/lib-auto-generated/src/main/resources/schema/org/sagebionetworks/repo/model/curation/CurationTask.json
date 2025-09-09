@@ -1,0 +1,43 @@
+{
+  "description": "The CurationTask provides instructions for a Data Contributor on how data or metadata of a specific type should be both added to a project and curated. There should be a CurationTask for each type of data/metadata to be contributed to a project. There are currently two categories of curation tasks: file-based metadata collection and record-based metadata collection. For each category there will be a concrete implementation of this interface. This interfaces defines the common fields of all CurationTasks.",
+  "properties": {
+    "taskId": {
+      "type": "string",
+      "description": "The unique identifier issued to this task when it was created."
+    },
+    "dataType": {
+      "type": "string",
+      "description": "Will match the data type that a contributor plans to contribute.  The dataType must be unique within a project."
+    },
+    "projectId": {
+      "type": "string",
+      "description": "The synId of the project ."
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Instructions to the data contributor."
+    },
+    "etag": {
+      "type": "string",
+      "description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date.",
+      "transient": true
+    },
+    "createdOn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "modifiedOn": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "createdBy": {
+      "type": "string"
+    },
+    "modifiedBy": {
+      "type": "string"
+    },
+    "taskProperties": {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTaskProperties"
+    }
+  }
+}

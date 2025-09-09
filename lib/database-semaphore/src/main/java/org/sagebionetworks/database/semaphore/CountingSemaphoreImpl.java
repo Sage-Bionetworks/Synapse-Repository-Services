@@ -16,9 +16,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * <p>
@@ -133,9 +130,9 @@ public class CountingSemaphoreImpl implements CountingSemaphore {
 	}
 	
 	@Override
-	@Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Throwable.class, propagation = Propagation.REQUIRES_NEW)
+	@SemaphoreTransaction
 	public Optional<String> attemptToAcquireLock(final String key, final long timeoutSec,
-			final int maxLockCount, final String inputContext) {
+			final int maxLockCount, final String inputContext) {		
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null");
 		}
@@ -163,7 +160,7 @@ public class CountingSemaphoreImpl implements CountingSemaphore {
 	}
 
 	@Override
-	@Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Throwable.class, propagation = Propagation.REQUIRES_NEW)
+	@SemaphoreTransaction
 	public void releaseLock(final String key, final String token) {
 		if (key == null) {
 			throw new IllegalArgumentException("Key cannot be null");
@@ -183,7 +180,7 @@ public class CountingSemaphoreImpl implements CountingSemaphore {
 	}
 	
 	@Override
-	@Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Throwable.class, propagation = Propagation.REQUIRES_NEW)
+	@SemaphoreTransaction
 	public void refreshLockTimeout(final String key, final String token,
 			final long timeoutSec) {
 		if (key == null) {
@@ -211,7 +208,7 @@ public class CountingSemaphoreImpl implements CountingSemaphore {
 	}
 
 	@Override
-	@Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Throwable.class, propagation = Propagation.REQUIRES_NEW)
+	@SemaphoreTransaction
 	public void runGarbageCollection() {
 		jdbcTemplate.update("CALL runGarbageCollection();");
 	}

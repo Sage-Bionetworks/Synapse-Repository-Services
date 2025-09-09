@@ -84,7 +84,8 @@ public enum IdType {
 	GRID_SESSION_ID((long) 0xffff),
 	GRID_REPLICA_ID(null),
 	GRID_CONNECTION_ID(null),
-	GRID_PATCH_ID(null)
+	GRID_PATCH_ID(null),
+    CURATION_TASK_ID(1000L)
 	;
 	
 	Long startingId;
