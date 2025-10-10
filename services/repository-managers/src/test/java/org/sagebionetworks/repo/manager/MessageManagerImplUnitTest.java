@@ -496,7 +496,7 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 		String alternateEmailAddress = "baz@somewhere.org";
-		recipientEmailAlias.setPrincipalId(RECIPIENT_ID+100); // not a valid emails for
+		recipientEmailAlias.setPrincipalId(RECIPIENT_ID+100); // not a valid email for recipient
 		when(principalAliasDAO.findPrincipalWithAlias(alternateEmailAddress, AliasType.USER_EMAIL)).thenReturn(recipientEmailAlias);
 
 		// method under test
