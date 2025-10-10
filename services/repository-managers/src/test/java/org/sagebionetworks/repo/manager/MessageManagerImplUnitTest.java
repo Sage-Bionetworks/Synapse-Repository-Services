@@ -386,7 +386,7 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias, recipientUsernameAlias.getAlias());
 		
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -412,7 +412,7 @@ public class MessageManagerImplUnitTest {
 		String synapsePrefix = "https://synapse.org/";
 
 		Assertions.assertThrows(QuarantinedEmailException.class, ()-> {
-			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias, recipientUsernameAlias.getAlias());
 		});
 		
 		verify(mockEmailQuarantineDao).isQuarantined(RECIPIENT_EMAIL);
@@ -429,7 +429,7 @@ public class MessageManagerImplUnitTest {
 
 		String synapsePrefix = "https://synapse.org/";
 
-		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias, recipientEmailAlias.getAlias());
 
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
@@ -456,10 +456,59 @@ public class MessageManagerImplUnitTest {
 		recipientEmailAlias.setType(AliasType.USER_EMAIL);
 
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
-			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias);
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientEmailAlias, recipientEmailAlias.getAlias());
 		});
 	}
+	
+	@Test
+	public void testSendNewPassowrdResetEmailWithAlternateEmailAddress() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);		
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
 
+		String synapsePrefix = "https://synapse.org/";
+		String alternateEmailAddress = "baz@somewhere.org";
+		when(principalAliasDAO.findPrincipalWithAlias(alternateEmailAddress, AliasType.USER_EMAIL)).thenReturn(recipientEmailAlias);
+
+		// method under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias, alternateEmailAddress);
+		
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals(alternateEmailAddress, ser.getDestinations().get(0));
+	}
+	
+
+
+	@Test
+	public void testSendNewPassowrdResetEmailWithWrongAlternateEmailAddress() throws Exception {
+		when(principalAliasDAO.getUserName(RECIPIENT_ID)).thenReturn("bar");
+		when(notificationEmailDao.getNotificationEmailForPrincipal(RECIPIENT_ID)).thenReturn(RECIPIENT_EMAIL);		
+		when(userProfileManager.getUserProfile(RECIPIENT_ID.toString())).thenReturn(userProfileRecipient);
+		
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		token.setUserId(Long.toString(RECIPIENT_ID));
+
+		String synapsePrefix = "https://synapse.org/";
+		String alternateEmailAddress = "baz@somewhere.org";
+		recipientEmailAlias.setPrincipalId(RECIPIENT_ID+100); // not a valid emails for
+		when(principalAliasDAO.findPrincipalWithAlias(alternateEmailAddress, AliasType.USER_EMAIL)).thenReturn(recipientEmailAlias);
+
+		// method under test
+		messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias, alternateEmailAddress);
+		
+		// email will go to primary email (RECIPIENT_EMAIL)
+		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
+		verify(sesClient).sendRawEmail(argument.capture());
+		SendRawEmailRequest ser = argument.getValue();
+		assertEquals(1, ser.getDestinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+	}
 
 	@Test
 	public void testSendNewPasswordResetEmail_DisallowedSnapsePrefix() throws Exception{
@@ -467,7 +516,7 @@ public class MessageManagerImplUnitTest {
 		token.setUserId(Long.toString(RECIPIENT_ID));
 		String synapsePrefix = "https://NOTsynapse.org/";
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {			
-			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias);
+			messageManager.sendNewPasswordResetEmail(synapsePrefix, token, recipientUsernameAlias, recipientUsernameAlias.getAlias());
 		});
 	}
 	

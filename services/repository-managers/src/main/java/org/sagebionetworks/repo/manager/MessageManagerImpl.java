@@ -571,7 +571,7 @@ public class MessageManagerImpl implements MessageManager {
 	@Override
 	@WriteTransaction
 	public void sendNewPasswordResetEmail(String passwordResetUrlPrefix, PasswordResetSignedToken passwordResetToken,
-			PrincipalAlias alias) {
+			PrincipalAlias alias, String usernameOrEmail) {
 		ValidateArgument.required(passwordResetToken, "passwordResetToken");
 		ValidateArgument.required(passwordResetUrlPrefix, "passwordResetPrefix");
 		ValidateArgument.required(alias, "alias");
@@ -584,6 +584,12 @@ public class MessageManagerImpl implements MessageManager {
 
 		String resetUrl = getPasswordResetUrl(passwordResetUrlPrefix, passwordResetToken);
 		String email = getEmailForAlias(alias);
+
+		PrincipalAlias paForEmail = principalAliasDAO.findPrincipalWithAlias(usernameOrEmail, AliasType.USER_EMAIL);
+		if (paForEmail != null && paForEmail.getPrincipalId().equals(alias.getPrincipalId())) {
+			email = usernameOrEmail;
+		}
+
 		
 		if (emailQuarantineDao.isQuarantined(email)) {
 			logQuarantinedAddress("password reset email", email);

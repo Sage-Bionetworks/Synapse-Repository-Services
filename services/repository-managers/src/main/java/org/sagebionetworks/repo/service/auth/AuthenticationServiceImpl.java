@@ -142,7 +142,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		try {
 			PrincipalAlias principalAlias = userManager.lookupUserByUsernameOrEmail(usernameOrEmail);
 			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(principalAlias.getPrincipalId());
-			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken, principalAlias);
+			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken, principalAlias, usernameOrEmail);
 		} catch (NotFoundException e) {
 			// should not indicate that a email/user could not be found
 		}

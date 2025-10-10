@@ -118,9 +118,11 @@ public interface MessageManager {
 	 *                            {@link AliasType#USER_EMAIL} falls back to the default notification
 	 *                            email of the user that owns the given alias. The principal id in the
 	 *                            alias must match the user id of the signed token
+	 * @param usernameOrEmail the handle used to identify the user.  If it is a valid email address for
+	 *                            the user, then the password reset email will be sent to this address.
 	 */
 	void sendNewPasswordResetEmail(String passwordResetPrefix, PasswordResetSignedToken passwordResetToken,
-			PrincipalAlias alias) throws NotFoundException;
+			PrincipalAlias alias, String usernameOrEmail) throws NotFoundException;
 
 	/**
 	 * Send an email confirming to user that their password has been changed
