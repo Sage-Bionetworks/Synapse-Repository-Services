@@ -643,7 +643,7 @@ public class AuthenticationServiceImplTest {
 
 		verify(mockUserManager).lookupUserByUsernameOrEmail(email);
 		verify(mockAuthenticationManager).createPasswordResetToken(principalAlias.getPrincipalId());
-		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalAlias);
+		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalAlias, email);
 	}
 
 	@Test
@@ -658,7 +658,7 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail(email);
 		//expect no errors to be throw but the token should never be generated and sent
 		verify(mockAuthenticationManager, never()).createPasswordResetToken(anyLong());
-		verify(mockMessageManager, never()).sendNewPasswordResetEmail(anyString(), any(), any());
+		verify(mockMessageManager, never()).sendNewPasswordResetEmail(anyString(), any(), any(), any());
 	}
 	
 	@Test
@@ -675,7 +675,7 @@ public class AuthenticationServiceImplTest {
 		
 		verify(mockUserManager).lookupUserByUsernameOrEmail(aliasEmail);
 		verify(mockAuthenticationManager).createPasswordResetToken(principalEmailAlias.getPrincipalId());
-		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalEmailAlias);	
+		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalEmailAlias, principalEmailAlias.getAlias());
 	}
 	
 	@Test
