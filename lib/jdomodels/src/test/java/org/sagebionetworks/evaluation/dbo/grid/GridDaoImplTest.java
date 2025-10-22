@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -246,13 +248,21 @@ public class GridDaoImplTest {
 		assertEquals(info1.getConnectionId(), f1.getConnectionId());
 
         // call under test
-        Optional<GridConnectionInfo> defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
-        if (source.equals(EventSource.INTERNAL)) {
+        Optional<GridConnectionInfo> defaultInternalConnection = dao.getSingletonConnection(info1.getSessionId(), source);
+        if (source.isSingleton()) {
             assertEquals(f1, defaultInternalConnection.get());
         } else {
             assertTrue(defaultInternalConnection.isEmpty());
         }
+        
+        Optional<GridConnectionInfo> userDefaultConnection = dao.getSingletonUserConnection(info1.getSessionId(), adminUserId, source);
 
+        if (source.isSingleton()) {
+			assertEquals(f1, userDefaultConnection.get());
+		} else {
+			assertTrue(userDefaultConnection.isEmpty());
+		}
+        
 		// call under test
 		dao.createConnection(info2);
 		// call under test
@@ -263,8 +273,8 @@ public class GridDaoImplTest {
 		assertEquals(adminUserId, f2.getCreatedBy());
 		assertEquals(info2.getConnectionId(), f2.getConnectionId());
         // call under test
-        defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
-        if (source.equals(EventSource.INTERNAL)) {
+        defaultInternalConnection = dao.getSingletonConnection(info1.getSessionId(), source);
+        if (source.isSingleton()) {
             assertEquals(f1, defaultInternalConnection.get());
         } else {
             assertTrue(defaultInternalConnection.isEmpty());
@@ -296,8 +306,8 @@ public class GridDaoImplTest {
 		// should still be able to get the second
 		assertEquals(f2, dao.getConnection(info2.getConnectionId()).get());
         // call under test - if internal, default connection should now be f2
-        defaultInternalConnection = dao.getDefaultInternalConnection(info1.getSessionId());
-        if (source.equals(EventSource.INTERNAL)) {
+        defaultInternalConnection = dao.getSingletonConnection(info1.getSessionId(), source);
+        if (source.isSingleton()) {
             assertEquals(f2, defaultInternalConnection.get());
         } else {
             assertTrue(defaultInternalConnection.isEmpty());
@@ -356,7 +366,7 @@ public class GridDaoImplTest {
 	}
 
 	@Test
-	public void testListMissingPatchs() {
+	public void testListMissingPatches() {
 		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		Duration expires = Duration.ofSeconds(100L);
@@ -368,20 +378,41 @@ public class GridDaoImplTest {
 			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, expires));
 		});
 
+		List<LogicalTimestamp> patchIdsSortedBySeq = patchIds.stream().sorted((p1, p2) -> {
+			if (!p1.getSequenceNumber().equals(p2.getSequenceNumber())) {
+				return p1.getSequenceNumber().compareTo(p2.getSequenceNumber());
+			} else {
+				return p1.getReplicaId().compareTo(p2.getReplicaId());
+			}
+		}).collect(Collectors.toList());
+
 		// call under test
 		List<LogicalTimestamp> list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(), List.of(), 100);
 		// empty clock should return all patches
-		assertEquals(patchIds, list);
+		assertEquals(patchIdsSortedBySeq, list);
 
 		// call under test
 		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
-				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
-						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L),
-						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L)),
+				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(9L),
+						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L)),
 				100);
 		// up-to-date should be empty patches
 		assertEquals(Collections.emptyList(), list);
 
+		// call under test
+		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(7L),
+						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(5L)),
+				100);
+
+		List<LogicalTimestamp> expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
+
+		assertEquals(expected, list);
+		
 		// call under test
 		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
@@ -389,7 +420,11 @@ public class GridDaoImplTest {
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L)),
 				100);
 
-		List<LogicalTimestamp> expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
+		expected = List.of(
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
+				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(6L),
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
 
@@ -591,11 +626,22 @@ public class GridDaoImplTest {
 
 	List<LogicalTimestamp> createTestPatchIds(int replicaCount, int sequenceCount) {
 		List<LogicalTimestamp> ids = new ArrayList<>(replicaCount * sequenceCount);
-		for (long rep = 1; rep < replicaCount + 1; rep++) {
+		List<Integer> replicaIds = IntStream.range(1, replicaCount + 1).boxed().sorted((num1, num2) -> {
+			// Put even replicas before odd replicas to verify that the patch list is sorted by sequence number before sorting by replica ID
+			boolean num1Even = num1 % 2 == 0;
+            boolean num2Even = num2 % 2 == 0;
+            if (num1Even && !num2Even) {
+                return -1;
+            } else if (!num1Even && num2Even) {
+                return 1;
+            }
+            return Integer.compare(num1, num2);
+        }).collect(Collectors.toList());
+		replicaIds.forEach(rep -> {
 			for (long seq = 1; seq < sequenceCount + 1; seq++) {
-				ids.add(new LogicalTimestamp().setReplicaId(rep).setSequenceNumber(seq * 2));
+				ids.add(new LogicalTimestamp().setReplicaId(rep.longValue()).setSequenceNumber(seq * 2));
 			}
-		}
+		});
 		return ids;
 	}
 

@@ -37,7 +37,7 @@ public class GridCSVDownloadWorker implements AsyncJobRunner<DownloadFromGridReq
     @Override
     public DownloadFromGridResult run(String jobId, UserInfo user, DownloadFromGridRequest request, AsyncJobProgressCallback jobProgressCallback) throws RecoverableMessageException, Exception {
         try {
-            return gridReplicaCsvExporter.exportGridAsCsv(jobId, user, request, jobProgressCallback);
+            return gridReplicaCsvExporter.exportGridAsCsv(user, request, jobProgressCallback, null);
         } catch (RecoverableMessageException e) {
             throw e;
         } catch (Exception e) {

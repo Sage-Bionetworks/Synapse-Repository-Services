@@ -1,7 +1,19 @@
 package org.sagebionetworks.repo.manager.search.oss;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.ErrorCause;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
@@ -24,18 +36,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-
 import org.springframework.stereotype.Service;
-
-import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -91,13 +92,18 @@ public class SearchManagerImpl implements SearchManager {
             BulkResponse response = openSearchClient.bulk(req -> req.operations(operations));
 
             // if any message fails to process we will throw exception to reprocess it.
-            long hasError = response.items().stream().filter(item -> item.error() != null)
-                    .peek(item -> log.error("Document {} has error {}.", item.id(), item.error())).count();
+            long errorCount = response.items().stream()
+            	.filter(item -> item.error() != null)
+                .peek(item -> {
+                	log.error("Could not process document {} (Operation: {}): {} (Error Type: {}).", item.id(), item.operationType(), item.error().reason(), item.error().type());
+                })
+                .count();
 
-            if (hasError > 0L) {
-                log.error("The OpenSearch response has {} error", hasError);
+            if (errorCount > 0L) {
+                log.error("Could not process a batch of {} documents, received {} error(s). Will retry.", messages.size(), errorCount);
                 throw new RecoverableMessageException();
             }
+            
         } catch (OpenSearchException | IOException e) {
             log.error(e);
             throw new RecoverableMessageException(e);

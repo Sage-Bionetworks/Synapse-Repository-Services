@@ -43,7 +43,7 @@ public class ReplicaChangeSetTest {
 		ReplicaChangeSet rcs = new ReplicaChangeSet(connection, patchId, map);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"connectionId\":\"con123\",\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99],"
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99],"
 				+ "\"changes\":{\"arr\":[110,[2,8],112],\"con\":[113,[2,10]],\"obj\":[]}}", json);
 
 		// call under test
@@ -58,8 +58,7 @@ public class ReplicaChangeSetTest {
 		ReplicaChangeSet rcs = new ReplicaChangeSet(connection, patchId, null);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"connectionId\":\"con123\",\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99]}",
-				json);
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99]}", json);
 
 		// call under test
 		ReplicaChangeSet clone = new ReplicaChangeSet(json);

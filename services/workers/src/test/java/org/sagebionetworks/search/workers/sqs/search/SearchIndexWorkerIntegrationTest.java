@@ -36,6 +36,7 @@ import org.springframework.util.CollectionUtils;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
+@Disabled("See https://sagebionetworks.jira.com/browse/PLFM-9306")
 public class SearchIndexWorkerIntegrationTest {
     private static final long MAX_WAIT = 2 * 60*1000; // 2 minutes
     private static final long CHECK_TIME = 2000;
@@ -64,17 +65,17 @@ public class SearchIndexWorkerIntegrationTest {
         anotherUser = userManager.createOrGetTestUser(adminUser, new NewUser().setUserName(userName).setEmail(userName + "@foo.org"));
 
         project = new Project();
-        project.setName("OpenSearch Project " + UUID.randomUUID());
+        project.setName("diabetes genomics Status");
 
         //creating entity, trigger create message. SearchIndexWorker will pick up the message and create a searchable document.
         String id = entityManager.createEntity(adminUser, project, null);
         project = entityManager.getEntity(adminUser, id, Project.class);
 
-        FileEntity fileTobeCreated = new FileEntity().setName(UUID.randomUUID().toString());
+        FileEntity fileTobeCreated = new FileEntity().setName("diabetes");
         String fileOneId = entityManager.createEntity(adminUser, fileTobeCreated, null);
         fileOne = entityManager.getEntity(adminUser, fileOneId, FileEntity.class);
         fileToBeDeleted.add(fileOne);
-        FileEntity fileTwoTobeCreated = new FileEntity().setName(UUID.randomUUID().toString());
+        FileEntity fileTwoTobeCreated = new FileEntity().setName("genomics");
         String fileTwoId = entityManager.createEntity(adminUser, fileTwoTobeCreated, null);
         fileTwo = entityManager.getEntity(adminUser, fileTwoId, FileEntity.class);
         fileToBeDeleted.add(fileTwo);
@@ -97,8 +98,28 @@ public class SearchIndexWorkerIntegrationTest {
         }
     }
 
+    /**
+     * This test was added for PLFM-9218.
+     * Quoted string should be treated as phrase and unquoted string as term
+     */
     @Test
-    @Disabled // Unstable (https://sagebionetworks.jira.com/browse/PLFM-9173)
+    public void testForQuotedAndUnquotedTerm() throws Exception {
+
+        //call under test
+        waitForEntityToAppearInSearch(project.getId(), project.getEtag());
+
+        //There should be 1 result with "diabetes genomics" phrase search
+        waitForQuery(adminUser, "\"diabetes genomics\"", 1);
+
+        //There should be 2 result with diabetes term search
+        waitForQuery(adminUser, "diabetes", 2);
+
+        //There should be 2 result with "diabetes genomics" phrase and genomics term search
+        waitForQuery(adminUser, "\"diabetes genomics\" genomics", 2);
+
+    }
+
+    @Test
     public void testSearchIndexWorker() throws Exception {
 
         //call under test
@@ -142,8 +163,10 @@ public class SearchIndexWorkerIntegrationTest {
     public void waitForQuery(UserInfo user, String term, long expected) throws Exception {
         SearchQuery searchQuery = new SearchQuery().setQueryTerm(Arrays.asList(term));
         TimeUtils.waitFor(MAX_WAIT, CHECK_TIME, () -> {
-            System.out.println("Waiting for search query: "+searchQuery);
-            return Pair.create(searchManager.search(user, searchQuery).getFound() == expected, null);
+            System.out.println("Waiting for search query: " + searchQuery);
+            SearchResults results = searchManager.search(user, searchQuery);
+            System.out.printf("%s result found for term %s: %n",results.getFound(), term);
+            return Pair.create(results.getFound() == expected, null);
         });
     }
 }

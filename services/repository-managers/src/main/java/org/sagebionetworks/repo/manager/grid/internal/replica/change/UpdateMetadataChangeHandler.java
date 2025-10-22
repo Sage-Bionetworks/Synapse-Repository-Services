@@ -20,8 +20,12 @@ public class UpdateMetadataChangeHandler implements ChangeHandler<UpdateMetadata
 
 	@Override
 	public void handleChange(PatchBuilder builder, UpdateMetadataChange change) {
-		LogicalTimestamp metadataObjectId = change.getRowMetadataId() != null ? change.getRowMetadataId()
-				: builder.addOperationBuilder(new NewObjectBuilder());
+		LogicalTimestamp metadataObjectId = change.getRowMetadataId();
+		if (metadataObjectId == null) {
+			metadataObjectId = builder.addOperationBuilder(new NewObjectBuilder());
+			builder.addOperationBuilder(new InsertObjectBuilder().setObjectId(change.getRowObjectId())
+					.setMap(Map.of("metadata", metadataObjectId)));
+		}
 		LogicalTimestamp stateId = builder.addOperationBuilder(
 				new NewConstantBuilder().setValue(new ConValue(ConType.JSON_OBJECT, change.getValidationState())));
 		builder.addOperationBuilder(

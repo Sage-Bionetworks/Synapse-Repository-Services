@@ -1,0 +1,15 @@
+{
+	"description": "Use this filter for simple requests to find all 'valid' or 'invalid' rows based on their overall validation status.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+		}
+	],
+	"properties": {
+		"value": {
+			"type": "boolean",
+			"description": "Set to 'true' to find rows that are valid according to the schema. Set to 'false' to find rows that are invalid and have validation errors.'"
+		}
+	}
+}

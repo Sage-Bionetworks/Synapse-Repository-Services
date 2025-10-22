@@ -1,0 +1,9 @@
+{
+	"description": "Request to run a query.",
+	"properties": {
+		"query": {
+			"description": "The requested query.",
+			"$ref": "org.sagebionetworks.repo.model.grid.query.Query"
+		}
+	}
+}

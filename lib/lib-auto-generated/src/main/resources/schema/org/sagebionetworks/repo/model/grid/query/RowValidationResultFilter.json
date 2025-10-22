@@ -1,0 +1,31 @@
+{
+	"description": "Use this filter to find rows that have data quality issues or schema validation errors. This is ideal for requests about finding 'errors', 'invalid data', or 'rows that failed validation'. To find rows with a specific error message, set the 'operator' to 'LIKE' and provide the error text in 'validationResultValue'. For example, for a user request like 'show me all rows with a type error', a good value for 'validationResultValue' would be '%expected type:%'.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+		}
+	],
+	"properties": {
+		"operator": {
+			"type": "string",
+			"description": "The comparison operator.",
+			"name": "ValidationOperator",
+			"id": "org.sagebionetworks.repo.model.grid.query.ValidationOperator",
+			"enum": [
+				{
+					"name": "LIKE",
+					"description": ""
+				},
+				{
+					"name": "NOT_LIKE",
+					"description": ""
+				}
+			]
+		},
+		"validationResultValue": {
+			"type": "string",
+			"description": "A validation result value.  For wildcards use '%' to represents zero or more characters, and '_' to represents a single character.  For example, LIKE '%expected type: String, found%' would match rows with a validation result that contains the message: 'expected type: String, found'. Use the 'NOT_LIKE' operator to find all rows that do not have a validation message matching the provided 'validationResultValue'."
+		}
+	}
+}

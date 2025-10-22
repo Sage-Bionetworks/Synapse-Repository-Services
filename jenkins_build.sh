@@ -21,6 +21,7 @@ export src_folder=${HOME}/workspace/${JOB_NAME}
 BASEDIR=$(dirname "$0")
 
 export stack=dev
+export HOME_DIR_WITHIN_CONTAINER="/tmp"
 
 ${BASEDIR}/before.sh
 ${BASEDIR}/docker_build.sh

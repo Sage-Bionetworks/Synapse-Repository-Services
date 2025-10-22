@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,7 +22,12 @@ public class GridEventResponsePublisherImpl implements GridEventResponsePublishe
 
 	@Override
 	public void publishEventResponse(EventContext context, String event) {
-		handlerMap.get(context.getEventSource()).publishEventResponse(context, event);
+		ValidateArgument.required(context, "context");
+		GridEventResponsePublishHandler handler = handlerMap.get(context.getEventSource());
+		if (handler == null) {
+			throw new IllegalStateException("No handler found for: " + context.getEventSource());
+		}
+		handler.publishEventResponse(context, event);
 	}
 
 	@Override

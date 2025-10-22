@@ -2,7 +2,7 @@
   "description": "The CurationTask provides instructions for a Data Contributor on how data or metadata of a specific type should be both added to a project and curated. There should be a CurationTask for each type of data/metadata to be contributed to a project. There are currently two categories of curation tasks: file-based metadata collection and record-based metadata collection. For each category there will be a concrete implementation of this interface. This interfaces defines the common fields of all CurationTasks.",
   "properties": {
     "taskId": {
-      "type": "string",
+      "type": "integer",
       "description": "The unique identifier issued to this task when it was created."
     },
     "dataType": {
@@ -11,7 +11,7 @@
     },
     "projectId": {
       "type": "string",
-      "description": "The synId of the project ."
+      "description": "The synId of the project."
     },
     "instructions": {
       "type": "string",

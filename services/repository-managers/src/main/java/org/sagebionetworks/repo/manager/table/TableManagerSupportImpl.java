@@ -58,7 +58,6 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -109,7 +108,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	private final TableSnapshotDao tableSnapshotDao;
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final DefaultColumnModelMapper defaultColumnMapper;
-	private final MaterializedViewDao materializedViewDao;
 	private final FileProvider fileProvider;
 	private final SynapseS3Client s3Client;
 	private final Clock clock;
@@ -139,7 +137,6 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 		this.tableSnapshotDao = tableSnapshotDao;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.defaultColumnMapper = defaultColumnMapper;
-		this.materializedViewDao = materializedViewDao;
 		this.fileProvider = fileProvider;
 		this.s3Client = s3Client;
 		this.clock = clock;

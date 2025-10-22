@@ -1448,7 +1448,15 @@ public class SqlConstants {
     public static final String COL_CURATION_TASK_MODIFIED_BY = "MODIFIED_BY";
     public static final String COL_CURATION_TASK_TASK_PROPERTIES = "TASK_PROPERTIES";
     public static final String DDL_CURATION_TASK = "schema/CurationTask-ddl.sql";
-
+    
+    // Table to track a record set validation summary for a specific version
+ 	public static final String TABLE_RECORDSET_VALIDATION_STATS					= "RECORDSET_VALIDATION_STATS";
+ 	public static final String COL_RECORDSET_VALIDATION_STATS_ID				= "ID";
+ 	public static final String COL_RECORDSET_VALIDATION_STATS_ETAG				= "ETAG";
+ 	public static final String COL_RECORDSET_VALIDATION_STATS_RECORDSET_ID		= "RECORDSET_ID";
+ 	public static final String COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION	= "RECORDSET_VERSION";
+ 	public static final String COL_RECORDSET_VALIDATION_STATS_JSON				= "STATS_JSON";
+ 	public static final String DDL_FILE_RECORDSET_VALIDATION_STATS				= "schema/RecordSetValidationStats-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

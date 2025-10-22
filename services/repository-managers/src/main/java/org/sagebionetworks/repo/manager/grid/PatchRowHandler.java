@@ -159,16 +159,13 @@ public class PatchRowHandler implements RowHandler {
 		Map<Integer, LogicalTimestamp> cellValues = new LinkedHashMap<>();
 		for (int i = 0; i < row.getValues().size(); i++) {
 			String cellValue = row.getValues().get(i);
-            LogicalTimestamp conRef = currentPatch.addNewOperation(
-					Operations.newConstant().setValue(translators[i].translateNullable(cellValue))
-			);
+			LogicalTimestamp conRef = currentPatch
+					.addNewOperation(Operations.newConstant().setValue(translators[i].translateNullable(cellValue)));
 			cellValues.put(i, conRef);
 		}
-		currentPatch.addNewOperation(Operations.insertVector()
-				.setVectorId(rowValuesVectorRef)
-				.setMap(cellValues)
-		);
-
+		if (!cellValues.isEmpty()) {
+			currentPatch.addNewOperation(Operations.insertVector().setVectorId(rowValuesVectorRef).setMap(cellValues));
+		}
 		return rowValuesVectorRef;
 	}
 

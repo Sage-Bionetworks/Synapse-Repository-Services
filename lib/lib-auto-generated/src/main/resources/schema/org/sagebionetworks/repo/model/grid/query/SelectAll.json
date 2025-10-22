@@ -1,0 +1,9 @@
+{
+	"description": "A SelectItem that will result in the selection of all columns.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.query.SelectItem"
+		}
+	]
+}

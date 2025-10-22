@@ -1,0 +1,20 @@
+{
+	"description": "Results of a query against a grid session.",
+	"type": "object",
+	"properties": {
+		"selectColumns": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.result.SelectColumn"
+			},
+			"description": "Information about the selected columns."
+		},
+		"rows": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.result.Row"
+			},
+			"description": "A single page of rows."
+		}
+	}
+}

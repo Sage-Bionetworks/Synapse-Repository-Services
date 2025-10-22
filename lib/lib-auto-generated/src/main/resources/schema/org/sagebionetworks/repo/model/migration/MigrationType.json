@@ -503,6 +503,10 @@
 			"description": "Table that stores user status information"
 		},
 		{
+			"name": "RECORDSET_VALIDATION_STATS",
+            "description": "Table that stores validation stats for record sets"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

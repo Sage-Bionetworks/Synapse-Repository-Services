@@ -147,7 +147,7 @@ public class StsManagerImplTest {
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
 		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
 		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
@@ -162,6 +162,34 @@ public class StsManagerImplTest {
 		verify(mockAuthManager).hasAccess(USER_INFO, PARENT_ENTITY_ID, ACCESS_TYPE.DOWNLOAD);
 		verifyNoMoreInteractions(mockAuthManager);
 		verify(mockAuthStatus).checkAuthorizationOrElseThrow();
+	}
+
+	@Test
+	public void getTemporaryCredentials_overrideDuration() {		
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(mockAuthStatus);
+		// Mock dependencies.
+		setupFolderWithProjectSetting(/*isSts*/ true, STS_STORAGE_LOCATION_ID);
+
+		ExternalS3StorageLocationSetting storageLocationSetting = new ExternalS3StorageLocationSetting();
+		storageLocationSetting.setBucket(BUCKET);
+		storageLocationSetting.setStsEnabled(true);
+		when(mockProjectSettingsManager.getStorageLocationSetting(STS_STORAGE_LOCATION_ID)).thenReturn(
+				storageLocationSetting);
+
+		mockSts();
+		int sessionDurationSeconds = 300;
+		when(mockStackConfiguration.getSTSTokenDurationSeconds()).thenReturn(sessionDurationSeconds);
+		
+
+		// Method under test - Does not throw.
+		stsManager.getTemporaryCredentials(USER_INFO, PARENT_ENTITY_ID, StsPermission.read_only);
+		
+		// make sure the duration override was passed to the STS Client
+		ArgumentCaptor<AssumeRoleRequest> requestCaptor = ArgumentCaptor.forClass(
+				AssumeRoleRequest.class);
+		verify(mockStsClient).assumeRole(requestCaptor.capture());
+		AssumeRoleRequest request = requestCaptor.getValue();
+		assertEquals(sessionDurationSeconds, request.getDurationSeconds());
 	}
 
 	@Test
@@ -192,7 +220,7 @@ public class StsManagerImplTest {
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
 		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
 		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
@@ -239,7 +267,7 @@ public class StsManagerImplTest {
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
 		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
 		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
@@ -287,7 +315,7 @@ public class StsManagerImplTest {
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
 		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DURATION_SECONDS, request.getDurationSeconds());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
 		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
 
 		String policy = request.getPolicy();
@@ -330,6 +358,7 @@ public class StsManagerImplTest {
 	private void mockSts() {
 		// Mock config needed to set up the call.
 		when(mockStackConfiguration.getTempCredentialsIamRoleArn()).thenReturn(AWS_ROLE_ARN);
+		when(mockStackConfiguration.getSTSTokenDurationSeconds()).thenReturn(null); // without this, it returns 0
 
 		// Mock the actual STS call.
 		Credentials credentials = new Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_SESSION_TOKEN,

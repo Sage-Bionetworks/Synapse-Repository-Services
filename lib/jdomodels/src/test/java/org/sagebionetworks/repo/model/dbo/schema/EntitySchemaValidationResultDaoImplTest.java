@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -32,21 +34,28 @@ public class EntitySchemaValidationResultDaoImplTest {
 
 	@Autowired
 	NodeDAO nodeDao;
+	
 	@Autowired
 	SchemaValidationResultDao schemaValidationResultDao;
+
 	@Autowired
 	EntitySchemaValidationResultDao entitySchemaValidationResultDao;
-
+	
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 	String projectId;
 
+	@BeforeEach
+	public void before() {
+		entitySchemaValidationResultDao.truncateAll();
+	}
+	
 	@AfterEach
 	public void after() {
 		if (projectId != null) {
 			nodeDao.delete(projectId);
 		}
-		schemaValidationResultDao.clearAll();
+		entitySchemaValidationResultDao.truncateAll();
 	}
 
 	@Test
@@ -372,6 +381,41 @@ public class EntitySchemaValidationResultDaoImplTest {
 			entitySchemaValidationResultDao.getInvalidEntitySchemaValidationPage(containerId,
 					childIdsToExclude, limit, offset);
 		});
+	}
+	
+	@Test
+	public void testGetAndSetRecordSetValidationSummaryStatistics() {
+		Long recordSetId = 123L;
+		Long recordSetVersion = 1L;
+		
+		ValidationSummaryStatistics stats = new ValidationSummaryStatistics();
+		
+		stats.setContainerId("123");
+		stats.setGeneratedOn(new Date());
+		stats.setNumberOfInvalidChildren(2L);
+		stats.setNumberOfValidChildren(1L);
+		stats.setNumberOfUnknownChildren(3L);
+		stats.setTotalNumberOfChildren(6L);
+		
+		// Call under test
+		assertEquals(Optional.empty(), entitySchemaValidationResultDao.getRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion));
+		
+		// Call under test
+		entitySchemaValidationResultDao.setRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion, stats);
+		
+		// call under test
+		assertEquals(stats, entitySchemaValidationResultDao.getRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion).get());
+	
+		stats.setGeneratedOn(new Date());
+		stats.setTotalNumberOfChildren(7L);
+		stats.setNumberOfValidChildren(2L);
+		
+		// Call under test
+		entitySchemaValidationResultDao.setRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion, stats);
+		
+		// call under test
+		assertEquals(stats, entitySchemaValidationResultDao.getRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion).get());
+				
 	}
 	
 	Node createNode(String name, String parentId, EntityType type) {

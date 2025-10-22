@@ -1,0 +1,13 @@
+{
+	"description": "Represents a single CRDT node's identifier.",
+	"properties": {
+		"rep": {
+			"type": "integer",
+			"description": "The replica ID."
+		},
+		"seq": {
+			"type": "integer",
+			"description": "The sequence number."
+		}
+	}
+}

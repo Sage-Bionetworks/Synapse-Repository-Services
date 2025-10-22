@@ -181,10 +181,10 @@ public class SearchManagerImplTest {
 
         });
 
-        verify(mockLog).error("Document {} has error {}.",
-                document.getId(), errorCause);
-        verify(mockLog).error("Document {} has error {}.",
-                document.getId() + 1, errorCause);
+        verify(mockLog).error("Could not process document {} (Operation: {}): {} (Error Type: {}).", document.getId() + 1, OperationType.Index, errorCause.reason(), errorCause.type());
+        verify(mockLog).error("Could not process document {} (Operation: {}): {} (Error Type: {}).", document.getId(), OperationType.Delete, errorCause.reason(), errorCause.type());
+        
+        verify(mockLog).error("Could not process a batch of {} documents, received {} error(s). Will retry.", 3, 2L);
     }
 
     @Test

@@ -43,7 +43,8 @@ public class PatchBuilderPublisherImplTest {
 
 		changeSet = new IntendedChangeSet().setConnectionId("con123").setReplicaId(33L).setSessionId("session99")
 				.setChanges(List.of(new UpdateMetadataChange()
-						.setRowMetadataId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))));
+						.setRowMetadataId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))))
+				.setClockSequenceMaximum(43l);
 	}
 
 	@Test
@@ -51,9 +52,8 @@ public class PatchBuilderPublisherImplTest {
 		// call under test
 		publisher.sendChangesToPatchBuilder(changeSet);
 		verify(mockSqsClient).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl)
-				.messageBody("{\"con\":\"con123\",\"ses\":\"session99\",\"rep\":33,\"set\":[[0,{\"m\":[1,2]}]]}")
-				.messageGroupId("session99-33")
-				.messageDeduplicationId("964342fae88c62ca92c3c08d4fa53fe7").build());
+				.messageBody("{\"con\":\"con123\",\"ses\":\"session99\",\"rep\":33,\"max\":43,\"set\":[[0,{\"m\":[1,2]}]]}")
+				.messageGroupId("con123").messageDeduplicationId("d3e4b78f2bec942e32e56640a2a49cb6").build());
 	}
 
 }

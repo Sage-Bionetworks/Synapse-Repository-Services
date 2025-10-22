@@ -8,9 +8,13 @@ public class FileSummary {
     long size;
     long count;
 
-    public FileSummary(String checksum, long size, int count) {
+    public FileSummary(String checksum, long size, long count) {
+    	this(size, count);
         this.checksum = checksum;
-        this.size = size;
+    }
+    
+    public FileSummary(long size, long count) {
+    	this.size = size;
         this.count = count;
     }
 

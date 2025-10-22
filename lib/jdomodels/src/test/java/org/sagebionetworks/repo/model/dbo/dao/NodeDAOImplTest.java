@@ -5625,7 +5625,7 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testGetFileSummaryWithEmptyList() {
-		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary expectedFileSummary = new FileSummary(0, 0);
 		FileSummary fileSummary = nodeDao.getFileSummary(Collections.emptyList());
 		assertEquals(expectedFileSummary, fileSummary);
 	}
@@ -5638,14 +5638,14 @@ public class NodeDAOImplTest {
 		file1.setFileHandleId(fileHandle.getId());
 		String file1Id = nodeDao.createNew(file1);
 		toDelete.add(file1Id);
-		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary expectedFileSummary = new FileSummary(0, 0);
 		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(file1Id).setVersionNumber(null)));
 		assertEquals(expectedFileSummary, fileSummary);
 	}
 
 	@Test
 	public void testGetFileSummaryWithEntityRefIdNull() {
-		FileSummary expectedFileSummary = new FileSummary(null, 0, 0);
+		FileSummary expectedFileSummary = new FileSummary(0, 0);
 		FileSummary fileSummary = nodeDao.getFileSummary(Collections.singletonList(new EntityRef().setEntityId(null).setVersionNumber(1L)));
 		assertEquals(expectedFileSummary, fileSummary);
 	}

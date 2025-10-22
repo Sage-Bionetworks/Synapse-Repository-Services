@@ -7,6 +7,11 @@ public class PatchUtils {
 	 * "https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-execution-service-websocket-limits-table.html">apigateway-execution-service-websocket-limits-table</a>
 	 */
 	public static long MAX_BYTES_PER_PATCH = 128_000L;
+	
+	// 1MB is the max size for SQS messages, See
+	// https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html
+	// Set it to 768KB so that we do not have to worry about the overhead of the message wrapper.
+	public static final int MAX_CHANGE_SET_SIZE = (1024 * 1024) - (256 * 1024); // 768KB
 
 	/**
 	 * Given an expected maximum row size, calculate the number of rows that can be

@@ -12,5 +12,5 @@ public interface GridReplicaCsvExporter {
     /**
      * Exports the current state of the specified grid session to a CSV file.
      */
-    DownloadFromGridResult exportGridAsCsv(String jobId, UserInfo user, DownloadFromGridRequest request, AsyncJobProgressCallback jobProgressCallback) throws IOException;
+    DownloadFromGridResult exportGridAsCsv(UserInfo user, DownloadFromGridRequest request, AsyncJobProgressCallback jobProgressCallback, RowViewCallbackHandler rowCallback) throws IOException;
 }

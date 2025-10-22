@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -36,9 +33,7 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.util.progress.ProgressCallback;
-import org.sagebionetworks.util.progress.ProgressingCallable;
 import org.sagebionetworks.workers.util.semaphore.WriteLockRequest;
-import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import software.amazon.awssdk.services.sns.SnsClient;
@@ -49,8 +44,6 @@ public class GridReplicaManagerImplTest {
 
 	@Mock
 	private GridIndexManager mockGridIndexManager;
-	@Mock
-	private WriteReadSemaphore mockWriteReadSemaphore;
 	@Mock
 	private InternalReplicaToHubEventPublisher mockPublisher;
 	@Mock
@@ -110,30 +103,6 @@ public class GridReplicaManagerImplTest {
 
 	@Test
 	public void testOnResponseComplete() {
-		Integer methodId = 44;
-		when(mockGridIndexManager.getMessageChain(sessionId, replicaId, methodId)).thenReturn(Optional.empty());
-		// call under test
-		manager.onResponseComplete(mockCallback, connection, methodId);
-		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-	}
-
-	@Test
-	public void testOnResponseCompleteWithOtherMethod() {
-		Integer methodId = 44;
-		MessageChain chain = new MessageChain().setId(methodId).setMethod("other");
-		when(mockGridIndexManager.getMessageChain(sessionId, replicaId, methodId)).thenReturn(Optional.of(chain));
-		// call under test
-		manager.onResponseComplete(mockCallback, connection, methodId);
-		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
-		verify(manager, never()).synchronizeClock(any(), any());
-	}
-
-	@Test
-	public void testOnResponseCompleteWithPatch() {
-		doNothing().when(manager).synchronizeClock(mockCallback, connection);
-		Integer methodId = 44;
-		MessageChain chain = new MessageChain().setId(methodId).setMethod("patch");
-		when(mockGridIndexManager.getMessageChain(sessionId, replicaId, methodId)).thenReturn(Optional.of(chain));
 		// call under test
 		manager.onResponseComplete(mockCallback, connection, methodId);
 		verify(mockGridIndexManager).completeMessageChain(sessionId, replicaId, methodId);
@@ -150,13 +119,6 @@ public class GridReplicaManagerImplTest {
 
 	@Test
 	public void testOnApplyPatch() {
-		when(mockCallback.getLockTimeoutSeconds()).thenReturn(2L);
-		// Mock the semaphore to execute the lambda immediately
-		doAnswer(invocation -> {
-			WriteLockRequest request = invocation.getArgument(0);
-			ProgressingCallable<Void> function = invocation.getArgument(1);
-			return function.call(request.getCallback());
-		}).when(mockWriteReadSemaphore).tryRunWithWriteLock(writeLockRequestCaptor.capture(), any());
 		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch)).thenReturn(changes);
 		doNothing().when(manager).sendChangesToTopic(connection, patch.getPatchId(), changes);
 
@@ -171,19 +133,13 @@ public class GridReplicaManagerImplTest {
 		verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch);
 		verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		verify(manager).sendClockMessage(methodId, connectionId, clock);
-		assertEquals("onApplyPatch-con123", writeLockRequestCaptor.getValue().getCallersContext());
-		assertEquals("session456-111", writeLockRequestCaptor.getValue().getLockKey());
+		verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
 	}
 
 	@Test
 	public void testSynchronizeClock() {
-		when(mockCallback.getLockTimeoutSeconds()).thenReturn(2L);
-		doAnswer(invocation -> {
-			WriteLockRequest request = invocation.getArgument(0);
-			ProgressingCallable<Void> function = invocation.getArgument(1);
-			return function.call(request.getCallback());
-		}).when(mockWriteReadSemaphore).tryRunWithWriteLock(writeLockRequestCaptor.capture(), any());
-
+		when(mockGridIndexManager.getNonExpiredMessageChain(sessionId, replicaId, GridReplicaManager.SYNCHRONIZE_CLOCK))
+				.thenReturn(Optional.empty());
 		when(mockGridIndexManager.startMessageChain(sessionId, replicaId, GridReplicaManager.SYNCHRONIZE_CLOCK))
 				.thenReturn(new MessageChain().setMethod(GridReplicaManager.SYNCHRONIZE_CLOCK).setId(methodId));
 		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(clock);
@@ -191,13 +147,21 @@ public class GridReplicaManagerImplTest {
 		// call under test
 		manager.synchronizeClock(mockCallback, connection);
 
-		verify(mockWriteReadSemaphore).tryRunWithWriteLock(any(WriteLockRequest.class), any());
 		verify(mockGridIndexManager).startMessageChain(sessionId, replicaId, GridReplicaManager.SYNCHRONIZE_CLOCK);
 		verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		verify(mockPublisher).publishEvent(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, connectionId),
 				new JsonRxMessage(JsonRxMessageType.RequestData).setMethod(GridReplicaManager.SYNCHRONIZE_CLOCK)
 						.setId(methodId).setBody(LogicalTimestampCompactSerializable.serializeClock(clock)));
-		assertEquals("startSychronizeClock-con123", writeLockRequestCaptor.getValue().getCallersContext());
+	}
+	
+	@Test
+	public void testSynchronizeClockWithNonExpiredMessageChain() {
+		when(mockGridIndexManager.getNonExpiredMessageChain(sessionId, replicaId, GridReplicaManager.SYNCHRONIZE_CLOCK))
+				.thenReturn(Optional.of(new MessageChain().setId(123)));
+		// call under test
+		manager.synchronizeClock(mockCallback, connection);
+		
+		verifyNoMoreInteractions(mockGridIndexManager, mockPublisher);
 	}
 
 	@Test
@@ -205,9 +169,8 @@ public class GridReplicaManagerImplTest {
 		// call under test
 		manager.sendChangesToTopic(connection, patch.getPatchId(), changes);
 		verify(mockSnsClient).publish(PublishRequest.builder().targetArn(topicArn)
-				.message(
-						"{\"connectionId\":\"con123\",\"sessionId\":\"session456\",\"replicaId\":111,\"patchId\":[3,4],"
-								+ "\"changes\":{\"arr\":[[111,55]]}}")
+				.message("{\"sessionId\":\"session456\",\"replicaId\":111,\"patchId\":[3,4],"
+						+ "\"changes\":{\"arr\":[[111,55]]}}")
 				.build());
 	}
 

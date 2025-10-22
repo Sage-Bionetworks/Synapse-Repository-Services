@@ -11,13 +11,6 @@ public interface Gate {
 	 * 
 	 * @return True if the runner can run.
 	 */
-	public boolean canRun();
-	
-	/**
-	 * Called if an exception is thrown during a run.
-	 * 
-	 * @param error The exception thrown by the runner.
-	 */
-	public void runFailed(Exception error);
+	boolean canRun();
 
 }

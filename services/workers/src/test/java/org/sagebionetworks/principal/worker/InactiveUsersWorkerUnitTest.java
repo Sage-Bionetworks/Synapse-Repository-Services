@@ -10,7 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.principal.UserStatusManager;
+import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.util.progress.ProgressCallback;
 
 @ExtendWith(MockitoExtension.class)
@@ -18,6 +20,9 @@ public class InactiveUsersWorkerUnitTest {
 
 	@Mock
 	private UserStatusManager mockUserStatusManager;
+	
+	@Mock
+	private FeatureManager mockFeatureManager;
 	
 	@InjectMocks
 	private InactiveUsersWorker worker;
@@ -28,6 +33,7 @@ public class InactiveUsersWorkerUnitTest {
 	@Test
 	public void testRun() throws Exception {
 		
+		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_INACTIVE_USERS)).thenReturn(true);
 		when(mockUserStatusManager.disableInactiveUsers(500)).thenReturn(500, 0);
 		
 		// Call under test
@@ -39,7 +45,20 @@ public class InactiveUsersWorkerUnitTest {
 	@Test
 	public void testRunWithNoInactiveUsers() throws Exception {
 		
+		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_INACTIVE_USERS)).thenReturn(true);
 		when(mockUserStatusManager.disableInactiveUsers(500)).thenReturn(0);
+		
+		// Call under test
+		worker.run(mockCallback);
+		
+		verifyNoMoreInteractions(mockUserStatusManager);
+	}
+	
+
+	@Test
+	public void testRunWithFeatureDisabled() throws Exception {
+		
+		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_INACTIVE_USERS)).thenReturn(false);
 		
 		// Call under test
 		worker.run(mockCallback);

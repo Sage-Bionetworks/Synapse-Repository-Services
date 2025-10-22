@@ -1,4 +1,0 @@
-integer_column,string_column,double_column,boolean_column
-1,"test_1",1.1,true
-2,"test_2",,true
-3,"test_3",3.3,false

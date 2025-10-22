@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 import java.util.List;
 import java.util.Objects;
 
+import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.semver4j.Semver;
 
@@ -16,6 +17,8 @@ public class GridHeader {
 	private LogicalTimestamp rowsId;
 	private LogicalTimestamp columnOrderArrId;
 	private LogicalTimestamp columnNamesVecId;
+	private Long clockSequenceMaximum;
+	private ReplicaSelectionModel replicaSelectionModel;
 
 	public LogicalTimestamp getColumnOrderArrId() {
 		return columnOrderArrId;
@@ -89,10 +92,40 @@ public class GridHeader {
 		return nodeId;
 	}
 
+	/**
+	 * The maximum sequence number from the replica's clock at the time of the
+	 * query.
+	 * 
+	 * @return
+	 */
+	public Long getClockSequenceMaximum() {
+		return clockSequenceMaximum;
+	}
+
+	/**
+	 * The maximum sequence number from the replica's clock at the time of the
+	 * query.
+	 * 
+	 * @return
+	 */
+	public GridHeader setClockSequenceMaximum(Long clockSequenceMaximum) {
+		this.clockSequenceMaximum = clockSequenceMaximum;
+		return this;
+	}
+
+	public ReplicaSelectionModel getReplicaSelectionModel() {
+		return replicaSelectionModel;
+	}
+
+	public GridHeader setReplicaSelectionModel(ReplicaSelectionModel replicaSelectionModel) {
+		this.replicaSelectionModel = replicaSelectionModel;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnNamesVecId, columnOrderArrId, documentVersion, nodeId, orderedColumns, replicaId,
-				rowsId, sessionId);
+		return Objects.hash(clockSequenceMaximum, columnNamesVecId, columnOrderArrId, documentVersion, nodeId,
+				orderedColumns, replicaId, replicaSelectionModel, rowsId, sessionId);
 	}
 
 	@Override
@@ -104,10 +137,12 @@ public class GridHeader {
 		if (getClass() != obj.getClass())
 			return false;
 		GridHeader other = (GridHeader) obj;
-		return Objects.equals(columnNamesVecId, other.columnNamesVecId)
+		return Objects.equals(clockSequenceMaximum, other.clockSequenceMaximum)
+				&& Objects.equals(columnNamesVecId, other.columnNamesVecId)
 				&& Objects.equals(columnOrderArrId, other.columnOrderArrId)
 				&& Objects.equals(documentVersion, other.documentVersion) && Objects.equals(nodeId, other.nodeId)
 				&& Objects.equals(orderedColumns, other.orderedColumns) && Objects.equals(replicaId, other.replicaId)
+				&& Objects.equals(replicaSelectionModel, other.replicaSelectionModel)
 				&& Objects.equals(rowsId, other.rowsId) && Objects.equals(sessionId, other.sessionId);
 	}
 
@@ -115,7 +150,9 @@ public class GridHeader {
 	public String toString() {
 		return "GridHeader [sessionId=" + sessionId + ", replicaId=" + replicaId + ", nodeId=" + nodeId
 				+ ", documentVersion=" + documentVersion + ", orderedColumns=" + orderedColumns + ", rowsId=" + rowsId
-				+ ", columnOrderArrId=" + columnOrderArrId + ", columnNamesVecId=" + columnNamesVecId + "]";
+				+ ", columnOrderArrId=" + columnOrderArrId + ", columnNamesVecId=" + columnNamesVecId
+				+ ", clockSequenceMaximum=" + clockSequenceMaximum + ", replicaSelectionModel=" + replicaSelectionModel
+				+ "]";
 	}
 
 }

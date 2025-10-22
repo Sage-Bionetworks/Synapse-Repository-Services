@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -318,6 +320,18 @@ public class GridIndexDaoImplTest {
 		List<ConstantNode> constants1 = Collections.emptyList();
 		// call under test
 		gridIndexDao.saveNewConstants(sessionIdOne, replicaIdOne, constants1);
+	}
+	
+	@Test
+	public void testGetConstantsWithIdsHasNull() {
+		ids = new ArrayList<>();
+		ids.add(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
+		ids.add(null);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridIndexDao.getConstants(sessionIdOne, replicaIdOne, ids);
+		}).getMessage();
+		assertEquals("ids list cannot contain null values", message);
 	}
 
 	@Test
@@ -778,23 +792,30 @@ public class GridIndexDaoImplTest {
 	}
 
 	@Test
-	public void testMessageChainCRUD() {
+	public void testMessageChainCRUD() throws InterruptedException {
 		gridIndexDao.createReplicaIfNotExists(sessionIdOne, replicaIdOne);
 		gridIndexDao.createReplicaIfNotExists(sessionIdTwo, replicaIdTwo);
 		int maxValues = 100;
+		Duration expires = Duration.ofSeconds(2);
 		// one
 		Integer idOne = gridIndexDao.createNextMessageId(sessionIdOne, replicaIdOne, maxValues);
 		assertEquals(Optional.empty(), gridIndexDao.getMessageChain(sessionIdOne, replicaIdOne, idOne));
 		MessageChain chainOne = new MessageChain().setSessionId(sessionIdOne).setReplicaId(replicaIdOne).setId(idOne)
 				.setMethod("methodOne");
-		MessageChain backOne = gridIndexDao.createMessageChain(chainOne);
+		MessageChain backOne = gridIndexDao.createMessageChain(chainOne, expires);
 		MessageChain expected = new MessageChain().setSessionId(sessionIdOne).setReplicaId(replicaIdOne).setId(idOne)
 				.setMethod("methodOne").setCreatedOn(backOne.getCreatedOn());
 		assertEquals(expected, backOne);
 		assertEquals(Optional.of(expected), gridIndexDao.getMessageChain(sessionIdOne, replicaIdOne, idOne));
+		assertEquals(Optional.of(expected),
+				gridIndexDao.getNonExpiredMessageChain(sessionIdOne, replicaIdOne, chainOne.getMethod()));
+		Thread.sleep(2001L);
+		assertEquals(Optional.empty(),
+				gridIndexDao.getNonExpiredMessageChain(sessionIdOne, replicaIdOne, chainOne.getMethod()));
+		
 		// update
 		chainOne.setMethod("updatedMethod");
-		backOne = gridIndexDao.createMessageChain(chainOne);
+		backOne = gridIndexDao.createMessageChain(chainOne, expires);
 		expected = new MessageChain().setSessionId(sessionIdOne).setReplicaId(replicaIdOne).setId(idOne)
 				.setMethod("updatedMethod").setCreatedOn(backOne.getCreatedOn());
 		assertEquals(expected, backOne);
@@ -803,7 +824,7 @@ public class GridIndexDaoImplTest {
 		Integer idTwo = gridIndexDao.createNextMessageId(sessionIdTwo, replicaIdTwo, maxValues);
 		MessageChain chainTwo = new MessageChain().setSessionId(sessionIdTwo).setReplicaId(replicaIdTwo).setId(idTwo)
 				.setMethod("methodTwo");
-		backOne = gridIndexDao.createMessageChain(chainTwo);
+		backOne = gridIndexDao.createMessageChain(chainTwo, expires);
 		expected = new MessageChain().setSessionId(sessionIdTwo).setReplicaId(replicaIdTwo).setId(idTwo)
 				.setMethod("methodTwo").setCreatedOn(backOne.getCreatedOn());
 		assertEquals(expected, backOne);
@@ -813,6 +834,28 @@ public class GridIndexDaoImplTest {
 		gridIndexDao.deleteMessageChain(sessionIdOne, replicaIdOne, idOne);
 		assertEquals(Optional.empty(), gridIndexDao.getMessageChain(sessionIdOne, replicaIdOne, idOne));
 		assertEquals(Optional.of(expected), gridIndexDao.getMessageChain(sessionIdTwo, replicaIdTwo, idTwo));
+	}
+	
+	@Test
+	public void testMessageChainExpiration() throws InterruptedException {
+		gridIndexDao.createReplicaIfNotExists(sessionIdOne, replicaIdOne);
+		int maxValues = 100;
+		Duration expires = Duration.ofSeconds(1);
+		// one
+		Integer idOne = gridIndexDao.createNextMessageId(sessionIdOne, replicaIdOne, maxValues);
+		assertEquals(Optional.empty(), gridIndexDao.getMessageChain(sessionIdOne, replicaIdOne, idOne));
+		MessageChain chainOne = new MessageChain().setSessionId(sessionIdOne).setReplicaId(replicaIdOne).setId(idOne)
+				.setMethod("methodOne");
+		// call under test
+		MessageChain backOne = gridIndexDao.createMessageChain(chainOne, expires);
+		Thread.sleep(1000L);
+		expires = Duration.ofSeconds(10);
+		// call under test
+		assertTrue(gridIndexDao.refreshMessageChain(sessionIdOne, replicaIdOne, idOne, expires));
+		Thread.sleep(1000L);
+		// all under test
+		assertEquals(Optional.of(backOne),
+				gridIndexDao.getNonExpiredMessageChain(sessionIdOne, replicaIdOne, chainOne.getMethod()));
 	}
 
 	@Test
@@ -971,6 +1014,76 @@ public class GridIndexDaoImplTest {
 			),
 			gridIndexDao.getArrayNodesInOrder(sessionIdOne, replicaIdOne, arrOneId, limit, offset)
 		);
+		
+	}
+	
+	@Test
+	public void testGetArrayLastNode() {
+		// Creates an empty array
+		LogicalTimestamp arrOneId = new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(44L);
+		
+		createArray(sessionIdOne, replicaIdOne, arrOneId);
+		
+		// Call under test
+		Optional<ArrayNode> lastNode = gridIndexDao.getArrayLastNode(sessionIdOne, replicaIdOne, arrOneId);
+		
+		assertTrue(lastNode.isEmpty());
+		
+		ArrayNode firstNode = new ArrayNode()
+			.setArrayId(arrOneId)
+			.setNodeId(ids.get(4))
+			.setDataId(ids.get(1))
+			.setReferenceNodeId(arrOneId)
+			.setIsDeleted(false);
+		
+		gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, firstNode);
+		
+		// Call under test
+		assertEquals(Optional.of(firstNode), gridIndexDao.getArrayLastNode(sessionIdOne, replicaIdOne, arrOneId));
+		
+		ArrayNode secondNode = new ArrayNode()
+			.setArrayId(arrOneId)
+			.setNodeId(ids.get(5))
+			.setDataId(ids.get(3))
+			.setReferenceNodeId(firstNode.getNodeId())
+			.setIsDeleted(false);
+		
+		gridIndexDao.insertIntoArray(sessionIdOne, replicaIdOne, secondNode);
+		
+		// Call under test
+		assertEquals(Optional.of(secondNode), gridIndexDao.getArrayLastNode(sessionIdOne, replicaIdOne, arrOneId));
+		
+		// Deletes the first node
+		gridIndexDao.deleteArrayNodes(sessionIdOne, replicaIdOne, arrOneId, List.of(
+			new Timespan(firstNode.getNodeId(), 1L)
+		));
+		
+		// Call under test
+		assertEquals(Optional.of(secondNode), gridIndexDao.getArrayLastNode(sessionIdOne, replicaIdOne, arrOneId));
+	}
+	
+	@Test
+	public void testGetClockSequenceMaximum() {
+		// call under test
+		assertEquals(1L, gridIndexDao.getClockSequenceMaximum(sessionIdOne, replicaIdOne));
+		gridIndexDao.createReplicaIfNotExists(sessionIdOne, replicaIdOne);
+		gridIndexDao.createReplicaIfNotExists(sessionIdTwo, replicaIdTwo);
+		
+		// call under test
+		assertEquals(1L, gridIndexDao.getClockSequenceMaximum(sessionIdOne, replicaIdOne));
+		assertEquals(1L, gridIndexDao.getClockSequenceMaximum(sessionIdTwo, replicaIdTwo));
+		
+		gridIndexDao.setClock(sessionIdOne, replicaIdOne, new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L));
+		gridIndexDao.setClock(sessionIdOne, replicaIdOne, new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L));
+		gridIndexDao.setClock(sessionIdOne, replicaIdOne, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
+		
+		gridIndexDao.setClock(sessionIdTwo, replicaIdTwo, new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L));
+		gridIndexDao.setClock(sessionIdTwo, replicaIdTwo, new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L));
+		gridIndexDao.setClock(sessionIdTwo, replicaIdTwo, new LogicalTimestamp().setReplicaId(11L).setSequenceNumber(12L));
+		
+		// call under test
+		assertEquals(6L, gridIndexDao.getClockSequenceMaximum(sessionIdOne, replicaIdOne));
+		assertEquals(12L, gridIndexDao.getClockSequenceMaximum(sessionIdTwo, replicaIdTwo));
 		
 	}
 

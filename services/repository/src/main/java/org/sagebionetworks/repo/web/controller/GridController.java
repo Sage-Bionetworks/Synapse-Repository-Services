@@ -20,6 +20,10 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
+import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
@@ -277,5 +281,119 @@ public class GridController {
         return (DownloadFromGridResult) jobStatus.getResponseBody();
     }
 
-
+	/**
+	 * Asynchronously start the export of a grid session that was started using a
+	 * <a href="${org.sagebionetworks.repo.model.RecordSet}">RecordSet</a>. Use the returned job id and
+	 * <a href="${GET.grid.export.recordset.async.get.asyncToken}">GET /grid/export/recordset/async/get</a> to get the
+	 * results of the export.
+	 *
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_EXPORT_RECORDSET_ASYNC_START, method = RequestMethod.POST)
+    public @ResponseBody
+    AsyncJobId exportRecordSetAsyncStart(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @RequestBody GridRecordSetExportRequest request)
+            throws DatastoreException, NotFoundException, IOException {
+        ValidateArgument.required(request, "Request body");
+        AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, request);
+        AsyncJobId asyncJobId = new AsyncJobId();
+        asyncJobId.setToken(job.getJobId());
+        return asyncJobId;
+    }
+    
+	/**
+	 * Asynchronously get the results of a <a href="${org.sagebionetworks.repo.model.RecordSet}">RecordSet</a> based grid
+	 * session started with <a href="${POST.grid.export.recordset.async.start}">POST /grid/export/recordset/async/start</a>.
+	 *
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
+	 *
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_EXPORT_RECORDSET_ASYNC_GET, method = RequestMethod.GET)
+    public @ResponseBody
+    GridRecordSetExportResponse exportRecordSetAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+                                               @PathVariable String asyncToken) throws Throwable {
+        ValidateArgument.required(asyncToken, "asyncToken");
+        AsynchronousJobStatus jobStatus = asynchronousJobServices
+                .getJobStatusAndThrow(userId, asyncToken);
+        return (GridRecordSetExportResponse) jobStatus.getResponseBody();
+    }
+    
+    /**
+	 * Asynchronously start the import of a CSV file into a grid session. Currently supports only grids started using a
+	 * <a href="${org.sagebionetworks.repo.model.RecordSet}">RecordSet</a>. Use the returned job id and
+	 * <a href="${GET.grid.import.csv.async.get.asyncToken}">GET /grid/import/csv/async/get</a> to get the
+	 * results of the import.
+	 *
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_IMPORT_CSV_ASYNC_START, method = RequestMethod.POST)
+    public @ResponseBody
+    AsyncJobId importCsvAsyncStart(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @RequestBody GridCsvImportRequest request)
+            throws DatastoreException, NotFoundException, IOException {
+        ValidateArgument.required(request, "Request body");
+        AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, request);
+        AsyncJobId asyncJobId = new AsyncJobId();
+        asyncJobId.setToken(job.getJobId());
+        return asyncJobId;
+    }
+    
+	/**
+	 * Asynchronously get the results of a CSV import job started with 
+	 * <a href="${POST.grid.import.csv.async.start}">POST /grid/import/csv/async/start</a>.
+	 *
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
+	 *
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+    @RequiredScope({view,download})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.GRID_IMPORT_CSV_ASYNC_GET, method = RequestMethod.GET)
+    public @ResponseBody
+    GridCsvImportResponse importCsvSetAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+                                               @PathVariable String asyncToken) throws Throwable {
+        ValidateArgument.required(asyncToken, "asyncToken");
+        AsynchronousJobStatus jobStatus = asynchronousJobServices
+                .getJobStatusAndThrow(userId, asyncToken);
+        return (GridCsvImportResponse) jobStatus.getResponseBody();
+    }
 }

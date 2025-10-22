@@ -38,7 +38,7 @@ public class GetGridSchemaHandlerTest {
 	private String actionGroup;
 	private String function;
 	private List<Parameter> parameters;
-	private String requestBody;
+	private List<Parameter> requestBody;
 	private SessionContext context;
 	private String gridSessionId;
 	private Long replicaId;

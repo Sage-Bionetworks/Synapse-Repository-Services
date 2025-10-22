@@ -84,7 +84,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class WebhookWorkerIntegrationTest {
 	
-	private static final int TIMEOUT = 60_000;
+	private static final int TIMEOUT = 300_000;
 	
 	private static AmazonApiGatewayV2 apiGatewayClient;
 	private static AmazonSQS sqsClient;

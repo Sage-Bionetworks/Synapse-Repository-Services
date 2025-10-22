@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.response;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -31,9 +32,8 @@ public class InternalReplicaToHubEventPublisherImpl implements InternalReplicaTo
 			ApplicationEventPublisher applicationEventPublisher) {
 		super();
 		this.sqsClient = sqsClient;
-		this.queueUrl = sqsClient
-				.getQueueUrl(
-						GetQueueUrlRequest.builder().queueName(config.getQueueName("GRID_WEBSOCKET_MESSAGE")).build())
+		this.queueUrl = sqsClient.getQueueUrl(
+				GetQueueUrlRequest.builder().queueName(config.getQueueName("GRID_WEBSOCKET_MESSAGE.fifo")).build())
 				.queueUrl();
 		this.applicationEventPublisher = applicationEventPublisher;
 	}
@@ -77,18 +77,20 @@ public class InternalReplicaToHubEventPublisherImpl implements InternalReplicaTo
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	void sendAfterCommit(InternalEvent event) {
 		ValidateArgument.required(event, "event");
-		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageAttributes(Map.of(
-				//
-				"EventType",
-				MessageAttributeValue.builder().stringValue(event.getContext().getEventType().name()).dataType("String")
-						.build(),
-				//
-				"EventSource",
-				MessageAttributeValue.builder().stringValue(event.getContext().getEventSource().name())
-						.dataType("String").build(),
-				//
-				"ConnectionId", MessageAttributeValue.builder().stringValue(event.getContext().getConnectionId())
-						.dataType("String").build()))
+		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl)
+				.messageDeduplicationId(UUID.randomUUID().toString())
+				.messageGroupId(event.getContext().getConnectionId()).messageAttributes(Map.of(
+						//
+						"EventType",
+						MessageAttributeValue.builder().stringValue(event.getContext().getEventType().name())
+								.dataType("String").build(),
+						//
+						"EventSource",
+						MessageAttributeValue.builder().stringValue(event.getContext().getEventSource().name())
+								.dataType("String").build(),
+						//
+						"ConnectionId", MessageAttributeValue.builder()
+								.stringValue(event.getContext().getConnectionId()).dataType("String").build()))
 				.messageBody(event.getBody()).build());
 	}
 

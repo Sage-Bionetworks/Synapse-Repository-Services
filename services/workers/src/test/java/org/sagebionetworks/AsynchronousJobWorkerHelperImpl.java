@@ -1,8 +1,33 @@
 package org.sagebionetworks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.java_websocket.WebSocket;
+import org.java_websocket.client.WebSocketClient;
+import org.json.JSONArray;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
@@ -68,23 +93,6 @@ import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHelper {
 
@@ -702,5 +710,91 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			return jsonSchemaService.createOrganization(userId,
 					new CreateOrganizationRequest().setOrganizationName(name));
 		}
+	}
+	
+	/**
+	 * Create a websocket connection that will post all received messages to the
+	 * passed queue.
+	 * 
+	 * @param presignedUrl
+	 * @param incomingMessages
+	 * @return
+	 * @throws URISyntaxException
+	 */
+	@Override
+	public WebSocket createConnection(String presignedUrl, BlockingQueue<String> incomingMessages)
+			throws URISyntaxException {
+		WebSocketImpl client = new WebSocketImpl(presignedUrl, incomingMessages);
+
+		try {
+			client.connectBlocking();
+		} catch (InterruptedException e) {
+			throw new RuntimeException("Failed to connect to WebSocket: " + presignedUrl, e);
+		}
+
+		return client;
+	}
+
+	public static class WebSocketImpl extends WebSocketClient {
+
+		private BlockingQueue<String> incomingMessages;
+
+		public WebSocketImpl(String url, BlockingQueue<String> incomingMessages) {
+			super(URI.create(url));
+			this.incomingMessages = incomingMessages;
+		}
+
+		@Override
+		public void onOpen(org.java_websocket.handshake.ServerHandshake handshakedata) {
+			LOG.info("WebSocket connection opened: {}, ", handshakedata.getHttpStatusMessage());
+		}
+
+		@Override
+		public void onClose(int code, String reason, boolean remote) {
+			LOG.info("WebSocket connection closed with code: {}, reason: {}", code, reason);
+		}
+
+		@Override
+		public void onError(Exception ex) {
+			LOG.error("WebSocket error: ", ex);
+		}
+
+		@Override
+		public void onMessage(String message) {
+			LOG.info("Message received: {}", message);
+			try {
+				incomingMessages.put(message);
+			} catch (InterruptedException e) {
+				this.close(4999);
+				throw new RuntimeException(e);
+			}
+		}
+
+	}
+	
+	/**
+	 * Wait for the given message to appear on the websocket queue.
+	 * 
+	 * @param code
+	 * @param key
+	 * @param incomingMessages
+	 * @return
+	 * @throws InterruptedException
+	 */
+	@Override
+	public boolean waitForMessage(Predicate<JSONArray> handler, BlockingQueue<String> incomingMessages)
+			throws InterruptedException {
+		String message = null;
+		do {
+			message = incomingMessages.poll(10, TimeUnit.SECONDS);
+			if (message == null) {
+				return false;
+			}
+			JSONArray array = new JSONArray(message);
+			if (handler.test(array)) {
+				return true;
+			}
+		} while (message != null);
+		return false;
 	}
 }

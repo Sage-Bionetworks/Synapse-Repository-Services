@@ -1,0 +1,78 @@
+{
+	"description": "A filter used to select rows based on cell values. For example, to handle a user request like 'find all rows where the Project column is Alpha', you would set 'columnName' to 'Project', 'operator' to 'EQUALS', and 'value' to ['Alpha']",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+		}
+	],
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "Required. The name of the column to filter by."
+		},
+		"operator": {
+			"type": "string",
+			"description": "The comparison operator.",
+			"name": "CellValueOperator",
+			"id": "org.sagebionetworks.repo.model.grid.query.CellValueOperator",
+			"enum": [
+				{
+					"name": "EQUALS",
+					"description": ""
+				},
+				{
+					"name": "NOT_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "GREATER_THAN",
+					"description": ""
+				},
+				{
+					"name": "LESS_THAN",
+					"description": ""
+				},
+				{
+					"name": "GREATER_THAN_OR_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "LESS_THAN_OR_EQUALS",
+					"description": ""
+				},
+				{
+					"name": "IN",
+					"description": ""
+				},
+				{
+					"name": "NOT_IN",
+					"description": ""
+				},
+				{
+					"name": "LIKE",
+					"description": ""
+				},
+				{
+					"name": "NOT_LIKE",
+					"description": ""
+				},
+				{
+					"name": "IS_NULL",
+					"description": ""
+				},
+				{
+					"name": "IS_NOT_NULL",
+					"description": ""
+				}
+			]
+		},
+		"value": {
+			"type": "array",
+			"items": {
+				"type": "object"
+			},
+			"description": "A filter used to select rows based on a specific column's cell value. Use operators like 'EQUALS' or 'LIKE' with the 'value' array for standard comparisons. For user requests about finding 'empty', 'blank', or 'null' values, use the 'IS_NULL' operator and omit the 'value' property. To find rows that are not empty, use the 'IS_NOT_NULL' operator. When using either 'LIKE' or 'NOT_LIKE', the wildcard character: '%' is used to represents zero or more characters, and '_' is used to represents a single character."
+		}
+	}
+}

@@ -1,0 +1,29 @@
+{
+	"description": "A request to import a CSV file into a grid. Currently supports only grid created from a record set.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		},
+		"fileHandleId": {
+			"description": "The id of the file handle that contains the CSV data.",
+			"type": "string"
+		},
+		"csvDescriptor": {
+			"description": "The CSV descriptor that define how to read the CSV file.",
+			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"schema": {
+		    "description":"The list of ColumnModel that describe the CSV file. Currently this is is required.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		}
+	}
+}

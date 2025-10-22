@@ -1,0 +1,20 @@
+{
+	"description": "Results of a grid row against a JSON schema",
+	"properties": {
+		"isValid": {
+			"type": "boolean",
+			"description": "Will be 'true' if the row is valid according to the JSON schema. Will be 'false' when the row is invalid."
+		},
+		"validationErrorMessage": {
+			"type": "string",
+			"description": "If the object is not valid according to the schema, a simple one line error message will be provided."
+		},
+		"allValidationMessages": {
+			"description": "If the object is not valid according to the schema, a the flat list of error messages will be provided with one error message per sub-schema.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

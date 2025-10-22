@@ -14,7 +14,6 @@ public interface GridReplicaValidationManager {
 	 * @param connectionId
 	 * @param changedVectorIds
 	 */
-	void validateChanges(String sessionId, Long replicaId, String connectionId,
-			Collection<LogicalTimestamp> changedVectorIds);
+	void validateChanges(String sessionId, Long replicaId, Collection<LogicalTimestamp> changedVectorIds);
 
 }

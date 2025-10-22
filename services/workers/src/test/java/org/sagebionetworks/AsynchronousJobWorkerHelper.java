@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import org.java_websocket.WebSocket;
+import org.json.JSONArray;
 import org.sagebionetworks.AsynchronousJobWorkerHelperImpl.AsyncJobResponse;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,9 +26,12 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.VirtualTable;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public interface AsynchronousJobWorkerHelper {
 
@@ -307,5 +312,28 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	Organization getOrCreateOrganization(Long userId, String name);
+
+	/**
+	 * Create a websocket connection that will post all received messages to the
+	 * passed queue.
+	 * 
+	 * @param presignedUrl
+	 * @param incomingMessages
+	 * @return
+	 * @throws URISyntaxException
+	 */
+	WebSocket createConnection(String presignedUrl, BlockingQueue<String> incomingMessages) throws URISyntaxException;
+
+	/**
+	 * Wait for the given message to appear on the queue.
+	 * 
+	 * @param code
+	 * @param key
+	 * @param incomingMessages
+	 * @return
+	 * @throws InterruptedException
+	 */
+	boolean waitForMessage(Predicate<JSONArray> handler, BlockingQueue<String> incomingMessages)
+			throws InterruptedException;
 
 }

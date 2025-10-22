@@ -2,15 +2,15 @@ package org.sagebionetworks.grid.workers;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -18,16 +18,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.java_websocket.WebSocket;
-import org.java_websocket.client.WebSocketClient;
 import org.json.JSONArray;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +37,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -53,6 +49,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
+import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -62,6 +59,10 @@ import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
+import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
@@ -81,12 +82,13 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.repo.service.GridService;
@@ -106,8 +108,6 @@ import au.com.bytecode.opencsv.CSVReader;
 public class GridEventBrokerWorkerIntegrationTest {
 
 	private static final long INTERNAL_REPLICA_ID = 66534L;
-
-	private static final Logger LOG = LogManager.getLogger(GridEventBrokerWorkerIntegrationTest.class);
 
 	public static final long MAX_WAIT_MS = 120_000;
 
@@ -137,18 +137,28 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 	@Autowired
 	private SynapseS3Client s3Client;
+	
+	@Autowired
+	private JsonSchemaManager jsonSchemaManager;
+	
+	@Autowired
+	private EntitySchemaValidationResultDao schemaValidationResultDao;
 
 	private UserInfo admin;
 
 	@BeforeEach
 	public void before() {
 		admin = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		jsonSchemaManager.truncateAll();
 		entityManager.truncateAll();
+		schemaValidationResultDao.truncateAll();
 	}
 
 	@AfterEach
 	public void after() {
+		jsonSchemaManager.truncateAll();
 		entityManager.truncateAll();
+		schemaValidationResultDao.truncateAll();
 	}
 
 	@Test
@@ -250,10 +260,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 		// Two's clock is currently empty so start a synchronize.
 		wsTwo.send("[1,99,\"synchronize-clock\",[]]");
 
-		List<LogicalTimestamp> patchIds = new ArrayList<>();
+		List<LogicalTimestamp> clock = new ArrayList<>();
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				patchIds.add(PatchCompactSerializable.peekPatchId(a.getJSONArray(2)));
+				Patch p = PatchCompactSerializable.deserialize(a.getJSONArray(2));
+				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
 				return true;
 			} else {
 				return false;
@@ -261,13 +272,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 		}, incomingMessagesTwo));
 
 		// after applying the patch update the clock and synchronize again.
-		String newClock = LogicalTimestampCompactSerializable.serializeClock(patchIds).toString();
+		String newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
 		wsTwo.send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
 
-		patchIds.clear();
+		clock.clear();
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				patchIds.add(PatchCompactSerializable.peekPatchId(a.getJSONArray(2)));
+				Patch p = PatchCompactSerializable.deserialize(a.getJSONArray(2));
+				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
 				return true;
 			} else {
 				return false;
@@ -275,7 +287,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 		}, incomingMessagesTwo));
 
 		// after the second snych, replica two should be up-to-date.
-		newClock = LogicalTimestampCompactSerializable.serializeClock(patchIds).toString();
+		newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
 		wsTwo.send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
 
 		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 99, incomingMessagesTwo));
@@ -298,8 +310,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 			new Row().setValues(List.of("9090"))
 		);
 
-		RowReferenceSetResults rrsr = asynchronousJobWorkerHelper.appendRowsToTable(admin, schema, table.getId(), rows,
-				MAX_WAIT_MS);
+		asynchronousJobWorkerHelper.appendRowsToTable(admin, schema, table.getId(), rows, MAX_WAIT_MS);
 
 		String sql = String.format("select * from %s", table.getId());
 
@@ -504,7 +515,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 		// Wait for response complete: [5,102]
 		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 102, incomingMessagesOne));
 
-		RowView rowUpdated = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
 			System.out.println("Waiting for row validation results to change...");
 			Optional<GridHeader> header = gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID);
 			if (header.isEmpty()) {
@@ -536,19 +547,29 @@ public class GridEventBrokerWorkerIntegrationTest {
 	public void testGridWithRecordSet() throws Exception {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName("RecordSet Test"), null);
 		
-		byte[] csvContents;
+		String csvContent = 
+			"integer_column,string_column,double_column,boolean_column" + System.lineSeparator() +
+			"1,test_1,1.1,true" 										+ System.lineSeparator() +
+			"2,test_2,,true" 											+ System.lineSeparator() +
+			"3,test_3,3.3,false";
 		
-		try (InputStream is = GridEventBrokerWorkerIntegrationTest.class.getClassLoader().getResourceAsStream("recordset.csv")) {
-			csvContents = IOUtils.toByteArray(is);
-		}
-		
-		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContents, "recordset.csv", ContentType.create("text/csv"), null);
+		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContent.getBytes(StandardCharsets.UTF_8), "recordset.csv", ContentType.create("text/csv"), null);
 		
 		RecordSet recordSet = entityService.createEntity(admin.getId(), new RecordSet()
 			.setParentId(project.getId())
 			.setName("recordSet")
 			.setDataFileHandleId(fileHandle.getId())
 			.setUpsertKey(List.of("integer_column")), null);
+		
+		String schemaId = createJsonSchema(Map.of(
+			"integer_column", new JsonSchema().setType(Type.integer),
+			"string_column", new JsonSchema().setType(Type.string),
+			"double_column", new JsonSchema().setType(Type.number),
+			"boolean_column", new JsonSchema().setType(Type._boolean)
+		)).getNewVersionInfo().get$id();
+		
+		entityService.bindSchemaToEntity(admin.getId(),
+			new BindSchemaToEntityRequest().setEntityId(recordSet.getId()).setSchema$id(schemaId));
 		
 		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
 			new CreateGridRequest().setRecordSetId(recordSet.getId()), (CreateGridResponse response) -> {
@@ -597,10 +618,16 @@ public class GridEventBrokerWorkerIntegrationTest {
 		
 		List<RowView> rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
 			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
-			if (page.size() == 3) {
-				return Pair.create(true, page);
+			
+			if (page.size() != 3) {
+				return Pair.create(false, page);
 			}
-			return Pair.create(false, null);
+			
+			// Also wait for the validation results to be set, the first row should be valid
+			return Pair.create(
+				new ValidationResults().setIsValid(true).equals(page.get(0).getRowValidationResults()), 
+				page
+			);
 		});
 		
 		assertEquals(
@@ -612,6 +639,138 @@ public class GridEventBrokerWorkerIntegrationTest {
 			rowsView.stream().map(r -> r.getRowObject().getData().getCells().toString()).collect(Collectors.toList())
 		);
 		
+		// Now export the grid back to the record set		
+		GridRecordSetExportRequest request = new GridRecordSetExportRequest()
+			.setSessionId(session.getSessionId());
+		
+		ValidationSummaryStatistics validationStats = asynchronousJobWorkerHelper.assertJobResponse(admin, request, (GridRecordSetExportResponse response) -> {
+			assertEquals(request.getSessionId(), response.getSessionId());
+			assertEquals(recordSet.getId(), response.getRecordSetId());
+			assertTrue(response.getRecordSetVersionNumber() > recordSet.getVersionNumber());
+			assertNotNull(response.getValidationSummaryStatistics());
+			assertEquals(3L, response.getValidationSummaryStatistics().getTotalNumberOfChildren());
+			assertEquals(2L, response.getValidationSummaryStatistics().getNumberOfValidChildren());
+			assertEquals(1L, response.getValidationSummaryStatistics().getNumberOfInvalidChildren());
+			assertEquals(0L, response.getValidationSummaryStatistics().getNumberOfUnknownChildren());
+		}, MAX_WAIT_MS).getResponse().getValidationSummaryStatistics();
+		
+		RecordSet recordSetV2 = entityService.getEntity(admin.getId(), recordSet.getId(), RecordSet.class);
+
+		assertNotEquals(recordSet.getDataFileHandleId(), recordSetV2.getDataFileHandleId());
+		assertEquals(validationStats, recordSetV2.getValidationSummary());
+		
+		// Now fix the grid by changing the double value in the second row from null to 2.2
+		Patch patch = new Patch().setPatchId(
+			new LogicalTimestamp().setReplicaId(replicaOne.getReplicaId()).setSequenceNumber(60L)
+		);
+		
+		RowView secondRow = rowsView.get(1);
+		
+		patch.addNewOperation(new InsertVectorBuilder()
+			.setVectorId(secondRow.getRowObject().getData().getVectorId())
+			.setMap(Map.of(
+				2, patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.DOUBLE, 2.2)))
+			))
+		);
+		
+		wsOne.send(String.format("[1,102,\"patch\", %s]", PatchCompactSerializable.serialize(patch).toString()));
+		
+		// Wait for response complete: [5,102]
+		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 102, incomingMessagesOne));
+		
+		rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			
+			// Wait for the updated validation results, all the rows should now be valid
+			return Pair.create(
+				new ValidationResults().setIsValid(true).equals(page.get(0).getRowValidationResults()) &&
+				new ValidationResults().setIsValid(true).equals(page.get(1).getRowValidationResults()) &&
+				new ValidationResults().setIsValid(true).equals(page.get(2).getRowValidationResults()), 
+				page
+			);
+		});
+		
+		assertEquals(
+			List.of(
+				"[1,\"test_1\",1.1,true]",
+				"[2,\"test_2\",2.2,true]",
+				"[3,\"test_3\",3.3,false]"
+			),
+			rowsView.stream().map(r -> r.getRowObject().getData().getCells().toString()).collect(Collectors.toList())
+		);
+		
+		// Now export the grid again		
+		validationStats = asynchronousJobWorkerHelper.assertJobResponse(admin, request, (GridRecordSetExportResponse response) -> {
+			assertEquals(request.getSessionId(), response.getSessionId());
+			assertEquals(recordSet.getId(), response.getRecordSetId());
+			assertTrue(response.getRecordSetVersionNumber() > recordSetV2.getVersionNumber());
+			assertNotNull(response.getValidationSummaryStatistics());
+			assertEquals(3L, response.getValidationSummaryStatistics().getTotalNumberOfChildren());
+			assertEquals(3L, response.getValidationSummaryStatistics().getNumberOfValidChildren());
+			assertEquals(0L, response.getValidationSummaryStatistics().getNumberOfInvalidChildren());
+			assertEquals(0L, response.getValidationSummaryStatistics().getNumberOfUnknownChildren());
+		}, MAX_WAIT_MS).getResponse().getValidationSummaryStatistics();
+
+		RecordSet recordSetV3 = entityService.getEntity(admin.getId(), recordSet.getId(), RecordSet.class);
+		
+		assertNotEquals(recordSetV2.getDataFileHandleId(), recordSetV3.getDataFileHandleId());
+		assertEquals(validationStats, recordSetV3.getValidationSummary());
+	
+		// Now update the record set from a CSV file
+		String csvContents = 
+			"integer_column,string_column,double_column,boolean_column" + System.lineSeparator() +
+			"1,test_1_updated,1.1,false" 								+ System.lineSeparator() + // update
+																								   // Skip line 2
+			"3,test_3_updated,3.3,true" 								+ System.lineSeparator() + // update
+			"4,test_4_created,4.4,true"									+ System.lineSeparator() + // new row
+			"5,test_5_created,5.5,true"									+ System.lineSeparator() + // new row
+			"6,test_6_created,6.6,false";														   // new row
+		
+		S3FileHandle upsertFileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContents.getBytes(StandardCharsets.UTF_8), "recordset_upsert.csv", ContentType.create("text/csv"), null);
+		
+		GridCsvImportRequest csvImportRequest = new GridCsvImportRequest()
+			.setSessionId(session.getSessionId())
+			.setFileHandleId(upsertFileHandle.getId())
+			.setCsvDescriptor(new CsvTableDescriptor().setIsFirstLineHeader(true))
+			.setSchema(List.of(
+				new ColumnModel().setName("integer_column").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setName("string_column").setColumnType(ColumnType.STRING),
+				new ColumnModel().setName("double_column").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setName("boolean_column").setColumnType(ColumnType.BOOLEAN)
+			));
+		
+		asynchronousJobWorkerHelper.assertJobResponse(admin, csvImportRequest, (GridCsvImportResponse response) -> {
+			assertEquals(request.getSessionId(), response.getSessionId());
+			assertEquals(5, response.getTotalCount());
+			assertEquals(2, response.getUpdatedCount());
+			assertEquals(3, response.getCreatedCount());
+		}, MAX_WAIT_MS).getResponse();
+		
+		rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			
+			if (page.size() != 6) {
+				return Pair.create(false, page);
+			}
+			
+			// Also wait for the validation results to be set, the last row should be valid
+			return Pair.create(
+				new ValidationResults().setIsValid(true).equals(page.get(5).getRowValidationResults()), 
+				page
+			);
+		});
+		
+		assertEquals(
+			List.of(
+				"[1,\"test_1_updated\",1.1,false]",
+				"[2,\"test_2\",2.2,true]",
+				"[3,\"test_3_updated\",3.3,true]",
+				"[4,\"test_4_created\",4.4,true]",
+				"[5,\"test_5_created\",5.5,true]",
+				"[6,\"test_6_created\",6.6,false]"
+			),
+			rowsView.stream().map(r -> r.getRowObject().getData().getCells().toString()).collect(Collectors.toList())
+		);
 	}
 
 	List<String[]> createAndDownloadCsvFromGrid(DownloadFromGridRequest request)
@@ -670,18 +829,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	 */
 	boolean waitForMessage(Predicate<JSONArray> handler, BlockingQueue<String> incomingMessages)
 			throws InterruptedException {
-		String message = null;
-		do {
-			message = incomingMessages.poll(10, TimeUnit.SECONDS);
-			if (message == null) {
-				return false;
-			}
-			JSONArray array = new JSONArray(message);
-			if (handler.test(array)) {
-				return true;
-			}
-		} while (message != null);
-		return false;
+		return asynchronousJobWorkerHelper.waitForMessage(handler, incomingMessages);
 	}
 
 	/**
@@ -695,52 +843,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	 */
 	public WebSocket createConnection(String presignedUrl, BlockingQueue<String> incomingMessages)
 			throws URISyntaxException {
-		WebSocketImpl client = new WebSocketImpl(presignedUrl, incomingMessages);
-
-		try {
-			client.connectBlocking();
-		} catch (InterruptedException e) {
-			throw new RuntimeException("Failed to connect to WebSocket: " + presignedUrl, e);
-		}
-
-		return client;
-	}
-
-	public static class WebSocketImpl extends WebSocketClient {
-
-		private BlockingQueue<String> incomingMessages;
-
-		public WebSocketImpl(String url, BlockingQueue<String> incomingMessages) {
-			super(URI.create(url));
-			this.incomingMessages = incomingMessages;
-		}
-
-		@Override
-		public void onOpen(org.java_websocket.handshake.ServerHandshake handshakedata) {
-			LOG.info("WebSocket connection opened: {}, ", handshakedata.getHttpStatusMessage());
-		}
-
-		@Override
-		public void onClose(int code, String reason, boolean remote) {
-			LOG.info("WebSocket connection closed with code: {}, reason: {}", code, reason);
-		}
-
-		@Override
-		public void onError(Exception ex) {
-			LOG.error("WebSocket error: ", ex);
-		}
-
-		@Override
-		public void onMessage(String message) {
-			LOG.info("Message received: {}", message);
-			try {
-				incomingMessages.put(message);
-			} catch (InterruptedException e) {
-				this.close(4999);
-				throw new RuntimeException(e);
-			}
-		}
-
+		return asynchronousJobWorkerHelper.createConnection(presignedUrl, incomingMessages);
 	}
 
 }

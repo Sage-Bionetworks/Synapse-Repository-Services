@@ -2,17 +2,12 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
-import org.json.JSONObject;
-import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
-public class RowValidation implements HasConstantIds {
+public class RowValidation  {
 
 	// the ID of the constant that contains the validation results.
 	private LogicalTimestamp constantId;
@@ -36,21 +31,8 @@ public class RowValidation implements HasConstantIds {
 		return this;
 	}
 
-	@Override
 	public List<LogicalTimestamp> getConstantIds() {
 		return constantId == null ? Collections.emptyList() : List.of(constantId);
-	}
-
-	@Override
-	public void applyConstants(Map<LogicalTimestamp, ConstantNode> constants) {
-		if (constantId != null) {
-			try {
-				validationResults = EntityFactory.createEntityFromJSONObject(
-						(JSONObject) constants.get(constantId).getValue(), ValidationResults.class);
-			} catch (JSONObjectAdapterException e) {
-				throw new RuntimeException(e);
-			}
-		}
 	}
 
 	@Override

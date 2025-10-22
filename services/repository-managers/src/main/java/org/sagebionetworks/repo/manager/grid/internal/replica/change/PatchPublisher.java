@@ -13,6 +13,6 @@ public interface PatchPublisher {
 	 * @param patchBody
 	 * @throws InterruptedException
 	 */
-	void publishPatch(GridConnectionInfo connection, JSONArray patchBody);
+	void publishPatch(GridConnectionInfo connection, JSONArray patchBody, Long patchSpan);
 
 }

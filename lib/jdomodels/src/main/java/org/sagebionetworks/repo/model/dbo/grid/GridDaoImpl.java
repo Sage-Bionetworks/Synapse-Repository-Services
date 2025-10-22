@@ -176,14 +176,14 @@ public class GridDaoImpl implements GridDao {
 		ValidateArgument.required(source, "source");
 		String set = null;
 		String select = null;
-		switch (source) {
-		case INTERNAL:
+		switch (source.getRequestOrigin()) {
+		case SERVICE:
 			// decrement service.
 			set = "REP_ID_SERVICE = REP_ID_SERVICE-1";
 			select = "REP_ID_SERVICE";
 			break;
 
-		case WEBSOCKET:
+		case USER:
 			// increment client.
 			set = "REP_ID_CLIENT = REP_ID_CLIENT+1";
 			select = "REP_ID_CLIENT";
@@ -268,17 +268,35 @@ public class GridDaoImpl implements GridDao {
 	}
 
     @Override
-    public Optional<GridConnectionInfo> getDefaultInternalConnection(String sessionId) {
+    public Optional<GridConnectionInfo> getSingletonConnection(String sessionId, EventSource source) {
         ValidateArgument.required(sessionId, "sessionId");
+        ValidateArgument.required(source, "source");
+        if(!source.isSingleton()) {
+        	return Optional.empty();
+        }
         // This will be the largest replica ID that is within the bounds of our internal ID space
         try {
             return Optional.ofNullable(jdbcTemplate.queryForObject(
-                    "SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? AND SOURCE = 'INTERNAL' ORDER BY REPLICA_ID DESC LIMIT 1",
-                    CONNECTION_MAPPER, sessionId));
+                    "SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? AND SOURCE = ? ORDER BY REPLICA_ID DESC LIMIT 1",
+                    CONNECTION_MAPPER, sessionId, source.name()));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
+    
+    @Override
+    public Optional<GridConnectionInfo> getSingletonUserConnection(String sessionId, Long userId, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(source, "source");
+		
+		if(!source.isSingleton()) {
+        	return Optional.empty();
+        }
+		
+		return jdbcTemplate.query("SELECT * FROM GRID_CONNECTION WHERE SESSION_ID = ? AND CREATED_BY = ? AND SOURCE = ? ORDER BY REPLICA_ID DESC LIMIT 1",
+				CONNECTION_MAPPER, sessionId, userId, source.name()).stream().findFirst();
+	}
 
 	@Override
 	public void removeConnection(String connectionId) {

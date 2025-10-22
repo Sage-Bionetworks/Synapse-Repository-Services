@@ -1,0 +1,255 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create AWS CodeBuild project
+Parameters:
+  SynapseRepository:
+    Type: String
+    Default: Synapse-Repository-Services
+    Description: Synapse repository name
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  SynapseBranch:
+    Type: String
+    Description: Branch of the Synapse repo to build
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  SynapseRepoOwner:
+    Type: String
+    Description: Owner of the Synapse Repo to build
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  ArtifactVersion:
+    Type: String
+    Description: The artifiact version to use when publishing artifacts.  If empty, then no artifacts are published.
+  StackBuilderRepository:
+    Type: String
+    Default: Synapse-Stack-Builder
+    Description: Stack Builder repository name
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  StackBuilderBranch:
+    Type: String
+    Default: develop
+    Description: Branch of the StackBuilder repo to build
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  StackBuilderRepoOwner:
+    Type: String
+    Default: Sage-Bionetworks
+    Description: Owner of the StackBuilder Repo
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  GitHubToken:
+    Type: String
+    Description: Token to authorize GitHub requests
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  BuildParamUser:
+    Type: String
+    Description: The 'user' param for the Synapse build, e.g. 'pjmhill'
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  FullBuild:
+    Type: String
+    Description: Set to true to do a full build
+  MavenExtraArgs:
+    Type: String
+    Description: Extra arguments to pass to maven
+  BuildImage:
+    Type: String
+    Description: CodeBuild image to use for the build
+    Default: aws/codebuild/amazonlinux-x86_64-standard:5.0
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  BuildComputeType:
+    Type: String
+    Description: CodeBuild compute type
+    Default: BUILD_GENERAL1_MEDIUM
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  VpcId:
+    Type: String
+    Description: VPC ID for CodeBuild to use. Default is the VPC for synapse-dev
+    Default: vpc-0f126dc4dd46853a6
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  Subnets:
+    Type: CommaDelimitedList
+    Description: Subnets for CodeBuild to use.  Default is a list of subnets for synapse-dev
+    Default: subnet-0bbca9690202e2605,subnet-0e76448649e0636b4,subnet-08d6e58487e45e94f,subnet-0a05b9d8a855b3936,subnet-0ad4945b93afc68f4,subnet-094fb1d1838d905a3
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+  SecurityGroupIds:
+    Type: CommaDelimitedList
+    Description: Security group IDs for CodeBuild to use.  Default is a security group for synapse-dev.
+    Default: sg-0818ba0f1872103d4
+    AllowedPattern: ".+"
+    ConstraintDescription: Parameter cannot be empty.
+Outputs:
+  PipelineName:
+    Value: !Ref CodePipeline
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-pipeline-name
+Resources:
+  CodePipelineServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      MaxSessionDuration: 28800
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Permission to use S3 artifact store
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:GetBucketVersioning
+                Resource:
+                  - !Sub "${PipelineOutputBucket.Arn}/*"
+                  - !GetAtt PipelineOutputBucket.Arn
+              # Permission to invoke CodeBuild
+              - Effect: Allow
+                Action:
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource: !GetAtt CodeBuildProject.Arn
+  CodeBuildServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # Note: This name is referenced in the Stack Builder too
+      RoleName: !Sub 'Synapse-Build-${BuildParamUser}-CodeBuildServiceRole'
+      MaxSessionDuration: 28800
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+  PipelineOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            ExpirationInDays: 180
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt CodePipelineServiceRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref PipelineOutputBucket
+      PipelineType: V2
+      Stages:
+        - Name: CheckoutRepos
+          Actions:
+            - Name: CheckoutStackBuilderRepo
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              OutputArtifacts:
+                - Name: StackBuilderRepoSource
+              Configuration:
+                Owner: !Ref StackBuilderRepoOwner
+                Repo: !Ref StackBuilderRepository
+                Branch: !Ref StackBuilderBranch
+                OAuthToken: !Ref GitHubToken
+                PollForSourceChanges: false # instead we will trigger from GitHub workflow
+            - Name: CheckoutSynapseRepo
+              Namespace: CheckoutSynapseRepo
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: 1
+              OutputArtifacts:
+                - Name: SynapseRepoSource
+              Configuration:
+                Owner: !Ref SynapseRepoOwner
+                Repo: !Ref SynapseRepository
+                Branch: !Ref SynapseBranch
+                OAuthToken: !Ref GitHubToken
+                PollForSourceChanges: false # instead we will trigger from GitHub workflow
+        - Name: RunStackBuilder
+          Actions:
+            - Name: RunStackBuilder
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: StackBuilderRepoSource
+              OutputArtifacts:
+                - Name: StackBuilderRepoBuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: !Sub '[{"name":"user","type":"PLAINTEXT","value":"${BuildParamUser}"}]'
+                BuildspecOverride: configuration/build/buildspec.yml
+        - Name: BuildSynapseRepo
+          Actions:
+            - Name: BuildSynapseRepo
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              InputArtifacts:
+                - Name: SynapseRepoSource
+              OutputArtifacts:
+                - Name: SynapseRepoBuildOutput
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+                EnvironmentVariables: !Sub '[{"name":"user","type":"PLAINTEXT","value": "${BuildParamUser}"},{"name":"FULL_BUILD","type":"PLAINTEXT","value": "${FullBuild}"},{"name":"EXTRA_ARGS","type":"PLAINTEXT","value": "${MavenExtraArgs}"},{"name":"ARTIFACT_VERSION","type":"PLAINTEXT","value": "${ArtifactVersion}"}]'
+                BuildspecOverride: configuration/build/buildspec.yml
+  # A CodeBuild project that can be used to run the stack builder or to build the Synapse back-end
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Source:
+        Type: CODEPIPELINE
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: !Ref BuildImage
+        ComputeType: !Ref BuildComputeType
+        PrivilegedMode: true
+        ImagePullCredentialsType: CODEBUILD
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      TimeoutInMinutes: 600
+      QueuedTimeoutInMinutes: 480
+      VpcConfig:
+        VpcId: !Ref VpcId
+        Subnets: !Ref Subnets
+        SecurityGroupIds: !Ref SecurityGroupIds
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+        S3Logs:
+          Status: DISABLED
+          EncryptionDisabled: false
+      BadgeEnabled: false
+      Visibility: PRIVATE

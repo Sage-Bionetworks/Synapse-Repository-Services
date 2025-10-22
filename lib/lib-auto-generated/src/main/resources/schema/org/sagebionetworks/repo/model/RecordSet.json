@@ -24,6 +24,11 @@
 		"csvDescriptor": {
 			"description": "Defines how to both read-from and write-to, this CSV file. If excluded then all of the default values will be used. Note: The 'isFirstLineHeader' must be true.",
 			"$ref": "org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"validationSummary": {
+			"description": "Summary of validation results from a grid session that was exported to this record set. Generated only from a grid session export, cannot be changed by the user.",
+			"$ref": "org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics",
+			"transient": true
 		}
 	}
 }

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -30,8 +31,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -40,6 +42,8 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
@@ -63,6 +67,8 @@ public class ITGridControllerTest {
     private static long ASYNC_JOB_POLL_TIME_MS = 1_000L;
 
 	private final SynapseClient synapse;
+	
+	private Project project;
 
 	public ITGridControllerTest(SynapseClient synapse) {
 		this.synapse = synapse;
@@ -71,6 +77,11 @@ public class ITGridControllerTest {
     @BeforeEach
     public void before() throws SynapseException{
         entitiesToDelete = new LinkedList<Entity>();
+        
+        // Create a project to contain it all
+        project = new Project();
+        project.setName(UUID.randomUUID().toString());
+        project = synapse.createEntity(project);
     }
 
     @AfterEach
@@ -78,6 +89,10 @@ public class ITGridControllerTest {
         for (Entity entity : entitiesToDelete) {
             synapse.deleteEntity(entity);
         }
+        
+        if (project != null) {
+			synapse.deleteEntity(project);
+		}
     }
 
 	@Test
@@ -169,6 +184,50 @@ public class ITGridControllerTest {
         });
     }
 
+    @Test
+    public void testExportRecordSet() throws Exception {
+    	File csvFile = new File(ITRecordSetTest.class.getClassLoader().getResource("docs/test.csv").getFile().replaceAll("%20", " "));
+
+    	FileHandle csvFileHandle = synapse.multipartUpload(csvFile, null, false, true);
+    	
+    	RecordSet recordSet = new RecordSet();
+		
+		recordSet.setParentId(project.getId());
+		recordSet.setName("Record Set");
+		recordSet.setUpsertKey(List.of("a", "b"));
+		recordSet.setDataFileHandleId(csvFileHandle.getId());
+	
+		// Call under test
+		recordSet = synapse.createEntity(recordSet);
+		
+		entitiesToDelete.add(recordSet);
+		
+		CreateGridResponse createGridResponse = (CreateGridResponse) AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateGrid, 
+			new CreateGridRequest().setRecordSetId(recordSet.getId()), body -> {
+                assertInstanceOf(CreateGridResponse.class, body);
+                CreateGridResponse r = (CreateGridResponse) body;
+                assertNotNull(r.getGridSession());
+                assertNotNull(r.getGridSession().getSessionId());
+            }, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
+
+		GridSession session = createGridResponse.getGridSession();
+		
+		String currentFileHandleId = recordSet.getDataFileHandleId();
+		Long currentVersion = recordSet.getVersionNumber();
+		
+		AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.GridExportRecordSet,
+			new GridRecordSetExportRequest().setSessionId(session.getSessionId()), body -> {
+				assertInstanceOf(GridRecordSetExportResponse.class, body);
+				GridRecordSetExportResponse r = (GridRecordSetExportResponse) body;
+				assertTrue(r.getRecordSetVersionNumber() > currentVersion);
+				assertNotNull(r.getValidationSummaryStatistics());
+		}, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
+		
+		recordSet = synapse.getEntity(recordSet.getId(), RecordSet.class);
+		
+		assertNotEquals(currentVersion, recordSet.getVersionNumber());
+		assertNotEquals(currentFileHandleId, recordSet.getDataFileHandleId());
+    }
 
     private TableEntity createTableForInitialGrid() throws Exception {
         // Create a few columns to add to a table entity
@@ -182,12 +241,7 @@ public class ITGridControllerTest {
         two.setName("two");
         two.setColumnType(ColumnType.STRING);
         two = synapse.createColumnModel(two);
-        // Create a project to contain it all
-        Project project = new Project();
-        project.setName(UUID.randomUUID().toString());
-        project = synapse.createEntity(project);
-        assertNotNull(project);
-        entitiesToDelete.add(project);
+        
 
         List<ColumnModel> columns = Arrays.asList(one, two);
 

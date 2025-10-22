@@ -37,6 +37,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.json.JSONObject;
@@ -84,6 +85,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
@@ -122,11 +125,13 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SortItem;
+import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.FileHandler;
 import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -1085,7 +1090,7 @@ public class DownloadListManagerImplTest {
 				new EntityRef().setEntityId("234"));
 		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.dataset);
 		when(mockNodeDao.getNodeItems(any())).thenReturn(items);
-		when(mockDownloadListDao.addDatasetItemsToDownloadList(any(), any(), anyLong()))
+		when(mockDownloadListDao.addFileEntityRefToDownloadList(any(), any(), anyLong()))
 				.thenReturn(count);
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
 				.thenReturn(AuthorizationStatus.authorized());
@@ -1094,7 +1099,7 @@ public class DownloadListManagerImplTest {
 		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
 		assertEquals(expected, response);
 		verify(mockNodeDao).getNodeItems(123L);
-		verify(mockDownloadListDao).addDatasetItemsToDownloadList(userOne.getId(), items, limit);
+		verify(mockDownloadListDao).addFileEntityRefToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 	
@@ -1114,6 +1119,29 @@ public class DownloadListManagerImplTest {
 		assertEquals("The recursive option is not supported for a dataset.", errorMessage);
 		
 		verifyZeroInteractions(mockNodeDao, mockDownloadListDao);
+		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
+	}
+	
+	@Test
+	public void testAddToDownloadListWithDatasetCollectionAsParentId() {
+		Long count = 2L;
+		String parentId = "syn123";
+		boolean recursive = false;
+		long limit = 100L;
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("123"),
+				new EntityRef().setEntityId("234"));
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
+		when(mockNodeDao.getNodeItems(any())).thenReturn(items);
+		when(mockDownloadListDao.addDatasetEntityRefFilesToDownloadList(any(), any(), anyLong()))
+				.thenReturn(count);
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		// Call under test
+		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, true, recursive, limit);
+		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
+		assertEquals(expected, response);
+		verify(mockNodeDao).getNodeItems(123L);
+		verify(mockDownloadListDao).addDatasetEntityRefFilesToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
 	}
 
@@ -2470,6 +2498,283 @@ public class DownloadListManagerImplTest {
 				"1-9", "1-10", "1-11", "one", null, "two" });
 		verify(mockCSVWriter).writeNext(new String[] { "2-0", "2-1", "2-2", "2-3", "2-4", "2-5", "2-6", "2-7", "2-8",
 				"2-9", "2-10", "2-11", null, "four", "three" });
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithQuery() throws Exception {
+
+		Query query = new Query();
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setQuery(query)
+		);
+		
+		QueryOptions expectedOptions = new QueryOptions()
+			.withRunCount(true)
+			.withRunSumFileSizes(true);
+		
+		when(mockTableQueryManager.querySinglePage(mockProgressCallback, userOne, query, expectedOptions))
+			.thenReturn(new QueryResultBundle().setQueryCount(10L).setSumFileSizes(new SumFileSizes().setSumFileSizesBytes(1300L).setGreaterThan(false)));
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(false);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithQueryAndEstimate() throws Exception {
+
+		Query query = new Query();
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setQuery(query)
+		);
+		
+		QueryOptions expectedOptions = new QueryOptions()
+			.withRunCount(true)
+			.withRunSumFileSizes(true);
+		
+		when(mockTableQueryManager.querySinglePage(mockProgressCallback, userOne, query, expectedOptions))
+			.thenReturn(new QueryResultBundle().setQueryCount(10L).setSumFileSizes(new SumFileSizes().setSumFileSizesBytes(1300L).setGreaterThan(true)));
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(true);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithQueryWithRecoverableEx() throws Exception {
+
+		Query query = new Query();
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setQuery(query)
+		);
+		
+		QueryOptions expectedOptions = new QueryOptions()
+			.withRunCount(true)
+			.withRunSumFileSizes(true);
+		
+		when(mockTableQueryManager.querySinglePage(mockProgressCallback, userOne, query, expectedOptions))
+			.thenThrow(new LockUnavilableException(LockType.Read, "key", "holder"))
+			.thenThrow(new TableUnavailableException(new TableStatus()));
+		
+		// Call under test
+		assertThrows(RecoverableMessageException.class, () -> {			
+			manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		});
+		
+		// Call under test
+		assertThrows(RecoverableMessageException.class, () -> {			
+			manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		});
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithQueryWithUnrecoverableEx() throws Exception {
+
+		Query query = new Query();
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setQuery(query)
+		);
+		
+		QueryOptions expectedOptions = new QueryOptions()
+			.withRunCount(true)
+			.withRunSumFileSizes(true);
+		
+		when(mockTableQueryManager.querySinglePage(mockProgressCallback, userOne, query, expectedOptions))
+			.thenThrow(new DatastoreException("nope"))
+			.thenThrow(new TableFailedException(new TableStatus()));
+		
+		// Call under test
+		assertThrows(RuntimeException.class, () -> {			
+			manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		});
+		
+		// Call under test
+		assertThrows(RuntimeException.class, () -> {			
+			manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		});
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithQueryParseExceptionEx() throws Exception {
+
+		Query query = new Query();
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setQuery(query)
+		);
+		
+		QueryOptions expectedOptions = new QueryOptions()
+			.withRunCount(true)
+			.withRunSumFileSizes(true);
+		
+		when(mockTableQueryManager.querySinglePage(mockProgressCallback, userOne, query, expectedOptions))
+			.thenThrow(new ParseException("nope"));
+		
+		// Call under test
+		assertThrows(IllegalArgumentException.class, () -> {			
+			manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		});
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithContainer() throws Exception {
+
+		String parentId = "syn123";
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setParentId(parentId)
+		);
+		
+		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.folder);
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(false);
+		
+		when(mockDownloadListDao.getAddChildrenToDownloadListStats(123L)).thenReturn(expectedResponse);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithContainerAndRecursive() throws Exception {
+
+		String parentId = "syn123";
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setParentId(parentId).setRecursive(true)
+		);
+		
+		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.folder);
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(false);
+		
+		when(mockDownloadListDao.getAddDescendantsToDownloadListStats(123L, 500)).thenReturn(expectedResponse);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithDataset() throws Exception {
+
+		String parentId = "syn123";
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setParentId(parentId)
+		);
+		
+		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.dataset);
+		
+		List<EntityRef> items = List.of(
+			new EntityRef().setEntityId("123"),
+			new EntityRef().setEntityId("234")
+		);
+		
+		when(mockNodeDao.getNodeItems(123L)).thenReturn(items);
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(false);
+		
+		when(mockDownloadListDao.getAddFileEntityRefToDownloadListStats(items)).thenReturn(expectedResponse);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithDatasetCollection() throws Exception {
+
+		String parentId = "syn123";
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setParentId(parentId)
+		);
+		
+		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
+		
+		List<EntityRef> items = List.of(
+			new EntityRef().setEntityId("123"),
+			new EntityRef().setEntityId("234")
+		);
+		
+		when(mockNodeDao.getNodeItems(123L)).thenReturn(items);
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(false);
+		
+		when(mockDownloadListDao.getAddDatasetEntityRefFilesToDownloadListStats(items)).thenReturn(expectedResponse);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
+	}
+	
+	@Test
+	public void testGetAddToDownloadListStatsWithDatasetCollectionWithEstimate() throws Exception {
+
+		String parentId = "syn123";
+		
+		AddToDownloadListStatsRequest request = new AddToDownloadListStatsRequest().setRequest(
+			addRequest.setParentId(parentId)
+		);
+		
+		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
+		
+		List<EntityRef> items = IntStream.range(0, 1000).boxed().map(i -> 
+			new EntityRef().setEntityId("syn" + i)
+		).collect(Collectors.toList());
+		
+		when(mockNodeDao.getNodeItems(123L)).thenReturn(items);
+		
+		// Call under test
+		AddToDownloadListStatsResponse expectedResponse = new AddToDownloadListStatsResponse()
+			.setFileCount(10L)
+			.setFileSize(1300L)
+			.setIsFileCountAndSizeEstimate(true);
+		
+		when(mockDownloadListDao.getAddDatasetEntityRefFilesToDownloadListStats(items.subList(0, 500))).thenReturn(expectedResponse);
+		
+		AddToDownloadListStatsResponse result = manager.getAddToDownloadListStats(mockProgressCallback, userOne, request);
+		
+		assertEquals(expectedResponse, result);
 	}
 	
 	/**

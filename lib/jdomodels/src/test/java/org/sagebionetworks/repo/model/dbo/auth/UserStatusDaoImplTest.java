@@ -93,16 +93,4 @@ public class UserStatusDaoImplTest {
 		// Now we should find the user in the inactive list
 		assertEquals(List.of(userId), userStatusDao.getInactiveUsersBatch(lastSeenOnThreshold, batchSize));
 	}
-	
-	@Test
-	public void testGetNeverSeenUsersBatch() {
-		int batchSize = 100;
-
-		assertTrue(userStatusDao.getNeverSeenUsersBatch(batchSize).contains(userId));
-		
-		userStatusDao.setLastSeenOn(List.of(userId), Date.from(Instant.now()));
-		
-		assertFalse(userStatusDao.getNeverSeenUsersBatch(batchSize).contains(userId));
-		
-	}
 }

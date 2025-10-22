@@ -1,0 +1,14 @@
+{
+	"description": "Start an asynchronous job that computes an estimate of the number and size of files from the given AddToDownloadListRequest request.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"request": {
+			"description": "The intended AddToDownloadListRequest to compute the count and size estimate for.",
+			"$ref": "org.sagebionetworks.repo.model.download.AddToDownloadListRequest"
+		}
+	}
+}

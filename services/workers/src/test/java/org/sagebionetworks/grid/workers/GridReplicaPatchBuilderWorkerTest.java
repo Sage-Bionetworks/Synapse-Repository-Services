@@ -41,7 +41,7 @@ public class GridReplicaPatchBuilderWorkerTest {
 	public void before() {
 		changeSet = new IntendedChangeSet().setSessionId("s1").setReplicaId(22L).setConnectionId("con1")
 				.setChanges(List.of(new UpdateMetadataChange()
-						.setRowObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))));
+						.setRowObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)))).setClockSequenceMaximum(321L);
 		message = new Message().withBody(IntendedChangeSerializable.serialize(changeSet).toString());
 	}
 

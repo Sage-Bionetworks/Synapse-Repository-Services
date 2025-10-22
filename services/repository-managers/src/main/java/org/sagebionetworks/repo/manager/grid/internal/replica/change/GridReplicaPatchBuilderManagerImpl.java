@@ -8,15 +8,14 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.sagebionetworks.grid.db.ConstantProvider;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
-import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,11 +29,11 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 	private final PatchPublisher patchPublisher;
 	private final Map<IntendedChangeType, ChangeHandler<?>> handlers;
 
-    public GridReplicaPatchBuilderManagerImpl(GridDao gridDao, GridIndexDao gridIndexDao, PatchPublisher patchPublisher,
-                                              List<ChangeHandler<?>> handlers, ConstantProvider constantProvider) {
-        this.gridDao = gridDao;
-        this.gridIndexDao = gridIndexDao;
-        this.constantProvider = constantProvider;
+	public GridReplicaPatchBuilderManagerImpl(GridDao gridDao, GridIndexDao gridIndexDao, PatchPublisher patchPublisher,
+			List<ChangeHandler<?>> handlers, ConstantProvider constantProvider) {
+		this.gridDao = gridDao;
+		this.gridIndexDao = gridIndexDao;
+		this.constantProvider = constantProvider;
 		this.patchPublisher = patchPublisher;
 		this.handlers = handlers.stream().collect(Collectors.toMap(ChangeHandler::getType, h -> h));
 	}
@@ -42,30 +41,38 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 	@Override
 	public void buildPatch(IntendedChangeSet changeSet) throws IOException {
 		validateChangeSet(changeSet);
-		Optional<GridSession> session = gridDao.getGridSession(changeSet.getSessionId());
-		if (session.isEmpty()) {
-			log.info("No session found for: '{}' the message will be ignored", changeSet.getSessionId());
+		Optional<GridConnectionInfo> connectionOp = gridDao.getConnection(changeSet.getConnectionId());
+		if (connectionOp.isEmpty()) {
+			log.info("No connection found for: '{}' the message will be ignored", changeSet.getConnectionId());
 			return;
 		}
 
-		Optional<LogicalTimestamp> currentClock = getCurrentClockIfAllPatchesApplied(changeSet.getSessionId(), changeSet.getReplicaId());
-		if (currentClock.isEmpty()) {
-			throw new RecoverableMessageException(
-					"Waiting for outstanding patches to be applied before building new ones");
-		}
+		Long currentClockSeq = gridIndexDao
+				.getClockSequenceNumber(changeSet.getSessionId(), changeSet.getReplicaId(), changeSet.getReplicaId())
+				.orElse(1L);
+		Long patchSequence = Math.max(changeSet.getClockSequenceMaximum(), currentClockSeq);
+		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(changeSet.getReplicaId())
+				.setSequenceNumber(patchSequence);
 
-		GridConnectionInfo connection = createConnectionInfo(changeSet);
-
-		try (ChangePatchBuilder builder = createChangePatchBuilder(connection, currentClock.get())) {
+		PatchSpanPublisherProxy patchStoreProxy = createNewPatchSpanPublisherProxy();
+		try (ChangePatchBuilder builder = createChangePatchBuilder(patchStoreProxy, connectionOp.get(), patchId)) {
 			processChanges(builder, changeSet.getChanges());
 		}
+		gridIndexDao.createReplicaIfNotExists(changeSet.getSessionId(), changeSet.getReplicaId());
+		gridIndexDao.setClock(changeSet.getSessionId(), changeSet.getReplicaId(),
+				LogicalTimestamp.newIncrement(patchId, patchStoreProxy.getTotalPatchSpan()));
+	}
+	
+	public PatchSpanPublisherProxy createNewPatchSpanPublisherProxy() {
+		return new PatchSpanPublisherProxy(patchPublisher);
 	}
 
-	ChangePatchBuilder createChangePatchBuilder(GridConnectionInfo connection, LogicalTimestamp currentClock) {
+	ChangePatchBuilder createChangePatchBuilder(PatchPublisher patchPublisher, GridConnectionInfo connection,
+			LogicalTimestamp currentClock) {
 		// disable constant caching due to PLFM-9192
 		boolean useCaching = false;
 		return new ChangePatchBuilder(patchPublisher, constantProvider, connection, currentClock,
-				PatchUtils.MAX_BYTES_PER_PATCH,useCaching);
+				PatchUtils.MAX_BYTES_PER_PATCH, useCaching);
 	}
 
 	void validateChangeSet(IntendedChangeSet changeSet) {
@@ -73,12 +80,9 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 		ValidateArgument.required(changeSet.getSessionId(), "changeset.sessionId");
 		ValidateArgument.required(changeSet.getReplicaId(), "changeset.replicaId");
 		ValidateArgument.required(changeSet.getConnectionId(), "changeset.connectionId");
+		ValidateArgument.required(changeSet.getClockSequenceMaximum(), "changeset.clockSequenceMaximum");
 	}
 
-	GridConnectionInfo createConnectionInfo(IntendedChangeSet changeSet) {
-		return new GridConnectionInfo().setConnectionId(changeSet.getConnectionId())
-				.setSessionId(changeSet.getSessionId()).setReplicaId(changeSet.getReplicaId());
-	}
 
 	void processChanges(ChangePatchBuilder builder, List<IntendedChange> changes) {
 		for (IntendedChange change : changes) {
@@ -99,6 +103,33 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 		}
 		Optional<Long> sequenceNumber = gridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId);
 		return Optional.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(sequenceNumber.orElse(0L)));
+	}
+
+	/**
+	 * Helper class to capture total span of all patches sent.
+	 */
+	static class PatchSpanPublisherProxy implements PatchPublisher {
+
+		private final PatchPublisher wrapped;
+
+		private long totalPatchSpan;
+
+		public PatchSpanPublisherProxy(PatchPublisher wrapped) {
+			super();
+			this.wrapped = wrapped;
+			totalPatchSpan = 0L;
+		}
+
+		@Override
+		public void publishPatch(GridConnectionInfo connection, JSONArray patchBody, Long patchSpan) {
+			wrapped.publishPatch(connection, patchBody, patchSpan);
+			totalPatchSpan += patchSpan;
+		}
+
+		public long getTotalPatchSpan() {
+			return totalPatchSpan;
+		}
+
 	}
 
 }

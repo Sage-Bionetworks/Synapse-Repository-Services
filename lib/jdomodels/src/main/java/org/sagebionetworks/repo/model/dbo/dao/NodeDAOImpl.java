@@ -69,6 +69,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -450,7 +451,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_REVISION_FILE_HANDLE = "UPDATE " + TABLE_REVISION + " SET " + COL_REVISION_FILE_HANDLE_ID
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 
-	private static final String SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION = "SELECT COUNT(*) AS COUNT, " +
+	private static final String SELECT_FILE_SUMMARY = "SELECT COUNT(*) AS COUNT, " +
 			"MD5(GROUP_CONCAT(F." + COL_FILES_CONTENT_MD5 + " ORDER BY F." + COL_FILES_CONTENT_MD5 + " ASC SEPARATOR '')) AS CHECKSUM, " +
 			"SUM(F." + COL_FILES_CONTENT_SIZE + ") AS SIZE " +
 			" FROM " + TABLE_REVISION + " R JOIN " + TABLE_FILES + " F ON R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID +
@@ -459,7 +460,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final RowMapper<FileSummary> FILE_SUMMARY_ROW_MAPPER = (rs, rowNum) -> {
 		String checksum = rs.getString("CHECKSUM");
 		long size = rs.getLong("SIZE");
-		int count = rs.getInt("COUNT");
+		long count = rs.getLong("COUNT");
 		return new FileSummary(checksum, size, count);
 	};
 
@@ -2309,19 +2310,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	@WriteTransaction
 	public FileSummary getFileSummary(List<EntityRef> entityRefs) {
-		List<Long[]> specificIdVersionPairs = new ArrayList<>(entityRefs.size());
-		for (EntityRef ref : entityRefs) {
-			if (ref.getEntityId() != null) {
-				Long entityId = KeyFactory.stringToKey(ref.getEntityId());
-				specificIdVersionPairs.add(new Long[]{entityId, ref.getVersionNumber()});
-			}
+		List<Long[]> idAndVersionPairs = entityRefs.stream()
+			.filter(Objects::nonNull)
+			.filter(ref -> ref.getEntityId() != null)
+			.map(ref -> new Long[]{ KeyFactory.stringToKey(ref.getEntityId()), ref.getVersionNumber() })
+			.collect(Collectors.toList());
+		
+		if (idAndVersionPairs.isEmpty()) {
+			return new FileSummary(0, 0);
 		}
 
-		if (specificIdVersionPairs.isEmpty()) {
-			return new FileSummary(null, 0, 0);
-		}
-
-		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", specificIdVersionPairs);
+		Map<String, List<Long[]>> namedParameters = Collections.singletonMap("pairs", idAndVersionPairs);
 		
 		Long currentGroupConcatMax = jdbcTemplate.queryForObject("SHOW SESSION VARIABLES LIKE ?", (rs, i) -> rs.getLong("Value"), "group_concat_max_len");
 		
@@ -2329,13 +2328,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			// We temporarily increase the group_concat length to allow computing the correct MD5 with bigger lists
 			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + FILE_SUMMARY_GROUP_CONCAT_LENGTH);
 			
-			return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY_FOR_ID_AND_VERSION, namedParameters, FILE_SUMMARY_ROW_MAPPER);
+			return namedParameterJdbcTemplate.queryForObject(SELECT_FILE_SUMMARY, namedParameters, FILE_SUMMARY_ROW_MAPPER);
 		} finally {
 			// Restores the group_concat length for the connection/session
 			jdbcTemplate.execute("SET SESSION group_concat_max_len=" + currentGroupConcatMax);
 		}
 	}
-
+	
 	@Override
 	public Optional<String> getDefiningSql(IdAndVersion id) {
 		return selectRevisionColumnValue(id, COL_REVISION_DEFINING_SQL, String.class);

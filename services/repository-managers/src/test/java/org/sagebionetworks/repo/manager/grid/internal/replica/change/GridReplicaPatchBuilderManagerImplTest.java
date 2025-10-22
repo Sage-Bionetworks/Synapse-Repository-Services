@@ -2,13 +2,9 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -25,11 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.ConstantProvider;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.GridReplicaPatchBuilderManagerImpl.PatchSpanPublisherProxy;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
-import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GridReplicaPatchBuilderManagerImplTest {
@@ -46,15 +42,18 @@ public class GridReplicaPatchBuilderManagerImplTest {
 	private PatchPublisher mockPatchPublisher;
 	@Mock
 	private ChangeHandler<UpdateMetadataChange> mockChangeHandler;
+	@Mock
+	private PatchSpanPublisherProxy mockPatchSpanPublisherProxy;
 
 	private IntendedChangeSet changeSet;
 	private String sessionId;
 	private Long replicaId;
 	private String connectionId;
-	private GridConnectionInfo con;
 	private List<LogicalTimestamp> currentClock;
 	private LogicalTimestamp clock;
-	private GridSession session;
+	private GridConnectionInfo validationConnection;
+	private Long patchSpan;
+	private Long clockSequenceMaximum;
 
 	private GridReplicaPatchBuilderManagerImpl manager;
 
@@ -63,62 +62,126 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		connectionId = "con123";
 		replicaId = 3L;
 		sessionId = "session34";
-
-		con = new GridConnectionInfo().setConnectionId(connectionId).setSessionId(sessionId).setReplicaId(replicaId);
+		clockSequenceMaximum = 98L;
 		changeSet = new IntendedChangeSet().setSessionId(sessionId).setReplicaId(replicaId)
-				.setConnectionId(connectionId).setChanges(List.of(new UpdateMetadataChange()
-						.setRowMetadataId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))));
+				.setConnectionId(connectionId)
+				.setChanges(List.of(new UpdateMetadataChange()
+						.setRowMetadataId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))))
+				.setClockSequenceMaximum(clockSequenceMaximum);
 		clock = new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L);
 		currentClock = List.of(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L));
-		session = new GridSession().setEtag("etag").setSessionId(sessionId);
+		patchSpan = 333L;
 		when(mockChangeHandler.getType()).thenReturn(IntendedChangeType.update_row_metadata);
 
 		manager = Mockito.spy(new GridReplicaPatchBuilderManagerImpl(mockGridDao, mockGridIndexDao, mockPatchPublisher,
 				List.of(mockChangeHandler), mocConstantProvider));
+
+		validationConnection = new GridConnectionInfo().setConnectionId(connectionId).setSessionId(sessionId)
+				.setReplicaId(replicaId).setSource(EventSource.VALIDATION);
 	}
 
 	@Test
-	public void testBuildPatch() throws IOException {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(session));
-		doReturn(Optional.of(clock)).when(manager).getCurrentClockIfAllPatchesApplied(sessionId, replicaId);
-		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(con, clock);
+	public void testBuildPatchWithCurrentClockLessThanMaxClock() throws IOException {
+		Long clockSequenceCurrent = clockSequenceMaximum - 1L;
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.of(validationConnection));
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId))
+				.thenReturn(Optional.of(clockSequenceCurrent));
+		doReturn(mockPatchSpanPublisherProxy).when(manager).createNewPatchSpanPublisherProxy();
+		when(mockPatchSpanPublisherProxy.getTotalPatchSpan()).thenReturn(patchSpan);
+		LogicalTimestamp expectedPatchId = new LogicalTimestamp().setReplicaId(replicaId)
+				.setSequenceNumber(clockSequenceMaximum);
+		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(mockPatchSpanPublisherProxy,
+				validationConnection, expectedPatchId);
 		doNothing().when(manager).processChanges(mockChangePatchBuilder, changeSet.getChanges());
 
 		// call under test
 		manager.buildPatch(changeSet);
 		verify(mockChangePatchBuilder).close();
+		verify(mockGridIndexDao).createReplicaIfNotExists(sessionId, replicaId);
+		verify(mockGridIndexDao).setClock(sessionId, replicaId,
+				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
 	}
 
 	@Test
-	public void testBuildPatchWithNoSession() throws IOException {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.empty());
+	public void testBuildPatchWithCurrentClockEqualToMaxClock() throws IOException {
+		Long clockSequenceCurrent = clockSequenceMaximum;
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.of(validationConnection));
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId))
+				.thenReturn(Optional.of(clockSequenceCurrent));
+		doReturn(mockPatchSpanPublisherProxy).when(manager).createNewPatchSpanPublisherProxy();
+		when(mockPatchSpanPublisherProxy.getTotalPatchSpan()).thenReturn(patchSpan);
+		LogicalTimestamp expectedPatchId = new LogicalTimestamp().setReplicaId(replicaId)
+				.setSequenceNumber(clockSequenceMaximum);
+		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(mockPatchSpanPublisherProxy,
+				validationConnection, expectedPatchId);
+		doNothing().when(manager).processChanges(mockChangePatchBuilder, changeSet.getChanges());
 
 		// call under test
 		manager.buildPatch(changeSet);
-		verify(manager, never()).getCurrentClockIfAllPatchesApplied(any(), any());
-		verify(manager, never()).createChangePatchBuilder(any(), any());
-		verify(manager, never()).createChangePatchBuilder(any(), any());
-		verifyNoMoreInteractions(mockGridDao, mockGridIndexDao);
+		verify(mockChangePatchBuilder).close();
+		verify(mockGridIndexDao).createReplicaIfNotExists(sessionId, replicaId);
+		verify(mockGridIndexDao).setClock(sessionId, replicaId,
+				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
 	}
 
 	@Test
-	public void testBuildPatchWithNoClock() throws IOException {
-		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(session));
-		doReturn(Optional.empty()).when(manager).getCurrentClockIfAllPatchesApplied(sessionId, replicaId);
-		String message = assertThrows(RecoverableMessageException.class, () -> {
-			// call under test
-			manager.buildPatch(changeSet);
-		}).getMessage();
-		assertEquals("Waiting for outstanding patches to be applied before building new ones", message);
+	public void testBuildPatchWithCurrentClockGreaterThanMaxClock() throws IOException {
+		Long clockSequenceCurrent = clockSequenceMaximum + 1L;
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.of(validationConnection));
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId))
+				.thenReturn(Optional.of(clockSequenceCurrent));
+		doReturn(mockPatchSpanPublisherProxy).when(manager).createNewPatchSpanPublisherProxy();
+		when(mockPatchSpanPublisherProxy.getTotalPatchSpan()).thenReturn(patchSpan);
+		LogicalTimestamp expectedPatchId = new LogicalTimestamp().setReplicaId(replicaId)
+				.setSequenceNumber(clockSequenceCurrent);
+		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(mockPatchSpanPublisherProxy,
+				validationConnection, expectedPatchId);
+		doNothing().when(manager).processChanges(mockChangePatchBuilder, changeSet.getChanges());
 
-		verifyZeroInteractions(mockChangePatchBuilder);
-		verify(manager, never()).createChangePatchBuilder(any(), any());
-		verify(manager, never()).processChanges(any(), any());
+		// call under test
+		manager.buildPatch(changeSet);
+		verify(mockChangePatchBuilder).close();
+		verify(mockGridIndexDao).createReplicaIfNotExists(sessionId, replicaId);
+		verify(mockGridIndexDao).setClock(sessionId, replicaId,
+				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
+	}
+
+	@Test
+	public void testBuildPatchWithNoConnection() throws IOException {
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.empty());
+		// call under test
+		manager.buildPatch(changeSet);
+		verifyZeroInteractions(mockGridIndexDao, mockPatchSpanPublisherProxy);
+	}
+
+	@Test
+	public void testBuildPatchWithCurrentClockEmpty() throws IOException {
+		when(mockGridDao.getConnection(connectionId)).thenReturn(Optional.of(validationConnection));
+		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId)).thenReturn(Optional.empty());
+		changeSet = new IntendedChangeSet().setSessionId(sessionId).setReplicaId(replicaId)
+				.setConnectionId(connectionId)
+				.setChanges(List.of(new UpdateMetadataChange()
+						.setRowMetadataId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))))
+				.setClockSequenceMaximum(0L);
+
+		doReturn(mockPatchSpanPublisherProxy).when(manager).createNewPatchSpanPublisherProxy();
+		when(mockPatchSpanPublisherProxy.getTotalPatchSpan()).thenReturn(patchSpan);
+		LogicalTimestamp expectedPatchId = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L);
+		doReturn(mockChangePatchBuilder).when(manager).createChangePatchBuilder(mockPatchSpanPublisherProxy,
+				validationConnection, expectedPatchId);
+		doNothing().when(manager).processChanges(mockChangePatchBuilder, changeSet.getChanges());
+
+		// call under test
+		manager.buildPatch(changeSet);
+		verify(mockChangePatchBuilder).close();
+		verify(mockGridIndexDao).createReplicaIfNotExists(sessionId, replicaId);
+		verify(mockGridIndexDao).setClock(sessionId, replicaId,
+				LogicalTimestamp.newIncrement(expectedPatchId, patchSpan));
 	}
 
 	@Test
 	public void testCreateChangePatchBuilder() {
-		ChangePatchBuilder builder = manager.createChangePatchBuilder(con, clock);
+		ChangePatchBuilder builder = manager.createChangePatchBuilder(mockPatchPublisher, validationConnection, clock);
 		assertNotNull(builder);
 		assertEquals(PatchUtils.MAX_BYTES_PER_PATCH, builder.getMaxBytesPerPatch());
 	}
@@ -134,8 +197,7 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		verify(mockChangeHandler).handleChange(mockChangePatchBuilder,
 				(UpdateMetadataChange) changeSet.getChanges().get(0));
 	}
-
-//<<<<<<< HEAD
+	
 	@Test
 	public void testGetCurrentClock() {
 		Long last = 101L;

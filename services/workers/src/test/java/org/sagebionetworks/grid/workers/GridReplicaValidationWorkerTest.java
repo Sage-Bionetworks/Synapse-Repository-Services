@@ -73,7 +73,7 @@ public class GridReplicaValidationWorkerTest {
 
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 	}
 
 	@Test
@@ -81,7 +81,7 @@ public class GridReplicaValidationWorkerTest {
 
 		// call under test
 		worker.run(mockCallback, messageFromTopic);
-		verify(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 	}
 
 	@Test
@@ -117,7 +117,7 @@ public class GridReplicaValidationWorkerTest {
 	@Test
 	public void testRunWithMessageWithRecoverableException() throws RecoverableMessageException, Exception {
 		RecoverableMessageException e = new RecoverableMessageException("now now");
-		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 
 		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
@@ -125,13 +125,13 @@ public class GridReplicaValidationWorkerTest {
 		});
 		assertEquals(e, thrown);
 
-		verify(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 	}
 
 	@Test
 	public void testRunWithMessageWithLockUnavailableException() throws RecoverableMessageException, Exception {
 		LockUnavilableException e = new LockUnavilableException(LockType.Write, "key", "context");
-		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 
 		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, () -> {
 			// call under test
@@ -139,16 +139,16 @@ public class GridReplicaValidationWorkerTest {
 		});
 		assertEquals(e, thrown.getCause());
 
-		verify(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 	}
 
 	@Test
 	public void testRunWithMessageWithException() throws RecoverableMessageException, Exception {
 		IllegalArgumentException e = new IllegalArgumentException("not");
-		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		doThrow(e).when(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 
 		// call under test
 		worker.run(mockCallback, message);
-		verify(mockValidationManager).validateChanges(sessionId, replicaId, connectionId, Set.of(vectorId));
+		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
 	}
 }

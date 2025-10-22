@@ -1,0 +1,14 @@
+{
+	"description": "A request to export a grid created from a record set back to the original record set. A CSV file will be generated and set as a new version of the recordset.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		}
+	}
+}

@@ -1,0 +1,298 @@
+---
+#
+# This workflow runs the Synapse Stack Builder and then builds and runs the tests
+# for the Synapse Repository Services.
+#
+# These parameters can be overridden with repo's action variables:
+#
+# - USER (the 'user' parameter for the Synapse build): defaults to repo' owner.  Should be alphanumeric only.
+# - STACK_BUILDER_REPO_OWNER: defaults to Sage-Bionetworks
+# - STACK_BUILDER_BRANCH: defaults to develop
+# - FULL_BUILD: if true, will do a full build, vs. an abbreviated "feature build"
+# - EXTRA_ARGS: pass extra arguments to maven build
+#
+name: main
+
+on:
+  push:
+    branches: ['*']
+
+# let only one copy of the workflow run at a time
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  build_and_test:
+    permissions:
+      # https://graphite.dev/guides/github-actions-permissions
+      id-token: write
+      contents: read
+      deployments: write
+      security-events: write
+      statuses: write
+      actions: write
+      checks: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # Fetch all history for git commands to work correctly
+
+      - name: Static Analysis
+        uses: pre-commit/action@v3.0.0
+
+      - run: |
+          # get the 'user' parameter, either from the repo' env or repo' owner if not set
+          if [ ${{ vars.USER }} ]; then
+            echo "user=${{ vars.USER }}" >> $GITHUB_ENV
+          else
+            alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | cut -c1-7)
+            echo "user=$alpha_only_trunc_repo_name" >> $GITHUB_ENV
+          fi
+          # capture the current branch as an environment variable
+          branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "branch=$branch" >> $GITHUB_ENV
+          # get repo' and branch specifying the version of the stack builder to use
+          if [ ${{ vars.STACK_BUILDER_REPO_OWNER }} ]; then
+            echo "stack_builder_repo_owner=${{ vars.STACK_BUILDER_REPO_OWNER }}" >> $GITHUB_ENV
+           else
+            echo "stack_builder_repo_owner=Sage-Bionetworks" >> $GITHUB_ENV
+          fi
+          if [ ${{ vars.STACK_BUILDER_BRANCH }} ]; then
+            echo "stack_builder_branch=${{ vars.STACK_BUILDER_BRANCH }}" >> $GITHUB_ENV
+          else
+            echo "stack_builder_branch=develop" >> $GITHUB_ENV
+          fi
+          echo "full_build=${{ vars.FULL_BUILD }}" >> $GITHUB_ENV
+          echo "EXTRA_ARGS=${{ vars.EXTRA_ARGS }}" >> $GITHUB_ENV
+          # for builds in Sage-Bionetworks repo', publish build artifacts
+          if [[ $GITHUB_REPOSITORY_OWNER == "Sage-Bionetworks" ]]; then
+            if [[ $branch == "develop" ]]; then
+              GIT_COMMIT=${{ github.sha }}
+              ARTIFACT_VERSION=$(date +%Y-%m-%d_%H-%M)"_"${GIT_COMMIT:0:7}
+            elif [[ $branch =~ "release-" ]]; then
+              git fetch --tags
+              ARTIFACT_VERSION=$(git describe --tags --abbrev=0)
+            fi
+          fi
+          if [[ $ARTIFACT_VERSION ]]; then
+            echo "ARTIFACT_VERSION=$ARTIFACT_VERSION" >> $GITHUB_ENV
+          fi
+
+      - id: display-artifact-version
+        name: Display Artifact Version
+        run: |
+          if [[ $ARTIFACT_VERSION ]]; then
+            echo "Build will publish artifacts with version" $ARTIFACT_VERSION
+          else
+            echo "Artifacts will not be published for this build"
+          fi
+
+      - id: oidc
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::449435941126:role/sagebase-github-oidc-sage-bionetworks-synapse-build
+          aws-region: us-east-1
+          # eight hours
+          role-duration-seconds: 28800
+
+      - name: Capture Session Credentials
+        run: |
+          # We will capture the long-lived session token to use for the build
+          # Note: We cannot pass the credentials as inputs to code pipeline
+          # since the token exceeded the 1000 character limit for input variables.
+          SECRET_NAME="/build/session-token/${{ env.user }}"
+          SECRET_VALUE='{"AwsAccessKeyId":"${{ env.AWS_ACCESS_KEY_ID }}", "AwsSecretAccessKey":"${{ env.AWS_SECRET_ACCESS_KEY }}", "AwsSessionToken":"${{ env.AWS_SESSION_TOKEN }}"}'
+          # Try to update the secret value first
+          if aws secretsmanager put-secret-value \
+              --secret-id "$SECRET_NAME" \
+              --secret-string "$SECRET_VALUE" \
+              2>/dev/null; then
+              echo "Secret updated successfully"
+          else
+              echo "Secret doesn't exist, creating new secret..."
+              if aws secretsmanager create-secret \
+                  --name "$SECRET_NAME" \
+                  --secret-string "$SECRET_VALUE" \
+                  --description "Build credentials for ${{ env.user }}"; then
+                  echo "Secret created successfully"
+              else
+                  echo "Failed to create secret"
+                  exit 1
+              fi
+          fi
+
+      - name: get app credentials
+        id: app-creds
+        run: |
+          github_app_credentials=$(aws secretsmanager get-secret-value --secret-id "/build/github/app/credentials" --query SecretString --output text)
+          echo "APP_ID=$(echo $github_app_credentials | jq -r '.APP_ID')" >> $GITHUB_OUTPUT
+          # Note, in Secrets Manager the secret is a pem file, but with new lines represented as underscores
+          # So here we replace the underscores with new lines
+          APP_PRIVATE_KEY_WITH_UNDERSCORES=$(echo $github_app_credentials | jq -r '.PRIVATE_KEY')
+          echo "APP_PRIVATE_KEY=$(echo $APP_PRIVATE_KEY_WITH_UNDERSCORES | sed s/_/'\\n'/g)" >> $GITHUB_OUTPUT
+
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ steps.app-creds.outputs.APP_ID }}
+          private-key: ${{ steps.app-creds.outputs.APP_PRIVATE_KEY }}
+          owner: Sage-Bionetworks
+          repositories: Synapse-Repository-Services
+
+      - name: Deploy CodePipeline to AWS CloudFormation
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        id: pipeline-deploy
+        with:
+          template: configuration/build/codepipeline_cf_template.yaml
+          name: Synapse-Build-${{ env.user }}
+          capabilities: CAPABILITY_IAM,CAPABILITY_NAMED_IAM
+          parameter-overrides: >-
+            SynapseBranch=${{ env.branch }},
+            SynapseRepoOwner=${{ github.repository_owner }},
+            GitHubToken=${{ secrets.GITHUB_TOKEN }},
+            BuildParamUser=${{ env.user }},
+            StackBuilderBranch=${{ env.stack_builder_branch }},
+            StackBuilderRepoOwner=${{ env.stack_builder_repo_owner }},
+            FullBuild=${{ env.full_build }},
+            MavenExtraArgs=${{ env.EXTRA_ARGS }},
+            ArtifactVersion=${{ env.ARTIFACT_VERSION }}
+
+      - name: Output Pipeline Console URL
+        run: |
+          echo "PIPELINE_CONSOLE_URL=https://us-east-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/${{ steps.pipeline-deploy.outputs.PipelineName }}/view" >> $GITHUB_ENV
+
+      - name: Pending Status
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh api --method POST \
+          /repos/Sage-Bionetworks/Synapse-Repository-Services/statuses/${{ github.sha }} \
+          -f "state=pending" \
+          -f "description=Build in Progress" \
+          -f "target_url=${{ env.PIPELINE_CONSOLE_URL }}"
+
+      - name: Trigger CodePipeline
+        id: pipeline-run
+        run: |
+          EXECUTION_ID=$(aws codepipeline start-pipeline-execution \
+            --name ${{ steps.pipeline-deploy.outputs.PipelineName }} \
+            --source-revisions actionName=CheckoutSynapseRepo,revisionType=COMMIT_ID,revisionValue=${{ github.sha }} \
+            --query 'pipelineExecutionId' --output text)
+
+          echo "EXECUTION_ID=$EXECUTION_ID" >> $GITHUB_ENV
+
+          # if the status check is too soon, the executing pipeline is not found and the workflow fails
+          sleep 10
+
+          # Wait for completion
+          while true; do
+            STATUS=$(aws codepipeline get-pipeline-execution --pipeline-name ${{ steps.pipeline-deploy.outputs.PipelineName }} \
+              --pipeline-execution-id $EXECUTION_ID --query "pipelineExecution.status" --output text)
+
+            if [[ "$STATUS" == "Succeeded" ]]; then
+              echo "Pipeline execution $EXECUTION_ID succeeded."
+              break
+            elif [[ "$STATUS" == "InProgress" ]]; then
+              echo "Pipeline execution $EXECUTION_ID is still in progress. Current status: $STATUS. Waiting..."
+              sleep 30 # Wait for 30 seconds before checking again
+            else
+              echo "Pipeline execution $EXECUTION_ID terminated with: $STATUS"
+              exit 1
+            fi
+          done
+
+        # since app credentials only last an hour we have to get new ones
+      - uses: actions/create-github-app-token@v2
+        id: app-token-2
+        if: always()
+        with:
+          app-id: ${{ steps.app-creds.outputs.APP_ID }}
+          private-key: ${{ steps.app-creds.outputs.APP_PRIVATE_KEY }}
+          owner: Sage-Bionetworks
+          repositories: Synapse-Repository-Services
+
+
+      - name: Success Status
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token-2.outputs.token }}
+        run: |
+          gh api --method POST \
+          /repos/Sage-Bionetworks/Synapse-Repository-Services/statuses/${{ github.sha }} \
+          -f "state=success" \
+          -f "description=Build Succeeded" \
+          -f "target_url=${{ env.PIPELINE_CONSOLE_URL }}"
+
+      - name: Failed Status
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token-2.outputs.token }}
+        run: |
+          gh api --method POST \
+          /repos/Sage-Bionetworks/Synapse-Repository-Services/statuses/${{ github.sha }} \
+          -f "state=failure" \
+          -f "description=Build Failed" \
+          -f "target_url=${{ env.PIPELINE_CONSOLE_URL }}"
+
+      - name: Cancelled Status
+        if: cancelled()
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token-2.outputs.token }}
+        run: |
+          gh api --method POST \
+          /repos/Sage-Bionetworks/Synapse-Repository-Services/statuses/${{ github.sha }} \
+          -f "state=failure" \
+          -f "description=Build Cancelled" \
+          -f "target_url=${{ env.PIPELINE_CONSOLE_URL }}"
+
+      - name: Stop CodePipeline on Workflow Cancellation
+        if: cancelled()
+        run: |
+          PIPELINE_NAME=${{ steps.pipeline-deploy.outputs.PipelineName }}
+          aws codepipeline stop-pipeline-execution \
+            --pipeline-name  $PIPELINE_NAME \
+            --pipeline-execution-id ${{ env.EXECUTION_ID }} \
+            --abandon
+
+          # Wait a moment for the pipeline to process
+          sleep 5
+
+          # Get pipeline structure to find CodeBuild projects
+          CODEBUILD_PROJECTS=$(aws codepipeline get-pipeline \
+              --name "$PIPELINE_NAME" \
+              --query 'pipeline.stages[].actions[?actionTypeId.provider==`CodeBuild`].configuration.ProjectName' \
+              --output text)
+
+          echo "Found CodeBuild projects: $CODEBUILD_PROJECTS"
+
+          # Stop running builds for each CodeBuild project
+          for project in $CODEBUILD_PROJECTS; do
+              echo "Checking builds for project: $project"
+
+              # Get running builds for this project
+              RUNNING_BUILDS=$(aws codebuild list-builds-for-project \
+                  --project-name "$project" \
+                  --sort-order DESCENDING \
+                  --query 'ids[0:5]' \
+                  --output text)
+
+              for build_id in $RUNNING_BUILDS; do
+                  if [ -n "$build_id" ]; then
+                      # Check if build is still running
+                      BUILD_STATUS=$(aws codebuild batch-get-builds \
+                          --ids "$build_id" \
+                          --query 'builds[0].buildStatus' \
+                          --output text)
+
+                      if [ "$BUILD_STATUS" = "IN_PROGRESS" ]; then
+                          echo "Stopping running build: $build_id"
+                          aws codebuild stop-build --id "$build_id"
+                      fi
+                  fi
+              done
+          done
+
+...

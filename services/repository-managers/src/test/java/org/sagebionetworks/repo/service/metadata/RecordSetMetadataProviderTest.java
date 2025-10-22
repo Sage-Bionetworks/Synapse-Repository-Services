@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.service.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,9 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,18 +37,26 @@ public class RecordSetMetadataProviderTest {
 	@Mock
 	private FileEntityMetadataProvider mockFileEntityMetadataProvider;
 	
+	@Mock
+	private EntitySchemaValidationResultDao mockValidationResultDao;
+	
 	@InjectMocks
 	private RecordSetMetadataProvider recordSetMetadataProvider;
+	
+	@Mock
+	private ValidationSummaryStatistics mockValidationStats;
 	
 	private RecordSet recordSet;
 	private UserInfo userInfo;
 	private List<EntityHeader> path;
+	
 
 	@BeforeEach
 	public void before() {
 
 		recordSet = new RecordSet();
 		recordSet.setId("syn123");
+		recordSet.setVersionNumber(3L);
 		recordSet.setDataFileHandleId("456");
 		recordSet.setParentId("syn234567");
 		recordSet.setUpsertKey(List.of("a", "b"));
@@ -67,6 +81,22 @@ public class RecordSetMetadataProviderTest {
 		recordSetMetadataProvider.validateEntity(recordSet, event);
 		
 		verify(mockFileEntityMetadataProvider).validateEntity(recordSet, event);
+	}
+	
+	@ParameterizedTest
+	@EnumSource(value = EventType.class, mode = Mode.INCLUDE, names = {"CREATE", "UPDATE"})
+	public void testValidateEntityWithValidationSummary(EventType eventType) throws Exception {
+		
+		EntityEvent event = new EntityEvent(eventType, path, userInfo);
+		
+		recordSet.setValidationSummary(mockValidationStats);
+		
+		// Call under test
+		recordSetMetadataProvider.validateEntity(recordSet, event);
+		
+		verify(mockFileEntityMetadataProvider).validateEntity(recordSet, event);
+		
+		assertNull(recordSet.getValidationSummary());
 	}
 	
 	@ParameterizedTest
@@ -138,4 +168,29 @@ public class RecordSetMetadataProviderTest {
 		verify(mockFileEntityMetadataProvider).entityUpdated(userInfo, recordSet, wasNewVersionCreated);
 	}
 	
+	@ParameterizedTest
+	@EnumSource(value = EventType.class)
+	public void testAddTypeSpecificMetadata(EventType eventType) throws Exception {
+		when(mockValidationResultDao.getRecordSetValidationSummaryStatistics(KeyFactory.stringToKey(recordSet.getId()), recordSet.getVersionNumber())).thenReturn(
+			Optional.of(mockValidationStats)
+		);
+		
+		// Call under test
+		recordSetMetadataProvider.addTypeSpecificMetadata(recordSet, userInfo, eventType);
+	
+		assertEquals(mockValidationStats, recordSet.getValidationSummary());
+	}
+	
+	@ParameterizedTest
+	@EnumSource(value = EventType.class)
+	public void testAddTypeSpecificMetadataWithNoValidationStats(EventType eventType) throws Exception {
+		when(mockValidationResultDao.getRecordSetValidationSummaryStatistics(KeyFactory.stringToKey(recordSet.getId()), recordSet.getVersionNumber())).thenReturn(
+			Optional.empty()
+		);
+		
+		// Call under test
+		recordSetMetadataProvider.addTypeSpecificMetadata(recordSet, userInfo, eventType);
+	
+		assertNull(recordSet.getValidationSummary());
+	}
 }

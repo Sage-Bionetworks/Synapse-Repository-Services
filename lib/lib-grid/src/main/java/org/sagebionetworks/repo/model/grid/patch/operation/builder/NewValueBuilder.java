@@ -10,4 +10,14 @@ public final class NewValueBuilder extends OperationBuilder {
     public NewValue build(LogicalTimestamp operationId) {
         return new NewValue(operationId);
     }
+    
+    @Override
+	public boolean equals(Object obj) {
+		return obj != null && this.getClass() == obj.getClass();
+	}
+
+	@Override
+	public int hashCode() {
+		return this.getClass().hashCode();
+	}
 }

@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
 import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
@@ -288,6 +290,61 @@ public class DownloadListController {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
 				asyncToken);
 		return (AddToDownloadListResponse) jobStatus.getResponseBody();
+	}
+	
+	/**
+	 * Start an asynchronous job to get an estimate of the file count and size that a {@link AddToDownloadListRequest} request 
+	 * would attempt to add to the download list.
+	 * 
+	 * Use <a href="${GET.download.list.add.stats.async.get.asyncToken}">GET
+	 * /download/list/add/stats/async/get/{asyncToken}</a> to get both the job status and
+	 * job results.
+	 * 
+	 * @param userId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_STATS_START_ASYNCH, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId startAddFileToDownloadListStats(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AddToDownloadListStatsRequest request) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Get the results of an asynchronous job to get an estimate of the file count and size from a {@link AddToDownloadListRequest} request 
+	 * started with: <a href="${POST.download.list.add.stats.async.start}">POST
+	 * /download/list/add/stats/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.DOWNLOAD_LIST_ADD_STATS_GET_ASYNCH, method = RequestMethod.GET)
+	public @ResponseBody AddToDownloadListStatsResponse getAddFileToDownloadListStatsResults(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId,
+				asyncToken);
+		return (AddToDownloadListStatsResponse) jobStatus.getResponseBody();
 	}
 
 	/**

@@ -16,6 +16,7 @@ public class IntendedChangeSerializableTest {
 	private String sessionId;
 	private Long replicaId;
 	private String connectionId;
+	private Long clockMax;
 	private IntendedChangeSet set;
 
 	@BeforeEach
@@ -29,8 +30,9 @@ public class IntendedChangeSerializableTest {
 		sessionId = "session123";
 		replicaId = 111L;
 		connectionId = "con44";
+		clockMax = 921L;
 		set = new IntendedChangeSet().setChanges(changes).setSessionId(sessionId).setReplicaId(replicaId)
-				.setConnectionId(connectionId);
+				.setConnectionId(connectionId).setClockSequenceMaximum(clockMax);
 
 	}
 
@@ -50,7 +52,7 @@ public class IntendedChangeSerializableTest {
 		// call under test
 		JSONObject json = IntendedChangeSerializable.serialize(set);
 		assertEquals(
-				"{\"con\":\"con44\",\"ses\":\"session123\",\"rep\":111,\"set\":[[0,{\"o\":[1,2]}],[0,{\"m\":[3,4]}]]}",
+				"{\"con\":\"con44\",\"ses\":\"session123\",\"rep\":111,\"max\":921,\"set\":[[0,{\"o\":[1,2]}],[0,{\"m\":[3,4]}]]}",
 				json.toString());
 		// call under test
 		IntendedChangeSet clone = IntendedChangeSerializable.deserialize(json);

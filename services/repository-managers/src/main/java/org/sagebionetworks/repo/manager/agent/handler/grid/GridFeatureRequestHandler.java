@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.agent.handler.grid;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.agent.handler.HttpCode;
 import org.sagebionetworks.repo.manager.agent.handler.HttpMethod;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class GridFeatureRequestHandler implements OpenApiReturnControlHandler {
 	
-	static private Log log = LogFactory.getLog(GridFeatureRequestHandler.class);	
+	private static final Logger log = LogManager.getLogger(GridFeatureRequestHandler.class);
 
 	@Override
 	public String getActionGroup() {

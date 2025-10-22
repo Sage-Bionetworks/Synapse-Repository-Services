@@ -12,7 +12,7 @@ public enum ColumnTypeToConType {
 	// boolean
 	BOOLEAN(ColumnType.BOOLEAN, new BooleanTranslator()),
 	// date
-	DATE(ColumnType.DATE, new LongTranslator()),
+	DATE(ColumnType.DATE, new DateTranslator()),
 	// filehandle
 	FILEHANDLEID(ColumnType.FILEHANDLEID, new LongTranslator()),
 	// entity id.

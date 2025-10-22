@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompact
  */
 public class ReplicaChangeSet {
 
-	private final String connectionId;
 	private final String sessionId;
 	private final Long replicaId;
 	private final LogicalTimestamp patchId;
@@ -27,7 +26,6 @@ public class ReplicaChangeSet {
 
 	public ReplicaChangeSet(GridConnectionInfo connection, LogicalTimestamp patchId,
 			Map<IndexType, Set<LogicalTimestamp>> changes) {
-		this.connectionId = connection.getConnectionId();
 		this.sessionId = connection.getSessionId();
 		this.replicaId = connection.getReplicaId();
 		this.patchId = patchId;
@@ -39,7 +37,6 @@ public class ReplicaChangeSet {
 	}
 
 	public ReplicaChangeSet(JSONObject json) {
-		this.connectionId = json.getString("connectionId");
 		this.sessionId = json.getString("sessionId");
 		this.replicaId = json.getLong("replicaId");
 		this.patchId = LogicalTimestampCompactSerializable.deserialize(json.getJSONArray("patchId"));
@@ -60,7 +57,6 @@ public class ReplicaChangeSet {
 
 	public String toJson() {
 		JSONObject json = new JSONObject();
-		json.put("connectionId", connectionId);
 		json.put("sessionId", sessionId);
 		json.put("replicaId", replicaId);
 		json.put("patchId", LogicalTimestampCompactSerializable.serialize(patchId));
@@ -78,10 +74,6 @@ public class ReplicaChangeSet {
 		return json.toString();
 	}
 
-	public String getConnectionId() {
-		return connectionId;
-	}
-
 	public String getSessionId() {
 		return sessionId;
 	}
@@ -96,7 +88,7 @@ public class ReplicaChangeSet {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changes, connectionId, replicaId, sessionId);
+		return Objects.hash(changes, patchId, replicaId, sessionId);
 	}
 
 	@Override
@@ -108,7 +100,7 @@ public class ReplicaChangeSet {
 		if (getClass() != obj.getClass())
 			return false;
 		ReplicaChangeSet other = (ReplicaChangeSet) obj;
-		return Objects.equals(changes, other.changes) && Objects.equals(connectionId, other.connectionId)
+		return Objects.equals(changes, other.changes) && Objects.equals(patchId, other.patchId)
 				&& Objects.equals(replicaId, other.replicaId) && Objects.equals(sessionId, other.sessionId);
 	}
 

@@ -1,5 +1,6 @@
 package org.sagebionetworks.grid.workers;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -34,7 +35,7 @@ public class GridReplicaPatchBuilderWorker implements MessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
 		try {
-			log.info("Changeset: {}", message.getBody());
+			log.info("Changeset: {}", StringUtils.truncate(message.getBody(), 200));
 			IntendedChangeSet changeSet = IntendedChangeSerializable.deserialize(new JSONObject(message.getBody()));
 			manager.buildPatch(changeSet);
 		} catch (RecoverableMessageException e) {

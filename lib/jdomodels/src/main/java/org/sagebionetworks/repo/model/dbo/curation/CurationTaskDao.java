@@ -10,9 +10,9 @@ public interface CurationTaskDao {
 
     CurationTask updateCurationTask(Long userId, CurationTask toUpdate);
 
-    Optional<CurationTask> getCurationTask(String taskId);
+    Optional<CurationTask> getCurationTask(Long taskId);
 
-    void deleteCurationTask(String taskId);
+    void deleteCurationTask(Long taskId);
 
     List<CurationTask> getCurationTasks(Long projectId, long limit, long offset);
 

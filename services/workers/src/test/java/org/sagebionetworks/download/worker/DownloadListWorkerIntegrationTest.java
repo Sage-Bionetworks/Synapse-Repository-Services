@@ -1,6 +1,7 @@
 package org.sagebionetworks.download.worker;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
@@ -37,6 +38,8 @@ import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListRequ
 import org.sagebionetworks.repo.model.download.AddBatchOfFilesToDownloadListResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilesRequest;
 import org.sagebionetworks.repo.model.download.AvailableFilesResponse;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
@@ -213,7 +216,19 @@ public class DownloadListWorkerIntegrationTest {
 			n.setNodeType(EntityType.dataset);
 			n.setItems(items);
 		});
+		
 		AddToDownloadListRequest addRequest = new AddToDownloadListRequest().setParentId(dataset.getId());
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, new AddToDownloadListStatsRequest().setRequest(addRequest), ( response) -> {
+			assertEquals(new AddToDownloadListStatsResponse()
+				.setFileCount(1L)
+				.setFileSize(123L)
+				.setIsFileCountAndSizeEstimate(false), 
+				response
+			);
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
 			assertNotNull(response);
@@ -241,6 +256,17 @@ public class DownloadListWorkerIntegrationTest {
 		Node file = createFileHierarchy(ACCESS_TYPE.READ);
 		
 		AddToDownloadListRequest request = new AddToDownloadListRequest().setParentId(file.getParentId());
+		
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, new AddToDownloadListStatsRequest().setRequest(request), ( response) -> {
+			assertEquals(new AddToDownloadListStatsResponse()
+				.setFileCount(1L)
+				.setFileSize(123L)
+				.setIsFileCountAndSizeEstimate(false), 
+				response
+			);
+		}, MAX_WAIT_MS, MAX_RETRIES);
+		
 		// call under test
 		asynchronousJobWorkerHelper.assertJobResponse(user, request, (AddToDownloadListResponse response) -> {
 			assertNotNull(response);

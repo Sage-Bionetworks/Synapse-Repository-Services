@@ -5,6 +5,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.download.ActionRequiredCount;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.AvailableFilter;
 import org.sagebionetworks.repo.model.download.DownloadListItem;
 import org.sagebionetworks.repo.model.download.DownloadListItemResult;
@@ -144,6 +145,12 @@ public interface DownloadListDAO {
 	Long addChildrenToDownloadList(Long userId, Long parentId, boolean useVersion, long limit);
 	
 	/**
+	 * @param parentId
+	 * @return The count and size of files that are children of the container with the given parentId
+	 */
+	AddToDownloadListStatsResponse getAddChildrenToDownloadListStats(Long parentId);
+	
+	/**
 	 * Add all the files in the tree rooted in the given parentId to the user's download list.
 	 * @param userId
 	 * @param parentId
@@ -153,6 +160,14 @@ public interface DownloadListDAO {
 	 * @return
 	 */
 	Long addDescendantsToDownloadList(Long userId, Long parentId, boolean useVersion, long limit);
+
+	/**
+	 * @param parentId
+	 * @param maxContainers The max number of containers to use in the computation, if the container size is exceeded will
+	 *                      set the {@link AddToDownloadListStatsResponse#getIsFileCountAndSizeEstimate()} to true.
+	 * @return The count and size of files contained in the given parent container
+	 */
+	AddToDownloadListStatsResponse getAddDescendantsToDownloadListStats(Long parentId, int maxContainers);
 	
 	/**
 	 * For the given item load all of the details needed to write to a manifest
@@ -161,15 +176,36 @@ public interface DownloadListDAO {
 	 */
 	JSONObject getItemManifestDetails(DownloadListItem item);
 
-
 	/**
-	 * Adds all of the files in the list of dataset items to the user's download list.
+	 * Adds all of the files referenced in the given list of {@link EntityRef} to the user's download list.
 	 * 
 	 * @param userId
-	 * @param items
-	 * @param limit		 Limit the number of files that can be added.
+	 * @param fileRefs
+	 * @param limit	Limit the number of files that can be added.
 	 * @return The total number of files added.
 	 */
-	Long addDatasetItemsToDownloadList(Long userId, List<EntityRef> items, long limit);
+	Long addFileEntityRefToDownloadList(Long userId, List<EntityRef> fileRefs, long limit);
+	
+	/**
+	 * @param fileRefs
+	 * @return The total count and size of files referenced by the given list of {@link EntityRef}
+	 */
+	AddToDownloadListStatsResponse getAddFileEntityRefToDownloadListStats(List<EntityRef> fileRefs);
+	
+	/**
+	 * Add all the files that are reference by each of the data set referenced in the given list of {@link EntityRef} to the user's download list.
+	 * 
+	 * @param userId
+	 * @param datasetRefs
+	 * @param limit Limit the number of files that can be added.
+	 * @return
+	 */
+	Long addDatasetEntityRefFilesToDownloadList(Long userId, List<EntityRef> datasetRefs, long limit);
+
+	/**
+	 * @param datasets
+	 * @return The total count and size of files referenced by each dataset in the given list of {@link EntityRef}
+	 */
+	AddToDownloadListStatsResponse getAddDatasetEntityRefFilesToDownloadListStats(List<EntityRef> datasetRefs);
 
 }

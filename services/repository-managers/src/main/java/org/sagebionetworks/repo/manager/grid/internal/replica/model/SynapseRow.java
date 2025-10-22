@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.json.JSONArray;
-import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
-public class SynapseRow implements HasConstantIds {
+public class SynapseRow {
 
 	/**
 	 * The ID of the constant that contains the JSON array with the 'rowId', 'versionNumber' and 'etag'.
@@ -56,20 +54,19 @@ public class SynapseRow implements HasConstantIds {
 		return this;
 	}
 
-	@Override
 	public List<LogicalTimestamp> getConstantIds() {
 		return constantId == null ? Collections.emptyList() : List.of(constantId);
 	}
 
-	@Override
-	public void applyConstants(Map<LogicalTimestamp, ConstantNode> constants) {
-		if (this.constantId != null) {
-			JSONArray jsonArray = (JSONArray) constants.get(constantId).getValue();
-			
-			this.rowId = jsonArray.isNull(0) ? null : jsonArray.getLong(0);
-			this.versionNumber = jsonArray.isNull(1) ? null : jsonArray.getLong(1);
-			this.etag = jsonArray.isNull(2) ? null : jsonArray.getString(2);
+	public SynapseRow setFromJSON(String json) {
+		if(json == null) {
+			return this;
 		}
+		JSONArray jsonArray = new JSONArray(json);
+		this.rowId = jsonArray.isNull(0) ? null : jsonArray.getLong(0);
+		this.versionNumber = jsonArray.isNull(1) ? null : jsonArray.getLong(1);
+		this.etag = jsonArray.isNull(2) ? null : jsonArray.getString(2);
+		return this;
 	}
 
 	@Override

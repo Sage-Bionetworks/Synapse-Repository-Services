@@ -5,20 +5,32 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCH
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_VALIDATION_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RECORDSET_VALIDATION_STATS_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RECORDSET_VALIDATION_STATS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RECORDSET_VALIDATION_STATS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RECORDSET_VALIDATION_STATS_RECORDSET_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RECORDSET_VALIDATION_STATS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SCHEMA_VALIDATION_RESULTS;
 
 import java.sql.ResultSet;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -36,15 +48,21 @@ public class EntitySchemaValidationResultDaoImpl implements EntitySchemaValidati
 
 	public static final String CONTAINER_ID = "containerId";
 
-	NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-	SchemaValidationResultDao schemaValidationResultDao;
+	private static final RowMapper<ValidationSummaryStatistics> RECORD_SET_VALIDATION_STATS_MAPPER = (ResultSet rs, int i) -> 
+		JDOSecondaryPropertyUtils.createObjectFromJSON(
+			ValidationSummaryStatistics.class, 
+			rs.getString(COL_RECORDSET_VALIDATION_STATS_JSON)
+		);
+	
+	
+	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private SchemaValidationResultDao schemaValidationResultDao;
+	private IdGenerator idGenerator;
 
-	@Autowired
-	public EntitySchemaValidationResultDaoImpl(NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-			SchemaValidationResultDao schemaValidationResultDao) {
-		super();
+	public EntitySchemaValidationResultDaoImpl(NamedParameterJdbcTemplate namedParameterJdbcTemplate, SchemaValidationResultDao schemaValidationResultDao, IdGenerator idGenerator) {
 		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
 		this.schemaValidationResultDao = schemaValidationResultDao;
+		this.idGenerator = idGenerator;
 	}
 
 	@Override
@@ -121,6 +139,52 @@ public class EntitySchemaValidationResultDaoImpl implements EntitySchemaValidati
 
 		return namedParameterJdbcTemplate.query(sql, paramSource,
 				SchemaValidationResultDaoImpl.VALIDATION_RESULT_ROW_MAPPER);
+	}
+
+	@Override
+	@WriteTransaction
+	public void setRecordSetValidationSummaryStatistics(Long recordSetId, Long recordSetVersion, ValidationSummaryStatistics stats) {
+		
+		Long id = idGenerator.generateNewId(IdType.RECORDSET_VALIDATION_STATS_ID);
+		
+		String sql = "INSERT INTO " + TABLE_RECORDSET_VALIDATION_STATS + " ("
+			+ COL_RECORDSET_VALIDATION_STATS_ID + ", "
+			+ COL_RECORDSET_VALIDATION_STATS_ETAG + ", "
+			+ COL_RECORDSET_VALIDATION_STATS_RECORDSET_ID + ", "
+			+ COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION + ", "
+			+ COL_RECORDSET_VALIDATION_STATS_JSON + ") VALUES (?,UUID(),?,?,?) AS record "
+			+ "ON DUPLICATE KEY UPDATE " 
+			+ COL_RECORDSET_VALIDATION_STATS_JSON + " = record." + COL_RECORDSET_VALIDATION_STATS_JSON + ", "
+			+ COL_RECORDSET_VALIDATION_STATS_ETAG + " = record." + COL_RECORDSET_VALIDATION_STATS_ETAG;
+
+		namedParameterJdbcTemplate.getJdbcOperations().update(sql, 
+			id,
+			recordSetId,
+			recordSetVersion,
+			JDOSecondaryPropertyUtils.createJSONFromObject(stats)
+		);
+		
+	}
+
+	@Override
+	public Optional<ValidationSummaryStatistics> getRecordSetValidationSummaryStatistics(Long recordSetId, Long recordSetVersion) {
+		String sql = "SELECT * FROM " + TABLE_RECORDSET_VALIDATION_STATS + " WHERE "
+				+ COL_RECORDSET_VALIDATION_STATS_RECORDSET_ID + " = ? AND "
+				+ COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION + " = ?";
+		
+		try {
+			return Optional.of(namedParameterJdbcTemplate.getJdbcOperations()
+				.queryForObject(sql, RECORD_SET_VALIDATION_STATS_MAPPER, recordSetId, recordSetVersion)
+			);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+	
+	@Override
+	public void truncateAll() {
+		schemaValidationResultDao.clearAll();
+		namedParameterJdbcTemplate.getJdbcOperations().update("TRUNCATE TABLE " + TABLE_RECORDSET_VALIDATION_STATS);
 	}
 
 }

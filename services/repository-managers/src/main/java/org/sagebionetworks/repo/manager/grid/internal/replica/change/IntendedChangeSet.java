@@ -9,6 +9,7 @@ public class IntendedChangeSet {
 	private Long replicaId;
 	private String connectionId;
 	private List<IntendedChange> changes;
+	private Long clockSequenceMaximum;
 
 	public String getSessionId() {
 		return sessionId;
@@ -43,6 +44,15 @@ public class IntendedChangeSet {
 
 	public IntendedChangeSet setChanges(List<IntendedChange> changes) {
 		this.changes = changes;
+		return this;
+	}
+
+	public Long getClockSequenceMaximum() {
+		return clockSequenceMaximum;
+	}
+
+	public IntendedChangeSet setClockSequenceMaximum(Long clockSequenceMaximum) {
+		this.clockSequenceMaximum = clockSequenceMaximum;
 		return this;
 	}
 

@@ -1,0 +1,73 @@
+#
+# Buildspec referenced in codepipeline_cf_template.yaml
+#
+version: 0.2
+env:
+  variables:
+    stack: dev
+    m2_cache_parent_folder: .
+    src_folder: .
+    org_sagebionetworks_cloudfront_domainname: data.dev.sagebase.org
+    org_sagebionetworks_sts_duration_seconds: 900
+  secrets-manager:
+    org_sagebionetworks_stackEncryptionKey: /build/stack/encryption/key
+    rds_password: build.rds.password
+    # misnomer: "keypair" on the next line is actually just the key id
+    org_sagebionetworks_cloudfront_keypair: org.sagebionetworks.cloudfront.private.key.id
+    org_sagebionetworks_cloudfront_private_key_secret: build.org.sagebionetworks.cloudfront.private.key.secret
+    org_sagebionetworks_google_cloud_key: /build/google/cloud/key
+    STS_CREDENTIALS: /build/session-token/${user}
+    ARTIFACTORY_CREDS: /build/artifactory
+    DATACITE_CREDS: /build/datacite
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands: |
+      # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/mysql-install-cli.html
+      echo "Installing MySQL CLI"
+      # Note: 'dnf' works with the aws/codebuild/amazonlinux-x86_64-standard:5.0 image but
+      # does not seem to work with the :corretto11 image
+      sudo dnf -y update && sudo dnf install -y mariadb105
+  build:
+    commands: |
+      # CodeBuild creates an STS session of one hour duration and there is no way to override.
+      # The Synapse build needs a longer lived session.  So we use a long lived token stored in secrets manager
+      # by the GitHub workflow.
+      export org_sagebionetworks_stack_iam_id=$(echo $STS_CREDENTIALS | jq -r '.AwsAccessKeyId')
+      export org_sagebionetworks_stack_iam_key=$(echo $STS_CREDENTIALS | jq -r '.AwsSecretAccessKey')
+      export org_sagebionetworks_stack_iam_session_token=$(echo $STS_CREDENTIALS | jq -r '.AwsSessionToken')
+      export org_sagebionetworks_repository_database_connection_url=dev-${user}-db.cdusmwdhqvso.us-east-1.rds.amazonaws.com
+      export org_sagebionetworks_table_cluster_endpoint_0=dev-${user}-table-0.cdusmwdhqvso.us-east-1.rds.amazonaws.com
+
+      if [[ "$ARTIFACT_VERSION" ]]; then
+        # If we are going to publish artifacts, then let's get a full build
+        FULL_BUILD=true
+        export build_deploy=true
+        export artifactory_username=$(echo $ARTIFACTORY_CREDS | jq -r '.artifactory_username')
+        export artifactory_password=$(echo $ARTIFACTORY_CREDS | jq -r '.artifactory_password')
+        # now update the pom.xml files to use the version
+        echo "Changing all pom.xml to version=$ARTIFACT_VERSION"
+        for f in `find . -name "pom.xml"` ; do
+             echo "Changing version of $f"
+             # We are using sed to replaces all 'develop-SNAPSHOT' versions with the new
+             sed "s|<version>develop-SNAPSHOT</version>|<version>${ARTIFACT_VERSION}</version>|g" -i $f
+        done
+      fi
+
+      if [ "${FULL_BUILD}" == "true" ]; then
+        export org_sagebionetworks_datacite_enabled=true
+        export org_sagebionetworks_doi_prefix=10.33627
+        export org_sagebionetworks_doi_datacite_api_endpoint=mds.test.datacite.org
+        export org_sagebionetworks_datacite_username=$(echo $DATACITE_CREDS | jq -r '.datacite_username')
+        export org_sagebionetworks_datacite_password=$(echo $DATACITE_CREDS | jq -r '.datacite_password')
+        export org_sagebionetworks_sts_iam_arn=$(aws --region us-east-1 cloudformation describe-stacks --stack-name dev-${user}-shared-resources --query 'Stacks[0].Outputs[?OutputKey==`TempCredentialsServiceRoleArn`].OutputValue' --output text)
+        export org_sagebionetworks_search_enabled=true
+        export org_sagebionetworks_google_cloud_enabled=true
+      else
+        export org_sagebionetworks_search_enabled=false
+        export org_sagebionetworks_google_cloud_enabled=false
+        unset org_sagebionetworks_google_cloud_key
+      fi
+
+      ./docker_build.sh

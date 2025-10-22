@@ -74,13 +74,7 @@ public class OssUtil {
 
         if (!CollectionUtils.isEmpty(terms)) {
             String queryTerms = String.join(" ", terms);
-            boolBuilder.must(
-                    MultiMatchQuery.of(m -> m
-                            .query(queryTerms)
-                    )._toQuery()
-                    //You can specify the behavior for an empty query in the zero_terms_query parameter.
-                    // Setting zero_terms_query to all returns all documents in the index and setting it to none returns no documents:
-            );
+            boolBuilder.must(m ->m.simpleQueryString(sqs ->sqs.query(queryTerms)));
         } else {
             // If no terms, use match_all
             boolBuilder.must(

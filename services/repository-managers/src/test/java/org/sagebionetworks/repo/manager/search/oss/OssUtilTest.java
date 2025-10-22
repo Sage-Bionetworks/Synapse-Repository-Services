@@ -167,7 +167,7 @@ public class OssUtilTest {
                 .collect(Collectors.joining(" "));
 
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(List.of(
-                        Query.of(q1 -> q1.multiMatch(mm -> mm.query(expectedTerms)))))
+                        Query.of(q1 -> q1.simpleQueryString(mm -> mm.query(expectedTerms)))))
                 .filter(Query.of(tq -> tq.terms(t -> t
                         .field(FIELD_ACL)
                         .terms(queryTerm -> queryTerm.value(
@@ -196,7 +196,7 @@ public class OssUtilTest {
                 .collect(Collectors.joining(" "));
 
         expectedSearchRequestBaseNoQueryTermSet.query(query -> query.bool(b1 -> b1.must(
-                Query.of(q1 -> q1.multiMatch(mm -> mm.query(expectedTerms))))));
+                Query.of(q1 -> q1.simpleQueryString(mm -> mm.query(expectedTerms))))));
 
 
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();

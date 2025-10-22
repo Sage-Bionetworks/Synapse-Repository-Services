@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.response;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,6 +11,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
@@ -35,6 +38,8 @@ public class InternalReplicaToHubEventPublisherImplTest {
 	private StackConfiguration mockConfig;
 	@Mock
 	private ApplicationEventPublisher mockApplicationHandler;
+	@Captor
+	private ArgumentCaptor<SendMessageRequest> messageCaptor;
 
 	private InternalReplicaToHubEventPublisherImpl handler;
 
@@ -44,8 +49,8 @@ public class InternalReplicaToHubEventPublisherImplTest {
 
 	@BeforeEach
 	public void before() {
-		String queueName = "DEV_GRID_WEBSOCKET_MESSAGE";
-		when(mockConfig.getQueueName("GRID_WEBSOCKET_MESSAGE")).thenReturn(queueName);
+		String queueName = "DEV_GRID_WEBSOCKET_MESSAGE.fifo";
+		when(mockConfig.getQueueName("GRID_WEBSOCKET_MESSAGE.fifo")).thenReturn(queueName);
 		queueUrl = "https://aws.com/sqs/grid_queue";
 		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()))
 				.thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
@@ -58,14 +63,19 @@ public class InternalReplicaToHubEventPublisherImplTest {
 	public void testSendAfterCommit() {
 		// call under test
 		handler.sendAfterCommit(new InternalEvent().setBody(message).setContext(context));
-		verify(mockSqsClient).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageAttributes(Map.of(
-				"EventType",
+		verify(mockSqsClient).sendMessage(messageCaptor.capture());
+		SendMessageRequest request = messageCaptor.getValue();
+		assertNotNull(request.messageDeduplicationId());
+		assertEquals(queueUrl, request.queueUrl());
+		assertEquals(message, request.messageBody());
+		assertEquals("connectionId", request.messageGroupId());
+		assertEquals(Map.of("EventType",
 				MessageAttributeValue.builder().stringValue(context.getEventType().name()).dataType("String").build(),
 				"EventSource",
 				MessageAttributeValue.builder().stringValue(context.getEventSource().name()).dataType("String").build(),
 				"ConnectionId",
-				MessageAttributeValue.builder().stringValue(context.getConnectionId()).dataType("String").build()))
-				.messageBody(message).build());
+				MessageAttributeValue.builder().stringValue(context.getConnectionId()).dataType("String").build()),
+				request.messageAttributes());
 	}
 
 	@Test

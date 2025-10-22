@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.response;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.grid.EventContext;
@@ -27,7 +28,7 @@ public class InternalHubToReplicaPublishHandler implements GridEventResponsePubl
 		super();
 		this.sqsClient = sqsClient;
 		this.queueUrl = sqsClient
-				.getQueueUrl(GetQueueUrlRequest.builder().queueName(config.getQueueName("GRID_INTERNAL_EVENT")).build())
+				.getQueueUrl(GetQueueUrlRequest.builder().queueName(config.getQueueName("GRID_INTERNAL_EVENT.fifo")).build())
 				.queueUrl();
 	}
 
@@ -44,6 +45,8 @@ public class InternalHubToReplicaPublishHandler implements GridEventResponsePubl
 			sqsClient
 					.sendMessage(
 							SendMessageRequest.builder().queueUrl(queueUrl).messageBody(event)
+									.messageGroupId(context.getConnectionId())
+									.messageDeduplicationId(UUID.randomUUID().toString())
 									.messageAttributes(Map.of("ConnectionId", MessageAttributeValue.builder()
 											.stringValue(context.getConnectionId()).dataType("String").build()))
 									.build());

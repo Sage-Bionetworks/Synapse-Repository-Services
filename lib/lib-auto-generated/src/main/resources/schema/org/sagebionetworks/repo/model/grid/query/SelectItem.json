@@ -1,0 +1,10 @@
+{
+	"description": "A generic select item.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Required. Full name of the exact type used."
+		}
+	}
+}

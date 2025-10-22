@@ -104,6 +104,18 @@ public class ConcurrentWorkerStackTest {
 		}).getMessage();
 		assertEquals("worker is required.", message);
 	}
+	
+	@Test
+	public void testBuildWithFifoQueueMaxThreadsNotOne() {
+		queueName = "some.FiFo";
+		maxThreadsPerMachine = 3;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			createStack();
+		}).getMessage();
+		assertEquals("For FIFO queues, maxThreadsPerMachine must be 1 to ensure messages from the same group are processed in order."
+				+ " Otherwise, concurrent threads could break FIFO message-group ordering.", message);
+	}
 
 	@Test
 	public void testBuildWithNullQueueName() {

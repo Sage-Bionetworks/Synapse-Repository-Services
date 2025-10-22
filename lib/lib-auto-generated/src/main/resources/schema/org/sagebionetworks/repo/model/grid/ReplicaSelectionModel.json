@@ -1,0 +1,27 @@
+{
+	"description": "Defines a user's selection of columns and rows for a replica.",
+	"properties": {
+		"columnSelection": {
+			"description": "Each SelectionId is an arr node's id from the 'columnOrder' array",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.CrdtId"
+			}
+		},
+		"rowSelection": {
+			"description": "Each SelectionId is an arr node's id from the 'rows' array",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.CrdtId"
+			}
+		},
+		"columnSelectAll": {
+			"description": "When true, all columns are selected and 'columnSelection' will be ignored.",
+			"type": "boolean"
+		},
+		"rowSelectAll": {
+			"description": "When true, all rows are selected, and 'rowSelection' will be ignored.",
+			"type": "boolean"
+		}
+	}
+}

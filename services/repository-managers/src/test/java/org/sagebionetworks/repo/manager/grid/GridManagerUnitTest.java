@@ -1,31 +1,23 @@
 package org.sagebionetworks.repo.manager.grid;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -33,36 +25,29 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
-import org.sagebionetworks.repo.manager.file.BucketObjectReader;
-import org.sagebionetworks.repo.manager.file.BucketObjectReaderProvider;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
+import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.manager.table.RowHandlerProvider;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
-import org.sagebionetworks.repo.manager.table.query.MainQuery;
-import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
-import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -82,27 +67,8 @@ import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.Patch;
-import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
-import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
-import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.QueryTranslator;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.LockType;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 
 import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -142,21 +108,7 @@ public class GridManagerUnitTest {
 	private AsyncJobProgressCallback mockCallback;
 
 	@Mock
-	private QueryTranslations mockQueryTranslattion;
-	@Mock
-	private MainQuery mockMainQuery;
-	@Mock
-	private QueryTranslator mockTranslator;
-	@Mock
-	private EntityManager mockEntityManager;
-	@Mock
 	private InternalReplicaToHubEventPublisher mockInternalEventPublisher;
-	@Mock
-	private FileHandleManager mockFileHandleManager;
-	@Mock
-	private BucketObjectReaderProvider mockFileReaderProvider;
-	@Mock
-	private BucketObjectReader mockObjectReader;
 	
 	@Captor
 	private ArgumentCaptor<PutObjectRequest> putCaptor;
@@ -193,20 +145,10 @@ public class GridManagerUnitTest {
 	private List<LogicalTimestamp> clock;
 	private Query query;
 	private String tableId;
-	private List<Row> rows;
-	private QueryResult queryResults;
-	private QueryResultBundle queryResultBundle;
-	private String schema$id;
-	private QueryOptions queryOptions;
-	private Long maxRowsPerPage;
 	private ListGridSessionsRequest listGridSessionRequest;
 	private GridSession gridSession;
 	private List<GridSession> gridSessions;
-	private JsonSchemaObjectBinding schemaBinding;
 
-	private S3FileHandle csvFile;
-	private CsvTableDescriptor csvDescriptor;
-	private List<ColumnModel> csvSchema;
 	private RecordSet recordSet;
 
 	@Mock
@@ -214,6 +156,8 @@ public class GridManagerUnitTest {
 	
 	@Mock
 	private PatchRowHandler mockRowHandler;
+	@Mock
+	private CreateGridHandler mockCreateGridHandler;
 	
 	@BeforeEach
 	public void before() {
@@ -234,80 +178,120 @@ public class GridManagerUnitTest {
 
 		when(mockConfig.getStack()).thenReturn("dev");
 		gridManager = new GridManagerImpl(mockCredentialsProvider, mockWebsocketApi, mockGridDao, mockConfig,
-			mockS3Client, mockQueryManager, mockEntityManager, mockInternalEventPublisher, mockFileHandleManager,
-			mockFileReaderProvider
+			mockS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler)
 		);
 		
 		gridManager = Mockito.spy(gridManager);
 		clock = List.of(patchId);
 		query = new Query().setSql("select * from syn123").setIncludeEntityEtag(false);
 		tableId = "syn999";
-		rows = List.of(new Row().setRowId(10101L));
-		maxRowsPerPage = 78L;
-		queryResults = new QueryResult().setQueryResults(new RowSet().setTableId(tableId).setRows(rows));
-		queryResultBundle = new QueryResultBundle().setQueryResult(queryResults).setMaxRowsPerPage(maxRowsPerPage);
-		schema$id = "someorg-somename";
-		queryOptions = new QueryOptions().withReturnMaxRowsPerPage(true).withRunQuery(true)
-				.withReturnSelectColumns(true);
 
 		listGridSessionRequest = new ListGridSessionsRequest().setSourceId(tableId);
 		gridSession = new GridSession();
 		gridSessions = List.of(gridSession);
-		
-		schemaBinding = new JsonSchemaObjectBinding()
-				.setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id));
-		
-		csvFile = new S3FileHandle()
-			.setId("789")
-			.setBucketName("someBucket")
-			.setKey("someKey");
-		
-		csvSchema = List.of(
-			new ColumnModel().setColumnType(ColumnType.INTEGER).setName("foo"),
-			new ColumnModel().setColumnType(ColumnType.STRING).setName("bar").setMaximumSize(50L)
-		);
-		
-		csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true).setQuoteCharacter("'");
-		
-		recordSet = new RecordSet().setId("syn456").setDataFileHandleId(csvFile.getId()).setCsvDescriptor(csvDescriptor);
+		recordSet = new RecordSet().setId("987");
 	}
 
 	@Test
 	public void testCreateGrid() {
 		when(mockUser.getId()).thenReturn(userId);
 		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
-		GridSession expected = new GridSession().setSessionId("gs123");
-		when(mockGridDao.createGridSession(new CreateGridSession().setUserId(userId))).thenReturn(expected);
+		GridSession expected = new GridSession().setSessionId(gridSessionId);
+		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
+		
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
+		
+		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
+			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+		
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+		
 		// call under test
 		CreateGridResponse result = gridManager.createGrid(mockCallback, mockUser, request);
 		assertNotNull(result);
 		assertEquals(expected, result.getGridSession());
-	}
-
-	@Test
-	public void testCreateGridWithQuery() {
-		when(mockUser.getId()).thenReturn(userId);
-		CreateGridRequest request = new CreateGridRequest().setInitialQuery(query);
-		GridSession expected = new GridSession().setSessionId("gs123");
-		doReturn(expected).when(gridManager).buildSessionFromQuery(mockCallback, mockUser, query);
-		// call under test
-		CreateGridResponse result = gridManager.createGrid(mockCallback, mockUser, request);
-		assertNotNull(result);
-		assertEquals(expected, result.getGridSession());
+		
+		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
+		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		
+		verifyNoMoreInteractions(mockInternalEventPublisher);
 	}
 	
 	@Test
-	public void testCreateGridWithRecordSetId() {
+	public void testCreateGridWithSchema() {
 		when(mockUser.getId()).thenReturn(userId);
-		CreateGridRequest request = new CreateGridRequest().setRecordSetId(recordSet.getId());
-		GridSession expected = new GridSession().setSessionId("gs123");
-		doReturn(expected).when(gridManager).buildSessionFromRecordSet(mockUser, recordSet.getId());
+		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+
+		GridSession expected = new GridSession().setSessionId(gridSessionId).setGridJsonSchema$Id("someSchemaId");
+		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
+		GridReplica validationReplica = new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId + 1L);
+		
+		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.VALIDATION))
+				.thenReturn(validationReplica);
+		
+		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
+			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+		
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+
 		// call under test
 		CreateGridResponse result = gridManager.createGrid(mockCallback, mockUser, request);
-		assertNotNull(result);
+
 		assertEquals(expected, result.getGridSession());
+
+		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
+		verifyConnectionEvent(EventSource.VALIDATION, replicaId + 1);
+		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		
+		verifyNoMoreInteractions(mockInternalEventPublisher);
 	}
+	
+	@Test
+	public void testCreateGridWithNoReplica() {
+		when(mockUser.getId()).thenReturn(userId);
+		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+
+		GridSession expected = new GridSession().setSessionId(gridSessionId);
+		GridReplica replica = null;
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
+
+		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
+			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+		
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+		
+		// call under test
+		CreateGridResponse result = gridManager.createGrid(mockCallback, mockUser, request);
+
+		assertEquals(expected, result.getGridSession());
+		
+		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		
+		verifyNoMoreInteractions(mockInternalEventPublisher);
+	}
+	
+	
+	@Test
+	public void testCreateGridWithNoHandler() {
+		when(mockUser.getId()).thenReturn(userId);
+		CreateGridRequest request = new CreateGridRequest();
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(false);
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			gridManager.createGrid(mockCallback, mockUser, request);
+		}).getMessage();
+		assertTrue(message.startsWith("Cannot find a handler for:"));
+	}
+
 	
 	@Test
 	public void testCreateGridWithInitialQueryAndRecordSetId() {
@@ -1040,513 +1024,6 @@ public class GridManagerUnitTest {
 	}
 
 	@Test
-	public void testBuildSessionFromQuery() throws Exception {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
-				queryOptions)).thenReturn(queryResultBundle);
-		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockUser), eq(query),
-				rowHandlerProviderCaptor.capture())).thenReturn(new QueryResultBundle());
-		doReturn(Optional.of(schema$id)).when(gridManager).getSchemaId(mockUser, tableId, rows);
-
-		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockGridDao.createGridSession(
-				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
-				.thenReturn(expected);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
-
-		// call under test
-		gridManager.buildSessionFromQuery(mockCallback, mockUser, query);
-		assertTrue(query.getIncludeEntityEtag()); // verify that the query is mutated to include etag
-		RowHandlerProvider rp = rowHandlerProviderCaptor.getValue();
-		when(mockQueryTranslattion.getMainQuery()).thenReturn(mockMainQuery);
-		when(mockMainQuery.getTranslator()).thenReturn(mockTranslator);
-		List<ColumnModel> schema = List.of(new ColumnModel().setColumnType(ColumnType.INTEGER).setName("foo"));
-		when(mockTranslator.getSchemaOfSelect()).thenReturn(schema);
-		PatchRowHandler handler = (PatchRowHandler) rp.getHandler(mockQueryTranslattion);
-		handler.close();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L);
-		verify(gridManager).savePatch(eq(gridSessionId), eq(patchId), patchCaptor.capture());
-		Patch patch = PatchCompactSerializable.deserialize(new JSONArray(patchCaptor.getValue()));
-		assertEquals(patchId, patch.getPatchId());
-		assertEquals(PatchUtils.calculateRowsPerPatch(gridManager.getMaxRowSizeBytes(maxRowsPerPage)),
-				handler.getRowsPerPatch());
-
-		verify(mockInternalEventPublisher).publishEventAfterCommit(
-				eventContextCaptor.capture(), eq(JsonRxMessageType.Notification),
-				eq("connection"),
-				eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId)));
-		
-	    // Verify the connectionId is a valid UUID
-	    EventContext capturedContext = eventContextCaptor.getValue();
-	    assertEquals(EventType.CONNECT, capturedContext.getEventType());
-	    assertEquals(EventSource.INTERNAL, capturedContext.getEventSource());
-	    
-	    String connectionId = capturedContext.getConnectionId();
-	    assertNotNull(connectionId);
-	    assertDoesNotThrow(() -> UUID.fromString(connectionId));
-	}
-
-	@Test
-	public void testBuildSessionFromQueryWithNoSchema() throws Exception {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
-				queryOptions)).thenReturn(queryResultBundle);
-		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockUser), eq(query),
-				rowHandlerProviderCaptor.capture())).thenReturn(new QueryResultBundle());
-		doReturn(Optional.empty()).when(gridManager).getSchemaId(mockUser, tableId, rows);
-
-		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockGridDao
-				.createGridSession(new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(null)))
-				.thenReturn(expected);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
-
-		// call under test
-		gridManager.buildSessionFromQuery(mockCallback, mockUser, query);
-		RowHandlerProvider rp = rowHandlerProviderCaptor.getValue();
-		when(mockQueryTranslattion.getMainQuery()).thenReturn(mockMainQuery);
-		when(mockMainQuery.getTranslator()).thenReturn(mockTranslator);
-		List<ColumnModel> schema = List.of(new ColumnModel().setColumnType(ColumnType.INTEGER).setName("foo"));
-		when(mockTranslator.getSchemaOfSelect()).thenReturn(schema);
-		PatchRowHandler handler = (PatchRowHandler) rp.getHandler(mockQueryTranslattion);
-		handler.close();
-		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L);
-		verify(gridManager).savePatch(eq(gridSessionId), eq(patchId), patchCaptor.capture());
-		Patch patch = PatchCompactSerializable.deserialize(new JSONArray(patchCaptor.getValue()));
-		assertEquals(patchId, patch.getPatchId());
-		assertEquals(PatchUtils.calculateRowsPerPatch(gridManager.getMaxRowSizeBytes(maxRowsPerPage)),
-				handler.getRowsPerPatch());
-
-	}
-
-	@Test
-	public void testBuildSessionFromQueryWithLockUnavilableException() throws Exception {
-		when(mockUser.getId()).thenReturn(userId);
-		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockGridDao.createGridSession(
-				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
-				.thenReturn(expected);
-		doReturn(Optional.of(schema$id)).when(gridManager).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		LockUnavilableException e = new LockUnavilableException(LockType.Read, "key", "context");
-		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
-				queryOptions)).thenReturn(queryResultBundle);
-		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockUser), eq(query), any())).thenThrow(e);
-
-		String message = assertThrows(RecoverableMessageException.class, () -> {
-			// call under test
-			gridManager.buildSessionFromQuery(mockCallback, mockUser, query);
-		}).getMessage();
-		assertEquals(
-				"org.sagebionetworks.workers.util.semaphore.LockUnavilableException: Read lock unavailable for key: 'key'. Current lock holder's context: 'context'",
-				message);
-		verify(mockCallback).updateProgress("Waiting for table/view to become available...", 1L, 100L);
-	}
-
-	@Test
-	public void testBuildSessionFromQueryWithTableUnavailableException() throws Exception {
-		when(mockUser.getId()).thenReturn(userId);
-		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockGridDao.createGridSession(
-				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
-				.thenReturn(expected);
-		doReturn(Optional.of(schema$id)).when(gridManager).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		TableUnavailableException e = new TableUnavailableException(new TableStatus().setTableId("syn123"));
-		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
-				queryOptions)).thenReturn(queryResultBundle);
-		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockUser), eq(query), any())).thenThrow(e);
-
-		String message = assertThrows(RecoverableMessageException.class, () -> {
-			// call under test
-			gridManager.buildSessionFromQuery(mockCallback, mockUser, query);
-		}).getMessage();
-		assertEquals("org.sagebionetworks.repo.model.table.TableUnavailableException", message);
-		verify(mockCallback).updateProgress("Waiting for table/view to become available...", 1L, 100L);
-	}
-
-	@Test
-	public void testBuildSessionFromQueryWithOhterException() throws Exception {
-		when(mockUser.getId()).thenReturn(userId);
-		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		when(mockGridDao.createGridSession(
-				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
-				.thenReturn(expected);
-		doReturn(Optional.of(schema$id)).when(gridManager).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		IOException e = new IOException("not connected");
-		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
-				queryOptions)).thenReturn(queryResultBundle);
-		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockUser), eq(query), any())).thenThrow(e);
-
-		String message = assertThrows(RuntimeException.class, () -> {
-			// call under test
-			gridManager.buildSessionFromQuery(mockCallback, mockUser, query);
-		}).getMessage();
-		assertEquals("java.io.IOException: not connected", message);
-		verify(mockCallback, never()).updateProgress(anyString(), anyLong(), anyLong());
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSet() throws IOException {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.of(
-			new JsonSchemaObjectBinding().setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id)))
-		);
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()).setSchemaId(schema$id))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(csvFile);
-		
-		Long maxRowSize = (long) TableModelUtils.calculateMaxRowSize(csvSchema);
-		
-		doReturn(csvSchema).when(gridManager).getSchemaFromCsv(csvFile, csvDescriptor);
-		doReturn(mockCsvReader).when(gridManager).getCsvReader(csvFile, csvDescriptor);
-		doReturn(mockRowHandler).when(gridManager).getPatchRowHandler(gridSession, replica, csvSchema, maxRowSize);
-		
-		when(mockCsvReader.readNext()).thenReturn(
-			new String[] {"foo", "bar"},
-			new String[] {"1", "one"},
-			new String[] {"2", "two"},
-			new String[] {null, "three"},
-			null
-		);
-		
-		// Call under test
-		gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		
-		verify(mockCsvReader, times(5)).readNext();
-		verify(mockCsvReader).close();
-
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("1", "one")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("2", "two")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList(null, "three")));
-		verify(mockRowHandler).close();
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler);
-		
-		verify(mockInternalEventPublisher).publishEventAfterCommit(
-			eventContextCaptor.capture(), eq(JsonRxMessageType.Notification),
-			eq("connection"),
-			eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId))
-		);
-		
-		EventContext context = eventContextCaptor.getValue();
-		
-		assertEquals(EventType.CONNECT, context.getEventType());
-		assertEquals(EventSource.INTERNAL, context.getEventSource());
-		assertDoesNotThrow(() -> UUID.fromString(context.getConnectionId()));
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSetWithNoValidationSchema() throws IOException {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(csvFile);
-		
-		Long maxRowSize = (long) TableModelUtils.calculateMaxRowSize(csvSchema);
-
-		doReturn(csvSchema).when(gridManager).getSchemaFromCsv(csvFile, csvDescriptor);
-		doReturn(mockCsvReader).when(gridManager).getCsvReader(csvFile, csvDescriptor);
-		
-		doReturn(mockRowHandler).when(gridManager).getPatchRowHandler(gridSession, replica, csvSchema, maxRowSize);
-		
-		when(mockCsvReader.readNext()).thenReturn(
-			new String[] {"foo", "bar"},
-			new String[] {"1", "one"},
-			new String[] {"2", "two"},
-			new String[] {null, "three"},
-			null
-		);
-		
-		// Call under test
-		gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		
-		verify(mockCsvReader, times(5)).readNext();
-		verify(mockCsvReader).close();
-
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("1", "one")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("2", "two")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList(null, "three")));
-		verify(mockRowHandler).close();
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler);
-		
-		verify(mockInternalEventPublisher).publishEventAfterCommit(
-			eventContextCaptor.capture(), eq(JsonRxMessageType.Notification),
-			eq("connection"),
-			eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId))
-		);
-		
-		EventContext context = eventContextCaptor.getValue();
-		
-		assertEquals(EventType.CONNECT, context.getEventType());
-		assertEquals(EventSource.INTERNAL, context.getEventSource());
-		assertDoesNotThrow(() -> UUID.fromString(context.getConnectionId()));
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSetWithNoCsvDescriptor() throws IOException {
-		recordSet.setCsvDescriptor(null);
-		
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(csvFile);
-		
-		Long maxRowSize = (long) TableModelUtils.calculateMaxRowSize(csvSchema);
-		
-		csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true);
-
-		doReturn(csvSchema).when(gridManager).getSchemaFromCsv(csvFile, csvDescriptor);
-		doReturn(mockCsvReader).when(gridManager).getCsvReader(csvFile, csvDescriptor);		
-		doReturn(mockRowHandler).when(gridManager).getPatchRowHandler(gridSession, replica, csvSchema, maxRowSize);
-		
-		when(mockCsvReader.readNext()).thenReturn(
-			new String[] {"foo", "bar"},
-			new String[] {"1", "one"},
-			new String[] {"2", "two"},
-			new String[] {null, "three"},
-			null
-		);
-		
-		// Call under test
-		gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		
-		verify(mockCsvReader, times(5)).readNext();
-		verify(mockCsvReader).close();
-
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("1", "one")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList("2", "two")));
-		verify(mockRowHandler).nextRow(new Row().setValues(Arrays.asList(null, "three")));
-		verify(mockRowHandler).close();
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler);
-		
-		verify(mockInternalEventPublisher).publishEventAfterCommit(
-			eventContextCaptor.capture(), eq(JsonRxMessageType.Notification),
-			eq("connection"),
-			eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId))
-		);
-		
-		EventContext context = eventContextCaptor.getValue();
-		
-		assertEquals(EventType.CONNECT, context.getEventType());
-		assertEquals(EventSource.INTERNAL, context.getEventSource());
-		assertDoesNotThrow(() -> UUID.fromString(context.getConnectionId()));
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSetWithWrongFileHandle() throws IOException {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		FileHandle badFile = Mockito.mock(FileHandle.class);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(badFile);
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		}).getMessage();
-		
-		assertEquals("Only S3 and Google Cloud Storage files that Synapse can access are supported.", errorMessage);
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler, mockInternalEventPublisher);
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSetWithIOException() throws IOException {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(csvFile);
-
-		IOException ioe = new IOException("nope");
-		
-		Long maxRowSize = (long) TableModelUtils.calculateMaxRowSize(csvSchema);
-		
-		doReturn(csvSchema).when(gridManager).getSchemaFromCsv(csvFile, csvDescriptor);
-		doReturn(mockCsvReader).when(gridManager).getCsvReader(csvFile, csvDescriptor);
-		doReturn(mockRowHandler).when(gridManager).getPatchRowHandler(gridSession, replica, csvSchema, maxRowSize);
-		
-		when(mockCsvReader.readNext()).thenThrow(ioe);
-		
-		IllegalStateException result = assertThrows(IllegalStateException.class, () -> {			
-			// Call under test
-			gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		});
-		
-		assertEquals(ioe, result.getCause());
-		
-		verify(mockCsvReader).close();
-		verify(mockRowHandler).close();
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler, mockInternalEventPublisher);
-	}
-	
-	@Test
-	public void testBuildSessionFromRecordSetWithEmptyCsvSchema() throws IOException {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		when(mockGridDao.createGridSession(
-			new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()))
-		).thenReturn(gridSession);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
-		
-		when(mockFileHandleManager.getRawFileHandle(mockUser, recordSet.getDataFileHandleId())).thenReturn(csvFile);
-
-		csvSchema = Collections.emptyList();
-		
-		doReturn(csvSchema).when(gridManager).getSchemaFromCsv(csvFile, csvDescriptor);
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			gridManager.buildSessionFromRecordSet(mockUser, recordSet.getId());
-		}).getMessage();
-		
-		assertEquals("Cannot determine the schema from the CSV file, at least one column header must be present.", errorMessage);
-		
-		verifyNoMoreInteractions(mockCsvReader, mockRowHandler, mockInternalEventPublisher);
-	}
-	
-	@Test
-	public void testGetPatchRowHandler() throws IOException {
-		gridSession = new GridSession().setSessionId(gridSessionId);
-		
-		long maxRowSize = (long) TableModelUtils.calculateMaxRowSize(csvSchema);
-		
-		// Call under test
-		PatchRowHandler handler = gridManager.getPatchRowHandler(gridSession, replica, csvSchema, maxRowSize);		
-		
-		assertNotNull(handler);
-		
-		// Call under test
-		handler.nextRow(new Row().setValues(Arrays.asList("1", "one")));
-		handler.close();
-		
-		verify(gridManager).savePatch(eq(gridSessionId), any(), patchCaptor.capture());
-		
-		Patch patch = PatchCompactSerializable.deserialize(new JSONArray(patchCaptor.getValue()));
-		
-		assertEquals(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L), patch.getPatchId());
-	}
-	
-	@Test
-	public void testGetCsvReader() throws IOException {
-		csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true);
-		
-		when(mockFileReaderProvider.getBucketObjectReader(csvFile.getClass())).thenReturn(mockObjectReader);
-		when(mockObjectReader.openStream(csvFile.getBucketName(), csvFile.getKey()))
-			.thenReturn(new ByteArrayInputStream("foo,bar\n1,\"one\"\n2,\"two\"\n,\"three\"".getBytes(StandardCharsets.UTF_8)));
-		
-		// Call under test
-		CSVReader reader = gridManager.getCsvReader(csvFile, csvDescriptor);
-		
-		assertNotNull(reader);
-
-		assertArrayEquals(new String[] {"foo", "bar"}, reader.readNext());
-		assertArrayEquals(new String[] {"1", "one"}, reader.readNext());
-		assertArrayEquals(new String[] {"2", "two"}, reader.readNext());
-		assertArrayEquals(new String[] {null, "three"}, reader.readNext());
-		
-		assertNull(reader.readNext());
-	}
-	
-	@Test
-	public void testgetSchemaFromCsv() throws IOException {
-		csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true);
-		
-		when(mockFileReaderProvider.getBucketObjectReader(csvFile.getClass())).thenReturn(mockObjectReader);
-		when(mockObjectReader.openStream(csvFile.getBucketName(), csvFile.getKey()))
-			.thenReturn(new ByteArrayInputStream("foo,bar\n1,\"one\"\n2,\"two\"\n,\"three\"".getBytes(StandardCharsets.UTF_8)));
-		
-		// Call under test
-		List<ColumnModel> schema = gridManager.getSchemaFromCsv(csvFile, csvDescriptor);
-		
-		assertEquals(List.of(
-			new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER),
-			new ColumnModel().setName("bar").setColumnType(ColumnType.STRING).setMaximumSize(5L)
-		), schema);
-
-	}
-
-	@Test
-	public void testGetMaxRowSizeBytesWithOneRow() {
-		long maxRowsPerPage = 1L;
-		// call under test
-		assertEquals(Long.MAX_VALUE, gridManager.getMaxRowSizeBytes(maxRowsPerPage));
-		verifyZeroInteractions(mockQueryManager);
-	}
-
-	@Test
-	public void testGetMaxRowSizeBytesWithLessThandOneRow() {
-		long maxRowsPerPage = 0L;
-		// call under test
-		assertEquals(Long.MAX_VALUE, gridManager.getMaxRowSizeBytes(maxRowsPerPage));
-		verifyZeroInteractions(mockQueryManager);
-	}
-
-	@Test
-	public void testGetMaxRowSizeBytes() {
-		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
-		long maxRowsPerPage = 101L;
-		// call under test
-		assertEquals(2_000_000L / maxRowsPerPage, gridManager.getMaxRowSizeBytes(maxRowsPerPage));
-	}
-
-	@Test
 	public void testListGridSessionsWithSource() {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockGridDao.listActiveGridSession(userId, tableId, 51L, 0L)).thenReturn(gridSessions);
@@ -1654,64 +1131,41 @@ public class GridManagerUnitTest {
 		verify(mockGridDao).deleteGridSession(gridSessionId);
 	}
 
-	@Test
-	public void testGcheSchemaId() {
-		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.entityview);
-		when(mockEntityManager.getBoundSchema(mockUser, "syn10101")).thenReturn(schemaBinding);
-
-		// call under test
-		assertEquals(Optional.of(schema$id), gridManager.getSchemaId(mockUser, tableId, rows));
-		verifyNoMoreInteractions(mockEntityManager);
-	}
-
-	@Test
-	public void testGcheSchemaIdWithNonview() {
-		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.folder);
-
-		// call under test
-		assertEquals(Optional.empty(), gridManager.getSchemaId(mockUser, tableId, rows));
-		verifyNoMoreInteractions(mockEntityManager);
-	}
-
-	@Test
-	public void testGcheSchemaIdWithNotFound() {
-		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.entityview);
-		when(mockEntityManager.getBoundSchema(mockUser, "syn10101")).thenThrow(new NotFoundException("not here"));
-
-		// call under test
-		assertEquals(Optional.empty(), gridManager.getSchemaId(mockUser, tableId, rows));
-		verifyNoMoreInteractions(mockEntityManager);
-	}
-
-	@Test
-	public void testGcheSchemaIdWithEmptyRows() {
-		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.entityview);
-		rows = List.of();
-
-		// call under test
-		assertEquals(Optional.empty(), gridManager.getSchemaId(mockUser, tableId, rows));
-		verifyNoMoreInteractions(mockEntityManager);
-	}
-
-	@Test
-	public void testGcheSchemaIdWithNullRows() {
-		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.entityview);
-		rows = null;
-
-		// call under test
-		assertEquals(Optional.empty(), gridManager.getSchemaId(mockUser, tableId, rows));
-		verifyNoMoreInteractions(mockEntityManager);
-	}
-
-    @Test
-    public void testGetDefaultInternalConnection() {
-        when(mockGridDao.getDefaultInternalConnection(gridSessionId)).thenReturn(
+	@ParameterizedTest
+	@EnumSource(value = EventSource.class)
+    public void testGetDefaultInternalConnection(EventSource source) {
+        when(mockGridDao.getSingletonConnection(gridSessionId, source)).thenReturn(
                 Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)));
 
         // call under test
-        Optional<GridConnectionInfo> actual = gridManager.getDefaultInternalConnection(gridSessionId);
+        Optional<GridConnectionInfo> actual = gridManager.getSingletonConnection(gridSessionId,source);
         assertEquals(Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)), actual);
         verifyNoMoreInteractions(mockGridDao);
-        verifyNoMoreInteractions(mockEntityManager);
     }
+	
+	@ParameterizedTest
+	@EnumSource(value = EventSource.class)
+    public void testGetDefaultUserInternalConnection(EventSource source) {
+		when(mockUser.getId()).thenReturn(userId);
+        when(mockGridDao.getSingletonUserConnection(gridSessionId, userId, source)).thenReturn(
+                Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)));
+
+        // call under test
+        Optional<GridConnectionInfo> actual = gridManager.getSingletonUserConnection(gridSessionId, mockUser, source);
+        assertEquals(Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)), actual);
+        verifyNoMoreInteractions(mockGridDao);
+    }
+
+	void verifyConnectionEvent(EventSource expectedSource, Long replicaId) {
+		verify(mockInternalEventPublisher).publishEventAfterCommit(eventContextCaptor.capture(),
+				eq(JsonRxMessageType.Notification), eq("connection"),
+				eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId)));
+
+		EventContext capturedContext = eventContextCaptor.getValue();
+		assertEquals(EventType.CONNECT, capturedContext.getEventType());
+		assertEquals(expectedSource, capturedContext.getEventSource());
+		String connectionId = capturedContext.getConnectionId();
+		assertNotNull(connectionId);
+		assertDoesNotThrow(() -> UUID.fromString(connectionId));
+	}
 }

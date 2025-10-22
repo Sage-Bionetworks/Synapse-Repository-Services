@@ -11,7 +11,7 @@ import java.util.List;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.grid.GridManager;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.GridReplicaPatchBuilderManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
@@ -22,12 +22,10 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
-import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.utils.CSVUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterProvider;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -35,35 +33,36 @@ import au.com.bytecode.opencsv.CSVWriter;
 @Service
 public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
     private final GridManager gridManager;
-    private final GridReplicaPatchBuilderManager replicaPatchBuilderManager;
+    private final GridReplicaSupport gridReplicaSupport;
     private final GridReplicaViewManager gridReplicaViewManager;
     private final CSVWriterProvider csvWriterProvider;
     private final FileHandleManager fileHandleManager;
 
     public GridReplicaCsvExporterImpl(
             GridManager gridManager,
-            GridReplicaPatchBuilderManager replicaPatchBuilderManager,
+            GridReplicaSupport gridReplicaSupport,
             GridReplicaViewManager gridReplicaViewManager,
             CSVWriterProvider csvWriterProvider,
             FileHandleManager fileHandleManager
     ) {
         this.gridManager = gridManager;
-        this.replicaPatchBuilderManager = replicaPatchBuilderManager;
+        this.gridReplicaSupport = gridReplicaSupport;
         this.gridReplicaViewManager = gridReplicaViewManager;
         this.csvWriterProvider = csvWriterProvider;
         this.fileHandleManager = fileHandleManager;
     }
 
     @Override
-    public DownloadFromGridResult exportGridAsCsv(String jobId, UserInfo userInfo, DownloadFromGridRequest request, AsyncJobProgressCallback jobProgressCallback) throws IOException {
-        ValidateArgument.required(jobId, "jobId");
+    public DownloadFromGridResult exportGridAsCsv(UserInfo userInfo, DownloadFromGridRequest request, AsyncJobProgressCallback jobProgressCallback, RowViewCallbackHandler rowCallback) throws IOException {
         ValidateArgument.required(userInfo, "userInfo");
         ValidateArgument.required(request.getSessionId(), "request.sessionId");
+        ValidateArgument.required(jobProgressCallback, "jobProgressCallback");
+        
+        GridHeader header = gridReplicaSupport.getGridHeaderOrThrow(gridManager.getGridSession(userInfo, request.getSessionId()));
 
-        GridHeader header = checkSessionAndGetHeader(userInfo, request.getSessionId());
-
-        String fileName = "Job-" + jobId;
+        String fileName = "Job-" + jobProgressCallback.getJobId();
         File temp = null;
+        
         try {
             // For other CSV writers (e.g. tables), we estimate progress by first counting the total number of rows to be written.
             // This is a potentially expensive operation for a grid, so instead we will just estimate that writing the CSV is 50% of the work and uploading to S3 is the other 50%.
@@ -73,7 +72,7 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
             temp = File.createTempFile(fileName, "." + CSVUtils.guessExtension(
                     request.getCsvTableDescriptor() == null ? null : request.getCsvTableDescriptor().getSeparator()));
             try (CSVWriter writer = csvWriterProvider.createWriter(new FileWriter(temp), request.getCsvTableDescriptor())) {
-                this.writeToCsv(header, request, writer);
+                this.writeToCsv(header, request, writer, rowCallback);
             }
 
             // At this point we have the entire CSV written to a local file.
@@ -96,21 +95,7 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
         }
     }
 
-    GridHeader checkSessionAndGetHeader(UserInfo userInfo, String gridSessionId) {
-        // Get the grid session (and verify that the userInfo has access to it)
-        gridManager.getGridSession(userInfo, gridSessionId);
-
-        GridConnectionInfo connectionInfo = gridManager.getDefaultInternalConnection(gridSessionId)
-                .orElseThrow(() -> new RecoverableMessageException("No internal connection found for session: " + gridSessionId));
-
-        replicaPatchBuilderManager.getCurrentClockIfAllPatchesApplied(connectionInfo.getSessionId(), connectionInfo.getReplicaId())
-                .orElseThrow(() -> new RecoverableMessageException("Current clock could not be retrieved, patches are still being applied to sessionId: " + connectionInfo.getSessionId() + ", replicaId: " + connectionInfo.getReplicaId()));
-        return gridReplicaViewManager.readHeader(connectionInfo.getSessionId(), connectionInfo.getReplicaId())
-                .orElseThrow(() -> new RecoverableMessageException("Grid header has not yet been instantiated for sessionId: " + gridSessionId));
-
-    }
-
-    void writeToCsv(GridHeader header, DownloadFromGridRequest request, CSVWriter writer) {
+    void writeToCsv(GridHeader header, DownloadFromGridRequest request, CSVWriter writer, RowViewCallbackHandler rowCallback) {
         boolean writeHeader = request.getWriteHeader() != null ? request.getWriteHeader() : true;
         boolean includeRowIdAndRowVersion = request.getIncludeRowIdAndRowVersion() != null ? request.getIncludeRowIdAndRowVersion() : true;
         boolean includeEtag = request.getIncludeEtag() != null ? request.getIncludeEtag() : true;
@@ -133,24 +118,29 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
 
             while (iterator.hasNext()) {
                 RowView rowView = iterator.next();
+                
+                if (rowCallback != null) {
+                    rowCallback.next(rowView);
+                }
+                
                 List<String> csvRow = new ArrayList<>();
                 SynapseRow synapseRow = rowView.getSynapseRow();
 
                 if (includeRowIdAndRowVersion) {
                     Long rowId = synapseRow != null ? synapseRow.getRowId() : null;
-                    csvRow.add(rowId == null ? "" : rowId.toString());
+                    csvRow.add(rowId == null ? null : rowId.toString());
 
                     Long rowVersion = synapseRow != null ? synapseRow.getVersionNumber() : null;
-                    csvRow.add(rowVersion == null ? "" : rowVersion.toString());
+                    csvRow.add(rowVersion == null ? null : rowVersion.toString());
                 }
 
                 if (includeEtag) {
                     String etag = synapseRow != null ? synapseRow.getEtag() : null;
-                    csvRow.add(etag == null ? "" : etag);
+                    csvRow.add(etag);
                 }
 
                 rowView.getCells().toList().stream()
-                        .map(v -> v == null ? "" : v.toString())
+                        .map(v -> v == null ? null : v.toString())
                         .forEach(csvRow::add);
 
                 writer.writeNext(csvRow.toArray(new String[0]));

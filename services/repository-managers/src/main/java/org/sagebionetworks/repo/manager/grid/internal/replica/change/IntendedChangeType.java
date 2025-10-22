@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 public enum IntendedChangeType {
 
-	update_row_metadata(0);
+	update_row_metadata(0),
+	insert_row(1),
+	update_row(2);
 
 	private final int code;
 

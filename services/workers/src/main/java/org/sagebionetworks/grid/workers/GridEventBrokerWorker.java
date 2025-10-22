@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -56,7 +57,7 @@ public class GridEventBrokerWorker implements MessageDrivenRunner {
 
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
-		log.info(message.getBody());
+		log.info(StringUtils.truncate(message.getBody(), 250));
 		EventContext context = null;
 		try {
 			context = buildEventContext(message);

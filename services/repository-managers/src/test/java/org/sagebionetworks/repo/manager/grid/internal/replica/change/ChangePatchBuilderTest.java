@@ -74,7 +74,7 @@ public class ChangePatchBuilderTest {
 		assertEquals(LogicalTimestamp.newIncrement(currentClock, 1), conId);
 		// call under test
 		builder.close();
-		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture());
+		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture(), eq(1L));
 		assertEquals("[[[3,100]],[0,\"foo\"]]", jsonArrayCaptor.getValue().toString());
 	}
 
@@ -91,7 +91,7 @@ public class ChangePatchBuilderTest {
 		assertEquals(existing, conId);
 		// call under test
 		builder.close();
-		verify(mockPatchPublisher, never()).publishPatch(any(), any());
+		verify(mockPatchPublisher, never()).publishPatch(any(), any(), any());
 	}
 
 	@Test
@@ -111,7 +111,7 @@ public class ChangePatchBuilderTest {
 		// call under test
 		builder.close();
 		verify(mockConstantProvider, times(1)).findExistingConstant(any(), any(), any());
-		verify(mockPatchPublisher, never()).publishPatch(any(), any());
+		verify(mockPatchPublisher, never()).publishPatch(any(), any(), any());
 	}
 
 	@Test
@@ -143,7 +143,7 @@ public class ChangePatchBuilderTest {
 		// call under test
 		builder.close();
 		verify(mockConstantProvider, times(2)).findExistingConstant(any(), any(), any());
-		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture());
+		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture(), eq(3L));
 		assertEquals("[[[3,100]],[0,\"bar\"],[2],[10,101,[[\"fooKey\",[33,401]],[\"barKey\",100]]]]",
 				jsonArrayCaptor.getValue().toString());
 	}
@@ -159,9 +159,9 @@ public class ChangePatchBuilderTest {
 		// call under test
 		builder.close();
 		verify(mockConstantProvider, times(2)).findExistingConstant(any(), any(), any());
-		verify(mockPatchPublisher, times(2)).publishPatch(any(), any());
+		verify(mockPatchPublisher, times(2)).publishPatch(any(), any(), any());
 
-		verify(mockPatchPublisher, times(2)).publishPatch(eq(con), jsonArrayCaptor.capture());
+		verify(mockPatchPublisher, times(2)).publishPatch(eq(con), jsonArrayCaptor.capture(), eq(1L));
 		assertEquals(
 				"[[[3,100]],[0,\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 						+ "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"]]",
@@ -200,7 +200,7 @@ public class ChangePatchBuilderTest {
 
 		// call under test
 		builder.close();
-		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture());
+		verify(mockPatchPublisher).publishPatch(eq(con), jsonArrayCaptor.capture(), eq(6L));
 		assertEquals(
 				"[[[3,100]],[0,\"foo\"],[0,\"bar\"],[2],[10,102,[[\"fooKey\",100],[\"barKey\",101]]],[0,\"foo\"],[0,\"bar\"]]",
 				jsonArrayCaptor.getValue().toString());

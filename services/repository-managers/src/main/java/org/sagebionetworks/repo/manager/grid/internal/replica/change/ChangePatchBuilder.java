@@ -106,7 +106,7 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 		}
 
 		JSONArray patchBody = PatchCompactSerializable.serialize(currentPatch);
-		patchPublisher.publishPatch(connection, patchBody);
+		patchPublisher.publishPatch(connection, patchBody, currentPatch.getSpan());
 
 		currentPatch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(currentPatch.getPatchId(), currentPatch.getSpan()));

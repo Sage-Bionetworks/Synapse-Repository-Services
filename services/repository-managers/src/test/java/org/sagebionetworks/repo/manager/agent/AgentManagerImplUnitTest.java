@@ -278,9 +278,10 @@ public class AgentManagerImplUnitTest {
 		requestBody = new JSONObject();
 		requestBody.put("someKey", "someValue");
 		requestBodyString = requestBody.toString();
+		List<Parameter> requestBodyParams = List.of(new Parameter("someKey", "string", "someValue"));
 		sessionContext = new GridAgentSessionContext().setGridSessionId("98765");
 		returnControlEventApi = new ReturnControlEvent(session.getStartedBy(), actionGroup, apiFunction,
-				List.of(new Parameter("id", "string", "987")), requestBodyString, null);
+				List.of(new Parameter("id", "string", "987")), requestBodyParams, null);
 
 		JSONObject response = new JSONObject();
 		response.put("someKey", "someValue");
@@ -1421,8 +1422,9 @@ public class AgentManagerImplUnitTest {
 				.build();
 
 		// call under test
-		String result = manager.getRequestBody(body);
-		String expected = "{\"baseOne\":\"foo\",\"baseTwo\":{\"keyOne\":\"someString\",\"keyTwo\":false}}";
+		List<Parameter> result = manager.getRequestBody(body);
+		List<Parameter> expected = List.of(new Parameter("baseOne", "string", "foo"),
+				new Parameter("baseTwo", "object", "{\"keyOne\":\"someString\",\"keyTwo\":false}"));
 		assertEquals(expected, result);
 	}
 
@@ -1431,26 +1433,8 @@ public class AgentManagerImplUnitTest {
 		ApiRequestBody body = null;
 
 		// call under test
-		String result = manager.getRequestBody(body);
+		List<Parameter> result = manager.getRequestBody(body);
 		assertNull(result);
-	}
-
-	@Test
-	public void testGetRequestBodyWithUnknowType() {
-
-		ApiRequestBody body = ApiRequestBody.builder()
-				.content(Map.of("application/json",
-						PropertyParameters.builder()
-								.properties(software.amazon.awssdk.services.bedrockagentruntime.model.Parameter
-										.builder().name("baseOne").type("boolean").value("true").build())
-								.build()))
-				.build();
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			manager.getRequestBody(body);
-		}).getMessage();
-		assertEquals("Unknown type: boolean", message);
 	}
 
 }

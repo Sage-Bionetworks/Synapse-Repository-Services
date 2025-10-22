@@ -1,16 +1,13 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.json.JSONArray;
-import org.sagebionetworks.repo.model.grid.node.ConstantNode;
+import org.sagebionetworks.repo.model.grid.CrdtId;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 
-public class RowView implements HasConstantIds {
+public class RowView {
 
 	/**
 	 * The ID of the array node that represents this row. To insert a new row after
@@ -73,31 +70,9 @@ public class RowView implements HasConstantIds {
 	public SynapseRow getSynapseRow() {
 		return rowObject != null ? rowObject.getSynapseRow() : null;
 	}
-
-	@Override
-	public List<LogicalTimestamp> getConstantIds() {
-		List<LogicalTimestamp> results = new ArrayList<>();
-		RowValidation rowValidation = getRowValidation();
-		if (rowValidation != null) {
-			results.addAll(rowValidation.getConstantIds());
-		}
-		SynapseRow synapseRow = getSynapseRow();
-		if (synapseRow != null) {
-			results.addAll(synapseRow.getConstantIds());
-		}
-		return results;
-	}
-
-	@Override
-	public void applyConstants(Map<LogicalTimestamp, ConstantNode> constants) {
-		RowValidation rowValidation = getRowValidation();
-		if (rowValidation != null) {
-			rowValidation.applyConstants(constants);
-		}
-		SynapseRow synapseRow = getSynapseRow();
-		if (synapseRow != null) {
-			synapseRow.applyConstants(constants);
-		}
+	
+	public static CrdtId createCrdtIdFromLogical(LogicalTimestamp timestamp) {
+		return new CrdtId().setRep(timestamp.getReplicaId()).setSeq(timestamp.getSequenceNumber());
 	}
 
 	@Override

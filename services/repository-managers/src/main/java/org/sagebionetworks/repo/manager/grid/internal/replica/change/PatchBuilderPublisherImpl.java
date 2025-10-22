@@ -27,13 +27,12 @@ public class PatchBuilderPublisherImpl implements PatchBuilderPublisher {
 		String body = IntendedChangeSerializable.serialize(changeSet).toString();
 		/*
 		 * Patches for a replica must be created in series to prevent data loss from
-		 * conflicting patches. Messages are grouped by 'sessionId-replicaId' to ensure
+		 * conflicting patches. Messages are grouped by 'connectionId' to ensure
 		 * the FIFO queue triggers the creation of all patches for the same replica
 		 * sequentially.
 		 */
-		String groupId = String.format("%s-%d", changeSet.getSessionId(), changeSet.getReplicaId());
-		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl)
-				.messageDeduplicationId(DigestUtils.md5Hex(body)).messageGroupId(groupId).messageBody(body).build());
+		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageGroupId(changeSet.getConnectionId())
+				.messageDeduplicationId(DigestUtils.md5Hex(body)).messageBody(body).build());
 	}
 
 }

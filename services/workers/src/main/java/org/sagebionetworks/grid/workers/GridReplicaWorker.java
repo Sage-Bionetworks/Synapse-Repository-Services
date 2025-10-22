@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.grid.GridManager;
@@ -43,6 +44,7 @@ public class GridReplicaWorker implements MessageDrivenRunner {
 		ValidateArgument.required(conIdValue, "message.messageAttributes.get(ConnectionId)");
 		String connectionId = conIdValue.getStringValue();
 		String body = message.getBody();
+		String truncatedBody = StringUtils.truncate(body, 200);
 		try {
 			Optional<GridConnectionInfo> conOption = gridManager.getConnectionInfoOptional(connectionId);
 			if (conOption.isEmpty()) {
@@ -51,13 +53,13 @@ public class GridReplicaWorker implements MessageDrivenRunner {
 				return;
 			}
 			GridConnectionInfo connection = conOption.get();
-			log.info("New message for connectionId: {}, body: {}", connectionId, body);
+			log.info("New message for connectionId: {}, body: {}", connectionId, truncatedBody);
 			dispatcher.dispatchMessage(new JsonRxMessageBundle(new JsonRxMessage(body), connection, progressCallback));
 		} catch (RecoverableMessageException e) {
-			log.info("Will retry message for connectionId: {}, body: {}", connectionId, body);
+			log.info("Will retry message for connectionId: {}, body: {}", connectionId, truncatedBody);
 			throw e;
 		} catch (LockUnavilableException e) {
-			log.info("Will retry message for connectionId: {}, body: {}", connectionId, body);
+			log.info("Will retry message for connectionId: {}, body: {}", connectionId, truncatedBody);
 			throw new RecoverableMessageException(e);
 		} catch (Exception e) {
 			log.error(String.format("Failed to process message for connectionId: %s, body: %s", connectionId, body), e);

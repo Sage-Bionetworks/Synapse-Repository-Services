@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.response;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -11,6 +12,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
@@ -31,6 +34,8 @@ public class InternalHubToReplicaPublishHandlerTest {
 	private SqsClient mockSqsClient;
 	@Mock
 	private StackConfiguration mockConfig;
+	@Captor
+	private ArgumentCaptor<SendMessageRequest> messageCaptor;
 
 	private InternalHubToReplicaPublishHandler handler;
 
@@ -41,7 +46,7 @@ public class InternalHubToReplicaPublishHandlerTest {
 	@BeforeEach
 	public void before() {
 		String queueName = "DEV_GRID_INTERNAL_EVENT";
-		when(mockConfig.getQueueName("GRID_INTERNAL_EVENT")).thenReturn(queueName);
+		when(mockConfig.getQueueName("GRID_INTERNAL_EVENT.fifo")).thenReturn(queueName);
 		queueUrl = "https://aws.com/sqs/grid_queue";
 		when(mockSqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(queueName).build()))
 				.thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
@@ -55,10 +60,14 @@ public class InternalHubToReplicaPublishHandlerTest {
 
 		// call under test
 		handler.publishEventResponse(context, message);
-		verify(mockSqsClient).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl)
-				.messageAttributes(Map.of("ConnectionId", MessageAttributeValue.builder()
-						.stringValue(context.getConnectionId()).dataType("String").build()))
-				.messageBody(message).build());
+		verify(mockSqsClient).sendMessage(messageCaptor.capture());
+		SendMessageRequest request = messageCaptor.getValue();
+		assertEquals(queueUrl, request.queueUrl());
+		assertEquals("connectionId", request.messageGroupId());
+		assertNotNull(request.messageDeduplicationId());
+		assertEquals(Map.of("ConnectionId",
+				MessageAttributeValue.builder().stringValue(context.getConnectionId()).dataType("String").build()),
+				request.messageAttributes());
 	}
 
 	@Test

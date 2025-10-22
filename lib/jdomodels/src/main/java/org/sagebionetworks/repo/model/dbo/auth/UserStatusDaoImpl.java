@@ -5,9 +5,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_LAST_SEEN_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -96,16 +93,6 @@ public class UserStatusDaoImpl implements UserStatusDao {
 				+ COL_USER_STATUS_DISABLED + " = false AND "
 				+ COL_USER_STATUS_LAST_SEEN_ON + " < ? LIMIT ?",
 				Long.class, lastSeenOnThreshold, batchSize);
-	}
-
-	@Override
-	public List<Long> getNeverSeenUsersBatch(int batchSize) {
-		return jdbcTemplate.queryForList(
-				"SELECT U." + COL_USER_GROUP_ID + " FROM " + TABLE_USER_GROUP + " U LEFT JOIN " + TABLE_USER_STATUS + " S"
-				+ " ON U." + COL_USER_GROUP_ID + " = S." + COL_USER_STATUS_PRINCIPAL_ID + " WHERE "
-				+ "U." + COL_USER_GROUP_IS_INDIVIDUAL + " = true AND "
-				+ "S." + COL_USER_STATUS_LAST_SEEN_ON + " IS NULL LIMIT ?",
-				Long.class, batchSize);
 	}
 	
 }

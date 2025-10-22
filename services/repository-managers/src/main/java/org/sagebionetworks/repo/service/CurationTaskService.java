@@ -13,9 +13,9 @@ public interface CurationTaskService {
     CurationTask updateCurationTask(Long userId, CurationTask toUpdate)
             throws NotFoundException;
 
-    CurationTask getCurationTask(Long userId, String taskId);
+    CurationTask getCurationTask(Long userId, Long taskId);
 
-    void deleteCurationTask(Long userId, String taskId) throws NotFoundException;
+    void deleteCurationTask(Long userId, Long taskId) throws NotFoundException;
 
     ListCurationTaskResponse getCurationTasks(Long userId, ListCurationTaskRequest request);
 }

@@ -1,0 +1,22 @@
+{
+	"description": "The results of a job to compute the estimate of number and size of files from a AddToDownloadListRequest request.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"fileCount": {
+			"description": "The number of files that a AddToDownloadListRequest request would attempt to add to the download list. Note that this might exceed the maximum number of files that can be added to the download list.",
+			"type": "integer"
+		},
+		"fileSize": {
+			"description": "The total size that a AddToDownloadListRequest would attempt to add to the download list.",
+			"type": "integer"
+		},
+		"isFileCountAndSizeEstimate": {
+			"description": "When true the actual count and size might be greater than reported.",
+			"type": "boolean"
+		}
+	}
+}

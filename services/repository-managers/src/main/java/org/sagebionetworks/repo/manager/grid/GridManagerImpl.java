@@ -1,35 +1,23 @@
 package org.sagebionetworks.repo.manager.grid;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
-import org.sagebionetworks.repo.manager.file.BucketObjectReader;
-import org.sagebionetworks.repo.manager.file.BucketObjectReaderProvider;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
+import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
-import org.sagebionetworks.repo.manager.table.TableQueryManager;
-import org.sagebionetworks.repo.manager.table.UploadPreviewBuilder;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
-import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
-import org.sagebionetworks.repo.model.file.CloudProviderFileHandleInterface;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -49,28 +37,12 @@ import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
-import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.table.cluster.utils.CSVUtils;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
-import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.SdkHttpMethod;
@@ -102,248 +74,83 @@ public class GridManagerImpl implements GridManager {
 	private final GridDao gridDao;
 	private final String gridPatchBucket;
 	private final S3Client s3Client;
-	private final TableQueryManager tableQueryManager;
-	private final EntityManager entityManager;
 	private final InternalReplicaToHubEventPublisher internalEventPublisher;
-	private final FileHandleManager fileHandleManager;
-	private final BucketObjectReaderProvider fileReaderProvider;
-	
+	private final List<CreateGridHandler> createGridHandlers;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
-			StackConfiguration config, S3Client s3Client, TableQueryManager tableQueryManager,
-			EntityManager entityManager, InternalReplicaToHubEventPublisher internalEventPublisher,
-			FileHandleManager fileHandleManager, BucketObjectReaderProvider	fileReaderProvider) {
+			StackConfiguration config, S3Client s3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
+			List<CreateGridHandler> createHandlers) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
 		this.gridDao = gridDao;
 		this.gridPatchBucket = String.format("%s.grid.patch.sagebase.org", config.getStack());
 		this.s3Client = s3Client;
-		this.tableQueryManager = tableQueryManager;
-		this.entityManager = entityManager;
 		this.internalEventPublisher = internalEventPublisher;
-		this.fileHandleManager = fileHandleManager;
-		this.fileReaderProvider = fileReaderProvider;
+		this.createGridHandlers = createHandlers;
 	}
-	
+
 	@WriteTransaction
 	@Override
 	public CreateGridResponse createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request) {
 		ValidateArgument.required(callback, "callback");
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
-		ValidateArgument.requirement(request.getInitialQuery() == null || request.getRecordSetId() == null, "Cannot set both initialQuery and recordSetId.");
-		
+		ValidateArgument.requirement(request.getInitialQuery() == null || request.getRecordSetId() == null,
+				"Cannot set both initialQuery and recordSetId.");
+
 		// Must authenticate to create a grid session.
 		AuthorizationUtils.disallowAnonymous(user);
+
+		CreateGridHandler handler = createGridHandlers.stream()
+			.filter(h -> h.canCreate(request))
+			.findFirst()
+			.orElseThrow(() -> new IllegalArgumentException("Cannot find a handler for: " + request));
 		
-		GridSession session;
+		CreateGridHandlerResult result = handler.createGrid(callback, user, request, this);
 		
-		if (request.getInitialQuery() != null) {
-			session = buildSessionFromQuery(callback, user, request.getInitialQuery());
-		} else if (request.getRecordSetId() != null) {
-			session = buildSessionFromRecordSet(user, request.getRecordSetId());
-		} else {
-			// start with an empty session
-			session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId()));
+		if (result == null || result.getGridSession() == null) {
+			throw new IllegalStateException("Handler must provide a grid session");
 		}
-
-		return new CreateGridResponse().setGridSession(session);
-	}
-
-	/**
-	 * Build a new GridSesison from the provided query.
-	 * 
-	 * @param callback
-	 * @param user
-	 * @param initialQuery
-	 * @return
-	 */
-	GridSession buildSessionFromQuery(AsyncJobProgressCallback callback, UserInfo user, Query initialQuery) {
-
-		try {
-			/*
-			 * The first query will determine the size of each row and fetch a row sample
-			 * that we can use to determine the schema.
-			 */
-			QueryResultBundle pre = tableQueryManager.querySinglePage(callback, user,
-					new Query().setSql(initialQuery.getSql()).setLimit(1L),
-					new QueryOptions().withReturnMaxRowsPerPage(true).withRunQuery(true).withReturnSelectColumns(true));
-			RowSet rowSet = pre.getQueryResult().getQueryResults();
-			String tableId = rowSet.getTableId();
-
-			Optional<String> schemaIdOp = getSchemaId(user, tableId, rowSet.getRows());
-			Long maxRowSizeBytes = getMaxRowSizeBytes(pre.getMaxRowsPerPage());
-
-			GridSession session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())
-					.setSourceId(tableId).setSchemaId(schemaIdOp.orElse(null)));
-			GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false,
-					EventSource.INTERNAL);
-
-			// Always include the entity etag so it is included in the grid metadata. The etag can be used to merge the
-			// grid data back into a Synapse Table or View
-			initialQuery.setIncludeEntityEtag(true);
-
-			// The second query is a full query to build all of the patches from the query
-			// results.
-			tableQueryManager.runQueryAsStream(callback, user, initialQuery, t -> {
-				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
-				return new PatchRowHandler(this, session.getSessionId(), replica.getReplicaId(), schema,
-						maxRowSizeBytes);
-			});
-
-			String connectionId = UUID.randomUUID().toString();
+		
+		GridSession session = result.getGridSession();
+		
+		if (result.getGridReplica() != null) {
+			GridReplica replica = result.getGridReplica();
 			/*
 			 * This call will establish a new internal connection to this replica. It will
 			 * also trigger a new [8,"connected"] event to be sent to the replica's worker.
 			 */
-			internalEventPublisher.publishEventAfterCommit(
-					new EventContext(EventType.CONNECT, EventSource.INTERNAL, connectionId),
-					JsonRxMessageType.Notification, "connection",
-					new Connection().setGridSessionId(GridUtils.gridSessionIdAsLong(session.getSessionId()))
-							.setReplicaId(replica.getReplicaId()).setUserId(user.getId()));
-
-			return session;
-		} catch (LockUnavilableException | TableUnavailableException e) {
-			callback.updateProgress("Waiting for table/view to become available...", 1L, 100L);
-			throw new RecoverableMessageException(e);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+			sendInternalConnectEvent(user, session, replica, EventSource.INTERNAL);
 		}
+		
+		if (session.getGridJsonSchema$Id() != null) {
+			// establish the connection to be used the validation worker.
+			GridReplica validationReplica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.VALIDATION);
+			
+			sendInternalConnectEvent(user, session, validationReplica, EventSource.VALIDATION);
+		}
+		
+		// establish the connection to be used for jobs triggered by the user
+
+		GridReplica supportReplica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.USER_SUPPORT);
+		
+		sendInternalConnectEvent(user, session, supportReplica, EventSource.USER_SUPPORT);
+		
+		// Creating replicas modify the session ETAG, so we reload it from the database
+		session = gridDao.getGridSession(session.getSessionId()).orElseThrow();
+		
+		return new CreateGridResponse().setGridSession(session);
 	}
 	
-	GridSession buildSessionFromRecordSet(UserInfo user, String recordSetId) {
-		RecordSet recordSet = entityManager.getEntity(user, recordSetId, RecordSet.class);
-		
-		Optional<String> validationSchemaId = entityManager.findBoundSchema(recordSetId)
-			.map(binding -> binding.getJsonSchemaVersionInfo().get$id());
-		
-		GridSession session = gridDao.createGridSession(
-			new CreateGridSession()
-				.setUserId(user.getId())
-				.setSourceId(recordSet.getId())
-				.setSchemaId(validationSchemaId.orElse(null))
-		);
-		
-		GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.INTERNAL);
-		
-		FileHandle fileHandle = fileHandleManager.getRawFileHandle(user, recordSet.getDataFileHandleId());
-		
-		ValidateArgument.requirement(fileHandle instanceof CloudProviderFileHandleInterface, "Only S3 and Google Cloud Storage files that Synapse can access are supported.");
-		
-		CloudProviderFileHandleInterface cpFileHandle = (CloudProviderFileHandleInterface) fileHandle;
-		
-		CsvTableDescriptor csvDescriptor = recordSet.getCsvDescriptor();
-
-		if (csvDescriptor == null) {
-			csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true);
-		}
-		
-		// In order to emit patches using the PatchRowHandler we need a starting schema, this is needed so that
-		// the values in a row are emitted with some sensible data types. Additionally, we split into multiple 
-		// patches according to the max size of each row.
-		// 
-		// In order to determine the correct schema and size we first scan the CSV file reusing the UploadPreviewBuilder
-		// that allows to compute a suggested schema from a CSV file.
-		List<ColumnModel> schema = getSchemaFromCsv(cpFileHandle, csvDescriptor);
-
-		if (schema == null || schema.isEmpty()) {
-			throw new IllegalArgumentException("Cannot determine the schema from the CSV file, at least one column header must be present.");
-		}
-		
-		Long maxBytesPerRow = (long) TableModelUtils.calculateMaxRowSize(schema);
-		
-		// We can now read the CSV file again and reuse the PatchRowHandler.
-		try (CSVReader csvReader = getCsvReader(((CloudProviderFileHandleInterface) fileHandle), csvDescriptor);
-			PatchRowHandler rowHandler = getPatchRowHandler(session, replica, schema, maxBytesPerRow)) {
-			
-			// Skip the header
-			csvReader.readNext();
-			
-			String[] csvRow;
-			
-			while ((csvRow = csvReader.readNext()) != null) {
-				rowHandler.nextRow(new Row().setValues(Arrays.asList(csvRow)));
-			}
-			
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		};
-		
-		String connectionId = UUID.randomUUID().toString();
-		
-		/*
-		 * This call will establish a new internal connection to this replica. It will
-		 * also trigger a new [8,"connected"] event to be sent to the replica's worker.
-		 */
+	void sendInternalConnectEvent(UserInfo user, GridSession session, GridReplica replica, EventSource source) {
+		// establish the connection to be used the validation worker.
 		internalEventPublisher.publishEventAfterCommit(
-				new EventContext(EventType.CONNECT, EventSource.INTERNAL, connectionId),
+				new EventContext(EventType.CONNECT, source, UUID.randomUUID().toString()),
 				JsonRxMessageType.Notification, "connection",
 				new Connection().setGridSessionId(GridUtils.gridSessionIdAsLong(session.getSessionId()))
 						.setReplicaId(replica.getReplicaId()).setUserId(user.getId()));
-		
-		return session;
-	}
-	
-	PatchRowHandler getPatchRowHandler(GridSession session, GridReplica replica, List<ColumnModel> schema, Long maxBytesPerRow) {
-		return new PatchRowHandler(this, session.getSessionId(), replica.getReplicaId(), schema, maxBytesPerRow);
-	}
-	
-	CSVReader getCsvReader(CloudProviderFileHandleInterface fileHandle, CsvTableDescriptor csvDescriptor) {
-		BucketObjectReader fileReader = fileReaderProvider.getBucketObjectReader(fileHandle.getClass());
-		
-		return CSVUtils.createCSVReader(
-			new InputStreamReader(
-				fileReader.openStream(fileHandle.getBucketName(), fileHandle.getKey()), 
-				StandardCharsets.UTF_8
-			), csvDescriptor, null);
-	}
-	
-	List<ColumnModel> getSchemaFromCsv(CloudProviderFileHandleInterface fileHandle, CsvTableDescriptor csvDescriptor) {
-		try (CSVReader csvReader = getCsvReader(fileHandle, csvDescriptor)) {
-
-			// Reuse the CSV preview builder to extract the schema
-			UploadToTablePreviewRequest request = new UploadToTablePreviewRequest()
-				.setCsvTableDescriptor(csvDescriptor)
-				// We do a full scan so that the row size is accurate
-				.setDoFullFileScan(true);
-			
-			return new UploadPreviewBuilder(csvReader, request)
-				.buildResult()
-				.getSuggestedColumns();
-			
-		} catch (IOException e) {
-			throw new IllegalStateException(e);
-		}		
-	}
-
-	/**
-	 * Calculate the maximum size of a row given the maximum number of rows per
-	 * page. Note: This is a function of the
-	 * {@link TableQueryManager#getMaxBytesPerRequest()}.
-	 * 
-	 * @param maxRowsPerPage
-	 * @return
-	 */
-	Long getMaxRowSizeBytes(Long maxRowsPerPage) {
-		if (maxRowsPerPage <= 1L) {
-			return Long.MAX_VALUE;
-		}
-		return this.tableQueryManager.getMaxBytesPerRequest() / maxRowsPerPage;
-	}
-
-	Optional<String> getSchemaId(UserInfo user, String tableId, List<Row> rows) {
-		if (EntityType.entityview.equals(entityManager.getEntityType(tableId)) && rows != null && rows.size() > 0) {
-			String firstRowId = KeyFactory.keyToString(rows.get(0).getRowId());
-			try {
-				JsonSchemaObjectBinding binding = entityManager.getBoundSchema(user, firstRowId);
-				return Optional.of(binding.getJsonSchemaVersionInfo().get$id());
-			} catch (NotFoundException e) {
-				return Optional.empty();
-			}
-		}
-		return Optional.empty();
 	}
 
 	/**
@@ -481,11 +288,20 @@ public class GridManagerImpl implements GridManager {
 		gridDao.removeConnection(connectionId);
 	}
 
-    @Override
-    public Optional<GridConnectionInfo> getDefaultInternalConnection(String sessionId) {
-        ValidateArgument.required(sessionId, "sessionId");
-        return gridDao.getDefaultInternalConnection(sessionId);
-    }
+	@Override
+	public Optional<GridConnectionInfo> getSingletonConnection(String sessionId, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(source, "source");
+		return gridDao.getSingletonConnection(sessionId, source);
+	}
+	
+	@Override
+	public Optional<GridConnectionInfo> getSingletonUserConnection(String sessionId, UserInfo user, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(source, "source");
+		return gridDao.getSingletonUserConnection(sessionId, user.getId(), source);
+	}
 
 	@WriteTransaction
 	@Override
@@ -582,6 +398,5 @@ public class GridManagerImpl implements GridManager {
 	public Optional<GridConnectionInfo> getConnectionInfoOptional(String connectionId) {
 		return gridDao.getConnection(connectionId);
 	}
-
 
 }

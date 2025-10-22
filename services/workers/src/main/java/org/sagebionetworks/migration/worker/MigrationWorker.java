@@ -3,7 +3,6 @@ package org.sagebionetworks.migration.worker;
 import java.io.IOException;
 
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
-import org.sagebionetworks.repo.manager.principal.UserStatusManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -15,8 +14,6 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
-import org.sagebionetworks.repo.model.migration.BackfillLastSeenOnRequest;
-import org.sagebionetworks.repo.model.migration.BackfillLastSeenOnResponse;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
@@ -31,13 +28,10 @@ import org.springframework.stereotype.Service;
 public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, AsyncMigrationResponse> {
 	
 	private MigrationManager migrationManager;
-	
-	private UserStatusManager userStatusManager;
 
 	@Autowired
-	public MigrationWorker(MigrationManager migrationManager, UserStatusManager userStatusManager) {
+	public MigrationWorker(MigrationManager migrationManager) {
 		this.migrationManager = migrationManager;
-		this.userStatusManager = userStatusManager;
 	}
 	
 	@Override
@@ -78,10 +72,6 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
-		} else if (req instanceof BackfillLastSeenOnRequest) {
-			long processedCount = userStatusManager.backfillUsersLastSeenOn(((BackfillLastSeenOnRequest)req).getMaxUsersCount().intValue());
-			return new BackfillLastSeenOnResponse()
-				.setCount(processedCount);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

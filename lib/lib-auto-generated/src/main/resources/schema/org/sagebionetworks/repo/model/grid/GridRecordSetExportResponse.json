@@ -1,0 +1,25 @@
+{
+  "description": "The response for a grid record set export request.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+    }
+  ],
+  "properties": {
+    "sessionId": {
+      "description": "The session ID of the exported grid.",
+      "type": "string"
+    },
+    "recordSetId": {
+      "type": "string",
+      "description": "The id of the record set entity where the grid data was exported to."
+    },
+	"recordSetVersionNumber": {
+      "type": "integer",
+      "description": "The version number of the record set entity where the grid data was exported to."
+    },
+	"validationSummaryStatistics": {
+	  "$ref": "org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics"
+	}
+  }
+}

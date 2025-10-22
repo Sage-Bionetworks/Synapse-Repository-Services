@@ -1,6 +1,7 @@
 package org.sagebionetworks.grid.db;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -201,6 +202,17 @@ public interface GridIndexDao extends ConstantProvider {
 	List<ArrayNode> getArrayNodesInOrder(String sessionIdString, Long replicaId, LogicalTimestamp arrayId, Long limit,
 			Long offset);
 
+
+	/**
+	 * 
+	 * @param sessionIdString
+	 * @param replicaId
+	 * @param arrayId
+	 * 
+	 * @return The last node in the given array, empty if the array has no nodes.
+	 */
+	Optional<ArrayNode> getArrayLastNode(String sessionIdString, Long replicaId, LogicalTimestamp arrayId);
+	
 	/**
 	 * Given a new {@link ArrayNode} to insert, find the location where the node
 	 * should actually be inserted following the RGA insert algorithm (specifically
@@ -238,7 +250,17 @@ public interface GridIndexDao extends ConstantProvider {
 	 * @param setMethod
 	 * @return
 	 */
-	MessageChain createMessageChain(MessageChain setMethod);
+	MessageChain createMessageChain(MessageChain setMethod,  Duration expires);
+	
+	/**
+	 * Refresh the expiration of the provided message chain.
+	 * @param sessionId
+	 * @param replicaId
+	 * @param chainId
+	 * @param expires
+	 * @return
+	 */
+	boolean refreshMessageChain(String sessionId, Long replicaId, Integer chainId, Duration expires);
 
 	/**
 	 * Get a {@link MessageChain} if it exists.
@@ -249,6 +271,17 @@ public interface GridIndexDao extends ConstantProvider {
 	 * @return Optional.empty() if the chain no longer exists
 	 */
 	Optional<MessageChain> getMessageChain(String sessionId, Long replicaId, Integer chainId);
+	
+	/**
+	 * Determine if a non-expired message chain already exists for the given method name.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @param method
+	 * @return
+	 */
+	Optional<MessageChain> getNonExpiredMessageChain(String sessionId, Long replicaId, String method);
+	
 
 	/**
 	 * Delete a message chain upon completion. This will free up the ID to be
@@ -284,5 +317,13 @@ public interface GridIndexDao extends ConstantProvider {
 	 * Delete all grid data from the database.
 	 */
 	void truncateAll();
+
+	/**
+	 * The maximum sequence number from the replica's clock.
+	 * @param gridSessionId
+	 * @param replicaId
+	 * @return
+	 */
+	Long getClockSequenceMaximum(String gridSessionId, Long replicaId);
 
 }

@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager.principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -99,64 +96,4 @@ public class UserStatusManagerImpUnitTest {
 		verifyNoMoreInteractions(mockUserStatusDao, mockUserManager, mockOidcTokenManager);
 	}
 	
-	@Test
-	public void testBackfillUsersLastSeenOn() {
-		int maxCount = 1000;
-		
-		Instant now = Instant.now();
-		
-		List<Long> userList = List.of(123L, 456L);				
-		
-		when(mockClock.now()).thenReturn(Date.from(now));
-		when(mockUserStatusDao.getNeverSeenUsersBatch(anyInt())).thenReturn(userList, Collections.emptyList());
-		
-		// Call under test
-		assertEquals(2, userStatusManager.backfillUsersLastSeenOn(maxCount));
-		
-		verify(mockUserStatusDao).setLastSeenOn(eq(userList), dateCaptor.capture());
-
-		assertTrue(dateCaptor.getValue().toInstant().isBefore(now));
-		assertTrue(dateCaptor.getValue().toInstant().isAfter(now.minus(7, ChronoUnit.DAYS)));
-	}
-	
-	@Test
-	public void testBackfillUsersLastSeenOnWithBoostrappedUsers() {
-		int maxCount = 1000;
-		
-		Instant now = Instant.now();
-		
-		List<Long> userList = List.of(123L, 456L, 1L); // 1L is a bootstrap principal				
-		
-		when(mockClock.now()).thenReturn(Date.from(now));
-		when(mockUserStatusDao.getNeverSeenUsersBatch(anyInt())).thenReturn(userList, Collections.emptyList());
-		
-		// Call under test
-		assertEquals(2, userStatusManager.backfillUsersLastSeenOn(maxCount));
-		
-		verify(mockUserStatusDao).setLastSeenOn(eq(List.of(123L, 456L)), dateCaptor.capture());
-
-		assertTrue(dateCaptor.getValue().toInstant().isBefore(now));
-		assertTrue(dateCaptor.getValue().toInstant().isAfter(now.minus(7, ChronoUnit.DAYS)));
-	}
-	
-	@Test
-	public void testBackfillUsersLastSeenOnWithMultipleBatches() {
-		int maxCount = 1000;
-		
-		Instant now = Instant.now();
-				
-		when(mockClock.now()).thenReturn(Date.from(now));
-		when(mockUserStatusDao.getNeverSeenUsersBatch(anyInt())).thenReturn(List.of(123L, 456L), List.of(1L, 789L), Collections.emptyList());
-		
-		// Call under test
-		assertEquals(3, userStatusManager.backfillUsersLastSeenOn(maxCount));
-		
-		verify(mockUserStatusDao).setLastSeenOn(eq(List.of(123L, 456L)), dateCaptor.capture());
-		verify(mockUserStatusDao).setLastSeenOn(eq(List.of(789L)), dateCaptor.capture());
-
-		for (Date date : dateCaptor.getAllValues()) {
-			assertTrue(date.toInstant().isBefore(now));
-			assertTrue(date.toInstant().isAfter(now.minus(7, ChronoUnit.DAYS)));
-		}
-	}
 }

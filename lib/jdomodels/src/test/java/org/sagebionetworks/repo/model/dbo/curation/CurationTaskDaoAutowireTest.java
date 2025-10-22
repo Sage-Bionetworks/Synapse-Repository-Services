@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -36,11 +37,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
 class CurationTaskDaoAutowireTest {
-
-    private enum TaskType {
-        FILE_BASED,
-        RECORD_BASED
-    }
 
     @Autowired
     NodeDAO nodeDao;
@@ -74,8 +70,6 @@ class CurationTaskDaoAutowireTest {
         user2.setCreationDate(new Date());
         modifiedByUserId = userGroupDAO.create(user2);
 
-
-
         Node project = new Node();
         project.setName("project1");
         project.setNodeType(EntityType.project);
@@ -106,9 +100,8 @@ class CurationTaskDaoAutowireTest {
 
 
     @ParameterizedTest
-    @EnumSource(TaskType.class)
-    public void testCRUD(TaskType taskType) {
-
+    @EnumSource(CurationTaskPropertiesType.class)
+    public void testCRUD(CurationTaskPropertiesType taskType) {
         CurationTask toCreate = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("fastq")
@@ -136,11 +129,22 @@ class CurationTaskDaoAutowireTest {
         // Update
         String newInstructions = "new instructions";
         created.setInstructions(newInstructions);
-        CurationTask updated = dao.updateCurationTask(modifiedByUserId, created);
+        created.setCreatedBy("123456789012"); // changes to created/modified By/On should be ignored
+        created.setCreatedOn(null);
+        created.setModifiedBy("1");
+        created.setModifiedOn(new Date(0));
+
+        // call under test
+        dao.updateCurationTask(modifiedByUserId, created);
+        CurationTask updated = dao.getCurationTask(created.getTaskId()).get();
+
         assertEquals(newInstructions, updated.getInstructions());
-        assertNotEquals(created.getEtag(), updated.getEtag());
-        assertNotEquals(created.getModifiedOn(), updated.getModifiedOn());
+        assertNotEquals(fetched.get().getEtag(), updated.getEtag());
+        assertNotNull(updated.getModifiedOn());
+        assertNotEquals(fetched.get().getModifiedOn(), updated.getModifiedOn());
         assertEquals(modifiedByUserId.toString(), updated.getModifiedBy());
+        assertEquals(fetched.get().getCreatedBy(), updated.getCreatedBy());
+        assertEquals(fetched.get().getCreatedOn(), updated.getCreatedOn());
 
         // Delete
         dao.deleteCurationTask(created.getTaskId());
@@ -152,12 +156,12 @@ class CurationTaskDaoAutowireTest {
         CurationTask fastqDataType1 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("fastq")
-                .setTaskProperties(createTaskProperties(TaskType.FILE_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED));
 
         CurationTask fastqDataType2 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("fastq")
-                .setTaskProperties(createTaskProperties(TaskType.RECORD_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED));
 
         // Create the first one
         CurationTask created1 = dao.createCurationTask(userId, fastqDataType1);
@@ -178,6 +182,17 @@ class CurationTaskDaoAutowireTest {
     }
 
     @Test
+    public void testUpdateWithNotFound() {
+        CurationTask task = new CurationTask()
+                .setTaskId(9999999L);
+
+        // Call under test
+        NotFoundException ex = assertThrows(NotFoundException.class, () -> dao.updateCurationTask(userId, task));
+
+        assertEquals("A curation task with ID 9999999 does not exist.", ex.getMessage());
+    }
+
+    @Test
     public void testNoDuplicateDataTypeWithinProject_onUpdate() {
         String dataType1 = "a".repeat(255);
         String dataType2 = "a".repeat(256); // verify varchar column is not truncated in the unique index
@@ -185,12 +200,12 @@ class CurationTaskDaoAutowireTest {
         CurationTask task1 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType(dataType1)
-                .setTaskProperties(createTaskProperties(TaskType.FILE_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED));
 
         CurationTask task2 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType(dataType2)
-                .setTaskProperties(createTaskProperties(TaskType.RECORD_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED));
 
         // call under test - verify varchar column is not truncated in the unique index
         CurationTask created1 = dao.createCurationTask(userId, task1);
@@ -215,17 +230,17 @@ class CurationTaskDaoAutowireTest {
         CurationTask taskInProject1 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("fastq")
-                .setTaskProperties(createTaskProperties(TaskType.RECORD_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED));
 
         CurationTask anotherTaskInProject1 = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("rnaseq")
-                .setTaskProperties(createTaskProperties(TaskType.RECORD_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED));
 
         CurationTask taskInProject2 = new CurationTask()
                 .setProjectId(project2.getId())
                 .setDataType("fastq")
-                .setTaskProperties(createTaskProperties(TaskType.FILE_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED));
 
         // Create
         CurationTask projectOneTask1 = dao.createCurationTask(userId, taskInProject1);
@@ -235,8 +250,8 @@ class CurationTaskDaoAutowireTest {
         // call under test - get all tasks for project 1, ensure project 2 task is not included
         List<CurationTask> tasksForProject1 = dao.getCurationTasks(KeyFactory.stringToKey(project1.getId()), 10, 0);
         assertEquals(2, tasksForProject1.size());
-        assertTrue(tasksForProject1.contains(projectOneTask1));
-        assertTrue(tasksForProject1.contains(projectOneTask2));
+        assertEquals(tasksForProject1.get(0), projectOneTask1);
+        assertEquals(tasksForProject1.get(1), projectOneTask2);
 
         // Test limit and offset
         List<CurationTask> tasks = dao.getCurationTasks(KeyFactory.stringToKey(project1.getId()), 1, 0);
@@ -254,14 +269,13 @@ class CurationTaskDaoAutowireTest {
         dao.deleteCurationTask(projectTwoTask.getTaskId());
     }
 
-
     @Test
     public void testConflictingUpdate() {
         CurationTask toCreate = new CurationTask()
                 .setProjectId(project1.getId())
                 .setDataType("fastq")
                 .setInstructions("these are the instructions")
-                .setTaskProperties(createTaskProperties(TaskType.RECORD_BASED));
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED));
 
         CurationTask created = dao.createCurationTask(userId, toCreate);
         assertNotNull(created.getTaskId());
@@ -275,7 +289,7 @@ class CurationTaskDaoAutowireTest {
         assertThrows(ConflictingUpdateException.class, () -> dao.updateCurationTask(userId, created));
     }
 
-    private CurationTaskProperties createTaskProperties(TaskType taskType) {
+    private CurationTaskProperties createTaskProperties(CurationTaskPropertiesType taskType) {
         switch (taskType) {
             case FILE_BASED:
                 return new FileBasedMetadataTaskProperties().setFileViewId(fileViewId).setUploadFolderId(uploadFolderId);

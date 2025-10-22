@@ -79,15 +79,17 @@ if [ ${SETTINGS_XML} ]; then
   echo ${SETTINGS_XML} > ${m2_cache_parent_folder}/.m2/settings.xml
 fi
 
+if [ -z ${HOME_DIR_WITHIN_CONTAINER+x} ]; then
+  HOME_DIR_WITHIN_CONTAINER="/root"
+fi
 
 mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repository_database_connection_url} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_table_cluster_endpoint_0} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 
-
 # create build container and run build
-docker run --user "$(id -u):$(id -g)" -i --rm --name ${build_container_name} \
+docker run ${DOCKER_USER_OPTION} -i --rm --name ${build_container_name} \
 -m 5500M \
--v ${m2_cache_parent_folder}/.m2:/tmp/.m2 \
+-v ${m2_cache_parent_folder}/.m2:${HOME_DIR_WITHIN_CONTAINER}/.m2 \
 -v ${src_folder}:/repo \
 -v /etc/localtime:/etc/localtime:ro \
 -e MAVEN_OPTS="-Xms256m -Xmx2048m -XX:MaxPermSize=512m" \
@@ -114,11 +116,12 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.doi.datacite.api.endpoint=${org_sagebionetworks_doi_datacite_api_endpoint} \
 -Dorg.sagebionetworks.google.cloud.enabled=${org_sagebionetworks_google_cloud_enabled} \
 -Dorg.sagebionetworks.sts.iam.arn=${org_sagebionetworks_sts_iam_arn} \
+-Dorg.sagebionetworks.sts.duration.seconds=${org_sagebionetworks_sts_duration_seconds} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
 -Dorg.sagebionetworks.cloudfront.keypair="${org_sagebionetworks_cloudfront_keypair}" \
 -Dorg.sagebionetworks.cloudfront.domainname="${org_sagebionetworks_cloudfront_domainname}" \
 -Dorg.sagebionetworks.cloudfront.private.key.secret="${org_sagebionetworks_cloudfront_private_key_secret}" \
--Duser.home=/tmp"
+-Duser.home=${HOME_DIR_WITHIN_CONTAINER}"
 
 clean_up_container ${build_container_name}
 

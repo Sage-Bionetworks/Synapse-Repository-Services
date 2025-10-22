@@ -37,6 +37,10 @@
 		{
 			"name": "DISABLE_2FA_REQUIREMENT",
 			"description": "Setting this value to false will require 2fa to be enabled for all users."
+		},
+		{
+			"name": "DISABLE_INACTIVE_USERS",
+			"description": "When enabled (default), users that have been inactive for more than 180 days will be disabled."
 		}
     ]
 }

@@ -5,9 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
@@ -373,7 +376,6 @@ public class AgentManagerImpl implements AgentManager {
 	 */
 	String handleEvent(AgentAccessLevel accessLevel, ReturnControlHandler handler, ReturnControlEvent event) {
 		try {
-
 			if (handler.needsWriteAccess()) {
 				if (!featureManager.isFeatureEnabled(Feature.ALLOW_AGENT_WRITES)) {
 					throw new UnsupportedOperationException(
@@ -429,32 +431,24 @@ public class AgentManagerImpl implements AgentManager {
 	}
 
 	ReturnControlEvent fromApiInvocationInput(Long userId, SessionContext context, ApiInvocationInput input) {
-		String requestBody = getRequestBody(input.requestBody());
+		String function = String.format("%s %s", input.httpMethod().toUpperCase(), input.apiPath());
 		List<Parameter> params = new ArrayList<>();
 		input.parameters().forEach(p -> {
 			params.add(new Parameter(p.name(), p.type(), p.value()));
 		});
-		String function = String.format("%s %s", input.httpMethod().toUpperCase(), input.apiPath());
-		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBody, context);
+		List<Parameter> requestBodyParams = getRequestBody(input.requestBody());
+		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBodyParams, context);
 	}
 
-	String getRequestBody(ApiRequestBody body) {
+	List<Parameter> getRequestBody(ApiRequestBody body) {
 		if (body == null) {
 			return null;
 		}
 		PropertyParameters jsonBody = body.content().get("application/json");
-		JSONObject object = new JSONObject();
-		jsonBody.properties().forEach(p -> {
-			if ("object".equals(p.type())) {
-				object.put(p.name(), new JSONObject(p.value()));
-			} else if ("string".equals(p.type())) {
-				object.put(p.name(), p.value());
-			} else {
-				throw new IllegalArgumentException("Unknown type: " + p.type());
-			}
-		});
-		return object.toString();
+		return jsonBody.properties().stream().map(p -> new Parameter(p.name(), p.type(), p.value()))
+				.collect(Collectors.toList());
 	}
+	
 
 	@Override
 	public TraceEventsResponse getChatTrace(UserInfo userInfo, TraceEventsRequest request) {

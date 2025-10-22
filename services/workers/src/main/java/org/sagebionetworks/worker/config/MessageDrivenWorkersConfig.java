@@ -290,14 +290,14 @@ public class MessageDrivenWorkersConfig {
 	@Bean
 	public SimpleTriggerFactoryBean gridMessageBrokerWorkerTrigger(GridEventBrokerWorker gridMessageBroker) {
 
-		String queueName = stackConfig.getQueueName("GRID_WEBSOCKET_MESSAGE");
+		String queueName = stackConfig.getQueueName("GRID_WEBSOCKET_MESSAGE.fifo");
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
 						.withSemaphoreLockKey("gridMessageBrokerWorker")
 						.withSemaphoreMaxLockCount(8)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-						.withMaxThreadsPerMachine(3)
+						.withMaxThreadsPerMachine(1)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
@@ -312,14 +312,14 @@ public class MessageDrivenWorkersConfig {
 	@Bean
 	public SimpleTriggerFactoryBean gridReplicaWorkerTrigger(GridReplicaWorker worker) {
 
-		String queueName = stackConfig.getQueueName("GRID_INTERNAL_EVENT");
+		String queueName = stackConfig.getQueueName("GRID_INTERNAL_EVENT.fifo");
 
 		return new WorkerTriggerBuilder()
 				.withStack(ConcurrentWorkerStack.builder()
 						.withSemaphoreLockKey("gridReplicaWorker")
 						.withSemaphoreMaxLockCount(8)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-						.withMaxThreadsPerMachine(3)
+						.withMaxThreadsPerMachine(1)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
@@ -363,7 +363,7 @@ public class MessageDrivenWorkersConfig {
 						.withSemaphoreLockKey("gridReplicaPatchBuilderWorker")
 						.withSemaphoreMaxLockCount(5)
 						.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
-						.withMaxThreadsPerMachine(2)
+						.withMaxThreadsPerMachine(1)
 						.withSingleton(concurrentStackManager)
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)

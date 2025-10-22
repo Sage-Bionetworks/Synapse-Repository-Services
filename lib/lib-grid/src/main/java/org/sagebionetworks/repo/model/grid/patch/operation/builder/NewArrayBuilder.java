@@ -4,8 +4,19 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.NewArray;
 
 public final class NewArrayBuilder extends OperationBuilder {
-    @Override
+    
+	@Override
     public NewArray build(LogicalTimestamp operationId) {
         return new NewArray(operationId);
     }
+    
+    @Override
+	public boolean equals(Object obj) {
+		return obj != null && this.getClass() == obj.getClass();
+	}
+
+	@Override
+	public int hashCode() {
+		return this.getClass().hashCode();
+	}
 }

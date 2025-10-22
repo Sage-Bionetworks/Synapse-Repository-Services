@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsRequest;
+import org.sagebionetworks.repo.model.download.AddToDownloadListStatsResponse;
 import org.sagebionetworks.repo.model.download.DownloadListManifestRequest;
 import org.sagebionetworks.repo.model.download.DownloadListManifestResponse;
 import org.sagebionetworks.repo.model.download.DownloadListPackageRequest;
@@ -27,6 +29,10 @@ import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
+import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
+import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -86,6 +92,8 @@ public enum AsynchJobType {
 
 	ADD_TO_DOWNLOAD_LIST(AddToDownloadListRequest.class, AddToDownloadListResponse.class),
 	
+	ADD_TO_DOWNLOAD_LIST_STATS(AddToDownloadListStatsRequest.class, AddToDownloadListStatsResponse.class),
+	
 	DOWNLOAD_LIST_PACKAGE(DownloadListPackageRequest.class, DownloadListPackageResponse.class),
 	
 	DOWNLOAD_LIST_MANIFEST(DownloadListManifestRequest.class, DownloadListManifestResponse.class),
@@ -100,8 +108,11 @@ public enum AsynchJobType {
 	
 	GRID_CREATE(CreateGridRequest.class, CreateGridResponse.class),
 
-    DOWNLOAD_CSV_FROM_GRID(DownloadFromGridRequest.class, DownloadFromGridResult.class)
-    ;
+    DOWNLOAD_CSV_FROM_GRID(DownloadFromGridRequest.class, DownloadFromGridResult.class),
+    
+    GRID_EXPORT_RECORDSET(GridRecordSetExportRequest.class, GridRecordSetExportResponse.class),
+    
+    GRID_IMPORT_CSV(GridCsvImportRequest.class, GridCsvImportResponse.class);
 
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;

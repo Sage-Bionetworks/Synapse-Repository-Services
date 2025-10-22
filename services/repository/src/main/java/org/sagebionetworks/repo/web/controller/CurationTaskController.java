@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * The Curation Task services are used to manage <a href="${org.sagebionetworks.repo.model.curation.CurationTask}>Curation Tasks</a>.
+ * The Curation Task services are used to manage <a href="${org.sagebionetworks.repo.model.curation.CurationTask}">Curation Tasks</a>.
  * Curation tasks are used to guide data contributors through the process of contributing data or metadata in Synapse.
  */
 @ControllerInfo(displayName = "Curation Task Services", path = "repo/v1")
@@ -80,7 +80,7 @@ public class CurationTaskController {
     public @ResponseBody
     CurationTask getCurationTask(
             @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-            @PathVariable String taskId) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
+            @PathVariable Long taskId) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
         return service.getCurationTask(userId, taskId);
     }
 
@@ -102,7 +102,7 @@ public class CurationTaskController {
     public @ResponseBody
     CurationTask updateCurationTask(
             @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-            @RequestBody CurationTask curationTask) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
+            @PathVariable Long taskId, @RequestBody CurationTask curationTask) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
         return service.updateCurationTask(userId, curationTask);
     }
 
@@ -124,7 +124,7 @@ public class CurationTaskController {
     public @ResponseBody
     void deleteCurationTask(
             @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-            @PathVariable String taskId) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException {
+            @PathVariable Long taskId) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException {
         service.deleteCurationTask(userId, taskId);
     }
 

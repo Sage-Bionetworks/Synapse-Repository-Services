@@ -1,5 +1,6 @@
 package org.sagebionetworks.grid.db;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,26 @@ public interface GridIndexManager {
 	 * @param chainId
 	 */
 	void completeMessageChain(String sessionId, Long replicaId, Integer chainId);
+	
+	/**
+	 * Refresh the expiration on the provided message chain.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @param chainId
+	 * @return
+	 */
+	boolean refreshMessageChain(String sessionId, Long replicaId, Integer chainId);
 
+	/**
+	 * Determine if a non-expired message chain already exists for the given method name.
+	 * 
+	 * @param sessionId
+	 * @param replicaId
+	 * @param method
+	 * @return
+	 */
+	Optional<MessageChain> getNonExpiredMessageChain(String sessionId, Long replicaId, String method);
+	
 	void truncateAll();
 }

@@ -1,0 +1,26 @@
+{
+	"description": "The result of a CSV import into the grid.",
+	"implements": [
+		{
+			"$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"sessionId": {
+			"description": "The grid session ID.",
+			"type": "string"
+		},
+		"totalCount": {
+			"description": "The total number of processed rows.",
+			"type": "integer"
+		},
+		"createdCount": {
+			"description": "The number of newly created rows in the grid.",
+			"type": "integer"
+		},
+		"updatedCount": {
+			"description": "The number of updated rows in the grid.",
+			"type": "integer"
+		}
+	}
+}

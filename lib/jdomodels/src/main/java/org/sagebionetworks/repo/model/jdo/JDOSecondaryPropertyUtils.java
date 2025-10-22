@@ -14,6 +14,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -31,42 +32,48 @@ public class JDOSecondaryPropertyUtils {
 
 	/**
 	 * Compresses the dto into compressed XML bytes using the provided customXStream
-	 * @param customXStream a UnmodifiableXStream that has been set up to handle the object type
-	 * @param dto the object to be serialized and compressed
+	 * 
+	 * @param customXStream a UnmodifiableXStream that has been set up to handle the
+	 *                      object type
+	 * @param dto           the object to be serialized and compressed
 	 * @return byte[] of compressed XML representing the dto object.
 	 * @throws IOException
 	 */
 	@Deprecated
 	public static byte[] compressObject(UnmodifiableXStream customXStream, Object dto) throws IOException {
-		if(dto == null) return null;
+		if (dto == null)
+			return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		GZIPOutputStream zipper = new GZIPOutputStream(out);
-		try(Writer zipWriter = new OutputStreamWriter(zipper, UTF8);){
+		try (Writer zipWriter = new OutputStreamWriter(zipper, UTF8);) {
 			customXStream.toXML(dto, zipWriter);
 		}
 		return out.toByteArray();
 	}
 
 	/**
-	 * Decompress and deserialize compressed XML bytes into an object using the provided customXStream
-	 * @param customXStream a UnmodifiableXStream that has been set up to handle the object type
-	 * @param zippedBytes byte[] of compressed XML representing the dto object.
+	 * Decompress and deserialize compressed XML bytes into an object using the
+	 * provided customXStream
+	 * 
+	 * @param customXStream a UnmodifiableXStream that has been set up to handle the
+	 *                      object type
+	 * @param zippedBytes   byte[] of compressed XML representing the dto object.
 	 * @return the object that the bytes represented
 	 * @throws IOException
 	 */
 	@Deprecated
-	public static Object decompressObject(UnmodifiableXStream customXStream, byte[] zippedBytes) throws IOException{
-		if(zippedBytes == null){
+	public static Object decompressObject(UnmodifiableXStream customXStream, byte[] zippedBytes) throws IOException {
+		if (zippedBytes == null) {
 			return null;
 		}
 
 		ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
 		GZIPInputStream unZipper = new GZIPInputStream(in);
-		try(Reader reader = new InputStreamReader(unZipper, UTF8);){
+		try (Reader reader = new InputStreamReader(unZipper, UTF8);) {
 			return customXStream.fromXML(unZipper);
 		}
 	}
-	
+
 	/**
 	 * Wraps a call to
 	 * {@link EntityFactory#createEntityFromJSONString(String, Class)} with check
@@ -106,7 +113,29 @@ public class JDOSecondaryPropertyUtils {
 			throw new RuntimeException(e);
 		}
 	}
+
+	public static <T extends JSONEntity> T createEntityFromJSONObject(JSONObject jsonEntity, Class<? extends T> clazz) {
+		if (jsonEntity == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonEntity, clazz);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
 	
+	public static JSONObject createJSONObjectForEntity(JSONEntity entity) {
+		if(entity == null) {
+			return null;
+		}
+		try {
+			return EntityFactory.createJSONObjectForEntity(entity);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Read the given JSON into a list of the given type items.
 	 * 
@@ -124,9 +153,10 @@ public class JDOSecondaryPropertyUtils {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
+
 	/**
 	 * Write the given list of entity reference items to JSON.
+	 * 
 	 * @param <T>
 	 * @param items
 	 * @return
@@ -141,28 +171,28 @@ public class JDOSecondaryPropertyUtils {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
+
 	public static List<String> readJsonToStringList(String json) {
 		if (json == null) {
 			return null;
 		}
-		
+
 		JSONArray array = new JSONArray(json);
-		
+
 		List<String> list = new ArrayList<String>(array.length());
-		
+
 		for (int i = 0; (i < array.length()); i++) {
 			list.add(array.getString(i));
 		}
-		
+
 		return list;
 	}
-	
+
 	public static String writeStringListToJson(List<String> items) {
 		if (items == null) {
 			return null;
 		}
-		
+
 		return new JSONArray(items).toString();
 	}
 }

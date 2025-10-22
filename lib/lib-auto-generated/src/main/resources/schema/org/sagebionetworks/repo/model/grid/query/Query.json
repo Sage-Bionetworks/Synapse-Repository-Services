@@ -1,0 +1,28 @@
+{
+	"description": "Defines a structured query using JSON SelectItems and Filters objects - NOT SQL syntax. Use the predefined SelectItems and Filters with specific concreteType values.",
+	"properties": {
+		"columnSelection": {
+			"description": "One or more SelectItem is required to define the columns that will be returned by this query.  Each SelectItem must be a complete JSON object with the required 'concreteType' property. IMPORTANT: Do not use SQL syntax - use the predefined SelectItem objects. Examples: To select all columns: {\"concreteType\":\"org.sagebionetworks.repo.model.grid..query.SelectAll\"}. To select the count of the number of rows use: {\"concreteType\":\"org.sagebionetworks.repo.model.grid.query.function.CountStar\"}",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.SelectItem"
+			}
+		},
+		"filters": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+			},
+			"description": "Optional. Each filter must be a complete JSON object with the required 'concreteType' property. IMPORTANT: Do not use SQL syntax - use the predefined filter objects. Examples: To find invalid rows: [{\"concreteType\":\"org.sagebionetworks.repo.model.grid.query.RowIsValidFilter\",\"value\":false}]. To find rows where 'age' > 25: [{\"concreteType\":\"org.sagebionetworks.repo.model.grid.query.CellValueFilter\",\"columnName\":\"age\",\"operator\":\"GREATER_THAN\",\"value\":[25]}]. Multiple filters are combined with AND logic."
+		},
+		"limit": {
+			"type": "integer",
+			"description": "Required. Limit of the number of rows returned to avoid loading more data than needed into your context window.",
+			"maximum": 100
+		},
+		"offset": {
+			"type": "integer",
+			"description": "Optional. specifies the offset of the first row to return."
+		}
+	}
+}

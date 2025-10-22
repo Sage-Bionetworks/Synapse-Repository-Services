@@ -15,8 +15,5 @@ public interface UserStatusDao {
 	boolean isDisabled(long principalId);
 	
 	List<Long> getInactiveUsersBatch(Date lastSeenOnThreshold, int batchSize);
-	
-	// For backfilling purposes, this will return all users that have never been seen.
-	List<Long> getNeverSeenUsersBatch(int batchSize);
 }
 

@@ -1,0 +1,25 @@
+{
+	"type": "object",
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "Name of a column.  Can also be the alias of an aggregate function in the select clause."
+		},
+		"direction": {
+			"type": "string",
+			"name": "OrderByDirection",
+			"id": "org.sagebionetworks.repo.model.grid.query.OrderByDirection",
+			"enum": [
+				{
+					"name": "ASC",
+					"description": "Ascending sort order"
+				},
+				{
+					"name": "DESC",
+					"description": "Descending sort order"
+				}
+			],
+			"description": "The ordering direction (default is ASC)."
+		}
+	}
+}
