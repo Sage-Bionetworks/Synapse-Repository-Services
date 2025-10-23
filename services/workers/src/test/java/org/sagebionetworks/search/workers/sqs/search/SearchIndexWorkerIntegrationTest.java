@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.EntityAclManager;
@@ -36,7 +35,6 @@ import org.springframework.util.CollectionUtils;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-@Disabled("See https://sagebionetworks.jira.com/browse/PLFM-9306")
 public class SearchIndexWorkerIntegrationTest {
     private static final long MAX_WAIT = 2 * 60*1000; // 2 minutes
     private static final long CHECK_TIME = 2000;
@@ -56,7 +54,6 @@ public class SearchIndexWorkerIntegrationTest {
     private FileEntity fileOne;
     private FileEntity fileTwo;
     private List<FileEntity> fileToBeDeleted = new ArrayList<>();
-
 
     @BeforeEach
     public void before() {
@@ -97,7 +94,7 @@ public class SearchIndexWorkerIntegrationTest {
             userManager.deletePrincipal(adminUser, anotherUser.getId());
         }
     }
-
+    
     /**
      * This test was added for PLFM-9218.
      * Quoted string should be treated as phrase and unquoted string as term
@@ -143,13 +140,14 @@ public class SearchIndexWorkerIntegrationTest {
 
         // The user should eventually find the file
         waitForQuery(anotherUser, term, 1);
-    }
+    }    
 
     /**
      * @param id
      * @throws Exception
      */
     public void waitForEntityToAppearInSearch(String id, String etag) throws Exception {
+    	
         TimeUtils.waitFor(MAX_WAIT, CHECK_TIME, () -> {
             System.out.println("Waiting for Get request to get the document.");
             return Pair.create(searchManager.doesDocumentExist(id, etag), null);
