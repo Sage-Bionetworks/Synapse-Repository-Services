@@ -13,9 +13,6 @@ import software.amazon.awssdk.services.lambda.LambdaClient;
 @ImportResource("classpath:stack-configuration.spb.xml")
 public class MarkdownConfig {
 
-    @Autowired
-    private StackConfiguration stackConfiguration;
-
     @Bean
     @Scope("singleton")
     public LambdaClient lambdaClient() {
@@ -25,7 +22,7 @@ public class MarkdownConfig {
 
     @Bean
     @Scope("singleton")
-    public MarkdownDao markdownDao() {
+    public MarkdownDao markdownDao(StackConfiguration stackConfiguration) {
         MarkdownDaoImpl markdownDao = new MarkdownDaoImpl(lambdaClient(), stackConfiguration.getSynapseBaseUrl(), stackConfiguration.getStack());
         return markdownDao;
     }
