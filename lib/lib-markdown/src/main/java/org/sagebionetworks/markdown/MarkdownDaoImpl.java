@@ -30,12 +30,6 @@ public class MarkdownDaoImpl implements MarkdownDao{
 		this.stack = stack;
 	}
 
-//	public void setLambdaClient(LambdaClient lambdaClient) { this.lambdaClient = lambdaClient; }
-//	public void setSynapseBaseUrl(String synapseBaseUrl) {
-//		this.synapseBaseUrl = synapseBaseUrl;
-//	}
-//	public void setStack(String stack) { this.stack = stack; }
-
 	@Override
 	public String convertMarkdown(String rawMarkdown, String outputType) throws JSONException, MarkdownClientException {
 		if (rawMarkdown == null) {

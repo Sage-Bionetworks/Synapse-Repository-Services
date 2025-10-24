@@ -12,9 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import static org.sagebionetworks.markdown.MarkdownDaoImpl.BASE_URL;
 import static org.sagebionetworks.markdown.MarkdownDaoImpl.MARKDOWN;
@@ -22,7 +20,6 @@ import static org.sagebionetworks.markdown.MarkdownDaoImpl.OUTPUT;
 
 import org.json.JSONObject;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.lambda.model.InvokeRequest;
