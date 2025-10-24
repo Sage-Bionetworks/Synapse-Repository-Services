@@ -204,8 +204,8 @@
 			<artifactId>apache-client</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-lambda</artifactId>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>lambda</artifactId>
 		</dependency>
 
 	</dependencies>

@@ -1,15 +1,17 @@
 package org.sagebionetworks.markdown;
 
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.model.AWSLambdaException;
-import com.amazonaws.services.lambda.model.InvokeRequest;
-import com.amazonaws.services.lambda.model.InvokeResult;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.lambda.LambdaClient;
+import software.amazon.awssdk.services.lambda.model.InvokeRequest;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+import software.amazon.awssdk.services.lambda.model.LambdaException;
 
 import java.nio.charset.StandardCharsets;
 
+@Service
 public class MarkdownDaoImpl implements MarkdownDao{
 
 	public static final String MARKDOWN = "markdown";
@@ -18,16 +20,21 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	public static final String BASE_URL = "baseURL";
 	public static final String FUNCTION_NAME_FMT = "%s-markdownit:prod";
 
-	@Autowired
-	private AWSLambda lambdaClient;
+	private LambdaClient lambdaClient;
+	private String synapseBaseUrl;
+	private String stack;
 
-	String synapseBaseUrl;
-	String stack;
-
-	public void setSynapseBaseUrl(String synapseBaseUrl) {
+	public MarkdownDaoImpl(LambdaClient lambdaClient, String synapseBaseUrl, String stack) {
+		this.lambdaClient = lambdaClient;
 		this.synapseBaseUrl = synapseBaseUrl;
+		this.stack = stack;
 	}
-	public void setStack(String stack) { this.stack = stack; }
+
+//	public void setLambdaClient(LambdaClient lambdaClient) { this.lambdaClient = lambdaClient; }
+//	public void setSynapseBaseUrl(String synapseBaseUrl) {
+//		this.synapseBaseUrl = synapseBaseUrl;
+//	}
+//	public void setStack(String stack) { this.stack = stack; }
 
 	@Override
 	public String convertMarkdown(String rawMarkdown, String outputType) throws JSONException, MarkdownClientException {
@@ -45,21 +52,22 @@ public class MarkdownDaoImpl implements MarkdownDao{
 
 	private String convertToMarkdownWithLambda(String request) throws MarkdownClientException {
 		try {
-			InvokeRequest invokeRequest = new InvokeRequest()
-					.withFunctionName(String.format(FUNCTION_NAME_FMT, stack))
-					.withPayload(request);
+			InvokeRequest invokeRequest = InvokeRequest.builder()
+					.functionName(String.format(FUNCTION_NAME_FMT, stack))
+					.payload(SdkBytes.fromUtf8String(request))
+					.build();
 
-			InvokeResult result = lambdaClient.invoke(invokeRequest);
+			InvokeResponse response = lambdaClient.invoke(invokeRequest);
 
-			if (result.getFunctionError() != null) {
-				throw new MarkdownClientException(500, "Lambda execution failed: " + result.getFunctionError());
+			if (response.functionError() != null) {
+				throw new MarkdownClientException(500, "Lambda execution failed: " + response.functionError());
 			}
 
-			String responseData = new String(result.getPayload().array(), StandardCharsets.UTF_8);
+			String responseData = response.payload().asUtf8String();
 			JSONObject responseJson = new JSONObject(responseData);
 
 			return responseJson.getString(RESULT);
-		} catch (AWSLambdaException | JSONException e) {
+		} catch (LambdaException | JSONException e) {
 			throw new MarkdownClientException(e);
 		}
 

@@ -9,9 +9,6 @@ import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
 import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2ClientBuilder;
 import com.amazonaws.services.appconfigdata.AWSAppConfigData;
 import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
-import com.amazonaws.services.lambda.AWSLambda;
-import com.amazonaws.services.lambda.AWSLambdaClient;
-import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.athena.AmazonAthena;
@@ -42,6 +39,9 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.stepfunctions.AWSStepFunctions;
 import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
+import org.sagebionetworks.aws.v2.AwsCredentialsProviderV2;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.services.lambda.LambdaClient;
 
 /**
  * A factory for creating AWS clients using credential chains.
@@ -268,10 +268,10 @@ public class AwsClientFactory {
 	 *
 	 * @return An instance of AWSLambdaClient using the Synapse credential chain
 	 */
-	public static AWSLambda createLambdaClient() {
-		return AWSLambdaClientBuilder.standard()
-				.withRegion(Regions.US_EAST_1)
-				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
+	public static LambdaClient createLambdaClient() {
+		return LambdaClient.builder()
+				.region(software.amazon.awssdk.regions.Region.US_EAST_1)
+				.credentialsProvider(AwsCredentialsProviderV2.createCredentialProvider())
 				.build();
 	}
 	
