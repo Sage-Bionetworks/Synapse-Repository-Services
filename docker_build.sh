@@ -54,8 +54,8 @@ if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
 	SETTINGS_XML="<settings><servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers></settings>"
 	# TODO Remove the following two debug lines
-	echo SETTINGS_XML; $SETTINGS_XML
-	echo length of SETTINGS_XML: ${#SETTINGS_XML}
+	echo SETTINGS_XML $SETTINGS_XML
+	echo length of SETTINGS_XML ${#SETTINGS_XML}
 fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build
