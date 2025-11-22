@@ -34,7 +34,7 @@
 
 	<repositories>
 		<repository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 		</repository>
@@ -63,7 +63,7 @@
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 			<snapshots>
@@ -1106,12 +1106,12 @@
 
 	<distributionManagement>
 		<repository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 		</repository>
 		<snapshotRepository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 			<uniqueVersion>false</uniqueVersion>

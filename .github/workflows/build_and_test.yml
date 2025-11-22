@@ -37,12 +37,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # TODO remove this debug step
-      - name: try to access packages
-        run: |
-          curl -i -u brucehoff:${{ secrets.PAT }} https://maven.pkg.github.com/brucehoff/artifactory/libs-releases/org/sagebionetworks/services/2018-10-03-88-8148231/services-2018-10-03-88-8148231.pom
-          # curl -sS -f -I -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
-
       - name: checkout
         uses: actions/checkout@v5
         with:
@@ -160,7 +154,7 @@ jobs:
           parameter-overrides: >-
             SynapseBranch=${{ env.branch }},
             SynapseRepoOwner=${{ github.repository_owner }},
-            GitHubToken=${{ secrets.PAT }},
+            GitHubToken=${{ secrets.GITHUB_TOKEN }},
             BuildParamUser=${{ env.user }},
             StackBuilderBranch=${{ env.stack_builder_branch }},
             StackBuilderRepoOwner=${{ env.stack_builder_repo_owner }},
