@@ -37,6 +37,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # TODO remove this debug step
+      - name: Inspect github token
+        run: |
+          curl -sS -f -I -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
+
       - name: checkout
         uses: actions/checkout@v5
         with:
