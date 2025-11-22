@@ -38,9 +38,10 @@ jobs:
 
     steps:
       # TODO remove this debug step
-      - name: Inspect github token
+      - name: try to access packages
         run: |
-          curl -sS -f -I -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
+          curl -i -u brucehoff:${{ secrets.GITHUB_TOKEN }} https://maven.pkg.github.com/brucehoff/artifactory/libs-releases/org/sagebionetworks/services/2018-10-03-88-8148231/services-2018-10-03-88-8148231.pom
+          # curl -sS -f -I -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" https://api.github.com
 
       - name: checkout
         uses: actions/checkout@v5
