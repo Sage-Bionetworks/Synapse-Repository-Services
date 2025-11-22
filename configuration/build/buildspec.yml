@@ -44,7 +44,7 @@ phases:
         # If we are going to publish artifacts, then let's get a full build
         FULL_BUILD=true
         export build_deploy=true
-        export artifactory_username=Sage-Bionetworks
+        export artifactory_username=brucehoff
         export artifactory_password=${GitHubToken}
         # now update the pom.xml files to use the version
         echo "Changing all pom.xml to version=$ARTIFACT_VERSION"
