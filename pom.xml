@@ -65,7 +65,7 @@
 		<pluginRepository>
 			<id>github</id>
 			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>>
+			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
