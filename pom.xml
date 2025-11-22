@@ -34,16 +34,9 @@
 
 	<repositories>
 		<repository>
-			<id>sagebionetworks-releases-local</id>
-			<name>sagebionetworks-releases-local</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
-			</url>
-		</repository>
-		<repository>
-			<id>sagebionetworks-ext</id>
-			<name>sagebionetworks-releases-ext</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
-			</url>
+			<id>github</id>
+			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>
 		</repository>
 		<repository>
 			<id>maven-central-rep-1</id>
@@ -70,9 +63,9 @@
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>sagebionetworks-libs-releases-local</id>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local/
-			</url>
+			<id>github</id>
+			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -1113,16 +1106,14 @@
 
 	<distributionManagement>
 		<repository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-releases</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
-			</url>
+			<id>github</id>
+			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>
 		</repository>
 		<snapshotRepository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-snapshots</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-snapshots-local
-			</url>
+			<id>github</id>
+			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
+			<url>https://maven.pkg.github.com/sage-bionetworks/Synapse-Repository-Services</url>
 			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>
 		<site>
