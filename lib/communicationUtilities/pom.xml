@@ -10,8 +10,8 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>lib-communicationUtilities</artifactId>
-	<name>lib-communicationUtilities</name>
+	<artifactId>lib-communicationutilities</artifactId>
+	<name>lib-communicationutilities</name>
 	<url>http://maven.apache.org</url>
 
 	<dependencies>

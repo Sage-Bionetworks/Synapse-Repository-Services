@@ -34,8 +34,28 @@
 
 	<repositories>
 		<repository>
-			<id>sagebionetworks</id>
-			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
+			<id>schema-to-pojo</id>
+			<name>schema-to-pojo</name>
+			<url>https://maven.pkg.github.com/brucehoff/schema-to-pojo</url>
+		</repository>
+		<repository>
+			<id>legacy-jfrog-libs-releases-local</id>
+			<name>Legacy JFrog Repository Libs</name>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local</url>
+		</repository>
+		<repository>
+			<id>legacy-jfrog-ext-releases-local</id>
+			<name>Legacy JFrog Repository Ext</name>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-releases-local</id>
+			<name>sagebionetworks-releases-local</name>
+			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-ext</id>
+			<name>sagebionetworks-releases-ext</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 		</repository>
 		<repository>
@@ -48,8 +68,7 @@
 		</repository>
 		<repository>
 			<id>apache-repo-releases</id>
-			<url>https://repository.apache.org/content/repositories/releases/
-			</url>
+			<url>https://repository.apache.org/content/repositories/releases/</url>
 		</repository>
 		<repository>
 			<id>spring-plugins</id>
@@ -63,9 +82,9 @@
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>sagebionetworks</id>
-			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
+			<id>sagebionetworks-libs-releases-local</id>
+			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
+			</url>
 			<snapshots>
 				<enabled>true</enabled>
 			</snapshots>
@@ -534,7 +553,7 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-communicationUtilities</artifactId>
+				<artifactId>lib-communicationutilities</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -590,13 +609,13 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-securityUtilities</artifactId>
+				<artifactId>lib-securityutilities</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-stackConfiguration</artifactId>
+				<artifactId>lib-stackconfiguration</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -1107,13 +1126,15 @@
 	<distributionManagement>
 		<repository>
 			<id>sagebionetworks</id>
-			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
+			<name>sagebionetworks-releases</name>
+			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
+			</url>
 		</repository>
 		<snapshotRepository>
 			<id>sagebionetworks</id>
-			<name>GitHub Sage-Bionetworks Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
+			<name>sagebionetworks-snapshots</name>
+			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
+			</url>
 			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>
 		<site>
