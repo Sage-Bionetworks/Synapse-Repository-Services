@@ -10,7 +10,7 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>synapseJavaClient</artifactId>
+	<artifactId>synapsejavaclient</artifactId>
 	<packaging>jar</packaging>
 	<name>synapseJavaClient</name>
 

@@ -33,11 +33,6 @@
 	</modules>
 
 	<repositories>
-		<!--<repository>
-			<id>schema-to-pojo</id>
-			<name>schema-to-pojo</name>
-			<url>https://maven.pkg.github.com/brucehoff/schema-to-pojo</url>
-		</repository>-->
 		<repository>
 			<id>legacy-jfrog-libs-releases-local</id>
 			<name>Legacy JFrog Repository Libs</name>
@@ -631,7 +626,7 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>synapseJavaClient</artifactId>
+				<artifactId>synapsejavaclient</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 

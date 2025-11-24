@@ -232,7 +232,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapseJavaClient</artifactId>
+			<artifactId>synapsejavaclient</artifactId>
 		</dependency>
 
 		<dependency>
