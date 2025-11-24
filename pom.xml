@@ -33,11 +33,11 @@
 	</modules>
 
 	<repositories>
-		<repository>
+		<!--<repository>
 			<id>schema-to-pojo</id>
 			<name>schema-to-pojo</name>
 			<url>https://maven.pkg.github.com/brucehoff/schema-to-pojo</url>
-		</repository>
+		</repository>-->
 		<repository>
 			<id>legacy-jfrog-libs-releases-local</id>
 			<name>Legacy JFrog Repository Libs</name>
@@ -49,14 +49,12 @@
 			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local</url>
 		</repository>
 		<repository>
-			<id>sagebionetworks-releases-local</id>
-			<name>sagebionetworks-releases-local</name>
+			<id>github</id>
+			<name>github Synapse-Repository-Services</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
-		</repository>
-		<repository>
-			<id>sagebionetworks-ext</id>
-			<name>sagebionetworks-releases-ext</name>
-			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
 		<repository>
 			<id>maven-central-rep-1</id>
@@ -82,8 +80,8 @@
 
 	<pluginRepositories>
 		<pluginRepository>
-			<id>sagebionetworks-libs-releases-local</id>
-			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
+			<id>legacy-jfrog-libs-releases-local</id>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 			<snapshots>
 				<enabled>true</enabled>
@@ -1125,14 +1123,14 @@
 
 	<distributionManagement>
 		<repository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-releases</name>
+			<id>github</id>
+			<name>github Synapse-Repository-Services</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
 			</url>
 		</repository>
 		<snapshotRepository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-snapshots</name>
+			<id>github</id>
+			<name>github Synapse-Repository-Services Snapshots</name>
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
 			</url>
 			<uniqueVersion>false</uniqueVersion>
