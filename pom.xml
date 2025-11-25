@@ -34,18 +34,23 @@
 
 	<repositories>
 		<repository>
-			<id>legacy-jfrog-libs-releases-local</id>
-			<name>Legacy JFrog Repository Libs</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local</url>
+			<!-- This repository will be removed once Sage migrates off of JFrog -->
+			<id>sagebionetworks-releases-local</id>
+			<name>sagebionetworks-releases-local</name>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
+			</url>
 		</repository>
 		<repository>
-			<id>legacy-jfrog-ext-releases-local</id>
-			<name>Legacy JFrog Repository Ext</name>
-			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local</url>
+			<!-- This repository will be removed once Sage migrates off of JFrog -->
+			<id>sagebionetworks-ext</id>
+			<name>sagebionetworks-releases-ext</name>
+			<url>https://sagebionetworks.jfrog.io/sagebionetworks/ext-releases-local
+			</url>
 		</repository>
 		<repository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>github Synapse-Repository-Services</name>
+			<!-- TODO replace brucehoff with Sage-Bionetworks -->
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services</url>
 			<snapshots>
 				<enabled>true</enabled>
@@ -76,6 +81,7 @@
 	<pluginRepositories>
 		<pluginRepository>
 			<id>legacy-jfrog-libs-releases-local</id>
+			<!-- TODO this will be updated when plug-in are migrated from JFrog to GitHub packages -->
 			<url>https://sagebionetworks.jfrog.io/sagebionetworks/libs-releases-local
 			</url>
 			<snapshots>
@@ -1118,14 +1124,16 @@
 
 	<distributionManagement>
 		<repository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>github Synapse-Repository-Services</name>
+			<!-- TODO replace brucehoff with Sage-Bionetworks -->
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
 			</url>
 		</repository>
 		<snapshotRepository>
-			<id>github</id>
+			<id>sagebionetworks</id>
 			<name>github Synapse-Repository-Services Snapshots</name>
+			<!-- TODO replace brucehoff with Sage-Bionetworks -->
 			<url>https://maven.pkg.github.com/brucehoff/Synapse-Repository-Services
 			</url>
 			<uniqueVersion>false</uniqueVersion>

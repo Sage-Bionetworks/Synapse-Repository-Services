@@ -52,7 +52,7 @@ fi
 MVN_GOAL=install
 if [ ${build_deploy} ]; then
 	MVN_GOAL=deploy
-	SETTINGS_XML="<settings><servers><server><id>github</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers></settings>"
+	SETTINGS_XML="<settings><servers><server><id>sagebionetworks</id><username>${artifactory_username}</username><password>${artifactory_password}</password></server></servers></settings>"
 fi
 
 # the containers are ${JOB_NAME}-rds and ${JOB_NAME}-build

@@ -17,7 +17,6 @@ env:
     org_sagebionetworks_cloudfront_private_key_secret: build.org.sagebionetworks.cloudfront.private.key.secret
     org_sagebionetworks_google_cloud_key: /build/google/cloud/key
     STS_CREDENTIALS: /build/session-token/${user}
-    ARTIFACTORY_CREDS: /build/artifactory
     DATACITE_CREDS: /build/datacite
 phases:
   install:
@@ -44,6 +43,7 @@ phases:
         # If we are going to publish artifacts, then let's get a full build
         FULL_BUILD=true
         export build_deploy=true
+        # TODO change brucehoff to Sage-Bionetworks or to the repo owner (which would be a new env var)
         export artifactory_username=brucehoff
         export artifactory_password=${GitHubToken}
         # now update the pom.xml files to use the version
