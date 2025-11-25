@@ -10,7 +10,7 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>synapseJavaClient</artifactId>
+	<artifactId>synapsejavaclient</artifactId>
 	<packaging>jar</packaging>
 	<name>synapseJavaClient</name>
 
@@ -37,12 +37,12 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-communicationUtilities</artifactId>
+			<artifactId>lib-communicationutilities</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-securityUtilities</artifactId>
+			<artifactId>lib-securityutilities</artifactId>
 		</dependency>
 
 		<dependency>

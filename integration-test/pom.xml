@@ -211,7 +211,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-stackConfiguration</artifactId>
+			<artifactId>lib-stackconfiguration</artifactId>
 		</dependency>
 
 		<dependency>
@@ -232,12 +232,12 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapseJavaClient</artifactId>
+			<artifactId>synapsejavaclient</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-communicationUtilities</artifactId>
+			<artifactId>lib-communicationutilities</artifactId>
 		</dependency>
 
 		<!-- Jackson JSON Mapper -->

@@ -220,7 +220,7 @@ Resources:
                 - Name: SynapseRepoBuildOutput
               Configuration:
                 ProjectName: !Ref CodeBuildProject
-                EnvironmentVariables: !Sub '[{"name":"user","type":"PLAINTEXT","value": "${BuildParamUser}"},{"name":"FULL_BUILD","type":"PLAINTEXT","value": "${FullBuild}"},{"name":"EXTRA_ARGS","type":"PLAINTEXT","value": "${MavenExtraArgs}"},{"name":"ARTIFACT_VERSION","type":"PLAINTEXT","value": "${ArtifactVersion}"}]'
+                EnvironmentVariables: !Sub '[{"name":"GitHubToken","type":"PLAINTEXT","value": "${GitHubToken}"},{"name":"user","type":"PLAINTEXT","value": "${BuildParamUser}"},{"name":"FULL_BUILD","type":"PLAINTEXT","value": "${FullBuild}"},{"name":"EXTRA_ARGS","type":"PLAINTEXT","value": "${MavenExtraArgs}"},{"name":"ARTIFACT_VERSION","type":"PLAINTEXT","value": "${ArtifactVersion}"}]'
                 BuildspecOverride: configuration/build/buildspec.yml
   # A CodeBuild project that can be used to run the stack builder or to build the Synapse back-end
   CodeBuildProject:

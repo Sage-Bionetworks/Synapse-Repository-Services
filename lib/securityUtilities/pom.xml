@@ -11,8 +11,8 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>lib-securityUtilities</artifactId>
-	<name>lib-securityUtilities</name>
+	<artifactId>lib-securityutilities</artifactId>
+	<name>lib-securityutilities</name>
 	<url>http://maven.apache.org</url>
 
 	<dependencies>

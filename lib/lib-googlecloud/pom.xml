@@ -21,7 +21,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-stackConfiguration</artifactId>
+			<artifactId>lib-stackconfiguration</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.google.cloud</groupId>

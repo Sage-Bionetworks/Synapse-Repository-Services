@@ -11,7 +11,7 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>lib-stackConfiguration</artifactId>
+	<artifactId>lib-stackconfiguration</artifactId>
 	<name>stackConfiguration</name>
 	<packaging>jar</packaging>
 
