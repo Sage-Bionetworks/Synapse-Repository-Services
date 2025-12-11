@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.agent;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -306,11 +307,9 @@ public class AgentManagerImplUnitTest {
 
 		var builder = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
 				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId()).enableTrace(false)
-				.inputText(inputText).sessionState(sessionState -> {
-					sessionState.sessionAttributes(Map.of("user_id", nonSageNonAdmin.getId().toString()));
-					sessionState.promptSessionAttributes(
-							Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString()));
-				});
+				.inputText(inputText).sessionState(sessionState -> sessionState.promptSessionAttributes(
+						Map.of("user_id", nonSageNonAdmin.getId().toString(),
+								"access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
 
 		invokeAgentRequest = builder.build();
 
@@ -1546,10 +1545,10 @@ public class AgentManagerImplUnitTest {
 		assertEquals("response", result);
 
 		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
-		Map<String, String> sessionAttributes = capturedRequest.sessionState().sessionAttributes();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
 
-		// Verify user_id is added to session attributes
-		assertEquals(nonSageNonAdmin.getId().toString(), sessionAttributes.get("user_id"));
+		// Verify user_id is added to prompt session attributes
+		assertEquals(nonSageNonAdmin.getId().toString(), promptSessionAttributes.get("user_id"));
 	}
 
 	@Test
@@ -1570,14 +1569,18 @@ public class AgentManagerImplUnitTest {
 		assertEquals("response", result);
 
 		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
-		Map<String, String> sessionAttributes = capturedRequest.sessionState().sessionAttributes();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
 
-		// Verify session attributes is empty (no user_id for anonymous)
-		assertEquals(Map.of(), sessionAttributes);
+		// Verify user_id is NOT in prompt session attributes for anonymous users
+		assertFalse(promptSessionAttributes.containsKey("user_id"));
+		// But access_level should still be present
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
 	}
 
 	@Test
 	public void testInvokeAgentWithTextWithEmptyContextList() {
+		// Use anonymous user to simplify - only access_level expected
+		session.setStartedBy(anonymousUserId);
 		chatRequest.setContext(List.of());
 
 		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
@@ -1595,7 +1598,7 @@ public class AgentManagerImplUnitTest {
 		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
 		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
 
-		// Verify only access_level is present when context is empty
+		// Verify only access_level is present when context is empty and user is anonymous
 		assertEquals(1, promptSessionAttributes.size());
 		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
 	}
@@ -1621,12 +1624,9 @@ public class AgentManagerImplUnitTest {
 
 		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
 
-		// Verify session attributes contain user_id
-		Map<String, String> sessionAttributes = capturedRequest.sessionState().sessionAttributes();
-		assertEquals(nonSageNonAdmin.getId().toString(), sessionAttributes.get("user_id"));
-
-		// Verify prompt session attributes contain both access_level and context data
+		// Verify prompt session attributes contain user_id, access_level, and context data
 		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+		assertEquals(nonSageNonAdmin.getId().toString(), promptSessionAttributes.get("user_id"));
 		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
 		assertEquals("syn789", promptSessionAttributes.get("entityId"));
 		assertEquals(EntityContext.class.getName(), promptSessionAttributes.get("concreteType"));

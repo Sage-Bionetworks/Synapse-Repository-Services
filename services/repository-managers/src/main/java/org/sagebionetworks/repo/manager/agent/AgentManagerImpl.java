@@ -212,11 +212,11 @@ public class AgentManagerImpl implements AgentManager {
 				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
 				.enableTrace(enableTrace).inputText(request.getChatText())
 				.sessionState(sessionState -> {
+					Map<String, String> promptSessionAttributes = new HashMap<>();
 					if (!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(session.getStartedBy())) {
-						sessionState.sessionAttributes(Map.of("user_id", session.getStartedBy().toString()));
+						promptSessionAttributes.put("user_id", session.getStartedBy().toString());
 					}
 
-					Map<String, String> promptSessionAttributes = new HashMap<>();
 					promptSessionAttributes.put(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString());
 
 					if (request.getContext() != null) {
