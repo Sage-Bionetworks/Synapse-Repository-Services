@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.grid.GridManager;
@@ -140,7 +141,7 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
                 }
 
                 rowView.getCells().stream()
-                        .map(v -> v == null ? null : v.getValue() == null ? null : v.getValue().toString())
+                        .map(v -> v == null ? null : v.getValue() == null || JSONObject.NULL.equals(v.getValue()) ? null : v.getValue().toString())
                         .forEach(csvRow::add);
 
                 writer.writeNext(csvRow.toArray(new String[0]));
