@@ -1,0 +1,18 @@
+{
+	"description": "Context about an entity provided to an agent prompt.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.agent.AgentPromptSessionContext"
+		}
+	],
+	"properties": {
+		"entityId": {
+			"description": "The ID of the entity to provide as context.",
+			"type": "string"
+		},
+		"versionNumber": {
+			"description": "The optional version number of the entity.",
+			"type": "integer"
+		}
+	}
+}

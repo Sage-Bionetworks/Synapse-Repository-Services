@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.agent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -43,6 +44,9 @@ import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -197,9 +201,6 @@ public class AgentManagerImpl implements AgentManager {
 
 	/**
 	 * Send the user's text directly to the agent via an invoke_agent call.
-	 * 
-	 * @param sessionId
-	 * @param inputText
 	 * @return
 	 */
 	String invokeAgentWithText(String jobId, AgentSession session, AgentChatRequest request) {
@@ -210,8 +211,33 @@ public class AgentManagerImpl implements AgentManager {
 		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
 				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
 				.enableTrace(enableTrace).inputText(request.getChatText())
-				.sessionState(sessionState -> sessionState.promptSessionAttributes(
-						Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString())))
+				.sessionState(sessionState -> {
+					if (!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(session.getStartedBy())) {
+						sessionState.sessionAttributes(Map.of("user_id", session.getStartedBy().toString()));
+					}
+
+					Map<String, String> promptSessionAttributes = new HashMap<>();
+					promptSessionAttributes.put(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString());
+
+					if (request.getContext() != null) {
+						request.getContext().forEach(context -> {
+							try {
+								JSONObjectAdapter writeTo = new JSONObjectAdapterImpl();
+								context.writeToJSONObject(writeTo);
+								writeTo.keys().forEachRemaining(k -> {
+									try {
+										promptSessionAttributes.put(k, writeTo.get(k).toString());
+									} catch (JSONObjectAdapterException e) {
+										throw new IllegalArgumentException(e);
+									}
+								});
+							} catch (JSONObjectAdapterException e) {
+								throw new IllegalArgumentException("Failed to serialize session context", e);
+							}
+						});
+					}
+					sessionState.promptSessionAttributes(promptSessionAttributes);
+				})
 				.build();
 
 		AgentResponse res = invokeAgentAsync(jobId, agentRegistration.getType(), session, startRequest);
