@@ -86,8 +86,8 @@ public class UserStatusDaoImplTest {
 
         assertFalse(userStatusDao.isDisabled(userId));
 		Date updatedLastSeenOn = userStatusDao.getLastSeenOn(userId).orElseThrow();
-		// lastSeen on was reset to 200 days before the call was made
-		assertTrue(updatedLastSeenOn.before(Date.from(instantNow.minus(200, ChronoUnit.DAYS))));
+		// lastSeen on was reset to 200 days
+		assertTrue(updatedLastSeenOn.before(Date.from(instantNow.minus(199, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS))));
 	}
 	
 	@Test

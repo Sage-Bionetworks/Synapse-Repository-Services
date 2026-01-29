@@ -9,6 +9,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_S
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -83,10 +85,7 @@ public class UserStatusDaoImpl implements UserStatusDao {
 	@WriteTransaction
 	@Override
 	public void resetStatusToEnabled(long principalId) {
-		// Set lastSeenOn to 200 days ago
-		Calendar cal = Calendar.getInstance();
-		cal.add(Calendar.DAY_OF_YEAR, -200);
-		Date lastSeenOn = cal.getTime();
+		Instant resetLastSeenOn = Instant.now().minus(200, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
 
 		String sql = "INSERT INTO " + TABLE_USER_STATUS + " ("
 				+ COL_USER_STATUS_PRINCIPAL_ID + ", "
@@ -99,7 +98,7 @@ public class UserStatusDaoImpl implements UserStatusDao {
 				+ COL_USER_STATUS_LAST_SEEN_ON + " = ?,"
 				+ COL_USER_STATUS_DISABLED + " = false";
 
-		jdbcTemplate.update(sql, principalId, lastSeenOn, lastSeenOn);
+		jdbcTemplate.update(sql, principalId, Date.from(resetLastSeenOn), Date.from(resetLastSeenOn));
 	}
 	
 	@Override
