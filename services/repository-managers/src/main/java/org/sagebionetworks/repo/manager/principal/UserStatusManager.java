@@ -6,5 +6,7 @@ public interface UserStatusManager {
 	int INACTIVITY_DAYS = 180;
 
 	int disableInactiveUsers(int maxBatchSize);
+
+	void resetUserStatusToEnabled(Long targetUserid);
 	
 }

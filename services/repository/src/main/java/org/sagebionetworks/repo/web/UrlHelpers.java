@@ -1328,6 +1328,9 @@ public class UrlHelpers {
 	public static final String REALM_PRINCIPALS = REALM + "/principals";
 	public static final String REALM_ID_PRINCIPALS = REALM + ID+"/principals";
 	public static final String ADMIN_REALM_ID = ADMIN_REALM + ID;
+
+	public static final String RESET_USER_STATUS = "/resetuserstatus";
+	public static final String ADMIN_RESET_USER_STATUS = ADMIN + RESET_USER_STATUS;
 	
 	/**
 	 * Request paramter to specify a target user id

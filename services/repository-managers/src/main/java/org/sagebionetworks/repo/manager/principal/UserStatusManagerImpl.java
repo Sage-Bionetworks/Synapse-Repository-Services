@@ -58,5 +58,11 @@ public class UserStatusManagerImpl implements UserStatusManager {
 		
 		return inactiveUsers.size();
 	}
+
+	@Override
+	@WriteTransaction
+	public void resetUserStatusToEnabled(Long targetUserId) {
+		userStatusDao.resetStatusToEnabled(targetUserId);
+	}
 	
 }

@@ -72,6 +72,23 @@ public class UserStatusDaoImplTest {
 
 		assertFalse(userStatusDao.isDisabled(userId));
 	}
+
+	@Test
+	public void testResetStatusToEnabled() {
+		Instant instantNow = Instant.now();
+		// set realistic disabled status (last seen more than 180 days ago and set disabled by worker)
+		Date lastSeenOn = Date.from(instantNow.minus(181, ChronoUnit.DAYS));
+		userStatusDao.setLastSeenOn(List.of(userId), lastSeenOn);
+		userStatusDao.setDisabled(userId, true);
+
+		// call under test
+		userStatusDao.resetStatusToEnabled(userId);
+
+        assertFalse(userStatusDao.isDisabled(userId));
+		Date updatedLastSeenOn = userStatusDao.getLastSeenOn(userId).orElseThrow();
+		// lastSeen on was reset to 200 days before the call was made
+		assertTrue(updatedLastSeenOn.before(Date.from(instantNow.minus(200, ChronoUnit.DAYS))));
+	}
 	
 	@Test
 	public void testGetInactiveUsersBatch() {

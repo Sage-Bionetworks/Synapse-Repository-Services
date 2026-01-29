@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.manager.principal.UserStatusManager;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -94,6 +95,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	private RealmManager realmManager;
+
+	@Autowired
+	private UserStatusManager userStatusManager;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -276,6 +280,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void deleteRealm(Long userId, String realmId) {
 		UserInfo userInfo = adminCheck(userId);
 		realmManager.deleteRealm(userInfo, realmId);
+	}
+
+	@Override
+	public void resetUserStatusToEnabled(Long userId, Long targetuserId) {
+		UserInfo userInfo = adminCheck(userId);
+		userStatusManager.resetUserStatusToEnabled(targetuserId);
 	}
 
 }

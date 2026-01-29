@@ -427,4 +427,21 @@ public class AdministrationController {
 		serviceProvider.getAdministrationService().deleteRealm(userId, id);
 	}
 
+	/**
+	 *
+	 * @param userId
+	 * @param targetUserId
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value=UrlHelpers.ADMIN_RESET_USER_STATUS, method = RequestMethod.PUT)
+	@ResponseBody
+	public void resetUserStatusToEnabled(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+										 @PathVariable("targetUserId") Long targetUserId)
+			throws NotFoundException, UnauthorizedException {
+		serviceProvider.getAdministrationService().resetUserStatusToEnabled(userId, targetUserId);
+	}
+
 }
