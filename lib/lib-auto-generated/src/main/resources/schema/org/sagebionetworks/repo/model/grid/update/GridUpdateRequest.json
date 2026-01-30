@@ -1,0 +1,8 @@
+{
+	"description": "Request to update one or more cells of the current grid session.",
+	"properties": {
+		"update": {
+			"$ref":"org.sagebionetworks.repo.model.grid.update.UpdateBatch"
+		}
+	}
+}

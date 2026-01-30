@@ -5,9 +5,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BU
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_STORAGE_LOCATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JONS_SCHEMA_BINDING_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_BIND_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_JSON_SCHEMA_BINDING_OBJECT_TYPE;
@@ -27,6 +27,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROJECT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COLUMN_MODEL_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DEFINING_SQL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB;
@@ -40,9 +41,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.FUNCTION_GET_ENTITY_BENEFACTOR_ID;
@@ -192,6 +193,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " = ?, " + COL_REVISION_COLUMN_MODEL_IDS + " = ?, " + COL_REVISION_SCOPE_IDS 
 			+ " = ?, " + COL_REVISION_REF_JSON + " = ?, "+COL_REVISION_ITEMS+" = ?, " + COL_REVISION_SEARCH_ENABLED + " = ?, " + COL_REVISION_DEFINING_SQL 
 			+ " = ?, " + COL_REVISION_UPSERT_KEY + " = ?, " + COL_REVISION_CSV_DESCRIPTOR 
+			+ " = ?, " + COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID 
 			+ " = ? WHERE " + COL_REVISION_OWNER_NODE + " = ? AND " + COL_REVISION_NUMBER + " = ?";
 	
 	private static final String UPDATE_NODE = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_NAME + " = ?, "
@@ -332,7 +334,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ COL_REVISION_COMMENT + ", R." + COL_REVISION_MODIFIED_BY + ", R." + COL_REVISION_MODIFIED_ON + ", R."
 			+ COL_REVISION_FILE_HANDLE_ID + ", R." + COL_REVISION_COLUMN_MODEL_IDS + ", R." + COL_REVISION_SCOPE_IDS
 			+ ", R." + COL_REVISION_REF_JSON + ", R." + COL_REVISION_ITEMS + ", R." + COL_REVISION_SEARCH_ENABLED 
-			+ ", R." + COL_REVISION_DEFINING_SQL + ", R." + COL_REVISION_UPSERT_KEY + ", R." + COL_REVISION_CSV_DESCRIPTOR;
+			+ ", R." + COL_REVISION_DEFINING_SQL + ", R." + COL_REVISION_UPSERT_KEY + ", R." + COL_REVISION_CSV_DESCRIPTOR 
+			+ ", R." + COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID;
 	
 	private static final String SQL_SELECT_CURRENT_NODE = SQL_SELECT_WITHOUT_ANNOTATIONS + " FROM " + TABLE_NODE
 			+ " N, " + TABLE_REVISION + " R WHERE N." + COL_NODE_ID + "= R." + COL_REVISION_OWNER_NODE + " AND N."
@@ -533,9 +536,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
 
 	private static final String SQL_GET_FILE_HANDLE_IDS =
-			"SELECT DISTINCT "+COL_REVISION_FILE_HANDLE_ID
-			+" FROM "+TABLE_REVISION
-			+" WHERE "+COL_REVISION_OWNER_NODE+" = ?";
+			"SELECT DISTINCT " + COL_REVISION_FILE_HANDLE_ID
+			+ " FROM " + TABLE_REVISION
+			+ " WHERE " + COL_REVISION_OWNER_NODE + " = ?"
+			+ " UNION " + 
+			"SELECT DISTINCT " + COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID
+			+ " FROM " + TABLE_REVISION
+			+ " WHERE " + COL_REVISION_OWNER_NODE + " = ?";
 	
 	private static final String SQL_DELETE_BY_ID = "DELETE FROM " + TABLE_NODE + " WHERE ID = ?";
 	
@@ -995,10 +1002,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String newDescription = updatedNode.getDescription();
 		String upsertKey = JDOSecondaryPropertyUtils.writeStringListToJson(updatedNode.getUpsertKey());
 		String csvDescriptor = JDOSecondaryPropertyUtils.createJSONFromObject(updatedNode.getCsvDescriptor());
-
+		Long validationResFileHandleId = NodeUtils.translateFileHandleId(updatedNode.getValidationResultFileHandleId());
+		
 		// Update the revision
 		this.jdbcTemplate.update(UPDATE_REVISION, newActivity, newComment, newLabel, newDescription, newFileHandleId, newColumns,
-				newScope, newReferences, items, searchEnabled, definingSQL, upsertKey, csvDescriptor, nodeId, currentRevision);
+				newScope, newReferences, items, searchEnabled, definingSQL, upsertKey, csvDescriptor, validationResFileHandleId, nodeId, currentRevision);
 	}
 	
 	@Override
@@ -1807,7 +1815,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			return results;
 		}
 		results.addAll(fileHandleIds);
-		List<Long> foundFileHandleIds = jdbcTemplate.queryForList(SQL_GET_FILE_HANDLE_IDS, Long.class, entityId);
+		List<Long> foundFileHandleIds = jdbcTemplate.queryForList(SQL_GET_FILE_HANDLE_IDS, Long.class, entityId, entityId);
 		results.retainAll(foundFileHandleIds);
 		return results;
 	}

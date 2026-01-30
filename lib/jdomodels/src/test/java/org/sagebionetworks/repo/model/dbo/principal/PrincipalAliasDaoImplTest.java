@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -71,12 +72,14 @@ public class PrincipalAliasDaoImplTest {
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date());
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		principalId = userGroupDao.create(ug);
 		toDelete.add(principalId);
 		
 		ug = new UserGroup();
 		ug.setCreationDate(new Date());
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		principalId2 = userGroupDao.create(ug);
 		toDelete.add(principalId2);
 	}

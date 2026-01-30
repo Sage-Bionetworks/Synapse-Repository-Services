@@ -5,11 +5,12 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionResults;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.RequiredScope;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
-import org.sagebionetworks.search.SearchConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -37,7 +38,6 @@ public class SearchController {
 	 * If not authenticated, only public result will be shown.
 	 * See <a href="${org.sagebionetworks.repo.model.search.query.SearchFieldName}">SearchFieldName</a> for the list of searchable fields for use in booleanQuery, rangeQuery, and returnFields
 	 * @param userId
-	 * @param isOpenSearchEnable
 	 * @param searchQuery
 	 * @return search results from OpenSearch or CloudSearch depending upon parameter isOpenSearchEnable
 	 */
@@ -45,11 +45,26 @@ public class SearchController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
-	SearchResults proxySearch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = SearchConstants.IS_OPENSEARCH_ENABLE, required = false,
-					defaultValue = SearchConstants.DEFAULT_IS_OPENSEARCH_ENABLE) boolean isOpenSearchEnable,
+	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody SearchQuery searchQuery) {
-		return serviceProvider.getSearchService().proxySearch(userId, isOpenSearchEnable, searchQuery);
+		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
+	}
+
+	/**
+	 * Suggestions for <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>s that are accessible by the current user.
+	 * If not authenticated, only public result will be shown.
+	 * See <a href="${org.sagebionetworks.repo.model.search.query.SuggestionQuery}">SuggestionQuery</a> for the list of options used to get suggestions.
+	 *
+	 * @param userId
+	 * @param suggestionQuery
+	 * @return SuggestionResults
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/suggestion", method = RequestMethod.POST)
+	public @ResponseBody SuggestionResults getSuggestions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody SuggestionQuery suggestionQuery) {
+		return serviceProvider.getSearchService().getSuggestions(userId, suggestionQuery);
 	}
 }

@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnSortConfig;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
@@ -22,6 +23,7 @@ import org.sagebionetworks.util.ValidateArgument;
 public class FacetRequestColumnModel {
 	private String columnName;
 	private FacetType facetType;
+	private FacetColumnSortConfig facetSortConfig;
 	private FacetColumnRequest facetColumnRequest;
 	private String searchConditionString;
 	private boolean columnTypeIsList;
@@ -45,6 +47,7 @@ public class FacetRequestColumnModel {
 		validateFacetRequestType(columnModel.getFacetType(), facetColumnRequest);
 
 		this.facetType = columnModel.getFacetType();
+		this.facetSortConfig = columnModel.getFacetSortConfig();
 		this.columnName = columnModel.getName();
 		this.facetColumnRequest = facetColumnRequest;
 		this.columnTypeIsList = ColumnTypeListMappings.isList(columnModel.getColumnType());
@@ -68,6 +71,7 @@ public class FacetRequestColumnModel {
 		}
 		
 		this.facetType = subColumn.getFacetType();
+		this.facetSortConfig = subColumn.getFacetSortConfig();
 		this.columnName = columnName;
 		this.facetColumnRequest = facetColumnRequest;
 		this.columnTypeIsList = false;
@@ -98,6 +102,10 @@ public class FacetRequestColumnModel {
 	
 	public FacetType getFacetType(){
 		return this.facetType;
+	}
+	
+	public FacetColumnSortConfig getFacetSortConfig() {
+		return facetSortConfig;
 	}
 
 	public boolean isColumnTypeIsList() {

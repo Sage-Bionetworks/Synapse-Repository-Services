@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -53,6 +54,7 @@ public class DBOCommentDAOImplTest {
 		
 		maliciousUser = new UserGroup();
 		maliciousUser.setIsIndividual(true);
+		maliciousUser.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		maliciousUser.setId(userGroupDAO.create(maliciousUser).toString());
 		
 		// We need a file handle to satisfy a foreign key constraint

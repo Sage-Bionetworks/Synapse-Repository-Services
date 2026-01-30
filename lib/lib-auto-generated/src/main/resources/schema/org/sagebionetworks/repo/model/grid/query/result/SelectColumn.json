@@ -4,10 +4,6 @@
 		"columnName": {
 			"type": "string",
 			"description": "The name of the column.  Will be the alias if one is provide in the select item."
-		},
-		"columnIndex": {
-			"type": "integer",
-			"description": "The index of this column. The first column will have an index of zero."
 		}
 	}
 }

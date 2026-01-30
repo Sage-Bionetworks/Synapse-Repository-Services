@@ -1,0 +1,33 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"properties": {
+		"firstName": {
+			"type": "string",
+			"description": "The person's first name"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "The person's last name"
+		},
+		"phone": {
+			"type": "string",
+			"description": "Phone number in format (XXX) XXX-XXXX"
+		},
+		"formattedName": {
+			"type": "string",
+			"description": "Full name in 'LastName, FirstName' format"
+		},
+		"cleanPhone": {
+			"type": "string",
+			"description": "Phone number in clean format XXX-XXX-XXXX"
+		}
+	},
+	"required": [
+		"firstName",
+		"lastName",
+		"phone",
+		"formattedName",
+		"cleanPhone"
+	]
+}

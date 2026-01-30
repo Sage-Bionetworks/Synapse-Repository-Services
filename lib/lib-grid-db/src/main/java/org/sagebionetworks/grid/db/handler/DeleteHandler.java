@@ -31,7 +31,7 @@ public class DeleteHandler implements OperationHandler<Delete> {
 		Set<LogicalTimestamp> changes = new LinkedHashSet<>();
 		
 		batch.forEach(d -> {
-			gridDao.deleteArrayNodes(sessionId, replicaId, d.getNodeId(), d.getTimespans());
+			gridDao.deleteRgaNodes(sessionId, replicaId, d.getNodeId(), d.getTimespans());
 			changes.add(d.getNodeId());
 		});
 		

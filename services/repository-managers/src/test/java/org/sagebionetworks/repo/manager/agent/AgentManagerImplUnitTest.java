@@ -4,9 +4,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -32,6 +34,8 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.reactivestreams.Subscription;
 import org.sagebionetworks.LoggerProvider;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.agent.AgentManagerImpl.AgentResponse;
 import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
 import org.sagebionetworks.repo.manager.agent.handler.HttpCode;
@@ -145,6 +149,9 @@ public class AgentManagerImplUnitTest {
 	@Mock
 	private AgentContextValidator mockContextValidator;
 
+	@Mock
+	private Consumer mockCloudwatchConsumer;
+
 	private AgentManagerImpl manager;
 
 	private String stackBedrockAgentId;
@@ -213,7 +220,7 @@ public class AgentManagerImplUnitTest {
 				stackBedrockGridAgentId);
 
 		manager = Mockito.spy(new AgentManagerImpl(mockAgentDao, mockAgentClientProvider, idMap,
-				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator));
+				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator, mockCloudwatchConsumer));
 
 		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager.setLoggerProvider(mockLoggerProvider);
@@ -436,6 +443,7 @@ public class AgentManagerImplUnitTest {
 		when(mockAgentDao.createOrGetRegistration(AgentType.BASELINE, new AgentRegistrationRequest()
 				.setAwsAgentId(stackBedrockGridAgentId).setAwsAliasId(AgentManagerImpl.TSTALIASID)))
 				.thenReturn(agentRegistration);
+		when(mockContextValidator.validate(nonSageNonAdmin, createRequest.getSessionContext())).thenReturn(createRequest.getSessionContext());
 		when(mockAgentDao.createSession(nonSageNonAdmin.getId(), createRequest.getAgentAccessLevel(),
 				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 		
@@ -453,10 +461,10 @@ public class AgentManagerImplUnitTest {
 				agentRegistration.getAgentRegistrationId(), createRequest.getSessionContext())).thenReturn(session);
 		when(mockAgentDao.getRegeistration(agentRegistration.getAgentRegistrationId()))
 				.thenReturn(Optional.of(agentRegistration));
+		when(mockContextValidator.validate(nonSageNonAdmin, createRequest.getSessionContext())).thenReturn(createRequest.getSessionContext());
 		// call under test
 		AgentSession result = manager.createSession(nonSageNonAdmin, createRequest);
 		assertEquals(session, result);
-		verify(mockContextValidator).validate(nonSageNonAdmin, createRequest.getSessionContext());
 	}
 
 	@Test
@@ -1027,6 +1035,8 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		String result = manager.handleEvent(level, mockReturnControlHandlerOne, returnControlEventOne);
 		assertEquals("one", result);
+		verify(manager).logInvocationEventToCloudWatch(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInput, null, returnControlEventOne, null);
+		verify(manager, never()).logInvocationEventToCloudWatch(eq(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInputFailure), any(), any(), any());
 	}
 
 	@ParameterizedTest
@@ -1040,6 +1050,9 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		String result = manager.handleEvent(level, mockReturnControlHandlerOne, returnControlEventOne);
 		assertEquals("one", result);
+
+		verify(manager).logInvocationEventToCloudWatch(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInput, null, returnControlEventOne, null);
+		verify(manager, never()).logInvocationEventToCloudWatch(eq(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInputFailure), any(), any(), any());
 	}
 
 	@ParameterizedTest
@@ -1057,6 +1070,8 @@ public class AgentManagerImplUnitTest {
 		verify(mockLogger).error(
 				"Return_control event execution failed. Will send the following message to the agent: '{}'",
 				expectedMessage);
+
+		verify(manager).logInvocationEventToCloudWatch(eq(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInputFailure), eq(null), eq(returnControlEventOne), any(UnauthorizedException.class));
 	}
 
 	@ParameterizedTest
@@ -1069,6 +1084,7 @@ public class AgentManagerImplUnitTest {
 		String result = manager.handleEvent(level, mockReturnControlHandlerOne, returnControlEventOne);
 		assertEquals("{\"errorMessage\":\"The feature to allow agents to write to Synapse is currently disabled.\"}",
 				result);
+		verify(manager).logInvocationEventToCloudWatch(eq(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInputFailure), eq(null), eq(returnControlEventOne), any(UnsupportedOperationException.class));
 	}
 
 	@ParameterizedTest
@@ -1085,6 +1101,9 @@ public class AgentManagerImplUnitTest {
 		verify(mockLogger).error(
 				"Return_control event execution failed. Will send the following message to the agent: '{}'",
 				e.getMessage());
+
+		verify(manager).logInvocationEventToCloudWatch(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInput, null, returnControlEventOne, null);
+		verify(manager).logInvocationEventToCloudWatch(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInputFailure, null, returnControlEventOne, e);
 	}
 
 	@Test
@@ -1397,13 +1416,21 @@ public class AgentManagerImplUnitTest {
 	}
 
 	@Test
-	public void testFromInvocationInputMemberWithUnknowtype() {
+	public void testFromInvocationInputMemberWithUnknownType() {
 		InvocationInputMember member = InvocationInputMember.builder().build();
-		String message = assertThrows(IllegalArgumentException.class, () -> {
+		Exception e = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.fromInvocationInputMember(adminId,null, member);
-		}).getMessage();
-		assertEquals("Expected either function or api invocation", message);
+		});
+		assertEquals("Expected either function or api invocation", e.getMessage());
+	}
+
+	@Test
+	public void testLogInvocationEventToCloudWatch() {
+		GridAgentSessionContext ctx = new GridAgentSessionContext();
+		// call under test
+		manager.logInvocationEventToCloudWatch(AgentCloudwatchUtils.AgentCloudwatchEventName.InvocationInput, ctx, returnControlEventApi, null);
+		verify(mockCloudwatchConsumer).addProfileData(any(ProfileData.class));
 	}
 
 	@Test

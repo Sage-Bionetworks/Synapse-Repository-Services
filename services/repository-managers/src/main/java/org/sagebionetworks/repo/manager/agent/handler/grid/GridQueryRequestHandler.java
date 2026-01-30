@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.agent.handler.grid;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.agent.handler.HttpCode;

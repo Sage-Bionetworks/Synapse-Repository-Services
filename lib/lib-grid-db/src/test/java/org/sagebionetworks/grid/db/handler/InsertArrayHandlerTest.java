@@ -19,7 +19,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.grid.db.LogicalTimestampTestHelper;
-import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.operation.InsertArray;
 
@@ -65,21 +65,21 @@ public class InsertArrayHandlerTest {
 	public void testExpandInsertArrays() {
 
 		// call under test
-		List<ArrayNode> results = handler.expandInsertArrays(batch);
-		List<ArrayNode> expected = List.of(
+		List<RGANode> results = handler.expandInsertArrays(batch);
+		List<RGANode> expected = List.of(
 				//
-				new ArrayNode().setNodeId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L))
-						.setArrayId(ids.get(0)).setDataId(ids.get(1)).setReferenceNodeId(ids.get(0)),
+				new RGANode().setNodeId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L))
+						.setContainerId(ids.get(0)).setDataId(ids.get(1)).setReferenceNodeId(ids.get(0)),
 				//
-				new ArrayNode().setNodeId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(2L))
-						.setArrayId(ids.get(0)).setDataId(ids.get(2))
+				new RGANode().setNodeId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(2L))
+						.setContainerId(ids.get(0)).setDataId(ids.get(2))
 						.setReferenceNodeId(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L)),
 				//
-				new ArrayNode().setNodeId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(1L))
-						.setArrayId(ids.get(3)).setDataId(ids.get(5)).setReferenceNodeId(ids.get(4)),
+				new RGANode().setNodeId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(1L))
+						.setContainerId(ids.get(3)).setDataId(ids.get(5)).setReferenceNodeId(ids.get(4)),
 				//
-				new ArrayNode().setNodeId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(2L))
-						.setArrayId(ids.get(3)).setDataId(ids.get(6))
+				new RGANode().setNodeId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(2L))
+						.setContainerId(ids.get(3)).setDataId(ids.get(6))
 						.setReferenceNodeId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(1L))
 
 		);
@@ -89,19 +89,19 @@ public class InsertArrayHandlerTest {
 
 	@Test
 	public void testHandleBatch() {
-		ArrayNode one = new ArrayNode().setNodeId(ids.get(0));
-		ArrayNode two = new ArrayNode().setNodeId(ids.get(1));
-		List<ArrayNode> expanded = List.of(one, two);
+		RGANode one = new RGANode().setNodeId(ids.get(0));
+		RGANode two = new RGANode().setNodeId(ids.get(1));
+		List<RGANode> expanded = List.of(one, two);
 
 		doReturn(expanded).when(handler).expandInsertArrays(batch);
-		when(mockDao.findArrayInsertLocation(sessionId, replicaId, one)).thenReturn(Optional.empty());
-		when(mockDao.findArrayInsertLocation(sessionId, replicaId, two)).thenReturn(Optional.of(ids.get(2)));
+		when(mockDao.findRgaInsertLocation(sessionId, replicaId, one)).thenReturn(Optional.empty());
+		when(mockDao.findRgaInsertLocation(sessionId, replicaId, two)).thenReturn(Optional.of(ids.get(2)));
 
 		// call under test
 		Set<LogicalTimestamp> changes = handler.handleBatch(sessionId, replicaId, batch);
 		assertEquals(Set.of(two.getId()), changes);
 
-		verify(mockDao).insertIntoArray(sessionId, replicaId, two);
+		verify(mockDao).insertIntoRepeatedGrowableArray(sessionId, replicaId, two);
 		assertEquals(ids.get(2), two.getReferenceNodeId());
 		verifyNoMoreInteractions(mockDao);
 	}

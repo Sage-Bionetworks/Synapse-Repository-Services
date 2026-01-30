@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
@@ -272,6 +273,8 @@ public class PrincipalManagerImplUnitTest {
 		accountSetupInfo.setPassword(PASSWORD);
 		accountSetupInfo.setUsername(USER_NAME);
 		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 		
 		// method under test
 		manager.createNewAccount(accountSetupInfo, ISSUER);
@@ -285,6 +288,27 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(EMAIL, user.getEmail());
 		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
 		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID, ISSUER);
+	}
+
+	@Test
+	public void testCreateNewAccountNotInSynapseRealm() throws Exception {
+		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
+		EmailValidationSignedToken emailValidationSignedToken = new EmailValidationSignedToken();
+		emailValidationSignedToken.setEmail(user.getEmail());
+		emailValidationSignedToken.setCreatedOn(now);
+		emailValidationSignedToken.setHmac("signed");
+		accountSetupInfo.setEmailValidationSignedToken(emailValidationSignedToken);
+		accountSetupInfo.setPassword(PASSWORD);
+		when(mockUserManager.createUser((NewUser)any())).thenReturn(USER_ID);
+		String nonSynapseRealmId = "5";
+		UserInfo userInfo = new UserInfo(false, USER_ID, nonSynapseRealmId);
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
+		
+		// Cannot create a new user with a password in a non-Synapse realm
+		assertThrows(IllegalStateException.class, ()->{
+			// method under test
+			manager.createNewAccount(accountSetupInfo, ISSUER);
+		});
 	}
 
 	// token is OK 23 hours from now
@@ -307,7 +331,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void testAdditionalEmailValidation() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		when(mockPrincipalAliasDAO.isAliasAvailable(EMAIL)).thenReturn(true);
@@ -339,7 +363,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAdditionalEmailWithQuarantinedAddress() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		
@@ -358,7 +382,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void testAdditionalEmailEmailAlreadyUsed() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		// the following line simulates that the email is already used
@@ -370,12 +394,12 @@ public class PrincipalManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testAdditionalEmailValidationAnonymous() throws Exception {
-		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		UserInfo userInfo = new UserInfo(false, anonId);
+	public void testAdditionalEmailValidationNotInSynapseRealm() throws Exception {
+		String nonSynapseRealmId = "5";
+		UserInfo userInfo = new UserInfo(false, USER_ID, nonSynapseRealmId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
-		Assertions.assertThrows(UnauthorizedException.class, ()-> {	
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
 			manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
 		});
 	}	
@@ -401,8 +425,19 @@ public class PrincipalManagerImplUnitTest {
 	}	
 	
 	@Test
+	public void testAdditionalEmailValidationAnonymous() throws Exception {
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo userInfo = new UserInfo(false, anonId);
+		Username email = new Username();
+		email.setEmail(EMAIL);
+		Assertions.assertThrows(UnauthorizedException.class, ()-> {	
+			manager.additionalEmailValidation(userInfo, email, PORTAL_ENDPOINT, now);
+		});
+	}	
+	
+	@Test
 	public void testAddEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
@@ -423,7 +458,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAddEmailNoSetNotification() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 
@@ -452,6 +487,16 @@ public class PrincipalManagerImplUnitTest {
 	public void testAddEmailWrongUser() throws Exception {
 		UserInfo userInfo = new UserInfo(false, USER_ID);
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now, mockTokenGenerator);
+		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
+			manager.addEmail(userInfo, emailValidationSignedToken, null);
+		});
+	}
+	
+	@Test
+	public void testAddEmailNotSynapseRealm() throws Exception {
+		String nonSynapseRealmId = "5";
+		UserInfo userInfo = new UserInfo(false, USER_ID, nonSynapseRealmId);
+		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(USER_ID, EMAIL, now, mockTokenGenerator);
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
 			manager.addEmail(userInfo, emailValidationSignedToken, null);
 		});

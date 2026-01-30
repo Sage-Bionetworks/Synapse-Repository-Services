@@ -126,9 +126,6 @@ public class HttpAuthUtil {
 			Arrays.asList(new String[] {
 					AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME.toLowerCase(),
 					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
-					AuthorizationConstants.USER_ID_HEADER.toLowerCase(),
-					AuthorizationConstants.SIGNATURE_TIMESTAMP.toLowerCase(),
-					AuthorizationConstants.SIGNATURE.toLowerCase(),
 					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
 					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase()

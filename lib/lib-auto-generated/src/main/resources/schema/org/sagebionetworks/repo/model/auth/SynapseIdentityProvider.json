@@ -1,0 +1,9 @@
+{
+	"title": "Synapse Identity Provider",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider"
+		}
+	],
+	"description": "Identity Provider representing Synapse itself"
+}

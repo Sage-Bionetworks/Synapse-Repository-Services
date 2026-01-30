@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.view;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,8 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.VectorIdFilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select.CountStartElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select.SelectAllElement;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select.SelectByNameElement;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select.SelectSelectionElement;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.grid.CrdtId;
 import org.sagebionetworks.repo.model.grid.GridUtils;
@@ -49,6 +54,7 @@ import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectB
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewObjectBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
+import org.sagebionetworks.repo.model.grid.query.SelectByName;
 import org.sagebionetworks.repo.model.grid.query.ValidationOperator;
 import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.grid.query.result.SelectColumn;
@@ -108,8 +114,10 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 		GridHeader expected = new GridHeader().setSessionId(sessionId).setReplicaId(replicaId)
 				.setDocumentVersion(new Semver("0.1.0"))
-				.setOrderedColumns(List.of(new Column().setName("a").setVectorIndex(0),
-						new Column().setName("b").setVectorIndex(1)))
+				.setOrderedColumns(List.of(
+					new Column().setName("a").setVectorIndex(0).setColumnOrderNodeId(new CrdtId().setRep(replicaId).setSeq(13L)),
+					new Column().setName("b").setVectorIndex(1).setColumnOrderNodeId(new CrdtId().setRep(replicaId).setSeq(14L))
+				))
 				.setNodeId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L))
 				.setRowsId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(5L))
 				.setColumnOrderArrId(columnOrderArrayId).setColumnNamesVecId(columnNamesVecId)
@@ -144,8 +152,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 		assertEquals(List.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(93L)),
 				gridIndexManger.getClock(sessionId, replicaId));
 
-		expected.setOrderedColumns(List.of(new Column().setName("c").setVectorIndex(2),
-				new Column().setName("a").setVectorIndex(0), new Column().setName("b2").setVectorIndex(1)));
+		expected.setOrderedColumns(List.of(
+			new Column().setName("c").setVectorIndex(2).setColumnOrderNodeId(new CrdtId().setRep(replicaId).setSeq(92L)),
+			new Column().setName("a").setVectorIndex(0).setColumnOrderNodeId(new CrdtId().setRep(replicaId).setSeq(13L)), 
+			new Column().setName("b2").setVectorIndex(1).setColumnOrderNodeId(new CrdtId().setRep(replicaId).setSeq(14L))
+		));
 		expected.setClockSequenceMaximum(patch.getPatchId().getSequenceNumber() + patch.getSpan());
 		// call under test
 		assertEquals(Optional.of(expected), gridViewManager.readHeader(sessionId, replicaId));
@@ -180,9 +191,9 @@ public class GridReplicaViewManagerImplAutowireTest {
 	public Long setSelection(LogicalTimestamp rootObjectId, ReplicaSelectionModel selection, Long otherReplica) {
 		Patch patch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
-		LogicalTimestamp selectionConId = patch.addNewOperation(new NewConstantBuilder().setValue(
-				new ConValue(ConType.JSON_OBJECT, JDOSecondaryPropertyUtils.createJSONObjectForEntity(selection))));
 		LogicalTimestamp selectionObId = patch.addNewOperation(new NewObjectBuilder());
+		LogicalTimestamp selectionConId = patch.addNewOperation(new NewConstantBuilder().setValue(
+			new ConValue(ConType.JSON_OBJECT, JDOSecondaryPropertyUtils.createJSONObjectForEntity(selection))));
 		patch.addNewOperation(new InsertObjectBuilder().setMap(Map.of(otherReplica.toString(), selectionConId))
 				.setObjectId(selectionObId));
 		patch.addNewOperation(
@@ -210,7 +221,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 								.setData(new RowData()
 										.setVectorId(
 												new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(37L))
-										.setCells(new JSONArray("[\"string3\",103003]")))
+										.setCells(Arrays.asList(
+												new ConValue(ConType.STRING, "string3"),
+												new ConValue(ConType.LONG, 103003L)
+										))
+										.setRowJsonDocument(new JSONObject(Map.of("a", "string3", "b", 103003L))))
 								.setMetadata(new RowMetadata().setRowValidation(new RowValidation())
 										.setSynapseRow(new SynapseRow()))),
 				new RowView().setArrNodeId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(49L))
@@ -220,7 +235,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 								.setData(new RowData()
 										.setVectorId(
 												new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(44L))
-										.setCells(new JSONArray("[\"string4\",103004]")))
+										.setCells(Arrays.asList(
+												new ConValue(ConType.STRING, "string4"),
+												new ConValue(ConType.LONG, 103004L)
+										))
+										.setRowJsonDocument(new JSONObject(Map.of("a", "string4", "b", 103004L))))
 								.setMetadata(new RowMetadata().setRowValidation(new RowValidation())
 										.setSynapseRow(new SynapseRow()))));
 		assertEquals(expected, page);
@@ -230,12 +249,13 @@ public class GridReplicaViewManagerImplAutowireTest {
 		Patch newPatch = new Patch()
 				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
 
-		LogicalTimestamp synapseRowRef = newPatch.addNewOperation(Operations.newConstant()
-				.setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray().put(111L).put(333L).put("etag88"))));
 
 		// Since the row doesn't have any metadata yet we need to create the object
 		LogicalTimestamp metadataRef = newPatch.addNewOperation(Operations.newObject());
 
+		LogicalTimestamp synapseRowRef = newPatch.addNewOperation(Operations.newConstant()
+			.setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray().put(111L).put(333L).put("etag88"))));
+		
 		newPatch.addNewOperation(
 				Operations.insertObject().setObjectId(metadataRef).setMap(Map.of("synapseRow", synapseRowRef)));
 
@@ -298,6 +318,35 @@ public class GridReplicaViewManagerImplAutowireTest {
 	}
 
 	@Test
+	public void testQuerySinglePageWithNullOrUndefinedValues() throws IOException {
+		writeRowsAsPatches(rows.subList(0, 1), sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+
+		Long limit = 100L;
+		Long offset = 0L;
+
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		// Update the first row to include an undefined value and a null value
+		Patch newPatch = new Patch()
+				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
+		LogicalTimestamp undefinedConst = newPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.UNDEFINED, null)));
+		LogicalTimestamp nullConst = newPatch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.NULL, null)));
+		LogicalTimestamp vectorToUpdate = new LogicalTimestamp().setReplicaId(111L).setSequenceNumber(16L);
+		newPatch.addNewOperation(Operations.insertVector().setVectorId(vectorToUpdate)
+				.setMap(Map.of(0, undefinedConst, 1, nullConst)));
+
+		gridIndexManger.applyPatch(sessionId, replicaId, newPatch);
+
+		// Call under test -- verify that `null`/`undefined` return expected results
+		List<RowView> allRows = gridViewManager.querySinglePage(header, limit, offset);
+
+		assertEquals(allRows.size(), 1);
+		// "a" is undefined, so it is omitted from the JSON document
+		assertEquals(allRows.get(0).getRowObject().getData().getRowJsonDocument().toString(), "{\"b\":null}");
+		assertEquals(allRows.get(0).getRowObject().getCells(), Arrays.asList(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.NULL, null)));
+	}
+
+	@Test
 	public void testQuerySinglePageWithFiltersOne() throws IOException {
 		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
 		LogicalTimestamp expectedClock = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(85L);
@@ -339,7 +388,7 @@ public class GridReplicaViewManagerImplAutowireTest {
 						allRows.get(9).getRowObject().getData().getVectorId())),
 				// of those four rows only include rows with a cell value greater than 103004.
 				new CellValueFilterElement().setColumnName(header.getOrderedColumns().get(1).getName())
-						.setOperator(CellValueOperatorElement.GREATER_THAN).setValue(List.of(103004L)));
+						.setOperator(CellValueOperatorElement.GREATER_THAN).setValue(103004L));
 
 		// call under test
 		List<RowView> page = gridViewManager.querySinglePage(header, filters, limit, offset);
@@ -415,12 +464,12 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 		for (int i = 0; i < schema.size(); i++) {
 			ColumnModel cm = schema.get(i);
-			Object value = rowToFind.getRowObject().getCells().get(i);
+			Object value = rowToFind.getRowObject().getCells().get(i).getValue();
 			// call under test
 			List<RowView> filtered = gridViewManager.querySinglePage(header,
 					new QueryElement()
 							.setWhere(List.of(new CellValueFilterElement().setColumnName(cm.getName())
-									.setOperator(CellValueOperatorElement.EQUALS).setValue(List.of(value))))
+									.setOperator(CellValueOperatorElement.EQUALS).setValue(value)))
 							.setLimit(limit).setOffset(offset));
 			if (ColumnType.BOOLEAN.equals(cm.getColumnType()) || ColumnType.BOOLEAN_LIST.equals(cm.getColumnType())) {
 				// half the the rows match this case.
@@ -453,8 +502,8 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 		for (int i = 0; i < schema.size(); i++) {
 			ColumnModel cm = schema.get(i);
-			Object v1 = rowToFindOne.getRowObject().getCells().get(i);
-			Object v2 = rowToFindTwo.getRowObject().getCells().get(i);
+			Object v1 = rowToFindOne.getRowObject().getCells().get(i).getValue();
+			Object v2 = rowToFindTwo.getRowObject().getCells().get(i).getValue();
 			// call under test
 			List<RowView> filtered = gridViewManager.querySinglePage(header,
 					new QueryElement()
@@ -482,81 +531,121 @@ public class GridReplicaViewManagerImplAutowireTest {
 	public void testFilterWithEachOperationAndNumeric() throws IOException {
 		schema = List.of(new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER));
 
-		rows = List.of(new Row().setValues(Collections.emptyList()), new Row().setValues(List.of("1")),
-				new Row().setValues(List.of("2")), new Row().setValues(Collections.emptyList()),
-				new Row().setValues(List.of("3")), new Row().setValues(List.of("4")));
+		rows = List.of(
+				new Row().setValues(Collections.emptyList()),
+				new Row().setValues(List.of("0")),
+				new Row().setValues(List.of("1")),
+				new Row().setValues(List.of("2")),
+				new Row().setValues(List.of("3")));
 		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
 		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		// Also write a row with a `null` value, which we cannot express via the Row model.
+		Patch patch = new Patch().setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
+		LogicalTimestamp objectWithNullRef = patch.addNewOperation(Operations.newObject());
+		LogicalTimestamp vecWithNullRef = patch.addNewOperation(Operations.newVector());
+		patch.addNewOperation(Operations.insertObject().setObjectId(objectWithNullRef).setMap(Map.of("data", vecWithNullRef)));
+		LogicalTimestamp nullConRef = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.NULL, null)));
+		patch.addNewOperation(Operations.insertVector().setVectorId(vecWithNullRef).setMap(Map.of(0, nullConRef)));
+		LogicalTimestamp nullRowInsRef = patch.addNewOperation(Operations.insertArray().setArrayId(header.getRowsId()).setReferenceId(new LogicalTimestamp().setReplicaId(111L).setSequenceNumber(39L)).setElementIds(List.of(objectWithNullRef)));
+
+		// Add a row with an `undefined` value
+		LogicalTimestamp objectWithUndefinedRef = patch.addNewOperation(Operations.newObject());
+		LogicalTimestamp vecWithUndefinedRef = patch.addNewOperation(Operations.newVector());
+		patch.addNewOperation(Operations.insertObject().setObjectId(objectWithUndefinedRef).setMap(Map.of("data", vecWithUndefinedRef)));
+		LogicalTimestamp undefinedConRef = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.UNDEFINED, null)));
+		patch.addNewOperation(Operations.insertVector().setVectorId(vecWithUndefinedRef).setMap(Map.of(0, undefinedConRef)));
+		patch.addNewOperation(Operations.insertArray().setArrayId(header.getRowsId()).setReferenceId(nullRowInsRef).setElementIds(List.of(objectWithUndefinedRef)));
+
+		// Apply patches
+		gridIndexManger.applyPatch(sessionId, replicaId, patch);
+
+
 		List<RowView> allRows = gridViewManager.querySinglePage(header,
 				new QueryElement().setLimit(100L).setOffset(0L));
+		assertEquals(7, allRows.size());
+
 		// call under test
 		assertEquals(List.of(allRows.get(1)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.EQUALS).setValue(List.of(1L))))
+										.setOperator(CellValueOperatorElement.EQUALS).setValue(0L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(3)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(5)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.LESS_THAN).setValue(List.of(2L))))
+										.setOperator(CellValueOperatorElement.LESS_THAN).setValue(1L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(3)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(5)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-								.setOperator(CellValueOperatorElement.LESS_THAN_OR_EQUALS).setValue(List.of(2L))))
+								.setOperator(CellValueOperatorElement.LESS_THAN_OR_EQUALS).setValue(1L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(3), allRows.get(4)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.GREATER_THAN).setValue(List.of(2L))))
+										.setOperator(CellValueOperatorElement.GREATER_THAN).setValue(1L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(2), allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(2), allRows.get(3), allRows.get(4)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-								.setOperator(CellValueOperatorElement.GREATER_THAN_OR_EQUALS).setValue(List.of(2L))))
+								.setOperator(CellValueOperatorElement.GREATER_THAN_OR_EQUALS).setValue(1L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(3), allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(3), allRows.get(4), allRows.get(5), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.NOT_EQUALS).setValue(List.of(2L))))
+										.setOperator(CellValueOperatorElement.NOT_EQUALS).setValue(1L)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(3)),
-				gridViewManager
-						.querySinglePage(header,
-								new QueryElement()
-										.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-												.setOperator(CellValueOperatorElement.IS_NULL)))
-										.setLimit(100L).setOffset(0L)));
+		assertEquals(List.of(allRows.get(5)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
+										.setOperator(CellValueOperatorElement.IS_NULL)))
+								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(1), allRows.get(2), allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(3), allRows.get(4), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
 										.setOperator(CellValueOperatorElement.IS_NOT_NULL)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(1), allRows.get(5)),
+		assertEquals(List.of(allRows.get(1), allRows.get(4)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.IN).setValue(1L, 4L)))
+										.setOperator(CellValueOperatorElement.IN).setValue(List.of(0L, 3L))))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(2), allRows.get(3), allRows.get(4)),
+		assertEquals(List.of(allRows.get(0), allRows.get(2), allRows.get(3), allRows.get(5), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
-										.setOperator(CellValueOperatorElement.NOT_IN).setValue(1L, 4L)))
+										.setOperator(CellValueOperatorElement.NOT_IN).setValue(List.of(0L, 3L))))
+								.setLimit(100L).setOffset(0L)));
+		// call under test
+		assertEquals(List.of(allRows.get(6)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
+										.setOperator(CellValueOperatorElement.IS_UNDEFINED)))
+								.setLimit(100L).setOffset(0L)));
+		// call under test
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(3), allRows.get(4), allRows.get(5)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("anInt")
+										.setOperator(CellValueOperatorElement.IS_DEFINED)))
 								.setLimit(100L).setOffset(0L)));
 	}
 
@@ -564,81 +653,120 @@ public class GridReplicaViewManagerImplAutowireTest {
 	public void testFilterWithEachOperationAndString() throws IOException {
 		schema = List.of(new ColumnModel().setName("aString").setColumnType(ColumnType.STRING).setMaximumSize(100L));
 
-		rows = List.of(new Row().setValues(Collections.emptyList()), new Row().setValues(List.of("a")),
-				new Row().setValues(List.of("b")), new Row().setValues(Collections.emptyList()),
-				new Row().setValues(List.of("c")), new Row().setValues(List.of("d")));
+		rows = List.of(
+				new Row().setValues(Collections.emptyList()),
+				new Row().setValues(List.of("a")),
+				new Row().setValues(List.of("b")),
+				new Row().setValues(List.of("c")),
+				new Row().setValues(List.of("d")));
 		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
 		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		// Also write a row with a `null` value, which we cannot express via the Row model.
+		Patch patch = new Patch().setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
+		LogicalTimestamp objectWithNullRef = patch.addNewOperation(Operations.newObject());
+		LogicalTimestamp vecWithNullRef = patch.addNewOperation(Operations.newVector());
+		patch.addNewOperation(Operations.insertObject().setObjectId(objectWithNullRef).setMap(Map.of("data", vecWithNullRef)));
+		LogicalTimestamp nullConRef = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.NULL, null)));
+		patch.addNewOperation(Operations.insertVector().setVectorId(vecWithNullRef).setMap(Map.of(0, nullConRef)));
+		LogicalTimestamp nullRowInsRef = patch.addNewOperation(Operations.insertArray().setArrayId(header.getRowsId()).setReferenceId(new LogicalTimestamp().setReplicaId(111L).setSequenceNumber(39L)).setElementIds(List.of(objectWithNullRef)));
+
+		// Add a row with an `undefined` value
+		LogicalTimestamp objectWithUndefinedRef = patch.addNewOperation(Operations.newObject());
+		LogicalTimestamp vecWithUndefinedRef = patch.addNewOperation(Operations.newVector());
+		patch.addNewOperation(Operations.insertObject().setObjectId(objectWithUndefinedRef).setMap(Map.of("data", vecWithUndefinedRef)));
+		LogicalTimestamp undefinedConRef = patch.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.UNDEFINED, null)));
+		patch.addNewOperation(Operations.insertVector().setVectorId(vecWithUndefinedRef).setMap(Map.of(0, undefinedConRef)));
+		patch.addNewOperation(Operations.insertArray().setArrayId(header.getRowsId()).setReferenceId(nullRowInsRef).setElementIds(List.of(objectWithUndefinedRef)));
+
+		// Apply patches
+		gridIndexManger.applyPatch(sessionId, replicaId, patch);
+
+
 		List<RowView> allRows = gridViewManager.querySinglePage(header,
 				new QueryElement().setLimit(100L).setOffset(0L));
+		assertEquals(7, allRows.size());
 		// call under test
 		assertEquals(List.of(allRows.get(1)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.EQUALS).setValue(List.of("a"))))
+										.setOperator(CellValueOperatorElement.EQUALS).setValue("a")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
 		assertEquals(List.of(allRows.get(1)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.LESS_THAN).setValue(List.of("b"))))
+										.setOperator(CellValueOperatorElement.LESS_THAN).setValue("b")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
 		assertEquals(List.of(allRows.get(1), allRows.get(2)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-								.setOperator(CellValueOperatorElement.LESS_THAN_OR_EQUALS).setValue(List.of("b"))))
+								.setOperator(CellValueOperatorElement.LESS_THAN_OR_EQUALS).setValue("b")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
 		assertEquals(List.of(allRows.get(0), allRows.get(3), allRows.get(4), allRows.get(5)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.GREATER_THAN).setValue(List.of("b"))))
+										.setOperator(CellValueOperatorElement.GREATER_THAN).setValue("b")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
 		assertEquals(List.of(allRows.get(0), allRows.get(2), allRows.get(3), allRows.get(4), allRows.get(5)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement().setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-								.setOperator(CellValueOperatorElement.GREATER_THAN_OR_EQUALS).setValue(List.of("b"))))
+								.setOperator(CellValueOperatorElement.GREATER_THAN_OR_EQUALS).setValue("b")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(3), allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(3), allRows.get(4), allRows.get(5), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.NOT_EQUALS).setValue(List.of("b"))))
+										.setOperator(CellValueOperatorElement.NOT_EQUALS).setValue("b")))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(3)),
-				gridViewManager
-						.querySinglePage(header,
-								new QueryElement()
-										.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-												.setOperator(CellValueOperatorElement.IS_NULL)))
-										.setLimit(100L).setOffset(0L)));
+		assertEquals(List.of(allRows.get(5)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
+										.setOperator(CellValueOperatorElement.IS_NULL)))
+								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(1), allRows.get(2), allRows.get(4), allRows.get(5)),
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(3), allRows.get(4), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
 										.setOperator(CellValueOperatorElement.IS_NOT_NULL)))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(1), allRows.get(4)),
+		assertEquals(List.of(allRows.get(1), allRows.get(3)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.IN).setValue("a", "c")))
+										.setOperator(CellValueOperatorElement.IN).setValue(List.of("a", "c"))))
 								.setLimit(100L).setOffset(0L)));
 		// call under test
-		assertEquals(List.of(allRows.get(0), allRows.get(2), allRows.get(3), allRows.get(5)),
+		assertEquals(List.of(allRows.get(0), allRows.get(2),allRows.get(4), allRows.get(5), allRows.get(6)),
 				gridViewManager.querySinglePage(header,
 						new QueryElement()
 								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
-										.setOperator(CellValueOperatorElement.NOT_IN).setValue("a", "c")))
+										.setOperator(CellValueOperatorElement.NOT_IN).setValue(List.of("a", "c"))))
+								.setLimit(100L).setOffset(0L)));
+		// call under test
+		assertEquals(List.of(allRows.get(6)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
+										.setOperator(CellValueOperatorElement.IS_UNDEFINED)))
+								.setLimit(100L).setOffset(0L)));
+		// call under test
+		assertEquals(List.of(allRows.get(0), allRows.get(1), allRows.get(2), allRows.get(3), allRows.get(4), allRows.get(5)),
+				gridViewManager.querySinglePage(header,
+						new QueryElement()
+								.setWhere(List.of(new CellValueFilterElement().setColumnName("aString")
+										.setOperator(CellValueOperatorElement.IS_DEFINED)))
 								.setLimit(100L).setOffset(0L)));
 	}
 
@@ -841,9 +969,174 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// call under test
 		List<RowView> r = gridViewManager.querySinglePage(header,
 				new QueryElement().setSelect(new CountStartElement()));
-		List<RowView> expected = List
-				.of(new RowView().setRowObject(new RowObject().setData(new RowData().setCells(new JSONArray("[5]")))));
-		assertEquals(expected, r);
+		assertEquals(1, r.size());
+		assertNull(r.get(0).getRowObject().getData().getCells());
+		assertEquals("{\"count\":5}", r.get(0).getRowObject().getData().getRowJsonDocument().toString());
+	}
+	
+	@Test
+	public void testQueryWithColumnsSubset() throws IOException {
+		schema = List.of(
+			new ColumnModel().setName("aString").setColumnType(ColumnType.STRING).setMaximumSize(100L),
+			new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER)
+		);
+
+		rows = List.of(
+			new Row().setValues(Arrays.asList(null, null)),
+			new Row().setValues(List.of("a", "1")),
+			new Row().setValues(List.of("b", "2"))
+		);
+		
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+		
+		// call under test		
+		assertEquals("Column name not found: invalid", assertThrows(IllegalArgumentException.class, () -> {
+			gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+				new SelectByNameElement(new SelectByName().setColumnName("invalid"))
+			));
+		}).getMessage());
+		
+		List<RowView> allRows = gridViewManager.querySinglePage(header, new QueryElement().setLimit(100L).setOffset(0L));
+
+		// call under test
+		List<RowView> subsetResult = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectByNameElement(new SelectByName().setColumnName("anInt"))
+		));
+		assertEquals(allRows.size(), subsetResult.size());
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 1)), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":1}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 2)), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":2}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
+
+		// call under test		
+		subsetResult = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectByNameElement(new SelectByName().setColumnName("aString"))
+		));
+
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.STRING, "a")), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"aString\":\"a\"}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.STRING, "b")), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"aString\":\"b\"}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
+
+
+		// call under test		
+		subsetResult = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectByNameElement(new SelectByName().setColumnName("anInt")),
+			new SelectByNameElement(new SelectByName().setColumnName("aString"))
+		));
+
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.STRING, "a")), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":1,\"aString\":\"a\"}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.STRING, "b")), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":2,\"aString\":\"b\"}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
+	}
+	
+	@Test
+	public void testQueryWithSelectedColumns() throws IOException {
+		schema = List.of(
+			new ColumnModel().setName("aString").setColumnType(ColumnType.STRING).setMaximumSize(100L),
+			new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER)
+		);
+
+		rows = List.of(
+				new Row().setValues(Arrays.asList(null, null)),
+			new Row().setValues(List.of("a", "1")),
+			new Row().setValues(List.of("b", "2"))
+		);
+		
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).orElseThrow();
+		
+		List<RowView> allRows = gridViewManager.querySinglePage(header, new QueryElement());
+
+
+		// call under test
+		List<RowView> result = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectSelectionElement()
+		));
+
+		assertEquals(allRows.size(), result.size());
+		// Nothing selected, we expect empty cells
+		for (int i = 0; i < allRows.size(); i++) {
+			assertEquals(Collections.emptyList(), result.get(i).getRowObject().getData().getCells());
+			assertEquals("{}", result.get(i).getRowObject().getData().getRowJsonDocument().toString());
+		}
+
+		// Add a "all columns selected" model to the gird
+		ReplicaSelectionModel selection = new ReplicaSelectionModel().setColumnSelectAll(true);
+		
+		Long otherReplica = 987L;
+		
+		setSelection(header.getNodeId(), selection, otherReplica);
+		
+		header = gridViewManager.readHeader(sessionId, replicaId, otherReplica).orElseThrow();
+		
+		// All columns selected, we expect all cells
+
+		// call under test	
+		result = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectSelectionElement()
+		));
+
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.STRING, "a"), new ConValue(ConType.LONG, 1)), result.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"aString\":\"a\",\"anInt\":1}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.STRING, "b"), new ConValue(ConType.LONG, 2)), result.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"aString\":\"b\",\"anInt\":2}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
+
+		// Add a "column anInt selected" model to the grid
+		selection = new ReplicaSelectionModel().setColumnSelection(List.of(
+			header.getOrderedColumns().get(1).getColumnOrderNodeId()
+		));
+		
+		setSelection(header.getNodeId(), selection, otherReplica);
+		
+		header = gridViewManager.readHeader(sessionId, replicaId, otherReplica).orElseThrow();
+		
+		// call under test
+		result = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+			new SelectSelectionElement()
+		));
+
+		// Only the second column selected
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 1)), result.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":1}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 2)), result.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":2}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
+
+		// Add a "column anInt,aString selected" model to the grid
+		selection = new ReplicaSelectionModel().setColumnSelection(List.of(
+			header.getOrderedColumns().get(1).getColumnOrderNodeId(), header.getOrderedColumns().get(0).getColumnOrderNodeId()
+		));
+		
+		setSelection(header.getNodeId(), selection, otherReplica);
+		
+		header = gridViewManager.readHeader(sessionId, replicaId, otherReplica).orElseThrow();
+
+		// call under test
+		result = gridViewManager.querySinglePage(header, new QueryElement().setSelect(
+				new SelectSelectionElement()
+		));
+
+		// both columns selected in reverse order
+		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.STRING, "a")), result.get(1).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":1,\"aString\":\"a\"}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
+		assertEquals(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.STRING, "b")), result.get(2).getRowObject().getData().getCells());
+		assertEquals("{\"anInt\":2,\"aString\":\"b\"}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
 	}
 
 	@Test
@@ -867,46 +1160,67 @@ public class GridReplicaViewManagerImplAutowireTest {
 		allRows = gridViewManager.querySinglePage(header, new QueryElement().setLimit(100L).setOffset(0L));
 
 		// call under test
-		assertEquals(
-				new QueryResult()
-						.setSelectColumns(List.of(new SelectColumn().setColumnIndex(0L).setColumnName("count")))
-						.setRows(List.of(
-								new org.sagebionetworks.repo.model.grid.query.result.Row().setCellValues(List.of(5L)))),
-				gridViewManager.querySinglePageAsQueryResult(header,
-						new QueryElement().setSelect(new CountStartElement())));
+		QueryResult actual = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement().setSelect(new CountStartElement()));
+		assertEquals(List.of(new SelectColumn().setColumnName("count")), actual.getSelectColumns());
+		assertEquals(1, actual.getRows().size());
+		assertEquals("{\"count\":5}", actual.getRows().get(0).getData().toString());
 
 		List<Object> nullList = new ArrayList<>();
 		nullList.add(null);
 		nullList.add(null);
 
 		// call under test
-		assertEquals(
-				new QueryResult()
-						.setSelectColumns(List.of(new SelectColumn().setColumnIndex(0L).setColumnName("aString"),
-								new SelectColumn().setColumnIndex(1L).setColumnName("anInt")))
-						.setRows(List.of(
-								new org.sagebionetworks.repo.model.grid.query.result.Row().setValidationResults(
-										new org.sagebionetworks.repo.model.grid.query.result.ValidationResults()
-												.setIsValid(false).setValidationErrorMessage("required")
-												.setAllValidationMessages(List.of("abc", "efg")))
-										.setCellValues(nullList),
-								new org.sagebionetworks.repo.model.grid.query.result.Row().setValidationResults(
-										new org.sagebionetworks.repo.model.grid.query.result.ValidationResults()
-												.setIsValid(true))
-										.setCellValues(List.of("a", 123)),
-								new org.sagebionetworks.repo.model.grid.query.result.Row()
-										.setValidationResults(
-												new org.sagebionetworks.repo.model.grid.query.result.ValidationResults()
-														.setIsValid(false).setValidationErrorMessage("naw"))
-										.setCellValues(List.of("b", 456)),
-								new org.sagebionetworks.repo.model.grid.query.result.Row().setValidationResults(
-										new org.sagebionetworks.repo.model.grid.query.result.ValidationResults()
-												.setIsValid(true))
-										.setCellValues(List.of("c", 789)),
-								new org.sagebionetworks.repo.model.grid.query.result.Row()
-										.setCellValues(List.of("d", 333)))),
-				gridViewManager.querySinglePageAsQueryResult(header,
-						new QueryElement().setSelect(new SelectAllElement())));
+		actual = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement().setSelect(new SelectAllElement()));
+		assertEquals(List.of(new SelectColumn().setColumnName("aString"), new SelectColumn().setColumnName("anInt")), actual.getSelectColumns());
+		assertEquals(5, actual.getRows().size());
+
+		assertEquals("{}", actual.getRows().get(0).getData().toString());
+		assertEquals(allRows.get(0).getRowId(), actual.getRows().get(0).getRowId());
+		assertEquals(false, actual.getRows().get(0).getValidationResults().getIsValid());
+
+		assertEquals("{\"aString\":\"a\",\"anInt\":123}", actual.getRows().get(1).getData().toString());
+		assertEquals(allRows.get(1).getRowId(), actual.getRows().get(1).getRowId());
+		assertEquals(true, actual.getRows().get(1).getValidationResults().getIsValid());
+
+		assertEquals("{\"aString\":\"b\",\"anInt\":456}", actual.getRows().get(2).getData().toString());
+		assertEquals(allRows.get(2).getRowId(), actual.getRows().get(2).getRowId());
+		assertEquals(false, actual.getRows().get(2).getValidationResults().getIsValid());
+
+		assertEquals("{\"aString\":\"c\",\"anInt\":789}", actual.getRows().get(3).getData().toString());
+		assertEquals(allRows.get(3).getRowId(), actual.getRows().get(3).getRowId());
+		assertEquals(true, actual.getRows().get(3).getValidationResults().getIsValid());
+
+		assertEquals("{\"aString\":\"d\",\"anInt\":333}", actual.getRows().get(4).getData().toString());
+		assertEquals(allRows.get(4).getRowId(), actual.getRows().get(4).getRowId());
+		assertEquals(null, actual.getRows().get(4).getValidationResults());
+	}
+	
+	
+	@Test
+	public void testQueryAsResultWithArraysAndObjects() throws IOException {
+		schema = List.of(new ColumnModel().setName("anObject").setColumnType(ColumnType.JSON).setMaximumSize(100L),
+				new ColumnModel().setName("anArray").setColumnType(ColumnType.INTEGER_LIST));
+
+		rows = List.of(
+				//
+				new Row().setValues(Collections.emptyList()),
+				//
+				new Row().setValues(List.of("{\"arr\":[1,2,[4,5]]}", "[6,7]")),
+				//
+				new Row().setValues(List.of("{\"simple\":true}", "[]")));
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+		QueryResult qr = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement().setLimit(100L).setOffset(0L));
+		// The agent will receive a JSON sting of this result.
+		String json = JDOSecondaryPropertyUtils.createJSONFromObject(qr);
+		JSONObject resultJson = new JSONObject(json);
+		JSONArray rows= resultJson.getJSONArray("rows");
+		assertEquals(3, rows.length());
+		assertEquals("{}", rows.getJSONObject(0).get("data").toString());
+		assertEquals("{\"anObject\":{\"arr\":[1,2,[4,5]]},\"anArray\":[6,7]}", rows.getJSONObject(1).get("data").toString());
+		assertEquals("{\"anObject\":{\"simple\":true},\"anArray\":[]}", rows.getJSONObject(2).get("data").toString());
+
 	}
 
 	public static CrdtId createCrdtIdFromLogical(LogicalTimestamp timestamp) {
@@ -955,7 +1269,7 @@ public class GridReplicaViewManagerImplAutowireTest {
 			Patch patch = PatchCompactSerializable.deserialize(new JSONArray(body));
 			gridIndexManger.applyPatch(sessionId, pid.getReplicaId(), patch);
 			return true;
-		}, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES)) {
+		}, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES, Collections.emptyList())) {
 			rows.stream().forEach(r -> {
 				patchRowHandler.nextRow(r);
 			});

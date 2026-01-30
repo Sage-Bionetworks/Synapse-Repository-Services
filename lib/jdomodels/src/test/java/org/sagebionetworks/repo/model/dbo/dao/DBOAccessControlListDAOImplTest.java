@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -80,6 +82,7 @@ public class DBOAccessControlListDAOImplTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
+		aclDAO.truncateAll();
 		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
@@ -101,6 +104,7 @@ public class DBOAccessControlListDAOImplTest {
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		Long groupOneId = userGroupDAO.create(group);
 		group.setId(groupOneId.toString());
 		assertNotNull(group.getId());
@@ -109,6 +113,7 @@ public class DBOAccessControlListDAOImplTest {
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
+		group2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		Long groupTwoId = userGroupDAO.create(group2);
 		group2.setId(groupTwoId.toString());
 		assertNotNull(group2.getId());
@@ -116,9 +121,10 @@ public class DBOAccessControlListDAOImplTest {
 		
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
+		ug.setRealmId(DEFAULT_REALM_ID);
 		Long userId = userGroupDAO.create(ug);
 		boolean isAdmin = false;
-		userInfo = new UserInfo(isAdmin, userId);
+		userInfo = new UserInfo(isAdmin, userId, DEFAULT_REALM_ID);
 		userInfo.setGroups(Sets.newHashSet(userId, groupOneId, groupTwoId));
 
 		// Create an ACL for this node
@@ -158,6 +164,20 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
 		aclList.add(acl);
 	}
+	
+	public AccessControlList createACL(Long ownerId, ObjectType type, ResourceAccess...ras) {
+		AccessControlList acl = new AccessControlList();
+		acl.setId(ownerId.toString());
+		acl.setCreationDate(new Date(System.currentTimeMillis()));
+		acl.setResourceAccess(new HashSet<ResourceAccess>());
+		for(ResourceAccess ra: ras) {
+			acl.getResourceAccess().add(ra);
+		}
+		String aclId = aclDAO.create(acl, type);
+		acl = aclDAO.get(ownerId.toString(), ObjectType.ENTITY);
+		aclList.add(acl);
+		return acl;
+	}
 
 	@AfterEach
 	public void tearDown() throws Exception {
@@ -173,6 +193,7 @@ public class DBOAccessControlListDAOImplTest {
 			userGroupDAO.delete(g.getId());
 		}
 		groupList.clear();
+
 	}
 
 	/**
@@ -226,6 +247,55 @@ public class DBOAccessControlListDAOImplTest {
 		status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		assertFalse(status.isAuthorized());
 		assertEquals("You do not have UPDATE permission for ENTITY : "+node.getId(), status.getMessage());
+	}
+	
+	@Test
+	public void testGetAccessibleBenefactors() throws Exception {
+
+		createACL(111L, ObjectType.ENTITY, AccessControlListUtil.createResourceAccess(createdById, ACCESS_TYPE.CREATE),
+				AccessControlListUtil.createResourceAccess(modifiedById, ACCESS_TYPE.CREATE));
+		createACL(222L, ObjectType.ENTITY,
+				AccessControlListUtil.createResourceAccess(createdById, ACCESS_TYPE.CREATE, ACCESS_TYPE.UPDATE),
+				AccessControlListUtil.createResourceAccess(modifiedById, ACCESS_TYPE.CREATE, ACCESS_TYPE.READ));
+		createACL(333L, ObjectType.ENTITY,
+				AccessControlListUtil.createResourceAccess(createdById, ACCESS_TYPE.UPDATE, ACCESS_TYPE.DELETE),
+				AccessControlListUtil.createResourceAccess(modifiedById, ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.DELETE));
+		createACL(333L, ObjectType.TEAM,
+				AccessControlListUtil.createResourceAccess(modifiedById, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
+		createACL(444L, ObjectType.ENTITY,
+				AccessControlListUtil.createResourceAccess(createdById, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
+		createACL(555L, ObjectType.ENTITY,
+				AccessControlListUtil.createResourceAccess(modifiedById, ACCESS_TYPE.CREATE),
+				AccessControlListUtil.createResourceAccess(createdById, ACCESS_TYPE.DELETE));
+
+		// call under test
+		assertEquals(Set.of(111L, 222L, 444L), aclDAO.getAccessibleBenefactors(Set.of(createdById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		// call under test
+		assertEquals(Set.of(111L, 444L), aclDAO.getAccessibleBenefactors(Set.of(createdById),
+				Set.of(111L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		// call under test
+		assertEquals(Set.of(111L, 222L, 444L, 555L), aclDAO.getAccessibleBenefactors(Set.of(createdById, modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		// call under test
+		assertEquals(Set.of(111L, 222L, 555L), aclDAO.getAccessibleBenefactors(Set.of(modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		// call under test
+		assertEquals(Set.of(333L), aclDAO.getAccessibleBenefactors(Set.of(modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.TEAM, ACCESS_TYPE.CREATE));
+		// 555 requires both principals for both create and delete.
+		assertEquals(Set.of(444L, 555L), aclDAO.getAccessibleBenefactors(Set.of(createdById, modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
+		// call under test
+		assertEquals(Set.of(444L), aclDAO.getAccessibleBenefactors(Set.of(createdById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
+		// call under test
+		assertEquals(Set.of(), aclDAO.getAccessibleBenefactors(Set.of(modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE));
+		// call under test
+		assertEquals(Set.of(222L), aclDAO.getAccessibleBenefactors(Set.of(modifiedById),
+				Set.of(111L, 222L, 333L, 444L, 555L), ObjectType.ENTITY));
+
 	}
 	
 	@Test
@@ -632,6 +702,7 @@ public class DBOAccessControlListDAOImplTest {
 		
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		ug.setId(userGroupDAO.create(ug).toString());
 		assertNotNull(ug.getId());
 		groupList.add(ug);
@@ -667,8 +738,8 @@ public class DBOAccessControlListDAOImplTest {
 		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
 		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
 		
-		UserInfo userOne = new UserInfo(false, group.getId());
-		UserInfo userTwo = new UserInfo(false, group2.getId());
+		UserInfo userOne = new UserInfo(false, Long.parseLong(group.getId()), DEFAULT_REALM_ID);
+		UserInfo userTwo = new UserInfo(false, Long.parseLong(group2.getId()), DEFAULT_REALM_ID);
 		
 		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
 		createAcl(acl1, ObjectType.ENTITY);
@@ -708,8 +779,8 @@ public class DBOAccessControlListDAOImplTest {
 		Node visibleToOne = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToOne", createdById, modifiedById, node.getId()));
 		Node visibleToTwo = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("visibleToTwo", createdById, modifiedById, node.getId()));
 
-		UserInfo userOne = new UserInfo(false, group.getId());
-		UserInfo userTwo = new UserInfo(false, group2.getId());
+		UserInfo userOne = new UserInfo(false, Long.parseLong(group.getId()), DEFAULT_REALM_ID);
+		UserInfo userTwo = new UserInfo(false, Long.parseLong(group2.getId()), DEFAULT_REALM_ID);
 		
 		AccessControlList acl1 = AccessControlListUtil.createACLToGrantEntityAdminAccess(visibleToOne.getId(), userOne, new Date());
 		createAcl(acl1, ObjectType.ENTITY);
@@ -755,7 +826,7 @@ public class DBOAccessControlListDAOImplTest {
 		
 		Node node2 = nodeDAO.createNewNode(NodeTestUtils.createNewFolder("node2", createdById, modifiedById, node.getId()));
 		
-		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(node2.getId(), new UserInfo(false, group2.getId()), new Date());
+		AccessControlList acl2 = AccessControlListUtil.createACLToGrantEntityAdminAccess(node2.getId(), new UserInfo(false, Long.parseLong(group2.getId()), DEFAULT_REALM_ID), new Date());
 		acl2.getResourceAccess().add(new ResourceAccess().setPrincipalId(Long.valueOf(group.getId())).setAccessType(Set.of(ACCESS_TYPE.READ)));
 		createAcl(acl2, ObjectType.ENTITY);
 		
@@ -836,4 +907,5 @@ public class DBOAccessControlListDAOImplTest {
 		
 		assertEquals(expected, result);
 	}
+	
 }

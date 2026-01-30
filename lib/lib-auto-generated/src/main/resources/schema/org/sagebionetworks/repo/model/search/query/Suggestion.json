@@ -1,0 +1,17 @@
+{
+    "description":"JSON schema for a suggested replacement term.",
+    "properties":{
+        "term":{
+            "type":"string",
+            "description":"The suggested term."
+        },
+        "score":{
+            "type":"number",
+            "description":"The relative score of suggested term."
+        },
+        "frequency":{
+            "type":"integer",
+            "description":"The count of documents that contain the specified term."
+        }
+    }
+}

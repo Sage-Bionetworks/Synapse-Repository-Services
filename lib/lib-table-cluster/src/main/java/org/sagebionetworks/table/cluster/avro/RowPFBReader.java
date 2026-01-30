@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
@@ -16,9 +17,8 @@ import org.apache.avro.generic.IndexedRecord;
 import org.sagebionetworks.avro.pfb.model.Entity;
 import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.Row;
 
-public class RowPFBReader implements Iterator<Row>, Closeable {
+public class RowPFBReader implements Iterator<RowPFBReader.PFBRow>, Closeable {
 
 	private final Schema entitySchema;
 	private final GenericDatumReader<GenericRecord> entityReader;
@@ -52,21 +52,22 @@ public class RowPFBReader implements Iterator<Row>, Closeable {
 	}
 
 	@Override
-	public Row next() {
+	public PFBRow next() {
 		Entity entity = new Entity(this.entitySchema, dataFileReader.next());
-		Row row = RowPFBUtils.createRow(entity.getId());
+		
 		IndexedRecord object = entity.getObject();
+		
 		List<Field> fields = object.getSchema().getFields();
 		List<String> values = new ArrayList<>(fields.size());
+		
 		fields.forEach(f -> {
 			Schema typeSchema = f.schema().getTypes().get(1);
 			ColumnType columnType = ColumnTypeAvro.getColumnType(typeSchema);
 			String value = ColumnTypeAvro.matchType(columnType).avroToRow(object.get(f.pos()));
 			values.add(value);
 		});
-		row.setValues(values);
 
-		return row;
+		return new PFBRow(entity.getId(), values);
 	}
 
 	@Override
@@ -74,6 +75,46 @@ public class RowPFBReader implements Iterator<Row>, Closeable {
 		if (dataFileReader != null) {
 			dataFileReader.close();
 		}
+	}
+	
+	public static final class PFBRow {
+		
+		private final String entityId;
+		private final List<String> values;
+		
+		public PFBRow(String entityId, List<String> values) {
+			this.entityId = entityId;
+			this.values = values;
+		}
+		
+		public String getEntityId() {
+			return entityId;
+		}
+		
+		public List<String> getValues() {
+			return values;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(entityId, values);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			PFBRow other = (PFBRow) obj;
+			return Objects.equals(entityId, other.entityId) && Objects.equals(values, other.values);
+		}
+		
 	}
 
 }

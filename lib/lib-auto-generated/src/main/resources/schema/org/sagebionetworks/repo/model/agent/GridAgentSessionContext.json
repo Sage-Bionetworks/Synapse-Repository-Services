@@ -13,6 +13,10 @@
 		"usersReplicaId": {
 			"description": "Required. The calling user's grid replica ID.",
 			"type": "integer"
+		},
+		"agentsReplicaId": {
+			"description": "The replica ID issued to the user's agent.",
+			"type": "integer"
 		}
 	}
 }

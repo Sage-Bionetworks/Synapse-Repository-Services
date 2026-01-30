@@ -121,14 +121,12 @@ public class BackupFileStreamImplTest {
 		credentialOne.setEtag(UUID.randomUUID().toString());
 		credentialOne.setExpiresOn(new Date());
 		credentialOne.setPassHash("adminHash");
-		credentialOne.setSecretKey("adminKey");
 		credentialOne.setPrincipalId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		credentialTwo = new DBOCredential();
 		credentialTwo.setEtag(UUID.randomUUID().toString());
 		credentialTwo.setExpiresOn(new Date());
 		credentialTwo.setPassHash("hashTwo");
-		credentialTwo.setSecretKey("keyTwo");
 		credentialTwo.setPrincipalId(456L);
 		credentials = Lists.newArrayList(credentialOne, credentialTwo);
 		

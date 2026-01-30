@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.util.ValidateArgument;
@@ -12,14 +15,14 @@ public class InsertRowChange implements IntendedChange {
 
 	private LogicalTimestamp rowsArrayId; // The id of the rows array to add the row to
 	private LogicalTimestamp nodeRefId; // The optional id of the node in the array after which the row should be inserted
-	private JSONArray rowData; // The actual row data
+	private List<ConValue> rowData; // The actual row data
 	private Integer[] rowVectorIndex; // The vector index of each column in the row data
 
-	public InsertRowChange(LogicalTimestamp rowsArrayId, LogicalTimestamp nodeRefId, JSONArray rowData, Integer[] rowVectorIndex) {
+	public InsertRowChange(LogicalTimestamp rowsArrayId, LogicalTimestamp nodeRefId, List<ConValue> rowData, Integer[] rowVectorIndex) {
 		ValidateArgument.required(rowsArrayId, "rowsArrayId");
 		ValidateArgument.required(rowData, "rowData");
 		ValidateArgument.required(rowVectorIndex, "rowVectorIndex");
-		ValidateArgument.requirement(rowData.length() == rowVectorIndex.length, "rowData and rowVectorIndex must have the same length");
+		ValidateArgument.requirement(rowData.size() == rowVectorIndex.length, "rowData and rowVectorIndex must have the same length");
 		
 		this.rowsArrayId = rowsArrayId;
 		this.nodeRefId = nodeRefId;
@@ -33,7 +36,11 @@ public class InsertRowChange implements IntendedChange {
 		if (nodeRefId != null) {
 			this.nodeRefId = LogicalTimestampCompactSerializable.deserialize(nodeRefId);
 		}
-		this.rowData = json.getJSONArray("d");
+		this.rowData = new ArrayList<>();
+		json.getJSONArray("d").forEach(conValCompactArr -> {
+			ConValue conValue = ConValue.fromCompact((JSONArray) conValCompactArr);
+			this.rowData.add(conValue);
+		});
 		this.rowVectorIndex = json.getJSONArray("v").toList().stream().map(v -> (Integer)v).toArray(Integer[]::new);
 	}
 
@@ -51,8 +58,10 @@ public class InsertRowChange implements IntendedChange {
 		if (nodeRefId != null) {
 			json.put("n", LogicalTimestampCompactSerializable.serialize(nodeRefId));
 		}
-		
-		json.put("d", rowData);
+
+		JSONArray data = new JSONArray();
+		rowData.forEach(o -> data.put(o.toCompact()));
+		json.put("d", data);
 		json.put("v", new JSONArray(rowVectorIndex));
 		
 		return json;
@@ -66,7 +75,7 @@ public class InsertRowChange implements IntendedChange {
 		return nodeRefId;
 	}
 	
-	public JSONArray getRowData() {
+	public List<ConValue> getRowData() {
 		return rowData;
 	}
 	

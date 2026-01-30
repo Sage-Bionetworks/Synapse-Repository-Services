@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ public class UserGroupDoaObjectHelper implements DaoObjectHelper<UserGroup>{
 		ug.setCreationDate(new Date());
 		ug.setEtag(UUID.randomUUID().toString());
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		consumer.accept(ug);
 		

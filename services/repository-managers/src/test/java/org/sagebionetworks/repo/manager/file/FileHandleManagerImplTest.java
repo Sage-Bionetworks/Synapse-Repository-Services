@@ -24,6 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.MAX_REQUESTS_PER_CALL;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.io.File;
 import java.io.IOException;
@@ -279,11 +280,11 @@ public class FileHandleManagerImplTest {
 		key = BASE_KEY + "/some-key";
 
 		// The user is not really a mock
-		mockUser = new UserInfo(false,"987");
+		mockUser = new UserInfo(false,987L,DEFAULT_REALM_ID);
 		sessionId = UUID.randomUUID().toString();
 		mockUser.setContext(new CallersContext().setSessionId(sessionId));
 		
-		anonymousUser = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(),DEFAULT_REALM_ID);
 
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
@@ -1288,7 +1289,7 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(new URL(expecedURL));
 		when(mockStackConfig.getS3Bucket()).thenReturn("data.dev.sagebase.org");
-		mockUser = new UserInfo(false, 456L);
+		mockUser = new UserInfo(false, 456L, DEFAULT_REALM_ID);
 		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
 		assertEquals(expecedURL, redirect);
 	}
@@ -1301,7 +1302,7 @@ public class FileHandleManagerImplTest {
 		s3FileHandle.setBucketName("bucket");
 		s3FileHandle.setKey("key");
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
-		mockUser = new UserInfo(false, 896L);
+		mockUser = new UserInfo(false, 896L, DEFAULT_REALM_ID);
 		assertThrows(UnauthorizedException.class, () -> manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId()));
 	}
 	

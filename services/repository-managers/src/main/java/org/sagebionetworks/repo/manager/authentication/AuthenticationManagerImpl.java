@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -108,6 +109,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
 		}
 
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// changing a password is only allowed if the user is in the default Synapse realm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			throw new IllegalArgumentException("Cannot set user password in realm "+userInfo.getRealmId());
+		}
 		setPassword(userId, changePasswordInterface.getNewPassword());
 		userCredentialValidator.forceResetLoginThrottle(userId);
 		return userId;
@@ -183,17 +189,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.PASSWORD_CHANGE));
 		}
 	}
-
-	@Override
-	public String getSecretKey(Long principalId) throws NotFoundException {
-		return authDAO.getSecretKey(principalId);
-	}
-
-	@Override
-	@WriteTransaction
-	public void changeSecretKey(Long principalId) {
-		authDAO.changeSecretKey(principalId);
-	}
 	
 	@Override
 	public PasswordResetSignedToken createPasswordResetToken(long userId) throws NotFoundException {
@@ -220,13 +215,23 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			}
 		});
 		
+		UserInfo user = userManager.getUserInfo(userId);
+		// user must be in default Synapse reealm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(user.getRealmId())) {
+			throw new UnauthorizedException("Cannot log in using a password.  Use the designated identity provider instead.");
+		}
+		
 		return loginWithNoPasswordCheck(userId, tokenIssuer);
 	}
 
 	@Override
 	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
 		UserInfo user = userManager.getUserInfo(principalId);
-		
+		return loginWithNoPasswordCheck(user, issuer);
+	}
+	
+	private LoginResponse loginWithNoPasswordCheck(UserInfo user, String issuer) {
+		long principalId = user.getId();
 		if (user.hasTwoFactorAuthEnabled()) {
 			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION));
 		}

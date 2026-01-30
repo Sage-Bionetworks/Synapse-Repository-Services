@@ -18,6 +18,6 @@ public interface AgentContextValidatorHandler<T extends SessionContext> {
 	 * @param user
 	 * @param context
 	 */
-	void doContextValidation(UserInfo user, T context);
+	T doContextValidation(UserInfo user, T context);
 
 }

@@ -1,19 +1,22 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
+import java.util.List;
+
 import org.json.JSONArray;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class JoinedRow {
 
-	private JSONArray csvData;
+	private List<ConValue> csvData;
 	private LogicalTimestamp gridRowVecId;
 
-	public JoinedRow(JSONArray csvData, LogicalTimestamp rowVectorId) {
+	public JoinedRow(List<ConValue> csvData, LogicalTimestamp rowVectorId) {
 		this.csvData = csvData;
 		this.gridRowVecId = rowVectorId;
 	}
 
-	public JSONArray getCsvData() {
+	public List<ConValue> getCsvData() {
 		return csvData;
 	}
 

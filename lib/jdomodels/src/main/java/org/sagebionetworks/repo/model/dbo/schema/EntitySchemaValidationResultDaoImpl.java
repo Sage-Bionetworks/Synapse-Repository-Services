@@ -49,11 +49,7 @@ public class EntitySchemaValidationResultDaoImpl implements EntitySchemaValidati
 	public static final String CONTAINER_ID = "containerId";
 
 	private static final RowMapper<ValidationSummaryStatistics> RECORD_SET_VALIDATION_STATS_MAPPER = (ResultSet rs, int i) -> 
-		JDOSecondaryPropertyUtils.createObjectFromJSON(
-			ValidationSummaryStatistics.class, 
-			rs.getString(COL_RECORDSET_VALIDATION_STATS_JSON)
-		);
-	
+		JDOSecondaryPropertyUtils.createObjectFromJSON(ValidationSummaryStatistics.class, rs.getString(COL_RECORDSET_VALIDATION_STATS_JSON));
 	
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 	private SchemaValidationResultDao schemaValidationResultDao;

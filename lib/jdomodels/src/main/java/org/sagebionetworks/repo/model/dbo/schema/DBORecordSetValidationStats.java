@@ -152,8 +152,9 @@ public class DBORecordSetValidationStats implements MigratableDatabaseObject<DBO
 			return false;
 		}
 		DBORecordSetValidationStats other = (DBORecordSetValidationStats) obj;
-		return Objects.equals(etag, other.etag) && Objects.equals(id, other.id) && Objects.equals(recordSetId, other.recordSetId)
-			&& Objects.equals(recordSetVersion, other.recordSetVersion) && Objects.equals(validationStatsJson, other.validationStatsJson);
+		return Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+			&& Objects.equals(recordSetId, other.recordSetId) && Objects.equals(recordSetVersion, other.recordSetVersion)
+			&& Objects.equals(validationStatsJson, other.validationStatsJson);
 	}
 
 	@Override

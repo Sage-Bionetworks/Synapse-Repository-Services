@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.manager.search;
 
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_ORGAN;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_TISSUE;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,7 +41,6 @@ import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.search.SearchUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -54,7 +54,18 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  */
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
+	//regex provided by https://docs.aws.amazon.com/cloudsearch/latest/developerguide/preparing-data.html
+	private	static final Pattern UNSUPPORTED_UNICODE_REGEX_PATTERN = Pattern.compile("[^\\u0009\\u000a\\u000d\\u0020-\\uD7FF\\uE000-\\uFFFD]");
 
+	/**
+	 * Returns a String of the input with Unicode characters not supported by the Search Service stripped out.
+	 * @param charSequence input to be stripped of unsupported Unicode characters
+	 * @return String of the input charSequence with unsupported Unicode characters stripped out
+	 */
+	public static String stripUnsupportedUnicodeCharacters(CharSequence charSequence){
+		return UNSUPPORTED_UNICODE_REGEX_PATTERN.matcher(charSequence).replaceAll("");
+	}
+	
 	/**
 	 * No more than 100 values in a field value array
 	 */
@@ -157,7 +168,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// text
 		String descriptionValue = wikiPagesText != null ? wikiPagesText : "";
 		// Set user generated description after sanitizing it
-		fields.setDescription(SearchUtil.stripUnsupportedUnicodeCharacters(descriptionValue));
+		fields.setDescription(stripUnsupportedUnicodeCharacters(descriptionValue));
 
 		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
@@ -253,7 +264,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			String value = firsAnnotationValues.get(possibleAnnotationName.toLowerCase());
 			if(value != null){
 				//sanitize user generated values
-				return SearchUtil.stripUnsupportedUnicodeCharacters(value);
+				return stripUnsupportedUnicodeCharacters(value);
 			}
 		}
 		return null;

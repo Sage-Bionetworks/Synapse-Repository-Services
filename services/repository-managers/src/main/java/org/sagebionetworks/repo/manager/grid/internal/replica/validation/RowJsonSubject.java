@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.validation;
 
-import java.util.List;
+import static org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManagerImpl.gridRowToJsonObject;
+
 import java.util.Objects;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.schema.ObjectType;
@@ -18,17 +17,8 @@ public class RowJsonSubject implements JsonSubject {
 
 	private final JSONObject json;
 
-	public RowJsonSubject(List<Column> orderedColumns, RowView rowView) {
-		json = new JSONObject();
-		JSONArray cells = rowView.getCells();
-		if (cells != null) {
-			orderedColumns.forEach(column -> {
-				Object cellValue = cells.opt(column.getVectorIndex());
-				if (cellValue != null) {
-					json.put(column.getName(), cellValue);
-				}
-			});
-		}
+	public RowJsonSubject(RowView rowView) {
+		json = rowView.getRowObject().getData().getRowJsonDocument();
 	}
 
 	@Override

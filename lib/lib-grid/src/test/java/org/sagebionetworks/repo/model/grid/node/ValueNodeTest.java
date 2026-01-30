@@ -85,6 +85,17 @@ public class ValueNodeTest {
 		ValueNode expected = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
 		assertEquals(expected, val);
 	}
+	
+	@Test
+	public void testAttemptInsertWithNewValueIdLesserThanContainerId() {
+		ValueNode val = new ValueNode().setId(ids.get(1)).setValue(ids.get(2));
+		// call under test, the new node ID is less than the container node ID
+		assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(1), ids.get(0))));
+		
+		ValueNode expected = new ValueNode().setId(ids.get(1)).setValue(ids.get(2));
+		
+		assertEquals(expected, val);
+	}
 
 	@Test
 	public void testAttemptInsertWithNullChange() {

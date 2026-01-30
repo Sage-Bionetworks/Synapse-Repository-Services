@@ -24,8 +24,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -75,6 +75,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Initialize a UserGroup
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(ug);
 	
 		groupsToDelete.add(userId.toString());
@@ -83,7 +84,6 @@ public class DBOAuthenticationDAOImplTest {
 		credential = new DBOCredential();
 		credential.setPrincipalId(userId);
 		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
-		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		credential.setEtag(UUID.randomUUID().toString());
 		credential = basicDAO.createNew(credential);
 		
@@ -132,20 +132,9 @@ public class DBOAuthenticationDAOImplTest {
 		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
 		assertTrue(authDAO.getPasswordModifiedOn(userId).get().toInstant().isAfter(now));
-		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
+		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)),
+				"Password exipration is: "+authDAO.getPasswordExpiresOn(userId).get().toInstant()+" and should be after "+now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS));
 
-	}
-	
-	@Test
-	public void testSecretKey() throws Exception {
-		Long userId = credential.getPrincipalId();
-		
-		// Getter should work
-		assertEquals(credential.getSecretKey(), authDAO.getSecretKey(userId));
-		
-		// Setter should work
-		authDAO.changeSecretKey(userId);
-		assertFalse(credential.getSecretKey().equals(authDAO.getSecretKey(userId)));
 	}
 	
 	@Test
@@ -181,9 +170,6 @@ public class DBOAuthenticationDAOImplTest {
 			}
 		}
 		
-		// Migration admin should have a specific API key
-		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		assertEquals(StackConfigurationSingleton.singleton().getMigrationAdminAPIKey(), secretKey);
 		assertTrue(authDAO.isTwoFactorAuthEnabled(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()));
 		TermsOfServiceRequirements requirements = authDAO.getCurrentTermsOfServiceRequirements();
 		assertEquals(requirements.getMinimumTermsOfServiceVersion(), authDAO.getTermsOfServiceLatestVersion());

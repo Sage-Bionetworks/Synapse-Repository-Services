@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -12,8 +13,8 @@ import static org.mockito.Mockito.when;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +55,7 @@ public class SerializedFieldRowMapperSupplierTest {
 	
 	@BeforeEach
 	public void before() {
-		 rowMapper = supplier.getRowMapper(idColumnName, serializedFieldColumnName);
+		 rowMapper = supplier.getRowMapper(idColumnName, List.of(serializedFieldColumnName));
 	}
 	
 	@Test
@@ -194,5 +195,11 @@ public class SerializedFieldRowMapperSupplierTest {
 		
 	}
 	
+	@Test
+	public void testRowMapperWithMultipleFileHandleRefs() throws SQLException {
+		assertEquals("Multiple serialized field columns are not supported at this time.", assertThrows(IllegalArgumentException.class, () -> {			
+			supplier.getRowMapper(idColumnName, List.of(serializedFieldColumnName, "anotherSerializedField"));
+		}).getMessage());
+	}
 	
 }

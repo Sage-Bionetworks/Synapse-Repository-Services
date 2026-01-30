@@ -19,7 +19,7 @@ public interface AccessControlListManager {
 	 * @param originalBenefactors
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> originalBenefactors);
+	Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> originalBenefactors, ACCESS_TYPE...accessTypes);
 
 	boolean canAccess(Set<Long> groups, String objectId, ObjectType objectType, ACCESS_TYPE accessType);
 

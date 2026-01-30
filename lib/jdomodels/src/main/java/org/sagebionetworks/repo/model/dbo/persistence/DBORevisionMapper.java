@@ -19,6 +19,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -74,6 +75,10 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 		}
 		rev.setUpsertKey(rs.getString(COL_REVISION_UPSERT_KEY));
 		rev.setCsvDescriptor(rs.getString(COL_REVISION_CSV_DESCRIPTOR));
+		rev.setValidationResultFileHandleId(rs.getLong(COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID));
+		if (rs.wasNull()) {
+			rev.setValidationResultFileHandleId(null);
+		}
 		return rev;
 	}
 

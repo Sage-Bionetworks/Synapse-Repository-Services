@@ -12,15 +12,15 @@
 			"description": "A string value, required if 'a' > 100."
 		}
 	},
+	"required": [
+		"a"
+	],
 	"if": {
 		"properties": {
 			"a": {
 				"minimum": 100
 			}
-		},
-		"required": [
-			"a"
-		]
+		}
 	},
 	"then": {
 		"required": [

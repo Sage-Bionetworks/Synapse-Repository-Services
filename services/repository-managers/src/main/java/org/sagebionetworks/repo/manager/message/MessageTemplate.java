@@ -367,4 +367,14 @@ public class MessageTemplate {
 		};
 	}
 
+	@Override
+	public String toString() {
+		return "MessageTemplate [templateFile=" + templateFile + ", templateCharSet=" + templateCharSet
+				+ ", messageBodyMimeType=" + messageBodyMimeType + ", sender=" + sender + ", bcc=" + bcc + ", cc=" + cc
+				+ ", ignoreNotificationSettings=" + ignoreNotificationSettings + ", subject=" + subject
+				+ ", isNotificationMessage=" + isNotificationMessage + ", includeUnsubscribeLink="
+				+ includeUnsubscribeLink + ", includeProfileSettingLink=" + includeProfileSettingLink + ", recipients="
+				+ recipients + ", context=" + context + "]";
+	}
+
 }

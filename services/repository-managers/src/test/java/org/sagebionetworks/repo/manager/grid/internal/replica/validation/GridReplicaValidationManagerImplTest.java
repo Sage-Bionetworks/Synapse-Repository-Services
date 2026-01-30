@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilde
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowMetadata;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowValidation;
@@ -83,8 +85,9 @@ public class GridReplicaValidationManagerImplTest {
 		gridSession = new GridSession().setGridJsonSchema$Id(schemaId).setSessionId(sessionId);
 		gridHeader = new GridHeader().setReplicaId(replicaId).setSessionId(sessionId).setOrderedColumns(columns);
 		row = new RowView().setRowObject(
-				new RowObject().setObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)).setMetadata(
-						new RowMetadata().setObjectId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))));
+				new RowObject().setObjectId(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))
+						.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value\"}")))
+						.setMetadata(new RowMetadata().setObjectId(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L))));
 		rows = List.of(new RowView().setArrNodeId(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L)),
 				new RowView().setArrNodeId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
 		jsonSchema = new JsonSchema().set$id(schemaId);
@@ -217,25 +220,28 @@ public class GridReplicaValidationManagerImplTest {
 	@Test
 	public void testValidateRows() {
 		when(mockJsonSchemaManager.getValidationSchema(schemaId)).thenReturn(jsonSchema);
-
+		rows.get(0).setRowObject(new RowObject()
+				.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value1\"}"))));
 		// Sets an existing and equal validation result for the second row
-		rows.get(1).setRowObject(new RowObject().setMetadata(
+		rows.get(1).setRowObject(new RowObject()
+						.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value2\"}")))
+				.setMetadata(
 				new RowMetadata().setRowValidation(new RowValidation().setValidationResults(validationResult))));
+		IntendedChange intendedChange2 = new UpdateMetadataChange().setRowMetadataId(rows.get(1).getArrNodeId());
 
 		when(mockJsonSchemaValidationManager.validateBatch(jsonSchema,
-				List.of(new RowJsonSubject(columns, rows.get(0)), new RowJsonSubject(columns, rows.get(1)))))
+				List.of(new RowJsonSubject(rows.get(0)), new RowJsonSubject(rows.get(1)))))
 				.thenReturn(List.of(validationResult, validationResult));
 
 		doNothing().when(manager).cleanupValidationResults(validationResult);
 
-		// The change is created only for the first row that does not contain any
-		// validation result yet
 		doReturn(intendedChange).when(manager).createChange(rows.get(0), validationResult);
+		doReturn(intendedChange2).when(manager).createChange(rows.get(1), validationResult);
 
 		// call under test
 		List<IntendedChange> changes = manager.validateRows(gridHeader, schemaId, rows);
 
-		assertEquals(List.of(intendedChange), changes);
+		assertEquals(List.of(intendedChange, intendedChange2), changes);
 	}
 
 	@Test

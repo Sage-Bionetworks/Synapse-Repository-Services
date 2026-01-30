@@ -1,0 +1,25 @@
+{
+	"description": "Principals associated with a security realm",
+	"properties": {
+		"realmId": {
+			"type": "string",
+			"description": "ID of the realm with which the principals are associated"
+		},
+		"anonymousUser": {
+			"type": "string",
+			"description": "The principal id representing an anonymous user in the realm"
+		},
+		"publicGroup": {
+			"type": "string",
+			"description": "The principal id representing all users, including unauthenticated ones, in the realm"
+		},
+		"authenticatedUsers": {
+			"type": "string",
+			"description": "The principal id representing all authenticated users in the realm"
+		},
+		"administrativeGroup": {
+			"type": "string",
+			"description": "The principal id representing the administrative Group in the realm"
+		}
+	}
+}

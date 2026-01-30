@@ -11,5 +11,5 @@ public interface AgentContextValidator {
 	 * @param context
 	 * @return
 	 */
-	void validate(UserInfo user, SessionContext context);
+	SessionContext validate(UserInfo user, SessionContext context);
 }

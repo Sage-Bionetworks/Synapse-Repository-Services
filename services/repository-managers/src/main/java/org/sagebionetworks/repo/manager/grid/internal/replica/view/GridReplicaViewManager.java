@@ -87,5 +87,14 @@ public interface GridReplicaViewManager {
 	 * @return
 	 */
 	Iterator<RowView> getQueryIterator(GridHeader header, List<FilterElement> filters);
+	
+	/**
+	 * Returns an iterator that can be used to retrieve and stream through a grid
+	 * session's query results.
+	 * @param header
+	 * @param query
+	 * @return
+	 */
+	Iterator<RowView> getQueryIterator(GridHeader header, QueryElement query);
 
 }

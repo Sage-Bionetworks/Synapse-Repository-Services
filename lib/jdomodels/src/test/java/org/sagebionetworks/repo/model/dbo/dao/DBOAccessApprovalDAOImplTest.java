@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -105,11 +106,13 @@ public class DBOAccessApprovalDAOImplTest {
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
+		individualGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 
 		individualGroup2 = new UserGroup();
 		individualGroup2.setIsIndividual(true);
 		individualGroup2.setCreationDate(new Date());
+		individualGroup2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		individualGroup2.setId(userGroupDAO.create(individualGroup2).toString());
 
 		if (node==null) {

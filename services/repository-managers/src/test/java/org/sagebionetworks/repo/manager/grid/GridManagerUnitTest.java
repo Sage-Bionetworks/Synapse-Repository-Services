@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
@@ -109,6 +110,9 @@ public class GridManagerUnitTest {
 
 	@Mock
 	private InternalReplicaToHubEventPublisher mockInternalEventPublisher;
+	
+	@Mock
+	private GridAuthorizationManager mockGridAuthManager;
 	
 	@Captor
 	private ArgumentCaptor<PutObjectRequest> putCaptor;
@@ -178,7 +182,7 @@ public class GridManagerUnitTest {
 
 		when(mockConfig.getStack()).thenReturn("dev");
 		gridManager = new GridManagerImpl(mockCredentialsProvider, mockWebsocketApi, mockGridDao, mockConfig,
-			mockS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler)
+			mockS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler),mockGridAuthManager
 		);
 		
 		gridManager = Mockito.spy(gridManager);
@@ -195,7 +199,8 @@ public class GridManagerUnitTest {
 	@Test
 	public void testCreateGrid() {
 		when(mockUser.getId()).thenReturn(userId);
-		CreateGridRequest request = new CreateGridRequest();
+		CreateGridRequest request = new CreateGridRequest().setOwnerPrincipalId(null);
+		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
@@ -221,10 +226,41 @@ public class GridManagerUnitTest {
 	}
 	
 	@Test
+	public void testCreateGridWithTeamOwner() {
+		when(mockUser.getId()).thenReturn(userId);
+		CreateGridRequest request = new CreateGridRequest().setOwnerPrincipalId("456");
+		when(mockGridAuthManager.validateGridOwner(mockUser, "456")).thenReturn(456L);
+		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+
+		GridSession expected = new GridSession().setSessionId(gridSessionId);
+		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
+		
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
+		
+		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
+			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+		
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
+		
+		// call under test
+		CreateGridResponse result = gridManager.createGrid(mockCallback, mockUser, request);
+		assertNotNull(result);
+		assertEquals(expected, result.getGridSession());
+		
+		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
+		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		
+		verifyNoMoreInteractions(mockInternalEventPublisher);
+	}
+	
+	
+	@Test
 	public void testCreateGridWithSchema() {
 		when(mockUser.getId()).thenReturn(userId);
 		CreateGridRequest request = new CreateGridRequest();
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
+		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId).setGridJsonSchema$Id("someSchemaId");
 		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
@@ -281,7 +317,6 @@ public class GridManagerUnitTest {
 	
 	@Test
 	public void testCreateGridWithNoHandler() {
-		when(mockUser.getId()).thenReturn(userId);
 		CreateGridRequest request = new CreateGridRequest();
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(false);
 
@@ -305,21 +340,6 @@ public class GridManagerUnitTest {
 		assertEquals("Cannot set both initialQuery and recordSetId.", errorMessage);
 	}
 
-	@Test
-	public void testCreateGridWithAnonymous() {
-		userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		when(mockUser.getId()).thenReturn(userId);
-		CreateGridRequest request = new CreateGridRequest();
-
-		String message = assertThrows(UnauthorizedException.class, () -> {
-
-			// call under test
-			gridManager.createGrid(mockCallback, mockUser, request);
-
-		}).getMessage();
-		assertEquals("Must login to perform this action", message);
-		verifyZeroInteractions(mockGridDao);
-	}
 
 	@Test
 	public void testCreateGridWithNullUser() {
@@ -351,42 +371,9 @@ public class GridManagerUnitTest {
 
 	@Test
 	public void testValidGridSessionAccess() {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockGridDao.getGridSessionStartedBy(gridSessionId)).thenReturn(Optional.of(userId));
+		when(mockGridAuthManager.hasGridSessionAccess(mockUser, gridSessionId)).thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		gridManager.validGridSessionAccess(mockUser, gridSessionId);
-	}
-
-	@Test
-	public void testValidGridSessionAccessWithOtherUserNonAdmin() {
-		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockGridDao.getGridSessionStartedBy(gridSessionId)).thenReturn(Optional.of(456L));
-		String message = assertThrows(UnauthorizedException.class, () -> {
-			// call under test
-			gridManager.validGridSessionAccess(mockUser, gridSessionId);
-		}).getMessage();
-		assertEquals("You are not authorized to access this resource.", message);
-	}
-
-	@Test
-	public void testValidGridSessionAccessWithOtherAsAdmin() {
-		when(mockUser.isAdmin()).thenReturn(true);
-
-		String gridSessionId = "gs123";
-		when(mockGridDao.getGridSessionStartedBy(gridSessionId)).thenReturn(Optional.of(456L));
-		// call under test
-		gridManager.validGridSessionAccess(mockUser, gridSessionId);
-	}
-
-	@Test
-	public void testValidGridSessionAccessWithNotFound() {
-		when(mockGridDao.getGridSessionStartedBy(gridSessionId)).thenReturn(Optional.empty());
-		String message = assertThrows(NotFoundException.class, () -> {
-			// call under test
-			gridManager.validGridSessionAccess(mockUser, gridSessionId);
-		}).getMessage();
-		assertEquals("Grid session not found.", message);
 	}
 
 	@Test
@@ -556,7 +543,7 @@ public class GridManagerUnitTest {
 	public void testValidateReplicaOwnerWithOwner() {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId, false)).thenReturn(Optional.of(userId));
+		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId)).thenReturn(Optional.of(userId));
 		// call under test
 		gridManager.validateRepicaOwner(mockUser, gridSessionId, replicaId);
 	}
@@ -565,7 +552,7 @@ public class GridManagerUnitTest {
 	public void testValidateReplicaOwnerWithOther() {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId, false)).thenReturn(Optional.of(77777L));
+		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId)).thenReturn(Optional.of(77777L));
 
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
@@ -577,14 +564,14 @@ public class GridManagerUnitTest {
 	@Test
 	public void testValidateReplicaOwnerWithOtherAdmin() {
 		when(mockUser.isAdmin()).thenReturn(true);
-		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId, false)).thenReturn(Optional.of(555L));
+		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId)).thenReturn(Optional.of(555L));
 		// call under test
 		gridManager.validateRepicaOwner(mockUser, gridSessionId, replicaId);
 	}
 
 	@Test
 	public void testValidateReplicaOwnerWithNotFound() {
-		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId, false)).thenReturn(Optional.empty());
+		when(mockGridDao.getReplicaCreatedBy(gridSessionId, replicaId)).thenReturn(Optional.empty());
 		String message = assertThrows(NotFoundException.class, () -> {
 			// call under test
 			gridManager.validateRepicaOwner(mockUser, gridSessionId, replicaId);

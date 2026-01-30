@@ -99,6 +99,9 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Realm;
+import org.sagebionetworks.repo.model.auth.RealmIdList;
+import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
@@ -1215,8 +1218,6 @@ public interface SynapseClient extends BaseClient {
 	String getPortalUrl(String portalId, String objectId, DoiObjectType objectType, Long objectVersion) throws SynapseException;
 
 	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws SynapseException;
-
-	public String retrieveApiKey() throws SynapseException;
 
 	public String createPersonalAccessToken(AccessTokenGenerationRequest request) throws SynapseException;
 
@@ -4628,5 +4629,13 @@ public interface SynapseClient extends BaseClient {
     void deleteMetadataTask(Long taskId) throws SynapseException;
 
     ListCurationTaskResponse listMetadataTasks(ListCurationTaskRequest request) throws SynapseException;
+    
+    RealmIdList listRealmIds() throws SynapseException ;
+    
+    Realm getRealm(String id) throws SynapseException ;
+    
+    RealmPrincipal getRealmPrincipals(String id) throws SynapseException ;
+    
+    RealmPrincipal getRealmPrincipals() throws SynapseException;
 }
 

@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 public class NotificationManagerImpl implements NotificationManager {
 
@@ -89,7 +90,8 @@ public class NotificationManagerImpl implements NotificationManager {
 			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(),
+					DEFAULT_REALM_ID))
 			.withRecipients(Collections.singleton(user.getId().toString()))
 			.withTemplateFile(template)
 			.withSubject(subject)

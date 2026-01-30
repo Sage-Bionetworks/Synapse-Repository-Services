@@ -1,12 +1,19 @@
 package org.sagebionetworks.repo.manager.grid.create;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
 import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -17,6 +24,7 @@ import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
@@ -24,6 +32,7 @@ import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -36,12 +45,16 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 	private final GridDao gridDao;
 	private final TableQueryManager tableQueryManager;
 	private final EntityManager entityManager;
+	private final JsonSchemaManager schemaManager;
+	private final GridAuthorizationManager gridAuthorizationManager;
 
-	public QueryCreateGridHandler(GridDao gridDao, EntityManager entityManager, TableQueryManager tableQueryManager) {
+	public QueryCreateGridHandler(GridDao gridDao, EntityManager entityManager, TableQueryManager tableQueryManager, JsonSchemaManager schemaManager, GridAuthorizationManager gridAuthorizationManager) {
 		super();
 		this.gridDao = gridDao;
 		this.entityManager = entityManager;
 		this.tableQueryManager = tableQueryManager;
+		this.schemaManager = schemaManager;
+		this.gridAuthorizationManager = gridAuthorizationManager;
 	}
 
 	@Override
@@ -68,7 +81,7 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			Long maxRowSizeBytes = getMaxRowSizeBytes(pre.getMaxRowsPerPage());
 
 			GridSession session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())
-					.setSourceId(tableId).setSchemaId(schemaIdOp.orElse(null)));
+					.setSourceId(tableId).setSchemaId(schemaIdOp.orElse(null)).setOwner(request.getOwnerPrincipalId()));
 			GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false,
 					EventSource.INTERNAL);
 
@@ -77,13 +90,31 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			// grid data back into a Synapse Table or View
 			initialQuery.setIncludeEntityEtag(true);
 
+			final List<String> columnsRequiredBySchema = schemaIdOp
+					.map(schemaManager::getValidationSchema)
+					.map(JsonSchema::getRequired)
+					.orElse(new ArrayList<>());
+
+			final Map<String, Integer> columnNameToIndex = new HashMap<>();
+			List<SelectColumn> selectColumns = pre.getSelectColumns();
+			for (int i = 0; i < selectColumns.size(); i++) {
+				columnNameToIndex.put(selectColumns.get(i).getName(), i);
+			}
+			final List<Integer> columnsRequiredBySchemaIndices = selectColumns.stream()
+					.filter(cm -> columnsRequiredBySchema.contains(cm.getName()))
+					.map(cm -> columnNameToIndex.get(cm.getName()))
+					.collect(Collectors.toList());
+			
+			// ensure only rows are added that the owner can see.
+			UserInfo sessionOwner = gridAuthorizationManager.getRowLevelFilterUserInfo(user, session.getSessionId());
+
 			// The second query is a full query to build all of the patches from the query
 			// results.
-			tableQueryManager.runQueryAsStream(callback, user, initialQuery, t -> {
+			tableQueryManager.runQueryAsStream(callback, sessionOwner, initialQuery, t -> {
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
 				return new PatchRowHandler(patchStore, session.getSessionId(), replica.getReplicaId(), schema,
-						maxRowSizeBytes);
-			});
+						maxRowSizeBytes, columnsRequiredBySchemaIndices);
+			}, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE);
 			return new CreateGridHandlerResult().setGridSession(session).setGridReplica(replica);
 		} catch (LockUnavilableException | TableUnavailableException e) {
 			callback.updateProgress("Waiting for table/view to become available...", 1L, 100L);

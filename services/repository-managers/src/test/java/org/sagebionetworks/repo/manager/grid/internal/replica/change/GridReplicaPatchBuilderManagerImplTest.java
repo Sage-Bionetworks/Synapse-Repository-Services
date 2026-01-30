@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.grid.db.ConstantProvider;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.GridReplicaPatchBuilderManagerImpl.PatchSpanPublisherProxy;
@@ -36,8 +35,6 @@ public class GridReplicaPatchBuilderManagerImplTest {
 	private GridDao mockGridDao;
 	@Mock
 	private GridIndexDao mockGridIndexDao;
-	@Mock
-	private ConstantProvider mocConstantProvider;
 	@Mock
 	private PatchPublisher mockPatchPublisher;
 	@Mock
@@ -74,7 +71,7 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		when(mockChangeHandler.getType()).thenReturn(IntendedChangeType.update_row_metadata);
 
 		manager = Mockito.spy(new GridReplicaPatchBuilderManagerImpl(mockGridDao, mockGridIndexDao, mockPatchPublisher,
-				List.of(mockChangeHandler), mocConstantProvider));
+				List.of(mockChangeHandler)));
 
 		validationConnection = new GridConnectionInfo().setConnectionId(connectionId).setSessionId(sessionId)
 				.setReplicaId(replicaId).setSource(EventSource.VALIDATION);

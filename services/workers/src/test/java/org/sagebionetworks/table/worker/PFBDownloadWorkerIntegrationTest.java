@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.avro.file.SeekableFileInput;
 import org.junit.jupiter.api.AfterEach;
@@ -32,11 +33,11 @@ import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBResult;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowReferenceSetResults;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.avro.RowPFBReader;
+import org.sagebionetworks.table.cluster.avro.RowPFBReader.PFBRow;
+import org.sagebionetworks.table.cluster.avro.RowPFBUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -67,10 +68,11 @@ public class PFBDownloadWorkerIntegrationTest {
 
 	private UserInfo adminUserInfo;
 	private String tableId;
-	private S3FileHandle fileHandle;
+	private List<S3FileHandle> fileHandles;
 
 	@BeforeEach
 	public void before() throws NotFoundException {
+		fileHandles = new ArrayList<>();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		asynchJobStatusManager.emptyAllQueues();
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -79,65 +81,87 @@ public class PFBDownloadWorkerIntegrationTest {
 	@AfterEach
 	public void after() {
 		entityManager.truncateAll();
-		if (fileHandle != null) {
-			fileHandleDao.delete(fileHandle.getId());
-			amazonS3Utility.deleteFromS3(fileHandle.getKey());
+		for (S3FileHandle handle : fileHandles) {
+			fileHandleDao.delete(handle.getId());
+			amazonS3Utility.deleteFromS3(handle.getKey());
 		}
-
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
 
 		String projectId = entityManager.createEntity(adminUserInfo, new Project().setName("test"), null);
-		List<ColumnModel> schema = List.of(new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER));
+		
+		List<ColumnModel> schema = List.of(
+			new ColumnModel().setName("aString").setColumnType(ColumnType.STRING),
+			new ColumnModel().setName("anInt").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setName("aBoolean").setColumnType(ColumnType.BOOLEAN)
+		);
+		
 		schema = columnManager.createColumnModels(adminUserInfo, schema);
+		
 		List<String> colIds = schema.stream().map(c -> c.getId()).collect(Collectors.toList());
 
 		TableEntity table = asyncHelper.createTable(adminUserInfo, "testTable", projectId, colIds, false);
-		List<Row> rows = List.of(new Row().setValues(List.of("9090")));
+		
+		List<Row> rows = List.of(
+			new Row().setValues(List.of("row1", "9090", "true")),
+			new Row().setValues(List.of("row2", "9091", "false"))
+		);
 
-		RowReferenceSetResults rrsr = asyncHelper.appendRowsToTable(adminUserInfo, schema, table.getId(), rows,
-				MAX_WAIT_MS);
+		List<RowReference> rowRef = asyncHelper.appendRowsToTable(adminUserInfo, schema, table.getId(), rows, MAX_WAIT_MS)
+			.getRowReferenceSet().getRows();
+		
+		IntStream.range(0, rows.size()).forEach(i -> {
+			rows.get(i).setRowId(rowRef.get(i).getRowId());
+			rows.get(i).setVersionNumber(rowRef.get(i).getVersionNumber());
+		});
 
 		DownloadPFBRequest request = new DownloadPFBRequest();
+		
+		// Basic request, the ROW_ID_ROW_VERSION will be used as the PFB entity id
 		request.setSql("select * from " + table.getId());
 		request.setPfbEntityName("testing");
 		request.setEntityId(tableId);
 
 		// call under test
-		DownloadPFBResult result = asyncHelper
-				.assertJobResponse(adminUserInfo, request, (DownloadPFBResult response) -> {
-					assertNotNull(response);
-					assertNotNull(response.getResultsFileHandleId());
-				}, MAX_WAIT_MS).getResponse();
+		DownloadPFBResult result = asyncHelper.assertJobResponse(adminUserInfo, request, (DownloadPFBResult response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResultsFileHandleId());
+		}, MAX_WAIT_MS).getResponse();
 
-		fileHandle = (S3FileHandle) fileHandleDao.get(result.getResultsFileHandleId());
-		List<Row> results = readPFBFromS3(fileHandle.getKey());
+		S3FileHandle fileHandle = (S3FileHandle) fileHandleDao.get(result.getResultsFileHandleId());
+		
+		fileHandles.add(fileHandle);
+		
+		List<PFBRow> results = readPFBFromS3(fileHandle.getKey());
 
-		List<Row> expected = createExpectedRows(rows, rrsr);
+		List<PFBRow> expected = rows.stream()
+			.map(r -> new PFBRow(RowPFBUtils.createEntityIdFromRowId(r), r.getValues()))
+			.collect(Collectors.toList());
 
 		assertEquals(results, expected);
-	}
+		
+		// Now try with a custom entity id that uses two (aliased) columns
+		request.setSql("select aString as version, anInt as id, aBoolean from " + table.getId());
+		request.setPfbEntityIdColumnNames(List.of("id", "version"));
+		
+		result = asyncHelper.assertJobResponse(adminUserInfo, request, (DownloadPFBResult response) -> {
+			assertNotNull(response);
+			assertNotNull(response.getResultsFileHandleId());
+		}, MAX_WAIT_MS).getResponse();
+		
+		fileHandle = (S3FileHandle) fileHandleDao.get(result.getResultsFileHandleId());
+		
+		fileHandles.add(fileHandle);
+		
+		results = readPFBFromS3(fileHandle.getKey());
+		
+		expected = rows.stream()
+			.map(r -> new PFBRow(RowPFBUtils.createEntityIdFromColumns(r.getValues(), new int[] {1, 0}), r.getValues()))
+			.collect(Collectors.toList());
 
-	/**
-	 * Set the row id and version combined with the values from each row to build
-	 * and expected Row list.
-	 * 
-	 * @param rows
-	 * @param rrsr
-	 * @return
-	 */
-	List<Row> createExpectedRows(List<Row> rows, RowReferenceSetResults rrsr) {
-		List<Row> expected = new ArrayList<>(rows.size());
-		List<RowReference> refs = rrsr.getRowReferenceSet().getRows();
-		for (int i = 0; i < rows.size(); i++) {
-			RowReference ref = refs.get(i);
-			Row row = rows.get(i);
-			expected.add(new Row().setRowId(ref.getRowId()).setVersionNumber(ref.getVersionNumber())
-					.setValues(row.getValues()));
-		}
-		return expected;
+		assertEquals(results, expected);
 	}
 
 	/**
@@ -147,11 +171,11 @@ public class PFBDownloadWorkerIntegrationTest {
 	 * @return
 	 * @throws IOException
 	 */
-	List<Row> readPFBFromS3(String key) throws IOException {
+	List<PFBRow> readPFBFromS3(String key) throws IOException {
 		File resultFile = amazonS3Utility.downloadFromS3(key);
 		try {
 			// Read
-			List<Row> result = new ArrayList<>();
+			List<PFBRow> result = new ArrayList<>();
 			try (RowPFBReader reader = new RowPFBReader(new SeekableFileInput(resultFile))) {
 				while (reader.hasNext()) {
 					result.add(reader.next());

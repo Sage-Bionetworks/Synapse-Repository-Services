@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -235,7 +236,7 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testgetMigrationChecksumForTypeReadWriteMode() throws Exception {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		UserInfo user = new UserInfo(true, "0");
+		UserInfo user = new UserInfo(true, 0L, DEFAULT_REALM_ID);
 		assertThrows(RuntimeException.class, ()->{
 			// call under test
 			manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
@@ -245,7 +246,7 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testgetMigrationChecksumForTypeReadOnlyMode() throws Exception {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
-		UserInfo user = new UserInfo(true, "0");
+		UserInfo user = new UserInfo(true, 0L, DEFAULT_REALM_ID);
 		MigrationTypeChecksum c = manager.getChecksumForType(user, MigrationType.FILE_HANDLE);
 	}
 	

@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_CLIENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_REP_ID_SERVICE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SCHEMA_ID;
@@ -22,9 +23,9 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, DBOGridSession> {
 
@@ -38,6 +39,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 	private Long repIdService;
 	private Long sourceId;
 	private String schemaId;
+	private Long owner;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_SESSION_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -49,7 +51,8 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 			new FieldColumn("repIdClient", COL_GRID_SESSION_REP_ID_CLIENT),
 			new FieldColumn("repIdService", COL_GRID_SESSION_REP_ID_SERVICE),
 			new FieldColumn("sourceId", COL_GRID_SESSION_SOURCE_ID),
-			new FieldColumn("schemaId", COL_GRID_SESSION_SCHEMA_ID), };
+			new FieldColumn("schemaId", COL_GRID_SESSION_SCHEMA_ID),
+			new FieldColumn("owner", COL_GRID_SESSION_OWNER), };
 
 	@Override
 	public TableMapping<DBOGridSession> getTableMapping() {
@@ -68,6 +71,7 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 				dbo.setRepIdService(rs.getLong(COL_GRID_SESSION_REP_ID_SERVICE));
 				dbo.setSourceId(rs.getLong(COL_GRID_SESSION_SOURCE_ID));
 				dbo.setSchemaId(rs.getString(COL_GRID_SESSION_SCHEMA_ID));
+				dbo.setOwner(rs.getLong(COL_GRID_SESSION_OWNER));
 				return dbo;
 			}
 
@@ -100,7 +104,22 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 
 	@Override
 	public MigratableTableTranslation<DBOGridSession, DBOGridSession> getTranslator() {
-		return new BasicMigratableTableTranslation<>();
+		return new MigratableTableTranslation<DBOGridSession, DBOGridSession>() {
+			@TemporaryCode(author = "john.hill@sagebase.org", comment = "Set default owner to be the creator. Can be removed after the first migration.")
+
+			@Override
+			public DBOGridSession createDatabaseObjectFromBackup(DBOGridSession backup) {
+				if (backup.getOwner() == null) {
+					backup.setOwner(backup.getCreatedBy());
+				}
+				return backup;
+			}
+
+			@Override
+			public DBOGridSession createBackupFromDatabaseObject(DBOGridSession dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override
@@ -208,10 +227,19 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 		return this;
 	}
 
+	public Long getOwner() {
+		return owner;
+	}
+
+	public DBOGridSession setOwner(Long owner) {
+		this.owner = owner;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdBy, createdOn, etag, id, modifiedOn, repIdClient, repIdService, schemaId, sessionId,
-				sourceId);
+		return Objects.hash(createdBy, createdOn, etag, id, modifiedOn, owner, repIdClient, repIdService, schemaId,
+				sessionId, sourceId);
 	}
 
 	@Override
@@ -225,9 +253,10 @@ public class DBOGridSession implements MigratableDatabaseObject<DBOGridSession, 
 		DBOGridSession other = (DBOGridSession) obj;
 		return Objects.equals(createdBy, other.createdBy) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(repIdClient, other.repIdClient)
-				&& Objects.equals(repIdService, other.repIdService) && Objects.equals(schemaId, other.schemaId)
-				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sourceId, other.sourceId);
+				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
+				&& Objects.equals(repIdClient, other.repIdClient) && Objects.equals(repIdService, other.repIdService)
+				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(sessionId, other.sessionId)
+				&& Objects.equals(sourceId, other.sourceId);
 	}
 
 	@Override

@@ -20,6 +20,10 @@
     },
 	"validationSummaryStatistics": {
 	  "$ref": "org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics"
+	},
+	"validationFileHandleId": {
+		"type": "string",
+        "description": "The id of the file handle that points to a CSV file containing detailed validation results for each row exported from the grid."
 	}
   }
 }

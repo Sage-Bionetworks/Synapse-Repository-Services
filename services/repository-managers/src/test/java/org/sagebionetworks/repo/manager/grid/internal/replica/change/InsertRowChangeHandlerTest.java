@@ -34,7 +34,7 @@ public class InsertRowChangeHandlerTest {
 		
 		LogicalTimestamp arrId = new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L);
 		LogicalTimestamp nodeId = new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(45L);
-		JSONArray rowData = new JSONArray().put("a").put("b").put("c");
+		List<ConValue> rowData = List.of(new ConValue(ConType.STRING, "a"), new ConValue(ConType.STRING, "b"), new ConValue(ConType.STRING,"c"));
 		Integer[] rowVectorIndex = new Integer[] { 2, 0, 1 };
 		
 		change = new InsertRowChange(arrId, nodeId, rowData, rowVectorIndex);
@@ -54,12 +54,11 @@ public class InsertRowChangeHandlerTest {
 		
 		Map<Integer, LogicalTimestamp> constMap = new HashMap<>();
 		
-		for (int i=0; i<change.getRowData().length(); i++) {
-			Object value = change.getRowData().get(i);
-			
+		for (int i=0; i<change.getRowData().size(); i++) {
+			ConValue value = change.getRowData().get(i);
 			LogicalTimestamp constId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(7L + i);
 		
-			when(mockPatchBuilder.addOperationBuilder(Operations.newConstant().setValue(new ConValue(ConType.STRING, value))))
+			when(mockPatchBuilder.addOperationBuilder(Operations.newConstant().setValue(value)))
 				.thenReturn(constId);
 			
 			constMap.put(change.getRowVectorIndex()[i], constId);

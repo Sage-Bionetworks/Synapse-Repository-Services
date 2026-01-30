@@ -54,6 +54,11 @@ public class ValueNode implements Node, HasJsonValue<ValueNode>, CanInsert<Inser
 		if (!change.getValueId().equals(this.id)) {
 			throw new IllegalArgumentException("The ID of the passed change does not match the ID of this value.");
 		}
+		// The ID of the new value must be greater than the container node (to avoid circular references), otherwise the insertion is ignored (See https://sagebionetworks.jira.com/browse/PLFM-9273).
+		if (change.getReferenceId().compareTo(this.id) <= 0) {
+			return false;
+		}
+		// The ID of the new value must be greater than the logical clock of the current value, otherwise the insertion is ignored.
 		if (this.value == null || change.getReferenceId().compareTo(this.value) > 0) {
 			this.value = LogicalTimestamp.clone(change.getReferenceId());
 			return true;

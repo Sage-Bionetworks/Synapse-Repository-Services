@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
@@ -247,35 +246,6 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE_V2 + "/requirements", method = RequestMethod.PUT)
 	public @ResponseBody TermsOfServiceInfo updateTermsOfServiceRequirement(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody TermsOfServiceRequirements request) {
 		return authenticationService.updateTermsOfServiceRequirements(userId, request);
-	}
-
-	/**
-	 * Retrieves the API key associated with the current authenticated user.
-	 */
-	@RequiredScope({modify,authorize})
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
-	public @ResponseBody
-	SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-			throws NotFoundException {
-		SecretKey secret = new SecretKey();
-		secret.setSecretKey(authenticationService.getSecretKey(userId));
-		return secret;
-	}
-
-	/**
-	 * Invalidates the API key associated with the current authenticated user.
-	 * It is not recommended to use this service unless your key has been
-	 * compromised.
-	 */
-	@RequiredScope({modify,authorize})
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
-	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
-			throws NotFoundException {
-		authenticationService.deleteSecretKey(userId);
 	}
 
 	/**

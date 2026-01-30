@@ -8,18 +8,39 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.Context;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.query.Filter;
+import org.sagebionetworks.repo.model.grid.query.RowIdFilter;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class VectorIdFilterElement implements FilterElement {
 
 	private List<Object[]> idTuples;
 
-	public VectorIdFilterElement(List<LogicalTimestamp> vectorIds) {
-		ValidateArgument.required(vectorIds, "vectorIds");
-		ValidateArgument.requirement(!vectorIds.isEmpty(), "vectorIds cannot be empty");
-		idTuples = vectorIds.stream().map(ts -> new Object[] { ts.getReplicaId(), ts.getSequenceNumber() })
-				.collect(Collectors.toList());
+	public VectorIdFilterElement(Filter filter) {
+		this((RowIdFilter) filter);
 	}
+
+	public VectorIdFilterElement(RowIdFilter filter) {
+        ValidateArgument.required(filter.getRowIdsIn(), "rowIdsIn");
+        ValidateArgument.requirement(!filter.getRowIdsIn().isEmpty(), "rowIdsIn cannot be empty");
+        List<LogicalTimestamp> tsList = filter.getRowIdsIn()
+                .stream()
+                .map(LogicalTimestamp::parse)
+                .collect(Collectors.toList());
+        initFromLogicalTimestamps(tsList);
+	}
+
+	public VectorIdFilterElement(List<LogicalTimestamp> vectorIds) {
+		initFromLogicalTimestamps(vectorIds);
+	}
+	
+    private void initFromLogicalTimestamps(List<LogicalTimestamp> vectorIds) {
+        ValidateArgument.required(vectorIds, "vectorIds");
+        ValidateArgument.requirement(!vectorIds.isEmpty(), "vectorIds cannot be empty");
+        idTuples = vectorIds.stream()
+                .map(ts -> new Object[]{ts.getReplicaId(), ts.getSequenceNumber()})
+                .collect(Collectors.toList());
+    }
 
 	@Override
 	public void toSql(StringBuilder sqlBuilder, Map<String, Object> params, Context context) {

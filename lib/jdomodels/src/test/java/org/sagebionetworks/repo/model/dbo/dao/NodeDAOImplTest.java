@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -88,6 +89,7 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
+import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaTestHelper;
 import org.sagebionetworks.repo.model.entity.Direction;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -187,6 +189,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private TransactionTemplate readCommitedTransactionTemplate;
+	
+	@Autowired
+	private EntitySchemaValidationResultDao schemaValidationResultDao;
 
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -235,6 +240,7 @@ public class NodeDAOImplTest {
 
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user1 = userGroupDAO.create(user).toString();
 		userGroupsToDelete.add(user1);
 
@@ -254,6 +260,7 @@ public class NodeDAOImplTest {
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
+		schemaValidationResultDao.truncateAll();
 	}
 	
 	@AfterEach
@@ -286,6 +293,7 @@ public class NodeDAOImplTest {
 		}
 		nodeDao.truncateAll();
 		derivedAnnotationsDao.clearAll();
+		schemaValidationResultDao.truncateAll();
 	}
 	
 	private Node privateCreateNew(String name) {
@@ -3144,6 +3152,27 @@ public class NodeDAOImplTest {
 		assertTrue(foundFileHandleIds.contains(fileHanldeId));
 
 		nodeDao.delete(id);
+		fileHandleDao.delete(fileHandle.getId());
+	}
+	
+	@Test
+	public void testGetFileHandleIdsAssociatedWithFileEntityWithValidationFile(){
+		Node node = NodeTestUtils.createNew("testGetFileHandleIdsForFileEntityWithValidationFile", creatorUserGroupId);
+		node.setFileHandleId(fileHandle.getId());
+		node.setValidationResultFileHandleId(fileHandle2.getId());
+		
+		String id = nodeDao.createNew(node);
+		
+		toDelete.add(id);
+		
+		List<Long> fileHandleIds = List.of(Long.parseLong(fileHandle.getId()), Long.parseLong(fileHandle2.getId()));
+		
+ 		Set<Long> foundFileHandleIds = nodeDao.getFileHandleIdsAssociatedWithFileEntity(fileHandleIds, KeyFactory.stringToKey(id));
+		
+		assertTrue(foundFileHandleIds.containsAll(fileHandleIds));
+
+		nodeDao.delete(id);
+		
 		fileHandleDao.delete(fileHandle.getId());
 	}
 	

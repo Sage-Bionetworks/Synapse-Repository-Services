@@ -1,0 +1,14 @@
+{
+	"description": "",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Required. Full name of the exact type used."
+		},
+		"columnName": {
+			"type": "string",
+			"description": "Target column name to update."
+		}
+	}
+}

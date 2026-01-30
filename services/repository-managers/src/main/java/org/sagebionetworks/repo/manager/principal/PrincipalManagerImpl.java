@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder.BodyType;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -141,6 +142,12 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		newUser.setUserName(accountSetupInfo.getUsername());
 		long newPrincipalId = userManager.createUser(newUser);
 		
+		// Since the new user is created with a password (not via OAuth authentication) it must be in the default Synapse realm
+		// if this is not the case, something has gone wrong.
+		UserInfo userInfo = userManager.getUserInfo(newPrincipalId);
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			throw new IllegalStateException("New user must be created in the default Synapse realm not in realm "+userInfo.getRealmId());
+		}
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
 		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
 	}
@@ -150,6 +157,11 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 			throws NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
+		// adding an email address is only allowed if the user is in the default Synapse realm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			throw new IllegalArgumentException("Cannot set user email for realm "+userInfo.getRealmId());
+		}
+		
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		// is the email taken?
 		if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
@@ -185,6 +197,12 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 	public void addEmail(UserInfo userInfo, EmailValidationSignedToken emailValidationSignedToken,
 						 Boolean setAsNotificationEmail) throws NotFoundException {
 		String newEmail = PrincipalUtils.validateAdditionalEmailSignedToken(emailValidationSignedToken, Long.toString(userInfo.getId()), new Date(), tokenGenerator);
+
+		// adding an email address is only allowed if the user is in the default Synapse realm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			throw new IllegalArgumentException("Cannot set user email for realm "+userInfo.getRealmId());
+		}
+		
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(newEmail);
 		alias.setPrincipalId(userInfo.getId());

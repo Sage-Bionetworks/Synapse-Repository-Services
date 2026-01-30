@@ -90,6 +90,7 @@ public class DBOChallengeDAOImplTest {
 		Team team = new Team();
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		Long id = userGroupDAO.create(ug);
 		
 		team.setId(id.toString());

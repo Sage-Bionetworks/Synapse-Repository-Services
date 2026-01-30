@@ -154,8 +154,10 @@ public class BucketOwnerVerifierImplAutowireTest {
 		storageLocation.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		storageLocation.setBaseKey(baseKey);
 		
-		s3Client.createBucket(storageLocation.getBucket());
-			
+		if (! s3Client.doesBucketExist(storageLocation.getBucket())) {
+			s3Client.createBucket(storageLocation.getBucket());
+		}
+
 		String ownerContent = String.join("\n", ownersList);
 
 		ObjectMetadata metadata = new ObjectMetadata();

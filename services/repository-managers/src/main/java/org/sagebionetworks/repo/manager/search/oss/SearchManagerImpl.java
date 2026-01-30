@@ -13,14 +13,15 @@ import javax.annotation.PostConstruct;
 
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch._types.ErrorCause;
 import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.OpenSearchException;
+import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.BulkResponse;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
+import org.opensearch.client.opensearch.core.search.Suggest;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -32,9 +33,11 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.repo.manager.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
@@ -144,8 +147,13 @@ public class SearchManagerImpl implements SearchManager {
             }
 
             // Create the search request
+            log.info("preparing an OpensearchRequest for query {}.", searchQuery.toString());
             SearchRequest searchRequest = OssUtil.generateSearchRequest(userInfo, searchQuery);
-            SearchResults results = OssUtil.convertToSynapseSearchResult(openSearchClient.search(searchRequest, DocumentFields.class), searchRequest.from());
+            log.info("Search request prepared and sending to Opensearch.");
+            SearchResponse<DocumentFields> response = openSearchClient.search(searchRequest, DocumentFields.class);
+            log.info("Opensearch response received total hit {}.", response.hits().total());
+            SearchResults results = OssUtil.convertToSynapseSearchResult(response, searchRequest.from());
+            log.info("Synapse search result prepared with {} result.", results.getHits().size());
 
             if (results != null && results.getHits() != null) {
                 if (includePath) {
@@ -158,6 +166,26 @@ public class SearchManagerImpl implements SearchManager {
         } catch (IOException exception) {
             log.error(exception);
             throw new TemporarilyUnavailableException(exception.getMessage());
+        }
+    }
+
+
+    @Override
+    public SuggestionResults getSuggestions(UserInfo userInfo, SuggestionQuery suggestionQuery) {
+        SearchRequest searchRequest = OssUtil.generateSearchRequestForSuggestion(suggestionQuery);
+        try {
+            //get suggestions from OpenSearch regardless of user access to documents
+            Map<String, List<Suggest<DocumentFields>>> suggestions =
+                    openSearchClient.search(searchRequest, DocumentFields.class).suggest();
+            SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+            SearchRequest aggregationRequest = OssUtil.generateAggregationRequestToLimitAccess(userInfo, results);
+            //find out which suggestions appear in documents the user can see.
+            Map<String, Aggregate> aggregations = openSearchClient.search(aggregationRequest, DocumentFields.class).aggregations();
+            //filter the suggestions to return only those which appear in document(s) the user can see
+            return OssUtil.eliminateSuggestionWithAccessDenied(results, aggregations);
+        } catch (OpenSearchException | IOException exception) {
+            log.error(exception);
+            throw new IllegalStateException(exception.getMessage());
         }
     }
 

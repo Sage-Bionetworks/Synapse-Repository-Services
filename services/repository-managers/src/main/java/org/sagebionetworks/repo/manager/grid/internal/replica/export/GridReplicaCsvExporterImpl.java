@@ -139,8 +139,8 @@ public class GridReplicaCsvExporterImpl implements GridReplicaCsvExporter {
                     csvRow.add(etag);
                 }
 
-                rowView.getCells().toList().stream()
-                        .map(v -> v == null ? null : v.toString())
+                rowView.getCells().stream()
+                        .map(v -> v == null ? null : v.getValue() == null ? null : v.getValue().toString())
                         .forEach(csvRow::add);
 
                 writer.writeNext(csvRow.toArray(new String[0]));

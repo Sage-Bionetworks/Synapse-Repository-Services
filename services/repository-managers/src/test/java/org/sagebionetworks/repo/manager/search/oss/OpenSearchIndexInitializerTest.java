@@ -19,7 +19,7 @@ import org.opensearch.client.opensearch.indices.ExistsRequest;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.opensearch.client.transport.endpoints.BooleanResponse;
 import org.sagebionetworks.LoggerProvider;
-import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.repo.manager.search.SearchConstants;
 
 import java.io.IOException;
 

@@ -5,10 +5,12 @@ package org.sagebionetworks.repo.model;
  */
 public class AuthorizationConstants {
 
+	public static final String DEFAULT_REALM_ID = "0";
+	
 	/**
 	 * These are default users and groups that are guaranteed to be initialized by the system
 	 * 
-	 * The values reflect that of dao-beans.spb.xml  
+	 * The values reflect those of dao-beans.spb.xml  
 	 */
 	public enum BOOTSTRAP_PRINCIPAL {
 		THE_ADMIN_USER(1L), 
@@ -58,15 +60,6 @@ public class AuthorizationConstants {
 		GRANT_CREATOR_ALL,
 		INHERIT_FROM_PARENT,
 	}
-	
-	/**
-	 * Per http://sagebionetworks.jira.com/browse/PLFM-192
-	 * authenticated requests made with an API key have the following
-	 * three header fields
-	 */
-	public static final String USER_ID_HEADER = "userId";
-	public static final String SIGNATURE_TIMESTAMP = "signatureTimestamp";
-	public static final String SIGNATURE = "signature";
 
 	// A header indicating the method of authorization used that's injected by the Authentication filter
 	public static final String SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME = "authenticationMethod";

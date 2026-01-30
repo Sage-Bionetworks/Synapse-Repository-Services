@@ -9,8 +9,15 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 public interface Translator {
 
 	default ConValue translateNullable(String string) {
+		return translateNullable(string, true);
+	}
+
+	default ConValue translateNullable(String string, boolean isRequiredProperty) {
 		if (string == null) {
-			return new ConValue(ConType.NULL, null);
+			if (isRequiredProperty) {
+				return new ConValue(ConType.NULL, null);
+			}
+			return new ConValue(ConType.UNDEFINED, null);
 		}
 		return translate(string);
 	}

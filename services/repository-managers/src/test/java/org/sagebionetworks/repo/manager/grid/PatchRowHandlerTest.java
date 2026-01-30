@@ -32,6 +32,7 @@ public class PatchRowHandlerTest {
 	private Long replicaId;
 	private List<ColumnModel> schema;
 	private Long maxRowSizeBytes;
+	private List<Integer> requiredColumnIndices;
 
 	@BeforeEach
 	public void before() {
@@ -40,13 +41,14 @@ public class PatchRowHandlerTest {
 		schema = List.of(new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
 				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
 		maxRowSizeBytes = 100L;
+		requiredColumnIndices = Collections.emptyList();
 	}
 
 	@Test
 	public void testNoColumnsNoRows() throws IOException {
 		schema = Collections.emptyList();
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
 			// no row to add
 			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
 		}
@@ -61,7 +63,7 @@ public class PatchRowHandlerTest {
 	public void testWithColumnNoRows() throws IOException {
 
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
 			// no row to add
 			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
 		}
@@ -77,7 +79,7 @@ public class PatchRowHandlerTest {
 	public void testWithRows() throws IOException {
 
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
 			handler.nextRow(new Row().setValues(Arrays.asList("one", "101")).setRowId(1L).setVersionNumber(4L).setEtag("fake-etag-1"));
 			handler.nextRow(new Row().setValues(Arrays.asList("two", "202")).setRowId(2L).setVersionNumber(5L).setEtag("fake-etag-2"));
 			handler.nextRow(new Row().setValues(Arrays.asList("three", "303")).setRowId(3L).setVersionNumber(6L).setEtag("fake-etag-3"));
@@ -104,7 +106,7 @@ public class PatchRowHandlerTest {
 	public void testWithRowsWithOneRowPerPatch() throws IOException {
 		maxRowSizeBytes = Long.MAX_VALUE;
 		// call under test
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
 			handler.nextRow(new Row().setValues(Arrays.asList("one", "101")).setRowId(1L).setVersionNumber(4L).setEtag("fake-etag-1"));
 			handler.nextRow(new Row().setValues(Arrays.asList("two", "202")).setRowId(2L).setVersionNumber(5L).setEtag("fake-etag-2"));
 			handler.nextRow(new Row().setValues(Arrays.asList("three", "303")).setRowId(3L).setVersionNumber(6L).setEtag("fake-etag-3"));
@@ -138,7 +140,7 @@ public class PatchRowHandlerTest {
 		List<Row> rows = TableModelTestUtils.createRows(schema, 3,
 				new TableModelTestUtils.ValueOptions().includeSpace(false));
 
-		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes)) {
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
 			rows.forEach(r -> {
 				handler.nextRow(r);
 			});
@@ -147,6 +149,26 @@ public class PatchRowHandlerTest {
 		String expectedPatch = ClasspathUtil.loadFromClasspath("AllTypesPatch.json");
 		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L),
 				expectedPatch);
+	}
+
+	@Test
+	public void testWriteNullOrUndefinedUsingRequiredColumnIndices() throws Exception {
+		requiredColumnIndices = List.of(1); // only the second column is required
+		// call under test
+		try (PatchRowHandler handler = new PatchRowHandler(mockStore, sessionId, replicaId, schema, maxRowSizeBytes, requiredColumnIndices)) {
+			handler.nextRow(new Row().setValues(Arrays.asList(null, null)).setRowId(1L).setVersionNumber(4L).setEtag("fake-etag-1"));
+			assertEquals(PatchUtils.calculateRowsPerPatch(maxRowSizeBytes), handler.getRowsPerPatch());
+		}
+		verify(mockStore, times(1)).savePatch(any(), any(), any());
+		// The first value should be an UNDEFINED constant, the second should be NULL
+		verify(mockStore).savePatch(sessionId, new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L),
+				"[[[19,1]],[2],[0,\"0.1.0\"],[3],[6],[6],[10,1,[[\"doc_version\",2],[\"columnNames\",3],[\"columnOrder\",4]," +
+						"[\"rows\",5]]],[9,[0,0],1],[0,\"aString\"],[0,0],[0,\"anInt\"]," +
+						"[0,1],[11,3,[[0,8],[1,10]]],[14,4,4,[9,11]],[2],[3]," +
+						"[0]," + // the `undefined` constant
+						"[0,null]," + // the `null` constant
+						"[11,16,[[0,17],[1,18]]],[2]," +
+						"[0,[1,4,\"fake-etag-1\"]],[10,20,[[\"synapseRow\",21]]],[10,15,[[\"data\",16],[\"metadata\",20]]],[14,5,5,[15]]]");
 	}
 
 }

@@ -50,6 +50,9 @@ public enum ConType {
 	
 	public static ConType fromValue(Object value) {
 		if (value == null) {
+			return UNDEFINED;
+		}
+		if (JSONObject.NULL.equals(value)) {
 			return NULL;
 		}
 		return CLASS_MAP.getOrDefault(value.getClass(), UNDEFINED);

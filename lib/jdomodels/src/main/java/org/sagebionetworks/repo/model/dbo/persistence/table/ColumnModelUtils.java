@@ -20,7 +20,10 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnModelInterface;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FacetColumnSortConfig;
+import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -262,10 +265,25 @@ public class ColumnModelUtils {
 					});
 				}
 			}
+			
+			validateFacetSortConfig(clone);
+			
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	static void validateFacetSortConfig(ColumnModelInterface model) {
+		FacetColumnSortConfig sortConfig = model.getFacetSortConfig();
+		
+		if (sortConfig == null) {
+			return;
+		}
+		
+		ValidateArgument.required(sortConfig.getProperty(), "The facetSortConfig.property");
+		ValidateArgument.required(sortConfig.getDirection(), "The facetSortConfig.direction");
+		ValidateArgument.requirement(FacetType.enumeration.equals(model.getFacetType()), "Only columns with FacetType.enumeration can define a facetSortConfig.");
 	}
 	
 	static void validateJsonSubColumn(JsonSubColumnModel sub) {
@@ -279,6 +297,7 @@ public class ColumnModelUtils {
 		if (ColumnTypeListMappings.isList(sub.getColumnType())) {
 			throw new IllegalArgumentException("The columnType of a JsonSubColumnModel cannot be a list.");
 		}
+		validateFacetSortConfig(sub);
 	}
 
 	static void validateListLengthForClone(ColumnModel clone){

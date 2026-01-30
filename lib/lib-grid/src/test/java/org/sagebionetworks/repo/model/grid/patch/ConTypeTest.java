@@ -55,11 +55,11 @@ public class ConTypeTest {
 	
 	@Test
 	public void testFromValueWithNull() {
-		assertEquals(ConType.NULL, ConType.fromValue(null));
+		assertEquals(ConType.NULL, ConType.fromValue(JSONObject.NULL));
 	}
 	
 	@Test
 	public void testFromValueWithUndefined() {
-		assertEquals(ConType.UNDEFINED, ConType.fromValue(new String[] {}));
+		assertEquals(ConType.UNDEFINED, ConType.fromValue(null));
 	}
 }

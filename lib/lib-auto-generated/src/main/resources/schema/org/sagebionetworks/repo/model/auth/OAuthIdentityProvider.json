@@ -1,0 +1,15 @@
+{
+	"title": "OAuth Identity Provider",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider"
+		}
+	],
+	"description": "Identity Provider representing an OAuth Provider",
+	"properties": {
+		"provider": {
+			"$ref": "org.sagebionetworks.repo.model.oauth.OAuthProvider",
+			"description": "OAuth Provider"
+		}
+	}
+}

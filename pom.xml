@@ -187,16 +187,9 @@
 				<artifactId>bcprov-jdk18on</artifactId>
 				<version>${bouncycastle.version}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcpkix-jdk18on</artifactId>
-				<version>${bouncycastle.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.bouncycastle</groupId>
-				<artifactId>bcprov-ext-jdk18on</artifactId>
 				<version>${bouncycastle.version}</version>
 			</dependency>
 			<!-- OAuth support -->
@@ -237,7 +230,13 @@
 				<version>${jackson.version}</version>
 			</dependency>
 
-			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
+			<dependency>
+				<groupId>com.fasterxml.jackson.dataformat</groupId>
+				<artifactId>jackson-dataformat-cbor</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+
+			<!-- Used for timer triggers (cron-like) Note: spring-context-support
 				also depends on this libary as an optional dependancy. Since spring-context-support 
 				version 5.1.5.RELEASE uses quartz version 2.3.0 that is the version of quartz 
 				we are using. See the spring-context-support pom.xml. -->
@@ -407,7 +406,7 @@
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.14.0</version>
+				<version>3.19.0</version>
 			</dependency>
 
 			<dependency>
@@ -726,7 +725,7 @@
 			<dependency>
 				<groupId>commons-fileupload</groupId>
 				<artifactId>commons-fileupload</artifactId>
-				<version>1.4</version>
+				<version>1.6.0</version>
 			</dependency>
 			<!-- File Uploader Client -->
 			<dependency>
@@ -1083,16 +1082,24 @@
 		<gwtVersion>2.8.2</gwtVersion>
 		<guavaVersion>30.1.1-jre</guavaVersion>
 		<reflectionsVersion>0.10.2</reflectionsVersion>
-		<org.springframework.version>5.3.36</org.springframework.version>
-		<jackson.version>2.13.4</jackson.version>
+		<!-- We cannot upgrade to Spring version 6 or later yet since it requires a Java 17+ runtime and we are currently forced to deploy
+			 on Tomcat 9 with Java 11.
+			 Note that the upgrade will also require updating from the javax namespace to jakarta:
+			 - Search/replace javax.servlet with jakarta.servlet in .xml and .java files.
+			 - Search/replace javax.annotation with jakarta.annotation in .xml and .java files.
+			 - We also include the jaxb-api that has a new artifactid (jakarta.xml.bind-api). 
+			   This is currently referenced in the lib-javadoc and the lib-doi modules, I would try to get rid of it instead.
+			 - We should be able to use the latest version of both the servlet and annotation APIs: as far as I can tell there are only a couple of
+			   custom ServletInput/OutputStream implementations in the codebase that would need to be modified.
+		-->		
+		<org.springframework.version>5.3.39</org.springframework.version>
+		<jackson.version>2.20.0</jackson.version>
 		<xstream.version>1.4.17</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
-		<javax.transaction.jta.version>1.1</javax.transaction.jta.version>
-		<javax.jdo.jdo2-api.version>2.3-ec</javax.jdo.jdo2-api.version>
 		<mysql.mysql-connector-java.version>8.0.33</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
-		<schema-to-pojo.version>0.6.10</schema-to-pojo.version>
+		<schema-to-pojo.version>0.6.12</schema-to-pojo.version>
 		<com.amazonaws.version>1.12.768</com.amazonaws.version>
 		<findbugs-maven-plugin.version>2.5.2</findbugs-maven-plugin.version>
 		<org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
@@ -1106,7 +1113,7 @@
 		<mockito.version>2.27.0</mockito.version>
 		<com.google.cloud.version>1.77.0</com.google.cloud.version>
 		<jsoup.version>1.14.2</jsoup.version>
-		<bouncycastle.version>1.78.1</bouncycastle.version>
+		<bouncycastle.version>1.82</bouncycastle.version>
 		<jjwt.version>0.11.2</jjwt.version>
 	</properties>
 

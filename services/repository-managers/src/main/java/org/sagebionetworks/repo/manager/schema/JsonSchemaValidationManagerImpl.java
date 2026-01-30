@@ -6,18 +6,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.lang.StringUtils;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.Validator;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.everit.json.schema.loader.internal.DefaultSchemaClient;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationException;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,13 +22,13 @@ import org.springframework.stereotype.Service;
 @Service
 public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationManager {
 
-	public static final String DRAFT_07 = "http://json-schema.org/draft-07/schema";
-
 	private final ValidationListenerProvider listenerProvider;
+	private final JsonSchemaValidatorFactory validatorFactory;
 
 	@Autowired
-	public JsonSchemaValidationManagerImpl(ValidationListenerProvider listenerProvider) {
+	public JsonSchemaValidationManagerImpl(ValidationListenerProvider listenerProvider, JsonSchemaValidatorFactory validatorFactory) {
 		this.listenerProvider = listenerProvider;
+		this.validatorFactory = validatorFactory;
 	}
 
 	@Override
@@ -56,7 +52,7 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 	List<ValidationResults> doValidate(JsonSchema jsonSchema, List<JsonSubject> subjects) throws JSONObjectAdapterException {
 		ValidateArgument.requiredNotEmpty(subjects, "subject");
 		boolean useDefaults= false;
-		Schema schemaValidator = loadSchema(jsonSchema, useDefaults);
+		Schema schemaValidator = validatorFactory.buildValidator(jsonSchema, useDefaults);
 		
 		List<ValidationResults> results = new ArrayList<>(subjects.size());
 		
@@ -103,38 +99,11 @@ public class JsonSchemaValidationManagerImpl implements JsonSchemaValidationMana
 	Optional<Annotations> doCalculateDerivedAnnotations(JsonSchema jsonSchema, JSONObject subject)
 			throws JSONObjectAdapterException {
 		boolean useDefaults= true;
-		Schema schemaValidator = loadSchema(jsonSchema, useDefaults);
+		Schema schemaValidator = validatorFactory.buildValidator(jsonSchema, useDefaults);
 		DerivedAnnotationVisitor listener = listenerProvider.createNewVisitor(schemaValidator, subject);
 		Validator validator = Validator.builder().withListener(listener).build();
 		validator.performValidation(schemaValidator, subject);
 		return listener.getDerivedAnnotations();
-	}
-
-	/**
-	 * Load the provide {@link JsonSchema} into the library {@link Schema}.
-	 * 
-	 * @param jsonSchema
-	 * @param useDefaults When set to true, default values will be added to the
-	 *                    provide subject and default values are made available to
-	 *                    visitors.
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 */
-	Schema loadSchema(JsonSchema jsonSchema, boolean useDefaults) throws JSONObjectAdapterException {
-		ValidateArgument.required(jsonSchema, "jsonSchema");
-		if (StringUtils.isBlank(jsonSchema.get$schema())) {
-			/**
-			 * The validation library silently ignores all JSON schema features added after
-			 * draft-04, when a $schema is not provided. This causes unexpected behavior for
-			 * users that depend on newer features but forget to include a $schema.
-			 * Therefore, we default to draft-07 for this case.
-			 */
-			jsonSchema.set$schema(DRAFT_07);
-		}
-		String validationSchemaJson = EntityFactory.createJSONStringForEntity(jsonSchema);
-		SchemaLoader loader = SchemaLoader.builder().schemaJson(new JSONObject(validationSchemaJson))
-				.schemaClient(new DefaultSchemaClient()).useDefaults(useDefaults).build();
-		return loader.load().build();
 	}
 
 }

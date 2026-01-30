@@ -1,13 +1,18 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
@@ -51,9 +56,16 @@ public class PatchBuilderPublisherImplTest {
 	public void testSendChangesToPatchBuilder() {
 		// call under test
 		publisher.sendChangesToPatchBuilder(changeSet);
-		verify(mockSqsClient).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl)
-				.messageBody("{\"con\":\"con123\",\"ses\":\"session99\",\"rep\":33,\"max\":43,\"set\":[[0,{\"m\":[1,2]}]]}")
-				.messageGroupId("con123").messageDeduplicationId("d3e4b78f2bec942e32e56640a2a49cb6").build());
+		ArgumentCaptor<SendMessageRequest> captor = ArgumentCaptor.forClass(SendMessageRequest.class);
+		verify(mockSqsClient).sendMessage(captor.capture());
+		SendMessageRequest req = captor.getValue();
+		assertEquals(queueUrl, req.queueUrl());
+		assertEquals("{\"con\":\"con123\",\"ses\":\"session99\",\"rep\":33,\"max\":43,\"set\":[[0,{\"m\":[1,2]}]]}",
+				req.messageBody());
+		assertEquals("con123", req.messageGroupId());
+		String dedupId = req.messageDeduplicationId();
+		assertNotNull(dedupId);
+		assertDoesNotThrow(() -> UUID.fromString(dedupId));
 	}
 
 }

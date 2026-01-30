@@ -9,6 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.LockoutInfo;
@@ -37,6 +38,7 @@ public class LoginLockoutStatusDaoImplTest {
 
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userOneId = userGroupDao.create(ug);
 		userTwoId = userGroupDao.create(ug);
 		loginLockoutStatusDao.truncateAll();

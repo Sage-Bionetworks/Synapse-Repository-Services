@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
-import org.apache.commons.codec.digest.DigestUtils;
+import java.util.UUID;
+
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,7 @@ public class PatchBuilderPublisherImpl implements PatchBuilderPublisher {
 		 * sequentially.
 		 */
 		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageGroupId(changeSet.getConnectionId())
-				.messageDeduplicationId(DigestUtils.md5Hex(body)).messageBody(body).build());
+				.messageDeduplicationId(UUID.randomUUID().toString()).messageBody(body).build());
 	}
 
 }

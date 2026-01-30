@@ -35,14 +35,16 @@ public class PatchRowHandler implements RowHandler {
 	private int rowCount;
 	private Patch currentPatch;
 	private LogicalTimestamp lastRowRef;
+	private final List<Integer> requiredColumnIndices;
 
 	public PatchRowHandler(PatchStore patchStore, String sessionId, Long replicaId, List<ColumnModel> schema,
-			Long maxRowSizeBytes) {
+			Long maxRowSizeBytes, List<Integer> requiredColumnIndices) {
 		super();
 		ValidateArgument.required(patchStore, "patchStore");
 		this.patchStore = patchStore;
 		this.sessionId = sessionId;
 		this.rowsPerPatch = PatchUtils.calculateRowsPerPatch(maxRowSizeBytes);
+		this.requiredColumnIndices = requiredColumnIndices;
 
 		this.currentPatch = new Patch()
 				.setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(1L));
@@ -160,7 +162,7 @@ public class PatchRowHandler implements RowHandler {
 		for (int i = 0; i < row.getValues().size(); i++) {
 			String cellValue = row.getValues().get(i);
 			LogicalTimestamp conRef = currentPatch
-					.addNewOperation(Operations.newConstant().setValue(translators[i].translateNullable(cellValue)));
+					.addNewOperation(Operations.newConstant().setValue(translators[i].translateNullable(cellValue, requiredColumnIndices.contains(i))));
 			cellValues.put(i, conRef);
 		}
 		if (!cellValues.isEmpty()) {

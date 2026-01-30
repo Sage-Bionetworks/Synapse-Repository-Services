@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +73,7 @@ public class V2WikiManagerTest {
 	
 	@Before
 	public void before() {
-		user = new UserInfo(false, "987");
+		user = new UserInfo(false, 987L, DEFAULT_REALM_ID);
 		ownerId = "123";
 		ownerType = ObjectType.EVALUATION;
 		wikiId = "345";

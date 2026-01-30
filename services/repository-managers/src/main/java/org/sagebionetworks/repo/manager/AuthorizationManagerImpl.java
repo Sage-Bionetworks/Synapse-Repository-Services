@@ -391,8 +391,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors) {
-		return aclManager.getAccessibleBenefactors(userInfo, objectType, benefactors);
+	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors, ACCESS_TYPE...types) {
+		return aclManager.getAccessibleBenefactors(userInfo, objectType, benefactors, types);
 	}
 
 	@Override

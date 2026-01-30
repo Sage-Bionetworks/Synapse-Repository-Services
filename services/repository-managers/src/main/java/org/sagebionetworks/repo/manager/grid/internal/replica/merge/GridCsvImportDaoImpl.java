@@ -10,6 +10,8 @@ import java.util.stream.IntStream;
 import org.json.JSONArray;
 import org.sagebionetworks.grid.db.GridTransaction;
 import org.sagebionetworks.repo.model.grid.GridUtils;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -90,18 +92,19 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				+ " LIMIT ? OFFSET ?", joinConditions.toString(), orderByColumns.toString());
 
 		return new PaginationIterator<>((limit, offset) -> jdbcTemplate.query(sql.toString(), (rs, rowNum) -> {
-			JSONArray csvData = new JSONArray();
+			JSONArray csvExtraArray = new JSONArray(rs.getString(csvUpsertColumns.size() + 1));
+			ConValue[] csvData = new ConValue[csvUpsertColumns.size() + csvExtraArray.length()];
 
 			// Add the upsert columns first
 			for (int i = 0; i < csvUpsertColumns.size(); i++) {
-				csvData.put(rs.getObject(i + 1));
+				Object value = rs.getObject(i + 1);
+				csvData[i] = new ConValue(ConType.fromValue(value), value);
 			}
 
 			// Unpack the remaining CSV columns from the extra column
-			JSONArray csvExtraArray = new JSONArray(rs.getString(csvUpsertColumns.size() + 1));
-
 			for (int i = 0; i < csvExtraArray.length(); i++) {
-				csvData.put(i + csvUpsertColumns.size(), csvExtraArray.get(i));
+				Object value = csvExtraArray.get(i);
+				csvData[i + csvUpsertColumns.size()] = new ConValue(ConType.fromValue(value), value);
 			}
 
 			LogicalTimestamp gridRowVecId = null;
@@ -114,7 +117,7 @@ public class GridCsvImportDaoImpl implements GridCsvImportDao {
 				gridRowVecId = LogicalTimestampCompactSerializable.deserialize(new JSONArray(gridExtraStr).getJSONArray(0));
 			}
 
-			return new JoinedRow(csvData, gridRowVecId);
+			return new JoinedRow(Arrays.asList(csvData), gridRowVecId);
 		}, limit, offset), BATCH_SIZE);
 	}
 	

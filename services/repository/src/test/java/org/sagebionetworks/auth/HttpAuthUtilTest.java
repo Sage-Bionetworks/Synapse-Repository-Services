@@ -218,7 +218,7 @@ class HttpAuthUtilTest {
 		String nonAuthHeaderValue = "application/json";
 
 		when(httpRequest.getHeaderNames()).thenReturn(Collections.enumeration(ImmutableList.of(
-				"Synapse-Authorization", "sessionToken", "userId", "signatureTimestamp", "signature", "verifiedOAuthClientId", "authenticationMethod", nonAuthHeader)));
+				"Synapse-Authorization", "sessionToken", "verifiedOAuthClientId", "authenticationMethod", nonAuthHeader)));
 		when(httpRequest.getHeaders(nonAuthHeader)).thenReturn(Collections.enumeration(Collections.singleton(nonAuthHeaderValue)));
 		
 		// method under test

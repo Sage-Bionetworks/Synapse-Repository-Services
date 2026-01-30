@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
-import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.CallersContext;
@@ -19,17 +18,21 @@ public class UserInfo {
 	
 	private final boolean isAdmin;
 	private Long id;
+	private String realmId;
 	private Date creationDate;
 	private boolean hasTwoFactorAuthEnabled;
 	private CallersContext context;
 
+	// Note: this is only used in unit tests
+	@Deprecated
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
 	}
 	
+	// Note: this is only used in unit tests
 	@Deprecated
-	public UserInfo(boolean isAdmin, String id){
-		this(isAdmin, Long.parseLong(id));
+	public UserInfo(boolean isAdmin, Long id){
+		this(isAdmin, id, null);
 	}
 	
 	/**
@@ -37,11 +40,12 @@ public class UserInfo {
 	 * @param isAdmin
 	 * @param id
 	 */
-	public UserInfo(boolean isAdmin, Long id){
+	public UserInfo(boolean isAdmin, Long id, String realmId){
 		this.isAdmin = isAdmin;
 		this.id = id;
 		this.groups = new LinkedHashSet<Long>();
 		this.groups.add(this.id);
+		this.realmId=realmId;
 	}
 
 	public Set<Long> getGroups() {
@@ -58,6 +62,14 @@ public class UserInfo {
 	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
+	}
+
+	public String getRealmId() {
+		return realmId;
+	}
+
+	public void setRealmId(String realmId) {
+		this.realmId = realmId;
 	}
 
 	public Long getId() {
@@ -98,7 +110,16 @@ public class UserInfo {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(context, creationDate, groups, hasTwoFactorAuthEnabled, id, isAdmin);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((context == null) ? 0 : context.hashCode());
+		result = prime * result + ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
+		result = prime * result + (hasTwoFactorAuthEnabled ? 1231 : 1237);
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + (isAdmin ? 1231 : 1237);
+		result = prime * result + ((realmId == null) ? 0 : realmId.hashCode());
+		return result;
 	}
 
 	@Override
@@ -110,16 +131,42 @@ public class UserInfo {
 		if (getClass() != obj.getClass())
 			return false;
 		UserInfo other = (UserInfo) obj;
-		return Objects.equals(context, other.context)
-				&& Objects.equals(creationDate, other.creationDate) && Objects.equals(groups, other.groups)
-				&& hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled && Objects.equals(id, other.id)
-				&& isAdmin == other.isAdmin;
+		if (context == null) {
+			if (other.context != null)
+				return false;
+		} else if (!context.equals(other.context))
+			return false;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (groups == null) {
+			if (other.groups != null)
+				return false;
+		} else if (!groups.equals(other.groups))
+			return false;
+		if (hasTwoFactorAuthEnabled != other.hasTwoFactorAuthEnabled)
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (isAdmin != other.isAdmin)
+			return false;
+		if (realmId == null) {
+			if (other.realmId != null)
+				return false;
+		} else if (!realmId.equals(other.realmId))
+			return false;
+		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
-				+ ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
+		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", realmId=" + realmId
+				+ ", creationDate=" + creationDate + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
 				+ ", context=" + context + "]";
 	}
 	

@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -71,6 +72,7 @@ public class DBODiscussionThreadDAOImplTest {
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(user);
 		// create a project
 		Node project = NodeTestUtils.createNew("projectName" + "-" + new Random().nextInt(), userId);
@@ -495,6 +497,7 @@ public class DBODiscussionThreadDAOImplTest {
 
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId2 = userGroupDAO.create(user);
 
 		// one user viewed thread 1 twice

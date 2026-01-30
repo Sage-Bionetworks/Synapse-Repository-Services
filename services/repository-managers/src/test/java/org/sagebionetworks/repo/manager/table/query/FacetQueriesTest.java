@@ -23,6 +23,9 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
+import org.sagebionetworks.repo.model.table.FacetColumnSortConfig;
+import org.sagebionetworks.repo.model.table.FacetColumnSortDirection;
+import org.sagebionetworks.repo.model.table.FacetColumnSortProperty;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.table.cluster.SchemaProvider;
@@ -43,9 +46,10 @@ public class FacetQueriesTest {
 	public void before() {
 
 		schema = List.of(
-				TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
-				TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
-				TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING));
+			TableModelTestUtils.createColumn(1L, "one", ColumnType.STRING).setFacetType(FacetType.enumeration),
+			TableModelTestUtils.createColumn(2L, "two", ColumnType.INTEGER).setFacetType(FacetType.range),
+			TableModelTestUtils.createColumn(3L, "three", ColumnType.STRING)
+		);
 
 		schemaProvider = Mockito.mock(SchemaProvider.class);
 		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
@@ -136,6 +140,46 @@ public class FacetQueriesTest {
 				+ " ROW_BENEFACTOR IN ( :b0, :b1 )"
 				// stats group by
 				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b2",
+				transformer.getFacetSqlQuery().getOutputSQL());
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		expectedParmeters.put("b2", 500L);
+		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+
+		// two
+		transformer = facet.getFacetInformationQueries().get(1);
+		assertEquals("SELECT MIN(_C2_) AS minimum, MAX(_C2_) AS maximum FROM T123_4 WHERE"
+				+ " ROW_BENEFACTOR IN ( :b0, :b1 )", transformer.getFacetSqlQuery().getOutputSQL());
+		expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		assertEquals(expectedParmeters, transformer.getFacetSqlQuery().getParameters());
+	}
+	
+	@Test
+	public void testFacetQueriesWithSortConfig() {
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+
+		schema.get(0).setFacetSortConfig(new FacetColumnSortConfig()
+			.setProperty(FacetColumnSortProperty.VALUE)
+			.setDirection(FacetColumnSortDirection.DESC)
+		);
+		
+		// call under test
+		FacetQueries facet = new FacetQueries(builder.build());
+		
+		assertNotNull(facet.getFacetInformationQueries());
+		assertEquals(2, facet.getFacetInformationQueries().size());
+
+		// one
+		FacetTransformer transformer = facet.getFacetInformationQueries().get(0);
+		assertEquals("SELECT _C1_ AS value, COUNT(*) AS frequency FROM T123_4 WHERE"
+				// auth filter
+				+ " ROW_BENEFACTOR IN ( :b0, :b1 )"
+				// stats group by
+				+ " GROUP BY _C1_ ORDER BY value DESC LIMIT :b2",
 				transformer.getFacetSqlQuery().getOutputSQL());
 		Map<String, Object> expectedParmeters = new HashMap<>();
 		expectedParmeters.put("b0", 11L);

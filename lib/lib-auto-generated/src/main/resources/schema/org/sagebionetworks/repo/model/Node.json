@@ -99,6 +99,10 @@
         "definingSQL": {
         	"description":"For materialized views and virtual tables, specifies the SQL defining the content of the table.",
         	"type": "string"
+        },
+		"validationResultFileHandleId": {
+			"description": "For a RecordSet, the file handle that contains the detailed validation results.",
+            "type":"string"
         }
     }
 }

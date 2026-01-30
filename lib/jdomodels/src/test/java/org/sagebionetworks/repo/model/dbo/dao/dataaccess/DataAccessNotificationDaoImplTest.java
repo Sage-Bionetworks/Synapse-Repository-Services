@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -61,11 +62,13 @@ public class DataAccessNotificationDaoImplTest {
 		user = new UserGroup();
 		user.setIsIndividual(true);
 		user.setCreationDate(new Date());
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setId(userGroupDao.create(user).toString());
 		
 		user2 = new UserGroup();
 		user2.setIsIndividual(true);
 		user2.setCreationDate(new Date());
+		user2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user2.setId(userGroupDao.create(user2).toString());
 
 		notificationDao.truncateAll();

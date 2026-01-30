@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.search.oss;
 import com.google.common.collect.Sets;
 import jakarta.json.Json;
 import jakarta.json.stream.JsonGenerator;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.opensearch.client.json.JsonData;
@@ -14,13 +14,20 @@ import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregate;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.FiltersBucket;
 import org.opensearch.client.opensearch._types.aggregations.LongTermsBucket;
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
+import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.RangeQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermQuery;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
+import org.opensearch.client.opensearch.core.search.PhraseSuggest;
+import org.opensearch.client.opensearch.core.search.PhraseSuggestOption;
+import org.opensearch.client.opensearch.core.search.Suggest;
+import org.opensearch.client.opensearch.core.search.TermSuggest;
+import org.opensearch.client.opensearch.core.search.TermSuggestOption;
 import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -33,18 +40,33 @@ import org.sagebionetworks.repo.model.search.query.SearchFacetOption;
 import org.sagebionetworks.repo.model.search.query.SearchFacetSort;
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.repo.manager.search.SearchConstants;
+import org.sagebionetworks.repo.model.search.query.Suggestion;
+import org.sagebionetworks.repo.model.search.query.SuggestionList;
+import org.sagebionetworks.repo.model.search.query.SuggestionQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionResults;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_ACL;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.manager.search.oss.OssUtil.TERM_DESCRIPTION_SUGGESTION;
+import static org.sagebionetworks.repo.manager.search.oss.OssUtil.TERM_NAME_SUGGESTION;
 
 public class OssUtilTest {
     List<Long> userGroups;
@@ -211,6 +233,551 @@ public class OssUtilTest {
 
         assertEquals(expectedJson, actualJson);
     }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedRemovesOptionsWithNoAccess() {
+        SuggestionList suggestionList = new SuggestionList()
+                .setKey("term1")
+                .setValues(new HashSet<>(List.of(
+                       new Suggestion().setTerm("allowed"),
+                       new Suggestion().setTerm("denied")
+                )));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+
+        FiltersBucket allowedBucket = FiltersBucket.of(b -> b.docCount(5L));
+        Map<String, FiltersBucket> filteredBucketMap = Map.of("allowed", allowedBucket);
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+        assertEquals(1, filtered.getSuggestions().size());
+        SuggestionList filteredSuggestion = filtered.getSuggestions().get(0);
+        assertEquals(1, filteredSuggestion.getValues().size());
+        Suggestion onlySuggestion = filteredSuggestion.getValues().iterator().next();
+        assertEquals("allowed", onlySuggestion.getTerm());
+        assertEquals(5L, onlySuggestion.getFrequency().longValue());
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedWithNoMatchingBuckets() {
+        SuggestionList suggestionList = new SuggestionList()
+                .setKey("term1")
+                .setValues(new HashSet<>(List.of(
+                       new Suggestion().setTerm("denied")
+                )));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+
+        Map<String, FiltersBucket> filteredBucketMap = Map.of();
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+        assertEquals(1, filtered.getSuggestions().size());
+        assertTrue(filtered.getSuggestions().get(0).getValues().isEmpty());
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedUpdatesFrequencyForMultipleOptions() {
+        SuggestionList suggestionList = new SuggestionList()
+                .setKey("term1")
+                .setValues(new HashSet<>(List.of(
+                       new Suggestion().setTerm("a"),
+                       new Suggestion().setTerm("b")
+                )));
+        FiltersBucket bucketA = FiltersBucket.of(b -> b.docCount(2L));
+        FiltersBucket bucketB = FiltersBucket.of(b -> b.docCount(3L));
+        Map<String, FiltersBucket> filteredBucketMap = Map.of("a", bucketA, "b", bucketB);
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(
+                new SuggestionResults().setSuggestions(List.of(suggestionList)), aggregateResponse);
+        assertEquals(1, filtered.getSuggestions().size());
+        Set<Suggestion> suggestions = filtered.getSuggestions().get(0).getValues();
+        assertEquals(2, suggestions.size());
+        for (Suggestion s : suggestions) {
+            if ("a".equals(s.getTerm())) {
+                assertEquals(2L, s.getFrequency().longValue());
+            } else if ("b".equals(s.getTerm())) {
+                assertEquals(3L, s.getFrequency().longValue());
+            }
+        }
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedWithNullAggregateResponse() {
+        SuggestionList suggestionList = new SuggestionList().setKey("term1").setValues(new HashSet<>(List.of(new Suggestion().setTerm("a"))));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, null);
+        }).getMessage();
+        assertEquals("aggregateResponse is required.", message);
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedWithNullValuesSet() {
+        SuggestionList suggestionList = new SuggestionList().setKey("term1").setValues(null);
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+        Map<String, FiltersBucket> filteredBucketMap = Map.of("a", FiltersBucket.of(b -> b.docCount(1L)));
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+        assertNull(filtered.getSuggestions().get(0).getValues());
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedWithNullTerm() {
+        SuggestionList suggestionList = new SuggestionList().setKey("term1").setValues(new HashSet<>(List.of(new Suggestion().setTerm(null))));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+        Map<String, FiltersBucket> filteredBucketMap = Map.of("a", FiltersBucket.of(b -> b.docCount(1L)));
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+        assertTrue(filtered.getSuggestions().get(0).getValues().isEmpty());
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedWithTermNotInBucketMap() {
+        SuggestionList suggestionList = new SuggestionList().setKey("term1").setValues(new HashSet<>(List.of(new Suggestion().setTerm("notfound"))));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+        Map<String, FiltersBucket> filteredBucketMap = Map.of("a", FiltersBucket.of(b -> b.docCount(1L)));
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+        assertTrue(filtered.getSuggestions().get(0).getValues().isEmpty());
+    }
+
+    @Test
+    public void testEliminateSuggestionWithAccessDeniedHandlesMultipleBucketsWithMixedDocCounts() {
+        SuggestionList suggestionList = new SuggestionList().setKey("disease").setValues(new HashSet<>(List.of(
+               new Suggestion().setTerm("cancer"),
+               new Suggestion().setTerm("tumor"),
+               new Suggestion().setTerm("leukemia"),
+               new Suggestion().setTerm("unknown")
+        )));
+        Map<String, FiltersBucket> filteredBucketMap = new HashMap<>();
+        filteredBucketMap.put("cancer", FiltersBucket.of(b -> b.docCount(5L)));
+        filteredBucketMap.put("tumor", FiltersBucket.of(b -> b.docCount(3L)));
+        filteredBucketMap.put("leukemia", FiltersBucket.of(b -> b.docCount(0L)));
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+
+        Set<String> terms = filtered.getSuggestions().get(0).getValues().stream().map(Suggestion::getTerm).collect(java.util.stream.Collectors.toSet());
+        assertTrue(terms.contains("cancer"));
+        assertTrue(terms.contains("tumor"));
+        assertFalse(terms.contains("leukemia"));
+        assertFalse(terms.contains("unknown"));
+        for (Suggestion s : filtered.getSuggestions().get(0).getValues()) {
+            if ("cancer".equals(s.getTerm())) {
+                assertEquals(5L, s.getFrequency().longValue());
+            }
+            if ("tumor".equals(s.getTerm())) {
+                assertEquals(3L, s.getFrequency().longValue());
+            }
+        }
+    }
+
+    @Test
+    public void eliminateSuggestionWithAccessDeniedHandlesEmptyFilteredBucketMap() {
+        SuggestionList suggestionList = new SuggestionList().setKey("disease").setValues(new HashSet<>(List.of(
+               new Suggestion().setTerm("cancer"),
+               new Suggestion().setTerm("tumor")
+        )));
+        Map<String, FiltersBucket> filteredBucketMap = Collections.emptyMap();
+        Aggregate aggregate = Aggregate.of(a -> a.filters(f -> f.buckets(b -> b.keyed(filteredBucketMap))));
+        Map<String, Aggregate> aggregateResponse = Map.of("query_counts", aggregate);
+
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+        //call under test
+        SuggestionResults filtered = OssUtil.eliminateSuggestionWithAccessDenied(suggestionResults, aggregateResponse);
+
+        assertTrue(filtered.getSuggestions().get(0).getValues().isEmpty());
+    }
+
+
+    @Test
+    public void generateSearchRequestForSuggestionThrowsOnNullQuery() {
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.generateSearchRequestForSuggestion(null);
+        }).getMessage();
+        assertEquals("suggestionQuery is required.", message);
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionThrowsOnNullSearchTermList() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(null);
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.generateSearchRequestForSuggestion(query);
+        }).getMessage();
+        assertEquals("At least one search term should be provided for suggestion.", message);
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionThrowsOnEmptySearchTermList() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(Collections.emptyList());
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.generateSearchRequestForSuggestion(query);
+        }).getMessage();
+        assertEquals("At least one search term should be provided for suggestion.", message);
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionThrowsOnEmptySearchTerm() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of(""));
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.generateSearchRequestForSuggestion(query);
+        }).getMessage();
+        assertEquals("At least one search term should be provided for suggestion.", message);
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionBuildsRequestForSingleTerm() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancer"));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertNotNull(request.suggest());
+        assertTrue(request.suggest().suggesters().containsKey(TERM_NAME_SUGGESTION));
+        assertTrue(request.suggest().suggesters().containsKey(TERM_DESCRIPTION_SUGGESTION));
+        assertEquals("cancer", request.suggest().suggesters().get(TERM_NAME_SUGGESTION).text());
+        assertEquals("cancer", request.suggest().suggesters().get(TERM_DESCRIPTION_SUGGESTION).text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionBuildsRequestForMultipleTerms() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancer", "tumor"));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertNotNull(request.suggest());
+        assertTrue(request.suggest().suggesters().containsKey(TERM_NAME_SUGGESTION));
+        assertTrue(request.suggest().suggesters().containsKey(TERM_DESCRIPTION_SUGGESTION));
+        assertEquals("cancer tumor", request.suggest().suggesters().get(TERM_NAME_SUGGESTION).text());
+        assertEquals("cancer tumor", request.suggest().suggesters().get(TERM_NAME_SUGGESTION).text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionHandlesWhitespaceTerms() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("  cancer  ", "  tumor "));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertEquals("cancer tumor", request.suggest().suggesters().get(TERM_NAME_SUGGESTION).text());
+        assertEquals("cancer tumor", request.suggest().suggesters().get(TERM_DESCRIPTION_SUGGESTION).text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionHandlesSpecialCharacters() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("c@ncer", "tu#mor"));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertEquals("c@ncer tu#mor", request.suggest().suggesters().get(TERM_NAME_SUGGESTION).text());
+        assertEquals("c@ncer tu#mor", request.suggest().suggesters().get(TERM_DESCRIPTION_SUGGESTION).text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionBuildsRequestForSinglePhrase() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("\"cancr patient\""));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertNotNull(request.suggest());
+        assertTrue(request.suggest().suggesters().containsKey("phrase_name_suggestion_cancr_patient"));
+        assertTrue(request.suggest().suggesters().containsKey("phrase_description_suggestion_cancr_patient"));
+        assertEquals("cancr patient", request.suggest().suggesters().get("phrase_name_suggestion_cancr_patient").text());
+        assertEquals("cancr patient", request.suggest().suggesters().get("phrase_description_suggestion_cancr_patient").text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionBuildsRequestForMultiplePhrase() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("\"cancr patient\"", "\"tum@r size3\""));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request);
+        assertNotNull(request.suggest());
+        assertTrue(request.suggest().suggesters().containsKey("phrase_description_suggestion_tum@r_size3"));
+        assertTrue(request.suggest().suggesters().containsKey("phrase_name_suggestion_tum@r_size3"));
+        assertTrue(request.suggest().suggesters().containsKey("phrase_name_suggestion_cancr_patient"));
+        assertTrue(request.suggest().suggesters().containsKey("phrase_description_suggestion_cancr_patient"));
+        assertEquals("cancr patient", request.suggest().suggesters().get("phrase_name_suggestion_cancr_patient").text());
+        assertEquals("tum@r size3", request.suggest().suggesters().get("phrase_description_suggestion_tum@r_size3").text());
+    }
+
+    @Test
+    public void generateSearchRequestForSuggestionBuildsRequestForEmptyPhraseList() {
+        SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("\"\""));
+        //call under test
+        SearchRequest request = OssUtil.generateSearchRequestForSuggestion(query);
+        assertNotNull(request.suggest());
+        assertFalse(request.suggest().suggesters().containsKey("phrase_description_suggestion"));
+        assertFalse(request.suggest().suggesters().containsKey("phrase_name_suggestion"));
+    }
+
+    @Test
+    public void convertToSynapseSuggestionResultWithNullKeyInMap() {
+        Suggest<DocumentFields> suggest = createTermSuggest("term1", List.of(createOption("opt", 1, 1.0f)));
+        Map<String, List<Suggest<DocumentFields>>> suggestions = new HashMap<>();
+        suggestions.put(null, List.of(suggest));
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertEquals(1, results.getSuggestions().size());
+        assertEquals("term1", results.getSuggestions().get(0).getKey());
+    }
+
+    @Test
+    public void convertToSynapseSuggestionResultWithOptionsListContainingNull() {
+        TermSuggestOption opt1 = createOption("opt1", 1, 1.0f);
+        List<TermSuggestOption> options = new ArrayList<>();
+        options.add(opt1);
+        options.add(null);
+        Suggest<DocumentFields> suggest = createTermSuggest("term1", options);
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", List.of(suggest));
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertEquals(1, results.getSuggestions().size());
+        assertEquals(1, results.getSuggestions().get(0).getValues().size());
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultWithNull() {
+        String message = assertThrows(IllegalArgumentException.class, () -> {
+            //call under test
+            OssUtil.convertToSynapseSuggestionResult(null);
+        }).getMessage();
+
+        assertEquals("suggestions is required.", message);
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultWithEmptySuggestionsMap() {
+        //call under test
+        SuggestionResults resultsEmpty = OssUtil.convertToSynapseSuggestionResult(Collections.emptyMap());
+        assertNotNull(resultsEmpty);
+        assertTrue(resultsEmpty.getSuggestions().isEmpty());
+    }
+
+
+    @Test
+    public void convertToSynapseSuggestionResultWithNullSuggestInList() {
+        List<Suggest<DocumentFields>> suggestList = new ArrayList<>();
+        suggestList.add(null);
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", suggestList);
+
+        //  call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertTrue(results.getSuggestions().isEmpty());
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultEmptyMap() {
+        Map<String, List<Suggest<DocumentFields>>> suggestions = new HashMap<>();
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertTrue(results.getSuggestions().isEmpty());
+    }
+
+    @Test
+    public void convertToSynapseSuggestionResultHandlesSuggestWithOutOptions() {
+        Suggest<DocumentFields> suggest = createTermSuggest("term1", Collections.emptyList());
+
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", List.of(suggest));
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertEquals(1, results.getSuggestions().size());
+        assertTrue(results.getSuggestions().get(0).getValues().isEmpty());
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultMapWithEmptyLists() {
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", Collections.emptyList());
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertTrue(results.getSuggestions().isEmpty());
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultWithTermAndOptions() {
+        TermSuggestOption opt1 = createOption("opt1", 2, 1.5f);
+        PhraseSuggestOption opt2 = PhraseSuggestOption.of(o -> o.text("opt2").score(2.5f));
+        Suggest<DocumentFields> termSuggest = createTermSuggest("term1", List.of(opt1));
+        Suggest<DocumentFields> phraseSuggest = createPhraseSuggest("\"term2\"", List.of(opt2));
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", List.of(termSuggest), "key2", List.of(phraseSuggest));
+
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertEquals(2, results.getSuggestions().size());
+
+        Map<String, SuggestionList> resultKeys = results.getSuggestions().stream()
+                .collect(Collectors.toMap(SuggestionList::getKey, Function.identity()));
+
+        SuggestionList synSuggestion = resultKeys.get("term1");
+        Suggestion expectedSug1 =new Suggestion().setTerm("opt1").setScore(1.5).setFrequency(null);
+        assertEquals(1, synSuggestion.getValues().size());
+        assertTrue(synSuggestion.getValues().contains(expectedSug1));
+
+        SuggestionList synSuggestion2 = resultKeys.get("\"term2\"");
+        Suggestion expectedSug2 =new Suggestion().setTerm("\"opt2\"").setScore(2.5).setFrequency(null);
+        assertEquals(1, synSuggestion2.getValues().size());
+        assertTrue(synSuggestion2.getValues().contains(expectedSug2));
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultMultipleSuggestsPerList() {
+        Suggest<DocumentFields> suggest1 = createTermSuggest("term1", List.of(createOption("opt1", 1, 1.0f)));
+        Suggest<DocumentFields> suggest2 = createTermSuggest("term2", List.of(createOption("opt2", 2, 2.0f)));
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", List.of(suggest1, suggest2));
+
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        Set<String> terms = new HashSet<>();
+        for (SuggestionList s : results.getSuggestions()) {
+            terms.add(s.getKey());
+        }
+        assertTrue(terms.contains("term1"));
+        assertTrue(terms.contains("term2"));
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultMultipleKeys() {
+        Suggest<DocumentFields> suggest1 = createTermSuggest("term1", List.of(createOption("opt1", 1, 1.0f)));
+        Suggest<DocumentFields> suggest2 = createTermSuggest("term2", List.of(createOption("opt2", 2, 2.0f)));
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of(
+                "key1", List.of(suggest1),
+                "key2", List.of(suggest2)
+        );
+
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        Set<String> terms = new HashSet<>();
+        for (SuggestionList s : results.getSuggestions()) {
+            terms.add(s.getKey());
+        }
+        assertTrue(terms.contains("term1"));
+        assertTrue(terms.contains("term2"));
+    }
+
+    @Test
+    public void testConvertToSynapseSuggestionResultDuplicateOptionsForSameTerm() {
+        TermSuggestOption opt1 = createOption("dup", 1, 1.0f);
+        TermSuggestOption opt2 = createOption("dup", 1, 1.0f);
+        Suggest<DocumentFields> suggest = createTermSuggest("term1", List.of(opt1, opt2));
+        Map<String, List<Suggest<DocumentFields>>> suggestions = Map.of("key1", List.of(suggest));
+
+        //call under test
+        SuggestionResults results = OssUtil.convertToSynapseSuggestionResult(suggestions);
+        assertNotNull(results);
+        assertEquals(1, results.getSuggestions().size());
+        SuggestionList synSuggestion = results.getSuggestions().get(0);
+        assertEquals(1, synSuggestion.getValues().size());
+        assertEquals("dup", synSuggestion.getValues().iterator().next().getTerm());
+    }
+
+    private TermSuggestOption createOption(String text, long freq, float score) {
+        return TermSuggestOption.of(o -> o.text(text).freq(freq).score(score));
+    }
+
+    private Suggest<DocumentFields> createTermSuggest(String termText, List<TermSuggestOption> options) {
+        return Suggest.of(s -> s.term(TermSuggest.of(ts -> ts.text(termText).length(termText.length()).offset(0).options(options))));
+    }
+
+    private Suggest<DocumentFields> createPhraseSuggest(String termText, List<PhraseSuggestOption> options) {
+        return Suggest.of(s -> s.phrase(PhraseSuggest.of(ts -> ts.text(termText).length(termText.length()).offset(0).options(options))));
+    }
+
+    @Test
+    void testAuthorizedUserAndSuggestionsPresent() {
+        SuggestionList suggestionList = new SuggestionList().setKey("disease").setValues(new HashSet<>(List.of(
+               new Suggestion().setTerm("cancer"),
+               new Suggestion().setTerm("tumor")
+        )));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+
+        //call under test
+        SearchRequest request = OssUtil.generateAggregationRequestToLimitAccess(userInfo, suggestionResults);
+
+        assertEquals(SearchConstants.OPEN_SEARCH_INDEX_NAME, request.index().get(0));
+
+        // 2. Verify ACL Filter (Authorization) is present
+        BoolQuery boolQuery = request.query().bool();
+        assertNotNull(boolQuery.filter());
+
+        // 3. Verify Aggregation is present
+        Aggregation queryCountsAgg = request.aggregations().get("query_counts");
+        assertNotNull(queryCountsAgg);
+
+        // 4. Verify Aggregation Content
+        Map<String, Query> aggFilters = queryCountsAgg.filters().filters().keyed();
+        assertEquals(2, aggFilters.size());
+        assertTrue(aggFilters.containsKey("cancer"));
+        assertTrue(aggFilters.containsKey("tumor"));
+
+        // 5. Verify Aggregation Query Type (Simple Query String)
+        assertEquals("SimpleQueryString", aggFilters.get("cancer")._kind().name());
+    }
+
+    @Test
+    void testAdminUserAndSuggestionsPresent() {
+        SuggestionList suggestionList = new SuggestionList().setKey("disease").setValues(new HashSet<>(List.of(
+               new Suggestion().setTerm("cancer"),
+               new Suggestion().setTerm("tumor")
+        )));
+        SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
+
+        UserInfo userInfo = new UserInfo(true);
+        //call under test
+        SearchRequest request = OssUtil.generateAggregationRequestToLimitAccess(userInfo, suggestionResults);
+
+        // 1. Verify ACL Filter is ABSENT
+        BoolQuery boolQuery = request.query().bool();
+        assertTrue(boolQuery.filter().isEmpty());
+
+        // 2. Verify Aggregation is present
+        Aggregation queryCountsAgg = request.aggregations().get("query_counts");
+        assertNotNull(queryCountsAgg);
+        assertEquals(2, queryCountsAgg.filters().filters().keyed().size());
+    }
+
+    @Test
+    void testAggregationIsEmptyWithoutSuggestion() {
+        SuggestionResults emptyResults = new SuggestionResults().setSuggestions(Collections.emptyList()); // No suggestions
+
+        // call under test
+        SearchRequest request = OssUtil.generateAggregationRequestToLimitAccess(userInfo, emptyResults);
+
+        BoolQuery boolQuery = request.query().bool();
+        assertNotNull(boolQuery.filter());
+
+        // Verify Aggregation is present but empty
+        assertNotNull(request.aggregations());
+        assertTrue(request.aggregations().isEmpty());
+    }
+
 
     @Test
     public void testGenerateSearchRequestWithBoolean() {

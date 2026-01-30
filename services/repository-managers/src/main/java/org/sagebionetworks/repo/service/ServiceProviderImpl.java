@@ -33,6 +33,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private UserGroupService userGroupService;
 	@Autowired
+	private RealmService realmService;
+	@Autowired
 	private UserProfileService userProfileService;
 	@Autowired
 	private SearchService searchService;
@@ -112,6 +114,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	}
 	public UserGroupService getUserGroupService() {
 		return userGroupService;
+	}
+	public RealmService getRealmService() {
+		return realmService;
 	}
 	public UserProfileService getUserProfileService() {
 		return userProfileService;

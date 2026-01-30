@@ -166,11 +166,6 @@ public interface StackConfiguration {
 	public String getMigrationAdminUsername();
 
 	/**
-	 * @return The API key of the migration admin
-	 */
-	public String getMigrationAdminAPIKey();
-
-	/**
 	 * @return whether controller logging is enabled or not.
 	 */
 	public boolean getControllerLoggingEnabled();
@@ -495,6 +490,24 @@ public interface StackConfiguration {
 	public String getOAuth2GoogleClientSecret();
 	
 	public String getOAuth2GoogleDiscoveryDocument();
+
+	/**
+	 * OIDC Client ID for Arcus Bio Identity Provider
+	 * @return
+	 */
+	public String getOAuth2ArcusBioClientId();
+
+	/**
+	 * OIDC Client Secret for Arcus Bio Identity Provider
+	 * @return
+	 */
+	public String getOAuth2ArcusBioClientSecret();
+	
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document
+	 * @return
+	 */
+	public String getOAuth2ArcusBioDiscoveryDocument();
 
 	/**
 	 * 

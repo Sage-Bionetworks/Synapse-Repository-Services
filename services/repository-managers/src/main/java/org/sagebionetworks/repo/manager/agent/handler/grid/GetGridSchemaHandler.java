@@ -40,8 +40,10 @@ public class GetGridSchemaHandler implements OpenApiReturnControlHandler {
 		GridAgentSessionContext context = event.getSessionContext(GridAgentSessionContext.class)
 				.orElseThrow(() -> new IllegalArgumentException("GridAgentSessionContext cannot be null"));
 
-		GridSession session = gridManager.getGridSession(new UserInfo(false, event.getRunAsUserId()),
-				context.getGridSessionId());
+		// NOTE Here we do not need to know the user's 'realm'
+		String userRealm = null;
+		UserInfo userInfo = new UserInfo(false, event.getRunAsUserId(), userRealm);
+		GridSession session = gridManager.getGridSession(userInfo, context.getGridSessionId());
 		if (session.getGridJsonSchema$Id() == null) {
 			return "{}";
 		}

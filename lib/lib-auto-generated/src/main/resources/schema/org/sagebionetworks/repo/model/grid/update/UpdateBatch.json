@@ -1,0 +1,12 @@
+{
+  "description": "Request to update one or more cells of the current grid session in a single batch operation.",
+  "properties": {
+    "batch": {
+      "description": "A batch containing one or more cell updates to apply to the grid. All updates in the batch are processed together.",
+      "type": "array",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.grid.update.Update"
+      }
+    }
+  }
+}

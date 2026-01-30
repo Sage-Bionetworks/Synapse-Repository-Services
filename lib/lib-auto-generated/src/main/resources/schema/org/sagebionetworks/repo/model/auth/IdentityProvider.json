@@ -1,0 +1,11 @@
+{
+	"title": "Identity Provider",
+	"type": "interface",
+	"description": "Interface for an identity provider",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Indicates which implementation of IdentityProvider the object represents."
+		}
+	}
+}

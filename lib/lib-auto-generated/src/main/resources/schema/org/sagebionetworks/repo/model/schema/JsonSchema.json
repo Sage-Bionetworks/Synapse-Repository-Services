@@ -109,6 +109,14 @@
 			"type": "integer",
 			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.3.2\">minLength</a>"
 		},
+		"maxItems": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.4.1\">maxItems</a>"
+		},
+		"minItems": {
+			"type": "integer",
+			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.4.2\">minItems</a>"
+		},
 		"uniqueItems": {
 			"type": "boolean",
 			"description": "See: <a href=\"https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.4.3\">uniqueItems</a>"

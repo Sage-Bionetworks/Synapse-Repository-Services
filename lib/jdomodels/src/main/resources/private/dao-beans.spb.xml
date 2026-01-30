@@ -60,6 +60,15 @@
 			</property>
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
+			<property name="id" value="2" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="Administrators" />
+			   		<property name="aliasId" value="2" />
+			   	</bean>
+			</property>
+		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273948" />
 			<property name="groupAlias">
 			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
@@ -136,9 +145,19 @@
 		</bean>
 	</util:list>
 
+	<bean id="realmDAO"
+		class="org.sagebionetworks.repo.model.dbo.auth.RealmDaoImpl" init-method="bootstrapDefaultRealm">
+	</bean>
+
 	<bean id="userGroupDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" init-method="bootstrapUsers">
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" init-method="bootstrapUsers" depends-on="realmDAO" >
 		<property name="bootstrapPrincipals" ref="bootstrapPrincipals"/>
+	</bean>
+	
+
+	<bean id="updateDefaultRealm" class="org.springframework.beans.factory.config.MethodInvokingBean" depends-on="userGroupDAO" >
+		<property name="targetObject" ref="realmDAO"/>
+		<property name="targetMethod" value="addPrincipalsToDefaultRealm"/>
 	</bean>
 
 	<bean id="principalPrefixDao"

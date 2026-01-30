@@ -3,20 +3,13 @@ package org.sagebionetworks.aws;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
 import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2ClientBuilder;
 import com.amazonaws.services.appconfigdata.AWSAppConfigData;
 import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomain;
-import com.amazonaws.services.cloudsearchdomain.AmazonCloudSearchDomainClientBuilder;
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearch;
-import com.amazonaws.services.cloudsearchv2.AmazonCloudSearchClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
 import com.amazonaws.services.glue.AWSGlue;
@@ -33,6 +26,8 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -129,30 +124,6 @@ public class AwsClientFactory {
 	public static AmazonCloudWatch createCloudWatchClient() {
 		AmazonCloudWatchClientBuilder builder = AmazonCloudWatchClientBuilder.standard();
 		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * Create an instance of the AmazonCloudSearch using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AmazonCloudSearch createAmazonCloudSearchClient() {
-		AmazonCloudSearchClientBuilder builder = AmazonCloudSearchClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * Create an instance of the AmazonCloudSearchDomain using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AmazonCloudSearchDomain createAmazonCloudSearchDomain(String endpoint) {
-		AmazonCloudSearchDomainClientBuilder builder = AmazonCloudSearchDomainClientBuilder.standard();
-		builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, Regions.US_EAST_1.getName()));
 		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
 		return builder.build();
 	}

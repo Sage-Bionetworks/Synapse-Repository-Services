@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -83,6 +84,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		// create a group to give the permissions to
 		group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
@@ -90,6 +92,7 @@ public class DBOAccessControlListDAOImplChangeMessageTest {
 		// Create a second user
 		group2 = new UserGroup();
 		group2.setIsIndividual(false);
+		group2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);

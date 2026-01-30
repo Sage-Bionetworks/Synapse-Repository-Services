@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.curation;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ASSIGNEE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DATA_TYPE;
@@ -57,7 +58,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     .setModifiedOn(new Date(rs.getTimestamp(COL_CURATION_TASK_MODIFIED_ON).getTime()))
                     .setTaskProperties(
                             JDOSecondaryPropertyUtils.createObjectFromJSON(CurationTaskProperties.class, rs.getString(COL_CURATION_TASK_TASK_PROPERTIES))
-                    );
+                    )
+                    .setAssigneePrincipalId(rs.getString(COL_CURATION_TASK_ASSIGNEE));
 
     @Override
     @WriteTransaction
@@ -70,10 +72,11 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 + COL_CURATION_TASK_PROJECT_ID + ", "
                 + COL_CURATION_TASK_INSTRUCTIONS + ", "
                 + COL_CURATION_TASK_TASK_PROPERTIES + ", "
+                + COL_CURATION_TASK_ASSIGNEE + ", "
                 + COL_CURATION_TASK_CREATED_ON + ", "
                 + COL_CURATION_TASK_MODIFIED_ON + ", "
                 + COL_CURATION_TASK_ETAG
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), UUID())";
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), UUID())";
 
         Long id = idGenerator.generateNewId(IdType.CURATION_TASK_ID);
 
@@ -87,7 +90,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getDataType(),
                     dbo.getProjectId(),
                     dbo.getInstructions(),
-                    dbo.getTaskPropertiesJson()
+                    dbo.getTaskPropertiesJson(),
+                    dbo.getAssigneeId()
             );
         } catch (DuplicateKeyException e) {
             handleUniquenessConstraintViolation(e);
@@ -112,7 +116,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 + COL_CURATION_TASK_MODIFIED_ON + " = ?, "
                 + COL_CURATION_TASK_DATA_TYPE + " = ?, "
                 + COL_CURATION_TASK_INSTRUCTIONS + " = ?, "
-                + COL_CURATION_TASK_TASK_PROPERTIES + " = ? "
+                + COL_CURATION_TASK_TASK_PROPERTIES + " = ?, "
+                + COL_CURATION_TASK_ASSIGNEE + " = ? "
                 + "WHERE " + COL_CURATION_TASK_ID + " = ? ";
 
         try {
@@ -122,6 +127,7 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getDataType(),
                     dbo.getInstructions(),
                     dbo.getTaskPropertiesJson(),
+                    dbo.getAssigneeId(),
                     dbo.getId());
         } catch (DuplicateKeyException e) {
             handleUniquenessConstraintViolation(e);
@@ -181,7 +187,9 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 .setProjectId(KeyFactory.stringToKey(dto.getProjectId()))
                 .setInstructions(dto.getInstructions())
                 .setEtag(dto.getEtag())
-                .setTaskPropertiesJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getTaskProperties()));
+                .setTaskPropertiesJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getTaskProperties()))
+                .setAssigneeId(dto.getAssigneePrincipalId() != null? Long.parseLong(dto.getAssigneePrincipalId()):null)
+                ;
         if (dto.getCreatedBy() != null) {
             dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
         }

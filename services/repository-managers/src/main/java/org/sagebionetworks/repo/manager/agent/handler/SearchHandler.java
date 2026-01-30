@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SearchHandler implements ReturnControlHandler {
 	
-	private static final int MAX_NUM_CHARS = 200;
+	static final int MAX_NUM_CHARS = 200;
 	private final SearchService serchService;
 	
 	@Autowired
@@ -36,7 +36,7 @@ public class SearchHandler implements ReturnControlHandler {
 	public String handleEvent(ReturnControlEvent event) throws Exception {
 		String term = ParameterUtils.extractParameter(String.class, "term", event.getParameters())
 				.orElseThrow(() -> new IllegalArgumentException("Parameter 'term' of type string is required"));
-		SearchResults results = this.serchService.proxySearch(event.getRunAsUserId(), false, new SearchQuery().setQueryTerm(List.of(term)));
+		SearchResults results = this.serchService.proxySearch(event.getRunAsUserId(), new SearchQuery().setQueryTerm(List.of(term)));
 		results.getHits().forEach(h->{
 			if(h.getDescription() != null && h.getDescription().length() > MAX_NUM_CHARS) {
 				h.setDescription(String.format("%s --truncated--", h.getDescription().subSequence(0, MAX_NUM_CHARS)));

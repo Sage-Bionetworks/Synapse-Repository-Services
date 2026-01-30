@@ -1,0 +1,5 @@
+{
+	"description": "A SelectItem that will result in the selection of the columns the user has actively selected in the interface.",
+	"type": "object",
+	"implements": [{ "$ref": "org.sagebionetworks.repo.model.grid.query.SelectItem" }]
+}

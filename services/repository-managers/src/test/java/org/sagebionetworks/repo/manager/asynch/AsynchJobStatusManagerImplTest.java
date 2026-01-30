@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -33,7 +34,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -41,6 +44,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
@@ -62,24 +66,24 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
 public class AsynchJobStatusManagerImplTest {
 	
 	@Mock
-	AsynchronousJobStatusDAO mockAsynchJobStatusDao;
+	private AsynchronousJobStatusDAO mockAsynchJobStatusDao;
 	@Mock
-	AuthorizationManager mockAuthorizationManager;
+	private AuthorizationManager mockAuthorizationManager;
 	@Mock
-	StackStatusDao mockStackStatusDao;
+	private StackStatusDao mockStackStatusDao;
 	@Mock
-	AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
+	private AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
 	@Mock
-	JobHashProvider mockJobHashProvider;
+	private JobHashProvider mockJobHashProvider;
 	@Mock
-	StackConfiguration mockStackConfig;
+	private StackConfiguration mockStackConfig;
 	@Mock
-	Consumer mockConsumer;
+	private Consumer mockConsumer;
 	@Captor
-	ArgumentCaptor<ProfileData> profileCaptor;
+	private	ArgumentCaptor<ProfileData> profileCaptor;
 	
 	@InjectMocks
-	AsynchJobStatusManagerImpl manager;
+	private AsynchJobStatusManagerImpl manager;
 	
 	UserInfo user = null;
 	AsynchronousJobStatus status;
@@ -477,12 +481,58 @@ public class AsynchJobStatusManagerImplTest {
 		existingJob.setRequestBody(body);
 		existingJob.setJobState(AsynchJobState.COMPLETE);
 		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(Arrays.asList(existingJob));
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		// The status should match the exiting job
 		assertEquals(existingJob, status);
 		// The job should not be started.
 		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
+	}
+	
+	@Test
+	public void testStartJobWithCacheHitAndVersion(){
+		// request
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
+		body.setEntityId("syn123");
+		body.setSql("select * from syn123.456");
+		// setup hash and etag.
+		String bodyHash = "aBodyHash";
+		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
+		// Match request to existing job
+		AsynchronousJobStatus existingJob = new AsynchronousJobStatus();
+		existingJob.setStartedByUserId(user.getId());
+		existingJob.setJobId("123456");
+		existingJob.setRequestBody(body);
+		existingJob.setJobState(AsynchJobState.COMPLETE);
+		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(Arrays.asList(existingJob));
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test.
+		AsynchronousJobStatus status = manager.startJob(user, body);
+		// The status should match the exiting job
+		assertEquals(existingJob, status);
+		// The job should not be started.
+		verify(mockAsynchJobStatusDao, never()).startJob(any(), any(AsynchronousRequestBody.class));
+	}
+	
+	@Test
+	public void testStartJobWithCacheHitAndUnauthorized(){
+		setupStartJob();
+		// request
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
+		body.setEntityId("syn123");
+		body.setSql("select * from syn123");
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+		// call under test.
+		AsynchronousJobStatus status = manager.startJob(user, body);
+		assertNotNull(status);
+		assertEquals(startedJobId, status.getJobId());
+		verify(mockAsynchJobStatusDao, times(1)).startJob(any(), any(AsynchronousRequestBody.class));
+		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
+		verifyZeroInteractions(mockJobHashProvider);
 	}
 	
 	@Test
@@ -515,7 +565,8 @@ public class AsynchJobStatusManagerImplTest {
 		hitTwo.setRequestBody(body);
 		hitTwo.setJobState(AsynchJobState.COMPLETE);
 		hits.add(hitTwo);
-		
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+		.thenReturn(AuthorizationStatus.authorized());	
 		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(hits);
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
@@ -538,6 +589,8 @@ public class AsynchJobStatusManagerImplTest {
 		// For this case, no job exists
 		List<AsynchronousJobStatus> existingJob = new LinkedList<AsynchronousJobStatus>();
 		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(existingJob);
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
@@ -570,6 +623,8 @@ public class AsynchJobStatusManagerImplTest {
 		existingJob.setRequestBody(cachedBody);
 		// There is a job with this hash but the body does not match the request's body.
 		when(mockAsynchJobStatusDao.findCompletedJobStatus(bodyHash, user.getId())).thenReturn(Arrays.asList(existingJob));
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
@@ -593,6 +648,8 @@ public class AsynchJobStatusManagerImplTest {
 		// return null hash
 		String bodyHash = null;
 		when(mockJobHashProvider.getJobHash(body)).thenReturn(bodyHash);
+		when(mockAuthorizationManager.canAccess(user, "123", ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD))
+				.thenReturn(AuthorizationStatus.authorized());
 		// call under test.
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);

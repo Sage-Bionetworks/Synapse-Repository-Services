@@ -70,13 +70,15 @@ public class PFBDownloadWorker implements AsyncJobRunner<DownloadPFBRequest, Dow
 		String jobName = "Job-" + jobId;
 		String fileName = request.getFileName() != null ? request.getFileName() : jobName + ".avro";
 		File temp = fileProvider.createTempFile(jobName, ".avro");
+		
 		try {
 			jobProgressCallback.updateProgress("running query...", 0L, 100L);
 			// Add a blank metadata row for now.
 			Metadata metadata = new Metadata().setNodes(Collections.emptyList());
 			QueryResultBundle qrb = tableQueryManager.runQueryAsStream(jobProgressCallback, user, request, t -> {
+				// Note that the schema of the select does not include the column model id
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
-				return writerProvider.createWriter(request.getPfbEntityName(), schema, metadata, temp);
+				return writerProvider.createWriter(request.getPfbEntityName(), schema, request.getPfbEntityIdColumnNames(), metadata, temp);
 			});
 			jobProgressCallback.updateProgress("saving results...", 0L, 100L);
 			S3FileHandle fileHandle = fileHandleManager
@@ -97,5 +99,4 @@ public class PFBDownloadWorker implements AsyncJobRunner<DownloadPFBRequest, Dow
 			temp.delete();
 		}
 	}
-
 }

@@ -1,0 +1,25 @@
+{
+	"description": "Request to update one or more cells in a grid (SQL UPDATE style).",
+	"properties": {
+		"set": {
+			"description": "Required. Array representing the SQL SET clause; each object specifies a target column and the literal value to assign for all selected rows.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.update.SetValue"
+			}
+		},
+		"filters": {
+			"description": "Optional. Array of Filter objects selecting the rows to update (acts like the SQL WHERE clause). If omitted, all rows are eligible. Multiple filters are combined with logical AND. Use when the user constrains target rows (e.g., \"where columnThree is null\" or \"only rows with status='ACTIVE'\").",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+			}
+		},
+		"limit": {
+			"type": "integer",
+			"description": "Optional. Maximum number of matching rows to update (analogous to SQL LIMIT). Use only when the user explicitly requests a cap (e.g., limit 10). If omitted, all filtered rows are updated. Valid range: 1-100.",
+			"minimum": 1,
+			"maximum": 100
+		}
+	}
+}

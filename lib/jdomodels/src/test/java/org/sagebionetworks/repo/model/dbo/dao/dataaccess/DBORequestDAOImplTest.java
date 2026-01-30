@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -70,6 +71,7 @@ public class DBORequestDAOImplTest {
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
+		individualGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 
 		// create a node

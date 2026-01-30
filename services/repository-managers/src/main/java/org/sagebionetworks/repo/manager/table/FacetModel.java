@@ -150,7 +150,7 @@ public class FacetModel {
 					if ( facetValuesRequest != null){
 						selectedValues = facetValuesRequest.getFacetValues();
 					}
-					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getJsonPath(), facet.getJsonPathType(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
+					transformersList.add(new FacetTransformerValueCounts(facet.getColumnName(), facet.getFacetSortConfig(), facet.getJsonPath(), facet.getJsonPathType(), facet.isColumnTypeIsList(), validatedFacets, queryClone , dependencies, selectedValues));
 					break;
 				case range:
 					String selectedMin = null;

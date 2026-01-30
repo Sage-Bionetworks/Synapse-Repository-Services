@@ -124,7 +124,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
 
 		List<JsonSubject> subjects = rowsToValidate.stream()
-				.map(row -> new RowJsonSubject(header.getOrderedColumns(), row)).collect(Collectors.toList());
+				.map(row -> new RowJsonSubject(row)).collect(Collectors.toList());
 
 		List<ValidationResults> results = jsonSchemaValidationManager.validateBatch(schema, subjects);
 
@@ -136,9 +136,9 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 
 			cleanupValidationResults(validationResults);
 
-			if (!validationResults.equals(row.getRowValidationResults())) {
-				changes.add(createChange(row, validationResults));
-			}
+			// Always apply the new validation results, even if the value did not change.
+			// The client uses the timestamp to determine if results are up-to-date with its local changes.
+			changes.add(createChange(row, validationResults));
 		}
 
 		return changes;

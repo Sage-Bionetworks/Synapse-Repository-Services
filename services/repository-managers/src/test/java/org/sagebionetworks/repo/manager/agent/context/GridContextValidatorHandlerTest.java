@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridSession;
 
 @ExtendWith(MockitoExtension.class)
 public class GridContextValidatorHandlerTest {
@@ -30,6 +31,8 @@ public class GridContextValidatorHandlerTest {
 	private Long replicaId;
 	private GridAgentSessionContext context;
 	private GridReplica replica;
+	private GridSession gridSession;
+	private GridReplica agentReplica;
 
 	@BeforeEach
 	public void before() {
@@ -37,11 +40,15 @@ public class GridContextValidatorHandlerTest {
 		replicaId = 456L;
 		context = new GridAgentSessionContext().setGridSessionId(gridSessionId).setUsersReplicaId(replicaId);
 		replica = new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId);
+		gridSession = new GridSession().setSessionId(gridSessionId);
+		agentReplica = new GridReplica().setReplicaId(88L);
 	}
 
 	@Test
 	public void testDoContextValidation() {
 		when(mockGridManager.getReplica(mockUser, gridSessionId, replicaId)).thenReturn(replica);
+		when(mockGridManager.getGridSession(mockUser, gridSessionId)).thenReturn(gridSession);
+		when(mockGridManager.createAgentReplica(mockUser, gridSession)).thenReturn(agentReplica);
 		// call under test
 		handler.doContextValidation(mockUser, context);
 

@@ -39,6 +39,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -149,6 +150,7 @@ public class SubmissionDAOImplTest {
 		Team team = new Team();
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		Long id = userGroupDAO.create(ug);
 		
 		team.setId(id.toString());

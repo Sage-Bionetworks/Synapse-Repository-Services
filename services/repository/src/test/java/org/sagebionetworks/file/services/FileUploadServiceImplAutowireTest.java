@@ -162,7 +162,10 @@ public class FileUploadServiceImplAutowireTest {
 		// Set up bucket and owner.txt.
 		String externalS3Bucket = StackConfigurationSingleton.singleton().getExternalS3TestBucketName();
 		String externalS3StorageBaseKey = "test-base-" + UUID.randomUUID();
-		s3Client.createBucket(externalS3Bucket);
+
+		if (! s3Client.doesBucketExist(externalS3Bucket)) {
+			s3Client.createBucket(externalS3Bucket);
+		}
 
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(username.length());

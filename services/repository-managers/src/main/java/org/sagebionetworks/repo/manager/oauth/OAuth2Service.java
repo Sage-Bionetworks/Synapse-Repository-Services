@@ -8,5 +8,6 @@ public interface OAuth2Service extends OAuthService {
 	
 	@Override
 	AccessTokenResponse getAccessToken(Token requestToken, Verifier verifier);
-
+	
+	ProvidedUserInfo getUserInfo(String accesstoken);
 }

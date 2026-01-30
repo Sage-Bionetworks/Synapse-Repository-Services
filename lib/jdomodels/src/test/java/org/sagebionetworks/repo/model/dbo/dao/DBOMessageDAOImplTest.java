@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -94,10 +95,12 @@ public class DBOMessageDAOImplTest {
 		// These two principals will act as mutual spammers
 		maliciousUser = new UserGroup();
 		maliciousUser.setIsIndividual(true);
+		maliciousUser.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		maliciousUser.setId(userGroupDAO.create(maliciousUser).toString());
 
 		maliciousGroup = new UserGroup();
 		maliciousGroup.setIsIndividual(false);
+		maliciousGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		maliciousGroup.setId(userGroupDAO.create(maliciousGroup).toString());
 
 		// We need a file handle to satisfy a foreign key constraint

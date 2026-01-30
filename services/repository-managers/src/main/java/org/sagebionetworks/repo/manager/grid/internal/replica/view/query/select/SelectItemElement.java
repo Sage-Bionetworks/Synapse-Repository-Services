@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select
 
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.Context;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.Element;
 import org.sagebionetworks.repo.model.grid.query.result.SelectColumn;
 
@@ -19,5 +19,5 @@ public interface SelectItemElement extends Element {
 	 * @param header
 	 * @param selectColumns
 	 */
-	void setSelect(GridHeader header, Long index, List<SelectColumn> selectColumns );
+	void setSelect(Context context, Long index, List<SelectColumn> selectColumns );
 }

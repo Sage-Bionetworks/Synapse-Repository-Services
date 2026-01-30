@@ -22,17 +22,19 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 	private String apiSecret;
 	private String authUrl;
 	private String tokenUrl;
+	private String userInfoUrl;
 	
 	public OrcidOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
 		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
 		this.tokenUrl = oidcConfig.getTokenEndpoint();
+		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return  new OAuth2Api(authUrl, tokenUrl).
+		return  new OAuth2Api(authUrl, tokenUrl, userInfoUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, SCOPE_OPENID, null));
 	}
 	
@@ -72,7 +74,7 @@ public class OrcidOAuth2Provider implements OAuthProviderBinding {
 		ValidateArgument.required(redirectUrl, "The redirectUrl");
 		
 		try {
-			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl)).
+			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl, userInfoUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, null, null, null, null));
 
 			AccessTokenResponse accessTokenResponse = service.getAccessToken(null, new Verifier(authorizationCode));

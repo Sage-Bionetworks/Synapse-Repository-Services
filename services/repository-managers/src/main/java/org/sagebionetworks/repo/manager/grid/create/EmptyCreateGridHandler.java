@@ -24,10 +24,10 @@ public class EmptyCreateGridHandler implements CreateGridHandler {
 	}
 
 	@Override
-	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request,
-			PatchStore patchStore) {
-		return new CreateGridHandlerResult()
-				.setGridSession(gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())));
+	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user,
+			CreateGridRequest request, PatchStore patchStore) {
+		return new CreateGridHandlerResult().setGridSession(gridDao.createGridSession(
+				new CreateGridSession().setUserId(user.getId()).setOwner(request.getOwnerPrincipalId())));
 	}
 
 }

@@ -37,7 +37,7 @@ public class NewConstantHandler implements OperationHandler<NewConstant> {
 		List<LogicalTimestamp> conIds = batch.stream().map(NewConstant::getOperationId).collect(Collectors.toList());
 		dao.saveIndex(sessionId, replicaId, IndexType.con, conIds);
 		dao.saveNewConstants(sessionId, replicaId,
-				batch.stream().map(c -> new ConstantNode().setId(c.getOperationId()).setValue(c.getValue().getValue()))
+				batch.stream().map(c -> new ConstantNode().setId(c.getOperationId()).setValue(c.getValue()))
 						.collect(Collectors.toList()));
 		return new LinkedHashSet<>(conIds);
 	}

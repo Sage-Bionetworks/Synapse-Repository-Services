@@ -77,29 +77,25 @@ public class ReturnControlEvent {
 			return null;
 		}
 		JSONObject object = new JSONObject();
-		try {
-			requestBodyParameters.forEach(p -> {
-				try {
-					if ("object".equals(p.getType())) {
-						object.put(p.getName(), new JSONObject(p.getValue()));
-					} else if ("string".equals(p.getType())) {
-						object.put(p.getName(), p.getValue());
-					} else if ("integer".equals(p.getType())) {
-						object.put(p.getName(), p.getValue());
-					} else if ("array".equals(p.getType())) {
-						object.put(p.getName(), new JSONArray(p.getValue()));
-					} else {
-						throw new IllegalArgumentException("Unknown type: " + p.getType());
-					}
-				} catch (JSONException e) {
-					throw new IllegalArgumentException("Failed to parse the JSON value for parameter '" 
-						+ p.getName() + "' with value: " + p.getValue() + ". Error: " + e.getMessage(), e);
+		requestBodyParameters.forEach(p -> {
+			try {
+				if ("object".equals(p.getType())) {
+					object.put(p.getName(), new JSONObject(p.getValue()));
+				} else if ("string".equals(p.getType())) {
+					object.put(p.getName(), p.getValue());
+				} else if ("integer".equals(p.getType())) {
+					object.put(p.getName(), p.getValue());
+				} else if ("array".equals(p.getType())) {
+					object.put(p.getName(), new JSONArray(p.getValue()));
+				} else {
+					throw new IllegalArgumentException("Unknown type: " + p.getType());
 				}
-			});
-			return object.toString();
-		} catch (IllegalArgumentException e) {
-			throw e;
-		}
+			} catch (JSONException e) {
+				throw new IllegalArgumentException("Failed to parse the JSON value for parameter '" + p.getName()
+						+ "' with value: " + p.getValue() + ". Error: " + e.getMessage(), e);
+			}
+		});
+		return object.toString();
 	}
 
 	public <T extends SessionContext> Optional<T> getSessionContext(Class<? extends T> clazz) {

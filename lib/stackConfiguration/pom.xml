@@ -139,10 +139,6 @@
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-cloudsearch</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-glue</artifactId>
 		</dependency>
 		<dependency>

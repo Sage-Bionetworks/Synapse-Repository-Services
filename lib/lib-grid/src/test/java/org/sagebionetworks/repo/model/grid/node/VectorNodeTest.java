@@ -14,26 +14,32 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class VectorNodeTest {
 	private LogicalTimestamp id;
 	private LogicalTimestamp id2;
 	private LogicalTimestamp id3;
+	private LogicalTimestamp id4;
+	private LogicalTimestamp id5;
 
 	@BeforeEach
 	public void before() {
 		id = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L);
 		id2 = new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L);
 		id3 = new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L);
+		id4 = new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L);
+		id5 = new LogicalTimestamp().setReplicaId(9L).setSequenceNumber(10L);
 	}
 
 	@ParameterizedTest
 	@MethodSource("validValues")
 	public void testToAndFromJSON(Object value) {
 		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		vec.getValues().put("c1", new ConstantNode().setId(id2).setValue(value));
-		vec.getValues().put("c2", new ConstantNode().setId(id3).setValue("other value"));
+		vec.getValues().put(1, new ConstantNode().setId(id2).setValue(value));
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("other value"));
 		// call under test
 		String json = vec.getValueAsJson();
 		// call under test
@@ -59,78 +65,92 @@ public class VectorNodeTest {
 	@Test
 	public void testGetValueAsJson() {
 		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		vec.getValues().put("c1", new ConstantNode().setId(id2).setValue(new JSONArray("[1,2,3]")));
-		vec.getValues().put("c2", new ConstantNode().setId(id3).setValue("other value"));
+		vec.getValues().put(1, new ConstantNode().setId(id2).setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray("[1,2,3]"))));
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue(new ConValue(ConType.STRING, "other value")));
+		vec.getValues().put(3, new ConstantNode().setId(id4).setValue(new ConValue(ConType.NULL, null)));
+		vec.getValues().put(4, new ConstantNode().setId(id5).setValue(new ConValue(ConType.UNDEFINED, null)));
 		String json = vec.getValueAsJson();
-		assertEquals("{\"c1\":{\"v\":[1,2,3],\"i\":[3,4]},\"c2\":{\"v\":\"other value\",\"i\":[5,6]}}", json);
+		assertEquals("{\"c1\":{\"v\":[[1,2,3]],\"i\":[3,4]},\"c2\":{\"v\":[\"other value\"],\"i\":[5,6]},\"c3\":{\"v\":[null],\"i\":[7,8]},\"c4\":{\"v\":[0,0],\"i\":[9,10]}}", json);
 		VectorNode other = new VectorNode().setId(id).setValueFromJson(json);
 		assertEquals(vec, other);
 	}
 
 	@Test
 	public void testAttemptInsert() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
-		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[4,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[4,4]}}");
 		// call under test
 		assertTrue(vec.attemptInsert(update));
-		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[4,4]}}");
+		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[4,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithCurrentValuesNull() {
 		VectorNode vec = new VectorNode().setId(id).setValues(null);
-		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[4,4]}}");
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[4,4]}}");
 		// call under test
 		assertTrue(vec.attemptInsert(update));
-		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[4,4]}}");
+		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[4,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithOtherValuesNull() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		VectorNode update = new VectorNode().setId(id).setValues(null);
 		// call under test
 		assertFalse(vec.attemptInsert(update));
-		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithSameId() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
-		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[3,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[3,4]}}");
 		// call under test
 		assertFalse(vec.attemptInsert(update));
-		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithOlderId() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
-		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":222,\"i\":[2,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[222],\"i\":[2,4]}}");
 		// call under test
 		assertFalse(vec.attemptInsert(update));
-		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode expected = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithNewIndex() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
-		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c1\":{\"v\":222,\"i\":[4,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c1\":{\"v\":[222],\"i\":[4,4]}}");
 		// call under test
 		assertTrue(vec.attemptInsert(update));
 		VectorNode expected = new VectorNode().setId(id)
-				.setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]},\"c1\":{\"v\":222,\"i\":[4,4]}}");
+				.setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]},\"c1\":{\"v\":[222],\"i\":[4,4]}}");
+		assertEquals(expected, vec);
+	}
+	
+	@Test
+	public void testAttemptInsertWithNewNodeIdLesserThanContainerId() {
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
+		// The new node ID is less than the container node ID
+		VectorNode update = new VectorNode().setId(id).setValueFromJson("{\"c1\":{\"v\":[222],\"i\":[1,1]}}");
+		// call under test
+		assertFalse(vec.attemptInsert(update));
+		VectorNode expected = new VectorNode().setId(id)
+				.setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		assertEquals(expected, vec);
 	}
 
 	@Test
 	public void testAttemptInsertWithWrongId() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		VectorNode update = new VectorNode().setId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(12L))
 				.setValues(null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -142,9 +162,9 @@ public class VectorNodeTest {
 
 	@Test
 	public void testAttemptInsertWithNullValue() {
-		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":111,\"i\":[3,4]}}");
+		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		VectorNode update = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		update.getValues().put("c1", null);
+		update.getValues().put(1, null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			assertTrue(vec.attemptInsert(update));

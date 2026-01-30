@@ -781,13 +781,6 @@ public class IT500SynapseJavaClient {
 		}
 	}
 
-
-	@Test
-	public void testRetrieveApiKey() throws SynapseException {
-		String apiKey = synapse.retrieveApiKey();
-		assertNotNull(apiKey);
-	}
-
 	
 	@Test
 	public void testCertifiedUserQuiz() throws Exception {

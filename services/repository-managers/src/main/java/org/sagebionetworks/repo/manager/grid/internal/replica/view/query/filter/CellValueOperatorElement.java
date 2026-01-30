@@ -24,9 +24,13 @@ public enum CellValueOperatorElement {
 	//
 	NOT_IN("NOT IN", ValueMultiplicity.many),
 	//
-	IS_NULL("IS NULL", ValueMultiplicity.none),
+	IS_NULL("= JSON_ARRAY(null)", ValueMultiplicity.none),
 	//
-	IS_NOT_NULL("IS NOT NULL", ValueMultiplicity.none);
+	IS_NOT_NULL("!= JSON_ARRAY(null)", ValueMultiplicity.none),
+	//
+	IS_UNDEFINED("= JSON_ARRAY(0,0)", ValueMultiplicity.none),
+	//
+	IS_DEFINED("!= JSON_ARRAY(0,0)", ValueMultiplicity.none);
 
 	final private String sql;
 	final private ValueMultiplicity valueMultiplicity;

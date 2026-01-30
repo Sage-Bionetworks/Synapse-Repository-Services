@@ -50,6 +50,39 @@ public class LogicalTimestamp implements Comparable<LogicalTimestamp> {
 		return new LogicalTimestamp().setReplicaId(original.getReplicaId())
 				.setSequenceNumber(original.getSequenceNumber());
 	}
+	
+	/**
+	 * Parse a compact string of the form replicaId.sequenceNumber into a LogicalTimestamp.
+	 * @param value the string (e.g. "123.456")
+	 * @return LogicalTimestamp
+	 * @throws IllegalArgumentException if the format or numbers are invalid
+	 */
+	public static LogicalTimestamp parse(String value) {
+		ValidateArgument.required(value, "value");
+		String v = value.trim();
+		int sep = v.indexOf('.');
+		if (sep < 1 || sep == v.length() - 1) {
+			throw new IllegalArgumentException("Expected format 'replicaId.sequenceNumber'");
+		}
+		String replicaPart = v.substring(0, sep);
+		String seqPart = v.substring(sep + 1);
+		try {
+			Long replica = Long.parseLong(replicaPart);
+			Long seq = Long.parseLong(seqPart);
+			return new LogicalTimestamp().setReplicaId(replica).setSequenceNumber(seq);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid number in '" + value + "'", e);
+		}
+	}
+	
+	/**
+	 * Return the compact form `replicaId.sequenceNumber`.
+	 */
+	public String toCompact() {
+		ValidateArgument.required(replicaId, "replicaId");
+		ValidateArgument.required(sequenceNumber, "sequenceNumber");
+		return replicaId + "." + sequenceNumber;
+	}
 
 	@Override
 	public int hashCode() {

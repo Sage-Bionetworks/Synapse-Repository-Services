@@ -23,7 +23,7 @@ public class AgentContextValidatorImpl implements AgentContextValidator {
 	}
 
 	@Override
-	public void validate(UserInfo user, SessionContext context) {
+	public SessionContext validate(UserInfo user, SessionContext context) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(context, "context");
 
@@ -34,7 +34,6 @@ public class AgentContextValidatorImpl implements AgentContextValidator {
 			throw new IllegalArgumentException(
 					"No validator handler found for context type: " + context.getClass().getName());
 		}
-
-		handler.doContextValidation(user, context);
+		return handler.doContextValidation(user, context);
 	}
 }

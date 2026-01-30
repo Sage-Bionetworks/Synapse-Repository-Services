@@ -1,11 +1,32 @@
 package org.sagebionetworks.auth.filter;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Header;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.impl.DefaultClaims;
-import org.joda.time.DateTime;
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.PrintWriter;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,43 +41,18 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.service.auth.AuthenticationService;
 import org.sagebionetworks.repo.web.OAuthErrorCode;
 import org.sagebionetworks.repo.web.OAuthUnauthenticatedException;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Header;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.impl.DefaultClaims;
 
 @ExtendWith({MockitoExtension.class})
 public class AuthenticationFilterTest {
@@ -92,8 +88,6 @@ public class AuthenticationFilterTest {
 	private AuthenticationFilter filter;
 
 	private static final String sessionToken = UUID.randomUUID().toString();
-	private static final String secretKey = "Totally a plain text key :D";
-	private static final String username = "AuthFilter@test.sagebase.org";
 	private static final Long userId = 123456789L;
 	private static final String BEARER_TOKEN;
 	private static final String BEARER_TOKEN_HEADER;
@@ -191,73 +185,8 @@ public class AuthenticationFilterTest {
 	}
 	
 	@Test
-	public void testHmac() throws Exception {
-		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
-		when(mockUserManager.lookupUserByUsernameOrEmail(eq(username))).thenReturn(pa);
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		String timestamp = new DateTime().toString();
-		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		MockFilterChain filterChain = new MockFilterChain();
-		
-		when(oidcTokenManager.createInternalTotalAccessToken(userId)).thenReturn(BEARER_TOKEN);
-
-		// method under test
-		filter.doFilter(request, response, filterChain);
-
-		// Signature should match
-		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
-		HttpServletRequest modRequest = (HttpServletRequest) filterChain.getRequest();
-		assertNotNull(modRequest);
-		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(userId.toString(), passedAlongUsername);
-		assertEquals(AuthenticationMethod.APIKEY.name(), modRequest.getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
-	}
-	
-	@Test
-	public void testMatchHMACSHA1SignatureOutOfDate() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		DateTime dt = new DateTime();
-		dt = dt.minusMinutes(35);
-		String timestamp = dt.toString();
-		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
-		Assertions.assertThrows(UnauthenticatedException.class, ()->{
-			AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
-		});
-	}
-
-	@Test
-	public void testMatchHMACSHA1Signature() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		DateTime dt = new DateTime();
-		dt = dt.minusMinutes(1);
-		String timestamp = dt.toString();
-		signRequest(request, "/foo/bar/baz", username, secretKey, timestamp);
-		AuthenticationFilter.matchHMACSHA1Signature(request, secretKey);
-	}
-
-	/**
-	 * Adds signed headers to the request
-	 */
-	private static void signRequest(MockHttpServletRequest request, String requestURI, String reqUser, String reqKey, String timestamp) throws Exception {
-		request.setRequestURI(requestURI);
-		request.addHeader(AuthorizationConstants.USER_ID_HEADER, reqUser);
-		request.addHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP, timestamp);
-    	String signature = HMACUtils.generateHMACSHA1Signature(reqUser, 
-    			request.getRequestURI(), 
-    			request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP), 
-    			reqKey);
-		request.addHeader(AuthorizationConstants.SIGNATURE, signature);
-	}
-	
-	@Test
 	public void testFilter_validCredentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
@@ -300,9 +229,6 @@ public class AuthenticationFilterTest {
 		requestParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] {"101010101"});
 		when(mockHttpRequest.getParameterMap()).thenReturn(requestParams);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
@@ -323,9 +249,6 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testFilter_invalid_AccessToken() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpResponse.getWriter()).thenReturn(mockPrintWriter);
 
@@ -346,9 +269,6 @@ public class AuthenticationFilterTest {
 	@Test
 	public void testFilter_no_Credentials() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.USER_ID_HEADER)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SIGNATURE)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(null);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.emptyEnumeration());

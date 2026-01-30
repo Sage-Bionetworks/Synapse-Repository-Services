@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
-import org.sagebionetworks.grid.db.ConstantProvider;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
@@ -25,15 +24,13 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 
 	private final GridDao gridDao;
 	private final GridIndexDao gridIndexDao;
-	private final ConstantProvider constantProvider;
 	private final PatchPublisher patchPublisher;
 	private final Map<IntendedChangeType, ChangeHandler<?>> handlers;
 
 	public GridReplicaPatchBuilderManagerImpl(GridDao gridDao, GridIndexDao gridIndexDao, PatchPublisher patchPublisher,
-			List<ChangeHandler<?>> handlers, ConstantProvider constantProvider) {
+			List<ChangeHandler<?>> handlers) {
 		this.gridDao = gridDao;
 		this.gridIndexDao = gridIndexDao;
-		this.constantProvider = constantProvider;
 		this.patchPublisher = patchPublisher;
 		this.handlers = handlers.stream().collect(Collectors.toMap(ChangeHandler::getType, h -> h));
 	}
@@ -71,8 +68,7 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 			LogicalTimestamp currentClock) {
 		// disable constant caching due to PLFM-9192
 		boolean useCaching = false;
-		return new ChangePatchBuilder(patchPublisher, constantProvider, connection, currentClock,
-				PatchUtils.MAX_BYTES_PER_PATCH, useCaching);
+		return new ChangePatchBuilder(patchPublisher, connection, currentClock, PatchUtils.MAX_BYTES_PER_PATCH);
 	}
 
 	void validateChangeSet(IntendedChangeSet changeSet) {

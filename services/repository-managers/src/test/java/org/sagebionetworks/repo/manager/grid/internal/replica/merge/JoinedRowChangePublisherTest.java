@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,9 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
-import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
@@ -65,9 +66,9 @@ public class JoinedRowChangePublisherTest {
 			));
 		
 		rows = List.of(
-			new JoinedRow(new JSONArray("[1,2,3]"), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L)),
-			new JoinedRow(new JSONArray("[2,3,4]"), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L)),
-			new JoinedRow(new JSONArray("[5,6,7]"), null)
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3)), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(1L)),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3), new ConValue(ConType.LONG, 4)), new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(2L)),
+			new JoinedRow(List.of(new ConValue(ConType.LONG, 5), new ConValue(ConType.LONG, 6), new ConValue(ConType.LONG, 7)), null)
 		);
 		
 		mapping = new ColumnMapping[] {
@@ -81,8 +82,8 @@ public class JoinedRowChangePublisherTest {
 
 	@Test
 	public void testProcessJoinedRows() {
-		when(mockGridIndexDao.getArrayLastNode(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
-			.thenReturn(Optional.of(new ArrayNode().setNodeId(mockTimestamp)));
+		when(mockGridIndexDao.getRgaLastNode(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
+			.thenReturn(Optional.of(new RGANode().setNodeId(mockTimestamp)));
 		
 		when(mockConnInfo.getSessionId()).thenReturn(header.getSessionId());
 		when(mockConnInfo.getConnectionId()).thenReturn("connId");

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
+import java.util.List;
+
 import org.springframework.jdbc.core.RowMapper;
 
 /**
@@ -11,9 +13,9 @@ public interface RowMapperSupplier {
 
 	/**
 	 * @param objectIdColumnName The name of the object id column
-	 * @param fileHandleIdColumnName The name of the column where the file handle id(s) are stored
+	 * @param fileHandleIdColumnNames The name of the columns where the file handle id(s) are stored
 	 * @return A row mapper for a {@link ScannedFileHandleAssociation}
 	 */
-	RowMapper<ScannedFileHandleAssociation> getRowMapper(String objectIdColumnName, String fileHandleIdColumnName);
+	RowMapper<ScannedFileHandleAssociation> getRowMapper(String objectIdColumnName, List<String> fileHandleIdColumnNames);
 
 }

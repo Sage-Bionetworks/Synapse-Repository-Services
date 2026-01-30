@@ -158,23 +158,6 @@ public class BasicFileHandleAssociationScannerUnitTest {
 	}
 	
 	@Test
-	public void testInitScannerWithMultipleFileHandleColumn() {
-		
-		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
-				new FieldColumn("id", "ID", true).withIsBackupId(true),
-				new FieldColumn("fileHHandleId", FILE_HANDLE_ID_COLUMN).withHasFileHandleRef(true),
-				new FieldColumn("fileHHandleId2", FILE_HANDLE_ID_COLUMN + "2").withHasFileHandleRef(true)
-		);
-		
-		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {			
-			// Call under test
-			new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping, DEFAULT_BATCH_SIZE, mockRowMapperSupplier);
-		}).getMessage();
-		
-		assertEquals("Only one fileHandleRef is currentlty supported, found 2 for mapping " + mapping.getClass().getName(), errorMessage);
-	}
-	
-	@Test
 	public void testInitScannerWithNoBackupId() {
 		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
 				new FieldColumn("id", "ID", true),
@@ -236,7 +219,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND (`FILE_HANDLE_ID` IS NOT NULL) ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -268,7 +251,39 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND (`FILE_HANDLE_ID` IS NOT NULL) ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
+		
+		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
+		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
+	}
+	
+	@Test
+	public void testScanRangeWithMultipleFileHandleColumns() {
+		TableMapping<Object> mapping = generateMapping("SOME_TABLE", 
+				new FieldColumn("id", "ID", true).withIsBackupId(true),
+				new FieldColumn("fileHandleId", FILE_HANDLE_ID_COLUMN).withHasFileHandleRef(true),
+				new FieldColumn("anotherFileHandleId", "OTHER_FILE_ID").withHasFileHandleRef(true)
+		);
+		
+		when(mockParamaterizedJdbcTemplate.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(
+				// No more restuls
+				Collections.emptyList()
+		);
+				
+		FileHandleAssociationScanner scanner = new BasicFileHandleAssociationScanner(mockParamaterizedJdbcTemplate, mapping);
+		
+		IdRange idRange = new IdRange(1, 3);
+		
+		List<ScannedFileHandleAssociation> result = new ArrayList<>();
+		
+		// Call under test
+		scanner.scanRange(idRange).forEach(result::add);
+		
+		assertEquals(Collections.emptyList(), result);
+		
+		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
+		
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID`, `OTHER_FILE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND (`FILE_HANDLE_ID` IS NOT NULL OR `OTHER_FILE_ID` IS NOT NULL) ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), any(RowMapper.class));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -317,7 +332,7 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		ArgumentCaptor<Map<String, Object>> paramsCaptor = ArgumentCaptor.forClass(Map.class);
 		
-		verify(mockParamaterizedJdbcTemplate, times(3)).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), eq(mockRowMapper));
+		verify(mockParamaterizedJdbcTemplate, times(3)).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND (`FILE_HANDLE_ID` IS NOT NULL) ORDER BY `ID` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), paramsCaptor.capture(), eq(mockRowMapper));
 		
 		assertEquals(idRange.getMinId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MIN_ID));
 		assertEquals(idRange.getMaxId(), paramsCaptor.getAllValues().get(0).get(DMLUtils.BIND_MAX_ID));
@@ -349,8 +364,8 @@ public class BasicFileHandleAssociationScannerUnitTest {
 		
 		assertEquals(Collections.emptyList(), result);
 
-		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND FILE_HANDLE_ID IS NOT NULL ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockRowMapper));
-		verify(mockRowMapperSupplier).getRowMapper("ID", FILE_HANDLE_ID_COLUMN);		
+		verify(mockParamaterizedJdbcTemplate).query(eq("SELECT `ID`, `FILE_HANDLE_ID` FROM SOME_TABLE WHERE `ID` BETWEEN :BMINID AND :BMAXID AND (`FILE_HANDLE_ID` IS NOT NULL) ORDER BY `ID`, `VERSION` LIMIT :KEY_LIMIT OFFSET :KEY_OFFSET"), anyMap(), eq(mockRowMapper));
+		verify(mockRowMapperSupplier).getRowMapper("ID", List.of(FILE_HANDLE_ID_COLUMN));		
 	}
 	
 	@Test

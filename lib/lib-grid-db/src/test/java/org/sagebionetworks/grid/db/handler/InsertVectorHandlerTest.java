@@ -18,6 +18,7 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -73,7 +74,7 @@ public class InsertVectorHandlerTest {
 				new ConstantNode().setId(ids.get(2)).setValue("one"));
 
 		currentVectors = List.of(new VectorNode().setId(ids.get(0)),
-				new VectorNode().setId(ids.get(3)).setValueFromJson("{\"c1\":{\"v\":\"one\",\"i\":[5,6]}}"));
+				new VectorNode().setId(ids.get(3)).setValueFromJson("{\"c1\":{\"v\":[\"one\"],\"i\":[5,6]}}"));
 	}
 
 	@Test
@@ -90,9 +91,13 @@ public class InsertVectorHandlerTest {
 		assertEquals(Set.of(ids.get(0)), changes);
 
 		// only the first changed, so only it should be saved.
-		verify(mockDao).saveVectors(sessionId, replicaId, List.of(new VectorNode().setId(ids.get(0))
-				.setValueFromJson("{\"c2\":{\"v\":111,\"i\":[3,4]},\"c0\":{\"v\":\"one\",\"i\":[5,6]}}")));
+		ArgumentCaptor<List<VectorNode>> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockDao).saveVectors(eq(sessionId), eq(replicaId), captor.capture());
 
+		List<VectorNode> expected = List.of(new VectorNode().setId(ids.get(0))
+				.setValueFromJson("{\"c2\":{\"v\":[111],\"i\":[3,4]},\"c0\":{\"v\":[\"one\"],\"i\":[5,6]}}"));
+
+		assertEquals(expected, captor.getValue());
 	}
 
 	@Test

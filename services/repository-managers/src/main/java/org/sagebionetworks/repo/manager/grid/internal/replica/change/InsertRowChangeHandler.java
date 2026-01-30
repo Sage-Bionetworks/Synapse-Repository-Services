@@ -23,7 +23,7 @@ public class InsertRowChangeHandler implements ChangeHandler<InsertRowChange> {
 
 	@Override
 	public void handleChange(PatchBuilder builder, InsertRowChange change) {
-		JSONArray rowData = change.getRowData();
+		List<ConValue> rowData = change.getRowData();
 		Integer[] rowVectorIndex = change.getRowVectorIndex();
 		
 		// The vector that contains the row data is wrapped into an object as the "data" key value.
@@ -34,14 +34,12 @@ public class InsertRowChangeHandler implements ChangeHandler<InsertRowChange> {
 		
 		// First creates the vector that represents the new row
 		LogicalTimestamp rowVecId = builder.addOperationBuilder(Operations.newVector());
-		Map<Integer, LogicalTimestamp> newVecConstantMap = new HashMap<>(rowData.length());
+		Map<Integer, LogicalTimestamp> newVecConstantMap = new HashMap<>(rowData.size());
 		
-		for (int i = 0; i < rowData.length(); i++) {
-			Object value = rowData.get(i);
+		for (int i = 0; i < rowData.size(); i++) {
+			ConValue value = rowData.get(i);
 			Integer vectorIndex = rowVectorIndex[i];
-			LogicalTimestamp cellConstId = builder.addOperationBuilder(Operations.newConstant().setValue(
-				new ConValue(ConType.fromValue(value), value))
-			);
+			LogicalTimestamp cellConstId = builder.addOperationBuilder(Operations.newConstant().setValue(value));
 			newVecConstantMap.put(vectorIndex, cellConstId);
 		}
 		// Add the data to the vector

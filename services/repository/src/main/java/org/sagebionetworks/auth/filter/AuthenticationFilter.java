@@ -86,21 +86,6 @@ public class AuthenticationFilter implements Filter {
 		
 		Long userId = null;
 
-		if (isSigned(req)) {
-			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
-			try {
-				userId = userManager.lookupUserByUsernameOrEmail(username).getPrincipalId();
-				String secretKey = authenticationService.getSecretKey(userId);
-				matchHMACSHA1Signature(req, secretKey);
-			} catch (UnauthenticatedException | NotFoundException e) {
-				String failureReason = "Invalid HMAC signature";
-				HttpAuthUtil.reject((HttpServletResponse) servletResponse, e.getMessage());
-				log.warn(failureReason, e);
-				return;
-			}
-			accessToken=oidcTokenManager.createInternalTotalAccessToken(userId);
-			authenticationMethod = AuthenticationMethod.APIKEY;
-		} else {
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
@@ -121,7 +106,6 @@ public class AuthenticationFilter implements Filter {
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 			}
-		}
 
 		if (authenticationMethod == null && HttpAuthUtil.usesBasicAuthentication(req)) {
 			authenticationMethod = AuthenticationMethod.BASIC;
@@ -160,41 +144,6 @@ public class AuthenticationFilter implements Filter {
 		if(sessionToken == null) return true;
 		if("".equals(sessionToken.trim())) return true;
 		return false;
-	}
-
-	// One more min than max wait at client
-	private static final long MAX_TIMESTAMP_DIFF_MIN = 31;
-
-	public static boolean isSigned(HttpServletRequest request) {
-		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
-		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
-		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
-		return username != null && date != null && signature != null;
-	}
-
-	/**
-	 * Tries to create the HMAC-SHA1 hash.  If it doesn't match the signature
-	 * passed in then an UnauthorizedException is thrown.
-	 */
-	public static void matchHMACSHA1Signature(HttpServletRequest request, String secretKey) throws UnauthenticatedException {
-		String username = request.getHeader(AuthorizationConstants.USER_ID_HEADER);
-		String uri = request.getRequestURI();
-		String signature = request.getHeader(AuthorizationConstants.SIGNATURE);
-		String date = request.getHeader(AuthorizationConstants.SIGNATURE_TIMESTAMP);
-
-		// Compute the difference between what time this machine thinks it is (in UTC)
-		//   vs. the timestamp in the header of the request (also in UTC)
-		DateTime timeStamp = new DateTime(date); 
-		int timeDiff = Minutes.minutesBetween(new DateTime(), timeStamp).getMinutes();
-
-		if (Math.abs(timeDiff) > MAX_TIMESTAMP_DIFF_MIN) {
-			throw new UnauthenticatedException("Timestamp in request, " + date + ", is out of date.");
-		}
-
-		String expectedSignature = HMACUtils.generateHMACSHA1Signature(username, uri, date, secretKey);
-		if (!expectedSignature.equals(signature)) {
-			throw new UnauthenticatedException("Invalid digital signature: " + signature);
-		}
 	}
 
 	@Override

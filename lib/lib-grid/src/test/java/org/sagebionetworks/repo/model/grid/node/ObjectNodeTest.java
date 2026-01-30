@@ -160,6 +160,32 @@ public class ObjectNodeTest {
 		expected.setValue(value);
 		assertEquals(expected, node);
 	}
+	
+	@Test
+	public void testAttemptInsertWithNewNodeIdLesserThanContainerId() {
+		ObjectNode node = new ObjectNode().setId(ids.get(1));
+		Map<String, LogicalTimestamp> value = new LinkedHashMap<>();
+		value.put("one", ids.get(2));
+		value.put("two", ids.get(3));
+		node.setValue(value);
+
+		Map<String, LogicalTimestamp> changeValue = new LinkedHashMap<>();
+		// The new node ID is less than the container node ID
+		changeValue.put("one", ids.get(0));
+		InsertObject change = new InsertObject(insertOperationId, node.getId(), changeValue);
+
+		// call under test
+		assertFalse(node.attemptInsert(change));
+		
+		ObjectNode expected = new ObjectNode().setId(ids.get(1));
+		
+		value = new LinkedHashMap<>();
+		value.put("one", ids.get(2));
+		value.put("two", ids.get(3));
+		expected.setValue(value);
+		
+		assertEquals(expected, node);
+	}
 
 	@Test
 	public void testAttemptInsertWithWrongId() {

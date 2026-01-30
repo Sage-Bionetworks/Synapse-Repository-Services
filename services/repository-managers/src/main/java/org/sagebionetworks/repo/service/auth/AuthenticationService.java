@@ -49,16 +49,6 @@ public interface AuthenticationService {
 	TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId);
 
 	TermsOfServiceInfo updateTermsOfServiceRequirements(Long userId, TermsOfServiceRequirements request);
-	
-	/**
-	 * Gets the current secret key of the user
-	 */
-	String getSecretKey(Long principalId) throws NotFoundException;
-	
-	/** 
-	 * Invalidates the user's secret key
-	 */
-	void deleteSecretKey(Long principalId) throws NotFoundException;
 
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.

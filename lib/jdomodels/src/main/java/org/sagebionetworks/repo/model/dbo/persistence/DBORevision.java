@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
@@ -69,7 +70,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
 		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL),
 		new FieldColumn("upsertKey", COL_REVISION_UPSERT_KEY),
-		new FieldColumn("csvDescriptor", COL_REVISION_CSV_DESCRIPTOR)
+		new FieldColumn("csvDescriptor", COL_REVISION_CSV_DESCRIPTOR),
+		new FieldColumn("validationResultFileHandleId", COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID).withHasFileHandleRef(true),
 	};
 	
 	private static final TableMapping<DBORevision> TABLE_MAPPING = new TableMapping<DBORevision>(){
@@ -125,6 +127,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private String definingSQL;
 	private String upsertKey;
 	private String csvDescriptor;
+	private Long validationResultFileHandleId;
 	
 	// used for migration only
 
@@ -271,6 +274,14 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		this.csvDescriptor = csvDescriptor;
 	}
 
+	public Long getValidationResultFileHandleId() {
+		return validationResultFileHandleId;
+	}
+	
+	public void setValidationResultFileHandleId(Long validationResultFileHandleId) {
+		this.validationResultFileHandleId = validationResultFileHandleId;
+	}
+	
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.NODE_REVISION;
@@ -311,8 +322,9 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 			&& Arrays.equals(entityPropertyAnnotations, other.entityPropertyAnnotations) && Objects.equals(fileHandleId, other.fileHandleId)
 			&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(items, other.items) && Objects.equals(label, other.label)
 			&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
-			&& Objects.equals(referenceJson, other.referenceJson) && Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds)
-			&& Objects.equals(upsertKey, other.upsertKey) && Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
+			&& Objects.equals(validationResultFileHandleId, other.validationResultFileHandleId) && Objects.equals(referenceJson, other.referenceJson)
+			&& Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds) && Objects.equals(upsertKey, other.upsertKey)
+			&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
 	@Override
@@ -323,7 +335,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(scopeIds);
 		result = prime * result + Objects.hash(activityId, comment, csvDescriptor, definingSQL, description, fileHandleId, isSearchEnabled, items, label, modifiedBy, modifiedOn,
-			owner, referenceJson, revisionNumber, upsertKey, userAnnotationsJSON);
+			owner, validationResultFileHandleId, referenceJson, revisionNumber, upsertKey, userAnnotationsJSON);
 		return result;
 	}
 
@@ -333,6 +345,6 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 			+ description + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds)
 			+ ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", referenceJson="
 			+ referenceJson + ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + ", upsertKey=" + upsertKey
-			+ ", csvDescriptor=" + csvDescriptor + "]";
+			+ ", csvDescriptor=" + csvDescriptor + ", validationResultFileHandleId=" + validationResultFileHandleId + "]";
 	}
 }

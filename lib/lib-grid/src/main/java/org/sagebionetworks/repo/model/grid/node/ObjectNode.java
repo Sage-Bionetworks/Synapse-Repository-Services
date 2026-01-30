@@ -96,7 +96,12 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 			if (changeId == null) {
 				throw new IllegalArgumentException("Cannot set an object value to null");
 			}
+			// The ID of the new value must be greater than the container node (to avoid circular references), otherwise the insertion is ignored (See https://sagebionetworks.jira.com/browse/PLFM-9273).
+			if (changeId.compareTo(this.id) <= 0) {
+				continue;
+			}
 			LogicalTimestamp thisId = this.value.get(key);
+			// The ID of the new value must be greater than the logical clock of the current value, otherwise the insertion is ignored.
 			if (thisId == null || changeId.compareTo(thisId) > 0) {
 				this.value.put(key, LogicalTimestamp.clone(changeId));
 				wasChanged = true;

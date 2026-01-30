@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -400,6 +401,30 @@ public class AdministrationController {
 	public @ResponseBody void removeQuarantinedEmail(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody ExpireQuarantinedEmailRequest request)
 			throws NotFoundException, UnauthorizedException {
 		serviceProvider.getAdministrationService().expireQuarantinedEmail(userId, request);
+	}
+
+	/**
+	 * Create a new realm.  The client may only specify the name and the list of identity providers.
+	 * @param realm
+	 * @return
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ADMIN_REALM, method = RequestMethod.POST)
+	@ResponseBody
+	public Realm createRealm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody Realm realm) {
+		return serviceProvider.getAdministrationService().createRealm(userId, realm);
+	}
+
+	/**
+	 * Delete a realm.
+	 * @param realmId
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_REALM_ID, method = RequestMethod.DELETE)
+	public void deleteRealm(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable("id") String id) {
+		serviceProvider.getAdministrationService().deleteRealm(userId, id);
 	}
 
 }

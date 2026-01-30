@@ -114,7 +114,7 @@ public interface GridManager extends PatchStore {
 	 * @return
 	 */
 	Optional<GridConnectionInfo> getSingletonConnection(String sessionId, EventSource source);
-	
+
 	/**
 	 * 
 	 * @param sessionId
@@ -134,7 +134,7 @@ public interface GridManager extends PatchStore {
 	 *         before.
 	 */
 	boolean savePatch(EventContext context, LogicalTimestamp patchId, String body);
-	
+
 	/**
 	 * List the active connections for a grid session.
 	 * 
@@ -158,6 +158,15 @@ public interface GridManager extends PatchStore {
 
 	Optional<GridConnectionInfo> getConnectionInfoOptional(String connectionId);
 
+	/**
+	 * Create a new Agent replica that can be used to update the grid.
+	 * 
+	 * @param user
+	 * @param session
+	 * @return
+	 */
+	GridReplica createAgentReplica(UserInfo user, GridSession session);
 
+	Optional<GridConnectionInfo> getConnection(String gridSessionId, Long agentsReplicaId);
 
 }

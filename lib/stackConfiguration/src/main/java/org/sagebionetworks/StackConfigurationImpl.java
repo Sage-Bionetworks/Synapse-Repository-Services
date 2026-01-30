@@ -306,13 +306,6 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	/**
-	 * @return The API key of the migration admin
-	 */
-	public String getMigrationAdminAPIKey() {
-		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
-	}
-
-	/**
 	 * @return whether controller logging is enabled or not.
 	 */
 	public boolean getControllerLoggingEnabled() {
@@ -780,6 +773,33 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public String getOAuth2GoogleDiscoveryDocument() {
 		return configuration.getProperty("org.sagebionetworks.oauth2.google.discoveryDocument");
+	}
+	
+	/**
+	 * OIDC Client ID for Arcus Bio Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2ArcusBioClientId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.arcusbio.client.id");
+	}
+
+	/**
+	 * OIDC Client Secret for Arcus Bio Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2ArcusBioClientSecret() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.arcusbio.client.secret");
+	}
+
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document
+	 * @return
+	 */
+	@Override
+	public String getOAuth2ArcusBioDiscoveryDocument() {
+		return configuration.getProperty("org.sagebionetworks.oauth2.arcusbio.discoveryDocument");
 	}
 	
 	/**

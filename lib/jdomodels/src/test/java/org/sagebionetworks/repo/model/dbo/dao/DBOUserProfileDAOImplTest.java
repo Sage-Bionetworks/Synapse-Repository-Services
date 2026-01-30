@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -77,10 +78,12 @@ public class DBOUserProfileDAOImplTest {
 		principal = new UserGroup();
 		principal.setIsIndividual(true);
 		principal.setCreationDate(new Date());
+		principal.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		principal.setId(userGroupDAO.create(principal).toString());
 		principal2 = new UserGroup();
 		principal2.setIsIndividual(true);
 		principal2.setCreationDate(new Date());
+		principal2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		principal2.setId(userGroupDAO.create(principal2).toString());
 		toDelete = new LinkedList<String>();
 		principalToDelete = new ArrayList<UserGroup>();
@@ -88,6 +91,7 @@ public class DBOUserProfileDAOImplTest {
 			UserGroup individualGroup = new UserGroup();
 			individualGroup.setIsIndividual(true);
 			individualGroup.setCreationDate(new Date());
+			individualGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 			principalToDelete.add(individualGroup);
 		}

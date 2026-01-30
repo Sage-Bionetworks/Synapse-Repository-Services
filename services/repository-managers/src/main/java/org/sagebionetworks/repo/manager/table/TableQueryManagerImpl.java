@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
 import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -207,7 +208,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	QueryTranslations queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options)
+	QueryTranslations queryPreflight(UserInfo user, Query query, Long maxBytesPerPage, QueryOptions options, ACCESS_TYPE...types)
 			throws EmptyResultException, NotFoundException, TableUnavailableException, TableFailedException {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(query, "Query");
@@ -232,7 +233,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		for(QuerySpecification qs: preprocessedModel.createIterable(QuerySpecification.class)) {
 			// 4. Add row level filter as needed.
 			// Table views must have a row level filter applied to the query
-			addRowLevelFilter(user, qs);
+			addRowLevelFilter(user, qs, types);
 		}
 
 		QueryContext expansion = QueryContext.builder()
@@ -550,14 +551,14 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	
 	@Override
 	public QueryResultBundle runQueryAsStream(ProgressCallback progressCallback, UserInfo user, Query request,
-			RowHandlerProvider provider) throws TableUnavailableException, NotFoundException, TableFailedException,
+			RowHandlerProvider provider, ACCESS_TYPE...types) throws TableUnavailableException, NotFoundException, TableFailedException,
 			LockUnavilableException, IOException {
 		try {
 			QueryOptions options = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true)
 					.withRunCount(false).withReturnFacets(false);
 			// there is no limit to the size
 			Long maxBytes = null;
-			final QueryTranslations query = queryPreflight(user, request, maxBytes, options);
+			final QueryTranslations query = queryPreflight(user, request, maxBytes, options, types);
 			try(RowHandler handler = provider.getHandler(query)){
 				return queryAfterAuthorization(progressCallback, user, query, options,
 						new StreamingQueryExecutor(handler));
@@ -773,7 +774,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	void addRowLevelFilter(UserInfo user, QuerySpecification query)
+	void addRowLevelFilter(UserInfo user, QuerySpecification query, ACCESS_TYPE...types)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
 		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
@@ -793,7 +794,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				tableBenefactors = Collections.emptySet();
 			}
 
-			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors);
+			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors, types);
 
 			buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
 		}

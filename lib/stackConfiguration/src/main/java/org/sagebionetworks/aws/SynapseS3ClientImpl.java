@@ -181,6 +181,20 @@ public class SynapseS3ClientImpl implements SynapseS3Client {
 	}
 
 	@Override
+	public boolean doesBucketExist(String bucketName) throws SdkClientException {
+		try {
+			HeadBucketRequest request = new HeadBucketRequest(bucketName);
+			HeadBucketResult result = getUSStandardAmazonClient().headBucket(request);
+			return true;
+		} catch (AmazonS3Exception e) {
+			if (e.getStatusCode() == 404) {
+				return false;
+			}
+			throw e;
+		}
+	}
+
+	@Override
 	public boolean doesObjectExist(String bucketName, String objectName)
 			throws AmazonServiceException, SdkClientException {
 		return getS3ClientForBucket(bucketName).doesObjectExist( bucketName,  objectName);

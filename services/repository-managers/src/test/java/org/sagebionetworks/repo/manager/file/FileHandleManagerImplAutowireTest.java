@@ -403,7 +403,9 @@ public class FileHandleManagerImplAutowireTest {
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
-		s3Client.createBucket(externalS3LocationSetting.getBucket());
+		if (! s3Client.doesBucketExist(externalS3LocationSetting.getBucket())) {
+			s3Client.createBucket(externalS3LocationSetting.getBucket());
+		}
 
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();

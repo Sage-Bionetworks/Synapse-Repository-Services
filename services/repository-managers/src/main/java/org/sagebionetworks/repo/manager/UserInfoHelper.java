@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -18,8 +20,7 @@ public class UserInfoHelper {
 	}
 	
 	public static UserInfo createAnonymousUserInfo() {
-		UserInfo result = new UserInfo(false);
-		result.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo result = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
 		
 		Set<Long> groups = new HashSet<Long>();
 		// Everyone belongs to their own group and to Public

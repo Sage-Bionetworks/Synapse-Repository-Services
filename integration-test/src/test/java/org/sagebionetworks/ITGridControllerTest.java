@@ -33,7 +33,11 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.BatchFileRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
+import org.sagebionetworks.repo.model.file.FileResult;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -221,12 +225,30 @@ public class ITGridControllerTest {
 				GridRecordSetExportResponse r = (GridRecordSetExportResponse) body;
 				assertTrue(r.getRecordSetVersionNumber() > currentVersion);
 				assertNotNull(r.getValidationSummaryStatistics());
+				assertNotNull(r.getValidationFileHandleId());
 		}, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
 		
 		recordSet = synapse.getEntity(recordSet.getId(), RecordSet.class);
 		
 		assertNotEquals(currentVersion, recordSet.getVersionNumber());
 		assertNotEquals(currentFileHandleId, recordSet.getDataFileHandleId());
+		assertNotNull(recordSet.getValidationSummary());
+		assertNotNull(recordSet.getValidationFileHandleId());
+		
+		// Verify we can download the validation file
+		List<FileResult> res = synapse.getFileHandleAndUrlBatch(new BatchFileRequest()
+			.setIncludePreviewPreSignedURLs(false)
+			.setIncludeFileHandles(false)
+			.setIncludePreSignedURLs(true)
+			.setRequestedFiles(List.of(new FileHandleAssociation()
+				.setAssociateObjectId(recordSet.getId())
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setFileHandleId(recordSet.getValidationFileHandleId())
+			))
+		).getRequestedFiles();
+		
+		assertEquals(1, res.size());
+		assertNotNull(res.get(0).getPreSignedURL());
     }
 
     private TableEntity createTableForInitialGrid() throws Exception {

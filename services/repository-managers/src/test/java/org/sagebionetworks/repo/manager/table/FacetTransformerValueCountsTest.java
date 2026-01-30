@@ -12,10 +12,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -23,6 +26,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
+import org.sagebionetworks.repo.model.table.FacetColumnSortConfig;
+import org.sagebionetworks.repo.model.table.FacetColumnSortDirection;
+import org.sagebionetworks.repo.model.table.FacetColumnSortProperty;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
 import org.sagebionetworks.repo.model.table.JsonSubColumnModel;
@@ -58,7 +64,9 @@ public class FacetTransformerValueCountsTest {
 	private ColumnModel stringModel;
 	private ColumnModel stringListModel;
 	private ColumnModel jsonColumnModel;
+	private FacetColumnSortConfig facetSortConfig;
 	private Long userId;
+	
 	
 	@Mock
 	private SchemaProvider mockSchemaProvider;
@@ -103,7 +111,6 @@ public class FacetTransformerValueCountsTest {
 		facets.add(new FacetRequestColumnModel(schema.get(0), valuesRequest));//use column "i0"
 
 		userId = 1L;
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 
 		originalSearchCondition = "\"stringColumn\" LIKE 'asdf%'";
 		
@@ -119,14 +126,42 @@ public class FacetTransformerValueCountsTest {
 		SelectColumn col2 = new SelectColumn();
 		col2.setName(FacetTransformerValueCounts.COUNT_ALIAS);
 		correctSelectList = Lists.newArrayList(col1, col2);
+		
+		facetSortConfig = FacetTransformerValueCounts.DEFAULT_SORT_CONFIG;
 	}
+	
+	static Stream<FacetColumnSortConfig> facetColumnSortConfigFactory(){
+		return Arrays.stream(FacetColumnSortProperty.values())
+			.flatMap(property -> Arrays.stream(FacetColumnSortDirection.values())
+				.map(new FacetColumnSortConfig().setProperty(property)::setDirection)
+			);
+	}
+	
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGetOrderBy(FacetColumnSortConfig sortConfig) {
+		String expected = null;
+		
+		if (sortConfig.getProperty() == FacetColumnSortProperty.FREQUENCY) {
+			expected = "frequency " + sortConfig.getDirection() + ", value ASC";
+		} else if (sortConfig.getProperty() == FacetColumnSortProperty.VALUE) {
+			expected = "value " + sortConfig.getDirection();
+		} else {
+			throw new IllegalArgumentException("Unknown FacetColumnSortProperty: " + sortConfig.getProperty());
+		}
+		
+		assertEquals(expected, FacetTransformerValueCounts.getOrderBy(sortConfig));
+	}
+	
 	/////////////////////////////////
 	// constructor tests()
 	/////////////////////////////////
 	
 	@Test
 	public void testConstructor() {
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		assertEquals(stringModel.getName(), ReflectionTestUtils.getField(facetTransformer, "columnName"));
 		assertEquals(facets, ReflectionTestUtils.getField(facetTransformer, "facets"));
@@ -137,19 +172,33 @@ public class FacetTransformerValueCountsTest {
 		assertNotNull(ReflectionTestUtils.getField(facetTransformer, "generatedFacetSqlQuery"));
 	}
 	
+	@Test
+	public void testConstructorWithDefaultSortConfig() {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		
+		facetSortConfig = null;
+		
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		
+		assertEquals(FacetTransformerValueCounts.DEFAULT_SORT_CONFIG, ReflectionTestUtils.getField(facetTransformer, "sortConfig"));
+	}
+	
 	/////////////////////////////////
 	// generateFacetSqlQuery tests()
 	/////////////////////////////////
-	@Test
-	public void testGenerateFacetSqlQuery(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQuery(FacetColumnSortConfig facetSortConfig) {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT \"stringColumn\" AS value, COUNT(*) AS frequency"
 				+ " FROM syn123"
 				+ " WHERE \"stringColumn\" LIKE 'asdf%'"
 				+ " GROUP BY \"stringColumn\""
-				+ " ORDER BY frequency DESC, value ASC"
+				+ " ORDER BY " + FacetTransformerValueCounts.getOrderBy(facetSortConfig)
 				+ " LIMIT 500";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
 		
@@ -157,9 +206,10 @@ public class FacetTransformerValueCountsTest {
 		//because it is handled by SqlQuery Constructor
 	}
 	
-	@Test
-	public void testGenerateFacetSqlQueryWithCTE() throws ParseException{
-		
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQueryWithCTE(FacetColumnSortConfig facetSortConfig) throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
 		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
@@ -169,19 +219,22 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1 where stringColumn like 'foo%') select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
-				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
+				+ " GROUP BY _C1_ ORDER BY "
+				+ FacetTransformerValueCounts.getOrderBy(facetSortConfig)
+				+ " LIMIT :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 	
-	@Test
-	public void testGenerateFacetSqlQueryWithDefiningWhere() throws ParseException{
-		
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQueryWithDefiningWhere(FacetColumnSortConfig facetSortConfig) throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
 		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
@@ -191,19 +244,22 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2 defining_where stringColumn like 'foo%'").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1 WHERE _C1_ LIKE :b1)"
 				+ " SELECT _C1_ AS value, COUNT(*) AS frequency FROM T2"
-				+ " GROUP BY _C1_ ORDER BY frequency DESC, value ASC LIMIT :b0";
+				+ " GROUP BY _C1_ ORDER BY "
+				+ FacetTransformerValueCounts.getOrderBy(facetSortConfig)
+				+ " LIMIT :b0";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("foo%", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 	
-	@Test
-	public void testGenerateFacetSqlQueryWithCTEAndSelectedFacet() throws ParseException{
-		
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQueryWithCTEAndSelectedFacet(FacetColumnSortConfig facetSortConfig) throws ParseException{
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		when(mockLookup.getIndexDescription(any())).thenReturn(new TableIndexDescription(IdAndVersion.parse("syn1")));
 		VirtualTableIndexDescription vtid = new VirtualTableIndexDescription(IdAndVersion.parse("syn2"), "select * from syn1", mockLookup);
 		dependencies = TranslationDependencies.builder().setSchemaProvider(mockSchemaProvider)
@@ -213,43 +269,52 @@ public class FacetTransformerValueCountsTest {
 		
 		originalQuery = new TableQueryParser("with syn2 as (select * from syn1) select * from syn2").queryExpression();
 		// call under test
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		String expectedString = "WITH T2 (_C1_, _C2_, _C3_) AS (SELECT _C1_, _C2_, _C3_ FROM T1)"
 				+ " SELECT _C2_ AS value, COUNT(*) AS frequency FROM T2 WHERE ( ( _C1_ = :b0 ) )"
-				+ " GROUP BY _C2_ ORDER BY frequency DESC, value ASC LIMIT :b1";
+				+ " GROUP BY _C2_ ORDER BY "
+				+ FacetTransformerValueCounts.getOrderBy(facetSortConfig)
+				+ " LIMIT :b1";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("selectedValue", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 	}
 
-	@Test
-	public void testGenerateFacetSqlQueryWithListTypes(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), null, null, true, facets, originalQuery, dependencies, selectedValuesSet);
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQueryWithListTypes(FacetColumnSortConfig facetSortConfig){
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringListModel.getName(), facetSortConfig, null, null, true, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT T123_INDEX_C2_._C2__UNNEST AS value, COUNT(*) AS frequency "
 				+ "FROM T123 LEFT JOIN JSON_TABLE(T123._C2_, '$[*]' COLUMNS(_C2__UNNEST VARCHAR(50) PATH '$' ERROR ON ERROR)) AS T123_INDEX_C2_ ON TRUE "
 				+ "WHERE ( _C1_ LIKE :b0 ) AND ( ( ( _C1_ = :b1 ) ) ) "
-				+ "GROUP BY T123_INDEX_C2_._C2__UNNEST ORDER BY frequency DESC, value ASC LIMIT :b2";
+				+ "GROUP BY T123_INDEX_C2_._C2__UNNEST ORDER BY "
+				+ FacetTransformerValueCounts.getOrderBy(facetSortConfig)
+				+ " LIMIT :b2";
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getOutputSQL());
 		assertEquals("asdf%", facetTransformer.getFacetSqlQuery().getParameters().get("b0"));
 		assertEquals("selectedValue", facetTransformer.getFacetSqlQuery().getParameters().get("b1"));
 		assertEquals(500L, facetTransformer.getFacetSqlQuery().getParameters().get("b2"));
 	}
 
-	@Test
-	public void testGenerateFacetSqlQueryWithJsonPath(){
+	@ParameterizedTest
+	@MethodSource("facetColumnSortConfigFactory")
+	public void testGenerateFacetSqlQueryWithJsonPath(FacetColumnSortConfig facetSortConfig){
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		JsonSubColumnModel subColumn = jsonColumnModel.getJsonSubColumns().get(0);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		//check the non-transformed sql
 		String expectedString = "SELECT JSON_EXTRACT(\"jsonColumn\",'$.a') AS value, COUNT(*) AS frequency"
 				+ " FROM syn123"
 				+ " WHERE ( \"stringColumn\" LIKE 'asdf%' ) AND ( ( ( \"stringColumn\" = 'selectedValue' ) ) )"
 				+ " GROUP BY JSON_EXTRACT(\"jsonColumn\",'$.a')"
-				+ " ORDER BY frequency DESC, value ASC"
+				+ " ORDER BY "
+				+ FacetTransformerValueCounts.getOrderBy(facetSortConfig)
 				+ " LIMIT 500";
 		
 		assertEquals(expectedString, facetTransformer.getFacetSqlQuery().getInputSql());
@@ -260,7 +325,8 @@ public class FacetTransformerValueCountsTest {
 	////////////////////////////
 	@Test
 	public void testTranslateToResultNullRowSet(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 		assertThrows(IllegalArgumentException.class, ()->{
 			facetTransformer.translateToResult(null);
 		});
@@ -268,7 +334,8 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test
 	public void testTranslateToResultWrongHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		rowSet.setHeaders(Collections.emptyList());
 
@@ -279,7 +346,8 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultNullValueColumn(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		rowSet.setHeaders(correctSelectList);
@@ -304,7 +372,8 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultCorrectHeaders(){
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(stringModel.getName(), facetSortConfig, null, null, false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;
@@ -330,9 +399,10 @@ public class FacetTransformerValueCountsTest {
 	
 	@Test 
 	public void testTranslateToResultWithJsonPath(){
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(schema);
 		JsonSubColumnModel subColumn = jsonColumnModel.getJsonSubColumns().get(0);
 		
-		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet);
+		FacetTransformerValueCounts facetTransformer = new FacetTransformerValueCounts(jsonColumnModel.getName(), facetSortConfig, subColumn.getJsonPath(), subColumn.getColumnType(), false, facets, originalQuery, dependencies, selectedValuesSet);
 
 		Long row1Count = 42L;
 		Long row2Count = 23L;
@@ -357,5 +427,7 @@ public class FacetTransformerValueCountsTest {
 		assertEquals(expected, result);
 
 	}
+	
+	
 	
 }

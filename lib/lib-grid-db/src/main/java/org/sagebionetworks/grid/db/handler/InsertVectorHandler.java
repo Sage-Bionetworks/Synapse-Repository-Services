@@ -49,8 +49,7 @@ public class InsertVectorHandler implements OperationHandler<InsertVector> {
 		List<VectorNode> changes = batch.stream().map(i -> {
 			VectorNode n = new VectorNode().setId(i.getVectorId()).setValues(new LinkedHashMap<>());
 			for (Entry<Integer, LogicalTimestamp> e : i.getMap().entrySet()) {
-				String columnKey = String.format("c%s", e.getKey());
-				n.getValues().put(columnKey, constants.get(e.getValue()));
+				n.getValues().put(e.getKey(), constants.get(e.getValue()));
 			}
 			return n;
 		}).collect(Collectors.toList());

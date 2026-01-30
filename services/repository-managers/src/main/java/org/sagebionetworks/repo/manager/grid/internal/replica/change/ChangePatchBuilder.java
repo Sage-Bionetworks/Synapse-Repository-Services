@@ -2,12 +2,8 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 import org.json.JSONArray;
-import org.sagebionetworks.grid.db.ConstantProvider;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
@@ -21,24 +17,18 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 	private static final int EMPTY_PATCH_SIZE_BYTES = 100;
 
 	private final PatchPublisher patchPublisher;
-	private final ConstantProvider constantProvider;
 	private final GridConnectionInfo connection;
 	private final Long maxBytesPerPatch;
-	private final boolean useCaching;
 	private int currentPatchSize;
 	private Patch currentPatch;
-	private final Map<String, LogicalTimestamp> constantCache;
 
-	public ChangePatchBuilder(PatchPublisher patchPublisher, ConstantProvider constantProvider,
-			GridConnectionInfo connection, LogicalTimestamp currentClock, Long maxBytesPerPatch, boolean useCaching) {
+	public ChangePatchBuilder(PatchPublisher patchPublisher, GridConnectionInfo connection,
+			  LogicalTimestamp currentClock, Long maxBytesPerPatch) {
 		this.patchPublisher = patchPublisher;
-		this.constantProvider = constantProvider;
 		this.connection = connection;
 		this.maxBytesPerPatch = maxBytesPerPatch;
-		this.constantCache = new HashMap<>();
 		this.currentPatch = new Patch().setPatchId(LogicalTimestamp.newIncrement(currentClock, 1));
 		this.currentPatchSize = EMPTY_PATCH_SIZE_BYTES;
-		this.useCaching = useCaching;
 	}
 
 	@Override
@@ -54,29 +44,8 @@ public class ChangePatchBuilder implements Closeable, PatchBuilder {
 
 	LogicalTimestamp addConstantOperation(NewConstantBuilder builder) {
 		ValidateArgument.required(builder.getValue(), "builder.value");
-		String jsonValue = builder.getValue().toJson();
-		
-		if(useCaching) {
-			// Return cached constant if exists
-			if (constantCache.containsKey(jsonValue)) {
-				return constantCache.get(jsonValue);
-			}
-
-			// Check database for existing constant
-			Optional<LogicalTimestamp> existing = constantProvider.findExistingConstant(connection.getSessionId(),
-					connection.getReplicaId(), jsonValue);
-
-			if (existing.isPresent()) {
-				constantCache.put(jsonValue, existing.get());
-				return existing.get();
-			}
-		}
-
 		// Add new constant to patch
 		LogicalTimestamp timestamp = addToPatch(builder);
-		if(useCaching) {
-			constantCache.put(jsonValue, timestamp);
-		}
 		return timestamp;
 	}
 

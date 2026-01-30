@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
@@ -85,6 +86,10 @@ public class TableQueryUtils {
 		} else {
 			throw new IllegalArgumentException("Unknown request body type: " + body.getClass());
 		}
+	}
+	
+	public static IdAndVersion getTableIdFromRequestBodyAsIdAndVersion(CacheableRequestBody body) {
+		return IdAndVersion.parse(getTableIdFromRequestBody(body));
 	}
 	
 	/**

@@ -1,0 +1,25 @@
+{
+	"description": "Security realm for partitioning principals and resources",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "Unique identifier of the realm"
+		},
+		"name": {
+			"type": "string",
+			"description": "Unique name of the realm"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this realm was created."
+		},
+		"identityProvider":{
+			"type": "array",
+			"description": "Identity providers which may be used in the realm. No two realms may share an identity provider.",
+			"items":{
+				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider"
+			}
+		}
+	}
+}

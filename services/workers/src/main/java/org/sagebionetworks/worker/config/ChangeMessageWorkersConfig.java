@@ -1,6 +1,10 @@
 package org.sagebionetworks.worker.config;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageBatchProcessor;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
@@ -11,7 +15,6 @@ import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWo
 import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.search.oss.worker.SearchIndexWorker;
-import org.sagebionetworks.search.workers.sqs.search.SearchQueueWorker;
 import org.sagebionetworks.snapshot.workers.ObjectSnapshotWorker;
 import org.sagebionetworks.snapshot.workers.writers.ObjectRecordWriter;
 import org.sagebionetworks.table.worker.MaterializedViewUpdateWorker;
@@ -26,10 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import com.amazonaws.services.sqs.AmazonSQSClient;
 
 /**
  * Configuration for workers that are driven by change messages
@@ -216,29 +216,6 @@ public class ChangeMessageWorkersConfig {
 			.withStartDelay(39)
 			.build();
 		
-	}
-	
-	@Bean
-	public SimpleTriggerFactoryBean searchQueueMessageReveiverTrigger(SearchQueueWorker searchQueueWorker) {
-		
-		String queueName = stackConfig.getQueueName("SEARCH_UPDATE");
-		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, searchQueueWorker);
-		
-		return new WorkerTriggerBuilder()
-			.withStack(ConcurrentWorkerStack.builder()
-				.withSemaphoreLockKey("searchIndexWorker")
-				.withSemaphoreMaxLockCount(8)
-				.withSemaphoreLockAndMessageVisibilityTimeoutSec(600)
-				.withMaxThreadsPerMachine(2)
-				.withSingleton(concurrentStackManager)
-				.withCanRunInReadOnly(true)
-				.withQueueName(queueName)
-				.withWorker(worker)
-				.build()
-			)
-			.withRepeatInterval(2007)
-			.withStartDelay(256)
-			.build();
 	}
 
 	@Bean

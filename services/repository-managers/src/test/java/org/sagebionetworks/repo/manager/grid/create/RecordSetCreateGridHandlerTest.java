@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.json.JSONArray;
@@ -35,6 +36,7 @@ import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
 import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -51,6 +53,7 @@ import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -88,6 +91,9 @@ public class RecordSetCreateGridHandlerTest {
 	
 	@Mock
 	private CsvFileHandleProvider mockCsvProvider;
+
+	@Mock
+	private JsonSchemaManager mockJsonSchemaManager;
 
 	@Captor
 	private ArgumentCaptor<String> patchCaptor;
@@ -154,6 +160,7 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockAuthorizationManager.hasAccess(mockUser, recordSet.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.of(
 				new JsonSchemaObjectBinding().setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id))));
+		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(new JsonSchema().setRequired(List.of("bar")));
 
 		gridSession = new GridSession().setSessionId(gridSessionId);
 
@@ -170,7 +177,7 @@ public class RecordSetCreateGridHandlerTest {
 		doReturn(csvSchema).when(handler).getSchemaFromCsv(csvFile, csvDescriptor);
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getPatchRowHandler(mockPatchStore, gridSession, replica, csvSchema,
-				maxRowSize);
+				maxRowSize, List.of(1));
 
 		when(mockCsvReader.readNext()).thenReturn(new String[] { "foo", "bar" }, new String[] { "1", "one" },
 				new String[] { "2", "two" }, new String[] { null, "three" }, null);
@@ -213,7 +220,7 @@ public class RecordSetCreateGridHandlerTest {
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 
 		doReturn(mockRowHandler).when(handler).getPatchRowHandler(mockPatchStore, gridSession, replica, csvSchema,
-				maxRowSize);
+				maxRowSize, List.of());
 
 		when(mockCsvReader.readNext()).thenReturn(new String[] { "foo", "bar" }, new String[] { "1", "one" },
 				new String[] { "2", "two" }, new String[] { null, "three" }, null);
@@ -258,7 +265,7 @@ public class RecordSetCreateGridHandlerTest {
 		doReturn(csvSchema).when(handler).getSchemaFromCsv(csvFile, csvDescriptor);
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getPatchRowHandler(mockPatchStore, gridSession, replica, csvSchema,
-				maxRowSize);
+				maxRowSize, List.of());
 
 		when(mockCsvReader.readNext()).thenReturn(new String[] { "foo", "bar" }, new String[] { "1", "one" },
 				new String[] { "2", "two" }, new String[] { null, "three" }, null);
@@ -301,7 +308,7 @@ public class RecordSetCreateGridHandlerTest {
 		doReturn(csvSchema).when(handler).getSchemaFromCsv(csvFile, csvDescriptor);
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getPatchRowHandler(mockPatchStore, gridSession, replica, csvSchema,
-				maxRowSize);
+				maxRowSize, List.of());
 
 		when(mockCsvReader.readNext()).thenThrow(ioe);
 
@@ -359,7 +366,7 @@ public class RecordSetCreateGridHandlerTest {
 
 		// Call under test
 		PatchRowHandler patchHandler = handler.getPatchRowHandler(mockPatchStore, gridSession, replica, csvSchema,
-				maxRowSize);
+				maxRowSize, List.of());
 
 		assertNotNull(patchHandler);
 

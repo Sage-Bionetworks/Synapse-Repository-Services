@@ -11,6 +11,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER;
 
 import java.util.Collections;
 import java.util.Date;
@@ -29,7 +31,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.message.MessageTemplate;
 import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -121,7 +122,7 @@ public class NotificationManagerImplTest {
 			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withSender(new UserInfo(true, THE_ADMIN_USER.getPrincipalId(), DEFAULT_REALM_ID))
 			.withRecipients(Collections.singleton(user.getId().toString()))
 			.withTemplateFile(template)
 			.withSubject(subject)
@@ -147,7 +148,7 @@ public class NotificationManagerImplTest {
 			.withIncludeProfileSettingLink(false)
 			.withIncludeUnsubscribeLink(false)
 			.withIgnoreNotificationSettings(true)
-			.withSender(new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()))
+			.withSender(new UserInfo(true, THE_ADMIN_USER.getPrincipalId(), DEFAULT_REALM_ID))
 			.withRecipients(Collections.singleton(user.getId().toString()))
 			.withTemplateFile(template)
 			.withSubject(subject)

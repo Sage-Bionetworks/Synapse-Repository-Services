@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -39,7 +40,8 @@ public class PrincipalOIDCBindingDaoImplTest {
 	@BeforeEach
 	public void before() {
 		dao.truncateAll();
-		Long principalId = userGroupDao.create(new UserGroup().setCreationDate(new Date()).setIsIndividual(true));
+		Long principalId = userGroupDao.create(new UserGroup().
+				setCreationDate(new Date()).setIsIndividual(true).setRealmId(AuthorizationConstants.DEFAULT_REALM_ID));
 		alias = aliasDao.bindAliasToPrincipal(new PrincipalAlias().setAlias(UUID.randomUUID().toString() + "@gmail.com").setType(AliasType.USER_EMAIL).setPrincipalId(principalId));
 	}
 
@@ -51,16 +53,21 @@ public class PrincipalOIDCBindingDaoImplTest {
 	
 	@Test
 	public void testBindPrincipalToSubjectAndFind() {
-		
+
 		String subject = "subject";
-		
-		// Call under test
-		dao.bindPrincipalToSubject(alias.getPrincipalId(), alias.getAliasId(), OAuthProvider.GOOGLE_OAUTH_2_0, subject);
-		
-		PrincipalOidcBinding binding = dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).get();
-		
-		assertEquals(alias.getPrincipalId(), binding.getUserId());
-		assertEquals(alias.getAliasId(), binding.getAliasId());
+
+		// Note we try all providers in the OAuthProvider enum to ensure that they are in the DB schema:
+		for (OAuthProvider provider : OAuthProvider.values()) {
+
+			// Call under test
+			dao.bindPrincipalToSubject(alias.getPrincipalId(), alias.getAliasId(), provider, subject);
+
+			PrincipalOidcBinding binding = dao.findBindingForSubject(provider, subject).get();
+
+			assertEquals(alias.getPrincipalId(), binding.getUserId());
+			assertEquals(alias.getAliasId(), binding.getAliasId());
+
+		}
 	}
 	
 	@Test

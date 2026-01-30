@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
@@ -149,6 +150,15 @@ public class TableQueryUtilsTest {
 		String requestTableId = TableQueryUtils.getTableIdFromRequestBody(downloadRequest);
 		assertEquals(tableId, requestTableId);
 	}
+	
+	
+	@Test
+	public void testGetTableIdFromRequestBodyAsIdAndVersion(){
+		queryRequest.getQuery().setSql("select * from syn123.456");
+		IdAndVersion idandversion = TableQueryUtils.getTableIdFromRequestBodyAsIdAndVersion(queryRequest);
+		assertEquals(IdAndVersion.parse("syn123.456"), idandversion);
+	}
+	
 	
 	@Test
 	public void testGetTableIdFromRequestBodyQueryBundleRequest(){

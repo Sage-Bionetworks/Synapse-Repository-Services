@@ -98,6 +98,9 @@ public class NodeUtils {
 		rev.setDefiningSQL(dto.getDefiningSQL());
 		rev.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
 		rev.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
+		if (dto.getValidationResultFileHandleId() != null) {			
+			rev.setValidationResultFileHandleId(KeyFactory.stringToKey(dto.getValidationResultFileHandleId()));
+		}
 	}
 
 	/**
@@ -143,6 +146,7 @@ public class NodeUtils {
 		dbo.setDefiningSQL(dto.getDefiningSQL());
 		dbo.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
 		dbo.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
+		dbo.setValidationResultFileHandleId(translateFileHandleId(dto.getValidationResultFileHandleId()));
 		return dbo;
 	}
 	
@@ -268,6 +272,9 @@ public class NodeUtils {
 		dto.setDefiningSQL(rev.getDefiningSQL());
 		dto.setUpsertKey(JDOSecondaryPropertyUtils.readJsonToStringList(rev.getUpsertKey()));
 		dto.setCsvDescriptor(JDOSecondaryPropertyUtils.createObjectFromJSON(CsvTableDescriptor.class, rev.getCsvDescriptor()));
+		if (rev.getValidationResultFileHandleId() != null) {			
+			dto.setValidationResultFileHandleId(rev.getValidationResultFileHandleId().toString());
+		}
 	}
 	
 	/**

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl.TWENTY_FOUR_HOURS_IN_MS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -136,7 +137,7 @@ public class MembershipInvitationManagerImplTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
+		userInfo = new UserInfo(false, Long.parseLong(MEMBER_PRINCIPAL_ID), DEFAULT_REALM_ID);
 		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		userProfile = new UserProfile();
 		userProfile.setFirstName("First");

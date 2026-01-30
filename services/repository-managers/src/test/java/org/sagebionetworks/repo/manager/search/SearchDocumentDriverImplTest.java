@@ -10,10 +10,10 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.sagebionetworks.search.SearchConstants.FIELD_CONSORTIUM;
-import static org.sagebionetworks.search.SearchConstants.FIELD_DIAGNOSIS;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ORGAN;
-import static org.sagebionetworks.search.SearchConstants.FIELD_TISSUE;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_CONSORTIUM;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_DIAGNOSIS;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_ORGAN;
+import static org.sagebionetworks.repo.manager.search.SearchConstants.FIELD_TISSUE;
 
 import java.util.Arrays;
 import java.util.Date;

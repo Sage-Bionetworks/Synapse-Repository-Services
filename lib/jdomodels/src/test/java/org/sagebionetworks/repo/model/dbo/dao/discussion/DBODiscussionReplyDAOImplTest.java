@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -71,6 +72,7 @@ public class DBODiscussionReplyDAOImplTest {
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(user);
 		usersToDelete.add(userId);
 		// create a project
@@ -462,6 +464,7 @@ public class DBODiscussionReplyDAOImplTest {
 		List<Long> createdUsers = new ArrayList<Long>();
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		for (int i = 0; i < numberOfUsers; i++) {
 			createdUsers.add(userGroupDAO.create(user));
 		}

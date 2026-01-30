@@ -2,9 +2,10 @@ package org.sagebionetworks.repo.manager.file.scanner;
 
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.IdRange;
@@ -22,7 +23,7 @@ import com.google.common.collect.ImmutableMap;
 /**
  * Basic implementation of a file handle association scanner that automatically generates the needed
  * queries off of a {@link TableMapping}. This implementation can be used when the mapping table
- * contains the file handle id as a defined column and a backup id exists on the mapping. By default
+ * contains the file handle id(s) as defined column(s) and a backup id exists on the mapping. By default
  * a simple row mapper is used that considers the selected column a holder to the file handle id.
  * Additionally providing a custom {@link RowMapperSupplier} allows more flexibility in extracting the file
  * handle ids from the selected file handle column (e.g. if the file handle is stored inside a blob in the column).
@@ -39,7 +40,7 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	private RowMapper<ScannedFileHandleAssociation> rowMapper;
 
 	private FieldColumn backupIdColumn;
-	private FieldColumn fileHandleColumn;
+	private List<FieldColumn> fileHandleColumns;
 
 	// Cached statement for the min max range query
 	private String sqlMinMaxRangeStm;
@@ -76,25 +77,22 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 		this.batchSize = batchSize;
 		
 		// Makes sure the file handle column is present in the mapping
-		List<FieldColumn> candidates = Arrays.stream(tableMapping.getFieldColumns())
+		this.fileHandleColumns = Arrays.stream(tableMapping.getFieldColumns())
 				.filter(f -> f.hasFileHandleRef()).collect(Collectors.toList());
 		
-		if (candidates.isEmpty()) {
+		if (this.fileHandleColumns.isEmpty()) {
 			throw new IllegalArgumentException("No column found that is a fileHandleRef for mapping " + tableMapping.getClass().getName());
 		}
 		
-		if (candidates.size() > 1) {
-			throw new IllegalArgumentException("Only one fileHandleRef is currentlty supported, found " + candidates.size() + " for mapping " + tableMapping.getClass().getName());
-		}
 		// Makes sure that the mapping is defined with a backup id
 		this.backupIdColumn = Arrays.stream(tableMapping.getFieldColumns())
 				.filter(FieldColumn::isBackupId)
 				.findFirst()
 				.orElseThrow(() -> new IllegalArgumentException("The mapping " + tableMapping.getClass().getName() + " does not define a backup id column"));
-		this.fileHandleColumn = candidates.iterator().next();
+		
 		this.sqlMinMaxRangeStm = generateMinMaxStatement(tableMapping);
-		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumn);
-		this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumn.getColumnName());
+		this.sqlSelectBatchStm = generateSelectBatchStatement(tableMapping, backupIdColumn, fileHandleColumns);
+		this.rowMapper = rowMapperSupplier.getRowMapper(backupIdColumn.getColumnName(), fileHandleColumns.stream().map(FieldColumn::getColumnName).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -116,24 +114,28 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	 * Construct a row mapper that extracts a single file handle id from the given column
 	 * 
 	 * @param backupIdColumnName   The {@link FieldColumn} holding the backup id
-	 * @param fileHandleColumnName The {@link FieldColumn} holding the file handle id
+	 * @param fileHandleColumnNames The list of column names holding the file handle id
 	 * @return A row mapper that builds a {@link ScannedFileHandleAssociation} with a single file handle
 	 *         extracted from the given fileHandleIdColumn
 	 */
-	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, String fileHandleColumnName) {
+	public static RowMapper<ScannedFileHandleAssociation> getDefaultRowMapper(String backupIdColumnName, List<String> fileHandleColumnNames) {
 		return (ResultSet rs, int rowNumber) -> {
 
 			final Long objectId = rs.getLong(backupIdColumnName);
 
 			ScannedFileHandleAssociation scanned = new ScannedFileHandleAssociation(objectId);
 			
-			Long fileHandleId = rs.getLong(fileHandleColumnName);
+			Set<Long> fileHandleIds = new HashSet<>(fileHandleColumnNames.size());
 			
-			if (rs.wasNull()) {
-				scanned.withFileHandleIds(Collections.emptySet());
-			} else {
-				scanned.withFileHandleIds(Collections.singleton(fileHandleId));
+			for (String columnName : fileHandleColumnNames) {
+				Long fileHandleId = rs.getLong(columnName);
+				
+				if (!rs.wasNull()) {
+					fileHandleIds.add(fileHandleId);
+				}
 			}
+			
+			scanned.withFileHandleIds(fileHandleIds);
 
 			return scanned;
 		};
@@ -149,18 +151,20 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 	}
 
 	/**
-	 * Generates the SQL statement to select the (distinct) backup id and file handle id columns in a
+	 * Generates the SQL statement to select the backup id and file handle id columns in a
 	 * range of backup ids using the given mapping
 	 * </p>
-	 * <code>SELECT DISTINCT ID, FILE_HANLDE_ID FROM TABLE WHERE ID BETWEEN :MIN AND :MAX AND FILE_HANDLE_ID IS NOT NULL ORDER BY ID, OTHER_PK_ID</code>
+	 * <code>SELECT DISTINCT ID, FILE_HANDLE_ID, OTHER_FILE_HANDLE_ID FROM TABLE WHERE ID BETWEEN :MIN AND :MAX AND (FILE_HANDLE_ID IS NOT NULL OR OTHER_FILE_HANDLE_ID IS NOT NULL) ORDER BY ID, OTHER_PK_ID</code>
 	 */
-	protected String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, FieldColumn fileHandleColumn) {
+	protected String generateSelectBatchStatement(TableMapping<?> mapping, FieldColumn backupIdColumn, List<FieldColumn> fileHandleColumns) {
 		DMLUtils.validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT `");
 		builder.append(backupIdColumn.getColumnName());
-		builder.append("`, `");
-		builder.append(fileHandleColumn.getColumnName());
+		for (FieldColumn column : fileHandleColumns) {
+			builder.append("`, `");
+			builder.append(column.getColumnName());
+		}
 		builder.append("`");
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
@@ -170,10 +174,16 @@ public class BasicFileHandleAssociationScanner implements FileHandleAssociationS
 		builder.append(DMLUtils.BIND_MIN_ID);
 		builder.append(" AND :");
 		builder.append(DMLUtils.BIND_MAX_ID);
-		builder.append(" AND ");
-		builder.append(fileHandleColumn.getColumnName());
-		builder.append(" IS NOT NULL");
-		builder.append(" ORDER BY ");
+		builder.append(" AND (");
+		for (int i = 0; i < fileHandleColumns.size(); i++) {
+			builder.append("`");
+			builder.append(fileHandleColumns.get(i).getColumnName());
+			builder.append("` IS NOT NULL");
+			if (i < fileHandleColumns.size() - 1) {
+				builder.append(" OR ");
+			}
+		}
+		builder.append(") ORDER BY ");
 		builder.append(Arrays.stream(mapping.getFieldColumns()).filter(c -> c.isPrimaryKey()).map(FieldColumn::getColumnName)
 				.collect(Collectors.joining("`, `", "`", "`")));
 

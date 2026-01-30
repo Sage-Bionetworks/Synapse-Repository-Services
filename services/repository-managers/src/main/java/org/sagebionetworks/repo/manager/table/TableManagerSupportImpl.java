@@ -538,8 +538,8 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds) {
-		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds);
+	public Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds, ACCESS_TYPE...types) {
+		return authorizationManager.getAccessibleBenefactors(user, benefactorType, benefactorIds, types);
 	}
 
 	@Override

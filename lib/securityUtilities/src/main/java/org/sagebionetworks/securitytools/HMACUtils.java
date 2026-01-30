@@ -1,10 +1,6 @@
 package org.sagebionetworks.securitytools;
 
-import java.security.NoSuchAlgorithmException;
-
-import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
-import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.codec.binary.Base64;
@@ -17,19 +13,6 @@ import org.apache.commons.codec.binary.Base64;
 public class HMACUtils {
 	
 	private static final String HMAC_SHA1_ALGORITHM = "HmacSHA1";
-	/**
-	 * Returns a BASE64-ENCODED HMAC-SHA1 key
-	 */
-	public static String newHMACSHA1Key() {
-		try {
-		    // Generate a key for the HMAC-SHA1 keyed-hashing algorithm
-		    KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA1");
-		    SecretKey key = keyGen.generateKey();
-		    return new String(Base64.encodeBase64(key.getEncoded()));
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-	}
 	
     /**
      * 

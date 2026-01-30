@@ -50,6 +50,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_DEFINING_SQL	= "DEFINING_SQL";
 	public static final String COL_REVISION_UPSERT_KEY		= "UPSERT_KEY";
 	public static final String COL_REVISION_CSV_DESCRIPTOR	= "CSV_DESCRIPTOR";
+	public static final String COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID	= "VALIDATION_RES_FILE_HANDLE_ID";
 	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 	
 	public static final String TABLE_STACK_STATUS		= "STACK_STATUS";
@@ -420,6 +421,7 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
+	public static final String COL_USER_GROUP_REALM = "REALM";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
 
     // The group members table
@@ -788,7 +790,6 @@ public class SqlConstants {
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
-	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
 	public static final String COL_CREDENTIAL_ETAG		    = "ETAG";
 	public static final String COL_CREDENTIAL_MODIFIED_ON   = "MODIFIED_ON";
 	public static final String COL_CREDENTIAL_EXPIRES_ON    = "EXPIRES_ON";
@@ -1398,6 +1399,7 @@ public class SqlConstants {
 	public static final String COL_GRID_SESSION_REP_ID_SERVICE =	"REP_ID_SERVICE";
 	public static final String COL_GRID_SESSION_SOURCE_ID =			"SOURCE_ID";
 	public static final String COL_GRID_SESSION_SCHEMA_ID =			"SCHEMA_ID";
+	public static final String COL_GRID_SESSION_OWNER =				"OWNER_ID";
 	public static final String DDL_GRID_SESSION = "schema/grid/Grid-Session-ddl.sql";
 	
 	public static final String TABLE_GRID_REPLICA =					"GRID_REPLICA";
@@ -1446,6 +1448,7 @@ public class SqlConstants {
     public static final String COL_CURATION_TASK_CREATED_ON = "CREATED_ON";
     public static final String COL_CURATION_TASK_MODIFIED_ON = "MODIFIED_ON";
     public static final String COL_CURATION_TASK_MODIFIED_BY = "MODIFIED_BY";
+    public static final String COL_CURATION_TASK_ASSIGNEE = "ASSIGNEE";
     public static final String COL_CURATION_TASK_TASK_PROPERTIES = "TASK_PROPERTIES";
     public static final String DDL_CURATION_TASK = "schema/CurationTask-ddl.sql";
     
@@ -1457,6 +1460,29 @@ public class SqlConstants {
  	public static final String COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION	= "RECORDSET_VERSION";
  	public static final String COL_RECORDSET_VALIDATION_STATS_JSON				= "STATS_JSON";
  	public static final String DDL_FILE_RECORDSET_VALIDATION_STATS				= "schema/RecordSetValidationStats-ddl.sql";
+ 	
+ 	// Tables to represent security Realms
+ 	public static final String TABLE_REALM = "SYNAPSE_REALM";
+ 	public static final String COL_REALM_ID = "ID";
+ 	public static final String COL_REALM_CREATED_ON = "CREATED_ON";
+ 	public static final String COL_REALM_NAME = "NAME";
+ 	public static final String DDL_FILE_REALM = "schema/Realm-ddl.sql";
+ 	
+	public static final String TABLE_REALM_IDP = "SYNAPSE_REALM_IDP";
+	public static final String COL_REALM_IDP_REALM_ID = "REALM_ID";
+	public static final String COL_REALM_IDP_PROVIDER = "PROVIDER";
+	public static final String DDL_FILE_REALM_IDP = "schema/RealmIdentityProvider-ddl.sql";
+
+	public static final String TABLE_REALM_PRINCIPAL = "SYNAPSE_REALM_PRINCIPAL";
+	public static final String COL_REALM_PRINCIPAL_ID = "ID";
+	public static final String COL_REALM_PRINCIPAL_REALM_ID = "REALM_ID";
+	public static final String COL_REALM_PRINCIPAL_PRINCIPAL_ID = "PRINCIPAL_ID";
+	public static final String COL_REALM_PRINCIPAL_PRINCIPAL_TYPE = "TYPE";
+	public static final String REALM_PRINCIPAL_TYPE_ANONYMOUS = "ANONYMOUS";
+	public static final String REALM_PRINCIPAL_TYPE_PUBLIC = "PUBLIC";
+	public static final String REALM_PRINCIPAL_TYPE_AUTHENTICATED = "AUTHENTICATED";
+	public static final String REALM_PRINCIPAL_TYPE_ADMINISTRATORS = "ADMINISTRATORS";
+	public static final String DDL_FILE_REALM_PRINCIPAL = "schema/RealmPrincipal-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

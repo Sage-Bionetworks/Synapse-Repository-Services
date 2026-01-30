@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
+import java.util.List;
 import java.util.Objects;
 
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.CrdtId;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 
@@ -59,7 +61,7 @@ public class RowView {
 		return rowObject != null ? rowObject.getRowValidation() : null;
 	}
 
-	public JSONArray getCells() {
+	public List<ConValue> getCells() {
 		return rowObject != null ? rowObject.getCells() : null;
 	}
 
@@ -69,6 +71,16 @@ public class RowView {
 
 	public SynapseRow getSynapseRow() {
 		return rowObject != null ? rowObject.getSynapseRow() : null;
+	}
+	
+	/**
+	 * Get the compact logical timestamp string for this row, or null if any link is null.
+	 */
+	public String getRowId() {
+		if (rowObject == null || rowObject.getData() == null || rowObject.getData().getVectorId() == null) {
+			return null;
+		}
+		return rowObject.getData().getVectorId().toCompact();
 	}
 	
 	public static CrdtId createCrdtIdFromLogical(LogicalTimestamp timestamp) {

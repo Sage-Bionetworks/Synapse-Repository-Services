@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -115,12 +116,14 @@ public class DownloadListDaoImplTest {
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userOneIdLong = userGroupDao.create(ug);
 		userOneId = "" + userOneIdLong;
 		// second user
 		ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userTwoIdLong = userGroupDao.create(ug);
 		userTwoId = "" + userTwoIdLong;
 

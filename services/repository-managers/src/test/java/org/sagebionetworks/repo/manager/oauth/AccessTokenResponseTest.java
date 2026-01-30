@@ -32,6 +32,8 @@ public class AccessTokenResponseTest {
 		assertEquals("first", info.getFirstName());
 		assertEquals("first.last@domain.com", info.getUsersVerifiedEmail());
 		assertEquals("abcd", info.getSubject());
+		assertEquals("true", info.getEmailVerified());
+		assertEquals("first.last@domain.com", info.getEmail());
 	}
 	
 	// Reproduce https://sagebionetworks.jira.com/browse/SYNSD-1231
@@ -59,6 +61,8 @@ public class AccessTokenResponseTest {
 		ProvidedUserInfo info = new AccessTokenResponse("", idToken, "").parseIdToken();
 
 		assertNull(info.getUsersVerifiedEmail());
+		assertNull(info.getEmailVerified());
+		assertEquals("first.last@domain.com", info.getEmail());
 	}
 
 	@Test
@@ -71,6 +75,9 @@ public class AccessTokenResponseTest {
 		ProvidedUserInfo info = new AccessTokenResponse("", idToken, "").parseIdToken();
 
 		assertNull(info.getUsersVerifiedEmail());
+		assertEquals("false", info.getEmailVerified());
+		assertEquals("first.last@domain.com", info.getEmail());
+		
 	}
 
 	@Test

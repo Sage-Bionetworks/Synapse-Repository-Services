@@ -97,6 +97,10 @@
 		},
 		"facetType": {
 			"$ref": "org.sagebionetworks.repo.model.table.FacetType"
+		},
+		"facetSortConfig": {
+			"description": "Configuration for sorting the facets of this column, only allowed if facetType is enumeration.",
+			"$ref": "org.sagebionetworks.repo.model.table.FacetColumnSortConfig"
 		}
 	}
 }

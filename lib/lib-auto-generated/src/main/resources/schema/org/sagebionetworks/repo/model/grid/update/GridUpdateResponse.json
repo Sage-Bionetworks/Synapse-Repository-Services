@@ -1,0 +1,17 @@
+{
+	"description": "Response summarizing the outcome of a grid update operation.",
+	"type": "object",
+	"properties": {
+		"updateResults": {
+			"type": "array",
+			"description": "Number of rows updated for each update in the batch, in the same order as the request. Each element corresponds to one update operation.",
+			"items": {
+				"type": "integer"
+			}
+		},
+		"totalRowsUpdated": {
+			"type": "integer",
+			"description": "Total number of rows updated across all updates in the batch."
+		}
+	}
+}

@@ -1267,6 +1267,66 @@ public class JsonSchemaValidationManagerImplAutowireTest {
 	}
 	
 	@Test
+	public void testHasMinAndMaxItems() throws Exception {
+		JsonSchema schema = loadSchemaFromClasspath("schemas/HasMinMaxItems.json");
+
+		// All valid
+		JsonSubject subject = setupSubject();
+		
+		subject.toJson().put("atLeastOne", new JSONArray(List.of("one","two","three")));
+		subject.toJson().put("atMostTwo", new JSONArray(List.of("one")));
+		subject.toJson().put("betweenTwoAndFour", new JSONArray(List.of("one","two","three")));
+
+		// call under test
+		ValidationResults result = manager.validate(schema, subject);
+		
+		assertTrue(result.getIsValid());
+
+		// less than one
+		subject = setupSubject();
+		subject.toJson().put("atLeastOne", new JSONArray());
+
+		// call under test
+		result = manager.validate(schema, subject);
+		
+		assertFalse(result.getIsValid());
+		
+		assertEquals("expected minimum item count: 1, found: 0", result.getValidationErrorMessage());
+
+		// more than two
+		subject = setupSubject();
+		subject.toJson().put("atMostTwo", new JSONArray(List.of("one", "two", "three")));
+
+		// call under test
+		result = manager.validate(schema, subject);
+		
+		assertFalse(result.getIsValid());
+		
+		assertEquals("expected maximum item count: 2, found: 3", result.getValidationErrorMessage());
+
+		// over four
+		subject = setupSubject();
+		subject.toJson().put("betweenTwoAndFour", new JSONArray(List.of("one", "two", "three", "four", "five")));
+
+		// call under test
+		result = manager.validate(schema, subject);
+		
+		assertFalse(result.getIsValid());
+		
+		assertEquals("expected maximum item count: 4, found: 5", result.getValidationErrorMessage());
+
+		// less than two
+		subject = setupSubject();
+		subject.toJson().put("betweenTwoAndFour", new JSONArray(List.of("one")));
+
+		// call under test
+		result = manager.validate(schema, subject);
+		
+		assertFalse(result.getIsValid());
+		assertEquals("expected minimum item count: 2, found: 1", result.getValidationErrorMessage());
+	}
+	
+	@Test
 	public void testValidateBatch() throws Exception {
 		JsonSchema schema = loadSchemaFromClasspath("schemas/Enum.json");
 		

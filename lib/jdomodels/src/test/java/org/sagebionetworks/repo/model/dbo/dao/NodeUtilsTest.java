@@ -76,6 +76,7 @@ public class NodeUtilsTest {
 		node.setIsSearchEnabled(true);
 		node.setUpsertKey(List.of("a","b"));
 		node.setCsvDescriptor(new CsvTableDescriptor().setSeparator(",").setIsFirstLineHeader(true));
+		node.setValidationResultFileHandleId("55556778");
 		
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
@@ -471,6 +472,7 @@ public class NodeUtilsTest {
 		node.setDefiningSQL("SELECT * FROM syn123");
 		node.setUpsertKey(List.of("a","b"));
 		node.setCsvDescriptor(new CsvTableDescriptor().setSeparator(",").setIsFirstLineHeader(true));
+		node.setValidationResultFileHandleId("765");
 		
 		return node;
 	}

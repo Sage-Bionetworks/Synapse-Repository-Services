@@ -1,0 +1,36 @@
+{
+    "description":"JSON schema for a suggestion query.",
+    "properties":{
+        "searchTerm":{
+            "type":"array",
+            "description":"The free text search terms. The suggestion will be provided for these terms.",
+            "uniqueItems":false,
+            "items":{
+                "type":"string"
+            }            
+        },
+        "maxEdit":{
+            "type":"integer",
+            "description":"The maximum number of single-character edits (insertions, deletions, or substitutions) allowed between the input query and a suggested term. Must be 1 or 2. Default is 2."
+        },
+        "size":{
+            "type":"integer",
+            "description":"The maximum number of suggestions to return for each term in the input text. The default is 5."
+        },
+        "sort": {
+            "type": "string",
+            "name": "SuggestedTermSort",
+            "description": "Specifies how suggestions should be sorted in the response.",
+            "enum": [
+                {
+                    "name": "SCORE",
+                    "description": "Sort by similarity score, then document frequency, and then the term itself."
+                },
+                {
+                    "name": "FREQUENCY",
+                    "description": "Sort by document frequency, then similarity score, and then the term itself."
+                }
+            ]
+        }
+    }
+}

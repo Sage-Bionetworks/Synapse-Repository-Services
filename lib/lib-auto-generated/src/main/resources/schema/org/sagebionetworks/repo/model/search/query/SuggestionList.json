@@ -1,0 +1,17 @@
+{
+    "description":"JSON Schema for a list of suggested replacements for a search term",
+    "properties":{
+        "key":{
+            "type":"string",
+            "description":"The free text search term. The suggestion will be provided for this term."
+        },
+        "values":{
+            "type":"array",
+            "description":"The suggested values for search term.",
+            "uniqueItems":true,
+            "items":{
+                "$ref": "org.sagebionetworks.repo.model.search.query.Suggestion"
+            }
+        }
+    }
+}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file.scanner;
 
 import java.sql.ResultSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,7 +35,14 @@ public class SerializedFieldRowMapperSupplier<T> implements RowMapperSupplier {
 	}
 
 	@Override
-	public RowMapper<ScannedFileHandleAssociation> getRowMapper(String objectIdColumnName, String serializedFieldColumnName) {
+	public RowMapper<ScannedFileHandleAssociation> getRowMapper(String objectIdColumnName, List<String> serializedFieldColumnNames) {
+		
+		if (serializedFieldColumnNames.size() != 1) {
+			throw new IllegalArgumentException("Multiple serialized field columns are not supported at this time.");
+		}
+		
+		String serializedFieldColumnName = serializedFieldColumnNames.get(0);
+		
 		return (ResultSet rs, int rowNum) -> {
 			final Long objectId = rs.getLong(objectIdColumnName);
 			

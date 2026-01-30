@@ -1,0 +1,39 @@
+{
+	"type": "object",
+	"title": "Facet Column Sort Configuration",
+	"description": "For a column model whose facet type is enumeration, defines the order in which the facet values are returned. If not specified, the default order is frequency, descending with a secondary sort by value ascending.",
+	"properties": {
+		"property": {
+			"type": "string",
+			"description": "Which property of a facet to use for sorting, can be by value frequency or the facet value itself.",
+			"name": "FacetColumnSortProperty",
+			"id": "org.sagebionetworks.repo.model.table.FacetColumnSortProperty",
+			"enum": [
+				{
+					"name": "FREQUENCY",
+					"description": "(Default) Sort by the frequency of a facet value. A secondary sort by value, ascending is always added for consistency."
+				},
+				{
+					"name": "VALUE",
+					"description": "Sort by the natural order of the facet value."
+				}
+			]
+		},
+		"direction": {
+			"type": "string",
+			"description": "The sorting direction.",
+			"name": "FacetColumnSortDirection",
+			"id": "org.sagebionetworks.repo.model.table.FacetColumnSortDirection",
+			"enum": [
+				{
+					"name": "DESC",
+					"description": "(Default) Sort descending."
+				},
+				{
+					"name": "ASC",
+					"description": "Sort ascending."
+				}
+			]
+		}
+	}
+}

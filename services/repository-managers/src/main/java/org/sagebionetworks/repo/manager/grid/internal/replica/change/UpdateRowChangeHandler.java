@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
@@ -23,18 +24,16 @@ public class UpdateRowChangeHandler implements ChangeHandler<UpdateRowChange> {
 	@Override
 	public void handleChange(PatchBuilder builder, UpdateRowChange change) {
 		LogicalTimestamp rowVecId = change.getRowVectorId();
-		JSONArray rowData = change.getRowData();
+		List<ConValue> rowData = change.getRowData();
 		Integer[] rowVecIndex = change.getRowVectorIndex();
 		
 		Map<Integer, LogicalTimestamp> updatedConstantMap = new HashMap<>();
 		
-		for (int i = 0; i < rowData.length(); i++) {
-			Object value = rowData.get(i);
+		for (int i = 0; i < rowData.size(); i++) {
+			ConValue value = rowData.get(i);
 			Integer vectorIndex = rowVecIndex[i];
 			
-			LogicalTimestamp cellConstId = builder.addOperationBuilder(Operations.newConstant().setValue(
-				new ConValue(ConType.fromValue(value), value))
-			);
+			LogicalTimestamp cellConstId = builder.addOperationBuilder(Operations.newConstant().setValue(value));
 			
 			updatedConstantMap.put(vectorIndex, cellConstId);
 		}

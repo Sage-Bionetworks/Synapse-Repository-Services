@@ -1,0 +1,18 @@
+{
+	"description": "Row ID inclusion filter. Use when you need to operate on specific existing rows by their explicit row IDs obtained from a prior grid query (e.g., an update). The filter matches any row whose ID is in the provided list (logical OR semantics). Do not use for pattern matching or broad selection; supply only the exact row IDs you intend to modify or retrieve.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.query.Filter"
+		}
+	],
+	"properties": {
+		"rowIdsIn": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Array of explicit row IDs. The result will include any row whose ID appears in this list (logical OR). Provide only IDs previously obtained from a grid query. Omit this filter if you do not know the IDs. Do not include duplicates or IDs not present in the current grid."
+		}
+	}
+}

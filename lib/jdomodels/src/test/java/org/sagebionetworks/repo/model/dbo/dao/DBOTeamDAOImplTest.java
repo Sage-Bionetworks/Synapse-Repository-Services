@@ -28,6 +28,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -146,6 +147,7 @@ public class DBOTeamDAOImplTest {
 	public void testCreateTeam() {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -533,6 +535,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetValidTeam() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -556,6 +559,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testValidateTeamExists() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -583,6 +587,7 @@ public class DBOTeamDAOImplTest {
 	private Team createTeam(String teamName, String icon, String createdBy, String modifiedBy) {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -606,6 +611,7 @@ public class DBOTeamDAOImplTest {
 	private UserGroup createIndividual() {
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setId(userGroupDAO.create(user).toString());
 		createUserProfile(user.getId());
 		usersToDelete.add(user.getId());
@@ -661,6 +667,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamPublic() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();
@@ -675,6 +682,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamOpen() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();
@@ -689,6 +697,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamClosed() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();

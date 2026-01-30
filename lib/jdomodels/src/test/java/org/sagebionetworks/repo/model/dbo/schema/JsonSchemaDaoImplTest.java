@@ -1824,7 +1824,7 @@ public class JsonSchemaDaoImplTest {
 			// call under test
 			blobId = jsonSchemaDao.createJsonBlobIfDoesNotExist(schema, 100);
 		}).getMessage();
-		assertEquals("The provided schema has 220465 characters which exceeds the maximum of 100 characters", message);
+		assertEquals("The provided schema has 220507 characters which exceeds the maximum of 100 characters", message);
 	}
 
 }

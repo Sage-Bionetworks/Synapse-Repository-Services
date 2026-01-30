@@ -15,8 +15,11 @@
 	<bean id="dboBasicDao" class="org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl">
 		<property name="databaseObjectRegister">
 			<list>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealm" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmIdentityProvider" />
 				<!-- DBOUserGroup must be declared before tables that have a foreign key to it -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
@@ -231,7 +234,9 @@
 	<bean id="migratableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl" init-method="initialize" depends-on="dboBasicDao">
 		<property name="databaseObjectRegister" >
 			<list>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealm" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />

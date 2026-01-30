@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_OFFSET;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -95,7 +96,7 @@ public class AccessRequirementManagerImplUnitTest {
 	@Mock
 	private JiraClient jiraClient;
 
-	private static final String TEST_PRINCIPAL_ID = "1010101";
+	private static final long TEST_PRINCIPAL_ID = 1010101L;
 	private static final String TEST_ENTITY_ID = "syn98786543";
 
 	@Mock
@@ -131,7 +132,7 @@ public class AccessRequirementManagerImplUnitTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
+		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID, DEFAULT_REALM_ID);
 	}
 
 	@Test

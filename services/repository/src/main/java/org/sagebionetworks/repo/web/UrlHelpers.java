@@ -1213,7 +1213,6 @@ public class UrlHelpers {
 
 	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_TERMS_OF_USE_V2 = "/termsOfUse2";
-	public static final String AUTH_SECRET_KEY = "/secretKey";
 
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN = "/personalAccessToken";
 	public static final String AUTH_PERSONAL_ACCESS_TOKEN_ID = AUTH_PERSONAL_ACCESS_TOKEN + ID;
@@ -1321,6 +1320,14 @@ public class UrlHelpers {
 	public static final String ADMIN_USER_TOKEN = ADMIN_USER + ID + "/token";
 	
 	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
+	
+	public static final String REALM = "/realm";
+	public static final String ADMIN_REALM = ADMIN+REALM;
+	public static final String REALM_LIST = REALM + "/list";
+	public static final String REALM_ID = REALM + ID;
+	public static final String REALM_PRINCIPALS = REALM + "/principals";
+	public static final String REALM_ID_PRINCIPALS = REALM + ID+"/principals";
+	public static final String ADMIN_REALM_ID = ADMIN_REALM + ID;
 	
 	/**
 	 * Request paramter to specify a target user id

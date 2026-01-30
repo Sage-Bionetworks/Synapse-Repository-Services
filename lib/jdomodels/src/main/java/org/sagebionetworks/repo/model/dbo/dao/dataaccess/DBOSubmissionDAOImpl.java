@@ -451,18 +451,25 @@ public class DBOSubmissionDAOImpl implements SubmissionDAO {
 			// Left join on the ACL table on the AR so that we can filter by "assigned acl" or not
 			+ " LEFT JOIN " + TABLE_ACCESS_CONTROL_LIST + " A ON S." + COL_DATA_ACCESS_SUBMISSION_ACCESS_REQUIREMENT_ID + " = A." + COL_ACL_OWNER_ID + " AND " +COL_ACL_OWNER_TYPE + "='" + ObjectType.ACCESS_REQUIREMENT.name() + "'";
 		
+		// Subquery to check if an ACL has REVIEW_SUBMISSIONS permission
+		String hasReviewSubmissionsPermission = "EXISTS (SELECT 1 FROM " + TABLE_RESOURCE_ACCESS + " RA"
+			+ " JOIN " + TABLE_RESOURCE_ACCESS_TYPE + " AT ON RA." + COL_RESOURCE_ACCESS_ID + " = AT." + COL_RESOURCE_ACCESS_TYPE_ID
+			+ " WHERE RA." + COL_RESOURCE_ACCESS_OWNER + " = A." + COL_ACL_ID
+			+ " AND AT." + COL_RESOURCE_ACCESS_TYPE_ELEMENT + " = '" + ACCESS_TYPE.REVIEW_SUBMISSIONS.name() + "')";
+
 		// This needs to go in the where clause as we are left joining on the ACL
 		switch (reviewerFilterType) {
 		case ALL:
 			// ACT can access everything, no need to filter on the ACL
 			break;
 		case ACT_ONLY:
-			// Only submissions that do not have any ACL assigned to the AR
-			additionalFilters.add("A." + COL_ACL_ID + " IS NULL");
+			// Only submissions where there is no ACL with REVIEW_SUBMISSIONS permission
+			additionalFilters.add("(A." + COL_ACL_ID + " IS NULL OR NOT " + hasReviewSubmissionsPermission + ")");
 			break;
 		case DELEGATED_ONLY:
-			// Only submissions that have at least on ACL assigned to the AR
-			additionalFilters.add("A." + COL_ACL_ID + " IS NOT NULL");
+			// Only submissions where there is an ACL with at least one REVIEW_SUBMISSIONS permission
+			additionalFilters.add(hasReviewSubmissionsPermission);
+			break;
 		default:
 			break;
 		}

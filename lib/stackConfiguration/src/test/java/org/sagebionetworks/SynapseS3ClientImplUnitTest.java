@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.amazonaws.services.s3.model.HeadBucketRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -263,6 +266,31 @@ public class SynapseS3ClientImplUnitTest {
 		
 		verify(mockAmazonUSStandardClient).createBucket(BUCKET_NAME);
 		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void testDoesBucketExistTrue() {
+		when(mockAmazonUSStandardClient.headBucket(any(HeadBucketRequest.class)))
+				.thenReturn(new HeadBucketResult());
+
+		boolean result = client.doesBucketExist(BUCKET_NAME);
+
+		verify(mockAmazonUSStandardClient).headBucket(any(HeadBucketRequest.class));
+		assertTrue(result);
+	}
+
+	@Test
+	public void testDoesBucketExistFalse() {
+		AmazonS3Exception expectedException = new AmazonS3Exception("Bucket does not exist");
+		expectedException.setStatusCode(404);
+
+		when(mockAmazonUSStandardClient.headBucket(any(HeadBucketRequest.class)))
+				.thenThrow(expectedException);
+
+		boolean result = client.doesBucketExist(BUCKET_NAME);
+
+		verify(mockAmazonUSStandardClient).headBucket(any(HeadBucketRequest.class));
+		assertFalse(result);
 	}
 
 	@Test

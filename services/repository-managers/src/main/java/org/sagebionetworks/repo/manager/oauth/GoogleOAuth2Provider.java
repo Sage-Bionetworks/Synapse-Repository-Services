@@ -30,23 +30,25 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 	private String apiSecret;
 	private String authUrl;
 	private String tokenUrl;
+	private String userInfoUrl;
 	
 	/**
 	 * Thread safe Google provider.
 	 * 
 	 * @param apiKey Client ID provided by Google developer console.
-	 * @param apiSecret Client Secret provided by Google developer console..
+	 * @param apiSecret Client Secret provided by Google developer console.
 	 */
 	public GoogleOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
 		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
 		this.tokenUrl = oidcConfig.getTokenEndpoint();
+		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
 	}
 	
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return new OAuth2Api(authUrl, tokenUrl).
+		return new OAuth2Api(authUrl, tokenUrl, userInfoUrl).
 				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
 	}
 
@@ -56,7 +58,7 @@ public class GoogleOAuth2Provider implements OAuthProviderBinding {
 		ValidateArgument.required(redirectUrl, "The redirectUrl");
 		
 		try {
-			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl)).
+			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl, userInfoUrl)).
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			
 			AccessTokenResponse accessTokenResponse = service.getAccessToken(null, new Verifier(authorizationCode));

@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONArray;
@@ -32,7 +33,7 @@ public class UpdateRowChangeHandlerTest {
 		handler = new UpdateRowChangeHandler();
 		
 		LogicalTimestamp vecId = new LogicalTimestamp().setReplicaId(123L).setSequenceNumber(1L);
-		JSONArray rowData = new JSONArray().put("a").put("b").put("c");
+		List<ConValue> rowData = List.of(new ConValue(ConType.STRING, "a"), new ConValue(ConType.STRING, "b"), new ConValue(ConType.STRING, "c"));
 		Integer[] rowVectorIndex = new Integer[] { 2, 0, 1 };
 		
 		change = new UpdateRowChange(vecId, rowData, rowVectorIndex);
@@ -44,12 +45,12 @@ public class UpdateRowChangeHandlerTest {
 		
 		Map<Integer, LogicalTimestamp> constMap = new HashMap<>();
 		
-		for (int i=0; i<change.getRowData().length(); i++) {
-			Object value = change.getRowData().get(i);
+		for (int i=0; i<change.getRowData().size(); i++) {
+			ConValue value = change.getRowData().get(i);
 			
 			LogicalTimestamp constId = new LogicalTimestamp().setReplicaId(repId).setSequenceNumber(20L + i);
 		
-			when(mockPatchBuilder.addOperationBuilder(Operations.newConstant().setValue(new ConValue(ConType.STRING, value))))
+			when(mockPatchBuilder.addOperationBuilder(Operations.newConstant().setValue(value)))
 				.thenReturn(constId);
 			
 			constMap.put(change.getRowVectorIndex()[i], constId);

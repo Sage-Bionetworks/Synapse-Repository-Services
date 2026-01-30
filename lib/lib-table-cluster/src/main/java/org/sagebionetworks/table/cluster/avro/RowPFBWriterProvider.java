@@ -14,9 +14,10 @@ public interface RowPFBWriterProvider {
 	 * Create a new {@link RowPFBWriter}.
 	 * @param tableName
 	 * @param columns
+	 * @param entityIdColumnNames
 	 * @param file
 	 * @return
 	 * @throws IOException
 	 */
-	RowPFBWriter createWriter(String tableName, List<ColumnModel> columns, Metadata metadata, File file) throws IOException;
+	RowPFBWriter createWriter(String tableName, List<ColumnModel> columns, List<String> entityIdColumnNames, Metadata metadata, File file) throws IOException;
 }

@@ -36,6 +36,22 @@ public interface TeamManager {
 	public Team create(UserInfo userInfo, Team team) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Create a new Team
+	 * @param userInfo
+	 * @param team
+	 * @param realmId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
+	 * 
+	 * Create a team in a specific realm.  This is only used internally, to set up the default admin' team
+	 * for a new realm by a Synapse administrator.
+	 */
+	public Team create(UserInfo userInfo, Team team, String realmId) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+
+	/**
 	 * Retrieve the Teams in the system, paginated
 	 * @param offset
 	 * @param limit

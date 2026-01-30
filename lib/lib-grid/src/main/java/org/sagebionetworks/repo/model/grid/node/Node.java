@@ -7,7 +7,7 @@ public interface Node {
 	/**
 	 * The node's ID.
 	 * 
-	 * @return
+	 * @return the logical timestamp identifying this node
 	 */
 	LogicalTimestamp getId();
 

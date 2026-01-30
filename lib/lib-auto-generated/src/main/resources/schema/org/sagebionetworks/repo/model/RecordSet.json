@@ -1,6 +1,6 @@
 {
 	"title": "RecordSet",
-	"description": "Captures record-based metadata as a special type of CSV. The record set content can be curated using the grid services.",
+	"description": "Captures record-based metadata as a special type of CSV. The record set content can be curated using the grid services. When a grid is created from a record set, its data can be exported back to a new version of the record set. The export will include the validation summary as well as a validation file handle that contains detailed validation results for each row in the record set.",
 	"extends": {
 		"$ref": "org.sagebionetworks.repo.model.FileEntity"
 	},
@@ -29,6 +29,10 @@
 			"description": "Summary of validation results from a grid session that was exported to this record set. Generated only from a grid session export, cannot be changed by the user.",
 			"$ref": "org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics",
 			"transient": true
-		}
+		},
+		"validationFileHandleId": {
+            "type": "string",
+            "description": "Pointer to a CSV file that contains the detailed validation results for each row in the record set. The CSV file will contain for each row the following columns: row_index, is_valid, validation_error_message, all_validation_messages. The file can be donwnloaded using the FileEntity association type using the RecordSet id as the object id. Generated only from a grid session export, cannot be changed by the user."
+        }
 	}
 }

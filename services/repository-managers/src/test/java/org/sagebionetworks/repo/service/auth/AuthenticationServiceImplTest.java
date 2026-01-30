@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.Optional;
 
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
@@ -59,6 +61,8 @@ public class AuthenticationServiceImplTest {
 	
 	@Mock
 	private UserManager mockUserManager;
+	@Mock
+	private RealmDao mockRealmDao;
 	@Mock
 	private AuthenticationManager mockAuthenticationManager;
 	@Mock
@@ -94,10 +98,8 @@ public class AuthenticationServiceImplTest {
 		credential.setEmail(username);
 		credential.setPassword(password);
 		
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		
-
 		alias = "alias";
 		principalAlias = new PrincipalAlias();
 		principalAlias.setPrincipalId(userId);
@@ -219,6 +221,9 @@ public class AuthenticationServiceImplTest {
 		
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
 		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
+		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
 		
@@ -254,6 +259,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -293,6 +301,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -367,6 +378,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
+		
 		//call under test
 		service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
 				
@@ -401,6 +415,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -437,6 +454,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -475,6 +495,9 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
 		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -579,7 +602,65 @@ public class AuthenticationServiceImplTest {
 	}
 	
 	@Test
+	public void testValidateOAuthAuthenticationCodeWrongRealm() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L)));
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+		String otherRealmId="5"; // userInfo is in DEFAULT_REALM ("0"), so we use a mismatching realm ID
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(otherRealmId));
+		
+		assertThrows(IllegalArgumentException.class, ()-> {
+			//call under test
+			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		});
+	}
+	
+	@Test
+	public void testValidateOAuthAuthenticationCodeNoRealm() throws NotFoundException{
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+		request.setRedirectUrl("https://domain.com");
+		ProvidedUserInfo info = new ProvidedUserInfo();
+		info.setUsersVerifiedEmail("first.last@domain.com");
+		info.setSubject("abcd");
+		when(mockOAuthManager.validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(info);
+		PrincipalAlias alias = new PrincipalAlias();
+		long userId = 3456L;
+		alias.setPrincipalId(userId);
+		when(mockUserManager.lookupOidcBindingBySubject(any(), any())).thenReturn(Optional.of(new PrincipalOidcBinding().setUserId(userId).setAliasId(456L)));
+		LoginResponse authMgrLoginResponse = new LoginResponse();
+		authMgrLoginResponse.setAcceptsTermsOfUse(true);
+		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
+		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
+		
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.empty());
+		
+		assertThrows(IllegalStateException.class, ()-> {
+			//call under test
+			service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
+		});
+	}
+	
+	@Test
 	public void testBindExternalID() throws NotFoundException{
+		String realmId = "3";
+		userInfo = new UserInfo(false, userId, realmId);
 		OAuthValidationRequest request = new OAuthValidationRequest();
 		request.setAuthenticationCode("some code");
 		request.setProvider(OAuthProvider.ORCID);
@@ -596,6 +677,10 @@ public class AuthenticationServiceImplTest {
 		when(mockOAuthManager.retrieveProvidersId(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(aliasAndType);
 
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(realmId));
+		
+		// method under test
 		PrincipalAlias result = service.bindExternalID(principalId, request);
 		assertEquals(principalAlias, result);
 	}
@@ -605,7 +690,56 @@ public class AuthenticationServiceImplTest {
 		assertThrows(UnauthorizedException.class, ()->service.bindExternalID(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null));
 	}
+
+	@Test
+	public void testBindExternalIDWrongRealm() throws NotFoundException{
+		String userRealmId = "3";
+		String requestRealmId = "4";
+		userInfo = new UserInfo(false, userId, userRealmId);
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		String aliasName = "name";
+		Long principalId = 101L;
+		AliasAndType aliasAndType = new AliasAndType(aliasName, AliasType.USER_ORCID);
+		when(mockOAuthManager.retrieveProvidersId(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(aliasAndType);
+
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(requestRealmId));
+		
+		// method under test
+		assertThrows(IllegalArgumentException.class, ()->{
+			service.bindExternalID(principalId, request);
+		});
+	}
 	
+
+	@Test
+	public void testBindExternalIDNoRealm() throws NotFoundException{
+		String userRealmId = "3";
+		userInfo = new UserInfo(false, userId, userRealmId);
+		OAuthValidationRequest request = new OAuthValidationRequest();
+		request.setAuthenticationCode("some code");
+		request.setProvider(OAuthProvider.ORCID);
+		request.setRedirectUrl("https://domain.com");
+		String aliasName = "name";
+		Long principalId = 101L;
+		AliasAndType aliasAndType = new AliasAndType(aliasName, AliasType.USER_ORCID);
+		when(mockOAuthManager.retrieveProvidersId(
+				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl())).thenReturn(aliasAndType);
+
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
+		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.empty());
+		
+		// method under test
+		assertThrows(IllegalArgumentException.class, ()->{
+			service.bindExternalID(principalId, request);
+		});
+	}
+	
+
 	@Test
 	public void testUnbindExternalID() throws NotFoundException{
 		Long principalId = 101L;
@@ -636,6 +770,7 @@ public class AuthenticationServiceImplTest {
 		String passwordResetUrlPrefix = "synapse.org";
 		PasswordResetSignedToken token = new PasswordResetSignedToken();
 		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockAuthenticationManager.createPasswordResetToken(principalAlias.getPrincipalId())).thenReturn(token);
 
 		//method under test
@@ -664,6 +799,7 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testSendPasswordResetEmailWithEmailAlias() {
 		when(mockUserManager.lookupUserByUsernameOrEmail(aliasEmail)).thenReturn(principalEmailAlias);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 
 		String passwordResetUrlPrefix = "synapse.org";
 		
@@ -678,6 +814,23 @@ public class AuthenticationServiceImplTest {
 		verify(mockMessageManager).sendNewPasswordResetEmail(passwordResetUrlPrefix, token, principalEmailAlias);	
 	}
 	
+	@Test
+	public void testSendPasswordResetEmailNotInSynapseRealm() {
+		String nonSynapseRealmId = "5";
+		UserInfo nonSynapseRealmUserInfo = new UserInfo(false, userId, nonSynapseRealmId);
+		
+		String email = "user@test.com";
+		String passwordResetUrlPrefix = "synapse.org";
+		PasswordResetSignedToken token = new PasswordResetSignedToken();
+		when(mockUserManager.lookupUserByUsernameOrEmail(email)).thenReturn(principalAlias);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(nonSynapseRealmUserInfo);
+
+		assertThrows(IllegalArgumentException.class, ()->{
+			//method under test
+			service.sendPasswordResetEmail(passwordResetUrlPrefix, email);
+		});
+	}
+
 	@Test
 	public void testHasUserAcceptedTermsOfService() {
 		when(mockTosManager.hasUserAcceptedTermsOfService(userId)).thenReturn(true);

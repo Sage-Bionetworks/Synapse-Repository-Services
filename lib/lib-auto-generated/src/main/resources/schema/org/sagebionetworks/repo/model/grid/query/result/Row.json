@@ -2,16 +2,17 @@
 	"description": "A single row of a grid query result.",
 	"type": "object",
 	"properties": {
-		"cellValues": {
-			"type": "array",
-			"items": {
-				"type": "object"
-			},
-			"description": "An array of cell values for a single row.  Each cell's index will corresponds to the SelectColumn.columnIndex"
+		"data": {
+			"type": "object",
+			"description": "The JSON object representing a single row."
 		},
 		"validationResults": {
 			"$ref": "org.sagebionetworks.repo.model.grid.query.result.ValidationResults",
 			"description": "When a grid is bound to a JSON schema, each row will be validated against the schema. This represents the validation results of a single row.  Will be excluded for queries that contain any type of aggregation (count, group by...)."
+		},
+		"rowId": {
+			"type": "string",
+			"description": "Logical timestamp identifying the row in compact form `replicaId.sequenceNumber` (e.g. `123.456`). Used in filters (RowIdFilter) and patch/update operations."
 		}
 	}
 }

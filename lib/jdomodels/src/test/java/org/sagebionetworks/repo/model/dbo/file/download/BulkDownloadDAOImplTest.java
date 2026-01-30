@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
@@ -62,12 +63,14 @@ public class BulkDownloadDAOImplTest {
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userOneIdLong = userGroupDao.create(ug);
 		userOneId = "" + userOneIdLong;
 		// second user
 		ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userTwoIdLong = userGroupDao.create(ug);
 		userTwoId = "" + userTwoIdLong;
 

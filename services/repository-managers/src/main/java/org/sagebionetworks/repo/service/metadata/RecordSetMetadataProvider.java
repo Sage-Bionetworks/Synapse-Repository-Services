@@ -32,8 +32,9 @@ public class RecordSetMetadataProvider implements EntityValidator<RecordSet>, Ty
 				ValidateArgument.requirement(Boolean.TRUE.equals(entity.getCsvDescriptor().getIsFirstLineHeader()), "The csvDescriptor.isFirstLineHeader must be true.");
 			}
 			
-			// The validation summary is only set in a grid session export job and cannot be stored in the node.
+			// The validation summary and file are only set in a grid session export job
 			entity.setValidationSummary(null);
+			entity.setValidationFileHandleId(null);
 		}
 		
 		fileEntityMetadataProvider.validateEntity(entity, event);
@@ -54,8 +55,8 @@ public class RecordSetMetadataProvider implements EntityValidator<RecordSet>, Ty
 		Long recordSetId = KeyFactory.stringToKey(entity.getId());
 		Long recordSetVersion = entity.getVersionNumber();
 		
-		validationResultDao.getRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion).ifPresent( stats -> 
-			entity.setValidationSummary(stats)
+		validationResultDao.getRecordSetValidationSummaryStatistics(recordSetId, recordSetVersion).ifPresent( result -> 
+			entity.setValidationSummary(result)
 		);
 	}
 

@@ -29,11 +29,6 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-search</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-doi</artifactId>
 		</dependency>
 
@@ -206,11 +201,6 @@
 		<dependency>
 			<groupId>org.bouncycastle</groupId>
 			<artifactId>bcpkix-jdk18on</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.bouncycastle</groupId>
-			<artifactId>bcprov-ext-jdk18on</artifactId>
 		</dependency>
 
 		<!-- Velocity - Used to templatize IAM policy documents -->

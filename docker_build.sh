@@ -86,6 +86,18 @@ fi
 mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_repository_database_connection_url} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 mysql -u${rds_user_name} -p${rds_password} -h ${org_sagebionetworks_table_cluster_endpoint_0} -sN -e "DROP DATABASE ${db_name};CREATE DATABASE ${db_name};"
 
+#
+# In some circumstances the hostname used to reach the RDS from within a container is different
+# from the address to reach it from without a container.  E.g., on MacOS running the RDS locally,
+# the RDS host is 'localhost' but within the container it's 'host.docker.internal'.
+#
+if [ -z ${org_sagebionetworks_repository_database_connection_url_in_container+x} ]; then
+  org_sagebionetworks_repository_database_connection_url_in_container=${org_sagebionetworks_repository_database_connection_url}
+fi
+if [ -z ${org_sagebionetworks_table_cluster_endpoint_in_container+x} ]; then
+  org_sagebionetworks_table_cluster_endpoint_in_container=${org_sagebionetworks_table_cluster_endpoint_0}
+fi
+
 # create build container and run build
 docker run ${DOCKER_USER_OPTION} -i --rm --name ${build_container_name} \
 -m 5500M \
@@ -96,8 +108,8 @@ docker run ${DOCKER_USER_OPTION} -i --rm --name ${build_container_name} \
 -w /repo \
 maven:3-amazoncorretto-11 \
 bash -c "mvn clean ${MVN_GOAL} ${EXTRA_ARGS} -U \
--Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
--Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url}/${db_name} \
+-Dorg.sagebionetworks.repository.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name} \
+-Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name} \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
@@ -106,7 +118,7 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.developer=${user} \
 -Dorg.sagebionetworks.stack=${stack} \
 -Dorg.sagebionetworks.table.enabled=true \
--Dorg.sagebionetworks.table.cluster.endpoint.0=${org_sagebionetworks_table_cluster_endpoint_0} \
+-Dorg.sagebionetworks.table.cluster.endpoint.0=${org_sagebionetworks_table_cluster_endpoint_in_container} \
 -Dorg.sagebionetworks.table.cluster.schema.0=${db_name} \
 -Dorg.sagebionetworks.search.enabled=${org_sagebionetworks_search_enabled} \
 -Dorg.sagebionetworks.doi.datacite.enabled=${org_sagebionetworks_datacite_enabled} \

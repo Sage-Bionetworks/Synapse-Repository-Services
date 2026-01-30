@@ -15,7 +15,9 @@ import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
@@ -24,9 +26,11 @@ import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
@@ -61,6 +65,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	RealmDao realmDao;
 	
 	@Autowired
 	private AuthenticationManager authManager;
@@ -122,17 +129,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public String getSecretKey(Long principalId) throws NotFoundException {
-		return authManager.getSecretKey(principalId);
-	}
-	
-	@Override
-	@WriteTransaction
-	public void deleteSecretKey(Long principalId) throws NotFoundException {
-		authManager.changeSecretKey(principalId);
-	}
-	
-	@Override
 	public boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException {
 		return tosManager.hasUserAcceptedTermsOfService(userId);
 	}
@@ -141,6 +137,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public void sendPasswordResetEmail(String passwordResetUrlPrefix, String usernameOrEmail) {
 		try {
 			PrincipalAlias principalAlias = userManager.lookupUserByUsernameOrEmail(usernameOrEmail);
+			UserInfo userInfo = userManager.getUserInfo(principalAlias.getPrincipalId());
+			// can only reset password if user is in the default Synapse realm
+			if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+				throw new IllegalArgumentException("Cannot reset password for users in realm "+userInfo.getRealmId());
+			}
 			PasswordResetSignedToken passwordRestToken = authManager.createPasswordResetToken(principalAlias.getPrincipalId());
 			messageManager.sendNewPasswordResetEmail(passwordResetUrlPrefix, passwordRestToken, principalAlias);
 		} catch (NotFoundException e) {
@@ -176,7 +177,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		});
 		
 		Long loggedInUserId = oidcBinding.getUserId();
-				
+		
 		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill	
 		if (oidcBinding.getAliasId() == null) {
 						
@@ -206,6 +207,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				userManager.setOidcBindingAlias(oidcBinding, alias);
 			}
 			
+		}
+		
+		// the realm of the user must match the realm of the OAuth Provider
+		IdentityProvider identityProvider = new OAuthIdentityProvider().setProvider(request.getProvider());
+		Optional<String> optionalRealmId = realmDao.getRealmIdForIdentityProvider(identityProvider);
+		if (optionalRealmId.isEmpty()) {
+			throw new IllegalStateException("There is no security realm associated with "+request.getProvider().name());
+		}
+		UserInfo user = userManager.getUserInfo(loggedInUserId);
+		if (!user.getRealmId().equals(optionalRealmId.get())) {
+			throw new IllegalArgumentException("Cannot authenticate user "+loggedInUserId+
+				" using OAuth provider "+request.getProvider().name()+" since they are associated with different security realms.");
 		}
 		
 		// Return the user's access token
@@ -243,8 +256,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		ProvidedUserInfo providedInfo = oauthManager.validateUserWithProvider(
 				request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		
-		if (providedInfo.getUsersVerifiedEmail() == null){
-			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+" did not provide a user email");
+		if (providedInfo.getUsersVerifiedEmail() == null) {
+			throw new IllegalArgumentException("OAuthProvider: "+request.getProvider().name()+
+					" did not provide a verified user email.  Email value is: "+
+					providedInfo.getEmail()+". and email_verified value is: "+
+					providedInfo.getEmailVerified());
 		}
 		
 		if (providedInfo.getSubject() == null) {
@@ -274,11 +290,22 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new UnauthorizedException("User ID is required.");
 		}
 		
+		UserInfo user = userManager.getUserInfo(userId);
+		
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
 				validationRequest.getAuthenticationCode(),
 				validationRequest.getRedirectUrl());
 		
+		// only allow the binding if the given provider is in the user's realm
+		IdentityProvider identityProvider = new OAuthIdentityProvider().setProvider(validationRequest.getProvider());
+		Optional<String> optionalRealmId = realmDao.getRealmIdForIdentityProvider(identityProvider);
+		if (optionalRealmId.isEmpty()) {
+			throw new IllegalArgumentException("There is no security realm associated with "+validationRequest.getProvider().name());
+		}
+		if (!user.getRealmId().equals(optionalRealmId.get())) {
+			throw new IllegalArgumentException("Cannot bind an alias from "+validationRequest.getProvider().name()+" for this user.");
+		}
 		// now bind the ID to the user account
 		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
 	}

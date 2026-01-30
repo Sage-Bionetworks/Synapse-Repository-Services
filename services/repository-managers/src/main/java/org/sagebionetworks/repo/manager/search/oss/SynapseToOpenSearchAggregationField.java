@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.search.oss;
 
 import org.sagebionetworks.repo.model.search.query.SearchFieldName;
-import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.repo.manager.search.SearchConstants;
 import org.sagebionetworks.util.ValidateArgument;
 
 public enum SynapseToOpenSearchAggregationField {

@@ -60,22 +60,7 @@ public interface AuthenticationDAO {
 	 * Changes a user's password
 	 */
 	void changePassword(long principalId, String passHash);
-	
-	/**
-	 * Returns the user's secret key
-	 */
-	String getSecretKey(long principalId) throws NotFoundException;
-	
-	/**
-	 * Generates a new secret key for the user
-	 */
-	void changeSecretKey(long principalId);
-	
-	/**
-	 * Replaces the user's secret key with the specified one
-	 */
-	void changeSecretKey(long principalId, String secretKey);
-		
+
 	/**
 	 * Adds the user agreement for a specific version of the terms of service 
 	 * @param principalId

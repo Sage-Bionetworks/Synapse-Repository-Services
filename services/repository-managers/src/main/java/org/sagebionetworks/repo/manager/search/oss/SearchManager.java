@@ -4,6 +4,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionQuery;
+import org.sagebionetworks.repo.model.search.query.SuggestionResults;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,5 +37,14 @@ public interface SearchManager {
      * @return the results of the search
      */
     SearchResults search(UserInfo userInfo, SearchQuery searchQuery);
+
+    /**
+     * Get suggestions for search terms on behalf of the user
+     *
+     * @param userInfo
+     * @param suggestionQuery
+     * @return the results of the suggestion
+     */
+    SuggestionResults getSuggestions(UserInfo userInfo, SuggestionQuery suggestionQuery);
 
 }

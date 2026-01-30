@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -66,6 +67,7 @@ public class DBOAccessControlListDAOScaleTest {
 		userGroup = new UserGroup();
 		userGroup.setCreationDate(new Date());
 		userGroup.setIsIndividual(true);
+		userGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(userGroup).toString();
 		// update the object from the database so it has its ID
 		userGroup = userGroupDAO.get(Long.parseLong(userId));

@@ -1,0 +1,15 @@
+{
+	"description": "Represents a single column assignment (one entry of the SQL SET clause).",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.grid.update.SetValue"
+		}
+	],
+	"properties": {
+		"value": {
+			"type": "object",
+			"description": "Literal JSON value to assign to the field in each target document: string, number, boolean, object, array, or null. Omit the \"value\" property to remove/unset the field (`undefined`); include `\"value\": null` to store JSON null. Must be a literal constant — no SQL or expressions; value is bound and stored as-is."
+		}
+	}
+}

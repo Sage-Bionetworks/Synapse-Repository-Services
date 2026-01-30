@@ -4,6 +4,7 @@ import java.util.function.Function;
 
 import org.sagebionetworks.repo.model.grid.query.CellValueFilter;
 import org.sagebionetworks.repo.model.grid.query.Filter;
+import org.sagebionetworks.repo.model.grid.query.RowIdFilter;
 import org.sagebionetworks.repo.model.grid.query.RowIsValidFilter;
 import org.sagebionetworks.repo.model.grid.query.RowSelectionFilter;
 import org.sagebionetworks.repo.model.grid.query.RowValidationResultFilter;
@@ -13,7 +14,8 @@ public enum FilterTranslation {
 	CellValue(CellValueFilter.class, CellValueFilterElement::new),
 	RowSelection(RowSelectionFilter.class, RowSelectionFilterElement::new),
 	RowValidationResult(RowValidationResultFilter.class, RowValidationResultFilterElement::new),
-	RowIsValid(RowIsValidFilter.class, RowIsValidFilterElement::new);
+	RowIsValid(RowIsValidFilter.class, RowIsValidFilterElement::new),
+	RowId(RowIdFilter.class, VectorIdFilterElement::new);
 
 	private final Class<? extends Filter> filterClass;
 	private final Function<Filter, FilterElement> factory;

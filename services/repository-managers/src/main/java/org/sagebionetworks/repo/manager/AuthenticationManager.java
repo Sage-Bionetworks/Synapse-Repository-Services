@@ -26,16 +26,6 @@ public interface AuthenticationManager {
 	long changePassword(ChangePasswordInterface changePasswordWithOldPassword);
 
 	/**
-	 * Gets the user's secret key
-	 */
-	String getSecretKey(Long principalId) throws NotFoundException;
-	
-	/**
-	 * Replaces the user's secret key with a new one
-	 */
-	void changeSecretKey(Long principalId);
-	
-	/**
 	 * Creates a token tha can be used to reset a user's password
 	 */
 	PasswordResetSignedToken createPasswordResetToken(long principalId) throws NotFoundException;

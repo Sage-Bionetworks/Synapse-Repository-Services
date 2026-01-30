@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowCh
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
-import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.springframework.stereotype.Service;
 
@@ -47,8 +47,8 @@ public class JoinedRowChangePublisher {
 			
 			// The iterator of joined rows is sorted by upsert key descending, this allows us to use the current last row id
 			// as the insert position for all new rows (since they will be inserted in reverse order)
-			LogicalTimestamp lastRowId = gridIndexDao.getArrayLastNode(header.getSessionId(), header.getReplicaId(), rowsArrayId)
-				.map(ArrayNode::getNodeId)
+			LogicalTimestamp lastRowId = gridIndexDao.getRgaLastNode(header.getSessionId(), header.getReplicaId(), rowsArrayId)
+				.map(RGANode::getNodeId)
 				.orElse(null);
 			
 			while (joinedRowStream.hasNext()) {

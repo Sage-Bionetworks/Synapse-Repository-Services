@@ -43,9 +43,10 @@ public class Entity extends SpecificRecordBase implements SpecificRecord {
 		allObjects.add(Metadata.SCHEMA);
 		allObjects.addAll(objects);
 		// A PFB Entity is composed of four fields: id, name, object, relation.
-		return SchemaBuilder.record("Entity").fields().name("id")
-				.type(Schema.createUnion(Schema.create(Type.NULL), Schema.create(Type.STRING))).withDefault(null)
-				.requiredString("name").name("object").type(Schema.createUnion(allObjects)).noDefault()
+		return SchemaBuilder.record("Entity").fields()
+				.name("id").type(Schema.createUnion(Schema.create(Type.NULL), Schema.create(Type.STRING))).withDefault(null)
+				.requiredString("name")
+				.name("object").type(Schema.createUnion(allObjects)).noDefault()
 				.name("relations").type(Schema.createArray(Relation.SCHEMA)).withDefault(Collections.emptyList())
 				.endRecord();
 	}

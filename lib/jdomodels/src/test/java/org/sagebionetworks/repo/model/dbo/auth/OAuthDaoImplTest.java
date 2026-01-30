@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
@@ -64,6 +65,7 @@ class OAuthDaoImplTest {
 		// Initialize a UserGroup
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(ug);
 		
 		// create an OAuthClient to grant consent to
