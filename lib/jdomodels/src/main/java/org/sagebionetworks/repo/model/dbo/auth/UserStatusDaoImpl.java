@@ -85,7 +85,7 @@ public class UserStatusDaoImpl implements UserStatusDao {
 	@WriteTransaction
 	@Override
 	public void resetStatusToEnabled(long principalId) {
-		Instant resetLastSeenOn = Instant.now().minus(200, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS);
+		Instant resetLastSeenOn = Instant.now();
 
 		String sql = "INSERT INTO " + TABLE_USER_STATUS + " ("
 				+ COL_USER_STATUS_PRINCIPAL_ID + ", "

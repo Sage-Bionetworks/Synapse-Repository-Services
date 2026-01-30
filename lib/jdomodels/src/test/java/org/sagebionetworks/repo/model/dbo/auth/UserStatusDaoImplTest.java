@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -81,13 +82,17 @@ public class UserStatusDaoImplTest {
 		userStatusDao.setLastSeenOn(List.of(userId), lastSeenOn);
 		userStatusDao.setDisabled(userId, true);
 
+		assertTrue(userStatusDao.isDisabled(userId));
+		assertEquals(lastSeenOn, userStatusDao.getLastSeenOn(userId).orElseThrow());
+
 		// call under test
 		userStatusDao.resetStatusToEnabled(userId);
 
         assertFalse(userStatusDao.isDisabled(userId));
 		Date updatedLastSeenOn = userStatusDao.getLastSeenOn(userId).orElseThrow();
-		// lastSeen on was reset to 200 days
-		assertTrue(updatedLastSeenOn.before(Date.from(instantNow.minus(199, ChronoUnit.DAYS).truncatedTo(ChronoUnit.SECONDS))));
+		Duration d = Duration.between(instantNow, updatedLastSeenOn.toInstant());
+		assertFalse(d.isNegative(), "updatedLastSeenOn > instantNow");
+		assertTrue(d.compareTo(Duration.ofDays(1)) < 0, "updatedLastSeenOn should be within 1 day of instantNow");
 	}
 	
 	@Test
