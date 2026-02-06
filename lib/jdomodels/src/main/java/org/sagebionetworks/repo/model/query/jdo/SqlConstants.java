@@ -1436,6 +1436,7 @@ public class SqlConstants {
 	public static final String COL_USER_STATUS_ETAG					= "ETAG";
 	public static final String COL_USER_STATUS_LAST_SEEN_ON			= "LAST_SEEN_ON";
 	public static final String COL_USER_STATUS_DISABLED				= "DISABLED";
+	public static final String COL_USER_STATUS_WARNED_ON			= "WARNED_ON";
 	public static final String DDL_USER_STATUS 						= "schema/UserStatus-ddl.sql";
 
     public static final String TABLE_CURATION_TASK = "CURATION_TASK";

@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_LAST_SEEN_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_STATUS_WARNED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_STATUS;
 
 import java.sql.PreparedStatement;
@@ -57,11 +58,36 @@ public class UserStatusDaoImpl implements UserStatusDao {
 			}
 		});
 	}
+
+	@Override
+	@WriteTransaction
+	public void setWarnedOn(Long principalId, Date warnedOn) {
+
+		String sql = "INSERT INTO " + TABLE_USER_STATUS + " ("
+				+ COL_USER_STATUS_PRINCIPAL_ID + ", "
+				+ COL_USER_STATUS_ETAG + ","
+				+ COL_USER_STATUS_LAST_SEEN_ON + ","
+				+ COL_USER_STATUS_DISABLED + ","
+				+ COL_USER_STATUS_WARNED_ON + ") "
+				+ "VALUES (?, UUID(), ?, false, ?) "
+				+ "ON DUPLICATE KEY UPDATE "
+				+ COL_USER_STATUS_ETAG + " = UUID(),"
+				+ COL_USER_STATUS_WARNED_ON + " = ?";
+
+		jdbcTemplate.update(sql, principalId, warnedOn, warnedOn, warnedOn);
+	}
 	
 	@Override
 	public Optional<Date> getLastSeenOn(long principalId) {
 		return jdbcTemplate.queryForList(
 				"SELECT " + COL_USER_STATUS_LAST_SEEN_ON + " FROM " + TABLE_USER_STATUS + " WHERE " + COL_USER_STATUS_PRINCIPAL_ID + "=?",
+				Date.class, principalId).stream().findFirst();
+	}
+
+	@Override
+	public Optional<Date> getWarnedOn(long principalId) {
+		return jdbcTemplate.queryForList(
+				"SELECT " + COL_USER_STATUS_WARNED_ON + " FROM " + TABLE_USER_STATUS + " WHERE " + COL_USER_STATUS_PRINCIPAL_ID + "=?",
 				Date.class, principalId).stream().findFirst();
 	}
 	
@@ -111,6 +137,16 @@ public class UserStatusDaoImpl implements UserStatusDao {
 				"SELECT " + COL_USER_STATUS_PRINCIPAL_ID + " FROM " + TABLE_USER_STATUS + " WHERE "
 				+ COL_USER_STATUS_DISABLED + " = false AND "
 				+ COL_USER_STATUS_LAST_SEEN_ON + " < ? LIMIT ?",
+				Long.class, lastSeenOnThreshold, batchSize);
+	}
+
+	@Override
+	public List<Long> getSoonToBeInactiveUsersBatch(Date lastSeenOnThreshold, int batchSize) {
+		return jdbcTemplate.queryForList(
+				"SELECT " + COL_USER_STATUS_PRINCIPAL_ID + " FROM " + TABLE_USER_STATUS + " WHERE "
+						+ COL_USER_STATUS_DISABLED + " = false AND "
+						+ COL_USER_STATUS_LAST_SEEN_ON + " < ? LIMIT ?"
+						+ COL_USER_STATUS_WARNED_ON + " IS NULL",
 				Long.class, lastSeenOnThreshold, batchSize);
 	}
 	

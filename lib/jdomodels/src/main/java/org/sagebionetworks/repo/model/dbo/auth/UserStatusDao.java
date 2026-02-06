@@ -11,6 +11,10 @@ public interface UserStatusDao {
 	void setLastSeenOn(List<Long> principalIds, Date lastSeenOn);
 	
 	Optional<Date> getLastSeenOn(long principalId);
+
+	void setWarnedOn(Long principalId, Date lastSeenOn);
+
+	Optional<Date> getWarnedOn(long principalId);
 	
 	void setDisabled(long principalId, boolean disabled);
 
@@ -19,5 +23,7 @@ public interface UserStatusDao {
 	boolean isDisabled(long principalId);
 	
 	List<Long> getInactiveUsersBatch(Date lastSeenOnThreshold, int batchSize);
+
+	List<Long> getSoonToBeInactiveUsersBatch(Date lastSeenOnThreshold, int batchSize);
 }
 

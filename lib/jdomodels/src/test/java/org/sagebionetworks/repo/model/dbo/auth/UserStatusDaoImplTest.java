@@ -75,6 +75,23 @@ public class UserStatusDaoImplTest {
 	}
 
 	@Test
+	public void testGetAndSetWarnedOn() {
+		assertEquals(Optional.empty(), userStatusDao.getWarnedOn(userId));
+
+		Date warnedOn = Date.from(Instant.now().minus(1, ChronoUnit.DAYS));
+
+		userStatusDao.setWarnedOn(userId, warnedOn);
+
+		assertEquals(Optional.of(warnedOn), userStatusDao.getWarnedOn(userId));
+
+		warnedOn = Date.from(Instant.now().plus(1, ChronoUnit.DAYS));
+
+		userStatusDao.setWarnedOn(userId, warnedOn);
+
+		assertEquals(Optional.of(warnedOn), userStatusDao.getWarnedOn(userId));
+	}
+
+	@Test
 	public void testResetStatusToEnabled() throws InterruptedException {
 		Instant instantNow = Instant.now();
 		// set realistic disabled status (last seen more than 180 days ago and set disabled by worker)

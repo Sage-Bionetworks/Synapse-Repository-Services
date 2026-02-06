@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.principal;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -57,6 +58,39 @@ public class UserStatusManagerImpl implements UserStatusManager {
 		}
 		
 		return inactiveUsers.size();
+	}
+
+	@Override
+	public int warnSoonToBeInactiveUsers(int maxBatchSize) {
+		Date inactivityThreshold = Date.from(clock.now().toInstant().minus(WARNING_INACTIVITY_DAYS, ChronoUnit.DAYS));
+
+		List<Long> inactiveUsers = userStatusDao.getSoonToBeInactiveUsersBatch(inactivityThreshold, maxBatchSize).stream()
+				// Does not touch botstrapped users
+				.filter(Predicate.not(BOOTSTRAP_PRINCIPAL::isBootstrapPrincipalId))
+				.collect(Collectors.toList());
+
+		if (inactiveUsers.isEmpty()) {
+			return 0;
+		}
+
+		List<Long> emailedSoonToBeInactiveUserIds = emailSoonToBeInactiveUsers(inactiveUsers);
+
+		int numUsersRecordedAsWarned = setAsWarned(emailedSoonToBeInactiveUserIds);
+
+		return numUsersRecordedAsWarned;
+	}
+
+	private List<Long> emailSoonToBeInactiveUsers(List<Long> soonToBeInactiveUserIds) {
+		List<Long> warnedSoonToBeInactiveUserIds = new LinkedList<>();
+		return warnedSoonToBeInactiveUserIds;
+	}
+
+	@WriteTransaction
+	private int setAsWarned(List<Long> warnedSoonToBeInactiveUserIds) {
+		for (Long userId: warnedSoonToBeInactiveUserIds) {
+			userStatusDao.setWarnedOn(userId, Date.from(clock.now().toInstant()));
+		}
+		return warnedSoonToBeInactiveUserIds.size();
 	}
 
 	@Override
