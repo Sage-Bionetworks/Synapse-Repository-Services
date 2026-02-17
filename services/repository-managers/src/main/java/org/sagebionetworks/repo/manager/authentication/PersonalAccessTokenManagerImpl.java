@@ -91,7 +91,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 	@Override
 	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
 		ValidateArgument.required(request, "AccessTokenGenerationRequest");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthenticatedException("Anonymous users may not issue personal access tokens.");
 		}
 		
@@ -196,7 +196,7 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	@Override
 	public AccessTokenRecordList getTokenRecords(UserInfo userInfo, String nextPageToken) {
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthenticatedException("Anonymous users cannot have personal access tokens.");
 		}
 

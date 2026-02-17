@@ -54,6 +54,7 @@ public class EntityDeciderFunctionsTest {
 		nonAdminUser = new UserInfo(false/* isAdmin */, 333L);
 		anonymousUser = new UserInfo(false/* isAdmin */,
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L);
 		certifiedUser = new UserInfo(false/* isAdmin */, 555L);
 		certifiedUser.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());

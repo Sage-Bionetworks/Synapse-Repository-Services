@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
@@ -109,4 +110,13 @@ public interface FileProvider {
 	 * @param consumer
 	 */
 	<R> R createTemporaryFile(String prefix, String suffix, FileHandler<R> function) throws IOException;
+	
+	/**
+	 * Create a new RandomAccessFile.
+	 * @param file
+	 * @param mode
+	 * @return
+	 * @throws FileNotFoundException 
+	 */
+	RandomAccessFile createRandomAccessFile(File file, String mode) throws FileNotFoundException;
 }

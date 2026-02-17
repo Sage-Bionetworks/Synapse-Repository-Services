@@ -1431,6 +1431,15 @@ public class SqlConstants {
 	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
 	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
 	
+	public static final String TABLE_GRID_SNAPSHOT = 				"GRID_SNAPSHOT";
+	public static final String COL_GRID_SNAPSHOT_ID =				"ID";
+	public static final String COL_GRID_SNAPSHOT_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_GRID_SNAPSHOT_CLOCK_TABLE = 		"CLOCK_TABLE";
+	public static final String COL_GRID_SNAPSHOT_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_GRID_SNAPSHOT_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_GRID_SNAPSHOT_S3_KEY	= 			"S3_KEY";
+	public static final String DDL_GRID_SNAPSHOT =	"schema/grid/Grid-Snapshot-ddl.sql";
+
 	public static final String TABLE_USER_STATUS					= "USER_STATUS";
 	public static final String COL_USER_STATUS_PRINCIPAL_ID			= "PRINCIPAL_ID";
 	public static final String COL_USER_STATUS_ETAG					= "ETAG";

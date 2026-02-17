@@ -4,10 +4,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
@@ -118,7 +120,7 @@ public interface GridDao {
 
 	/**
 	 * Save grid patch data.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param patchId
 	 * @param s3Key
@@ -126,6 +128,16 @@ public interface GridDao {
 	 * @return True of this was a new patch, else false.
 	 */
 	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires);
+
+	/**
+	 * Save grid snapshot data.
+	 *
+	 * @param sessionId
+	 * @param clockTable
+	 * @param s3Key
+	 * @return True of this was a new snapshot, else false.
+	 */
+	boolean saveSnapshot(String sessionId, ClockTable clockTable, String s3Key, Long createdByPrincipalId);
 
 	/**
 	 * Get information about a patch.
@@ -180,4 +192,10 @@ public interface GridDao {
 	 */
 	Optional<GridSource> getSessionSource(String sessionId);
 
+	/**
+	 * Gets the latest grid snapshot, based on created date
+	 * @param sessionId
+	 * @return
+	 */
+	Optional<GridSnapshot> getLatestSnapshot(String sessionId);
 }

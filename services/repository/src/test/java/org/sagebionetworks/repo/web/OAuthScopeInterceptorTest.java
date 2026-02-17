@@ -74,7 +74,6 @@ class OAuthScopeInterceptorTest {
 	@Mock
 	private RequestHeader mockRequestHeader;
 	
-	private static final String USER_ID = "100001";
 	private static final String ACCESS_TOKEN = "access-token";
 	
 	private static RequiredScope createRequiredScopeAnnotation(final OAuthScope[] scopes) {
@@ -109,12 +108,12 @@ class OAuthScopeInterceptorTest {
 		when(mockUserIdParameter.getParameterAnnotation(RequestParam.class)).thenReturn(mockRequestParam);
 	}
 	
-	private void mockRequest(String userId, String accessToken) {
+	private void mockRequest(boolean isAnonymous, String accessToken) {
 		if (accessToken!=null) {
 			when(mockRequest.getHeader(SYNAPSE_AUTHORIZATION_HEADER_NAME)).thenReturn("Bearer "+accessToken);
 		}
 		when(mockRequest.getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME)).thenReturn(null);
-		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId); 	
+		when(mockRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn(""+isAnonymous); 	
 	}
 	
 	private void mockAccessToken(OAuthScope[] scopes) {
@@ -156,27 +155,10 @@ class OAuthScopeInterceptorTest {
 		assertFalse(OAuthScopeInterceptor.hasUserIdParameterOrAccessTokenHeader(mockHandler));
 	}
 	
-	@Test
-	void testIsAnonymous_anonymousId() {
-		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).
-			thenReturn(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-		assertTrue(OAuthScopeInterceptor.isAnonymous(mockRequest));
-	}
-	
-	@Test
-	void testIsAnonymous_missingId() {
-		assertTrue(OAuthScopeInterceptor.isAnonymous(mockRequest));
-	}
-	
-	@Test
-	void testIsAnonymous_NOT_anonymous() {
-		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn("123");
-		assertFalse(OAuthScopeInterceptor.isAnonymous(mockRequest));
-	}
 	
 	@Test
 	void testPrehandleAnonymous() throws Exception {
-		mockRequest(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), null);// anonymous, no access token
+		mockRequest(true, null);// anonymous, no access token
 		
 		// method under test
 		boolean result = oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
@@ -184,7 +166,6 @@ class OAuthScopeInterceptorTest {
 		assertTrue(result);
 		
 		verify(mockRequest).getHeader(AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME);
-		verify(mockRequest).getParameter(AuthorizationConstants.USER_ID_PARAM);
 		
 		verifyNoMoreInteractions(mockRequest);
 		verifyZeroInteractions(mockResponse);
@@ -193,7 +174,7 @@ class OAuthScopeInterceptorTest {
 
 	@Test
 	void testPrehandleAnonymous_handlerWrongType() throws Exception {
-		mockRequest("123", null);// NOT anonymous
+		mockRequest(false, null);// NOT anonymous
 		
 		// method under test
 		assertThrows(IllegalStateException.class, 
@@ -204,7 +185,7 @@ class OAuthScopeInterceptorTest {
 
 	@Test
 	void testPrehandleNoUserIdORAccessTokenParameter() throws Exception {
-		mockRequest(null, null);// anonymous, no access token
+		mockRequest(true, null);// anonymous, no access token
 
 		// method under test
 		boolean result = oauthScopeInterceptor.preHandle(mockRequest, mockResponse, mockHandler);
@@ -216,7 +197,7 @@ class OAuthScopeInterceptorTest {
 	void testPrehandleHappyCase() throws Exception {
 		mockRequiredScopeAnnotation();
 		mockRequestIdParam();
-		mockRequest(USER_ID, ACCESS_TOKEN);// NOT anonymous	
+		mockRequest(false, ACCESS_TOKEN);// NOT anonymous	
 		mockAccessToken(OAuthScope.values());
 		
 		// method under test
@@ -231,7 +212,7 @@ class OAuthScopeInterceptorTest {
 
 	@Test
 	void testPrehandleNoScopeAnnotation() throws Exception {
-		mockRequest("123", null);// NOT anonymous
+		mockRequest(false, null);// NOT anonymous
 		mockRequestIdParam();
 		when(mockHandler.getMethodAnnotation(RequiredScope.class)).thenReturn(null);
 		
@@ -250,7 +231,7 @@ class OAuthScopeInterceptorTest {
 		mockRequiredScopeAnnotation();
 		mockRequestIdParam();
 		
-		mockRequest(USER_ID, ACCESS_TOKEN);// NOT anonymous	
+		mockRequest(false, ACCESS_TOKEN);// NOT anonymous	
 		mockAccessToken(new OAuthScope[] {OAuthScope.view});
 		OutputStream os = mockResponse();
 		
@@ -274,7 +255,7 @@ class OAuthScopeInterceptorTest {
 		mockRequiredScopeAnnotation();
 		mockRequestIdParam();
 		
-		mockRequest(USER_ID, null);// NOT anonymous, no access token
+		mockRequest(false, null);// NOT anonymous, no access token
 		OutputStream os = mockResponse();
 		
 		// method under test
@@ -297,7 +278,7 @@ class OAuthScopeInterceptorTest {
 		mockRequiredScopeAnnotation();
 		mockRequestIdParam();
 		
-		mockRequest(USER_ID, ACCESS_TOKEN);// NOT anonymous, no access token
+		mockRequest(false, ACCESS_TOKEN);// NOT anonymous, no access token
 		
 		String message = "the error message";
 

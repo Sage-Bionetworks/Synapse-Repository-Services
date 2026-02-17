@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 import java.util.Objects;
 
 import org.sagebionetworks.repo.model.grid.CrdtId;
+import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class Column {
 
@@ -27,13 +28,23 @@ public class Column {
 		this.vectorIndex = vectorIndex;
 		return this;
 	}
-	
+
 	public CrdtId getColumnOrderNodeId() {
 		return columnOrderNodeId;
 	}
-	
+
+	public LogicalTimestamp getColumnOrderNodeIdAsLogical() {
+		return new LogicalTimestamp().setReplicaId(columnOrderNodeId.getRep())
+				.setSequenceNumber(columnOrderNodeId.getSeq());
+	}
+
 	public Column setColumnOrderNodeId(CrdtId columnOrderNodeId) {
 		this.columnOrderNodeId = columnOrderNodeId;
+		return this;
+	}
+
+	public Column setColumnOrderNodeId(LogicalTimestamp id) {
+		this.columnOrderNodeId = new CrdtId().setRep(id.getReplicaId()).setSeq(id.getSequenceNumber());
 		return this;
 	}
 
@@ -51,12 +62,14 @@ public class Column {
 		if (getClass() != obj.getClass())
 			return false;
 		Column other = (Column) obj;
-		return Objects.equals(name, other.name) && Objects.equals(vectorIndex, other.vectorIndex) && Objects.equals(columnOrderNodeId, other.columnOrderNodeId);
+		return Objects.equals(name, other.name) && Objects.equals(vectorIndex, other.vectorIndex)
+				&& Objects.equals(columnOrderNodeId, other.columnOrderNodeId);
 	}
 
 	@Override
 	public String toString() {
-		return "Column [name=" + name + ", vectorIndex=" + vectorIndex + ", columnOrderNodeId=" + columnOrderNodeId + "]";
+		return "Column [name=" + name + ", vectorIndex=" + vectorIndex + ", columnOrderNodeId=" + columnOrderNodeId
+				+ "]";
 	}
 
 }

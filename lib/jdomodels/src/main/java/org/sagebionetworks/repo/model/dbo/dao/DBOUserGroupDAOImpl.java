@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -38,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -73,6 +76,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SELECT_MULTI_BY_PRINCIPAL_IDS = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_ID+" IN (:"+ID_PARAM_NAME+")";
+
+	private static final String SELECT_REALMS_FOR_PRINCIPAL_IDS =
+			"SELECT ID, REALM FROM " + SqlConstants.TABLE_USER_GROUP +
+					" WHERE " + SqlConstants.COL_USER_GROUP_ID + " IN (:" + ID_PARAM_NAME + ")";
 	
 	private static final String SELECT_BY_IS_INDIVID_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -101,6 +108,16 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper = (new DBOUserGroup()).getTableMapping();
+
+	public static final ResultSetExtractor<Map<String, Set<String>>> realmToUserIdsMapper = rs -> {
+		Map<String, Set<String>> map = new HashMap<>();
+		while (rs.next()) {
+			String realm = rs.getString("REALM");
+			String id = rs.getString("ID");
+			map.computeIfAbsent(realm, k -> new HashSet<>()).add(id);
+		}
+		return map;
+	};
 	
 	
 
@@ -225,6 +242,19 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_MULTI_BY_PRINCIPAL_IDS, param, userGroupRowMapper);
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
+	}
+
+	@Override
+	public Map<String, Set<String>> getUsersRealms(List<String> ids) throws DatastoreException {
+		Map<String, Set<String>> realmMap = new HashMap<>();
+		if (ids.isEmpty()) {
+			return realmMap;
+		}
+
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, ids);
+		realmMap = namedJdbcTemplate.query(SELECT_REALMS_FOR_PRINCIPAL_IDS, param, realmToUserIdsMapper);
+		return realmMap;
 	}
 
 	@WriteTransaction

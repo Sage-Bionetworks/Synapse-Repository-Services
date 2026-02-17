@@ -2,25 +2,32 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.Row;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class RowData {
 
-    private List<ConValue> cells;
+    private List<ConstantNode> nodes;
     private LogicalTimestamp vectorId;
     private JSONObject rowJsonDocument;
 
     public List<ConValue> getCells() {
-        return cells;
+        if (nodes == null) {
+            return null;
+        }
+        return nodes.stream().map(ConstantNode::getConValue).collect(Collectors.toList());
     }
 
-    public RowData setCells(List<ConValue> data) {
-        this.cells = data;
+    public List<ConstantNode> getNodes() {
+        return nodes;
+    }
+
+    public RowData setNodes(List<ConstantNode> nodes) {
+        this.nodes = nodes;
         return this;
     }
 
@@ -74,7 +81,7 @@ public class RowData {
 
     @Override
     public String toString() {
-        return "RowData [data=" + cells + ", vectorId=" + vectorId + ", rowJsonDocument=" + rowJsonDocument + "]";
+        return "RowData [nodes=" + nodes + ", vectorId=" + vectorId + ", rowJsonDocument=" + rowJsonDocument + "]";
     }
 
 }

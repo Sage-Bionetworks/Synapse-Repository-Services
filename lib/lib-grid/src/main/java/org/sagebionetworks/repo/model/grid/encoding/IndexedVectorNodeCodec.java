@@ -40,7 +40,7 @@ public class IndexedVectorNodeCodec implements IndexedNodeTypeCodec<VectorNode> 
 		// The length in the header must match the number of slots we write (maxIndex + 1)
 		int maxIndex = node.getValues().keySet().stream().max(Integer::compareTo).orElse(-1);
 		long length = maxIndex + 1;
-		bytesWritten += IndexedEncodingUtils.writeNodeTypeAndLength(IndexedEncodingUtils.NODE_TYPE_VECTOR, length, out);
+		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.VECTOR.code, length, out);
 
 		for (int i = 0; i <= maxIndex; i++) {
 			if (!node.getValues().containsKey(i)) {

@@ -78,8 +78,8 @@ public class IndexedVectorNodeCodecTest {
 		InputStream byteStream = new ByteArrayInputStream(bytes);
 
 		// decode header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(byteStream);
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_VECTOR, nodeHeader.getNodeType());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(byteStream);
+		assertEquals(IndexedNodeCodecMapper.VECTOR.code, nodeHeader.getNodeType());
 		assertTrue(nodeHeader.getLength() >= 0L);
 
 		// decode body

@@ -21,7 +21,7 @@ public interface NodeCodec {
 	 * @throws IOException if an I/O error occurs
 	 * @throws IllegalArgumentException if the node type is not supported
 	 */
-	int encode(Node node, ClockTable clockTable, OutputStream out) throws IOException;
+	<T extends Node> int encode(T node, ClockTable clockTable, OutputStream out) throws IOException;
 
 
 

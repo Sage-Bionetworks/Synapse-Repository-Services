@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -12,6 +14,8 @@ public interface UserGroupDAO {
 	 * @return the list of user groups for the given principal IDs
 	 */
 	public List<UserGroup> get(List<String> ids) throws DatastoreException;
+
+	 Map<String, Set<String>> getUsersRealms(List<String> ids) throws DatastoreException;
 
 	/**
 	 * a variant of the generic 'getAll' query, this allows the caller to

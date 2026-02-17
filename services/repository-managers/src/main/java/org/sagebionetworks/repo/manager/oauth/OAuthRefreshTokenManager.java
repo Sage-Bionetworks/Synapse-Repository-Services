@@ -23,7 +23,7 @@ public interface OAuthRefreshTokenManager {
 	 * Creates an OAuth 2.0 refresh token, which can be used to grant an OAuth client long-lived, revocable access
 	 * to a user's resources
 	 *
-	 * @param userId
+	 * @param userInfo
 	 * @param clientId the client authorized to access the resources
 	 * @param scopes the {@link OAuthScope}s that the client is authorized to access with.
 	 * @param claims the OIDC claims that have been granted to the client. the {@link OIDCClaimsRequest} object also
@@ -31,7 +31,7 @@ public interface OAuthRefreshTokenManager {
 	 *                 makes a request at the userinfo endpoint
 	 * @return a generated refresh token, and the refresh token's unique ID.
 	 */
-	OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
+	OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
 
 	/**
 	 * Rotates a refresh token, returning the new token and its metadata.

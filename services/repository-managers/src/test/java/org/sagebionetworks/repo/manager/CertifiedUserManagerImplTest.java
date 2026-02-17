@@ -317,7 +317,7 @@ public class CertifiedUserManagerImplTest {
 	public void testGetCertificationQuizUnauthorized() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		
+		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertThrows(UnauthorizedException.class, () -> {
 			assertNotNull(certifiedUserManager.getCertificationQuiz(userInfo).getId());
 		});
@@ -610,6 +610,7 @@ public class CertifiedUserManagerImplTest {
 	public void testSubmitCertificationQuizUnauthorized() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		QuizGenerator quizGenerator = createQuizGenerator();
 		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
 		

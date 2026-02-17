@@ -46,8 +46,8 @@ public class IndexedObjectNodeCodecTest {
 		InputStream in = new ByteArrayInputStream(result);
 
 		// call under test - decode header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(in);
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_OBJECT, nodeHeader.getNodeType());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(IndexedNodeCodecMapper.OBJECT.code, nodeHeader.getNodeType());
 		assertEquals(0L, nodeHeader.getLength());
 
 		// call under test - decode node contents
@@ -73,8 +73,8 @@ public class IndexedObjectNodeCodecTest {
 		InputStream in = new ByteArrayInputStream(result);
 
 		// call under test - decode header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(in);
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_OBJECT, nodeHeader.getNodeType());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(IndexedNodeCodecMapper.OBJECT.code, nodeHeader.getNodeType());
 		assertEquals(1L, nodeHeader.getLength());
 
 		// call under test - decode node contents
@@ -102,8 +102,8 @@ public class IndexedObjectNodeCodecTest {
 		InputStream in = new ByteArrayInputStream(result);
 
 		// call under test - decode header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(in);
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_OBJECT, nodeHeader.getNodeType());
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(in);
+		assertEquals(IndexedNodeCodecMapper.OBJECT.code, nodeHeader.getNodeType());
 		assertEquals(3L, nodeHeader.getLength());
 
 		// call under test - decode node contents

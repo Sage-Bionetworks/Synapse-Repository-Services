@@ -5,18 +5,32 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +39,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.grid.ClockTable;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex.NodePointer;
+import org.sagebionetworks.repo.model.grid.encoding.IndexedNodeCodecMapper;
+import org.sagebionetworks.repo.model.grid.encoding.SeekingNodeReader;
+import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
+import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -41,6 +66,18 @@ public class GridIndexManagerImplTest {
 
 	@Mock
 	private OperationDispatcher mockOperationDispatcher;
+
+	@Mock
+	private SnapshotFileIndexBuilder mockIndexBuilder;
+
+	@Mock
+	private SeekingNodeReaderProvider mockReaderProvider;
+
+	@Mock
+	private SnapshotFileIndex mockIndex;
+
+	@Mock
+	private SeekingNodeReader mockReader;
 
 	@Spy
 	@InjectMocks
@@ -227,6 +264,168 @@ public class GridIndexManagerImplTest {
 				.thenReturn(true);
 		// call under test
 		assertTrue(manager.refreshMessageChain(sessionId, replicaId, chainId));
+	}
+
+	@Test
+	public void testApplySnapshotWithNullSessionId() {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+		sessionId = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.applySnapshot(sessionId, replicaId, snapshotFile);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+		verifyZeroInteractions(mockDao);
+	}
+
+	@Test
+	public void testApplySnapshotWithNullReplicaId() {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+		replicaId = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.applySnapshot(sessionId, replicaId, snapshotFile);
+		}).getMessage();
+		assertEquals("replicaId is required.", message);
+		verifyZeroInteractions(mockDao);
+	}
+
+	@Test
+	public void testApplySnapshotWithNullFile() {
+		Path snapshotFile = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.applySnapshot(sessionId, replicaId, null);
+		}).getMessage();
+		assertEquals("snapshotFile is required.", message);
+		verifyZeroInteractions(mockDao);
+	}
+
+	@Test
+	public void testApplySnapshotWithAllNodeTypes() throws Exception {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+		LogicalTimestamp rootId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
+		LogicalTimestamp constId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L);
+		LogicalTimestamp objectId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(3L);
+		LogicalTimestamp arrayId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(4L);
+		LogicalTimestamp arrayElementId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(5L);
+		LogicalTimestamp vectorId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(6L);
+		LogicalTimestamp vectorConstId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(7L);
+		ClockTable clockTable = new ClockTable(List.of(rootId));
+
+		// Create nodes
+		ConstantNode constantNode = new ConstantNode().setId(constId).setValue(new ConValue(ConType.LONG, 42L));
+		ConstantNode vectorConstNode = new ConstantNode().setId(vectorConstId).setValue(new ConValue(ConType.STRING, "vec"));
+		ObjectNode objectNode = new ObjectNode().setId(objectId).setValue(Map.of("key", constId));
+		ValueNode valueNode = new ValueNode().setId(rootId).setValue(objectId);
+		RGANode rgaElement = new RGANode()
+				.setContainerId(arrayId)
+				.setNodeId(arrayElementId)
+				.setDataId(constId)
+				.setIsDeleted(false);
+		ArrayNode arrayNode = new ArrayNode().setId(arrayId).setElements(List.of(rgaElement));
+		ConstantNode vectorConstStub = new ConstantNode().setId(vectorConstId);
+		VectorNode vectorNode = new VectorNode().setId(vectorId).setValues(Map.of(0, vectorConstStub));
+
+		// Create entries
+		Map<LogicalTimestamp, NodePointer> constantEntries = new LinkedHashMap<>();
+		constantEntries.put(constId, new NodePointer(100L, 50));
+		constantEntries.put(vectorConstId, new NodePointer(150L, 50));
+
+		when(mockIndexBuilder.build(snapshotFile)).thenReturn(mockIndex);
+		when(mockIndex.getClockTable()).thenReturn(clockTable);
+		when(mockIndex.getRootNodeId()).thenReturn(rootId);
+		when(mockReaderProvider.create(snapshotFile, mockIndex)).thenReturn(mockReader);
+
+		// readNodes is called once per type that has entries (constants, objects, values, arrays, vectors)
+		when(mockReader.streamConstantNodes()).thenReturn(Stream.of(constantNode, vectorConstNode)); // constants
+		when(mockReader.streamObjectNodes()).thenReturn(Stream.of(objectNode));                    	// objects
+		when(mockReader.streamValueNodes()).thenReturn(Stream.of(valueNode));                      	// values
+		when(mockReader.streamArrayNodes()).thenReturn(Stream.of(arrayNode));                    	// arrays
+		when(mockReader.streamVectorNodes()).thenReturn(Stream.of(vectorNode));                   	// vectors
+		when(mockReader.readNode(eq(IndexedNodeCodecMapper.CONSTANT), eq(vectorConstId))).thenReturn(vectorConstNode);
+		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(true);
+
+		// call under test
+		manager.applySnapshot(sessionId, replicaId, snapshotFile);
+
+		// Verify delete and re-create replica
+		verify(mockDao).deleteReplica(sessionId, replicaId);
+		verify(mockDao).createReplicaIfNotExists(sessionId, replicaId);
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.val, List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)));
+		verify(mockDao).saveValues(sessionId, replicaId, List.of(new ValueNode().setId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L))));
+
+		// Verify replica setup
+		verify(mockDao).deleteReplica(sessionId, replicaId);
+		verify(mockDao).createReplicaIfNotExists(sessionId, replicaId);
+
+		// Verify constants
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, new ArrayList<>(constantEntries.keySet()));
+		verify(mockDao).saveNewConstants(sessionId, replicaId, List.of(constantNode, vectorConstNode));
+
+		// Verify objects
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.obj, List.of(objectId));
+		verify(mockDao).saveObjects(sessionId, replicaId, List.of(objectNode));
+
+		// Verify values
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.val, List.of(rootId));
+		verify(mockDao).saveValues(sessionId, replicaId, List.of(valueNode));
+
+		// Verify arrays
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.arr, List.of(arrayId));
+		verify(mockDao).createArrayBatch(sessionId, replicaId, List.of(arrayId));
+		verify(mockDao).batchInsertRgaNodes(sessionId, replicaId, List.of(rgaElement));
+
+		// Verify vectors
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.vec, List.of(vectorId));
+		verify(mockDao).saveVectors(eq(sessionId), eq(replicaId), eq(List.of(new VectorNode().setId(vectorId).setValues(Map.of(0, vectorConstNode)))));
+
+		// Verify update the root value node
+		verify(mockDao).saveValues(sessionId, replicaId,
+				List.of(new ValueNode().setId(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L)).setValue(rootId))
+		);
+
+		// Verify clocks
+		verify(mockDao).setClocks(sessionId, replicaId, clockTable.getClocks());
+		verify(mockReader).close();
+
+		verifyNoMoreInteractions(mockDao, mockIndexBuilder, mockReaderProvider, mockReader);
+	}
+
+	@Test
+	public void testImportSnapshotWithDecoderBuildFailure() throws Exception {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+
+		when(mockIndexBuilder.build(snapshotFile)).thenThrow(new IOException("Failed to read file"));
+		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(true);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			manager.applySnapshot(sessionId, replicaId, snapshotFile);
+		});
+		assertTrue(ex.getMessage().contains("Failed to build snapshot index"));
+		assertTrue(ex.getCause() instanceof IOException);
+	}
+
+	@Test
+	public void testImportSnapshotWithReaderCreateFailure() throws Exception {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+		LogicalTimestamp rootId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
+		ClockTable clockTable = new ClockTable(List.of(rootId));
+
+		when(mockIndexBuilder.build(snapshotFile)).thenReturn(mockIndex);
+		when(mockIndex.getClockTable()).thenReturn(clockTable);
+		when(mockReaderProvider.create(snapshotFile, mockIndex)).thenThrow(new IOException("Failed to open file"));
+		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(true);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> {
+			manager.applySnapshot(sessionId, replicaId, snapshotFile);
+		});
+		assertTrue(ex.getMessage().contains("Failed to import snapshot"));
+		assertTrue(ex.getCause() instanceof IOException);
 	}
 
 }

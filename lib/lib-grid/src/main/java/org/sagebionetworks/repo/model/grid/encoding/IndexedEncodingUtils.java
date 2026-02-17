@@ -17,14 +17,6 @@ public final class IndexedEncodingUtils {
 	}
 
 	/**
-	 * Node type constants for the Indexed encoding format.
-	 */
-	public static final int NODE_TYPE_CONSTANT = 0b000;
-	public static final int NODE_TYPE_OBJECT = 0b010;
-	public static final int NODE_TYPE_VECTOR = 0b011;
-	public static final int NODE_TYPE_ARRAY = 0b110;
-
-	/**
 	 * Write the node type and length header byte(s).
 	 *
 	 * The first byte encodes the node type in bits 7-5 (3 bits) and the length in bits 4-0 (5 bits).
@@ -37,7 +29,7 @@ public final class IndexedEncodingUtils {
 	 * @return the number of bytes written
 	 * @throws IOException if an I/O error occurs
 	 */
-	public static int writeNodeTypeAndLength(int nodeType, long length, OutputStream out) throws IOException {
+	public static int writeNodeHeader(int nodeType, long length, OutputStream out) throws IOException {
 		ValidateArgument.required(out, "out");
 
 		int bytesWritten = 0;
@@ -69,7 +61,7 @@ public final class IndexedEncodingUtils {
 	 * @return a TypeAndLength containing the node type and length
 	 * @throws IOException if an I/O error occurs
 	 */
-	public static IndexedNodeHeader readNodeTypeAndLength(InputStream in) throws IOException {
+	public static IndexedNodeHeader readNodeHeader(InputStream in) throws IOException {
 		ValidateArgument.required(in, "in");
 
 		int firstByte = in.read();

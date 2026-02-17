@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.grid.node;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
@@ -18,6 +19,24 @@ public class ArrayNode implements Node {
 	@Override
 	public LogicalTimestamp getId() {
 		return nodeId;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
+
+		if (elements == null || elements.isEmpty()) {
+			return nodeIdStream;
+		}
+
+		Stream<LogicalTimestamp> rgaStream = elements.stream()
+				.flatMap(rgaNode -> Stream.of(
+						rgaNode.getNodeId(),
+						rgaNode.getDataId()
+				))
+				.filter(Objects::nonNull);
+
+		return Stream.concat(nodeIdStream, rgaStream);
 	}
 
 	public ArrayNode setId(LogicalTimestamp nodeId) {

@@ -198,5 +198,10 @@ public class HttpAuthUtil {
 		}
 		reject(resp, er, status);
 	}
+	
+	public static boolean isAnonymous(HttpServletRequest httpRequest) {
+		String param = httpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM);
+		return Boolean.parseBoolean(param);
+	}
 
 }

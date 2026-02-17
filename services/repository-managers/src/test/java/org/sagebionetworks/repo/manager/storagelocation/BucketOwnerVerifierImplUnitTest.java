@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.BucketObjectReader;
 import org.sagebionetworks.repo.manager.file.BucketObjectReaderProvider;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -427,7 +428,8 @@ public class BucketOwnerVerifierImplUnitTest {
 		
 		when(mockUserInfo.getId()).thenReturn(USER_ID);
 		when(mockPrincipalAliasDao.listPrincipalAliases(USER_ID, AliasType.USER_NAME, AliasType.USER_EMAIL)).thenReturn(principalAliases);
-		
+		when(mockUserInfo.getRealmAnonymousUserId()).thenReturn(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		when(mockUserInfo.getRealmPublicUsersId()).thenReturn(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		when(mockUserInfo.getGroups()).thenReturn(ImmutableSet.of(
 				teamId, 
 				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId(),  

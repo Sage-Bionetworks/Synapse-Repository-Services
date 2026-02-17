@@ -32,6 +32,12 @@ public class GridReplicaValidationWorker implements MessageDrivenRunner {
 	@Override
 	public void run(ProgressCallback progressCallback, Message message) throws RecoverableMessageException, Exception {
 		ReplicaChangeSet changeSet = new ReplicaChangeSet(MessageUtils.extractMessageBodyAsJSONObject(message));
+		if (ReplicaChangeSet.ChangeSource.SNAPSHOT.equals(changeSet.getChangeSource())) {
+			log.info("Received snapshot changeSet: {}", StringUtils.truncate(changeSet.toJson(), 200));
+			manager.validateAllRows(changeSet.getSessionId(), changeSet.getReplicaId());
+			return;
+		}
+
 		if (changeSet.getChanges() == null) {
 			log.info("Null changeset");
 			return;

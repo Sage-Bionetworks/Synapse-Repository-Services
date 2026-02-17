@@ -127,12 +127,21 @@ public interface GridIndexDao {
 
 	/**
 	 * Set a single clock value for a replica.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param replicaId
 	 * @param clock
 	 */
 	void setClock(String sessionId, Long replicaId, LogicalTimestamp clock);
+
+	/**
+	 * Set a batch of clock values for a replica.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @param clocks
+	 */
+	void setClocks(String sessionId, Long replicaId, List<LogicalTimestamp> clocks);
 
 	/**
 	 * Save a batch of {@link ValueNode} to a replica.
@@ -189,6 +198,17 @@ public interface GridIndexDao {
 	 * @param toInsert
 	 */
 	void insertIntoRepeatedGrowableArray(String sessionIdString, Long replicaId, RGANode toInsert);
+
+	/**
+	 * Batch insert RGA nodes directly without conflict resolution.
+	 * Use only when array is guaranteed empty or nodes have correct references already set.
+	 * This is a fast path for snapshot imports where arrays are known to be freshly created.
+	 *
+	 * @param sessionIdString the session ID
+	 * @param replicaId the replica ID
+	 * @param nodes the list of RGANodes to insert
+	 */
+	void batchInsertRgaNodes(String sessionIdString, Long replicaId, List<RGANode> nodes);
 
 	/**
 	 * Get a single page of ordered {@link RGANode}.

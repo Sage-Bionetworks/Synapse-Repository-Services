@@ -76,7 +76,7 @@ public class IndexedArrayNodeCodec implements IndexedNodeTypeCodec<ArrayNode> {
 		List<Chunk> chunks = groupIntoChunks(node.getElements());
 
 		// Write node type (110) and length (number of chunks)
-		bytesWritten += IndexedEncodingUtils.writeNodeTypeAndLength(IndexedEncodingUtils.NODE_TYPE_ARRAY, chunks.size(), out);
+		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.ARRAY.code, chunks.size(), out);
 
 		for (Chunk chunk : chunks) {
 			// 1. Write chunk ID (the node ID of the first element in the chunk)
@@ -122,7 +122,7 @@ public class IndexedArrayNodeCodec implements IndexedNodeTypeCodec<ArrayNode> {
 		Chunk currentChunk = null;
 
 		for (RGANode element : elements) {
-			boolean isDeleted = element.getIsDeleted() == true;
+			boolean isDeleted = Boolean.TRUE.equals(element.getIsDeleted());
 
 			if (currentChunk == null) {
 				// Start a new chunk
@@ -165,7 +165,7 @@ public class IndexedArrayNodeCodec implements IndexedNodeTypeCodec<ArrayNode> {
 		LogicalTimestamp currentNodeId = element.getNodeId();
 
 		return lastNodeId.getReplicaId().equals(currentNodeId.getReplicaId())
-			&& lastNodeId.getSequenceNumber() + 1 == currentNodeId.getSequenceNumber();
+			&& currentNodeId.getSequenceNumber().equals(lastNodeId.getSequenceNumber() + 1);
 	}
 
 	@Override
@@ -179,7 +179,7 @@ public class IndexedArrayNodeCodec implements IndexedNodeTypeCodec<ArrayNode> {
 		long numChunks = length;
 
 		List<RGANode> elements = new ArrayList<>();
-		LogicalTimestamp lastNodeId = null;
+		LogicalTimestamp lastNodeId = arrayNodeId;
 
 		// Read chunks - the header length indicates the number of chunks, not elements
 		for (long chunksRead = 0; chunksRead < numChunks; chunksRead++) {

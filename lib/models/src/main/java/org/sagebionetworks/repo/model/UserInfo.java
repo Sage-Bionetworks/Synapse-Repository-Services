@@ -22,6 +22,9 @@ public class UserInfo {
 	private Date creationDate;
 	private boolean hasTwoFactorAuthEnabled;
 	private CallersContext context;
+	private Long realmAnonymousUserId;
+	private Long realmAuthenticatedUsersId;
+	private Long realmPublicUsersId;
 
 	// Note: this is only used in unit tests
 	@Deprecated
@@ -46,6 +49,34 @@ public class UserInfo {
 		this.groups = new LinkedHashSet<Long>();
 		this.groups.add(this.id);
 		this.realmId=realmId;
+	}
+	
+	public boolean isUserAnonymous() {
+		return id==null || id.equals(realmAnonymousUserId);
+	}
+
+	public Long getRealmAnonymousUserId() {
+		return realmAnonymousUserId;
+	}
+
+	public void setRealmAnonymousUserId(Long realmAnonymousUserId) {
+		this.realmAnonymousUserId = realmAnonymousUserId;
+	}
+
+	public Long getRealmAuthenticatedUsersId() {
+		return realmAuthenticatedUsersId;
+	}
+
+	public void setRealmAuthenticatedUsersId(Long realmAuthenticatedUsersId) {
+		this.realmAuthenticatedUsersId = realmAuthenticatedUsersId;
+	}
+
+	public Long getRealmPublicUsersId() {
+		return realmPublicUsersId;
+	}
+
+	public void setRealmPublicUsersId(Long realmPublicUsersId) {
+		this.realmPublicUsersId = realmPublicUsersId;
 	}
 
 	public Set<Long> getGroups() {
@@ -118,7 +149,10 @@ public class UserInfo {
 		result = prime * result + (hasTwoFactorAuthEnabled ? 1231 : 1237);
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + (isAdmin ? 1231 : 1237);
+		result = prime * result + ((realmAnonymousUserId == null) ? 0 : realmAnonymousUserId.hashCode());
+		result = prime * result + ((realmAuthenticatedUsersId == null) ? 0 : realmAuthenticatedUsersId.hashCode());
 		result = prime * result + ((realmId == null) ? 0 : realmId.hashCode());
+		result = prime * result + ((realmPublicUsersId == null) ? 0 : realmPublicUsersId.hashCode());
 		return result;
 	}
 
@@ -155,10 +189,25 @@ public class UserInfo {
 			return false;
 		if (isAdmin != other.isAdmin)
 			return false;
+		if (realmAnonymousUserId == null) {
+			if (other.realmAnonymousUserId != null)
+				return false;
+		} else if (!realmAnonymousUserId.equals(other.realmAnonymousUserId))
+			return false;
+		if (realmAuthenticatedUsersId == null) {
+			if (other.realmAuthenticatedUsersId != null)
+				return false;
+		} else if (!realmAuthenticatedUsersId.equals(other.realmAuthenticatedUsersId))
+			return false;
 		if (realmId == null) {
 			if (other.realmId != null)
 				return false;
 		} else if (!realmId.equals(other.realmId))
+			return false;
+		if (realmPublicUsersId == null) {
+			if (other.realmPublicUsersId != null)
+				return false;
+		} else if (!realmPublicUsersId.equals(other.realmPublicUsersId))
 			return false;
 		return true;
 	}
@@ -167,7 +216,9 @@ public class UserInfo {
 	public String toString() {
 		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", realmId=" + realmId
 				+ ", creationDate=" + creationDate + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
-				+ ", context=" + context + "]";
+				+ ", context=" + context + ", realmAnonymousUserId=" + realmAnonymousUserId
+				+ ", realmAuthenticatedUsersId=" + realmAuthenticatedUsersId + ", realmPublicUsersId="
+				+ realmPublicUsersId + "]";
 	}
 	
 }

@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -22,7 +24,7 @@ import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
-public interface GridManager extends PatchStore {
+public interface GridManager extends PatchStore, SnapshotStore {
 
 	/**
 	 * Create a new grid session.
@@ -152,6 +154,13 @@ public interface GridManager extends PatchStore {
 	 */
 	Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
 
+	/**
+	 * Retrieve a pre-signed URL that can be used to download the latest snapshot data for a grid session.
+	 * @param context
+	 * @return
+	 */
+	Optional<URL> getLatestSnapshotPresignedUrl(EventContext context);
+
 	ListGridSessionsResponse listActiveGridSessions(UserInfo user, ListGridSessionsRequest request);
 
 	void deleteGridSession(UserInfo user, String gridSessionId);
@@ -168,5 +177,12 @@ public interface GridManager extends PatchStore {
 	GridReplica createAgentReplica(UserInfo user, GridSession session);
 
 	Optional<GridConnectionInfo> getConnection(String gridSessionId, Long agentsReplicaId);
+	
+	/**
+	 * Get the grid session source information.
+	 * @param sessionId
+	 * @return Optional.empty() if the session does not have a source.
+	 */
+	Optional<GridSource> getSessionSource(String sessionId);
 
 }

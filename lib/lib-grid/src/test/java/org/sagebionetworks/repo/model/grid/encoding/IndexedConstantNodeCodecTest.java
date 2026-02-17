@@ -7,7 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -44,11 +43,11 @@ public class IndexedConstantNodeCodecTest {
 		byte[] result = out.toByteArray();
 
 		// Verify that the same value can be decoded back
-		InputStream bytes = new PushbackInputStream(new ByteArrayInputStream(result));
+		InputStream bytes = new ByteArrayInputStream(result);
 		// Read the type and header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(bytes);
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(bytes);
 
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_CONSTANT, nodeHeader.getNodeType());
+		assertEquals(IndexedNodeCodecMapper.CONSTANT.code, nodeHeader.getNodeType());
 		assertEquals(0L, nodeHeader.getLength());
 
 		ConstantNode decoded = codec.decode(node.getId(), nodeHeader.getLength(), clockTable, bytes);
@@ -69,9 +68,9 @@ public class IndexedConstantNodeCodecTest {
 		// Verify that the same value can be decoded back
 		InputStream bytes = new ByteArrayInputStream(result);
 		// Read the type and header
-		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(bytes);
+		IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(bytes);
 
-		assertEquals(IndexedEncodingUtils.NODE_TYPE_CONSTANT, nodeHeader.getNodeType());
+		assertEquals(IndexedNodeCodecMapper.CONSTANT.code, nodeHeader.getNodeType());
 		assertEquals(1L, nodeHeader.getLength()); // For timestamps, the length should be 1
 
 		ConstantNode decoded = codec.decode(node.getId(), nodeHeader.getLength(), clockTable, bytes);

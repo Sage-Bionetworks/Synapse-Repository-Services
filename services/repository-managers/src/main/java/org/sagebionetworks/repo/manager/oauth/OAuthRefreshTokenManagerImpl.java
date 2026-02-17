@@ -60,7 +60,8 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenAndMetadata createRefreshToken(String userId, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
+	public OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
+		String userId = userInfo.getId().toString();
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
 		// The OpenIDConnectManager will handle if scope/claims are semantically valid
@@ -70,7 +71,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		ValidateArgument.required(claims.getId_token(), "id_token claims");
 		ValidateArgument.required(claims.getUserinfo(), "userinfo claims");
 
-		if (AuthorizationUtils.isUserAnonymous(Long.valueOf(userId))) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous users may not issue OAuth 2.0 refresh tokens.");
 		}
 

@@ -4,6 +4,8 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
@@ -16,6 +18,7 @@ import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.auth.RealmIdList;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -35,6 +38,9 @@ public class RealmManagerImpl implements RealmManager {
 	
 	@Autowired
 	private TeamManager teamManager;
+
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	static final String ANONYMOUS_SUFFIX = "-Anonymous";
 	static final String PUBLIC_SUFFIX = "-Public";
@@ -57,14 +63,14 @@ public class RealmManagerImpl implements RealmManager {
 		principalAliasDAO.bindAliasToPrincipal(principalAlias);
 		return String.valueOf(principalId);
 	}
-	
-	String createRealmAdminTeam(UserInfo userInfo, String realmId, String realmName) {
-		Team adminTeam = new Team();
-		adminTeam.setCanPublicJoin(false);
-		adminTeam.setDescription("Administration team for "+realmName);
-		adminTeam.setName(realmName+ADMINISTRATORS_SUFFIX);
-		adminTeam = teamManager.create(userInfo, adminTeam, realmId);
-		return adminTeam.getId();
+
+	String createRealmAdminTeam(String realmId, String realmName) {
+		BootstrapTeam bootstrapTeamForRealm = new BootstrapTeam();
+		bootstrapTeamForRealm.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ID).toString());
+		bootstrapTeamForRealm.setCanPublicJoin(false);
+		bootstrapTeamForRealm.setDescription("Administration team for " + realmName);
+		bootstrapTeamForRealm.setName(realmName + ADMINISTRATORS_SUFFIX);
+		return teamManager.bootstrapTeam(bootstrapTeamForRealm, realmId);
 	}
 	
 	// Since the realm name will become the prefix for the aliases of the 
@@ -89,8 +95,8 @@ public class RealmManagerImpl implements RealmManager {
 		realmPrincipal.setAnonymousUser(createRealmPrincipal(realm.getId(), name+ANONYMOUS_SUFFIX, true));
 		realmPrincipal.setAuthenticatedUsers(createRealmPrincipal(realm.getId(), name+AUTH_USERS_SUFFIX, false));
 		realmPrincipal.setPublicGroup(createRealmPrincipal(realm.getId(), name+PUBLIC_SUFFIX, false));
-		realmPrincipal.setAdministrativeGroup(createRealmAdminTeam(userInfo, realm.getId(), name));
-		realmPrincipal = realmDao.createRealmPrincipals(realmPrincipal);
+		realmPrincipal.setAdministrativeGroup(createRealmAdminTeam(realm.getId(), name));
+		realmDao.createRealmPrincipals(realmPrincipal);
 		return realm;
 	}
 

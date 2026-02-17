@@ -284,11 +284,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		case CREATED:
 		case PARTICIPATED:
 			// The current users's princpalIds minus PUBLIC, AUTHENTICATED_USERS, and CERTIFIED_USERS
-			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor.getGroups());
+			userToGetPrincipalIds = getGroupsMinusPublic(userToGetInfoFor);
 			break;
 		case TEAM:
 			if (teamId==null) {
-				userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor.getGroups(), userToGetInfoFor.getId());
+				userToGetPrincipalIds = getGroupsMinusPublicAndSelf(userToGetInfoFor);
 			} else {
 				if (!userToGetInfoFor.getGroups().contains(teamId)) {
 					throw new IllegalArgumentException("User "+userToGetInfoFor.getId()+" is not a member of team "+teamId);
@@ -339,10 +339,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param usersGroups
 	 * @return
 	 */
-	public static Set<Long> getGroupsMinusPublic(Set<Long> usersGroups){
-		Set<Long> groups = Sets.newHashSet(usersGroups);
-		groups.remove(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		groups.remove(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+	public static Set<Long> getGroupsMinusPublic(UserInfo userInfo){
+		Set<Long> groups = Sets.newHashSet(userInfo.getGroups());
+		groups.remove(userInfo.getRealmPublicUsersId());
+		groups.remove(userInfo.getRealmAuthenticatedUsersId());
 		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		return groups;
 	}
@@ -354,9 +354,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param userId
 	 * @return
 	 */
-	public static Set<Long> getGroupsMinusPublicAndSelf(Set<Long> usersGroups, final long userId) {
-		Set<Long> groups = getGroupsMinusPublic(usersGroups);
-		groups.remove(userId);
+	public static Set<Long> getGroupsMinusPublicAndSelf(UserInfo userInfo) {
+		Set<Long> groups = getGroupsMinusPublic(userInfo);
+		groups.remove(userInfo.getId());
 		return groups;
 	}
 

@@ -27,6 +27,12 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SCHEMA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SESSION_SOURCE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CLOCK_TABLE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_S3_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_SNAPSHOT_SESSION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 
 import java.sql.ResultSet;
@@ -35,15 +41,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 
+import org.json.JSONArray;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -99,6 +108,16 @@ public class GridDaoImpl implements GridDao {
 						.setSequenceNumber(rs.getLong(COL_GRID_PAT_PATCH_ID_SEQ)))
 				.setCreatedOn(rs.getTimestamp(COL_GRID_PAT_CREATED_ON))
 				.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON)).setS3Key(rs.getString(COL_GRID_PAT_S3_KEY));
+	};
+
+	private final RowMapper<GridSnapshot> SNAPSHOT_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
+		return new GridSnapshot()
+				.setId(rs.getLong(COL_GRID_SNAPSHOT_ID))
+				.setSessionId(rs.getString(COL_GRID_SNAPSHOT_SESSION_ID))
+				.setClockTable(ClockTable.fromJsonArray(new JSONArray(rs.getString(COL_GRID_SNAPSHOT_CLOCK_TABLE))))
+				.setCreatedOn(rs.getTimestamp(COL_GRID_SNAPSHOT_CREATED_ON))
+				.setCreatedBy(rs.getLong(COL_GRID_SNAPSHOT_CREATED_BY))
+				.setS3Key(rs.getString(COL_GRID_SNAPSHOT_S3_KEY));
 	};
 
 	private final RowMapper<LogicalTimestamp> TIMESTAMP_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -341,6 +360,34 @@ public class GridDaoImpl implements GridDao {
 						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY)"
 						+ " VALUES (?,?,?,?,NOW(),NOW() + INTERVAL ? SECOND,?)",
 				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), expires.getSeconds(), s3Key) > 0;
+	}
+
+	@WriteTransaction
+	@Override
+	public boolean saveSnapshot(String sessionId, ClockTable clockTable, String s3Key, Long createdByPrincipalId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(clockTable, "clockTable");
+		ValidateArgument.required(s3Key, "s3Key");
+
+		Long id = idGenerator.generateNewId(IdType.GRID_SNAPSHOT_ID);
+		return jdbcTemplate.update(
+				"INSERT INTO GRID_SNAPSHOT "
+						+ "(ID, SESSION_ID, CLOCK_TABLE, CREATED_ON, CREATED_BY, S3_KEY)"
+						+ " VALUES (?,?,?,NOW(),?,?)",
+				id, sessionId, clockTable.toJsonArray().toString(), createdByPrincipalId, s3Key) > 0;
+	}
+
+	@Override
+	public Optional<GridSnapshot> getLatestSnapshot(String sessionId) {
+		ValidateArgument.required(sessionId, "sessionId");
+
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT * FROM GRID_SNAPSHOT WHERE SESSION_ID = ? ORDER BY CREATED_ON DESC LIMIT 1",
+					SNAPSHOT_INFO_MAPPER, sessionId));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,6 +28,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -64,11 +66,14 @@ public class TermsOfServiceManagerTest {
 	private TermsOfServiceRequirements mockRequirements;
 	
 	private long userId;
+	private UserInfo user;
 	private UserInfo adminUser;
 	
 	@BeforeEach
 	public void beforeEach() {
 		userId = 123;
+		user = new UserInfo(false, userId, DEFAULT_REALM_ID);
+		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		adminUser = new UserInfo(true, 1L);
 	}
 	
@@ -206,7 +211,7 @@ public class TermsOfServiceManagerTest {
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
 		
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
@@ -221,7 +226,7 @@ public class TermsOfServiceManagerTest {
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
 		
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
@@ -245,7 +250,7 @@ public class TermsOfServiceManagerTest {
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
 		
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
@@ -272,7 +277,7 @@ public class TermsOfServiceManagerTest {
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_SOON);
 		
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
@@ -299,17 +304,17 @@ public class TermsOfServiceManagerTest {
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
 		
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		verifyNoMoreInteractions(mockAuthDao);
 	}
 	
 	@Test
 	public void testGetUserTermsOfServiceStatusWithAnonymousUser() {
-		userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		user.setRealmAnonymousUserId(user.getId());
 		
 		assertEquals("Cannot get terms of service status for the anonymous user.", assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			manager.getUserTermsOfServiceStatus(userId);
+			manager.getUserTermsOfServiceStatus(user);
 		}).getMessage());
 		
 		verifyNoMoreInteractions(mockAuthDao);
@@ -319,6 +324,7 @@ public class TermsOfServiceManagerTest {
 	@EnumSource(mode = Mode.EXCLUDE, value = BOOTSTRAP_PRINCIPAL.class, names = {"ANONYMOUS_USER"})
 	public void testGetUserTermsOfServiceStatusWithBootstrapPrincipals(BOOTSTRAP_PRINCIPAL principal) {
 		userId = principal.getPrincipalId();
+		user.setId(userId);
 		
 		TermsOfServiceStatus expected = new TermsOfServiceStatus()
 				.setUserId(String.valueOf(userId))
@@ -327,7 +333,7 @@ public class TermsOfServiceManagerTest {
 				.setUserCurrentTermsOfServiceState(TermsOfServiceState.UP_TO_DATE);
 
 		// Call under test
-		assertEquals(expected, manager.getUserTermsOfServiceStatus(userId));
+		assertEquals(expected, manager.getUserTermsOfServiceStatus(user));
 		
 		verifyNoMoreInteractions(mockAuthDao);
 	}
@@ -339,10 +345,10 @@ public class TermsOfServiceManagerTest {
 		
 		doReturn(new TermsOfServiceStatus()
 			.setUserCurrentTermsOfServiceState(userTosState)
-		).when(managerSpy).getUserTermsOfServiceStatus(userId);
+		).when(managerSpy).getUserTermsOfServiceStatus(user);
 		
 		// Call under test
-		assertEquals(!TermsOfServiceState.MUST_AGREE_NOW.equals(userTosState), managerSpy.hasUserAcceptedTermsOfService(userId));
+		assertEquals(!TermsOfServiceState.MUST_AGREE_NOW.equals(userTosState), managerSpy.hasUserAcceptedTermsOfService(user));
 	}
 	
 	@Test

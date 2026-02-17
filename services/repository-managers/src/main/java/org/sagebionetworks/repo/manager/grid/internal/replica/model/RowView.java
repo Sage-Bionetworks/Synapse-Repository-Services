@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 import java.util.List;
 import java.util.Objects;
 
-import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.CrdtId;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -109,5 +109,6 @@ public class RowView {
 	public String toString() {
 		return "RowView [arrNodeId=" + arrNodeId + ", rowIndex=" + rowIndex + ", rowObject=" + rowObject + "]";
 	}
+
 
 }

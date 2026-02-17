@@ -1,10 +1,21 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.grid.db.GridIndexManager;
@@ -20,6 +31,10 @@ import org.sagebionetworks.repo.model.grid.node.IndexType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
+import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.springframework.stereotype.Component;
 
@@ -35,13 +50,15 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	private final InternalReplicaToHubEventPublisher publisher;
 	private final SnsClient snsClient;
 	private final String topicArn;
+	private final HttpClient httpClient;
 
 	public GridReplicaManagerImpl(GridIndexManager gridIndexManager, InternalReplicaToHubEventPublisher publisher,
-			SnsClient snsClient, String gridReplicaChangeTopicArn) {
+			SnsClient snsClient, String gridReplicaChangeTopicArn, HttpClient httpClient) {
 		this.gridIndexManager = gridIndexManager;
 		this.publisher = publisher;
 		this.snsClient = snsClient;
 		this.topicArn = gridReplicaChangeTopicArn;
+		this.httpClient = httpClient;
 
 	}
 
@@ -78,13 +95,73 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 				connection.getReplicaId(), patch);
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
-		sendChangesToTopic(connection, patch.getPatchId(), changes);
+		sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, patch.getPatchId(), changes));
 	}
 
-	void sendChangesToTopic(GridConnectionInfo connection, LogicalTimestamp patchId,
-			Map<IndexType, Set<LogicalTimestamp>> changes) {
-		snsClient.publish(PublishRequest.builder().targetArn(topicArn)
-				.message(new ReplicaChangeSet(connection, patchId, changes).toJson()).build());
+	@Override
+	public void onApplySnapshot(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, URL snapshotPresignedUrl) {
+		gridIndexManager.refreshMessageChain(connection.getSessionId(), connection.getReplicaId(), messageId);
+
+		Path snapshotFile = null;
+		try {
+			snapshotFile = downloadSnapshotFile(snapshotPresignedUrl);
+			gridIndexManager.applySnapshot(connection.getSessionId(), connection.getReplicaId(), snapshotFile);
+		} finally {
+			if (snapshotFile != null) {
+				try {
+					Files.deleteIfExists(snapshotFile);
+				} catch (IOException e) {
+					log.warn("Failed to delete temp file: {}", snapshotFile, e);
+				}
+			}
+		}
+		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
+		sendClockMessage(messageId, connection.getConnectionId(), clock);
+		sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
+	}
+
+	Path downloadSnapshotFile(URL snapshotPresignedUrl) {
+		ValidateArgument.required(snapshotPresignedUrl, "snapshotPresignedUrl");
+		Path tempFile;
+		try {
+			tempFile = Files.createTempFile("grid-snapshot-", ".cbor");
+
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(snapshotPresignedUrl.toURI())
+					.GET()
+					.build();
+
+			return TimeUtils.waitForExponentialMaxRetry(5, 1000, () -> {
+				final Set<Integer> RETRY_STATUS_CODES = Set.of(429, 500, 502, 503, 504, 509);
+				HttpResponse<Path> response;
+				try {
+					response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(tempFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE));
+					int statusCode = response.statusCode();
+					if (RETRY_STATUS_CODES.contains(statusCode)) {
+						throw new RetryException("Failed to download snapshot. Status: " + statusCode);
+					} else if (statusCode >= 300) {
+						throw new RuntimeException("Failed to download snapshot. Status: " + statusCode);
+					}
+					return response.body();
+				} catch (SocketTimeoutException ste) {
+					throw new RetryException(ste);
+				}
+			});
+
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Interrupted while downloading snapshot from: " + snapshotPresignedUrl, e);
+		} catch (URISyntaxException e) {
+			throw new IllegalArgumentException("Invalid snapshot URL: " + snapshotPresignedUrl, e);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to download snapshot from: " + snapshotPresignedUrl, e);
+		}
+	}
+
+
+	void sendChangesToTopic(ReplicaChangeSet changeSet) {
+		log.info("Publishing replica change set to topic: {} changeSet: {}", topicArn, changeSet);
+		snsClient.publish(PublishRequest.builder().targetArn(topicArn).message(changeSet.toJson()).build());
 	}
 
 	@Override

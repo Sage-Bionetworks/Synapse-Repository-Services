@@ -96,6 +96,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -4343,6 +4344,17 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException;
+	
+	/**
+	 * Retrieve an anonymous access token for the given security realm.  By including
+	 * the returned token as the Bearer token in the Authorization header of subsequent
+	 * requests, the client indicates its scope is that of a particular security realm.
+	 * 
+	 * @param realmId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessTokenResponse getAnonymousAccessToken(String realmId) throws SynapseException;
 	
 	/**
 	 * Sends a notification that allows to reset 2fa

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.schema;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.repo.model.schema.Organization;
 
@@ -22,6 +23,15 @@ public interface OrganizationDao {
 	 * @return
 	 */
 	Organization getOrganizationByName(String name);
+
+
+	/**
+	 * Get an Organization by ID.
+	 *
+	 * @param id
+	 * @return
+	 */
+	Optional<Organization> getOrganizationById(String id);
 
 	/**
 	 * Delete an organization by id.

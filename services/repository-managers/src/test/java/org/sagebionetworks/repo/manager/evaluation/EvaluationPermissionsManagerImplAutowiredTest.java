@@ -320,7 +320,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 		evaluationPermissionsManager.deleteAcl(adminUserInfo, evalId);
 
-		// ACL does not exist yet (e-tag is null)
+		// ACL does not exist yet
 		try {
 			AccessControlList acl = new AccessControlList();
 			acl.setId(evalId);
@@ -659,6 +659,29 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 					// as expected
 				}
 			}
+		}
+	}
+	
+	@Test
+	public void testAnonymousInACL() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for anonymous
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ_PRIVATE_SUBMISSION));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		try {
+			// Call under test
+			evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+			fail("Expected InvalidModelException");
+		} catch (InvalidModelException e) {
+			// as expected
 		}
 	}
 	

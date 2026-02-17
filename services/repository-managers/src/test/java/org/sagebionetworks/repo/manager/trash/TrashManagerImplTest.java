@@ -8,8 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -36,13 +38,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.Node;
@@ -71,13 +71,7 @@ public class TrashManagerImplTest {
 	private AuthorizationManager mockAuthorizationManager;
 
 	@Mock
-	private NodeManager mockNodeManager;
-
-	@Mock
 	private NodeDAO mockNodeDAO;
-
-	@Mock
-	private AccessControlListDAO mockAclDAO;
 
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
@@ -89,7 +83,7 @@ public class TrashManagerImplTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 
 	@Mock
-	private StackConfiguration stackConfig;
+	private AccessControlListManager mockAclManager;
 
 	@InjectMocks
 	private TrashManagerImpl trashManager;
@@ -129,6 +123,7 @@ public class TrashManagerImplTest {
 		testNode.setName(nodeName);
 		testNode.setParentId(nodeParentID);
 		testNode.setFileHandleId(FILE_HANDLE_ID);
+		testNode.setCreatedByPrincipalId(userID);
 		testNode.setNodeType(EntityType.file);
 		nodeTrashedEntity = spy(new TrashedEntity());
 		nodeTrashedEntity.setOriginalParentId(nodeParentID);
@@ -192,13 +187,13 @@ public class TrashManagerImplTest {
 		Set<Long> parentIds = new LinkedHashSet<Long>(parentIdsList);
 		when(mockNodeDAO.getAllContainerIds(nodeID, TrashManagerImpl.MAX_IDS_TO_LOAD)).thenReturn(parentIds);
 		List<Long> childernWithAcls = Lists.newArrayList(456L, 444L);
-		when(mockAclDAO.getChildrenEntitiesWithAcls(parentIdsList)).thenReturn(childernWithAcls);
+		when(mockAclManager.getChildrenEntitiesWithAcls(parentIdsList)).thenReturn(childernWithAcls);
 		// call under test
 		trashManager.deleteAllAclsInHierarchy(nodeID);
 		// delete the acl of the node
-		verify(mockAclDAO).delete(nodeID, ObjectType.ENTITY);
+		verify(mockAclManager).delete(nodeID, ObjectType.ENTITY);
 		// delete all acls for the hierarchy.
-		verify(mockAclDAO).delete(childernWithAcls, ObjectType.ENTITY);
+		verify(mockAclManager).delete(childernWithAcls, ObjectType.ENTITY);
 	}
 
 	@Test
@@ -261,7 +256,7 @@ public class TrashManagerImplTest {
 
 		verify(mockTrashCanDao, times(1)).create(userInfo.getId().toString(), nodeID, nodeName, nodeParentID, priorityPurge);
 
-		verify(mockAclDAO).delete(anyList(), any(ObjectType.class));
+		verify(mockAclManager).delete(anyList(), any(ObjectType.class));
 	}
 
 	@Test
@@ -383,7 +378,7 @@ public class TrashManagerImplTest {
 
 		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(Collections.singletonList(KeyFactory.stringToKey(nodeID)));
-		verify(mockAclDAO, never()).create(any(AccessControlList.class), any(ObjectType.class));
+		verify(mockAclManager, never()).create(any(UserInfo.class), any(AccessControlList.class), any(ObjectType.class), anyLong());
 	}
 
 	/**
@@ -405,6 +400,8 @@ public class TrashManagerImplTest {
 
 		when(mockNodeDAO.getNode(nodeID)).thenReturn(testNode);
 
+		doNothing().when(mockAclManager).create(eq(userInfo), any(AccessControlList.class), eq(ObjectType.ENTITY),eq(testNode.getCreatedByPrincipalId()));
+
 		testNode.setNodeType(EntityType.project);
 		// call under test - move the entity to root.
 		trashManager.restoreFromTrash(userInfo, nodeID, NodeUtils.ROOT_ENTITY_ID);
@@ -412,7 +409,7 @@ public class TrashManagerImplTest {
 		verify(mockNodeDAO, times(1)).updateNode(testNode);
 		verify(mockTrashCanDao).delete(Collections.singletonList(KeyFactory.stringToKey(nodeID)));
 		// An ACL should be created for the project
-		verify(mockAclDAO).create(any(AccessControlList.class), eq(ObjectType.ENTITY));
+		verify(mockAclManager).create(eq(userInfo), any(AccessControlList.class), eq(ObjectType.ENTITY), eq(testNode.getCreatedByPrincipalId()));
 	}
 
 	/**
@@ -616,7 +613,7 @@ public class TrashManagerImplTest {
 		trashManager.purgeTrash(adminUserInfo, trashIDList);
 
 		verify(mockNodeDAO, times(1)).deleteTree(nodeID, MAX_IDS_TO_LOAD);
-		verify(mockAclDAO, times(1)).delete(nodeID, ObjectType.ENTITY);
+		verify(mockAclManager, times(1)).delete(nodeID, ObjectType.ENTITY);
 		verify(mockTrashCanDao, times(1)).delete(trashIDList);
 	}
 

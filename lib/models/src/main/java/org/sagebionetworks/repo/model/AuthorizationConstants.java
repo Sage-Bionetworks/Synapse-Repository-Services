@@ -81,6 +81,13 @@ public class AuthorizationConstants {
 	public static final String USER_ID_PARAM = "userId";
 	
 	/**
+	 * Request parameter indicating whether the user is anonymous. Note that
+	 * callers of the service do not actually use this parameter. Instead they
+	 * use a token parameter which is then validated to determine if the user is anonymous
+	 */
+	public static final String ANONYMOUS_PARAM = "anonymous";
+	
+	/**
 	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the
 	 * least, email contents change).
 	 */

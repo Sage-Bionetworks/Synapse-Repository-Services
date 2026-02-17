@@ -13,6 +13,10 @@
         {
             "name": "ARCUS_BIOSCIENCES",
             "description": "Arcus Biosciences OpenID Connect Provider"
+        },
+        {
+            "name": "SAGE_BIONETWORKS",
+            "description": "Identity provider internal to Sage Bionetworks"
         }
     ]
 }

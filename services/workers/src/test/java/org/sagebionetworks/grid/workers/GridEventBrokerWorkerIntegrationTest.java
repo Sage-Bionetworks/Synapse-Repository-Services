@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.apache.http.entity.ContentType;
 import org.java_websocket.WebSocket;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -283,7 +284,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 		List<LogicalTimestamp> clock = new ArrayList<>();
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				Patch p = PatchCompactSerializable.deserialize(a.getJSONArray(2));
+				JSONObject body = a.getJSONObject(2);
+				assertEquals("patch", body.getString("type"), "Expected patch type for empty grid");
+				Patch p = PatchCompactSerializable.deserialize(body.getJSONArray("body"));
 				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
 				return true;
 			} else {
@@ -298,7 +301,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 		clock.clear();
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				Patch p = PatchCompactSerializable.deserialize(a.getJSONArray(2));
+				JSONObject body = a.getJSONObject(2);
+				assertEquals("patch", body.getString("type"), "Expected patch type for empty grid");
+				Patch p = PatchCompactSerializable.deserialize(body.getJSONArray("body"));
 				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
 				return true;
 			} else {
@@ -306,7 +311,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 			}
 		}, incomingMessagesTwo));
 
-		// after the second snych, replica two should be up-to-date.
+		// after the second sync, replica two should be up-to-date.
 		newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
 		wsTwo.send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
 
@@ -359,20 +364,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
 		waitForConnected(incomingMessagesOne);
 
-		// start the synchronize
+		// start the synchronize - expect a snapshot since this grid was created from a query
 		wsOne.send("[1,99,\"synchronize-clock\",[]]");
 
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				Patch patch = PatchCompactSerializable.deserialize(a.getJSONArray(2));
-				assertNotNull(patch);
-				assertEquals(new LogicalTimestamp().setReplicaId(INTERNAL_REPLICA_ID).setSequenceNumber(1L), patch.getPatchId());
-				assertEquals(38L, patch.getSpan());
-				// find the constant that contains the table's last value
-				Optional<NewConstant> op = patch.getOperations().stream().filter(o -> (o instanceof NewConstant))
-						.map(c -> (NewConstant) c).filter(c -> ConType.LONG.equals(c.getValue().getType()))
-						.filter(c -> Long.valueOf(9090).equals(c.getValue().getValue())).findFirst();
-				assertTrue(op.isPresent());
+				JSONObject body = a.getJSONObject(2);
+				assertEquals("snapshot", body.getString("type"), "Expected snapshot for grid created from query");
+				assertNotNull(body.getString("body"), "Snapshot URL should be present");
 				return true;
 			} else {
 				return false;
@@ -499,20 +498,13 @@ public class GridEventBrokerWorkerIntegrationTest {
 		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
 		waitForConnected(incomingMessagesOne);
 
-		// start the synchronize
+		// start the synchronize - expect a snapshot since this grid was created from a view query
 		wsOne.send("[1,99,\"synchronize-clock\",[]]");
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				Patch patch = PatchCompactSerializable.deserialize(a.getJSONArray(2));
-				assertNotNull(patch);
-				assertEquals(new LogicalTimestamp().setReplicaId(INTERNAL_REPLICA_ID).setSequenceNumber(1L),
-						patch.getPatchId());
-				assertEquals(24L, patch.getSpan());
-				// find the constant that contains the table's value
-				Optional<NewConstant> op = patch.getOperations().stream().filter(o -> (o instanceof NewConstant))
-						.map(c -> (NewConstant) c).filter(c -> ConType.LONG.equals(c.getValue().getType()))
-						.filter(c -> Long.valueOf(9090).equals(c.getValue().getValue())).findFirst();
-				assertTrue(op.isPresent());
+				JSONObject body = a.getJSONObject(2);
+				assertEquals("snapshot", body.getString("type"), "Expected snapshot for grid created from view query");
+				assertNotNull(body.getString("body"), "Snapshot URL should be present");
 				return true;
 			} else {
 				return false;
@@ -777,11 +769,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
 		waitForConnected(incomingMessagesOne);
 
-		// start the synchronize
+		// start the synchronize - expect a snapshot since this grid was created from a record set
 		wsOne.send("[1,99,\"synchronize-clock\",[]]");
 
 		assertTrue(waitForMessage((a) -> {
 			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
+				JSONObject body = a.getJSONObject(2);
+				assertEquals("snapshot", body.getString("type"), "Expected snapshot for grid created from record set");
+				assertNotNull(body.getString("body"), "Snapshot URL should be present");
 				return true;
 			} else {
 				return false;

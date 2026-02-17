@@ -19,7 +19,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,6 +44,7 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -138,11 +138,19 @@ public class GridCsvImporterImplTest {
 			"2,2,false" + System.lineSeparator();
 		
 		gridRows = List.of(
-			new RowView().setRowObject(new RowObject().setData(new RowData().setCells(
-				Arrays.asList(new ConValue(ConType.LONG, 0), new ConValue(ConType.LONG, 1), new ConValue(ConType.BOOLEAN, true))
+			new RowView().setRowObject(new RowObject().setData(new RowData().setNodes(
+				Arrays.asList(
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.LONG, 0)),
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.LONG, 1)),
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.BOOLEAN, true))
+				)
 			))),
-			new RowView().setRowObject(new RowObject().setData(new RowData().setCells(
-				Arrays.asList(new ConValue(ConType.LONG, 2), new ConValue(ConType.LONG, 3), new ConValue(ConType.BOOLEAN, true))
+			new RowView().setRowObject(new RowObject().setData(new RowData().setNodes(
+				Arrays.asList(
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(104L)).setValue(new ConValue(ConType.LONG, 2)),
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(105L)).setValue(new ConValue(ConType.LONG, 3)),
+						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(106L)).setValue(new ConValue(ConType.BOOLEAN, true))
+				)
 			)))
 		);
 		

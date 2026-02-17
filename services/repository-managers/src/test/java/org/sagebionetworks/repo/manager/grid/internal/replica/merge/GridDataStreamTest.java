@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Arrays;
 import java.util.List;
 
-import org.json.JSONArray;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
@@ -26,26 +25,26 @@ public class GridDataStreamTest {
         List<RowView> rows = List.of(
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 1))
-        			.setCells(Arrays.asList(
-							new ConValue(ConType.STRING, "1"),
-							new ConValue(ConType.STRING, "more1"),
-							new ConValue(ConType.LONG, 1L)
+        			.setNodes(Arrays.asList(
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 4)).setValue(new ConValue(ConType.STRING, "1")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 5)).setValue(new ConValue(ConType.STRING, "more1")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 6)).setValue(new ConValue(ConType.LONG, 1L))
 					))
 			)),
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 2))
-        			.setCells(Arrays.asList(
-							new ConValue(ConType.STRING, "2"),
-							new ConValue(ConType.STRING, "more2"),
-							new ConValue(ConType.LONG, 2L)
+        			.setNodes(Arrays.asList(
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 7)).setValue(new ConValue(ConType.STRING, "2")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 8)).setValue(new ConValue(ConType.STRING, "more2")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 9)).setValue(new ConValue(ConType.LONG, 2L))
 					))
 			)),
 			new RowView().setRowObject(new RowObject().setData(
         		new RowData().setVectorId(LogicalTimestamp.newIncrement(vectorId, 3))
-        			.setCells(Arrays.asList(
-							new ConValue(ConType.STRING, "3"),
-							new ConValue(ConType.STRING, "more3"),
-							new ConValue(ConType.LONG, 3L)
+        			.setNodes(Arrays.asList(
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 10)).setValue(new ConValue(ConType.STRING, "3")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 11)).setValue(new ConValue(ConType.STRING, "more3")),
+							new ConstantNode().setId(LogicalTimestamp.newIncrement(vectorId, 12)).setValue(new ConValue(ConType.LONG, 3L))
 					))
 			))			
 		);

@@ -1,23 +1,10 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 
 public class AuthorizationUtils {
 
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can access it directly by its ID.  FileHandleId = '%1$s', UserId = '%2$s'";
-
-	public static boolean isUserAnonymous(UserInfo userInfo) {
-		return isUserAnonymous(userInfo.getId());
-	}
-
-	public static boolean isUserAnonymous(UserGroup ug) {
-		return isUserAnonymous(Long.parseLong(ug.getId()));
-	}
-
-	public static boolean isUserAnonymous(Long id) {
-		return id == null || BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(id);
-	}
 
 	/**
 	 * returns true iff the user is a certified user
@@ -40,7 +27,7 @@ public class AuthorizationUtils {
 	 * @throws UnauthorizedException if the user is anonymous.
 	 */
 	public static void disallowAnonymous(UserInfo user) throws UnauthorizedException {
-		if (AuthorizationUtils.isUserAnonymous(user)) {
+		if (user.isUserAnonymous()) {
 			throw new UnauthorizedException("Must login to perform this action");
 		}
 	}

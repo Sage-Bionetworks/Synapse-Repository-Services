@@ -177,7 +177,7 @@ public class NodeManagerImpl implements NodeManager {
 		// Setup the ACL for this node.
 		if(ACL_SCHEME.GRANT_CREATOR_ALL == aclScheme){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantEntityAdminAccess(id, userInfo, new Date());
-			aclManager.create(rootAcl, ObjectType.ENTITY);
+			aclManager.create(userInfo, rootAcl, ObjectType.ENTITY, newNode.getCreatedByPrincipalId());
 		}
 		
 		// adding access is done at a higher level, not here
@@ -236,7 +236,6 @@ public class NodeManagerImpl implements NodeManager {
 
 	/**
 	 * Validate a node
-	 * @param userName
 	 * @param node
 	 */
 	public static void validateNode(Node node){
@@ -252,7 +251,7 @@ public class NodeManagerImpl implements NodeManager {
 	
 	/**
 	 * Make sure the creation data is set, and if not then set it.
-	 * @param userName
+	 * @param userIndividualGroupId
 	 * @param newNode
 	 * @return
 	 */

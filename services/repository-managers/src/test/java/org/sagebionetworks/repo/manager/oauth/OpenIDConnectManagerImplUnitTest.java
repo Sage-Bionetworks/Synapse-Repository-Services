@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager.getScopeHash;
 import static org.sagebionetworks.repo.manager.oauth.claimprovider.GA4GHPassportClaimProvider.VISA_CLAIM_NAME;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.security.KeyPair;
 import java.util.ArrayList;
@@ -251,12 +252,13 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
+		userInfo = new UserInfo(false, USER_ID_LONG, DEFAULT_REALM_ID);
 		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
+		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();
 		oauthClient.setClient_name(OAUTH_CLIENT_NAME);
@@ -831,6 +833,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockUserProfileManager.getUserProfile(USER_ID)).thenReturn(userProfile);
 		when(mockUserProfileManager.getCurrentVerificationSubmission(USER_ID_LONG)).thenReturn(verificationSubmission);
 		when(mockPrincipalAliasDao.getUserName(USER_ID_LONG)).thenReturn(USER_NAME);
+		when(mockUserManager.getUserInfo(USER_ID_LONG)).thenReturn(userInfo);
 
 		boolean includeIdToken = true;
 		boolean includeUserInfo = true;
@@ -850,7 +853,7 @@ public class OpenIDConnectManagerImplUnitTest {
 		expectedMetadata.setTokenId("REFRESH-TOKEN-ID");
 		expectedRefreshTokenAndId.setRefreshToken("REFRESH-TOKEN");
 		expectedRefreshTokenAndId.setMetadata(expectedMetadata);
-		when(oauthRefreshTokenManager.createRefreshToken(eq(USER_ID), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
+		when(oauthRefreshTokenManager.createRefreshToken(eq(userInfo), eq(OAUTH_CLIENT_ID), any(), any())).thenReturn(expectedRefreshTokenAndId);
 
 		String expectedAccessToken = "ACCESS-TOKEN";
 		when(oidcTokenManager.createOIDCaccessToken(any(), eq(OAUTH_ENDPOINT), eq(ppid), eq(OAUTH_CLIENT_ID), anyLong(), anyLong(),

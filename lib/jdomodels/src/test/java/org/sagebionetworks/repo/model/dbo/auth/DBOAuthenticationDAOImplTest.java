@@ -163,7 +163,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Most bootstrapped users should have signed the terms
 		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
 		for (BootstrapPrincipal agg: ugs) {
-			if (agg instanceof BootstrapUser && !AuthorizationUtils.isUserAnonymous(agg.getId())) {
+			if (agg instanceof BootstrapUser && !BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
 				basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
+import org.sagebionetworks.repo.manager.oauth.AWSCognitoOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.ArcusBioProvider;
 import org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
@@ -277,7 +278,8 @@ public class ManagerConfiguration {
 			SimpleHttpClient client) {
 		return Map.of(OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client), 
 				OAuthProvider.ORCID, orcidOAuthProvider(config, client),
-				OAuthProvider.ARCUS_BIOSCIENCES, arcusBioOAuthProvider(config, client)
+				OAuthProvider.ARCUS_BIOSCIENCES, arcusBioOAuthProvider(config, client),
+				OAuthProvider.SAGE_BIONETWORKS, sageBioOAuthProvider(config, client)
 				);
 	}
 
@@ -297,6 +299,12 @@ public class ManagerConfiguration {
 	public ArcusBioProvider arcusBioOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
 		return new ArcusBioProvider(config.getOAuth2ArcusBioClientId(), config.getOAuth2ArcusBioClientSecret(),
 				new OIDCConfig(client, config.getOAuth2ArcusBioDiscoveryDocument()));
+	}
+
+	@Bean
+	public AWSCognitoOAuth2Provider sageBioOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
+		return new AWSCognitoOAuth2Provider(config.getOAuth2SageBioClientId(), config.getOAuth2SageBioClientSecret(),
+				new OIDCConfig(client, config.getOAuth2SageBioDiscoveryDocument()));
 	}
 
 	@Bean

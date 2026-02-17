@@ -12,10 +12,10 @@ import org.junit.jupiter.api.Test;
 public class IndexedEncodingUtilsTest {
 
 	@Test
-	public void testWriteNodeTypeAndLength() throws IOException {
+	public void testWriteNodeHeader() throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-		int bytesWritten = IndexedEncodingUtils.writeNodeTypeAndLength(0b000, 5L, out);
+		int bytesWritten = IndexedEncodingUtils.writeNodeHeader(0b000, 5L, out);
 		byte[] bytes = out.toByteArray();
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
 
@@ -25,16 +25,16 @@ public class IndexedEncodingUtilsTest {
 		assertEquals(0x05, out.toByteArray()[0] & 0xFF);
 
 		// Verify decode
-		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeTypeAndLength(byteStream);
+		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeHeader(byteStream);
 		assertEquals(0b000, typeAndLength.getNodeType());
 		assertEquals(5L, typeAndLength.getLength());
 	}
 
 	@Test
-	public void testWriteNodeTypeAndLengthMaxOneByte() throws IOException {
+	public void testWriteNodeHeaderMaxOneByte() throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-		int bytesWritten = IndexedEncodingUtils.writeNodeTypeAndLength(0b010, 30L, out);
+		int bytesWritten = IndexedEncodingUtils.writeNodeHeader(0b010, 30L, out);
 		byte[] bytes = out.toByteArray();
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
 
@@ -43,16 +43,16 @@ public class IndexedEncodingUtilsTest {
 		assertEquals(0x40 | 0x1E, out.toByteArray()[0] & 0xFF);
 
 		// Verify decode
-		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeTypeAndLength(byteStream);
+		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeHeader(byteStream);
 		assertEquals(0b010, typeAndLength.getNodeType());
 		assertEquals(30L, typeAndLength.getLength());
 	}
 
 	@Test
-	public void testWriteNodeTypeAndLengthLargeLength() throws IOException {
+	public void testWriteNodeHeaderMultiByte() throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-		int bytesWritten = IndexedEncodingUtils.writeNodeTypeAndLength(0b011, 100L, out);
+		int bytesWritten = IndexedEncodingUtils.writeNodeHeader(0b011, 100L, out);
 		byte[] bytes = out.toByteArray();
 		ByteArrayInputStream byteStream = new ByteArrayInputStream(bytes);
 
@@ -65,15 +65,15 @@ public class IndexedEncodingUtilsTest {
 		assertEquals(1 + expectedVu57.length, bytesWritten);
 
 		// Verify decode
-		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeTypeAndLength(byteStream);
+		IndexedNodeHeader typeAndLength = IndexedEncodingUtils.readNodeHeader(byteStream);
 		assertEquals(0b011, typeAndLength.getNodeType());
 		assertEquals(100L, typeAndLength.getLength());
 	}
 
 	@Test
-	public void testWriteNodeTypeAndLengthNullOutputStream() {
+	public void testWriteNodeHeaderNullOutputStream() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			IndexedEncodingUtils.writeNodeTypeAndLength(0b000, 5L, null);
+			IndexedEncodingUtils.writeNodeHeader(0b000, 5L, null);
 		});
 	}
 }

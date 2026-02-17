@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -52,7 +54,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.InitBinder;
 
 import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
 
@@ -61,13 +62,14 @@ import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
  *
  */
 public class MembershipInvitationManagerImpl implements MembershipInvitationManager {
-
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipInvitationDAO membershipInvitationDAO;
 	@Autowired
 	private TeamDAO teamDAO;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private SynapseEmailService sesClient;
 	@Autowired
@@ -98,6 +100,22 @@ public class MembershipInvitationManagerImpl implements MembershipInvitationMana
 		if (mi.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 
+	void validateForRealm(UserInfo userInfo, MembershipInvitation mi) {
+		String teamRealmId = userGroupDAO.get(Long.parseLong(mi.getTeamId())).getRealmId();
+		if (!userInfo.getRealmId().equals(teamRealmId)) {
+			throw new UnauthorizedException("Inviter must be in the team's realm.");
+		}
+		if (mi.getInviteeId() != null) {
+			String memberRealmId = userGroupDAO.get(Long.parseLong(mi.getInviteeId())).getRealmId();
+			if (!memberRealmId.equals(teamRealmId)) {
+				throw new UnauthorizedException("Invitee and the team should be in same realm.");
+			}
+		}
+		if (mi.getInviteeEmail() != null && !userInfo.getRealmId().equals(AuthorizationConstants.DEFAULT_REALM_ID)) {
+			throw new UnauthorizedException("Cannot invite user by email unless in the default realm");
+		}
+	}
+
 	public static void populateCreationFields(UserInfo userInfo, MembershipInvitation mi, Date now) {
 		mi.setCreatedBy(userInfo.getId().toString());
 		mi.setCreatedOn(now);
@@ -112,6 +130,7 @@ public class MembershipInvitationManagerImpl implements MembershipInvitationMana
 	                                   MembershipInvitation mi) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		validateForCreate(mi);
+		validateForRealm(userInfo, mi);
 		if (!authorizationManager.canAccessMembershipInvitation(userInfo, mi, ACCESS_TYPE.CREATE).isAuthorized())
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();

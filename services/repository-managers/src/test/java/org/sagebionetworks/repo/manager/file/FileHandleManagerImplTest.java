@@ -285,7 +285,7 @@ public class FileHandleManagerImplTest {
 		mockUser.setContext(new CallersContext().setSessionId(sessionId));
 		
 		anonymousUser = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(),DEFAULT_REALM_ID);
-
+		anonymousUser.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		// This file stream is actually a file and not a parameter
 		String contentType = "text/plain";
 		String fileName = "someTextFile.txt";

@@ -3,6 +3,7 @@ package org.sagebionetworks.auth.filter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -15,23 +16,16 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.joda.time.DateTime;
-import org.joda.time.Minutes;
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
-import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.service.auth.AuthenticationService;
-import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.web.ForbiddenException;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.OAuthException;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,16 +47,10 @@ public class AuthenticationFilter implements Filter {
 	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	@Autowired
-	private AuthenticationService authenticationService;
-
-	@Autowired
-	private UserManager userManager;
-
-	@Autowired
-	private OIDCTokenManager oidcTokenManager;
-
-	@Autowired
 	private OpenIDConnectManager oidcManager;
+	
+	@Autowired
+	private RealmDao realmDao;
 
 	@Override
 	public void destroy() { }
@@ -85,6 +73,7 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
+		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
@@ -93,6 +82,8 @@ public class AuthenticationFilter implements Filter {
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
+					Optional<String> anonymousUserRealm = realmDao.getRealmForAnonymousPrincipal(userId.toString());
+					isAnonymous = anonymousUserRealm.isPresent(); // true if userId is the anonymous user in some realm
 				} catch (IllegalArgumentException | ForbiddenException | OAuthClientNotVerifiedException e) {
 					String failureReason = "Invalid access token";
 					HttpAuthUtil.reject((HttpServletResponse)servletResponse, failureReason);
@@ -105,6 +96,7 @@ public class AuthenticationFilter implements Filter {
 				}
 			} else { // anonymous
 				userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+				isAnonymous = true;
 			}
 
 		if (authenticationMethod == null && HttpAuthUtil.usesBasicAuthentication(req)) {
@@ -121,6 +113,7 @@ public class AuthenticationFilter implements Filter {
 		try {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);

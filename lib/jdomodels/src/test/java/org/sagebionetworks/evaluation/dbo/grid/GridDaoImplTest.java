@@ -1,7 +1,7 @@
 package org.sagebionetworks.evaluation.dbo.grid;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,11 +30,13 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -675,6 +677,119 @@ public class GridDaoImplTest {
 			}
 		});
 		return ids;
+	}
+
+	@Test
+	public void testSaveSnapshot() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(20L)));
+		String s3Key = "snapshot-key";
+		// call under test
+		assertTrue(dao.saveSnapshot(session.getSessionId(), clockTable, s3Key, adminUserId));
+
+		// call under test
+		GridSnapshot snapshot = dao.getLatestSnapshot(session.getSessionId()).get();
+		assertNotNull(snapshot);
+		assertEquals(session.getSessionId(), snapshot.getSessionId());
+		assertEquals(clockTable, snapshot.getClockTable());
+		assertNotNull(snapshot.getCreatedOn());
+		assertEquals(adminUserId, snapshot.getCreatedBy());
+		assertEquals(s3Key, snapshot.getS3Key());
+		assertNotNull(snapshot.getId());
+	}
+
+	@Test
+	public void testSaveSnapshotWithMultipleSessions() {
+		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String s3Key = "snapshot-key";
+		// call under test
+		assertTrue(dao.saveSnapshot(sessionOne.getSessionId(), clockTable, s3Key, adminUserId));
+		assertTrue(dao.saveSnapshot(sessionTwo.getSessionId(), clockTable, s3Key, otherUser));
+
+		GridSnapshot snapshotOne = dao.getLatestSnapshot(sessionOne.getSessionId()).get();
+		assertNotNull(snapshotOne);
+		assertEquals(sessionOne.getSessionId(), snapshotOne.getSessionId());
+		assertEquals(clockTable, snapshotOne.getClockTable());
+		assertEquals(adminUserId, snapshotOne.getCreatedBy());
+
+		GridSnapshot snapshotTwo = dao.getLatestSnapshot(sessionTwo.getSessionId()).get();
+		assertNotNull(snapshotTwo);
+		assertEquals(sessionTwo.getSessionId(), snapshotTwo.getSessionId());
+		assertEquals(clockTable, snapshotTwo.getClockTable());
+		assertEquals(otherUser, snapshotTwo.getCreatedBy());
+	}
+
+	@Test
+	public void testGetLatestSnapshotDoesNotExist() {
+		// call under test
+		assertEquals(Optional.empty(), dao.getLatestSnapshot("doesnotexist"));
+	}
+
+	@Test
+	public void testGetLatestSnapshotWithMultiple() throws InterruptedException {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable1 = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		ClockTable clockTable2 = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(20L)));
+
+		// Save snapshots with delays to ensure different created times
+		dao.saveSnapshot(session.getSessionId(), clockTable1, "key1", adminUserId);
+		Thread.sleep(1001L);
+		dao.saveSnapshot(session.getSessionId(), clockTable2, "key2", adminUserId);
+
+		// call under test - should get the latest snapshot
+		GridSnapshot latest = dao.getLatestSnapshot(session.getSessionId()).get();
+		assertNotNull(latest);
+		assertEquals(clockTable2, latest.getClockTable());
+		assertEquals("key2", latest.getS3Key());
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullSessionId() {
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(null, clockTable, "key", adminUserId);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullClockTable() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(session.getSessionId(), null, "key", adminUserId);
+		}).getMessage();
+		assertEquals("clockTable is required.", message);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullS3Key() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(session.getSessionId(), clockTable, null, adminUserId);
+		}).getMessage();
+		assertEquals("s3Key is required.", message);
+	}
+
+	@Test
+	public void testGetLatestSnapshotWithNullSessionId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.getLatestSnapshot(null);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
 	}
 
 }

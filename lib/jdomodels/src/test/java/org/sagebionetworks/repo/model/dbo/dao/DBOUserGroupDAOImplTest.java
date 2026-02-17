@@ -10,10 +10,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -22,12 +26,15 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,14 +55,14 @@ public class DBOUserGroupDAOImplTest {
 	private AccessControlListDAO aclDAO;
 
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-
-	@Autowired
 	private NodeDAO nodeDao;
+	@Autowired
+	private RealmDao realmDao;
 
 	private List<String> groupsToDelete;
 	private String aclToDelete;
 	private String projectToDelete;
+	private Realm realm;
 
 
 	@Before
@@ -70,6 +77,9 @@ public class DBOUserGroupDAOImplTest {
 		if (projectToDelete != null) nodeDao.delete(projectToDelete);
 		for (String toDelete : groupsToDelete) {
 			userGroupDAO.delete(toDelete);
+		}
+		if (realm != null) {
+			realmDao.deleteRealm(realm.getId());
 		}
 	}
 
@@ -186,6 +196,46 @@ public class DBOUserGroupDAOImplTest {
 
 		// Call under test
 		userGroupDAO.delete(groupId.toString());
+	}
+
+	@Test
+	public void testGetUserRealm() {
+		//User in default realm
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		String groupId = userGroupDAO.create(group).toString();
+		assertNotNull(groupId);
+		groupsToDelete.add(groupId);
+
+		//User in another realm
+		realm = realmDao.createRealm(new Realm().setName("test realm").setCreatedOn(new Date())
+				.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.ARCUS_BIOSCIENCES))));
+		Assertions.assertNotNull(realm.getId());
+		UserGroup groupTwo = new UserGroup();
+		groupTwo.setIsIndividual(true);
+		groupTwo.setRealmId(realm.getId());
+		String groupIdTwo = userGroupDAO.create(groupTwo).toString();
+		assertNotNull(groupIdTwo);
+		groupsToDelete.add(groupIdTwo);
+
+		Map<String, Set<String>> userRealms = userGroupDAO.getUsersRealms(List.of(groupId, groupIdTwo));
+		assertNotNull(userRealms);
+		assertEquals(2, userRealms.size());
+		userRealms.entrySet().stream().forEach(entry -> {
+			if (entry.getKey().equals(AuthorizationConstants.DEFAULT_REALM_ID)) {
+				assertEquals(groupId, entry.getValue().iterator().next());
+			} else if (entry.getKey().equals(realm.getId())) {
+				assertEquals(groupIdTwo, entry.getValue().iterator().next());
+			}
+		});
+	}
+
+	@Test
+	public void testGetUsersRealmsForNonExistingUserIds() {
+		Map<String, Set<String>> userRealms = userGroupDAO.getUsersRealms(List.of("-999", "-998"));
+		assertNotNull(userRealms);
+		assertEquals(0, userRealms.size());
 	}
 
 }

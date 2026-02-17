@@ -123,11 +123,12 @@ public class TeamController {
 	@RequestMapping(value = UrlHelpers.TEAMS, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Team> getTeamsByNameFragment(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.NAME_FRAGMENT_FILTER, required = false) String fragment,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset
 			) throws NotFoundException {
-		return serviceProvider.getTeamService().get(fragment, limit, offset);
+		return serviceProvider.getTeamService().get(userId, fragment, limit, offset);
 	}
 	
 	/**

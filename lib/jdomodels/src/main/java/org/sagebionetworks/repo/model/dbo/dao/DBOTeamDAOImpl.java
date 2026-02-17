@@ -6,10 +6,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_ME
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_REALM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
@@ -17,6 +21,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.Blob;
@@ -86,10 +91,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			"SELECT * FROM "+TABLE_TEAM;
 	
 	private static final String SELECT_MULTIPLE_ORDER_BY = " order by "+COL_TEAM_ID+" asc ";
-			
-	private static final String SELECT_PAGINATED = 
-			SELECT_MULTIPLE_CORE+SELECT_MULTIPLE_ORDER_BY+
-			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_BY_IDS = SELECT_MULTIPLE_CORE+" WHERE "+
 			COL_TEAM_ID+" IN (:"+COL_TEAM_ID+")"+SELECT_MULTIPLE_ORDER_BY;
@@ -153,6 +154,15 @@ public class DBOTeamDAOImpl implements TeamDAO {
 					AliasEnum.USER_NAME.name()+"'"+") "+
 			", "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID;
+
+	private static final String SQL_LIST_TEAMS_OF_USER_REALM =
+			"SELECT t.* FROM "
+					+ TABLE_TEAM + " t JOIN " + TABLE_USER_GROUP + " ug "
+					+ "ON (t." + COL_TEAM_ID + " = ug." + COL_USER_GROUP_ID
+					+ " AND ug." + COL_USER_GROUP_IS_INDIVIDUAL + " = false)"
+					+ " WHERE ug." + COL_USER_GROUP_REALM + " = :" + COL_REALM_ID
+					+ " order by t." + COL_TEAM_ID + " asc "
+					+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String AND_MEMBERS_FOR_ONE_GROUP = "and gm."+COL_GROUP_MEMBERS_GROUP_ID+ "=:" + GROUP_MEMBERS_GROUP_ID_PARAM_NAME;
 
@@ -361,18 +371,16 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		
 		return ListWrapper.wrap(dtos, Team.class);
 	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.model.TeamDAO#getInRange(long, long)
-	 */
-	@Override
-	public List<Team> getInRange(long limit, long offset)
+
+	public List<Team> getInRange(String realmId, long limit, long offset)
 			throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();	
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_REALM_ID, realmId);
 		param.addValue(OFFSET_PARAM_NAME, offset);
-		if (limit<=0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
-		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOTeam> dbos = namedJdbcTemplate.query(SELECT_PAGINATED, param, TEAM_ROW_MAPPER);
+		if (limit <= 0) throw new IllegalArgumentException("'limit' param must be greater than zero.");
+		param.addValue(LIMIT_PARAM_NAME, limit);
+		List<DBOTeam> dbos = namedJdbcTemplate.query(SQL_LIST_TEAMS_OF_USER_REALM, param, TEAM_ROW_MAPPER);
+
 		List<Team> dtos = new ArrayList<Team>();
 		for (DBOTeam dbo : dbos) dtos.add(TeamUtils.copyDboToDto(dbo));
 		return dtos;

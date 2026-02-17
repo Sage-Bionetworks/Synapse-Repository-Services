@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica;
 
+import java.net.URL;
+
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -26,13 +28,23 @@ public interface GridReplicaManager {
 
 	/**
 	 * Called to apply a new patch to an internal grid replica.
-	 * 
+	 *
 	 * @param callback
 	 * @param connection
 	 * @param messageId
 	 * @param patch
 	 */
 	void onApplyPatch(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, Patch patch);
+
+	/**
+	 * Called to apply a new snapshot to an internal grid replica.
+	 *
+	 * @param callback
+	 * @param connection
+	 * @param messageId
+	 * @param snapshotPresignedUrl
+	 */
+	void onApplySnapshot(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, URL snapshotPresignedUrl);
 
 	/**
 	 * Called when a response message chain is completed.

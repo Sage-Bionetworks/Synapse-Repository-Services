@@ -57,7 +57,7 @@ public class IndexedConstantNodeCodec implements IndexedNodeTypeCodec<ConstantNo
 		if (ConType.TIMESTAMP.equals(node.getConValue().getType())) {
 			length = 1L;
 		}
-		bytesWritten += IndexedEncodingUtils.writeNodeTypeAndLength(IndexedEncodingUtils.NODE_TYPE_CONSTANT, length, out);
+		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.CONSTANT.code, length, out);
 
 		// Write the value
 		byte[] valueBytes = CBORUtils.encodeConValue(node.getConValue(), clockTable);

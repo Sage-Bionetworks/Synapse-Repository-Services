@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -24,6 +23,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
@@ -119,7 +119,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public TermsOfServiceStatus getUserTermsOfServiceStatus(Long userId) {
-		return tosManager.getUserTermsOfServiceStatus(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return tosManager.getUserTermsOfServiceStatus(userInfo);
 	}
 	
 	@Override
@@ -130,7 +131,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public boolean hasUserAcceptedTermsOfService(Long userId) throws NotFoundException {
-		return tosManager.hasUserAcceptedTermsOfService(userId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return tosManager.hasUserAcceptedTermsOfService(userInfo);
 	}
 
 	@Override
@@ -286,11 +288,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Override
 	public PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest) {
 		
-		if (AuthorizationUtils.isUserAnonymous(userId)) {
+		UserInfo user = userManager.getUserInfo(userId);
+		
+		if (user.isUserAnonymous()) {
 			throw new UnauthorizedException("User ID is required.");
 		}
-		
-		UserInfo user = userManager.getUserInfo(userId);
 		
 		AliasAndType providersUserId = oauthManager.retrieveProvidersId(
 				validationRequest.getProvider(), 
@@ -312,7 +314,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	public void unbindExternalID(Long userId, OAuthProvider provider, String aliasName) {
-		if (AuthorizationUtils.isUserAnonymous(userId)) throw new UnauthorizedException("User ID is required.");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (userInfo.isUserAnonymous()) throw new UnauthorizedException("User ID is required.");
 		AliasType aliasType = oauthManager.getAliasTypeForProvider(provider);
 		userManager.unbindAlias(aliasName, aliasType, userId);
 	}
@@ -321,6 +324,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public LoginResponse login(LoginRequest request, String tokenIssuer) {
 		return authManager.login(request, tokenIssuer);
 	}
+	
+	@Override
+	public AccessTokenResponse getAnonymousAccessToken(String realmId, String tokenIssuer) throws NotFoundException {
+		return authManager.getAnonymousAccessToken(realmId, tokenIssuer);
+	}
+
 
 	@Override
 	public AuthenticatedOn getAuthenticatedOn(long userId) {

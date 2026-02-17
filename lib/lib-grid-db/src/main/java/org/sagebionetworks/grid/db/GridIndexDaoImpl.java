@@ -19,11 +19,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
-import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.IndexNode;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
 import org.sagebionetworks.repo.model.grid.node.ObjectNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.ValueNode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -189,14 +189,25 @@ public class GridIndexDaoImpl implements GridIndexDao {
 			// Nothing to save, so we can return early.
 			return;
 		}
-		SqlParameterSource[] batchArgs = batch.stream()
-				.map(ts -> new MapSqlParameterSource().addValue("sessionId", sessionId).addValue("replicaId", replicaId)
-						.addValue("nodeRep", ts.getReplicaId()).addValue("nodeSeq", ts.getSequenceNumber())
-						.addValue("kind", type.name()))
-				.toArray(SqlParameterSource[]::new);
 
-		namedTemplate.batchUpdate("INSERT INTO GRID_REPLICA_INDEX (SESSION_ID, REPLICA_ID, NODE_REP, NODE_SEQ, KIND) "
-				+ "VALUES (:sessionId, :replicaId, :nodeRep, :nodeSeq, :kind)", batchArgs);
+		jdbcTemplate.batchUpdate("INSERT INTO GRID_REPLICA_INDEX (SESSION_ID, REPLICA_ID, NODE_REP, NODE_SEQ, KIND) "
+				+ "VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE KIND = VALUES(KIND)", new BatchPreparedStatementSetter() {
+
+			@Override
+			public void setValues(PreparedStatement ps, int i) throws SQLException {
+				LogicalTimestamp id = batch.get(i);
+				ps.setLong(1, sessionId);
+				ps.setLong(2, replicaId);
+				ps.setLong(3, id.getReplicaId());
+				ps.setLong(4, id.getSequenceNumber());
+				ps.setString(5, type.name());
+			}
+
+			@Override
+			public int getBatchSize() {
+				return batch.size();
+			}
+		});
 	}
 
 	@Override
@@ -215,21 +226,49 @@ public class GridIndexDaoImpl implements GridIndexDao {
 
 	@Override
 	@GridTransaction(readOnly = false)
-	public void setClock(String sessionIdString, Long replicaId, LogicalTimestamp clock) {
+	public void setClock(String sessionId, Long replicaId, LogicalTimestamp clock) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
 		ValidateArgument.required(clock, "clock");
-		ValidateArgument.required(clock.getReplicaId(), "clock.replicaId");
-		ValidateArgument.required(clock.getSequenceNumber(), "clock.sequenceNumber");
-		Long sessionId = validateReplica(sessionIdString, replicaId);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("sessionId", sessionId);
-		params.addValue("replicaId", replicaId);
-		params.addValue("clockRep", clock.getReplicaId());
-		params.addValue("clockSeq", clock.getSequenceNumber());
+		this.setClocks(sessionId, replicaId, List.of(clock));
+	}
 
-		namedTemplate.update(
+	@Override
+	@GridTransaction(readOnly = false)
+	public void setClocks(String sessionIdString, Long replicaId, List<LogicalTimestamp> clocks) {
+		ValidateArgument.required(sessionIdString, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		ValidateArgument.required(clocks, "clocks");
+		for (int i = 0; i < clocks.size(); i++) {
+			ValidateArgument.required(clocks.get(i), "clocks[" + i + "]");
+			ValidateArgument.required(clocks.get(i).getReplicaId(), "clocks[" + i + "].replicaId");
+			ValidateArgument.required(clocks.get(i).getSequenceNumber(), "clocks[" + i + "].sequenceNumber");
+		}
+		Long sessionId = validateReplica(sessionIdString, replicaId);
+
+		if (clocks.isEmpty()) {
+			return;
+		}
+
+		jdbcTemplate.batchUpdate(
 				"INSERT INTO GRID_REPLICA_CLOCK (SESSION_ID, REPLICA_ID, CLOCK_ID_REP, CLOCK_ID_SEQ) VALUES"
-						+ " (:sessionId,:replicaId,:clockRep,:clockSeq) ON DUPLICATE KEY UPDATE CLOCK_ID_SEQ = :clockSeq",
-				params);
+						+ " (?,?,?,?) ON DUPLICATE KEY UPDATE CLOCK_ID_SEQ = ?",
+				new BatchPreparedStatementSetter() {
+					@Override
+					public void setValues(PreparedStatement ps, int i) throws SQLException {
+						LogicalTimestamp clock = clocks.get(i);
+						ps.setLong(1, sessionId);
+						ps.setLong(2, replicaId);
+						ps.setLong(3, clock.getReplicaId());
+						ps.setLong(4, clock.getSequenceNumber());
+						ps.setLong(5, clock.getSequenceNumber());
+					}
+
+					@Override
+					public int getBatchSize() {
+						return clocks.size();
+					}
+				});
 	}
 
 	@Override
@@ -433,7 +472,7 @@ public class GridIndexDaoImpl implements GridIndexDao {
 	@GridTransaction(readOnly = false)
 	public void insertIntoRepeatedGrowableArray(String sessionIdString, Long replicaId, RGANode toInsert) {
 		ValidateArgument.required(toInsert, "toInsert");
-		ValidateArgument.required(toInsert.getDataId(), "toInsert.datatId");
+		ValidateArgument.required(toInsert.getDataId(), "toInsert.dataId");
 		ValidateArgument.required(toInsert.getReferenceNodeId(), "toInsert.referenceNodeId");
 
 		Long sessionId = validateReplica(sessionIdString, replicaId);
@@ -465,6 +504,27 @@ public class GridIndexDaoImpl implements GridIndexDao {
 					params);
 		}
 	}
+
+	@Override
+	@GridTransaction(readOnly = false)
+	public void batchInsertRgaNodes(String sessionIdString, Long replicaId, List<RGANode> nodes) {
+		if (nodes == null || nodes.isEmpty()) {
+			return;
+		}
+		Long sessionId = validateReplica(sessionIdString, replicaId);
+
+		SqlParameterSource[] batchArgs = nodes.stream()
+				.map(node -> createRgaNodeParameter(sessionId, replicaId, node))
+				.toArray(SqlParameterSource[]::new);
+
+		namedTemplate.batchUpdate(
+				"INSERT INTO GRID_REPLICA_RGA (SESSION_ID, REPLICA_ID, NODE_REP, NODE_SEQ, "
+						+ "CTR_REP, CTR_SEQ, DATA_REP, DATA_SEQ, REF_REP, REF_SEQ, IS_DELETED) "
+						+ "VALUES (:sessionId, :replicaId, :nodeRep, :nodeSeq, :ctrRep, :ctrSeq, "
+						+ ":dataRep, :dataSeq, :refRep, :refSeq, :isDeleted)",
+				batchArgs);
+	}
+
 
 	/**
 	 * Get the ID of the {@link RGANode} currently pointing to the provided

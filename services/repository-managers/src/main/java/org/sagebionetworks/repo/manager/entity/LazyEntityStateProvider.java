@@ -36,7 +36,7 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 	@Override
 	public UserEntityPermissionsState getPermissionsState(Long entityId) {
 		if (userEntityPermissionsState == null) {
-			userEntityPermissionsState = usersEntityPermissionsDao.getEntityPermissionsAsMap(this.userInfo.getGroups(),
+			userEntityPermissionsState = usersEntityPermissionsDao.getEntityPermissionsAsMap(this.userInfo,
 					entityIds);
 		}
 		return userEntityPermissionsState.get(entityId);

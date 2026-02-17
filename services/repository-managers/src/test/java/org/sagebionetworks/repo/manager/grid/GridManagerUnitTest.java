@@ -16,6 +16,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -36,6 +38,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
@@ -58,9 +61,11 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
@@ -71,6 +76,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
+
 import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -80,6 +90,8 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import java.io.File;
 
 @ExtendWith(MockitoExtension.class)
 public class GridManagerUnitTest {
@@ -100,6 +112,9 @@ public class GridManagerUnitTest {
 	private S3Client mockS3Client;
 
 	@Mock
+	private SynapseS3Client mockSynapseS3Client;
+
+	@Mock
 	private UserInfo mockUser;
 
 	@Mock
@@ -114,6 +129,15 @@ public class GridManagerUnitTest {
 	@Mock
 	private GridAuthorizationManager mockGridAuthManager;
 	
+	@Mock
+	private TransferManager mockTransferManager;
+
+	@Mock
+	private Upload mockUpload;
+
+	@Mock
+	private File mockSnapshotFile;
+
 	@Captor
 	private ArgumentCaptor<PutObjectRequest> putCaptor;
 
@@ -182,7 +206,7 @@ public class GridManagerUnitTest {
 
 		when(mockConfig.getStack()).thenReturn("dev");
 		gridManager = new GridManagerImpl(mockCredentialsProvider, mockWebsocketApi, mockGridDao, mockConfig,
-			mockS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler),mockGridAuthManager
+			mockS3Client, mockSynapseS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler), mockGridAuthManager, mockTransferManager
 		);
 		
 		gridManager = Mockito.spy(gridManager);
@@ -1023,8 +1047,8 @@ public class GridManagerUnitTest {
 
 	@Test
 	public void testListGridSessionsWithAnonymous() {
-		userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		when(mockUser.getId()).thenReturn(userId);
+		when(mockUser.isUserAnonymous()).thenReturn(true);
+		
 		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			gridManager.listActiveGridSessions(mockUser, listGridSessionRequest);
@@ -1154,5 +1178,133 @@ public class GridManagerUnitTest {
 		String connectionId = capturedContext.getConnectionId();
 		assertNotNull(connectionId);
 		assertDoesNotThrow(() -> UUID.fromString(connectionId));
+	}
+
+	@Test
+	public void testSaveSnapshot() throws Exception {
+		ClockTable clockTable = new ClockTable(List.of(patchId));
+		Long createdBy = userId;
+		String expectedS3Key = "snapshot-key-123";
+
+		UploadResult uploadResult = new UploadResult();
+		uploadResult.setKey(expectedS3Key);
+
+		when(mockTransferManager.upload(any(String.class), any(String.class), any(File.class))).thenReturn(mockUpload);
+		when(mockUpload.waitForUploadResult()).thenReturn(uploadResult);
+
+		// call under test
+		gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, mockSnapshotFile);
+
+		verify(mockGridDao).saveSnapshot(eq(gridSessionId), eq(clockTable), any(String.class), eq(createdBy));
+		verify(mockTransferManager).upload(eq("dev.grid.snapshot.sagebase.org"), any(String.class), eq(mockSnapshotFile));
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullSessionId() {
+		ClockTable clockTable = new ClockTable(List.of(patchId));
+		Long createdBy = userId;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.saveSnapshot(null, clockTable, createdBy, mockSnapshotFile);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+		verifyZeroInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullClockTable() {
+		Long createdBy = userId;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.saveSnapshot(gridSessionId, null, createdBy, mockSnapshotFile);
+		}).getMessage();
+		assertEquals("clockTable is required.", message);
+		verifyZeroInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullCreatedBy() {
+		ClockTable clockTable = new ClockTable(List.of(patchId));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.saveSnapshot(gridSessionId, clockTable, null, mockSnapshotFile);
+		}).getMessage();
+		assertEquals("createdBy is required.", message);
+		verifyZeroInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullSnapshotFile() {
+		ClockTable clockTable = new ClockTable(List.of(patchId));
+		Long createdBy = userId;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, null);
+		}).getMessage();
+		assertEquals("snapshotFile is required.", message);
+		verifyZeroInteractions(mockGridDao);
+	}
+
+
+	@Test
+	public void testSaveSnapshotWithException() {
+		when(mockTransferManager.upload(any(String.class), any(String.class), any(File.class)))
+				.thenThrow(new RuntimeException("Upload failed"));
+		ClockTable clockTable = new ClockTable(List.of(patchId));
+		Long createdBy = userId;
+
+		assertThrows(RuntimeException.class, () -> {
+			// call under test
+			gridManager.saveSnapshot(gridSessionId, clockTable, createdBy, mockSnapshotFile);
+		});
+		verifyZeroInteractions(mockGridDao);
+	}
+
+	@Test
+	public void testGetLatestSnapshotPresignedUrl() throws MalformedURLException {
+		when(mockGridDao.getConnection(connectionId)).thenReturn(
+				Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)));
+
+		GridSnapshot snapshot = new GridSnapshot().setS3Key("snapshot-key-123");
+		when(mockGridDao.getLatestSnapshot(gridSessionId)).thenReturn(Optional.of(snapshot));
+
+		URL presignedUrl = new URL("https://example.com/snapshot");
+		when(mockSynapseS3Client.generatePresignedUrl(any(GeneratePresignedUrlRequest.class))).thenReturn(presignedUrl);
+
+		// call under test
+		Optional<URL> result = gridManager.getLatestSnapshotPresignedUrl(eventContext);
+
+		assertTrue(result.isPresent());
+		assertEquals(presignedUrl, result.get());
+	}
+
+	@Test
+	public void testGetLatestSnapshotPresignedUrlWithNoSnapshot() {
+		when(mockGridDao.getConnection(connectionId)).thenReturn(
+				Optional.of(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)));
+
+		when(mockGridDao.getLatestSnapshot(gridSessionId)).thenReturn(Optional.empty());
+
+		// call under test
+		Optional<URL> result = gridManager.getLatestSnapshotPresignedUrl(eventContext);
+
+		assertTrue(result.isEmpty());
+		verifyZeroInteractions(mockSynapseS3Client);
+	}
+
+	@Test
+	public void testGetLatestSnapshotPresignedUrlWithNullContext() {
+		eventContext = null;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.getLatestSnapshotPresignedUrl(eventContext);
+		}).getMessage();
+		assertEquals("context is required.", message);
+		verifyZeroInteractions(mockGridDao, mockSynapseS3Client);
 	}
 }

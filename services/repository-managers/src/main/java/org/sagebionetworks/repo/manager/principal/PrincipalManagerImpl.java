@@ -155,7 +155,7 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 	@Override
 	public void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint, Date now)
 			throws NotFoundException {
-		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
+		if (userInfo.isUserAnonymous())
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		// adding an email address is only allowed if the user is in the default Synapse realm
 		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {

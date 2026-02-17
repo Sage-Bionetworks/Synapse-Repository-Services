@@ -99,6 +99,7 @@ public class AuthenticationServiceImplTest {
 		credential.setPassword(password);
 		
 		userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
+		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		alias = "alias";
 		principalAlias = new PrincipalAlias();
@@ -168,8 +169,9 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testGetUserTermsOfServiceStatus() {
 		TermsOfServiceStatus status = new TermsOfServiceStatus();
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
-		when(mockTosManager.getUserTermsOfServiceStatus(userId)).thenReturn(status);
+		when(mockTosManager.getUserTermsOfServiceStatus(userInfo)).thenReturn(status);
 		
 		assertEquals(status, service.getUserTermsOfServiceStatus(userId));
 	}
@@ -687,6 +689,10 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testBindExternalIDAnonymous() throws Exception {
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anonUserInfo= new UserInfo(false, anonId, "0");
+		anonUserInfo.setRealmAnonymousUserId(anonId);
+		when(mockUserManager.getUserInfo(anonId)).thenReturn(anonUserInfo);
 		assertThrows(UnauthorizedException.class, ()->service.bindExternalID(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), null));
 	}
@@ -745,7 +751,8 @@ public class AuthenticationServiceImplTest {
 		Long principalId = 101L;
 		when(mockOAuthManager.getAliasTypeForProvider(OAuthProvider.ORCID)).thenReturn(AliasType.USER_ORCID);
 		String aliasName = "name";
-
+		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
+		
 		service.unbindExternalID(principalId, OAuthProvider.ORCID, aliasName);
 		
 		verify(mockOAuthManager).getAliasTypeForProvider(OAuthProvider.ORCID);
@@ -833,7 +840,8 @@ public class AuthenticationServiceImplTest {
 
 	@Test
 	public void testHasUserAcceptedTermsOfService() {
-		when(mockTosManager.hasUserAcceptedTermsOfService(userId)).thenReturn(true);
+		when(mockTosManager.hasUserAcceptedTermsOfService(userInfo)).thenReturn(true);
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		// method under test
 		assertTrue(service.hasUserAcceptedTermsOfService(userId));		

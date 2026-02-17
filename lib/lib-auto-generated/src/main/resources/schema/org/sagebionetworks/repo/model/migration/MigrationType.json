@@ -507,6 +507,10 @@
 			"description": "Table that tracks grid replica patches."
 		},
 		{
+			"name": "GRID_SNAPSHOT",
+			"description": "Table that tracks grid replica snapshots."
+		},
+		{
 		  "name": "CURATION_TASK",
 		  "description": "Table that stores curation task information."
 		},

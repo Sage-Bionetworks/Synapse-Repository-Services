@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,10 +23,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.auth.RealmIdList;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
@@ -54,6 +57,8 @@ class RealmManagerImplTest {
 	
 	@Mock
 	private TeamManager teamManager;
+	@Mock
+	private IdGenerator idGenerator;
 
 	@InjectMocks
 	RealmManagerImpl realmManager;
@@ -94,13 +99,9 @@ class RealmManagerImplTest {
 		
 
 		when(userGroupDAO.create(any())).thenReturn(ANONYMOUS_ID, AUTHENTICATED_ID, PUBLIC_ID);
-		
-		when(teamManager.create(any(), any(), eq(ID))).thenAnswer(invocation -> {
-            // Retrieve the argument at index 1 (which is a Team)
-            Team team = invocation.getArgument(1); 
-            team.setId(ADMIN_TEAM_ID);
-            return team;
-        });
+
+		when(idGenerator.generateNewId(IdType.PRINCIPAL_ID)).thenReturn(888l);
+		when(teamManager.bootstrapTeam(any(BootstrapTeam.class), anyString())).thenReturn("888");
 		
 		Realm realm = new Realm();
 		realm.setName(REALM_NAME);
@@ -142,9 +143,9 @@ class RealmManagerImplTest {
 		assertEquals(REALM_PUBLIC_PRINCIPAL_ALIAS, publicAlias.getAlias());
 		assertEquals(AliasType.TEAM_NAME, publicAlias.getType());
 		
-		ArgumentCaptor<Team> teamCaptor = ArgumentCaptor.forClass(Team.class);
-		verify(teamManager).create(eq(adminUserInfo), teamCaptor.capture(), eq(ID));
-		Team adminTeam = teamCaptor.getValue();
+		ArgumentCaptor<BootstrapTeam> teamCaptor = ArgumentCaptor.forClass(BootstrapTeam.class);
+		verify(teamManager).bootstrapTeam(teamCaptor.capture(), eq(ID));
+		BootstrapTeam adminTeam = teamCaptor.getValue();
 		assertEquals(REALM_ADMIN_PRINCIPAL_ALIAS, adminTeam.getName());
 		assertFalse(adminTeam.getCanPublicJoin());
 

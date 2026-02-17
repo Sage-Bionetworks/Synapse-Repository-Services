@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.query.MainQuery;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
@@ -49,7 +50,7 @@ public class EmptyCreateGridHandlerTest {
 	private EntityManager mockEntityManager;
 
 	@Mock
-	PatchStore mockPatchStore;
+	SnapshotStore mockSnapshotStore;
 
 	@InjectMocks
 	EmptyCreateGridHandler handler;
@@ -69,7 +70,7 @@ public class EmptyCreateGridHandlerTest {
 
 		// call under test
 		CreateGridHandlerResult result = handler.createGrid(mockCallback, mockUser, new CreateGridRequest(),
-				mockPatchStore);
+				mockSnapshotStore);
 		assertEquals(new CreateGridHandlerResult().setGridSession(session), result);
 	}
 

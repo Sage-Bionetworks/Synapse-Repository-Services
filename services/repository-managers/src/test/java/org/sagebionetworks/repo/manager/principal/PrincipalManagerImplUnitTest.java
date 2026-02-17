@@ -428,6 +428,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
 		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		UserInfo userInfo = new UserInfo(false, anonId);
+		userInfo.setRealmAnonymousUserId(anonId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {	

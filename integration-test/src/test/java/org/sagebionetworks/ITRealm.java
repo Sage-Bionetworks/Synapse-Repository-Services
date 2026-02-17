@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
-import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
 import org.sagebionetworks.repo.model.auth.Realm;
@@ -88,6 +87,16 @@ public class ITRealm {
 		assertNotNull(principals.getAuthenticatedUsers());
 		assertNotNull(principals.getPublicGroup());
 		assertNotNull(principals.getAdministrativeGroup());
+		
+		// We can get an access token suitable for use in realm-specific "anonymous" requests
+		AccessTokenResponse accessTokenResponse = synapse.getAnonymousAccessToken(id);
+		String anonymousAccessToken = accessTokenResponse.getAccessToken();
+		assertNotNull(anonymousAccessToken);
+		
+		// let's make sure that requests with such a token work
+		synapse.setBearerAuthorizationToken(anonymousAccessToken);
+		// don't care about the results, just that the token is recognized as valid
+		synapse.getUsers(0, 10);
 		
 		// delete realm
 		adminSynapse.deleteRealm(id);

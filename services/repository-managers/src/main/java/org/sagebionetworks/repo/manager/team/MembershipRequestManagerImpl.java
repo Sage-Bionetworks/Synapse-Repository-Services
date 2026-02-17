@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamState;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -64,6 +65,8 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private UserProfileManager userProfileManager;
 	@Autowired
 	private TeamDAO teamDAO;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	@Autowired
 	TokenGenerator tokenGenerator;
 	@Autowired
@@ -102,10 +105,15 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	public MembershipRequest create(UserInfo userInfo,
 	                                MembershipRequest mr) throws DatastoreException,
 			InvalidModelException, UnauthorizedException {
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
+		if (userInfo.isUserAnonymous()) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mr, userInfo);
+		String teamRealmId = userGroupDAO.get(Long.parseLong(mr.getTeamId())).getRealmId();
+
 		if (!userInfo.isAdmin()) {
+			if(!userInfo.getRealmId().equals(teamRealmId)){
+				throw new UnauthorizedException("User cannot request to join a team outside of their realm.");
+			}
 			if (hasUnmetAccessRequirements(userInfo, mr.getTeamId()))
 				throw new UnauthorizedException("Requested member has unmet access requirements which must be met before asking to join the Team.");
 		}

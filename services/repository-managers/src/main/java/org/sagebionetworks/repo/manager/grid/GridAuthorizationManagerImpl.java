@@ -5,7 +5,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -48,7 +47,7 @@ public class GridAuthorizationManagerImpl implements GridAuthorizationManager {
 			return user;
 		}
 
-		return createFilterUser(ownerId);
+		return createFilterUser(ownerId, user);
 	}
 
 	private GridSource getGridSource(String gridSessionId) {
@@ -56,10 +55,13 @@ public class GridAuthorizationManagerImpl implements GridAuthorizationManager {
 				.orElseThrow(() -> new NotFoundException("Grid does not have a source"));
 	}
 
-	private UserInfo createFilterUser(Long ownerId) {
-		UserInfo filterUser = new UserInfo(false, ownerId);
-		filterUser.setGroups(Set.of(ownerId, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+	private UserInfo createFilterUser(Long ownerId, UserInfo realmContext) {
+		UserInfo filterUser = new UserInfo(false, ownerId, realmContext.getRealmId());
+		filterUser.setGroups(Set.of(ownerId, realmContext.getRealmAuthenticatedUsersId(),
+				realmContext.getRealmPublicUsersId()));
+		filterUser.setRealmAnonymousUserId(realmContext.getRealmAnonymousUserId());
+		filterUser.setRealmAuthenticatedUsersId(realmContext.getRealmAuthenticatedUsersId());
+		filterUser.setRealmPublicUsersId(realmContext.getRealmPublicUsersId());
 		return filterUser;
 	}
 

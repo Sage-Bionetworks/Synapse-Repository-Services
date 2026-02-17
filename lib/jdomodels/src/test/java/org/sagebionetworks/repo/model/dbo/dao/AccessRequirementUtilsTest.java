@@ -17,12 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirementRevision;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement;
@@ -333,6 +335,15 @@ public class AccessRequirementUtilsTest {
 		assertEquals(expected, result);
 	}
 	
+	private static UserInfo createUserInfo() {
+		long userId = 101L;
+		UserInfo result = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
+		result.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		result.setRealmAuthenticatedUsersId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		result.setRealmPublicUsersId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		return result;
+	}
+	
 	@Test
 	public void testValidateAccessRequirementAclAccess() {
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
@@ -342,7 +353,7 @@ public class AccessRequirementUtilsTest {
 		));
 		
 		// Call under test
-		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		AccessRequirementUtils.validateAccessRequirementAcl(acl, createUserInfo());
 	}
 	
 	@Test
@@ -351,7 +362,7 @@ public class AccessRequirementUtilsTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateAccessRequirementAcl(acl, createUserInfo());
 		}).getMessage();
 		
 		assertEquals("acl is required.", message);
@@ -363,7 +374,7 @@ public class AccessRequirementUtilsTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateAccessRequirementAcl(acl, createUserInfo());
 		}).getMessage();
 		
 		assertEquals("acl.resourceAccess is required and must not be empty.", message);
@@ -375,7 +386,7 @@ public class AccessRequirementUtilsTest {
 		
 		String message = assertThrows(IllegalArgumentException.class, () -> {			
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateAccessRequirementAcl(acl, createUserInfo());
 		}).getMessage();
 		
 		assertEquals("acl.resourceAccess is required and must not be empty.", message);
@@ -383,27 +394,33 @@ public class AccessRequirementUtilsTest {
 	
 	@Test
 	public void testValidateAccessRequirementAclAccessWithWrongAnonymousUser() {
+		Long anonymousUserId = 99999L; // show that the logic works for any anonymous id
+		UserInfo userInfo = createUserInfo();
+		userInfo.setRealmAnonymousUserId(anonymousUserId);
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()).setAccessType(Set.of(ACCESS_TYPE.READ))
+			new ResourceAccess().setPrincipalId(anonymousUserId).setAccessType(Set.of(ACCESS_TYPE.READ))
 		));
 		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateAccessRequirementAcl(acl, userInfo);
 		}).getMessage();
 		
-		assertEquals("Cannot assign permissions to the anonmous user.", message);
+		assertEquals("Cannot assign permissions to the anonymous user.", message);
 	}
 	
 	@Test
 	public void testValidateAccessRequirementAclAccessWithWrongPublicGroup() {
+		Long publicGroupId = 99999L; // show that the logic works for any public id
+		UserInfo userInfo = createUserInfo();
+		userInfo.setRealmPublicUsersId(publicGroupId);
 		AccessControlList acl = new AccessControlList().setResourceAccess(Set.of(
-			new ResourceAccess().setPrincipalId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()).setAccessType(Set.of(ACCESS_TYPE.READ))
+			new ResourceAccess().setPrincipalId(publicGroupId).setAccessType(Set.of(ACCESS_TYPE.READ))
 		));
 		
-		String message = assertThrows(IllegalArgumentException.class, () -> {			
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
-			AccessRequirementUtils.validateAccessRequirementAcl(acl);
+			AccessRequirementUtils.validateAccessRequirementAcl(acl, userInfo);
 		}).getMessage();
 		
 		assertEquals("Cannot assign permissions to the public group.", message);

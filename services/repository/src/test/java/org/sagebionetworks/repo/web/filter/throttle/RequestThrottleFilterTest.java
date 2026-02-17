@@ -79,7 +79,8 @@ public class RequestThrottleFilterTest {
 	@Test
 	public void testAnonymousUser() throws Exception{ //TODO: remove once java client has a way to get session id from cookies
 		mockRequest.setParameter(AuthorizationConstants.USER_ID_PARAM, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-
+		mockRequest.setParameter(AuthorizationConstants.ANONYMOUS_PARAM, "true");
+		
 		//method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 

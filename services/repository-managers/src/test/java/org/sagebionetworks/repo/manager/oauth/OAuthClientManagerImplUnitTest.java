@@ -11,6 +11,7 @@ import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,12 +39,12 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -83,9 +85,9 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Mock
 	private OAuthClientDao mockOauthClientDao;
-	
+
 	@Mock
-	private AccessControlListDAO mockAclDAO;
+	private AccessControlListManager mockAclManager;
 
 	@Mock
 	private SimpleHttpClient mockHttpClient;
@@ -129,6 +131,7 @@ public class OAuthClientManagerImplUnitTest {
 
 		anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);		
 	}
@@ -403,7 +406,7 @@ public class OAuthClientManagerImplUnitTest {
 		);
 		
 		// make sure the ACL was created
-		verify(mockAclDAO).create(aclCaptor.capture(), eq(ObjectType.OAUTH_CLIENT));
+		verify(mockAclManager).create(eq(userInfo), aclCaptor.capture(), eq(ObjectType.OAUTH_CLIENT), eq(Long.parseLong(oauthClient.getCreatedBy())));
 		AccessControlList acl = aclCaptor.getValue();
 		
 		assertEquals(OAUTH_CLIENT_ID, acl.getId());
@@ -425,7 +428,8 @@ public class OAuthClientManagerImplUnitTest {
 		
 		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());	
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(false);
-		
+		doNothing().when(mockAclManager).create(eq(userInfo), any(AccessControlList.class), eq(ObjectType.OAUTH_CLIENT),
+				eq(Long.parseLong(oauthClient.getCreatedBy())));
 		// method under test
 		OAuthClient result = oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
@@ -447,7 +451,7 @@ public class OAuthClientManagerImplUnitTest {
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		
 		when(mockOauthClientDao.doesSectorIdentifierExistForURI(anyString())).thenReturn(true);
-
+		when(mockOauthClientDao.createOAuthClient((OAuthClient)any())).then(returnsFirstArg());
 		// method under test
 		oauthClientManagerImpl.createOpenIDConnectClient(userInfo, oauthClient);
 		
@@ -818,7 +822,7 @@ public class OAuthClientManagerImplUnitTest {
 		);
 		
 		// make sure the ACL was deleted too
-		verify(mockAclDAO).delete(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
+		verify(mockAclManager).delete(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
 	}
 	
 	@Test
@@ -1173,7 +1177,7 @@ public class OAuthClientManagerImplUnitTest {
 		expected.setId(OAUTH_CLIENT_ID);
 		expected.setCreatedBy(USER_ID);
 		expected.setCreationDate(new Date());
-		when(mockAclDAO.get(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT)).thenReturn(expected);
+		when(mockAclManager.getAcl(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT)).thenReturn(Optional.of(expected));
 		
 		when(mockAuthManager.canAccess(userInfo, OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.READ)).
 			thenReturn(AuthorizationStatus.authorized());
@@ -1181,7 +1185,7 @@ public class OAuthClientManagerImplUnitTest {
 		// method under test
 		AccessControlList actual = oauthClientManagerImpl.getAccessControlList(userInfo, OAUTH_CLIENT_ID);
 		
-		verify(mockAclDAO).get(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
+		verify(mockAclManager).getAcl(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
 		
 		assertEquals(expected, actual);
 	}
@@ -1214,12 +1218,13 @@ public class OAuthClientManagerImplUnitTest {
 		
 		OAuthClient oauthClient = createOAuthClient(USER_ID);
 		when(mockOauthClientDao.getOAuthClient(OAUTH_CLIENT_ID)).thenReturn(oauthClient);
+		when(mockAclManager.getAcl(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT)).thenReturn(Optional.of(acl));
 		
 		// method under test
 		oauthClientManagerImpl.updateAccessControlList(userInfo, OAUTH_CLIENT_ID, acl);
 		
-		verify(mockAclDAO).update(acl, ObjectType.OAUTH_CLIENT);
-		verify(mockAclDAO).get(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
+		verify(mockAclManager).update(userInfo, acl, ObjectType.OAUTH_CLIENT, Long.parseLong(USER_ID));
+		verify(mockAclManager).getAcl(OAUTH_CLIENT_ID, ObjectType.OAUTH_CLIENT);
 		
 	}
 	

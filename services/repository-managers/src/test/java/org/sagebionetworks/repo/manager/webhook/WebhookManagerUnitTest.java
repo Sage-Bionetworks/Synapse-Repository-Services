@@ -243,6 +243,7 @@ public class WebhookManagerUnitTest {
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequestWithAnonymous() {
 		userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());		
+		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 				
 		assertThrows(UnauthorizedException.class, () -> {			
 			// Call under test

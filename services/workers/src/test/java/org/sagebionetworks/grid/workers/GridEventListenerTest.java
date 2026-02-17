@@ -9,6 +9,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -233,7 +236,36 @@ public class GridEventListenerTest {
 
 		// call under test
 		listener.onSynchronizeClock(synchronizeClockMessage);
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, patch);
+		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"patch\",\"body\":"+patch+"}");
+	}
+
+	@Test
+	public void testOnSynchronizeEmptyClockWithPatch() {
+		// Simulate the case where the caller sends an empty clock, but there is no snapshot
+		List<LogicalTimestamp> emptyClock = Collections.emptyList();
+		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId, LogicalTimestampCompactSerializable.serializeClock(emptyClock));
+		String patch = "[[[9,1]],[0]]]";
+		when(mockManager.getLatestSnapshotPresignedUrl(any())).thenReturn(Optional.empty());
+		when(mockManager.getNextMissingPatch(context, emptyClock)).thenReturn(Optional.of(patch));
+
+		// call under test
+		listener.onSynchronizeClock(synchronizeClockMessage);
+		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"patch\",\"body\":"+patch+"}");
+	}
+
+	@Test
+	public void testOnSynchronizeClockWithSnapshot() throws MalformedURLException {
+		// clock has to be empty to return a snapshot
+		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId, LogicalTimestampCompactSerializable.serializeClock(Collections.emptyList()));
+		URL snapshotUrl = new URL("https://s3-url-to-snapshot.tld/snapshot-12345");
+		when(mockManager.getLatestSnapshotPresignedUrl(any())).thenReturn(Optional.of(snapshotUrl));
+
+
+		// call under test
+		listener.onSynchronizeClock(synchronizeClockMessage);
+
+		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"snapshot\",\"body\":\""+snapshotUrl+"\"}");
+		verify(mockManager, never()).getNextMissingPatch(any(), any());
 	}
 
 	@Test

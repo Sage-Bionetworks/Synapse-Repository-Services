@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -15,8 +16,12 @@ public class PermissionsManagerUtils {
 
 	/**
 	 * Verifies that the caller does not lose the right to change permissions.
+	 * @param acl the acl to be created or updated
+	 * @param userInfo the caller's user info
+	 * @param realmIds realmIds is the list of realm ids for the principals listed in the TENTATIVE ACL.
+	 * @param ownerId the principal(user) id of the owner of the resource.
 	 */
-	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Long ownerId) throws InvalidModelException {
+	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Set<String> realmIds, Long ownerId) throws InvalidModelException {
 
 		if (acl.getId() == null) {
 			throw new InvalidModelException("Resource ID is null");
@@ -30,7 +35,7 @@ public class PermissionsManagerUtils {
 
 		// Verify that the caller maintains permissions access
 		String callerPrincipalId = userInfo.getId().toString();
-		boolean callerIsOwner = callerPrincipalId.equals(ownerId.toString());
+		boolean callerIsOwner = ownerId !=null && callerPrincipalId.equals(ownerId.toString());
 		boolean foundCallerInAcl = false;
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra==null) throw new InvalidModelException("ACL row is null.");
@@ -43,17 +48,23 @@ public class PermissionsManagerUtils {
 				}
 			}
 			// Does not allow ACL for the anonymous user
-			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
-				throw new InvalidModelException("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")");
+			// We need to disallow anonymous users from all realms
+			// but this is addressed by the constraint that all principals
+			// in the ACL must be in the same realm.
+			if (ra.getPrincipalId().equals(userInfo.getRealmAnonymousUserId())) {
+				throw new InvalidModelException("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + userInfo.getRealmPublicUsersId() + ")");
 			}
 			// Does not allow anything other than READ for the public group
-			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+			// As explained above, we don't have to check for Public Groups in other realms
+			if (ra.getPrincipalId().equals(userInfo.getRealmPublicUsersId())) {
 				long notReadCount = ra.getAccessType().stream().filter( type -> !ACCESS_TYPE.READ.equals(type)).count();
 				if (notReadCount != 0) {
 					throw new InvalidModelException("Only READ permissions can be assigned to the public group");
 				}
 			}
-			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())
+			// Note that we don't have to check 'authenticated users' groups in other realms, since
+			// there is the constraint that all ACL members must be in the same realm
+			if (ra.getPrincipalId().equals(userInfo.getRealmAuthenticatedUsersId())
 					&& ra.getAccessType().contains(ACCESS_TYPE.DOWNLOAD)
 					&& !AuthorizationUtils.isCertifiedUser(userInfo)) {
 				throw new UserCertificationRequiredException("Only certified users can allow authenticated users to download.");
@@ -62,6 +73,13 @@ public class PermissionsManagerUtils {
 		
 		if (!foundCallerInAcl && !userInfo.isAdmin() && !callerIsOwner) {
 			throw new InvalidModelException("Caller is trying to revoke their own ACL editing permissions.");
+		}
+
+		if (realmIds.size() > 1) {
+			throw new InvalidModelException("All principals in the ACL must be from the same realm.");
+		}
+		if (realmIds.size() == 1 && !realmIds.contains(userInfo.getRealmId())) {
+			throw new InvalidModelException("All principals in the ACL must be from the same realm as the caller principal.");
 		}
 	}
 }

@@ -25,11 +25,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -39,13 +37,10 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.model.project.ProjectSettingsType;
-import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 
 import com.google.common.collect.ImmutableSet;
@@ -69,15 +64,10 @@ public class EntityAclManagerImplUnitTest {
 	private Node folder;
 	private Node file;
 	private Node dockerRepo;
-	
-	@Mock
-	private UserGroupDAO mockUserGroupDAO;
+
 	@Mock
 	private NodeDAO mockNodeDao;
-	@Mock
-	private AccessControlListDAO mockAclDAO;
-	@Mock
-	private StackConfiguration mockStackConfiguration;
+
 	@Mock
 	private ProjectSettingsManager mockProjectSettingsManager;
 	@Mock
@@ -88,6 +78,8 @@ public class EntityAclManagerImplUnitTest {
 	private TransactionalMessenger mockTransactionalMessenger;
 	@Mock
 	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
+	private AccessControlListManager mockAclManager;
 	
 	private UserInfo anonymousUser;
 	
@@ -164,12 +156,12 @@ public class EntityAclManagerImplUnitTest {
 	public void testGetNonvisibleChildrenNonAdmin(){
 		// Mock dependencies.
 		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
-		when(mockAclDAO.getNonVisibleChilrenOfEntity(anySet(), anyString())).thenReturn(nonvisibleIds);
+		when(mockAclManager.getNonVisibleChilrenOfEntity(anySet(), anyString())).thenReturn(nonvisibleIds);
 
 		String parentId = "syn123";
 		// call under test
 		Set<Long> results = entityAclManager.getNonvisibleChildren(mockUser, parentId);
-		verify(mockAclDAO).getNonVisibleChilrenOfEntity(mockUsersGroups, parentId);
+		verify(mockAclManager).getNonVisibleChilrenOfEntity(mockUsersGroups, parentId);
 		assertEquals(nonvisibleIds, results);
 	}
 	
@@ -180,7 +172,7 @@ public class EntityAclManagerImplUnitTest {
 		// call under test
 		Set<Long> results = entityAclManager.getNonvisibleChildren(mockUser, parentId);
 		// should not hit the dao.
-		verify(mockAclDAO, never()).getNonVisibleChilrenOfEntity(anySet(), anyString());
+		verify(mockAclManager, never()).getNonVisibleChilrenOfEntity(anySet(), anyString());
 		// empty results.
 		assertEquals(new HashSet<Long>(), results);
 	}
@@ -209,8 +201,6 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 		
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 
@@ -224,7 +214,7 @@ public class EntityAclManagerImplUnitTest {
 		updatedAcl.getResourceAccess().add(access);
 		
 		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
-		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockAclManager.getAcl(entityId, ObjectType.ENTITY)).thenReturn(Optional.of(oldAcl));
 		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.file);
 		
@@ -241,8 +231,6 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 		
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 
@@ -256,7 +244,7 @@ public class EntityAclManagerImplUnitTest {
 		updatedAcl.getResourceAccess().add(access);
 		
 		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
-		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockAclManager.getAcl(entityId, ObjectType.ENTITY)).thenReturn(Optional.of(oldAcl));
 		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.project);
 		
@@ -273,8 +261,6 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(entityId)).thenReturn(entityId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 		
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 
@@ -288,7 +274,7 @@ public class EntityAclManagerImplUnitTest {
 		updatedAcl.getResourceAccess().add(access);
 		
 		when(mockNodeDao.getCreatedBy(entityId)).thenReturn(111L);
-		when(mockAclDAO.get(entityId, ObjectType.ENTITY)).thenReturn(oldAcl);
+		when(mockAclManager.getAcl(entityId, ObjectType.ENTITY)).thenReturn(Optional.of(oldAcl));
 		when(mockNodeDao.touch(userId, entityId)).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(entityId)).thenReturn(EntityType.folder);
 		
@@ -306,13 +292,11 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(projectId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(projectId, mockUser, new Date());
-		when(mockAclDAO.get(projectId, ObjectType.ENTITY)).thenReturn(acl);
+		when(mockAclManager.getAcl(projectId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 		when(mockNodeDao.touch(userId, projectId)).thenReturn(newEtag);
 
 		// call under test
@@ -327,13 +311,11 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
-		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
+		when(mockAclManager.getAcl(folderId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 		when(mockNodeDao.touch(userId, folderId)).thenReturn(newEtag);
 
 		// call under test
@@ -348,12 +330,10 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(fileId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
-		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
+		when(mockAclManager.getAcl(fileId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 
 		// call under test
 		entityAclManager.overrideInheritance(acl, mockUser);
@@ -368,8 +348,6 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(fileId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		
@@ -389,12 +367,10 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(folderId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
-		when(mockAclDAO.get(folderId, ObjectType.ENTITY)).thenReturn(acl);
+		when(mockAclManager.getAcl(folderId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 
 		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(folderId)).thenReturn(false);
 		// It doesn't actually matter whether the folder is STS or not, because the permissions we're overriding are
@@ -403,7 +379,7 @@ public class EntityAclManagerImplUnitTest {
 		// Call under test.
 		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);
 		assertSame(acl, result);
-		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
+		verify(mockAclManager).create(mockUser, acl, ObjectType.ENTITY, folder.getCreatedByPrincipalId());
 	}
 
 	@Test
@@ -413,19 +389,17 @@ public class EntityAclManagerImplUnitTest {
 		when(mockNodeDao.getBenefactor(fileId)).thenReturn(benefactorId);
 
 		when(mockUser.getId()).thenReturn(userId);
-		when(mockUser.isAdmin()).thenReturn(false);
-		when(mockUser.getGroups()).thenReturn(mockUsersGroups);
 
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
-		when(mockAclDAO.get(fileId, ObjectType.ENTITY)).thenReturn(acl);
+		when(mockAclManager.getAcl(fileId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 
 		when(mockProjectSettingsManager.entityIsWithinSTSEnabledFolder(fileId)).thenReturn(false);
 
 		// Call under test.
 		AccessControlList result = entityAclManager.overrideInheritance(acl, mockUser);
 		assertSame(acl, result);
-		verify(mockAclDAO).create(acl, ObjectType.ENTITY);
+		verify(mockAclManager).create(mockUser, acl, ObjectType.ENTITY, file.getCreatedByPrincipalId());
 	}
 
 	@Test
@@ -434,6 +408,9 @@ public class EntityAclManagerImplUnitTest {
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(projectId)).thenReturn(EntityType.project);
+
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(projectId, mockUser, new Date());
+		when(mockAclManager.getAcl(projectId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 		// call under test
 		entityAclManager.restoreInheritance(projectId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(projectId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
@@ -445,6 +422,8 @@ public class EntityAclManagerImplUnitTest {
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(folderId)).thenReturn(EntityType.folder);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(folderId, mockUser, new Date());
+		when(mockAclManager.getAcl(folderId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 		// call under test
 		entityAclManager.restoreInheritance(folderId, mockUser);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(folderId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
@@ -456,6 +435,8 @@ public class EntityAclManagerImplUnitTest {
 		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any(ACCESS_TYPE.class))).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.touch(any(Long.class), anyString())).thenReturn(newEtag);
 		when(mockNodeDao.getNodeTypeById(fileId)).thenReturn(EntityType.file);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(fileId, mockUser, new Date());
+		when(mockAclManager.getAcl(fileId, ObjectType.ENTITY)).thenReturn(Optional.of(acl));
 		// call under test
 		entityAclManager.restoreInheritance(fileId, mockUser);
 		verifyNoMoreInteractions(mockTransactionalMessenger);

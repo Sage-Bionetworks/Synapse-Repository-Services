@@ -40,11 +40,11 @@ public class ReplicaChangeSetTest {
 	public void testToAndFromJson() {
 
 		// call under test
-		ReplicaChangeSet rcs = new ReplicaChangeSet(connection, patchId, map);
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, patchId, map);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99],"
-				+ "\"changes\":{\"arr\":[110,[2,8],112],\"con\":[113,[2,10]],\"obj\":[]}}", json);
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\",\"patchId\":[3,99],"
+				+ "\"changes\":{\"arr\":[[3,110],[2,8],[3,112]],\"con\":[[3,113],[2,10]],\"obj\":[]}}", json);
 
 		// call under test
 		ReplicaChangeSet clone = new ReplicaChangeSet(json);
@@ -55,10 +55,24 @@ public class ReplicaChangeSetTest {
 	public void testToAndFromJsonWithNull() {
 
 		// call under test
-		ReplicaChangeSet rcs = new ReplicaChangeSet(connection, patchId, null);
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, patchId, null);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"patchId\":[3,99]}", json);
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\",\"patchId\":[3,99]}", json);
+
+		// call under test
+		ReplicaChangeSet clone = new ReplicaChangeSet(json);
+		assertEquals(rcs, clone);
+	}
+
+	@Test
+	public void testSnapshot() {
+
+		// call under test
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromSnapshot(connection);
+		// call under test
+		String json = rcs.toJson();
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"SNAPSHOT\",\"changes\":{}}", json);
 
 		// call under test
 		ReplicaChangeSet clone = new ReplicaChangeSet(json);

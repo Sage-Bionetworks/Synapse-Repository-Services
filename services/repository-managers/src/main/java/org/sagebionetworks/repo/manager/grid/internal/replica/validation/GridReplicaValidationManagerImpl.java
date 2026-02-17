@@ -2,16 +2,21 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.validation;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.grid.db.GridTransaction;
+import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChange;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowMetadata;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
@@ -24,6 +29,7 @@ import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
@@ -32,8 +38,12 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Iterators;
+
 @Service
 public class GridReplicaValidationManagerImpl implements GridReplicaValidationManager {
+
+	private static final Logger log = LogManager.getLogger(GridReplicaValidationManagerImpl.class);
 
 	private final GridReplicaViewManager gridReplicaViewManager;
 	private final JsonSchemaManager jsonSchemaManager;
@@ -53,46 +63,116 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 
 	@GridTransaction(readOnly = true)
 	@Override
-	public void validateChanges(String sessionId, Long replicaId, Collection<LogicalTimestamp> changedVectorIds) {
+	public void validateAllRows(String sessionId, Long replicaId) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(replicaId, "replicaId");
 
-		if (changedVectorIds == null || changedVectorIds.isEmpty()) {
-			return;
-		}
-
 		Optional<GridSession> gridSession = gridDao.getGridSession(sessionId);
 		if (!hasValidSession(gridSession)) {
+			log.info("No valid grid session found for sessionId: {}, skipping validation", sessionId);
 			return;
 		}
 
 		Optional<GridConnectionInfo> validationConnectionOpt = gridDao.getSingletonConnection(sessionId,
 				EventSource.VALIDATION);
 		if (validationConnectionOpt.isEmpty()) {
+			log.info("No validation connection found for sessionId: {}, skipping validation", sessionId);
 			return;
 		}
 
 		Optional<GridHeader> header = gridReplicaViewManager.readHeader(sessionId, replicaId);
 		if (header.isEmpty()) {
+			log.info("No grid header found for sessionId: {}, replicaId: {}, skipping validation", sessionId, replicaId);
+			return;
+		}
+
+
+		// For each row in the replica, validate if the data is newer than the validation result.
+		// But we should batch the rowViews!
+		Iterator<RowView> rowViewIterator = gridReplicaViewManager.getQueryIterator(header.get(), List.of());
+
+		try (IntendedChangePublisher publisher = new IntendedChangePublisher(
+				validationConnectionOpt.get(),
+				header.get().getClockSequenceMaximum(),
+				patchBuilderPublisher,
+				PatchUtils.MAX_CHANGE_SET_SIZE)) {
+
+			Iterators.partition(rowViewIterator, 1000).forEachRemaining(batch -> {
+				List<RowView> changedRows = batch.stream()
+						.filter(this::isDataNewerThanValidationResult)
+						.collect(Collectors.toList());
+				if (changedRows.isEmpty()) {
+					return;
+				}
+
+				List<IntendedChange> intendedChanges = validateRows(header.get(),
+						gridSession.get().getGridJsonSchema$Id(), changedRows);
+
+				for (IntendedChange change : intendedChanges) {
+					publisher.publish(change);
+				}
+			});
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@GridTransaction(readOnly = true)
+	@Override
+	public void validateChanges(String sessionId, Long replicaId, Collection<LogicalTimestamp> changedVectorIds) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+
+		if (changedVectorIds == null || changedVectorIds.isEmpty()) {
+			log.info("No changed vector IDs provided, skipping validation for sessionId: {}, replicaId: {}",
+					sessionId, replicaId);
+			return;
+		}
+
+		Optional<GridSession> gridSession = gridDao.getGridSession(sessionId);
+		if (!hasValidSession(gridSession)) {
+			log.info("No valid grid session found for sessionId: {}, skipping validation", sessionId);
+			return;
+		}
+
+		Optional<GridConnectionInfo> validationConnectionOpt = gridDao.getSingletonConnection(sessionId,
+				EventSource.VALIDATION);
+		if (validationConnectionOpt.isEmpty()) {
+			log.info("No validation connection found for sessionId: {}, skipping validation", sessionId);
+			return;
+		}
+
+		Optional<GridHeader> header = gridReplicaViewManager.readHeader(sessionId, replicaId);
+		if (header.isEmpty()) {
+			log.info("No grid header found for sessionId: {}, replicaId: {}, skipping validation", sessionId, replicaId);
 			return;
 		}
 
 		List<RowView> rowsToValidate = getRowsToValidate(header.get(), changedVectorIds);
 		if (rowsToValidate.isEmpty()) {
+			log.info("No rows to validate for sessionId: {}, replicaId: {}", sessionId, replicaId);
 			return;
 		}
 
 		List<IntendedChange> intendedChanges = validateRows(header.get(), gridSession.get().getGridJsonSchema$Id(),
 				rowsToValidate);
 		if (intendedChanges.isEmpty()) {
+			log.info("No validation changes generated for sessionId: {}, replicaId: {}", sessionId, replicaId);
 			return;
 		}
 
-		// send the changes to the patch builder.
-		patchBuilderPublisher.sendChangesToPatchBuilder(new IntendedChangeSet().setChanges(intendedChanges)
-				.setSessionId(sessionId).setReplicaId(validationConnectionOpt.get().getReplicaId())
-				.setConnectionId(validationConnectionOpt.get().getConnectionId())
-				.setClockSequenceMaximum(header.get().getClockSequenceMaximum()));
+		try (IntendedChangePublisher publisher = new IntendedChangePublisher(
+				validationConnectionOpt.get(),
+				header.get().getClockSequenceMaximum(),
+				patchBuilderPublisher,
+				PatchUtils.MAX_CHANGE_SET_SIZE)) {
+
+			for (IntendedChange change : intendedChanges) {
+				publisher.publish(change);
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	boolean hasValidSession(Optional<GridSession> gridSession) {
@@ -109,8 +189,47 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	List<RowView> getRowsToValidate(GridHeader header, Collection<LogicalTimestamp> changedVectorIds) {
 		List<LogicalTimestamp> vectorList = changedVectorIds.stream().collect(Collectors.toList());
 		Long limit = (long) (changedVectorIds.size() + 1);
-		return gridReplicaViewManager.querySinglePage(header, List.of(new VectorIdFilterElement(vectorList)), limit, 0L);
+		List<RowView> rowsToValidate = gridReplicaViewManager.querySinglePage(header, List.of(new VectorIdFilterElement(vectorList)), limit, 0L);
+
+		/*
+		 * Filter out rows where the validation result is up-to-date based on the timestamp IDs.
+		 * This is necessary because:
+		 *   1. Snapshots may or may not contain validation information (it may be a "new" grid that is pending validation)
+		 *   2. Importing a snapshot triggers a change message for every node in the replica's document
+		 *   3. We _cannot_ compare new validation results to the previous to opt out of an update, because we
+		 * 		 unconditionally update validation data on a change so the client can identify if validation information
+		 *       is up-to-date (PLFM-9342)
+		 *
+		 *  We may in the future automatically create new snapshots to capture changes that happened since the last
+		 * 	 snapshot. Without this opt-out, that would cause an infinite loop where new snapshots would cause validation
+		 *   result constants to unnecessarily update, which could trigger/be included in a new snapshot.
+		 */
+		return rowsToValidate.stream()
+				.filter(this::isDataNewerThanValidationResult)
+				.collect(Collectors.toList());
 	}
+
+	/**
+	 * Using the timestamp of the data and the validation results, determine if the data is newer than the validation results.
+	 * If so, we need to re-validate.
+	 * @param rowView
+	 * @return true if the data is newer than the validation results.
+	 */
+	boolean isDataNewerThanValidationResult(RowView rowView) {
+		RowData rowData = rowView.getRowObject().getData();
+		RowMetadata metadata = rowView.getRowMetadata();
+		if (metadata == null || metadata.getRowValidation() == null || metadata.getRowValidation().getConstantId() == null) {
+			// If there are no validation results, always validate.
+			return true;
+		}
+
+		// Otherwise, check all of the constant IDs in the validation results.
+		return rowData.getNodes().stream()
+				.map(ConstantNode::getId)
+				// If any are greater than the current validation timestamp, re-validate.
+				.anyMatch(id -> id != null && id.compareTo(metadata.getRowValidation().getConstantId()) > 0);
+	}
+
 
 	/**
 	 * Validate a set of rows and generate changes to be sent to the patch builder.
@@ -124,7 +243,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		JsonSchema schema = jsonSchemaManager.getValidationSchema(schemaId);
 
 		List<JsonSubject> subjects = rowsToValidate.stream()
-				.map(row -> new RowJsonSubject(row)).collect(Collectors.toList());
+				.map(row -> new JsonObjectSubject(row.getRowObject().getData().getRowJsonDocument())).collect(Collectors.toList());
 
 		List<ValidationResults> results = jsonSchemaValidationManager.validateBatch(schema, subjects);
 
@@ -149,7 +268,7 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 	 * 
 	 * @param validationResults
 	 */
-	void cleanupValidationResults(ValidationResults validationResults) {
+	public static void cleanupValidationResults(ValidationResults validationResults) {
 		validationResults.setValidatedOn(null);
 		validationResults.setSchema$id(null);
 		validationResults.setValidationException(null);

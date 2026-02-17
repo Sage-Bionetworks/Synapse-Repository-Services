@@ -7,11 +7,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
-import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
-import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
+import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
@@ -35,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.FileProvider;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.stereotype.Service;
@@ -46,15 +50,26 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 	private final TableQueryManager tableQueryManager;
 	private final EntityManager entityManager;
 	private final JsonSchemaManager schemaManager;
+	private final JsonSchemaValidationManager jsonSchemaValidationManager;
 	private final GridAuthorizationManager gridAuthorizationManager;
+	private final FileProvider fileProvider;
+	private final SynapseS3Client synapseS3Client;
+	private final StackConfiguration stackConfig;
 
-	public QueryCreateGridHandler(GridDao gridDao, EntityManager entityManager, TableQueryManager tableQueryManager, JsonSchemaManager schemaManager, GridAuthorizationManager gridAuthorizationManager) {
+	public QueryCreateGridHandler(GridDao gridDao, EntityManager entityManager, TableQueryManager tableQueryManager,
+								  JsonSchemaManager schemaManager, JsonSchemaValidationManager jsonSchemaValidationManager,
+								  GridAuthorizationManager gridAuthorizationManager, FileProvider fileProvider,
+								  SynapseS3Client synapseS3Client, StackConfiguration stackConfig) {
 		super();
 		this.gridDao = gridDao;
 		this.entityManager = entityManager;
 		this.tableQueryManager = tableQueryManager;
 		this.schemaManager = schemaManager;
+		this.jsonSchemaValidationManager = jsonSchemaValidationManager;
 		this.gridAuthorizationManager = gridAuthorizationManager;
+		this.fileProvider = fileProvider;
+		this.synapseS3Client = synapseS3Client;
+		this.stackConfig = stackConfig;
 	}
 
 	@Override
@@ -64,7 +79,7 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 
 	@Override
 	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request,
-			PatchStore patchStore) {
+			SnapshotStore snapshotStore) {
 		try {
 			Query initialQuery = request.getInitialQuery();
 			/*
@@ -90,8 +105,9 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			// grid data back into a Synapse Table or View
 			initialQuery.setIncludeEntityEtag(true);
 
-			final List<String> columnsRequiredBySchema = schemaIdOp
-					.map(schemaManager::getValidationSchema)
+			final Optional<JsonSchema> validationSchema = schemaIdOp.map(schemaManager::getValidationSchema);
+
+			final List<String> columnsRequiredBySchema = validationSchema
 					.map(JsonSchema::getRequired)
 					.orElse(new ArrayList<>());
 
@@ -112,8 +128,9 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			// results.
 			tableQueryManager.runQueryAsStream(callback, sessionOwner, initialQuery, t -> {
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
-				return new PatchRowHandler(patchStore, session.getSessionId(), replica.getReplicaId(), schema,
-						maxRowSizeBytes, columnsRequiredBySchemaIndices);
+				return new SnapshotRowHandler(snapshotStore, session.getSessionId(), replica.getReplicaId(), schema,
+						columnsRequiredBySchemaIndices, fileProvider, user.getId(),	jsonSchemaValidationManager,
+						validationSchema.orElse(null));
 			}, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE);
 			return new CreateGridHandlerResult().setGridSession(session).setGridReplica(replica);
 		} catch (LockUnavilableException | TableUnavailableException e) {

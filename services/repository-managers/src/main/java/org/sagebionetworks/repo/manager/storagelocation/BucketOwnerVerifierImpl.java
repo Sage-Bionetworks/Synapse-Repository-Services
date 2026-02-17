@@ -37,13 +37,7 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 	private static final String SECURITY_EXPLANATION = "For security purposes, Synapse needs to establish that the user has permission to write to the bucket. Please create an object in bucket '%s' with key '%s' that contains a "
 			+ "line separated list of identifiers for the user. Valid identifiers are the id of the user or id of a team the user is part of. Also see "
 			+ EXTERNAL_STORAGE_HELP;
-	
-	// Set of teams that are not allowed to be used as identifiers in the owner.txt
-	private static final Set<Long> EXCLUDED_TEAMS = ImmutableSet.of(
-		BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-		BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
-		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()
-	);
+
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -145,9 +139,16 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 				.collect(Collectors.toList())
 		);
 		
-		// Adds the id of the teams of the user, excluding the certain boostrapped teams (e.g. public group, certified users etc)
+		// Set of teams that are not allowed to be used as identifiers in the owner.txt
+		Set<Long> excludedTeamIds = ImmutableSet.of(
+				userInfo.getRealmAnonymousUserId(),
+				userInfo.getRealmPublicUsersId(),
+			BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()
+		);
+		
+		// Adds the id of the teams of the user, excluding the certain teams (public group, certified users etc)
 		ownerAliases.addAll(userInfo.getGroups().stream()
-				.filter( teamId -> !EXCLUDED_TEAMS.contains(teamId))
+				.filter( teamId -> !excludedTeamIds.contains(teamId))
 				.map(Object::toString)
 				.collect(Collectors.toList())
 		);

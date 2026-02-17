@@ -1,13 +1,20 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.PRESIGNED_URL_EXPIRE_TIME_MS;
+
+import java.io.File;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
@@ -18,6 +25,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -27,9 +35,11 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
@@ -43,6 +53,19 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
+import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.services.s3.model.UploadPartRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.http.SdkHttpMethod;
@@ -72,25 +95,31 @@ public class GridManagerImpl implements GridManager {
 	private final AwsCredentialsProvider awsCredentialsProvider;
 	private final WebsocketApi websocketApi;
 	private final GridDao gridDao;
+	private final String gridSnapshotBucket;
 	private final String gridPatchBucket;
 	private final S3Client s3Client;
+	private final SynapseS3Client synapseS3Client;
 	private final InternalReplicaToHubEventPublisher internalEventPublisher;
 	private final List<CreateGridHandler> createGridHandlers;
 	private final GridAuthorizationManager gridAuthorizationManager;
+	private final TransferManager transferManager;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
-			StackConfiguration config, S3Client s3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
-			List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager) {
+	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
+	   List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager, TransferManager transferManager) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
 		this.gridDao = gridDao;
+		this.gridSnapshotBucket = String.format("%s.grid.snapshot.sagebase.org", config.getStack());
 		this.gridPatchBucket = String.format("%s.grid.patch.sagebase.org", config.getStack());
 		this.s3Client = s3Client;
+		this.synapseS3Client = synapseS3Client;
 		this.internalEventPublisher = internalEventPublisher;
 		this.createGridHandlers = createHandlers;
 		this.gridAuthorizationManager = gridAuthorizationManager;
+		this.transferManager = transferManager;
 	}
 
 	@WriteTransaction
@@ -370,6 +399,23 @@ public class GridManagerImpl implements GridManager {
 	}
 
 	@Override
+	public Optional<URL> getLatestSnapshotPresignedUrl(EventContext context) {
+		ValidateArgument.required(context, "context");
+		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
+
+		Optional<GridSnapshot> snapshot = gridDao.getLatestSnapshot(thisCon.getSessionId());
+
+		if (snapshot.isEmpty()) {
+			return Optional.empty();
+		}
+
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(gridSnapshotBucket, snapshot.get().getS3Key(), HttpMethod.GET);
+		request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
+
+		return Optional.of(synapseS3Client.generatePresignedUrl(request));
+	}
+
+	@Override
 	public ListGridSessionsResponse listActiveGridSessions(UserInfo user, ListGridSessionsRequest request) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
@@ -406,6 +452,35 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public Optional<GridConnectionInfo> getConnection(String gridSessionId, Long agentsReplicaId) {
 		return gridDao.getConnection(gridSessionId, agentsReplicaId);
+	}
+
+	@Override
+	public Optional<GridSource> getSessionSource(String sessionId) {
+		return gridDao.getSessionSource(sessionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public void saveSnapshot(String sessionId, ClockTable clockTable, Long createdBy, File snapshotFile) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(clockTable, "clockTable");
+		ValidateArgument.required(createdBy, "createdBy");
+		ValidateArgument.required(snapshotFile, "snapshotFile");
+
+		String s3Key = String.format("snapshot/%s/%d-%s.cbor", sessionId, System.currentTimeMillis(), UUID.randomUUID());
+		ObjectMetadata objectMetadata = new ObjectMetadata();
+		objectMetadata.setContentType("application/cbor");
+
+		UploadResult uploadResult;
+		try {
+			uploadResult = transferManager.upload(gridSnapshotBucket, s3Key, snapshotFile).waitForUploadResult();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Snapshot upload was interrupted", e);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to upload snapshot to S3", e);
+		}
+		gridDao.saveSnapshot(sessionId, clockTable, uploadResult.getKey(), createdBy);
 	}
 
 }

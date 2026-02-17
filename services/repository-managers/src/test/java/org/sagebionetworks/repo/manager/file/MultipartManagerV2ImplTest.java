@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.file.multipart.FileHandleCreateRequest;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandler;
 import org.sagebionetworks.repo.manager.file.multipart.MultipartRequestHandlerProvider;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -132,6 +133,7 @@ public class MultipartManagerV2ImplTest {
 	public void before() {
 		user = new UserInfo(false);
 		user.setId(123L);
+		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
 	@Test

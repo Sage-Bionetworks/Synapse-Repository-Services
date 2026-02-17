@@ -226,7 +226,7 @@ public class ITChallengeController {
 		
 		// PLFM-3244: what if they're both in the 'registeredTeam' but only one is in the challenge?
 		// 'userToDelete' leaves the challenge
-		synapse.removeTeamMember(participantTeam.getId(), synapseUserId.toString());
+		adminSynapse.removeTeamMember(participantTeam.getId(), synapseUserId.toString());
 		affiliatedParticipants.clear();
 		unaffiliatedParticipants.clear();
 		affiliatedParticipants.add(adminUserId);

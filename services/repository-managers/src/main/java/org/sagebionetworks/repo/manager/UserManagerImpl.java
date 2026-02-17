@@ -143,7 +143,7 @@ public class UserManagerImpl implements UserManager {
 	
 	/**
 	 * This method is idempotent.
-	 * @param profile
+	 * @param user
 	 * @param principalId
 	 */
 	private void bindAllAliases(NewUser user, Long principalId) {
@@ -249,6 +249,9 @@ public class UserManagerImpl implements UserManager {
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);
+		ui.setRealmAnonymousUserId(Long.valueOf(realmPrincipals.getAnonymousUser()));
+		ui.setRealmAuthenticatedUsersId(Long.valueOf(realmPrincipals.getAuthenticatedUsers()));
+		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
 		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
 		return ui;

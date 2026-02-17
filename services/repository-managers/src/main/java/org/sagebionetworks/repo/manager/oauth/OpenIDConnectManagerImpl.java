@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.manager.util.OAuthPermissionUtils;
 import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.authentication.PersonalAccessTokenManager;
 import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -97,6 +98,8 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	private OIDCTokenManager oidcTokenManager;
 	
 	private NotificationManager notificationManager;
+	
+	private UserManager userManager;
 
 	private Clock clock;
 
@@ -105,7 +108,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Autowired
 	public OpenIDConnectManagerImpl(OAuthClientDao oauthClientDao, OAuthRefreshTokenManager oauthRefreshTokenManager,
 			PersonalAccessTokenManager personalAccessTokenManager, AuthenticationDAO authDao, OAuthDao oauthDao,
-			OIDCTokenManager oidcTokenManager, NotificationManager notificationManager, Clock clock,
+			OIDCTokenManager oidcTokenManager, NotificationManager notificationManager, UserManager userManager, Clock clock,
 			Map<OIDCClaimName, OIDCClaimProvider> claimProviders) {
 		this.oauthClientDao = oauthClientDao;
 		this.oauthRefreshTokenManager = oauthRefreshTokenManager;
@@ -114,6 +117,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		this.oauthDao = oauthDao;
 		this.oidcTokenManager = oidcTokenManager;
 		this.notificationManager = notificationManager;
+		this.userManager = userManager;
 		this.clock = clock;
 		this.claimProviders = claimProviders;
 	}
@@ -248,7 +252,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@WriteTransaction
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
 			OIDCAuthorizationRequest authorizationRequest) {
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
 
@@ -444,8 +448,9 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		boolean issueRefreshToken = scopes.contains(OAuthScope.offline_access);
 		String refreshTokenId = null;
 		if (issueRefreshToken) {
+			UserInfo userInfo = userManager.getUserInfo(Long.valueOf(authorizationRequest.getUserId()));
 			OAuthRefreshTokenAndMetadata refreshToken = oauthRefreshTokenManager
-					.createRefreshToken(authorizationRequest.getUserId(),
+					.createRefreshToken(userInfo,
 							oauthClientId,
 							scopes,
 							normalizedClaims

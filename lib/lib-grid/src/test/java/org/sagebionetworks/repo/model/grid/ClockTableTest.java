@@ -4,11 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.grid.encoding.Vu57Utils;
+import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
+import org.sagebionetworks.repo.model.grid.node.VectorNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 import com.google.common.primitives.Bytes;
@@ -16,7 +25,7 @@ import com.google.common.primitives.Bytes;
 public class ClockTableTest {
 
     @Test
-    public void testToBinaryRealClockTable() {
+    public void testToBinaryRealClockTable() throws IOException {
         // Created a model in json-joy, encoded as compact and binary and printed it to the JavaScript console.
         // The compact model provided human-readable values for the clocks
         // The binary model provided the expected binary output (as unsigned integers).
@@ -35,6 +44,10 @@ public class ClockTableTest {
         // Convert signed bytes to unsigned integers for comparison
         List<Integer> actualAsUnsigned = Bytes.asList(binary).stream().map(Byte::toUnsignedInt).collect(Collectors.toList());
         assertEquals(expectedBytes, actualAsUnsigned);
+
+        // call under test - decode and verify round-trip
+        ClockTable decodedClockTable = ClockTable.fromBinary(binary);
+        assertEquals(clockTable.getClocks(), decodedClockTable.getClocks());
     }
 
     @Test
@@ -278,6 +291,52 @@ public class ClockTableTest {
         });
     }
 
+    @Test
+    public void testProcessNodeAddsReplica() {
+        ClockTable clockTable = new ClockTable(new ArrayList<>());
+
+        ConstantNode node = new ConstantNode()
+            .setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+            .setValue("test");
+
+        // call under test
+        clockTable.processNode(node);
+
+        assertEquals(1, clockTable.getClocks().size());
+        assertEquals(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L), clockTable.getClocks().get(0));
+    }
+
+    @Test
+    public void testProcessNodeUpdatesExistingEntries() {
+        ClockTable clockTable = new ClockTable(new ArrayList<>(List.of(
+            new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L),
+            new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(11L)
+        )));
+
+        RGANode element1 = new RGANode()
+            .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(50L))
+            .setDataId(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(51L));
+
+        ArrayNode node = new ArrayNode()
+            .setId(new LogicalTimestamp().setReplicaId(200L).setSequenceNumber(20L))
+            .setElements(List.of(element1));
+
+        // call under test
+        clockTable.processNode(node);
+
+        assertEquals(3, clockTable.getClocks().size());
+        assertEquals(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(50L), clockTable.getClocks().get(0));
+        assertEquals(new LogicalTimestamp().setReplicaId(101L).setSequenceNumber(51L), clockTable.getClocks().get(1));
+        assertEquals(new LogicalTimestamp().setReplicaId(200L).setSequenceNumber(20L), clockTable.getClocks().get(2));
+    }
+
+    @Test
+    public void testProcessNodeNullNode() {
+        ClockTable clockTable = new ClockTable(new ArrayList<>());
+
+        // call under test
+        assertThrows(IllegalArgumentException.class, () -> clockTable.processNode(null));
+    }
 
 }
 

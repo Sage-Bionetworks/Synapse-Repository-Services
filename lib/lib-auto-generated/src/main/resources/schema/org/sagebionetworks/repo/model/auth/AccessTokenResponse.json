@@ -1,0 +1,10 @@
+{
+	"title": "AccessToken Response", 
+	"description": "An access token",
+	"properties": {
+		"accessToken": {
+			"type": "string",
+			"description": "A token that authorizes subsequent requests"
+		}
+	}
+}

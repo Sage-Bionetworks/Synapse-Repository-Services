@@ -5,15 +5,17 @@ import java.util.List;
 import java.util.Objects;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class SynapseRow {
 
 	/**
-	 * The ID of the constant that contains the JSON array with the 'rowId', 'versionNumber' and 'etag'.
+	 * The ID of the constant that contains the JSON array with the 'rowId',
+	 * 'versionNumber' and 'etag'.
 	 */
 	private LogicalTimestamp constantId;
-	
+
 	private Long rowId;
 	private Long versionNumber;
 	private String etag;
@@ -62,11 +64,27 @@ public class SynapseRow {
 		if(json == null) {
 			return this;
 		}
-		JSONArray jsonArray = new JSONArray(json);
+		return setFromJSONArray(new JSONArray(json));
+	}
+	
+	public SynapseRow setFromJSONArray(JSONArray jsonArray) {
+		if (jsonArray == null) {
+			return this;
+		}
 		this.rowId = jsonArray.isNull(0) ? null : jsonArray.getLong(0);
 		this.versionNumber = jsonArray.isNull(1) ? null : jsonArray.getLong(1);
 		this.etag = jsonArray.isNull(2) ? null : jsonArray.getString(2);
 		return this;
+	}
+
+	public String toJSON() {
+		return toJSONArray().toString();
+	}
+
+	public JSONArray toJSONArray() {
+		return new JSONArray().put(this.rowId != null ? this.rowId : JSONObject.NULL)
+				.put(this.versionNumber != null ? this.versionNumber : JSONObject.NULL)
+				.put(this.etag != null ? this.etag : JSONObject.NULL);
 	}
 
 	@Override
@@ -89,8 +107,8 @@ public class SynapseRow {
 
 	@Override
 	public String toString() {
-		return "SynapseRow [constantId=" + constantId + ", rowId=" + rowId + ", versionNumber=" + versionNumber + ", etag="
-				+ etag + "]";
+		return "SynapseRow [constantId=" + constantId + ", rowId=" + rowId + ", versionNumber=" + versionNumber
+				+ ", etag=" + etag + "]";
 	}
 
 }

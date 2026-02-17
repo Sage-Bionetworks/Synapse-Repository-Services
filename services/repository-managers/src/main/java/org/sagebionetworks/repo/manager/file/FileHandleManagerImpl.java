@@ -597,7 +597,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			ExternalFileHandle fileHandle) {
 		if (userInfo == null)
 			throw new IllegalArgumentException("UserInfo cannot be null");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 		if (fileHandle == null)
@@ -633,7 +633,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ExternalObjectStoreFileHandle createExternalFileHandle(UserInfo userInfo, ExternalObjectStoreFileHandle fileHandle){
 		ValidateArgument.required(userInfo, "userInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 		ValidateArgument.required(fileHandle, "fileHandle");
@@ -1078,7 +1078,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public S3FileHandle createExternalS3FileHandle(UserInfo userInfo,
 			S3FileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 		ValidateArgument.required(fileHandle, "fileHandle");
@@ -1149,7 +1149,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public GoogleCloudFileHandle createExternalGoogleCloudFileHandle(UserInfo userInfo,
 												   GoogleCloudFileHandle fileHandle) {
 		ValidateArgument.required(userInfo, "userInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 		ValidateArgument.required(fileHandle, "fileHandle");
@@ -1219,7 +1219,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public ProxyFileHandle createExternalFileHandle(UserInfo userInfo, ProxyFileHandle proxyFileHandle) {
 		ValidateArgument.required(userInfo, "UserInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 		ValidateArgument.required(proxyFileHandle, "ProxyFileHandle");
@@ -1262,7 +1262,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public S3FileHandle createS3FileHandleCopy(UserInfo userInfo, String handleIdToCopyFrom, String fileName, String contentType) {
 		ValidateArgument.required(userInfo, "UserInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot copy files.");
 		}
 		ValidateArgument.required(handleIdToCopyFrom, "handleIdToCopyFrom");
@@ -1419,7 +1419,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public BatchFileHandleCopyResult copyFileHandles(UserInfo userInfo, BatchFileHandleCopyRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot copy files.");
 		}
 		ValidateArgument.required(request, "request");

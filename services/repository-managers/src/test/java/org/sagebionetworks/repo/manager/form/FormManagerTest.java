@@ -28,12 +28,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -61,7 +60,7 @@ public class FormManagerTest {
 	FormDao mockFormDao;
 
 	@Mock
-	AccessControlListDAO mockAclDao;
+	AccessControlListManager mockAclManager;
 
 	@Mock
 	AuthorizationManager mockAuthManager;
@@ -114,6 +113,7 @@ public class FormManagerTest {
 		changeRequest.setFileHandleId(dataFileHandleId);
 
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		submittedStatus = new SubmissionStatus();
 		submittedStatus.setSubmittedOn(new Date(123));
@@ -175,8 +175,8 @@ public class FormManagerTest {
 		verify(mockFormDao).createFormGroup(user.getId(), groupName);
 		verify(mockFormDao).lookupGroupByName(groupName);
 		// should create an ACL
-		verify(mockAclDao).create(aclCaptor.capture(), eq(ObjectType.FORM_GROUP));
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager).create(eq(user), aclCaptor.capture(), eq(ObjectType.FORM_GROUP), eq(Long.parseLong(group.getGroupId())));
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		AccessControlList acl = aclCaptor.getValue();
 		assertNotNull(acl);
@@ -202,15 +202,15 @@ public class FormManagerTest {
 		String name = "someName";
 		// name already exists
 		when(mockFormDao.lookupGroupByName(name)).thenReturn(Optional.of(groupToReturn));
-		when(mockAclDao.canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
+		when(mockAclManager.canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
 		FormGroup group = manager.createGroup(user, name);
 		assertEquals(groupToReturn, group);
-		verify(mockAclDao).canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
 		verify(mockFormDao, never()).createFormGroup(anyLong(), anyString());
-		verify(mockAclDao, never()).create(any(AccessControlList.class), any(ObjectType.class));
+		verify(mockAclManager, never()).create(any(UserInfo.class), any(AccessControlList.class), any(ObjectType.class), anyLong());
 	}
 
 	/**
@@ -222,16 +222,16 @@ public class FormManagerTest {
 		String name = "someName";
 		// name already exists
 		when(mockFormDao.lookupGroupByName(name)).thenReturn(Optional.of(groupToReturn));
-		when(mockAclDao.canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
+		when(mockAclManager.canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied("no access for you"));
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
 			manager.createGroup(user, name);
 		});
 		assertEquals("The group name: someName is unavailable, please chooser another name.", exception.getMessage());
-		verify(mockAclDao).canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).canAccess(user, groupToReturn.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
 		verify(mockFormDao, never()).createFormGroup(anyLong(), anyString());
-		verify(mockAclDao, never()).create(any(AccessControlList.class), any(ObjectType.class));
+		verify(mockAclManager, never()).create(any(UserInfo.class), any(AccessControlList.class), any(ObjectType.class), anyLong());
 	}
 
 	@Test
@@ -261,26 +261,26 @@ public class FormManagerTest {
 
 	@Test
 	public void testGetGroupAclAuthorized() {
-		when(mockAclDao.get(groupId, ObjectType.FORM_GROUP)).thenReturn(aclToReturn);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
+		when(mockAclManager.getAcl(groupId, ObjectType.FORM_GROUP)).thenReturn(Optional.ofNullable(aclToReturn));
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		AccessControlList acl = manager.getGroupAcl(user, groupId);
 		assertEquals(aclToReturn, acl);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
-		verify(mockAclDao).get(groupId, ObjectType.FORM_GROUP);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).getAcl(groupId, ObjectType.FORM_GROUP);
 	}
 
 	@Test
 	public void testGetGroupAclUnauthorized() {
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.getGroupAcl(user, groupId);
 		});
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
-		verify(mockAclDao, never()).get(anyString(), any(ObjectType.class));
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager, never()).getAcl(anyString(), any(ObjectType.class));
 	}
 
 	@Test
@@ -301,19 +301,19 @@ public class FormManagerTest {
 
 	@Test
 	public void testUpdateGroupAclAuthorized() {
-		when(mockAclDao.get(groupId, ObjectType.FORM_GROUP)).thenReturn(aclToReturn);
+		when(mockAclManager.getAcl(groupId, ObjectType.FORM_GROUP)).thenReturn(Optional.ofNullable(aclToReturn));
 		// need both read and CHANGE_PERMISSIONS.
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS))
 				.thenReturn(AuthorizationStatus.authorized());
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ))
 				.thenReturn(AuthorizationStatus.authorized());
 		aclToReturn.setId(null);
 		// call under test
 		AccessControlList acl = manager.updateGroupAcl(user, groupId, aclToReturn);
 		assertEquals(aclToReturn, acl);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
-		verify(mockAclDao).update(aclToReturn, ObjectType.FORM_GROUP);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).update(user, aclToReturn, ObjectType.FORM_GROUP, Long.parseLong(groupId));
 		// The passed groupId should always be used.
 		assertEquals(groupId, acl.getId());
 	}
@@ -321,7 +321,7 @@ public class FormManagerTest {
 	@Test
 	public void testUpdateGroupAclUnauthorized() {
 		// need both read and CHANGE_PERMISSIONS.
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -329,9 +329,9 @@ public class FormManagerTest {
 			manager.updateGroupAcl(user, groupId, aclToReturn);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS);
-		verify(mockAclDao, never()).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
-		verify(mockAclDao, never()).update(any(AccessControlList.class), any(ObjectType.class));
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		verify(mockAclManager, never()).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager, never()).update(any(UserInfo.class), any(AccessControlList.class), any(ObjectType.class), anyLong());
 	}
 
 	@Test
@@ -343,24 +343,9 @@ public class FormManagerTest {
 			manager.updateGroupAcl(user, groupId, aclToReturn);
 		});
 
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
-		verify(mockAclDao, never()).update(any(AccessControlList.class), any(ObjectType.class));
-	}
-
-	@Test
-	public void testUpdateGroupAclRemoveSelf() {
-		// cannot remove yourself from the ACL.
-		aclToReturn.getResourceAccess().clear();
-
-		assertThrows(InvalidModelException.class, () -> {
-			// call under test
-			manager.updateGroupAcl(user, groupId, aclToReturn);
-		});
-
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
-				any(ACCESS_TYPE.class));
-		verify(mockAclDao, never()).update(any(AccessControlList.class), any(ObjectType.class));
+		verify(mockAclManager, never()).update(any(UserInfo.class), any(AccessControlList.class), any(ObjectType.class), anyLong());
 	}
 
 	@Test
@@ -392,7 +377,7 @@ public class FormManagerTest {
 
 	@Test
 	public void testCreateFormData() {
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
@@ -401,7 +386,7 @@ public class FormManagerTest {
 		// call under test
 		FormData created = manager.createFormData(user, groupId, changeRequest);
 		assertEquals(formData, created);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		verify(mockFormDao).createFormData(user.getId(), groupId, validName, dataFileHandleId);
 	}
@@ -416,21 +401,21 @@ public class FormManagerTest {
 
 	@Test
 	public void testCreateFormDataUnauthorizedSubmit() {
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.accessDenied("no access for you"));
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
 	public void testCreateFormDataUnauthorizedFileHandle() {
 		// can submit
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		// does not own file.
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
@@ -439,9 +424,9 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -452,10 +437,10 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -466,10 +451,10 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -479,10 +464,10 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -492,10 +477,10 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -505,10 +490,10 @@ public class FormManagerTest {
 			// call under test
 			manager.createFormData(user, groupId, changeRequest);
 		});
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
-		verify(mockFormDao, never()).createFormData(any(Long.class), anyString(), anyString(), anyString());
+		verify(mockFormDao, never()).createFormData(anyLong(), anyString(), anyString(), anyString());
 	}
 
 	@Test
@@ -582,7 +567,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
@@ -592,7 +577,7 @@ public class FormManagerTest {
 		FormData updated = manager.updateFormData(user, formDataId, changeRequest);
 		assertEquals(formData, updated);
 		verify(mockFormDao).getFormDataCreator(formDataId);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		verify(mockFormDao).updateFormData(formDataId, validName, dataFileHandleId);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
@@ -615,7 +600,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 		verify(mockFormDao).getFormDataCreator(formDataId);
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
@@ -627,7 +612,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -635,7 +620,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
 	}
@@ -646,7 +631,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.accessDenied("not your file"));
@@ -656,7 +641,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
 	}
@@ -672,7 +657,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
@@ -686,7 +671,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockAuthManager.canAccessRawFileHandleById(user, dataFileHandleId))
 				.thenReturn(AuthorizationStatus.authorized());
@@ -694,7 +679,7 @@ public class FormManagerTest {
 		// call under test
 		manager.updateFormData(user, formDataId, changeRequest);
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockAuthManager).canAccessRawFileHandleById(user, dataFileHandleId);
 		// name should not be updated
 		verify(mockFormDao).updateFormData(formDataId, dataFileHandleId);
@@ -710,7 +695,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
@@ -724,7 +709,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
@@ -739,7 +724,7 @@ public class FormManagerTest {
 			manager.updateFormData(user, formDataId, changeRequest);
 		});
 
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),
 				any(ACCESS_TYPE.class));
 		verify(mockAuthManager, never()).canAccessRawFileHandleById(any(UserInfo.class), anyString());
 		verify(mockFormDao, never()).updateFormData(anyString(), anyString(), anyString());
@@ -840,7 +825,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
 		// call under test
@@ -848,7 +833,7 @@ public class FormManagerTest {
 		assertEquals(update, formData);
 
 		verify(mockFormDao).getFormDataCreator(formDataId);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
 		SubmissionStatus status = statusCaptor.getValue();
 		assertNotNull(status);
@@ -890,7 +875,7 @@ public class FormManagerTest {
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId());
 		when(mockFormDao.getFormDataState(formDataId)).thenReturn(StateEnum.WAITING_FOR_SUBMISSION);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT))
 				.thenReturn(AuthorizationStatus.accessDenied("No submit on group"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -898,14 +883,14 @@ public class FormManagerTest {
 			manager.submitFormData(user, formDataId);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 
 	@Test
 	public void testReviewerAcceptForm() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
@@ -914,7 +899,7 @@ public class FormManagerTest {
 		FormData updated = manager.reviewerAcceptForm(user, formDataId);
 		assertEquals(formData, updated);
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
 		SubmissionStatus status = statusCaptor.getValue();
 		assertNotNull(status);
@@ -928,7 +913,7 @@ public class FormManagerTest {
 	@Test
 	public void testReviewerAcceptFormNoPermission() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -936,14 +921,14 @@ public class FormManagerTest {
 			manager.reviewerAcceptForm(user, formDataId);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 
 	@Test
 	public void testReviewerAcceptFormWrongStartingState() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		// wrong starting state
 		SubmissionStatus status = new SubmissionStatus();
@@ -956,14 +941,14 @@ public class FormManagerTest {
 		}).getMessage();
 		assertEquals("Cannot accept a submission that is currently: WAITING_FOR_SUBMISSION", message);
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 
 	@Test
 	public void testReviewerRejectForm() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(mockFormDao.getFormDataStatusForUpdate(formDataId)).thenReturn(submittedStatus);
 		when(mockFormDao.updateStatus(anyString(), any(SubmissionStatus.class))).thenReturn(formData);
@@ -974,7 +959,7 @@ public class FormManagerTest {
 		FormData updated = manager.reviewerRejectForm(user, formDataId, rejection);
 		assertEquals(formData, updated);
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao).updateStatus(eq(formDataId), statusCaptor.capture());
 		SubmissionStatus status = statusCaptor.getValue();
 		assertNotNull(status);
@@ -988,7 +973,7 @@ public class FormManagerTest {
 	@Test
 	public void testReviewerRejectFormWrongState() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		// wrong starting state
 		SubmissionStatus status = new SubmissionStatus();
@@ -1001,14 +986,14 @@ public class FormManagerTest {
 		}).getMessage();
 		assertEquals("Cannot reject a submission that is currently: WAITING_FOR_SUBMISSION", message);
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 
 	@Test
 	public void testReviewerRejectFormNoPermission() {
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -1016,7 +1001,7 @@ public class FormManagerTest {
 			manager.reviewerRejectForm(user, formDataId, rejection);
 		});
 
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		verify(mockFormDao, never()).updateStatus(anyString(), any(SubmissionStatus.class));
 	}
 
@@ -1107,7 +1092,7 @@ public class FormManagerTest {
 		String expectedNextToken = expectedToken.getNextPageTokenForCurrentResults(new ArrayList<>(page));
 		when(mockFormDao.listFormDataForReviewer(listRequest, expectedToken.getLimitForQuery(),
 				expectedToken.getOffset())).thenReturn(page);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		ListResponse response = manager.listFormStatusForReviewer(user, listRequest);
@@ -1120,7 +1105,7 @@ public class FormManagerTest {
 
 	@Test
 	public void testListFormDataForReviewerUnauthorized() {
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.accessDenied("no"));
 
 		assertThrows(UnauthorizedException.class, () -> {
@@ -1201,7 +1186,7 @@ public class FormManagerTest {
 		assertTrue(status.isAuthorized());
 		verify(mockFormDao).getFormDataCreator(formDataId);
 		verify(mockFormDao, never()).getFormDataGroupId(anyString());
-		verify(mockAclDao, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
+		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
 
 	@Test
@@ -1209,14 +1194,14 @@ public class FormManagerTest {
 		// not the creator
 		when(mockFormDao.getFormDataCreator(formDataId)).thenReturn(user.getId() - 1);
 		when(mockFormDao.getFormDataGroupId(formDataId)).thenReturn(groupId);
-		when(mockAclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
+		when(mockAclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION))
 				.thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		AuthorizationStatus status = manager.canUserDownloadFormData(user, formDataId);
 		assertTrue(status.isAuthorized());
 		verify(mockFormDao).getFormDataCreator(formDataId);
 		verify(mockFormDao).getFormDataGroupId(formDataId);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 	}
 	
 	@Test
@@ -1240,23 +1225,23 @@ public class FormManagerTest {
 	@Test
 	public void testGetFormGroup() {
 		when(mockFormDao.getFormGroup(any())).thenReturn(groupToReturn);
-		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAclManager.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 		// call under test
 		FormGroup group = manager.getFormGroup(user, groupId);
 		assertEquals(groupToReturn, group);
 		verify(mockFormDao).getFormGroup(groupId);
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
 	}
 	
 	@Test
 	public void testGetFormGroupWithUnauthorized() {
-		when(mockAclDao.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
+		when(mockAclManager.canAccess(any(UserInfo.class), any(), any(), any())).thenReturn(AuthorizationStatus.accessDenied("no"));
 		assertThrows(UnauthorizedException.class, ()->{
 			// call under test
 			manager.getFormGroup(user, groupId);
 		});
 		verify(mockFormDao, never()).getFormGroup(any());
-		verify(mockAclDao).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
+		verify(mockAclManager).canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ);
 	}
 	
 	@Test

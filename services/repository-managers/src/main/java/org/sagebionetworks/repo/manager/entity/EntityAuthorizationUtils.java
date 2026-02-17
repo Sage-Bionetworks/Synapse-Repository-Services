@@ -82,7 +82,7 @@ public class EntityAuthorizationUtils {
         permissions.setCanDownload(
                 determineAccess(userInfo, entityIdLong, stateProvider, DOWNLOAD).getAuthorizationStatus().isAuthorized());
         // We have a tos filter that won't allow to get here, the canUpload historically only checked if the user accepted the tos
-        permissions.setCanUpload(!AuthorizationUtils.isUserAnonymous(userInfo.getId()));
+        permissions.setCanUpload(!userInfo.isUserAnonymous());
         permissions.setCanModerate(determineAccess(userInfo, entityIdLong, stateProvider, MODERATE).getAuthorizationStatus().isAuthorized());
         permissions.setIsCertificationRequired(true);
 

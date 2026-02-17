@@ -1,0 +1,14 @@
+{
+	"description": "Start a new job to synchronize a grid session with its source data.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"gridSessionId": {
+			"type": "string",
+			"description": "The ID of the grid session to synchronize."
+		}
+	}
+}

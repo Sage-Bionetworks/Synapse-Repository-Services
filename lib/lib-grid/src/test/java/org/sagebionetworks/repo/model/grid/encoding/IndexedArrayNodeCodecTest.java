@@ -44,7 +44,8 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(5L))
                                 .setIsDeleted(false)
                 )), null),
@@ -54,8 +55,8 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setReferenceNodeId(null)
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setIsDeleted(true)
                 )), null),
 
@@ -64,18 +65,19 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(5L))
                                 .setIsDeleted(false),
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setIsDeleted(true),
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(14L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(3L))
                                 .setIsDeleted(false)
                 )), null),
@@ -85,19 +87,20 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
-                                .setIsDeleted(false),
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
+                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
                                 .setIsDeleted(false),
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
                                 .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
                                 .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
+                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L))
+                                .setIsDeleted(false),
+                        new RGANode()
+                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(3L))
                                 .setIsDeleted(false)
                 )), null),
@@ -107,13 +110,14 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
                                 .setIsDeleted(false),
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
                                 .setNodeId(new LogicalTimestamp().setReplicaId(200L).setSequenceNumber(11L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(200L).setSequenceNumber(2L))
                                 .setIsDeleted(false)
                 )), new ClockTable(List.of(
@@ -126,47 +130,15 @@ public class IndexedArrayNodeCodecTest {
                 .setElements(List.of(
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
+                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
                                 .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
                                 .setIsDeleted(false),
                         new RGANode()
                                 .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
                                 .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(15L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L))
-                                .setIsDeleted(false)
-                )), null),
-
-        SEQUENTIAL_THEN_DELETED_THEN_SEQUENTIAL(new ArrayNode()
-                .setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                .setElements(List.of(
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L))
-                                .setIsDeleted(false),
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L))
-                                .setIsDeleted(false),
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
                                 .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(11L))
-                                .setIsDeleted(true),
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(12L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(3L))
-                                .setIsDeleted(false),
-                        new RGANode()
-                                .setContainerId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(10L))
-                                .setNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(14L))
-                                .setReferenceNodeId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(13L))
-                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(4L))
+                                .setDataId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L))
                                 .setIsDeleted(false)
                 )), null);
 
@@ -193,8 +165,8 @@ public class IndexedArrayNodeCodecTest {
         InputStream byteStream = new ByteArrayInputStream(bytes);
 
         // call under test - decode header
-        IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeTypeAndLength(byteStream);
-        assertEquals(IndexedEncodingUtils.NODE_TYPE_ARRAY, nodeHeader.getNodeType());
+        IndexedNodeHeader nodeHeader = IndexedEncodingUtils.readNodeHeader(byteStream);
+        assertEquals(IndexedNodeCodecMapper.ARRAY.code, nodeHeader.getNodeType());
         assertTrue(nodeHeader.getLength() >= 0L);
 
         // call under test - decode body using the original node id

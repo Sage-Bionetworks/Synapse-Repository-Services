@@ -2,10 +2,14 @@ package org.sagebionetworks.repo.model.grid.node;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.json.JSONArray;
@@ -170,5 +174,76 @@ public class VectorNodeTest {
 			assertTrue(vec.attemptInsert(update));
 		}).getMessage();
 		assertEquals("Cannot set a vector index to null", message);
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, new ConstantNode().setId(id3).setValue("value2"));
+		vec.getValues().put(2, new ConstantNode().setId(id4).setValue("value3"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(4, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // node ID first
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2));
+		assertEquals(id4, timestamps.get(3));
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(null);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithEmptyValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullConstantNode() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, null); // null node
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("value2"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(3, timestamps.size());
+		assertEquals(id, timestamps.get(0));
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2)); // null was filtered out
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullConstantId() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, new ConstantNode().setId(null).setValue("value2")); // null ID
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("value3"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(3, timestamps.size());
+		assertEquals(id, timestamps.get(0));
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2)); // null ID was filtered out
 	}
 }

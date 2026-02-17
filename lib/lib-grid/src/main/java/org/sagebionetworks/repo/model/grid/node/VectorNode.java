@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.grid.node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
@@ -18,6 +19,22 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
+
+		if (values == null || values.isEmpty()) {
+			return nodeIdStream;
+		}
+
+		Stream<LogicalTimestamp> constantIdStream = values.values().stream()
+				.filter(Objects::nonNull)
+				.map(ConstantNode::getId)
+				.filter(Objects::nonNull);
+
+		return Stream.concat(nodeIdStream, constantIdStream);
 	}
 
 	public Map<Integer, ConstantNode> getValues() {
@@ -43,12 +60,16 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 		JSONObject ob = new JSONObject(json);
 		this.values = new LinkedHashMap<>(ob.length());
 		ob.keySet().forEach(k -> {
-			JSONObject sub = ob.getJSONObject(k);
-			values.put(Integer.valueOf(k.substring(1)),
-					new ConstantNode().setId(LogicalTimestampCompactSerializable.deserialize(sub.getJSONArray("i")))
-							.setValue(ConValue.fromCompact(sub.optJSONArray("v"))));
+			JSONObject constantNodeAsJson = ob.getJSONObject(k);
+			Integer intKey = Integer.valueOf(k.substring(1));
+			values.put(intKey, getConstantNodeFromVectorNodeJson(constantNodeAsJson));
 		});
 		return this;
+	}
+
+	public static ConstantNode getConstantNodeFromVectorNodeJson(JSONObject constantNode) {
+		return new ConstantNode().setId(LogicalTimestampCompactSerializable.deserialize(constantNode.getJSONArray("i")))
+				.setValue(ConValue.fromCompact(constantNode.optJSONArray("v")));
 	}
 
 	@Override

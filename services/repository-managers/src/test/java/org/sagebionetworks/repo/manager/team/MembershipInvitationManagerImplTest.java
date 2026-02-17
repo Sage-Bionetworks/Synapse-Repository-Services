@@ -54,6 +54,8 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -75,6 +77,7 @@ import jakarta.mail.internet.MimeMultipart;
 public class MembershipInvitationManagerImplTest {
 
 	private static final String MEMBER_PRINCIPAL_ID = "999";
+	private static final String USER_ID = "777";
 	private static final String INVITEE_EMAIL = "invitee@test.com";
 
 	private static final String TEAM_ID = "123";
@@ -128,6 +131,8 @@ public class MembershipInvitationManagerImplTest {
 	private FileHandleManager mockFileHandleManager;
 	@Mock
 	private PrincipalAliasDAO mockPrincipalAliasDao;
+	@Mock
+	private UserGroupDAO mockUserGroupDAO;
 	
 	@InjectMocks
 	private MembershipInvitationManagerImpl membershipInvitationManagerImpl;
@@ -137,7 +142,7 @@ public class MembershipInvitationManagerImplTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, Long.parseLong(MEMBER_PRINCIPAL_ID), DEFAULT_REALM_ID);
+		userInfo = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID);
 		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		userProfile = new UserProfile();
 		userProfile.setFirstName("First");
@@ -197,18 +202,68 @@ public class MembershipInvitationManagerImplTest {
 	}
 
 	@Test
+	public void testValidateForRealmWithWrongTeam() {
+		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("1"));
+
+		String message = Assertions.assertThrows(UnauthorizedException.class, () -> {
+			membershipInvitationManagerImpl.create(userInfo, mis);
+		}).getMessage();
+		assertEquals("Inviter must be in the team's realm.", message);
+	}
+
+	@Test
+	public void testValidateForRealmWithWrongInvitee() {
+		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("0"));
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getInviteeId()))).thenReturn(new UserGroup().setRealmId("1"));
+
+		String message = Assertions.assertThrows(UnauthorizedException.class, () -> {
+			membershipInvitationManagerImpl.create(userInfo, mis);
+		}).getMessage();
+		assertEquals("Invitee and the team should be in same realm.", message);
+	}
+
+	@Test
+	public void testValidateForRealmWithWrongInviter() {
+		userInfo.setRealmId("1");
+		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("0"));
+
+		String message = Assertions.assertThrows(UnauthorizedException.class, () -> {
+			membershipInvitationManagerImpl.create(userInfo, mis);
+		}).getMessage();
+		assertEquals("Inviter must be in the team's realm.", message);
+	}
+
+	@Test
+	public void testValidateForEmailInvitationFromNonDefaultRealm() {
+		userInfo.setRealmId("1");
+		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		mis.setInviteeId(null);
+		mis.setInviteeEmail("abc@gmail.com");
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("1"));
+
+		String message = Assertions.assertThrows(UnauthorizedException.class, () -> {
+			membershipInvitationManagerImpl.create(userInfo, mis);
+		}).getMessage();
+		assertEquals("Cannot invite user by email unless in the default realm", message);
+	}
+
+	@Test
 	public void testPopulateCreationFields() throws Exception {
 		MembershipInvitation mis = new MembershipInvitation();
 		Date now = new Date();
 		MembershipInvitationManagerImpl.populateCreationFields(userInfo, mis, now);
-		assertEquals(MEMBER_PRINCIPAL_ID, mis.getCreatedBy());
+		assertEquals(USER_ID, mis.getCreatedBy());
 		assertEquals(now, mis.getCreatedOn());
 	}
 
 	@Test
 	public void testNonAdminCreate() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
-		
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("0"));
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getInviteeId()))).thenReturn(new UserGroup().setRealmId("0"));
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE))
 				.thenReturn(AuthorizationStatus.accessDenied(""));
 		
@@ -220,6 +275,8 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testAdminCreate() throws Exception {
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("0"));
+		when(mockUserGroupDAO.get(Long.parseLong(mis.getInviteeId()))).thenReturn(new UserGroup().setRealmId("0"));
 		when(mockAuthorizationManager.canAccessMembershipInvitation(userInfo, mis, ACCESS_TYPE.CREATE))
 				.thenReturn(AuthorizationStatus.authorized());
 		membershipInvitationManagerImpl.create(userInfo, mis);
@@ -495,7 +552,7 @@ public class MembershipInvitationManagerImplTest {
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
 		
-		verify(mockFileHandleManager).createCompressedFileFromString(eq(MEMBER_PRINCIPAL_ID), any(), argument.capture(), eq(ContentType.TEXT_HTML.getMimeType()));
+		verify(mockFileHandleManager).createCompressedFileFromString(eq(USER_ID), any(), argument.capture(), eq(ContentType.TEXT_HTML.getMimeType()));
 		
 		String body = argument.getValue();
 		

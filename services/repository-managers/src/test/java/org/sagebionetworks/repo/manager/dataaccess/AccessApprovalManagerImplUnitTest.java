@@ -34,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -90,6 +91,8 @@ public class AccessApprovalManagerImplUnitTest {
 	private GroupMembersDAO mockgroupMembersDao;
 	@Mock
 	private NodeDAO nodeDao;
+	@Mock
+	private UserManager mockUserManager;
 	
 	@Mock
 	private Set<String> accessors;
@@ -467,6 +470,7 @@ public class AccessApprovalManagerImplUnitTest {
 		accessApproval.setAccessorId("2");
 		SelfSignAccessRequirement req = new SelfSignAccessRequirement();
 		when(mockAccessRequirementDAO.get("1")).thenReturn(req);
+		when(mockUserManager.getUserInfo(userInfo.getId())).thenReturn(userInfo);
 		doThrow(new IllegalArgumentException()).when(manager)
 				.validateHasAccessorRequirement(any(HasAccessorRequirement.class), anySet());
 		
@@ -479,8 +483,12 @@ public class AccessApprovalManagerImplUnitTest {
 	public void testCreateAccessApprovalForAnonymous() {
 		AccessApproval accessApproval = new AccessApproval();
 		accessApproval.setRequirementId(1L);
-		accessApproval.setAccessorId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		Long anonId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		accessApproval.setAccessorId(anonId.toString());
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
+		userInfo.setId(anonId);
+		userInfo.setRealmAnonymousUserId(anonId);
+		when(mockUserManager.getUserInfo(anonId)).thenReturn(userInfo);
 		
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.createAccessApproval(atcUser, accessApproval);
@@ -493,6 +501,7 @@ public class AccessApprovalManagerImplUnitTest {
 		accessApproval.setRequirementId(1L);
 		SelfSignAccessRequirement req = new SelfSignAccessRequirement().setIsCertifiedUserRequired(false).setIsValidatedProfileRequired(false);
 		when(mockAccessRequirementDAO.get(any())).thenReturn(req);
+		when(mockUserManager.getUserInfo(userInfo.getId())).thenReturn(userInfo);
 		// call under test
 		manager.createAccessApproval(userInfo, accessApproval);
 		ArgumentCaptor<AccessApproval> captor = ArgumentCaptor.forClass(AccessApproval.class);

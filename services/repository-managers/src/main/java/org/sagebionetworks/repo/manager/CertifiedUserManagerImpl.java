@@ -233,7 +233,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		/*
 		 * PLFM-3478 - anonymous cannot become certified user
 		 */
-		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userInfo.getId())) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("You need to login to take the Certification Quiz.");
 		}
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
@@ -358,7 +358,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		/*
 		 * PLFM-3478 - anonymous cannot become certified user
 		 */
-		if (AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userInfo.getId())) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("You need to login to submit the Certification Quiz.");
 		}
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();

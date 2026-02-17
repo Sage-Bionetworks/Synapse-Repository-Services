@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.auth;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_IDP_PROVIDER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_IDP_REALM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_PRINCIPAL_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_PRINCIPAL_PRINCIPAL_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_PRINCIPAL_REALM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.REALM_PRINCIPAL_TYPE_ADMINISTRATORS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.REALM_PRINCIPAL_TYPE_ANONYMOUS;
@@ -81,6 +83,11 @@ public class RealmDaoImpl implements RealmDao {
 	
 	private static final String DELETE_REALM_SQL = "DELETE FROM "+TABLE_REALM+" WHERE "+COL_REALM_ID+" = ?";
 	
+	private static final String SELECT_REALM_FOR_ANONYNOUS_PRINCIPAL_SQL = 
+			"SELECT "+COL_REALM_PRINCIPAL_REALM_ID+" FROM "+TABLE_REALM_PRINCIPAL+
+			" WHERE "+
+			COL_REALM_PRINCIPAL_PRINCIPAL_ID+" = "+"? AND "+
+			COL_REALM_PRINCIPAL_PRINCIPAL_TYPE+" = '"+REALM_PRINCIPAL_TYPE_ANONYMOUS+"'";
 
 	static Long stringToLong(String s) {
 		Long result = null;
@@ -326,5 +333,13 @@ public class RealmDaoImpl implements RealmDao {
 		realmPrincipal.setPublicGroup(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
 		createRealmPrincipals(realmPrincipal);
 	}
-
+	
+	@Override
+	public Optional<String> getRealmForAnonymousPrincipal(String principalId) {
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(SELECT_REALM_FOR_ANONYNOUS_PRINCIPAL_SQL, String.class, principalId));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
 }

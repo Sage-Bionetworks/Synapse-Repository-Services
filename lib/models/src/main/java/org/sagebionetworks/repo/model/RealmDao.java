@@ -71,5 +71,13 @@ public interface RealmDao {
 	 * Add principals to default realm
 	 */
 	public void addPrincipalsToDefaultRealm();
+	
+	/**
+	 * 
+	 * @param principalId
+	 * @return the ID of the realm in which this principal is the Anonymous,
+	 * or empty if the principalId is not the ID of the anonymous user in any realm.
+	 */
+	public Optional<String >getRealmForAnonymousPrincipal(String principalId);
 
 }

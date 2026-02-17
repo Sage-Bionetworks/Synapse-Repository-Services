@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
+import org.sagebionetworks.repo.model.dbo.asynch.FifoQueueParameters;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -39,12 +40,19 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		// Get the URL for this type's queue
 		String url = getQueueURLForType(type);
+		SendMessageRequest request = new SendMessageRequest(url, status.getJobId());
+		if(type.isFifoQueue()) {
+			FifoQueueParameters params = type.getFifoParameters(status);
+			request.setMessageDeduplicationId(params.getMessageDeduplicationId());
+			request.setMessageGroupId(params.getMessageGroupId());
+		}
+		
 		/*
 		 * Since PLFM-3645, we no longer push the JSON of the request to the SQS.  Instead, we only
 		 * publish the jobId and expect the workers to lookup the request from the database.
 		 */
 		// publish the message
-		awsSQSClient.sendMessage(new SendMessageRequest(url, status.getJobId()));
+		awsSQSClient.sendMessage(request);
 	}
 	
 	/**

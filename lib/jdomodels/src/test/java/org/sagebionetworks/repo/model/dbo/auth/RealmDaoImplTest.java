@@ -101,6 +101,12 @@ class RealmDaoImplTest {
 		assertEquals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString(), defaultRealmPrincipals.getAuthenticatedUsers());
 		assertEquals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString(), defaultRealmPrincipals.getPublicGroup());
 		assertEquals(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString(), defaultRealmPrincipals.getAdministrativeGroup());
+
+		// method under test
+		Optional<String> realmForAnonymous = realmDao.getRealmForAnonymousPrincipal(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		
+		assertEquals(id, realmForAnonymous.get());
+	
 	}
 	
 	private String createUserGroup(boolean isIndividual, String reamlId) {
@@ -158,6 +164,11 @@ class RealmDaoImplTest {
 		// method under test
 		RealmPrincipal retrievedRealmPrincial = realmDao.getRealmPrincipals(id);
 		assertEquals(realmPrincipal, retrievedRealmPrincial);
+		
+		// method under test
+		Optional<String> realmForAnonymous = realmDao.getRealmForAnonymousPrincipal(retrievedRealmPrincial.getAnonymousUser());
+		
+		assertEquals(id, realmForAnonymous.get());
 		
 		// method under test
 		realmDao.deleteRealmPrincipals(id);
@@ -244,9 +255,23 @@ class RealmDaoImplTest {
 		Realm realm = new Realm();
 		realm.setName(NAME);
 		realm.setIdentityProvider(idps);
+		
 		// method under test
 		Realm created = realmDao.createRealm(realm);
+		
 		idsToDelete.add(created.getId());
+
+		// 'createRealm' may not raise an exception when it fails
+		// but the following will
+		realmDao.getRealm(created.getId());
+	}
+	
+	@Test
+	public void testNonExistentAnonymous() {
+		// method under test
+		Optional<String> realmForAnonymous = realmDao.getRealmForAnonymousPrincipal("9090909");
+		
+		assertTrue(realmForAnonymous.isEmpty());
 	}
 
 }

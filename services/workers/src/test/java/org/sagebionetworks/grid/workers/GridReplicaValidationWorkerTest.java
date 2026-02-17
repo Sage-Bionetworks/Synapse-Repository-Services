@@ -59,8 +59,7 @@ public class GridReplicaValidationWorkerTest {
 		vectorId = new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(4L);
 		Map<IndexType, Set<LogicalTimestamp>> changes = Map.of(IndexType.arr,
 				Set.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L)), IndexType.vec, Set.of(vectorId));
-		changeSet = new ReplicaChangeSet(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
-				changes);
+		changeSet = ReplicaChangeSet.fromPatch(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L), changes);
 		message = new Message().withBody(changeSet.toJson());
 		JSONObject topicBody = new JSONObject();
 		topicBody.put("TopicArn", "topic-arn");
@@ -86,7 +85,7 @@ public class GridReplicaValidationWorkerTest {
 
 	@Test
 	public void testRunWithNoVectorChanges() throws RecoverableMessageException, Exception {
-		changeSet = new ReplicaChangeSet(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
+		changeSet = ReplicaChangeSet.fromPatch(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				Map.of(IndexType.arr, Set.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L))));
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
@@ -96,7 +95,7 @@ public class GridReplicaValidationWorkerTest {
 
 	@Test
 	public void testRunWithNoChanges() throws RecoverableMessageException, Exception {
-		changeSet = new ReplicaChangeSet(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
+		changeSet = ReplicaChangeSet.fromPatch(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				Collections.emptyMap());
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
@@ -106,7 +105,7 @@ public class GridReplicaValidationWorkerTest {
 
 	@Test
 	public void testRunWithNullChanges() throws RecoverableMessageException, Exception {
-		changeSet = new ReplicaChangeSet(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
+		changeSet = ReplicaChangeSet.fromPatch(connectionInfo, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L),
 				null);
 		message = new Message().withBody(changeSet.toJson());
 		// call under test
@@ -150,5 +149,14 @@ public class GridReplicaValidationWorkerTest {
 		// call under test
 		worker.run(mockCallback, message);
 		verify(mockValidationManager).validateChanges(sessionId, replicaId, Set.of(vectorId));
+	}
+
+	@Test
+	public void testRunWithSnapshotMessage() throws RecoverableMessageException, Exception {
+		changeSet = ReplicaChangeSet.fromSnapshot(connectionInfo);
+		message = new Message().withBody(changeSet.toJson());
+		// call under test
+		worker.run(mockCallback, message);
+		verify(mockValidationManager).validateAllRows(sessionId, replicaId);
 	}
 }

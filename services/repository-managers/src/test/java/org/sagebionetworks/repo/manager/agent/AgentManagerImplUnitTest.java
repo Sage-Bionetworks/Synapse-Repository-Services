@@ -36,6 +36,7 @@ import org.reactivestreams.Subscription;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.AgentManagerImpl.AgentResponse;
 import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
 import org.sagebionetworks.repo.manager.agent.handler.HttpCode;
@@ -151,6 +152,9 @@ public class AgentManagerImplUnitTest {
 
 	@Mock
 	private Consumer mockCloudwatchConsumer;
+	
+	@Mock
+	private UserManager mockUserManager;
 
 	private AgentManagerImpl manager;
 
@@ -186,7 +190,6 @@ public class AgentManagerImplUnitTest {
 	private ReturnControlEvent returnControlEventTwo;
 	private ReturnControlEvent returnControlEventApi;
 	private JSONObject requestBody;
-	private String requestBodyString;
 	private List<ReturnControlEvent> returnControlEvents;
 	private String invocationId;
 
@@ -220,7 +223,7 @@ public class AgentManagerImplUnitTest {
 				stackBedrockGridAgentId);
 
 		manager = Mockito.spy(new AgentManagerImpl(mockAgentDao, mockAgentClientProvider, idMap,
-				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator, mockCloudwatchConsumer));
+				mockReturnControlHandlerProvider, mockClock, mockStatusDao, mockFeatureManager, mockContextValidator, mockCloudwatchConsumer, mockUserManager));
 
 		when(mockLoggerProvider.getLogger(AgentManagerImpl.class.getName())).thenReturn(mockLogger);
 		manager.setLoggerProvider(mockLoggerProvider);
@@ -236,6 +239,7 @@ public class AgentManagerImplUnitTest {
 
 		anonymous = new UserInfo(false);
 		anonymous.setId(anonymousUserId);
+		anonymous.setRealmAnonymousUserId(anonymousUserId);
 
 		admin = new UserInfo(true);
 		admin.setId(adminId);
@@ -284,7 +288,6 @@ public class AgentManagerImplUnitTest {
 
 		requestBody = new JSONObject();
 		requestBody.put("someKey", "someValue");
-		requestBodyString = requestBody.toString();
 		List<Parameter> requestBodyParams = List.of(new Parameter("someKey", "string", "someValue"));
 		sessionContext = new GridAgentSessionContext().setGridSessionId("98765");
 		returnControlEventApi = new ReturnControlEvent(session.getStartedBy(), actionGroup, apiFunction,
@@ -956,6 +959,7 @@ public class AgentManagerImplUnitTest {
 	@EnumSource(value = AgentAccessLevel.class, names = { "PUBLICLY_ACCESSIBLE" })
 	public void testGetRunAsUserWithPublic(AgentAccessLevel level) {
 		session.setAgentAccessLevel(level);
+		when(mockUserManager.getUserInfo(session.getStartedBy())).thenReturn(anonymous);
 		// call under test
 		assertEquals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(),
 				manager.getRunAsUser(session));

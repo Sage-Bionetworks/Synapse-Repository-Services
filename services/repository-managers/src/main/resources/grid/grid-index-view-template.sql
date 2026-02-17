@@ -28,8 +28,8 @@ GRID AS (
 	O2.OBJ_VAL->>'$.synapseRow[1]' AS SRC_SEQ,
 	O2.OBJ_VAL->>'$.rowValidation[0]' AS RVC_REP,
 	O2.OBJ_VAL->>'$.rowValidation[1]' AS RVC_SEQ,
-	CO1.CON_VAL->>'$[2]' AS VAL_RES,
-    CO2.CON_VAL->>'$[2]' AS SYN_ROW
+	CO1.CON_VAL->>'$[0]' AS VAL_RES,
+    CO2.CON_VAL->>'$[0]' AS SYN_ROW
   FROM D JOIN GRID_REPLICA_OBJ O1 ON  (
 	D.SESSION_ID = O1.SESSION_ID
     AND D.REPLICA_ID = O1.REPLICA_ID

@@ -1,8 +1,10 @@
 package org.sagebionetworks.grid.workers;
 
+import java.net.URL;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.json.JSONObject;
 import org.sagebionetworks.grid.workers.message.ConnectionMessage;
 import org.sagebionetworks.grid.workers.message.DisconnectedMessage;
 import org.sagebionetworks.grid.workers.message.NewPatchRegistrationMessage;
@@ -87,15 +89,33 @@ public class GridEventListener {
 	public void onSynchronizeClock(SynchronizeClockMessage message) {
 		ValidateArgument.required(message, "message");
 
+		// Always start a new replica with a snapshot
+		boolean getSnapshot = message.getClock() == null || message.getClock().isEmpty();
+
+		if (getSnapshot) {
+			Optional<URL> snapshotPresignedUrl = manager.getLatestSnapshotPresignedUrl(message.getContext());
+			if (snapshotPresignedUrl.isPresent()) {
+				// Send the snapshot URL to the caller
+				JSONObject messageBody = new JSONObject();
+				messageBody.put("type", "snapshot");
+				messageBody.put("body", snapshotPresignedUrl.get().toString());
+				publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseData,
+						message.getRequestId(), messageBody.toString());
+				return;
+			}
+		}
+
+		// Otherwise, find and send the next missing patch
 		Optional<String> optional = manager.getNextMissingPatch(message.getContext(), message.getClock());
 		if (optional.isEmpty()) {
 			// The clock is up-to-date.
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseComplete,
 					message.getRequestId());
-		}else {
+		} else {
 			// The caller needs to apply the provided patch
+			String messageBody = "{\"type\":\"patch\",\"body\":" + optional.get() + "}"; // directly inline the patch body (it is always a JSON array)
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseData,
-					message.getRequestId(), optional.get());
+					message.getRequestId(), messageBody);
 		}
 
 	}

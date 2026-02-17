@@ -1,0 +1,21 @@
+{
+	"description": "The result of a job to synchronize a grid session with its source data.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
+	"properties": {
+		"gridSessionId": {
+			"type": "string",
+			"description": "The ID of the grid session to synchronize."
+		},
+		"errorMessages": {
+			"description": "Any error messages generated during the synchronization process.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

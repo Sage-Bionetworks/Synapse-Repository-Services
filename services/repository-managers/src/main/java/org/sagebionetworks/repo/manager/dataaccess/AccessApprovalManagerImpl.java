@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.ACTAccessRequirementInterface;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -69,11 +70,12 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private final GroupMembersDAO groupMembersDao;
 	private final TransactionalMessenger transactionalMessenger;
 	private final NodeDAO nodeDao;
+	private final UserManager userManager;
 	
 	@Autowired
 	public AccessApprovalManagerImpl(AccessRequirementDAO accessRequirementDAO, AccessApprovalDAO accessApprovalDAO,
 			VerificationDAO verificationDao, GroupMembersDAO groupMembersDao,
-			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao) {
+			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao, UserManager userManager) {
 		super();
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.accessApprovalDAO = accessApprovalDAO;
@@ -81,6 +83,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		this.groupMembersDao = groupMembersDao;
 		this.transactionalMessenger = transactionalMessenger;
 		this.nodeDao = nodeDao;
+		this.userManager = userManager;
+		
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
@@ -121,8 +125,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		UserInfo accessorUserInfo = userManager.getUserInfo(Long.parseLong(accessApproval.getAccessorId()));
 		ValidateArgument.requirement(
-				!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(accessApproval.getAccessorId()),
+				!accessorUserInfo.isUserAnonymous(),
 				"Cannot create an AccessApproval for anonymous user.");
 		if (ar instanceof HasAccessorRequirement) {
 			validateHasAccessorRequirement((HasAccessorRequirement) ar,

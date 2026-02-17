@@ -234,7 +234,7 @@ public class MessageManagerImpl implements MessageManager {
 		dto.setCreatedBy(userInfo.getId().toString());
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
-			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+			if (userInfo.isUserAnonymous()) {
 				throw new UnauthorizedException("Anonymous user may not send messages.");
 			}
 

@@ -1,24 +1,21 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.validation;
 
-import static org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManagerImpl.gridRowToJsonObject;
-
 import java.util.Objects;
 
 import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.schema.ObjectType;
 
 /**
- * Renders the cells of Row as a JSONObject that can be passed to a JSON Schema
- * validator.
+ * A basic wrapper for a JSONObject that can be passed to a JSON Schema validator. This class does not
+ * track any other metadata about the subject.
  */
-public class RowJsonSubject implements JsonSubject {
+public class JsonObjectSubject implements JsonSubject {
 
 	private final JSONObject json;
 
-	public RowJsonSubject(RowView rowView) {
-		json = rowView.getRowObject().getData().getRowJsonDocument();
+	public JsonObjectSubject(JSONObject jsonObject) {
+		json = jsonObject;
 	}
 
 	@Override
@@ -58,7 +55,7 @@ public class RowJsonSubject implements JsonSubject {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		RowJsonSubject other = (RowJsonSubject) obj;
+		JsonObjectSubject other = (JsonObjectSubject) obj;
 		return Objects.equals(jsonToString(), other.jsonToString());
 	}
 

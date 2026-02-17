@@ -210,6 +210,7 @@ public class DownloadListManagerImplTest {
 		boolean isAdmin = false;
 		userOne = new UserInfo(isAdmin, 222L);
 		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 				
 		toAddRequest = new AddBatchOfFilesToDownloadListRequest();
 		List<DownloadListItem> batchOfItems = Arrays.asList(

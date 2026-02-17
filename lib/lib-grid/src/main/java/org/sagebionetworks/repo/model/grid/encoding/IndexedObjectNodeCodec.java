@@ -42,7 +42,7 @@ public class IndexedObjectNodeCodec implements IndexedNodeTypeCodec<ObjectNode> 
 
 		long length = node.getValue().size();
 
-		bytesWritten += IndexedEncodingUtils.writeNodeTypeAndLength(IndexedEncodingUtils.NODE_TYPE_OBJECT, length, out);
+		bytesWritten += IndexedEncodingUtils.writeNodeHeader(IndexedNodeCodecMapper.OBJECT.code, length, out);
 
 		for (Map.Entry<String, LogicalTimestamp> entry : node.getValue().entrySet()) {
 			// Key-value pairs are encoded as a key (CBOR), followed by the ID of the nested node.
