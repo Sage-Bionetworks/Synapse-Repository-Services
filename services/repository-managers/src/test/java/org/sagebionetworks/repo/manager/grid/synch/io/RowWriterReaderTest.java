@@ -26,26 +26,26 @@ public class RowWriterReaderTest {
 		File temp = File.createTempFile("RowWriterReaderTest", ".bin");
 		try {
 			List<DiskPointer> dp = new ArrayList<>();
-			List<SynchRow> rows = List.of(
-					new SynchRow(
+			List<RowSourceItem> rows = List.of(
+					new RowSourceItem(
 							new TreeMap<>(Map.of("aLong", new ConValue(ConType.LONG, 123L), "aBoolean",
 									new ConValue(ConType.BOOLEAN, true), "aString",
 									new ConValue(ConType.STRING, "some string"))),
 							"one", new SynapseRow().setRowId(34L).setVersionNumber(3L).setEtag("e")),
-					new SynchRow(new TreeMap<>(Map.of("aLong", new ConValue(ConType.LONG, 452L), "aBoolean",
+					new RowSourceItem(new TreeMap<>(Map.of("aLong", new ConValue(ConType.LONG, 452L), "aBoolean",
 							new ConValue(ConType.BOOLEAN, Boolean.FALSE), "aString",
 							new ConValue(ConType.STRING, "something elese"))), "two"),
-					new SynchRow(new TreeMap<>(Collections.emptyMap()), "three")
+					new RowSourceItem(new TreeMap<>(Collections.emptyMap()), "three")
 
 			);
-			try (RowWriter writer = new RowWriter(new BufferedOutputStream(new FileOutputStream(temp)))) {
+			try (RowSourceItemWriter writer = new RowSourceItemWriter(new BufferedOutputStream(new FileOutputStream(temp)))) {
 				rows.forEach(r -> dp.add(writer.nextRow(r)));
 			}
-			List<SynchRow> fetched = new ArrayList<>();
-			try (RowReader reader = new RowReader(dp, new RandomAccessFile(temp, "r"))) {
+			List<RowSourceItem> fetched = new ArrayList<>();
+			try (RowSourceItemReader reader = new RowSourceItemReader(dp, new RandomAccessFile(temp, "r"))) {
 
-				for (SynchRow row : rows) {
-					Optional<RowHeader> header = reader.consumeRow(row.getKey());
+				for (RowSourceItem row : rows) {
+					Optional<RowSourceItemReference> header = reader.consumeRow(row.getKey());
 					if (header.isPresent()) {
 						fetched.add(header.get().fetchRow());
 					}

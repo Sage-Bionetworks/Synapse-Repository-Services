@@ -11,9 +11,9 @@ import java.util.stream.StreamSupport;
 
 import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 
 /**
  * Implementation of {@link RowSource} that provides access to rows from the
@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
  * This class bridges the synchronization logic with the underlying source
  * system (EntityView, Table, RecordSet, etc.) by:
  * <ul>
- * <li>Streaming source rows via {@link RowReader} for memory-efficient
+ * <li>Streaming source rows via {@link RowSourceItemReader} for memory-efficient
  * comparison</li>
  * <li>Matching rows using source system identifiers</li>
  * <li>Comparing rows using content hashes to detect changes</li>
@@ -51,7 +51,7 @@ import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
 public class RowSourceImpl implements RowSource {
 
 	private final SourceHandler sourceHandler;
-	private final RowReader rowReader;
+	private final RowSourceItemReader rowReader;
 
 	/**
 	 * Creates a new row source implementation for synchronization with an external
@@ -60,7 +60,7 @@ public class RowSourceImpl implements RowSource {
 	 * @param sourceHandler the handler for applying changes to the source
 	 * @param rowReader     the reader for streaming rows from the source
 	 */
-	public RowSourceImpl(SourceHandler sourceHandler, RowReader rowReader) {
+	public RowSourceImpl(SourceHandler sourceHandler, RowSourceItemReader rowReader) {
 		super();
 		this.sourceHandler = sourceHandler;
 		this.rowReader = rowReader;
@@ -87,14 +87,14 @@ public class RowSourceImpl implements RowSource {
 	 * unconsumed rows represent additions to the source.
 	 *
 	 * <p>
-	 * Uses {@link RowReader#consumeRow} which efficiently looks up rows in the
+	 * Uses {@link RowSourceItemReader#consumeRow} which efficiently looks up rows in the
 	 * disk-based index without loading all source data into memory.
 	 *
 	 * @param key the source system's identifier for the row
 	 * @return the matching source row, or empty if no row with that key exists
 	 */
 	@Override
-	public Optional<RowHeader> consume(String key) {
+	public Optional<RowSourceItemReference> consume(String key) {
 		return rowReader.consumeRow(key);
 	}
 
@@ -104,13 +104,13 @@ public class RowSourceImpl implements RowSource {
 	 * source but not in the copy (potential additions or user deletions).
 	 *
 	 * <p>
-	 * Uses {@link RowReader#remainingRows} to stream rows efficiently without
+	 * Uses {@link RowSourceItemReader#remainingRows} to stream rows efficiently without
 	 * loading all data into memory.
 	 *
 	 * @return a stream of source rows that weren't consumed during Phase 1
 	 */
 	@Override
-	public Stream<RowHeader> streamRemaining() {
+	public Stream<RowSourceItemReference> streamRemaining() {
 		return StreamSupport.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED),
 				false);
 	}
@@ -121,7 +121,7 @@ public class RowSourceImpl implements RowSource {
 	 * and was changed by the user, pushing the user's addition to the source.
 	 *
 	 * <p>
-	 * Converts the copy row to a {@link SynchRow} format (map of column names to
+	 * Converts the copy row to a {@link RowSourceItem} format (map of column names to
 	 * values) that the source system can understand, then delegates to
 	 * {@link SourceHandler#addNewRowToSource}.
 	 *
@@ -139,13 +139,13 @@ public class RowSourceImpl implements RowSource {
 	 * deletion to the source.
 	 *
 	 * <p>
-	 * Fetches the full row data via {@link RowHeader#fetchRow()} and delegates to
+	 * Fetches the full row data via {@link RowSourceItemReference#fetchRow()} and delegates to
 	 * {@link SourceHandler#removeRow}.
 	 *
 	 * @param toRemove the header for the source row to remove
 	 */
 	@Override
-	public void removeItem(RowHeader toRemove) {
+	public void removeItem(RowSourceItemReference toRemove) {
 		sourceHandler.removeRow(toRemove.fetchRow());
 	}
 
@@ -165,13 +165,13 @@ public class RowSourceImpl implements RowSource {
 	 * @return true if the rows have identical content, false if they differ
 	 */
 	@Override
-	public boolean matches(RowCopyItem copyItem, RowHeader sourceItem) {
-		SynchRow copySynch = createSynchRow(copyItem, sourceItem.getKey());
+	public boolean matches(RowCopyItem copyItem, RowSourceItemReference sourceItem) {
+		RowSourceItem copySynch = createSynchRow(copyItem, sourceItem.getKey());
 		return Arrays.equals(copySynch.getHash(), sourceItem.getHash());
 	}
 
 	/**
-	 * Converts a copy row to a {@link SynchRow} format for source operations.
+	 * Converts a copy row to a {@link RowSourceItem} format for source operations.
 	 * Extracts cell values from the copy row and creates a map-based representation
 	 * with a content hash for efficient comparison.
 	 *
@@ -179,8 +179,8 @@ public class RowSourceImpl implements RowSource {
 	 * @param key  the source system's identifier for the row
 	 * @return a SynchRow representation suitable for source operations
 	 */
-	private SynchRow createSynchRow(RowCopyItem copy, String key) {
-		return new SynchRow(
+	private RowSourceItem createSynchRow(RowCopyItem copy, String key) {
+		return new RowSourceItem(
 				copy.getCells().stream().collect(
 						Collectors.toMap(CellCopyItem::getName, CellCopyItem::getValue, (v1, v2) -> v2, TreeMap::new)),
 				key, copy.getSynapseRow().orElse(null));

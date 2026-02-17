@@ -1,8 +1,11 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
 public class SynapseRowTest {
 
@@ -37,13 +40,30 @@ public class SynapseRowTest {
 		SynapseRow back = new SynapseRow().setFromJSON(json);
 		assertEquals(sr, back);
 	}
-	
+
 	@Test
 	public void testJSONRoundTripWithAllNull() {
 		SynapseRow sr = new SynapseRow();
 		String json = sr.toJSON();
 		SynapseRow back = new SynapseRow().setFromJSON(json);
 		assertEquals(sr, back);
+	}
+
+	@Test
+	public void testToAndFromConValue() {
+		SynapseRow sr = new SynapseRow().setRowId(1L).setVersionNumber(2L).setEtag("etag");
+		ConValue cv = sr.toConValue();
+		SynapseRow back = new SynapseRow().setFromConValue(cv);
+		assertEquals(sr, back);
+	}
+
+	@Test
+	public void testFromConValueWrongType() {
+		ConValue cv = new ConValue(ConType.BOOLEAN, true);
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			new SynapseRow().setFromConValue(cv);
+		}).getMessage();
+		assertEquals("Expected a ContType.JSON_ARRAY", message);
 	}
 
 }

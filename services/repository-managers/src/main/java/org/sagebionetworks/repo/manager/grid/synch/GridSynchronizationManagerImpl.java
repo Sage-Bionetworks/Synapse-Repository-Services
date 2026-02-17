@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandlerProvider;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandlerProvider;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopy;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowMerge;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowSource;
@@ -65,7 +65,7 @@ public class GridSynchronizationManagerImpl implements GridSynchronizationManage
 		try (CopyHandler copyHandler = copyHandlerProvider.createCopyHandler(session);
 				SourceHandler sourceHandler = sourceHandlerProvdier.createNewProvider(callback, user, session,
 						copyHandler.getGridSource());
-				RowReader sourceReader = sourceHandler.getSourceRowReader();
+				RowSourceItemReader sourceReader = sourceHandler.getSourceRowReader();
 				IntendedChangePublisher icp = newIntendedChangePublisher(copyHandler)) {
 
 			// Phase one: synchronize the schema

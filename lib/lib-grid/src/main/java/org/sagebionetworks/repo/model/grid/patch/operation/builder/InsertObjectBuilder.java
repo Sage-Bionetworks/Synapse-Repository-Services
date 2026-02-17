@@ -44,4 +44,11 @@ public final class InsertObjectBuilder extends OperationBuilder {
     public int hashCode() {
         return Objects.hash(objectId, map);
     }
+
+	@Override
+	public String toString() {
+		return "InsertObjectBuilder [objectId=" + objectId + ", map=" + map + "]";
+	}
+    
+    
 }

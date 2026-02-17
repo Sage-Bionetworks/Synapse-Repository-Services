@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.synch.row;
 
 import org.sagebionetworks.repo.manager.grid.synch.core.Copy;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 
 /**
  * Represents the copy (CRDT replica) side of Phase 2 row synchronization.
@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
  *
  * <p>
  * This interface extends {@link Copy} with {@link RowCopyItem} as the copy item
- * type and {@link RowHeader} as the source item type, enabling the generic
+ * type and {@link RowSourceItemReference} as the source item type, enabling the generic
  * {@link SynchronizationLogic#synchronize} algorithm to work with row-level
  * synchronization.
  *
@@ -34,10 +34,10 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
  * when rows are added, deleted, or reordered in the source.
  *
  * @see RowCopyItem the type of rows in the copy
- * @see RowHeader the type of row identifiers from the source
+ * @see RowSourceItemReference the type of row identifiers from the source
  * @see RowSource the corresponding source side of row synchronization
  * @see RowMerge the merge strategy for resolving row-level conflicts
  */
-public interface RowCopy extends Copy<RowCopyItem, RowHeader> {
+public interface RowCopy extends Copy<RowCopyItem, RowSourceItemReference> {
 
 }

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItemImpl;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.RGANode;
@@ -50,7 +51,7 @@ public class CopyHandlerImpl implements CopyHandler {
 	}
 
 	GridConnectionInfo getConnectionOrThrow(GridManager gridManager, String sessionId) {
-		return gridManager.getSingletonConnection(sessionId, EventSource.INTERNAL)
+		return gridManager.getSingletonConnection(sessionId, EventSource.USER_SUPPORT)
 				.orElseThrow(() -> new NotFoundException("Grid: " + sessionId));
 	}
 
@@ -103,14 +104,14 @@ public class CopyHandlerImpl implements CopyHandler {
 		LogicalTimestamp vectorId = rowView.getRowObject().getData().getVectorId();
 		List<CellCopyItem> cells = createCopyCells(rowView.getRowObject().getData().getNodes());
 		return new RowCopyItemImpl().setCells(cells).setRgaNodeId(rowView.getArrNodeId()).setVectorNodeId(vectorId)
-				.setSynapseRow(rowView.getSynapseRow());
+				.setMetadataNodeId(rowView.getRowMetadataNodeId()).setSynapseRow(rowView.getSynapseRow());
 	}
 
 	private List<CellCopyItem> createCopyCells(List<ConstantNode> nodes) {
 		List<CellCopyItem> cells = new ArrayList<>(nodes.size());
 		for (int i = 0; i < nodes.size(); i++) {
 			ConstantNode node = nodes.get(i);
-			boolean wasChangedByUser = node.getId().getReplicaId() != getInternalReplicaId();
+			boolean wasChangedByUser = GridConstants.isUserReplica(node.getId().getReplicaId());
 			String columnName = indexToColumnMap.get(i);
 			cells.add(new CellCopyItem().setName(columnName).setValue(node.getConValue())
 					.setWasChangedByUser(wasChangedByUser));
@@ -128,8 +129,4 @@ public class CopyHandlerImpl implements CopyHandler {
 		return lastRowsRgaNodeId;
 	}
 
-	@Override
-	public Long getInternalReplicaId() {
-		return connection.getReplicaId();
-	}
 }

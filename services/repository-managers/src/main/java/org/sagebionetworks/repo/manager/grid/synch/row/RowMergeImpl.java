@@ -8,20 +8,23 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteRowChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteArrayNodeChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.synch.core.Copy;
 import org.sagebionetworks.repo.manager.grid.synch.core.Source;
 import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.google.common.base.Functions;
 
@@ -116,15 +119,16 @@ public class RowMergeImpl implements RowMerge {
 	 * <li>If source row deleted/unauthorized: delete copy row for consistency</li>
 	 * </ol>
 	 *
-	 * @param rowKey     the source system's identifier for this row
-	 * @param copyItem   the row from the copy (CRDT replica)
-	 * @param sourceItem the row header from the source (fetches actual row data)
+	 * @param rowKey        the source system's identifier for this row
+	 * @param copyItem      the row from the copy (CRDT replica)
+	 * @param sourceItemRef the row header from the source (fetches actual row data)
 	 */
 	@Override
-	public void merge(String rowKey, RowCopyItem copyItem, RowHeader sourceItem) {
+	public void merge(String rowKey, RowCopyItem copyItem, RowSourceItemReference sourceItemRef) {
 
+		RowSourceItem sourceItem = sourceItemRef.fetchRow();
 		CellCopyImpl cellCopy = new CellCopyImpl(copyItem);
-		CellSourceImpl cellSource = new CellSourceImpl(sourceItem.fetchRow());
+		CellSourceImpl cellSource = new CellSourceImpl(sourceItem);
 
 		// Synchronize cells using nested application of SynchronizationLogic
 		logic.synchronize(cellCopy, cellSource, (key, copyCellItem, sourceCellItem) -> {
@@ -151,12 +155,13 @@ public class RowMergeImpl implements RowMerge {
 				log.warn("Row: {} will be removed from the grid with message: {}", rowKey, ex.getMessage());
 				// Source row was deleted or became unauthorized - delete from copy for
 				// consistency
-				intendedChangePublisher.publish(new DeleteRowChange(rowsArrayId, copyItem.getRgaNodeId()));
+				intendedChangePublisher.publish(new DeleteArrayNodeChange(rowsArrayId, copyItem.getRgaNodeId()));
 				return;
 			}
 		}
 		// Reset copy row with merged result
-		resetCopyRow(copyItem.getVectorNodeId(), cellCopy.getMergedCells());
+		resetCopyRow(copyItem.getVectorNodeId(), cellCopy.getMergedCells(), copyItem.getMetadataNodeId(),
+				sourceItem.getSynapseRow().map(SynapseRow::toConValue).orElse(null));
 
 	}
 
@@ -165,10 +170,17 @@ public class RowMergeImpl implements RowMerge {
 	 * to the CRDT replica. Maps column names to vector indices using the
 	 * synchronized schema to construct the CRDT update operation.
 	 *
-	 * @param vectorNodeId the vector clock node ID of the row to update
-	 * @param mergeCells   the merged cell values (column name to value map)
+	 * @param vectorNodeId       the vector clock node ID of the row to update
+	 * @param mergeCells         the merged cell values (column name to value map)
+	 * @param metadataNodeId     the metadata node ID (must be provided with
+	 *                           synapseRowConValue, or both must be null)
+	 * @param synapseRowConValue the Synapse row metadata value (must be provided
+	 *                           with metadataNodeId, or both must be null)
 	 */
-	void resetCopyRow(LogicalTimestamp vectorNodeId, Map<String, ConValue> mergeCells) {
+	void resetCopyRow(LogicalTimestamp vectorNodeId, Map<String, ConValue> mergeCells, LogicalTimestamp metadataNodeId,
+			ConValue synapseRowConValue) {
+		ValidateArgument.required(vectorNodeId, "vectorNodeId");
+		ValidateArgument.required(mergeCells, "mergeCells");
 		List<ConValue> values = new ArrayList<>();
 		List<Integer> valueIndex = new ArrayList<>();
 		for (Entry<String, ConValue> e : mergeCells.entrySet()) {
@@ -176,7 +188,8 @@ public class RowMergeImpl implements RowMerge {
 			values.add(e.getValue());
 			valueIndex.add(column.getVectorIndex());
 		}
-		intendedChangePublisher.publish(new UpdateRowChange(vectorNodeId, values, valueIndex.toArray(Integer[]::new)));
+		intendedChangePublisher.publish(new UpdateRowChange(vectorNodeId, values, valueIndex.toArray(Integer[]::new),
+				metadataNodeId, synapseRowConValue));
 	}
 
 }

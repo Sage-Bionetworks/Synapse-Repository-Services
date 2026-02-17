@@ -31,12 +31,7 @@ public class ITRealm {
     
     private static final String NAME = "test-realm";
     private static final List<IdentityProvider> IDPS = 
-    		List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.ARCUS_BIOSCIENCES));
-    
-    // parameters for a new user, created inside the realm
-    private static final String USER_NAME_IN_REALM = UUID.randomUUID().toString();
-    private static final String PASSWORD_IN_REALM = "password"+UUID.randomUUID().toString();
-    private static final String EMNAIL_IN_REALM = UUID.randomUUID().toString() + "@sagebase.org";
+    		List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.SAGE_BIONETWORKS));
     
     private Realm realmToDelete;
     

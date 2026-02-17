@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
+import org.sagebionetworks.repo.model.grid.RequestOrigin;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -329,7 +330,7 @@ public class GridDaoImplTest {
 
 		// call under test
 		List<GridConnectionInfo> listed = dao.listConnections(session.getSessionId());
-		List<GridConnectionInfo> expected = source == EventSource.WEBSOCKET ? List.of(f1, f2) : List.of(f2, f1);
+		List<GridConnectionInfo> expected = source.getRequestOrigin() == RequestOrigin.USER ? List.of(f1, f2) : List.of(f2, f1);
 		assertEquals(expected, listed);
 
 		// call under test

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.RGANode;
@@ -65,6 +66,7 @@ public class CopyHandlerImplTest {
 	private GridSource gridSource;
 
 	private Long internalReplicaId;
+	private Long userReplicaId;
 	private LogicalTimestamp lastRowsRgaNodeId;
 	private LogicalTimestamp rowsId;
 	private RGANode rgaNode;
@@ -72,7 +74,8 @@ public class CopyHandlerImplTest {
 	@BeforeEach
 	public void before() {
 		sessionId = "123";
-		internalReplicaId = 555L;
+		internalReplicaId = GridConstants.START_REPLICA_ID_SERVICE;
+		userReplicaId = GridConstants.START_REPLICA_ID_CLIENT;
 		gridSession = new GridSession().setSessionId(sessionId);
 		lastRowsRgaNodeId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L);
 		rowsId = new LogicalTimestamp().setReplicaId(internalReplicaId).setSequenceNumber(4L);
@@ -82,11 +85,10 @@ public class CopyHandlerImplTest {
 	}
 
 	CopyHandlerImpl setupHandler() {
-		when(mockConnection.getReplicaId()).thenReturn(internalReplicaId);
 		when(mockGridReplicaSupport.getGridHeaderOrThrow(gridSession)).thenReturn(mockHeader);
 		when(mockHeader.getOrderedColumns()).thenReturn(columns);
 		when(mockGridManager.getSessionSource(sessionId)).thenReturn(Optional.of(gridSource));
-		when(mockGridManager.getSingletonConnection(sessionId, EventSource.INTERNAL))
+		when(mockGridManager.getSingletonConnection(sessionId, EventSource.USER_SUPPORT))
 				.thenReturn(Optional.of(mockConnection));
 		when(mockHeader.getRowsId()).thenReturn(rowsId);
 		when(mockGridIndexDao.getRgaLastNode(sessionId, internalReplicaId, rowsId)).thenReturn(Optional.of(rgaNode));
@@ -103,7 +105,6 @@ public class CopyHandlerImplTest {
 			assertEquals(mockConnection, handler.getConnectionInfo());
 			assertEquals(mockHeader, handler.getHeader());
 			assertEquals(gridSource, handler.getGridSource());
-			assertEquals(internalReplicaId, handler.getInternalReplicaId());
 		}
 		verifyNoMoreInteracationOnAllMocks();
 	}
@@ -149,7 +150,7 @@ public class CopyHandlerImplTest {
 																	.setSequenceNumber(10L))
 															.setNodes(List.of(new ConstantNode()
 																	.setId(new LogicalTimestamp()
-																			.setReplicaId(internalReplicaId + 1)
+																			.setReplicaId(userReplicaId)
 																			.setSequenceNumber(11L))
 																	.setValue(new ConValue(ConType.STRING, "bar")))))
 											.setMetadata(

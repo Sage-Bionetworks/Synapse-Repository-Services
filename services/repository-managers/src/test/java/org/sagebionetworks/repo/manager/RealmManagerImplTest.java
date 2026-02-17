@@ -14,7 +14,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,11 +26,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.team.TeamManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RealmDao;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -57,19 +66,30 @@ class RealmManagerImplTest {
 	
 	@Mock
 	private TeamManager teamManager;
+	
 	@Mock
 	private IdGenerator idGenerator;
+	
+	@Mock
+	private StackConfiguration stackConfiguration;
+	
+	@Mock
+	private AccessControlListDAO aclDAO;
 
 	@InjectMocks
 	RealmManagerImpl realmManager;
 
 	private UserInfo userInfo;
 	private UserInfo adminUserInfo;
+	private AccessControlList rootEntityAcl;
 	
 	@BeforeEach
 	void setUp() throws Exception {
 		userInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
+		rootEntityAcl = new AccessControlList();
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		rootEntityAcl.setResourceAccess(raSet);
 	}
 	
 	private static final String ID ="101";
@@ -84,6 +104,7 @@ class RealmManagerImplTest {
 	private static final Long AUTHENTICATED_ID = 102L;
 	private static final Long PUBLIC_ID = 103L;
 	private static final String ADMIN_TEAM_ID = "999";
+	private static final String ROOT_ENTITY_ID = "123";
 
 
 	@Test
@@ -102,6 +123,9 @@ class RealmManagerImplTest {
 
 		when(idGenerator.generateNewId(IdType.PRINCIPAL_ID)).thenReturn(888l);
 		when(teamManager.bootstrapTeam(any(BootstrapTeam.class), anyString())).thenReturn("888");
+		
+		when(stackConfiguration.getRootFolderEntityId()).thenReturn(ROOT_ENTITY_ID);
+		when(aclDAO.getAcl(ROOT_ENTITY_ID, ObjectType.ENTITY)).thenReturn(Optional.of(rootEntityAcl));
 		
 		Realm realm = new Realm();
 		realm.setName(REALM_NAME);
@@ -158,6 +182,16 @@ class RealmManagerImplTest {
 		assertEquals(String.valueOf(AUTHENTICATED_ID), actualRealmPrincipal.getAuthenticatedUsers());
 		assertEquals(String.valueOf(PUBLIC_ID), actualRealmPrincipal.getPublicGroup());
 		assertEquals(adminTeam.getId(), actualRealmPrincipal.getAdministrativeGroup());
+		
+		ArgumentCaptor<AccessControlList> aclCaptor = ArgumentCaptor.forClass(AccessControlList.class);
+		verify(aclDAO).update(aclCaptor.capture(), eq(ObjectType.ENTITY));
+		AccessControlList updatedACL = aclCaptor.getValue();
+		Set<ResourceAccess> ras = updatedACL.getResourceAccess();
+		// the ACL starts empty, so we just verify the the expected row is now there;
+		// we don't have to worry about looking through any other rows
+		ResourceAccess ra = ras.iterator().next();
+		assertEquals(AUTHENTICATED_ID, ra.getPrincipalId());
+		assertEquals(Set.of(ACCESS_TYPE.CREATE), ra.getAccessType());
 	}
 	
 	@Test
@@ -266,6 +300,14 @@ class RealmManagerImplTest {
 				setAuthenticatedUsers(AUTHENTICATED_ID.toString()).
 				setPublicGroup(PUBLIC_ID.toString()).
 				setAdministrativeGroup(ADMIN_TEAM_ID));
+		when(stackConfiguration.getRootFolderEntityId()).thenReturn(ROOT_ENTITY_ID);
+		// add row to acl
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(AUTHENTICATED_ID);
+		ra.setAccessType(Set.of(ACCESS_TYPE.CREATE));
+		rootEntityAcl.getResourceAccess().add(ra);
+		when(aclDAO.getAcl(ROOT_ENTITY_ID, ObjectType.ENTITY)).thenReturn(Optional.of(rootEntityAcl));
+		
 		// method under test
 		realmManager.deleteRealm(adminUserInfo, ID);
 		
@@ -282,6 +324,11 @@ class RealmManagerImplTest {
 		verify(userGroupDAO).delete(PUBLIC_ID.toString());
 		
 		verify(realmDao).deleteRealm(ID);
+		
+		ArgumentCaptor<AccessControlList> aclCaptor = ArgumentCaptor.forClass(AccessControlList.class);
+		verify(aclDAO).update(aclCaptor.capture(), eq(ObjectType.ENTITY));
+		AccessControlList updatedACL = aclCaptor.getValue();
+		assertTrue(updatedACL.getResourceAccess().isEmpty());
 	}
 	
 	@Test

@@ -50,14 +50,6 @@ import org.sagebionetworks.util.ValidateArgument;
  * A handler that can build and save a snapshot from a table row query.
  */
 public class SnapshotRowHandler implements RowHandler {
-    public static final String FIELD_SYNAPSE_ROW = "synapseRow";
-    public static final String FIELD_ROW_VALIDATION = "rowValidation";
-    public static final String FIELD_DOC_VERSION = "doc_version";
-    public static final String FIELD_COLUMN_NAMES = "columnNames";
-    public static final String FIELD_COLUMN_ORDER = "columnOrder";
-    public static final String FIELD_ROWS = "rows";
-    public static final String FIELD_METADATA = "metadata";
-    public static final String FIELD_DATA = "data";
 
     private IndexedModelEncoder encoder;
     private OutputStream encoderOutputStream;
@@ -190,10 +182,10 @@ public class SnapshotRowHandler implements RowHandler {
             .setElements(new ArrayList<>());
 
         Map<String, LogicalTimestamp> objectMap = new LinkedHashMap<>();
-        objectMap.put(FIELD_DOC_VERSION, documentVersionNode.getId());
-        objectMap.put(FIELD_COLUMN_NAMES, columnNamesNode.getId());
-        objectMap.put(FIELD_COLUMN_ORDER, columnOrderNode.getId());
-        objectMap.put(FIELD_ROWS, rowsNode.getId());
+        objectMap.put(DocumentConstants.DOC_VERSION, documentVersionNode.getId());
+        objectMap.put(DocumentConstants.COLUMN_NAMES, columnNamesNode.getId());
+        objectMap.put(DocumentConstants.COLUMN_ORDER, columnOrderNode.getId());
+        objectMap.put(DocumentConstants.ROWS, rowsNode.getId());
         rootObjectNode.setValue(objectMap);
 
         return new DocumentStructure(
@@ -326,14 +318,14 @@ public class SnapshotRowHandler implements RowHandler {
                     .setId(nextTimestamp())
                     .setValue(new ConValue(ConType.JSON_ARRAY, synapseRowArray));
             nodeConsumer.accept(synapseRowMetadata);
-            metadataMap.put(FIELD_SYNAPSE_ROW, synapseRowMetadata.getId());
+            metadataMap.put(DocumentConstants.SYNAPSE_ROW, synapseRowMetadata.getId());
         }
 
         // Add validation result - MUST be after all data constants to have a higher timestamp
         if (hasValidation) {
             ConstantNode validationConstant = createValidationConstant(rowDataNode.getValues());
             nodeConsumer.accept(validationConstant);
-            metadataMap.put(FIELD_ROW_VALIDATION, validationConstant.getId());
+            metadataMap.put(DocumentConstants.ROW_VALIDATION, validationConstant.getId());
         }
 
         metadataObject.setValue(metadataMap);
@@ -412,11 +404,11 @@ public class SnapshotRowHandler implements RowHandler {
 
         Map<String, LogicalTimestamp> rowObjectMap = new LinkedHashMap<>();
 
-        rowObjectMap.put(FIELD_DATA, rowDataNode.getId());
+        rowObjectMap.put(DocumentConstants.DATA, rowDataNode.getId());
 
         // Pass VectorNode for validation - it contains the ConstantNodes via getValues()
         getRowMetadata(row, rowDataNode, newNodes::add)
-                .ifPresent(rowMetadata -> rowObjectMap.put(FIELD_METADATA, rowMetadata.getId()));
+                .ifPresent(rowMetadata -> rowObjectMap.put(DocumentConstants.METADATA, rowMetadata.getId()));
 
         rowObject.setValue(rowObjectMap);
 

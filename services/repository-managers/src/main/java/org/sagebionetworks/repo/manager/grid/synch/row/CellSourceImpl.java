@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.manager.grid.synch.core.Source;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
 public class CellSourceImpl implements Source<CellCopyItem, CellSourceItem> {
@@ -16,7 +16,7 @@ public class CellSourceImpl implements Source<CellCopyItem, CellSourceItem> {
 	private final Map<String, CellSourceItem> sourceMap;
 	private final Map<String, ConValue> userChangedCells;
 
-	public CellSourceImpl(SynchRow sourceItem) {
+	public CellSourceImpl(RowSourceItem sourceItem) {
 		this.sourceMap = new HashMap<>();
 		for (Entry<String, ConValue> e : sourceItem.getData().entrySet()) {
 			sourceMap.put(e.getKey(), new CellSourceItem().setColumnName(e.getKey()).setValue(e.getValue()));
@@ -41,10 +41,7 @@ public class CellSourceImpl implements Source<CellCopyItem, CellSourceItem> {
 
 	@Override
 	public void addItem(CellCopyItem item) {
-		// Cell exists only in copy - push if changed by user
-		if (item.wasChangedByUser()) {
-			userChangedCells.put(item.getName(), item.getValue());
-		}
+		userChangedCells.put(item.getName(), item.getValue());
 	}
 
 	@Override

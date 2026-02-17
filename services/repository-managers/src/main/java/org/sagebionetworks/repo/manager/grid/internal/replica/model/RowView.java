@@ -69,6 +69,10 @@ public class RowView {
 		return rowObject != null ? rowObject.getMetadata() : null;
 	}
 
+	public LogicalTimestamp getRowMetadataNodeId() {
+		return getRowMetadata() != null? getRowMetadata().getObjectId(): null;
+	}
+
 	public SynapseRow getSynapseRow() {
 		return rowObject != null ? rowObject.getSynapseRow() : null;
 	}

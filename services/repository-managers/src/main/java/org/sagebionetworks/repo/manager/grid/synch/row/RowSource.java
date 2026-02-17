@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.synch.row;
 
 import org.sagebionetworks.repo.manager.grid.synch.core.Source;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 
 /**
  * Represents the source of truth side of Phase 2 row synchronization. Provides
@@ -23,9 +23,9 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
  *
  * <p>
  * This interface extends {@link Source} with {@link RowCopyItem} as the copy item
- * type and {@link RowHeader} as the source item type, enabling the generic
+ * type and {@link RowSourceItemReference} as the source item type, enabling the generic
  * {@link SynchronizationLogic#synchronize} algorithm to work with row-level
- * synchronization. The {@link RowHeader} provides lightweight row identifiers
+ * synchronization. The {@link RowSourceItemReference} provides lightweight row identifiers
  * that can fetch full row data on demand, enabling memory-efficient streaming
  * comparison.
  *
@@ -37,11 +37,11 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
  * copy.
  *
  * @see RowCopyItem the type of rows in the copy
- * @see RowHeader the type of row identifiers from the source
+ * @see RowSourceItemReference the type of row identifiers from the source
  * @see RowCopy the corresponding copy side of row synchronization
  * @see RowMerge the merge strategy for resolving row-level conflicts
  * @see RowSourceImpl the implementation that bridges with {@link SourceHandler}
  */
-public interface RowSource extends Source<RowCopyItem, RowHeader> {
+public interface RowSource extends Source<RowCopyItem, RowSourceItemReference> {
 
 }

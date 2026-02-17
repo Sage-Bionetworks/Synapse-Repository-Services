@@ -34,6 +34,7 @@ public class RowCopyItemImpl implements RowCopyItem {
 	private SynapseRow synapseRow;
 	private LogicalTimestamp rgaNodeId;
 	private LogicalTimestamp vectorNodeId;
+	private LogicalTimestamp metadataNodeId;
 	private List<CellCopyItem> cells;
 
 	/**
@@ -151,10 +152,29 @@ public class RowCopyItemImpl implements RowCopyItem {
 		this.vectorNodeId = vectorNodeId;
 		return this;
 	}
+	
+	/**
+	 * The ID of the metadata object that defines this row's metadata.
+	 */
+	@Override
+	public LogicalTimestamp getMetadataNodeId() {
+		return metadataNodeId;
+	}
+
+
+	/**
+	 * The ID of the metadata object that defines this row's metadata.
+	 * @param metadataNodeId
+	 * @return
+	 */
+	public RowCopyItemImpl setMetadataNodeId(LogicalTimestamp metadataNodeId) {
+		this.metadataNodeId = metadataNodeId;
+		return this;
+	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(cells, rgaNodeId, synapseRow, vectorNodeId);
+		return Objects.hash(cells, metadataNodeId, rgaNodeId, synapseRow, vectorNodeId);
 	}
 
 	@Override
@@ -166,14 +186,15 @@ public class RowCopyItemImpl implements RowCopyItem {
 		if (getClass() != obj.getClass())
 			return false;
 		RowCopyItemImpl other = (RowCopyItemImpl) obj;
-		return Objects.equals(cells, other.cells) && Objects.equals(rgaNodeId, other.rgaNodeId)
-				&& Objects.equals(synapseRow, other.synapseRow) && Objects.equals(vectorNodeId, other.vectorNodeId);
+		return Objects.equals(cells, other.cells) && Objects.equals(metadataNodeId, other.metadataNodeId)
+				&& Objects.equals(rgaNodeId, other.rgaNodeId) && Objects.equals(synapseRow, other.synapseRow)
+				&& Objects.equals(vectorNodeId, other.vectorNodeId);
 	}
 
 	@Override
 	public String toString() {
-		return "CopyRowImpl [synapseRow=" + synapseRow + ", rgaNodeId=" + rgaNodeId + ", vectorNodeId=" + vectorNodeId
-				+ ", cells=" + cells + "]";
+		return "RowCopyItemImpl [synapseRow=" + synapseRow + ", rgaNodeId=" + rgaNodeId + ", vectorNodeId="
+				+ vectorNodeId + ", metadataNodeId=" + metadataNodeId + ", cells=" + cells + "]";
 	}
 
 }

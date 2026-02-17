@@ -43,12 +43,6 @@ public interface CopyHandler extends AutoCloseable {
 	 */
 	GridConnectionInfo getConnectionInfo();
 
-	/**
-	 * Gets the internal database identifier for this replica.
-	 *
-	 * @return the replica's internal ID
-	 */
-	Long getInternalReplicaId();
 
 	/**
 	 * Streams all rows currently in the copy. Used during Phase 2 (row

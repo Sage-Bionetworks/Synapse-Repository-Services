@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
@@ -30,7 +30,7 @@ public interface SourceHandler extends AutoCloseable {
 	 * @return a reader that streams rows from the source
 	 * @throws IOException if reading from the source fails
 	 */
-	RowReader getSourceRowReader() throws IOException;
+	RowSourceItemReader getSourceRowReader() throws IOException;
 
 	/**
 	 * Gets the unique key used to identify a row in the source system. This key is
@@ -48,7 +48,7 @@ public interface SourceHandler extends AutoCloseable {
 	 *
 	 * @param copy the row to add to the source
 	 */
-	void addNewRowToSource(SynchRow copy);
+	void addNewRowToSource(RowSourceItem copy);
 
 	/**
 	 * Gets the current schema (column names) from the source. Used during Phase 1
@@ -99,7 +99,7 @@ public interface SourceHandler extends AutoCloseable {
 	 *
 	 * @param fetchRow the row to remove from the source
 	 */
-	void removeRow(SynchRow fetchRow);
+	void removeRow(RowSourceItem fetchRow);
 
 	/**
 	 * Provide all error messages generated during the synchronization process to be

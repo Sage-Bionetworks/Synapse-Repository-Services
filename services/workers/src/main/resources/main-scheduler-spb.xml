@@ -186,9 +186,10 @@
 		
 	</util:list>
 
-	<bean id="mainScheduler"
-			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
-			scope="singleton">
+     <bean id="mainScheduler"
+        class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
+        scope="singleton"
+        destroy-method="destroy">
 		<property name="quartzProperties">
 			<props>
 				<prop key="org.quartz.threadPool.threadCount">#{ (workerTriggersList.size() + 1) + "" }</prop>

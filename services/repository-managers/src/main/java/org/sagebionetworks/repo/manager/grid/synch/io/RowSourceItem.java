@@ -27,9 +27,9 @@ import org.sagebionetworks.util.ValidateArgument;
  * <p>
  * During synchronization, source rows are:
  * <ul>
- * <li>Written to disk by {@link RowWriter} using the serialized bytes</li>
+ * <li>Written to disk by {@link RowSourceItemWriter} using the serialized bytes</li>
  * <li>Indexed on disk by key using {@link DiskPointer}</li>
- * <li>Lazily loaded by {@link RowReader} when needed for comparison or
+ * <li>Lazily loaded by {@link RowSourceItemReader} when needed for comparison or
  * merging</li>
  * </ul>
  *
@@ -46,7 +46,7 @@ import org.sagebionetworks.util.ValidateArgument;
  * matching hashes can skip cell-level comparison and merging. The hash includes
  * both the cell data and the optional SynapseRow metadata.
  */
-public class SynchRow implements SourceItem {
+public class RowSourceItem implements SourceItem {
 
 	private final TreeMap<String, ConValue> data;
 	private final String key;
@@ -62,7 +62,7 @@ public class SynchRow implements SourceItem {
 	 * @param data the row's cell data (column name to value mappings)
 	 * @param key  the unique identifier for this row
 	 */
-	public SynchRow(TreeMap<String, ConValue> data, String key) {
+	public RowSourceItem(TreeMap<String, ConValue> data, String key) {
 	    this(data, key, null);
 	}
 
@@ -75,7 +75,7 @@ public class SynchRow implements SourceItem {
 	 * @param key    the unique identifier for this row
 	 * @param synRow the optional Synapse row metadata (may be null)
 	 */
-	public SynchRow(TreeMap<String, ConValue> data, String key, SynapseRow synRow) {
+	public RowSourceItem(TreeMap<String, ConValue> data, String key, SynapseRow synRow) {
 		ValidateArgument.required(data, "data");
 		ValidateArgument.required(key, "key");
 		this.data = data;
@@ -87,13 +87,13 @@ public class SynchRow implements SourceItem {
 
 	/**
 	 * Creates a row from serialized bytes. Used when loading a row from disk via
-	 * {@link RowReader}. The data map and optional SynapseRow are reconstructed
+	 * {@link RowSourceItemReader}. The data map and optional SynapseRow are reconstructed
 	 * from bytes during construction, enabling lazy loading for memory efficiency.
 	 *
 	 * @param bytes the serialized row data
 	 * @param key   the unique identifier for this row
 	 */
-	public SynchRow(byte[] bytes, String key) {
+	public RowSourceItem(byte[] bytes, String key) {
 		super();
 		this.key = key;
 		this.bytes = bytes;
@@ -136,8 +136,8 @@ public class SynchRow implements SourceItem {
 	}
 
 	/**
-	 * Gets the serialized representation of this row. Used by {@link RowWriter} to
-	 * write the row to disk for later retrieval by {@link RowReader}.
+	 * Gets the serialized representation of this row. Used by {@link RowSourceItemWriter} to
+	 * write the row to disk for later retrieval by {@link RowSourceItemReader}.
 	 *
 	 * @return the serialized row data
 	 */
@@ -150,7 +150,7 @@ public class SynchRow implements SourceItem {
 	 *
 	 * @return Optional containing the SynapseRow if present, empty otherwise
 	 */
-	public Optional<SynapseRow> getSynRow() {
+	public Optional<SynapseRow> getSynapseRow() {
 		return Optional.ofNullable(synRow);
 	}
 
@@ -249,7 +249,7 @@ public class SynchRow implements SourceItem {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		SynchRow other = (SynchRow) obj;
+		RowSourceItem other = (RowSourceItem) obj;
 		return Arrays.equals(bytes, other.bytes) && Objects.equals(data, other.data) && Arrays.equals(hash, other.hash)
 				&& Objects.equals(key, other.key) && Objects.equals(synRow, other.synRow);
 	}

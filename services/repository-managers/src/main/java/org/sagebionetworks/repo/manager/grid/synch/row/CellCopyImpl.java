@@ -45,7 +45,7 @@ public class CellCopyImpl implements Copy<CellCopyItem, CellSourceItem> {
 		mergeCells.put(item.getColumnName(), item.getValue());
 	}
 
-	private Set<String> getUserDeletedCells(RowCopyItem copyItem) {
+	static Set<String> getUserDeletedCells(RowCopyItem copyItem) {
 		return copyItem.getCells().stream()
 				.filter(cell -> cell.wasChangedByUser() && cell.getValue() != null
 						&& (ConType.UNDEFINED.equals(cell.getValue().getType())

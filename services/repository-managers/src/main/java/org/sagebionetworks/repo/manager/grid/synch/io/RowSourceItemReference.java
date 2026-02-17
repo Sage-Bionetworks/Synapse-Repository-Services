@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.manager.grid.synch.core.SourceItem;
  * This allows the synchronization logic to process large datasets efficiently
  * by only loading rows into memory when they need to be compared or merged.
  */
-public interface RowHeader extends SourceItem {
+public interface RowSourceItemReference extends SourceItem {
 
  /**
   * Gets the hash of the serialized row data. Used for quick comparison to
@@ -47,6 +47,6 @@ public interface RowHeader extends SourceItem {
   *
   * @return the complete row data loaded from disk
   */
- SynchRow fetchRow();
+ RowSourceItem fetchRow();
 
 }

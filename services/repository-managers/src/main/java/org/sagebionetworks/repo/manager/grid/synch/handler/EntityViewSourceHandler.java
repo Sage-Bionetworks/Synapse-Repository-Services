@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
 import org.sagebionetworks.repo.manager.grid.row.translator.Translator;
 import org.sagebionetworks.repo.manager.grid.synch.io.DiskPointer;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowWriter;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemWriter;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -68,8 +68,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 	public EntityViewSourceHandler(AsyncJobProgressCallback callback, UserInfo user, GridSession session,
 			TableQueryManager tableQueryManager, GridAuthorizationManager gridAuthorizationManager,
 			FileProvider fileProvider, AnnotationWriter annotationWriter, JsonSchemaManager jsonSchemaManager,
-			AnnotationsTranslator annotationsTranslator) throws NotFoundException, LockUnavilableException,
-			TableUnavailableException, TableFailedException, IOException {
+			AnnotationsTranslator annotationsTranslator) throws NotFoundException, LockUnavilableException, TableUnavailableException, TableFailedException, IOException {
 		this.callback = callback;
 		this.user = user;
 		this.session = session;
@@ -91,7 +90,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 
 		tempFile = fileProvider.createTempFile("Source-" + session.getSourceEntityId(), ".bin");
 		diskPointers = new ArrayList<>();
-		try (RowWriter writer = createRowWriter(tempFile)) {
+		try (RowSourceItemWriter writer = createRowWriter(tempFile)) {
 			UserInfo sessionOwner = gridAuthorizationManager.getRowLevelFilterUserInfo(user, session.getSessionId());
 			Query query = new Query().setSql("select * from " + session.getSourceEntityId());
 
@@ -105,11 +104,11 @@ public class EntityViewSourceHandler implements SourceHandler {
 		}
 	}
 
-	RowWriter createRowWriter(File temp) throws FileNotFoundException {
-		return new RowWriter(fileProvider.createFileOutputStream(tempFile));
+	RowSourceItemWriter createRowWriter(File temp) throws FileNotFoundException {
+		return new RowSourceItemWriter(fileProvider.createFileOutputStream(tempFile));
 	}
 
-	SynchRow createSynchRow(Row row) {
+	RowSourceItem createSynchRow(Row row) {
 		String key = IdAndVersion.newBuilder().setId(row.getRowId()).build().toString();
 		TreeMap<String, ConValue> data = new TreeMap<>();
 		for (int i = 0; i < schema.size(); i++) {
@@ -118,13 +117,13 @@ public class EntityViewSourceHandler implements SourceHandler {
 					requiredColumnNames.contains(columnName));
 			data.put(columnName, conValue);
 		}
-		return new SynchRow(data, key, new SynapseRow().setRowId(row.getRowId())
+		return new RowSourceItem(data, key, new SynapseRow().setRowId(row.getRowId())
 				.setVersionNumber(row.getVersionNumber()).setEtag(row.getEtag()));
 	}
 
 	@Override
-	public RowReader getSourceRowReader() throws IOException {
-		return new RowReader(diskPointers, fileProvider.createRandomAccessFile(tempFile, "r"));
+	public RowSourceItemReader getSourceRowReader() throws IOException {
+		return new RowSourceItemReader(diskPointers, fileProvider.createRandomAccessFile(tempFile, "r"));
 	}
 
 	@Override
@@ -135,7 +134,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 	}
 
 	@Override
-	public void addNewRowToSource(SynchRow copy) {
+	public void addNewRowToSource(RowSourceItem copy) {
 		errorMessages.add(String.format("Cannot add the row: '%s' to a source view.", copy.getKey()));
 	}
 
@@ -155,7 +154,7 @@ public class EntityViewSourceHandler implements SourceHandler {
 	}
 
 	@Override
-	public void removeRow(SynchRow fetchRow) {
+	public void removeRow(RowSourceItem fetchRow) {
 		errorMessages.add(String.format("Cannot remove the row: '%s' from a source view.", fetchRow.getKey()));
 	}
 

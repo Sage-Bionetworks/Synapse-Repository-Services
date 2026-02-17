@@ -34,4 +34,10 @@ public final class NewConstantBuilder extends OperationBuilder {
     public int hashCode() {
         return Objects.hashCode(value);
     }
+
+	@Override
+	public String toString() {
+		return "NewConstantBuilder [value=" + value + "]";
+	}
+    
 }

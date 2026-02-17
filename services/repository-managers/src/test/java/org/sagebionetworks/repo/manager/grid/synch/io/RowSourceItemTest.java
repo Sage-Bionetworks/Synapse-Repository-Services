@@ -13,30 +13,30 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
-public class SynchRowTest {
+public class RowSourceItemTest {
 
 	@Test
 	public void testRoundTrip() {
 
-		SynchRow sr = new SynchRow(new TreeMap<>(Map.of("a", new ConValue(ConType.LONG, 99L))), "syn123",
+		RowSourceItem sr = new RowSourceItem(new TreeMap<>(Map.of("a", new ConValue(ConType.LONG, 99L))), "syn123",
 				new SynapseRow().setRowId(123L).setVersionNumber(1L).setEtag("etag1"));
 
-		SynchRow back = new SynchRow(sr.getBytes(), sr.getKey());
+		RowSourceItem back = new RowSourceItem(sr.getBytes(), sr.getKey());
 
 		assertEquals(sr, back);
 
 		assertTrue(Arrays.equals(sr.getHash(), back.getHash()));
-		assertEquals(sr.getSynRow(), back.getSynRow());
+		assertEquals(sr.getSynapseRow(), back.getSynapseRow());
 
 	}
 
 	@Test
 	public void testRoundTripWithNullSynRow() {
 
-		SynchRow sr = new SynchRow(new TreeMap<>(Map.of("a", new ConValue(ConType.LONG, 99L))), "syn123", null);
-		assertEquals(Optional.empty(), sr.getSynRow());
+		RowSourceItem sr = new RowSourceItem(new TreeMap<>(Map.of("a", new ConValue(ConType.LONG, 99L))), "syn123", null);
+		assertEquals(Optional.empty(), sr.getSynapseRow());
 
-		SynchRow back = new SynchRow(sr.getBytes(), sr.getKey());
+		RowSourceItem back = new RowSourceItem(sr.getBytes(), sr.getKey());
 
 		assertEquals(sr, back);
 

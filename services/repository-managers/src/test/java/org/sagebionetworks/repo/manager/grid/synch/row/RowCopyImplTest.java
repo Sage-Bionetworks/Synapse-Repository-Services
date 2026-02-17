@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.manager.grid.synch.schema.row;
+package org.sagebionetworks.repo.manager.grid.synch.row;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -15,15 +15,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteRowChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteArrayNodeChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.InsertRowChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyImpl;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItemImpl;
@@ -41,7 +41,7 @@ public class RowCopyImplTest {
 	@Mock
 	private GridHeader mockHeader;
 	@Mock
-	private RowHeader mockRowHeader;
+	private RowSourceItemReference mockRowHeader;
 
 	private List<Column> finalSchema;
 	private LogicalTimestamp lastRowsRgaNodeId;
@@ -85,7 +85,7 @@ public class RowCopyImplTest {
 				new RowCopyItemImpl().setRgaNodeId(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L)));
 
 		verify(mockIntendedChangePublisher).publish(
-				new DeleteRowChange(rowsArrayId, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L)));
+				new DeleteArrayNodeChange(rowsArrayId, new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L)));
 		verifyNoMoreInteractionsWithAllMocks();
 	}
 
@@ -96,13 +96,13 @@ public class RowCopyImplTest {
 		ConValue firstCellValue = new ConValue(ConType.LONG, 222L);
 		ConValue secondCellValue = new ConValue(ConType.STRING, "other");
 		when(mockRowHeader.fetchRow()).thenReturn(
-				new SynchRow(new TreeMap<>(Map.of("a", firstCellValue, "b", new ConValue(ConType.STRING, "other"))),
+				new RowSourceItem(new TreeMap<>(Map.of("a", firstCellValue, "b", new ConValue(ConType.STRING, "other"))),
 						"syn123", synRow));
 
 		// call under test
 		copy.addItem(mockRowHeader);
 		verify(mockIntendedChangePublisher).publish(new InsertRowChange(rowsArrayId, lastRowsRgaNodeId,
-				List.of(firstCellValue, secondCellValue), new Integer[] { 1, 0 }, synRow));
+				List.of(firstCellValue, secondCellValue), new Integer[] { 1, 0 }, synRow.toConValue()));
 	}
 	
 	@Test
@@ -112,7 +112,7 @@ public class RowCopyImplTest {
 		ConValue firstCellValue = new ConValue(ConType.LONG, 222L);
 		ConValue secondCellValue = new ConValue(ConType.STRING, "other");
 		when(mockRowHeader.fetchRow()).thenReturn(
-				new SynchRow(new TreeMap<>(Map.of("a", firstCellValue, "b", new ConValue(ConType.STRING, "other"))),
+				new RowSourceItem(new TreeMap<>(Map.of("a", firstCellValue, "b", new ConValue(ConType.STRING, "other"))),
 						"syn123", synRow));
 
 		// call under test

@@ -1,28 +1,30 @@
-package org.sagebionetworks.repo.manager.grid.synch.schema.row;
+package org.sagebionetworks.repo.manager.grid.synch.row;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
-import org.sagebionetworks.repo.manager.grid.synch.row.CellCopyItem;
-import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItemImpl;
-import org.sagebionetworks.repo.manager.grid.synch.row.RowSourceImpl;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
@@ -32,9 +34,9 @@ public class RowSourceImplTest {
 	@Mock
 	private SourceHandler mockSourceHandler;
 	@Mock
-	private RowReader mockRowReader;
+	private RowSourceItemReader mockRowReader;
 	@Mock
-	private RowHeader mockRowHeader;
+	private RowSourceItemReference mockRowHeader;
 
 	@InjectMocks
 	private RowSourceImpl source;
@@ -50,7 +52,8 @@ public class RowSourceImplTest {
 		// call under test
 		source.addItem(copyItem);
 
-		verify(mockSourceHandler).addNewRowToSource(new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey"));
+		verify(mockSourceHandler)
+				.addNewRowToSource(new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey"));
 
 		verifyNoMoreInteractionsWithAllMocks();
 	}
@@ -73,7 +76,7 @@ public class RowSourceImplTest {
 		source.addItem(copyItem);
 
 		verify(mockSourceHandler)
-				.addNewRowToSource(new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow));
+				.addNewRowToSource(new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow));
 
 		verifyNoMoreInteractionsWithAllMocks();
 	}
@@ -83,7 +86,7 @@ public class RowSourceImplTest {
 		ConValue c1 = new ConValue(ConType.STRING, "one");
 		ConValue c2 = new ConValue(ConType.BOOLEAN, true);
 		SynapseRow synRow = new SynapseRow().setRowId(123L).setVersionNumber(0L).setEtag("e1");
-		SynchRow synch = new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow);
+		RowSourceItem synch = new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow);
 		when(mockRowHeader.fetchRow()).thenReturn(synch);
 		// call under test
 		source.removeItem(mockRowHeader);
@@ -98,7 +101,7 @@ public class RowSourceImplTest {
 		ConValue c1 = new ConValue(ConType.STRING, "one");
 		ConValue c2 = new ConValue(ConType.BOOLEAN, true);
 		SynapseRow synRow = null;
-		SynchRow synch = new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow);
+		RowSourceItem synch = new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), "theKey", synRow);
 		when(mockRowHeader.fetchRow()).thenReturn(synch);
 		// call under test
 		source.removeItem(mockRowHeader);
@@ -114,7 +117,7 @@ public class RowSourceImplTest {
 		ConValue c1 = new ConValue(ConType.STRING, "one");
 		ConValue c2 = new ConValue(ConType.BOOLEAN, true);
 		SynapseRow synRow = new SynapseRow().setRowId(123L).setVersionNumber(0L).setEtag("e1");
-		SynchRow synch = new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), key, synRow);
+		RowSourceItem synch = new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), key, synRow);
 
 		RowCopyItemImpl copyItem = new RowCopyItemImpl().setCells(
 				List.of(new CellCopyItem().setName("a").setValue(c1), new CellCopyItem().setName("b").setValue(c2)))
@@ -135,7 +138,7 @@ public class RowSourceImplTest {
 		ConValue c1 = new ConValue(ConType.STRING, "one");
 		ConValue c2 = new ConValue(ConType.BOOLEAN, true);
 		SynapseRow synRow = new SynapseRow().setRowId(123L).setVersionNumber(0L).setEtag("e1");
-		SynchRow synch = new SynchRow(new TreeMap<>(Map.of("a", c1, "b", c2)), key, synRow);
+		RowSourceItem synch = new RowSourceItem(new TreeMap<>(Map.of("a", c1, "b", c2)), key, synRow);
 
 		RowCopyItemImpl copyItem = new RowCopyItemImpl()
 				.setCells(List.of(new CellCopyItem().setName("a").setValue(c1),
@@ -149,5 +152,30 @@ public class RowSourceImplTest {
 		assertFalse(source.matches(copyItem, mockRowHeader));
 
 		verifyNoMoreInteractionsWithAllMocks();
+	}
+
+	@Test
+	public void testAddItemConsume() {
+
+		when(mockRowReader.consumeRow("a")).thenReturn(Optional.of(mockRowHeader));
+		when(mockRowReader.consumeRow("b")).thenReturn(Optional.empty());
+
+		// call under test
+		assertEquals(Optional.of(mockRowHeader), source.consume("a"));
+		assertEquals(Optional.empty(), source.consume("b"));
+
+	}
+
+	@Test
+	public void testStreamRemaining() {
+
+		List<RowSourceItemReference> input = List.of(Mockito.mock(RowSourceItemReference.class),
+				Mockito.mock(RowSourceItemReference.class));
+		when(mockRowReader.remainingRows()).thenReturn(input.iterator());
+
+		// call under test
+		List<RowSourceItemReference> refs = source.streamRemaining().collect(Collectors.toList());
+		assertEquals(input, refs);
+
 	}
 }
