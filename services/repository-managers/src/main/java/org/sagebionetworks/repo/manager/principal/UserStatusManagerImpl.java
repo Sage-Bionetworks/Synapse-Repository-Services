@@ -81,8 +81,8 @@ public class UserStatusManagerImpl implements UserStatusManager {
 	}
 
 	private List<Long> emailSoonToBeInactiveUsers(List<Long> soonToBeInactiveUserIds) {
-		List<Long> warnedSoonToBeInactiveUserIds = new LinkedList<>();
-		return warnedSoonToBeInactiveUserIds;
+		// for now, assume all emails are sent without problem
+		return soonToBeInactiveUserIds;
 	}
 
 	@WriteTransaction

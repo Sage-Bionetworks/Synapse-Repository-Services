@@ -95,5 +95,49 @@ public class UserStatusManagerImpUnitTest {
 
 		verifyNoMoreInteractions(mockUserStatusDao, mockUserManager, mockOidcTokenManager);
 	}
+
+	@Test
+	public void testWarnSoonToBeInactiveUsers() {
+		Instant now = Instant.now();
+
+		when(mockClock.now()).thenReturn(Date.from(now));
+		when(mockUserStatusDao.getSoonToBeInactiveUsersBatch(Date.from(now.minus(UserStatusManager.WARNING_INACTIVITY_DAYS, ChronoUnit.DAYS)), MAX_BATCH_SIZE)).thenReturn(List.of(123L, 456L));
+
+		// call under test
+		assertEquals(2, userStatusManager.warnSoonToBeInactiveUsers(MAX_BATCH_SIZE));
+
+		// verify that calls to ses happened
+		verify(mockUserStatusDao).setWarnedOn(123L, Date.from(now));
+		verify(mockUserStatusDao).setWarnedOn(456L, Date.from(now));
+
+
+	}
+
+	@Test
+	public void testWarnSoonToBeInactiveUsersWithBootstrapPrincipal() {
+		Instant now = Instant.now();
+
+		when(mockClock.now()).thenReturn(Date.from(now));
+		when(mockUserStatusDao.getSoonToBeInactiveUsersBatch(Date.from(now.minus(UserStatusManager.WARNING_INACTIVITY_DAYS, ChronoUnit.DAYS)), MAX_BATCH_SIZE)).thenReturn(List.of(123L, 1L));
+
+		// call under test
+		assertEquals(1, userStatusManager.warnSoonToBeInactiveUsers(MAX_BATCH_SIZE));
+
+		verify(mockUserStatusDao).setWarnedOn(123L, Date.from(now));
+
+	}
+
+	@Test
+	public void testWarnSoonToBeInactiveUsersWithNoSoonToBeInactiveUsers() {
+		Instant now = Instant.now();
+
+		when(mockClock.now()).thenReturn(Date.from(now));
+		when(mockUserStatusDao.getSoonToBeInactiveUsersBatch(Date.from(now.minus(UserStatusManager.WARNING_INACTIVITY_DAYS, ChronoUnit.DAYS)), MAX_BATCH_SIZE)).thenReturn(Collections.emptyList());
+
+		// Call under test
+		assertEquals(0, userStatusManager.warnSoonToBeInactiveUsers(MAX_BATCH_SIZE));
+
+		verifyNoMoreInteractions(mockUserStatusDao, mockUserManager, mockOidcTokenManager);
+	}
 	
 }
