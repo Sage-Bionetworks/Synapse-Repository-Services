@@ -1,35 +1,57 @@
-Hi $firstName,
+<html>
+  <body style="margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; font-size:14px; line-height:1.5; color:#222;">
+    <div style="max-width:640px; margin:0 auto; padding:16px;">
+      <p style="margin:0 0 16px 0;">
+        Hi $firstName,
+      </p>
 
-Your Synapse account ($userName) is scheduled to be disabled in 15 days, on $expirationDate, due to inactivity.
+      <p style="margin:0 0 16px 0;">
+        Your Synapse account (<strong>$userName</strong>) is scheduled to be disabled in 15 days, on <strong>$expirationDate</strong>, due to inactivity.
+      </p>
 
-To meet our FISMA-MODERATE requirements, Synapse accounts are disabled after a period of inactivity. This helps us protect user data, maintain security, and ensure that only active accounts retain access to Synapse resources.
+      <p style="margin:0 0 16px 0;">
+        To meet our FISMA-MODERATE requirements, Synapse accounts are disabled after a period of inactivity. This helps us protect user data, maintain security, and ensure that only active accounts retain access to Synapse resources.
+      </p>
 
-If your account is disabled:
+      <p style="margin:0 0 8px 0;">
+        If your account is disabled:
+      </p>
+      <ul style="margin:0 0 16px 20px; padding:0;">
+        <li style="margin:0 0 8px 0;">You may lose access to Synapse projects, data, and tools associated with your account.</li>
+        <li style="margin:0 0 8px 0;">Collaborators may be impacted if they rely on your account’s access or permissions.</li>
+        <li style="margin:0;">Reactivation may require additional steps to verify your identity and restore access.</li>
+      </ul>
 
-    You may lose access to Synapse projects, data, and tools associated with your account.
+      <p style="margin:0 0 16px 0;">
+        To understand the full impact and details of account expiry, please review our help article:
+        <a href="$helpArticleUrl" style="color:#0b65c2; text-decoration:underline;">Synapse account expiry (help article)</a>
+      </p>
 
-    Collaborators may be impacted if they rely on your account’s access or permissions.
+      <p style="margin:0 0 8px 0;">
+        If you would like to keep your account active, you can reset the expiry countdown by signing in before <strong>$expirationDate</strong>:
+      </p>
+      <ol style="margin:0 0 16px 20px; padding:0;">
+        <li style="margin:0 0 8px 0;">
+          Go to the Synapse sign-in page:
+          <a href="$signInUrl" style="color:#0b65c2; text-decoration:underline;">$signInUrl</a>
+        </li>
+        <li style="margin:0 0 8px 0;">Sign in with your existing credentials.</li>
+        <li style="margin:0;">Once signed in, your account expiry countdown will be reset automatically.</li>
+      </ol>
 
-    Reactivation may require additional steps to verify your identity and restore access.
+      <p style="margin:0 0 16px 0;">
+        If you believe you received this message in error, or if you have questions about your account status, please contact us through Synapse Support:
+        <a href="$supportUrl" style="color:#0b65c2; text-decoration:underline;">$supportUrl</a>
+      </p>
 
-To understand the full impact and details of account expiry, please review our help article here:
- Help article: [Link to help doc]
+      <p style="margin:0 0 16px 0;">
+        Thank you for being part of the Synapse community.
+      </p>
 
-If you would like to keep your account active, you can reset the expiry countdown by signing in before [expiry date]:
-
-    Go to the Synapse sign-in page:
-     Sign in:
-
-    Sign in with your existing credentials.
-
-    Once signed in, your account expiry countdown will be reset automatically.
-
-If you believe you received this message in error, or if you have questions about your account status, please contact us through Synapse Support.
-
-Thank you for being part of the Synapse community.
-
-Best regards,
-
-
-
-The Synapse Team
+      <p style="margin:0;">
+        Best regards,<br />
+        The Synapse Team
+      </p>
+    </div>
+  </body>
+</html>

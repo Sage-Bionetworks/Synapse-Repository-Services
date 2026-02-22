@@ -41,6 +41,7 @@ public class UserStatusDaoImpl implements UserStatusDao {
 				+ "VALUES (?, UUID(), ?, false) "
 				+ "ON DUPLICATE KEY UPDATE "
 				+ COL_USER_STATUS_ETAG + " = UUID(),"
+				+ COL_USER_STATUS_WARNED_ON + "= NULL,"		// reset warned_on since seen again
 				+ COL_USER_STATUS_LAST_SEEN_ON + " = ?";
 		
 		jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -145,8 +146,8 @@ public class UserStatusDaoImpl implements UserStatusDao {
 		return jdbcTemplate.queryForList(
 				"SELECT " + COL_USER_STATUS_PRINCIPAL_ID + " FROM " + TABLE_USER_STATUS + " WHERE "
 						+ COL_USER_STATUS_DISABLED + " = false AND "
-						+ COL_USER_STATUS_LAST_SEEN_ON + " < ? LIMIT ?"
-						+ COL_USER_STATUS_WARNED_ON + " IS NULL",
+						+ COL_USER_STATUS_LAST_SEEN_ON + " < ? AND "
+						+ COL_USER_STATUS_WARNED_ON + " IS NULL LIMIT ? ",
 				Long.class, lastSeenOnThreshold, batchSize);
 	}
 	

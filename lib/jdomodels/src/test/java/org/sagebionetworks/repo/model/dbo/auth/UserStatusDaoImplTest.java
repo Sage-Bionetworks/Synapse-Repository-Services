@@ -135,4 +135,30 @@ public class UserStatusDaoImplTest {
 		// Now we should find the user in the inactive list
 		assertEquals(List.of(userId), userStatusDao.getInactiveUsersBatch(lastSeenOnThreshold, batchSize));
 	}
+
+	@Test
+	public void testGetSoonTobeInactiveUsersBatch() {
+		Instant now = Instant.now();
+		Date soonToBeInactiveThreshold = Date.from(now.minus(45, ChronoUnit.DAYS));
+		int batchSize = 10;
+
+		// call under test, no user with last_seen < threshold and not warned
+		assertTrue(userStatusDao.getSoonToBeInactiveUsersBatch(soonToBeInactiveThreshold, batchSize).isEmpty());
+
+		// Set the user as not soon to be active by setting last seen within the threshold
+		userStatusDao.setLastSeenOn(List.of(userId), Date.from(Instant.now().minus(45, ChronoUnit.DAYS)));
+		// call under test, no user with last_seen < threshold and not warned
+		assertTrue(userStatusDao.getSoonToBeInactiveUsersBatch(soonToBeInactiveThreshold, batchSize).isEmpty());
+
+		// Set the user as soon to be active by setting last seen within the threshold
+		userStatusDao.setLastSeenOn(List.of(userId), Date.from(Instant.now().minus(46, ChronoUnit.DAYS)));
+		// call under test, one user with last_seen < threshold and not warned
+		assertEquals(List.of(userId), userStatusDao.getSoonToBeInactiveUsersBatch(soonToBeInactiveThreshold, batchSize));
+
+		// set that user as warned
+		userStatusDao.setWarnedOn(userId, Date.from(now));
+		// call under test, one user with last_seen < threshold and warned, should not come back
+		assertTrue(userStatusDao.getSoonToBeInactiveUsersBatch(soonToBeInactiveThreshold, batchSize).isEmpty());
+
+	}
 }
