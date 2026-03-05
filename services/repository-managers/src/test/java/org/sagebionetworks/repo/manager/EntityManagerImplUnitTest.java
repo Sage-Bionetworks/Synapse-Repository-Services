@@ -1731,4 +1731,29 @@ public class EntityManagerImplUnitTest {
 		});
 	}
 
+	@Test
+	public void testUpdateSearchIndexPreventsNewVersion() throws Exception {
+		SearchIndex entity = new SearchIndex();
+		entity.setId(ENTITY_ID);
+		entity.setDefiningSQL("SELECT * FROM syn456");
+		entity.setParentId(PARENT_ENTITY_ID);
+		entity.setName("test");
+		entity.setEtag("etag");
+
+		Node node = new Node();
+		node.setId(ENTITY_ID);
+		node.setNodeType(EntityType.searchindex);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockNodeManager.getNode(mockUser, ENTITY_ID)).thenReturn(node);
+		when(mockNodeManager.getEntityPropertyAnnotations(mockUser, ENTITY_ID))
+			.thenReturn(new org.sagebionetworks.repo.model.Annotations());
+		when(mockNodeManager.update(any(UserInfo.class), any(Node.class), any(), eq(false)))
+			.thenReturn(node);
+
+		// Even though newVersion=true is passed, it should be forced to false for SearchIndex
+		entityManager.updateEntity(mockUser, entity, true, null);
+
+		verify(mockNodeManager).update(any(UserInfo.class), any(Node.class), any(), eq(false));
+	}
+
 }
