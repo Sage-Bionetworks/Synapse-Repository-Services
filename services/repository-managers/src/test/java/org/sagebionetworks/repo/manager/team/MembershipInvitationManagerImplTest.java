@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.InviteeVerificationSignedToken;
@@ -143,7 +142,7 @@ public class MembershipInvitationManagerImplTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		userInfo = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID);
-		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		userInfo.setCertified(true);
 		userProfile = new UserProfile();
 		userProfile.setFirstName("First");
 		userProfile.setLastName("Last");
@@ -675,6 +674,7 @@ public class MembershipInvitationManagerImplTest {
 	public void testSendInvitationEmailToEmailNotCertified() throws Exception {
 		// Remove the certified group
 		userInfo.setGroups(Collections.emptySet());
+		userInfo.setCertified(false);
 		
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);
 		String acceptInvitationEndpoint = "https://synapse.org/#acceptInvitationEndpoint:";

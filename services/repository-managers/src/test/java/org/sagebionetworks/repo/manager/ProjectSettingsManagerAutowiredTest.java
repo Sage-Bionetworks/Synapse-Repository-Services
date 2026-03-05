@@ -77,7 +77,7 @@ public class ProjectSettingsManagerAutowiredTest {
 		user.setEmail(username + "@test.com");
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));

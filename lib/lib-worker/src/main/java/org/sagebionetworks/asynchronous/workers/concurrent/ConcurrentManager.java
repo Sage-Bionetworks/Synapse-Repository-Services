@@ -87,10 +87,12 @@ public interface ConcurrentManager {
 	 * @param worker                      For each message polled this worker will
 	 *                                    receive a call to:
 	 *                                    {@link MessageDrivenRunner#run(ProgressCallback, com.amazonaws.services.sqs.model.Message)}
+	 * @param isFifoQueue                 Whether the queue being polled is a FIFO queue.
 	 * @return
 	 */
 	List<WorkerJob> pollForMessagesAndStartJobs(String queueUrl, int maxNumberOfMessages,
-			int messageVisibilityTimeoutSec, MessageDrivenRunner worker);
+			int messageVisibilityTimeoutSec, MessageDrivenRunner worker, boolean isFifoQueue);
+
 	
 	/**
 	 * Allows the client to be shared with the rest of the stack.

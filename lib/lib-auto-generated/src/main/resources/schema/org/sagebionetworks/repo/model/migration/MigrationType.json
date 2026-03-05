@@ -23,6 +23,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "CERTIFIED_USERS",
+			"description": "Certified users to use the Synapse."
+		},
+		{
 			"name": "CREDENTIAL",
 			"description": "TODO: Auto-generated description"
 		},

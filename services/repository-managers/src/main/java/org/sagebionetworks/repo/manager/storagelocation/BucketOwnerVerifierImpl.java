@@ -142,8 +142,7 @@ public class BucketOwnerVerifierImpl implements BucketOwnerVerifier {
 		// Set of teams that are not allowed to be used as identifiers in the owner.txt
 		Set<Long> excludedTeamIds = ImmutableSet.of(
 				userInfo.getRealmAnonymousUserId(),
-				userInfo.getRealmPublicUsersId(),
-			BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()
+				userInfo.getRealmPublicUsersId()
 		);
 		
 		// Adds the id of the teams of the user, excluding the certain teams (public group, certified users etc)

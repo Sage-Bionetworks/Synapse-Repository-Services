@@ -431,8 +431,7 @@ public class BucketOwnerVerifierImplUnitTest {
 		when(mockUserInfo.getRealmAnonymousUserId()).thenReturn(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		when(mockUserInfo.getRealmPublicUsersId()).thenReturn(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		when(mockUserInfo.getGroups()).thenReturn(ImmutableSet.of(
-				teamId, 
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId(),  
+				teamId,
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())
 		);
 		

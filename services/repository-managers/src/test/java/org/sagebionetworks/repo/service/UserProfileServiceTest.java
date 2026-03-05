@@ -323,7 +323,7 @@ public class UserProfileServiceTest {
 		UserInfo userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		userInfo.setGroups(new HashSet<Long>(Arrays.asList(userId)));
 		if (isACTMember) userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
-		if (isCertified) userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		if (isCertified) userInfo.setCertified(true);
 
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,19 +16,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
-import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.repo.model.agent.SessionContext;
+import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 public class GetGridSchemaHandlerTest {
 
 	@Mock
-	private GridManager mockGridManager;
+	private GridDao mockGridDao;
 	@Mock
 	private JsonSchemaManager mockJsonSchemaManager;
 
@@ -63,8 +64,8 @@ public class GetGridSchemaHandlerTest {
 
 	@Test
 	public void testHandleEvent() throws Exception {
-		when(mockGridManager.getGridSession(new UserInfo(false, runAsUserId), gridSessionId))
-				.thenReturn(new GridSession().setGridJsonSchema$Id(schemaId).setSessionId(gridSessionId));
+		when(mockGridDao.getGridSession(gridSessionId))
+				.thenReturn(Optional.of(new GridSession().setGridJsonSchema$Id(schemaId).setSessionId(gridSessionId)));
 		when(mockJsonSchemaManager.getValidationSchema(schemaId)).thenReturn(schema);
 		// call under test
 		String json = handler.handleEvent(event);
@@ -72,9 +73,21 @@ public class GetGridSchemaHandlerTest {
 	}
 
 	@Test
-	public void testHandleEventWithNoSchema() throws Exception {
-		when(mockGridManager.getGridSession(new UserInfo(false, runAsUserId), gridSessionId))
-				.thenReturn(new GridSession().setGridJsonSchema$Id(null).setSessionId(gridSessionId));
+	public void testHandleEventWithEmptySession() throws Exception {
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.empty());
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			handler.handleEvent(event);
+		}).getMessage();
+		assertEquals("Grid session no longer exists", message);
+
+		verifyZeroInteractions(mockJsonSchemaManager);
+	}
+
+	@Test
+	public void testHandleEventWithNullSchemaId() throws Exception {
+		when(mockGridDao.getGridSession(gridSessionId))
+				.thenReturn(Optional.of(new GridSession().setGridJsonSchema$Id(null).setSessionId(gridSessionId)));
 		// call under test
 		String json = handler.handleEvent(event);
 		assertEquals("{}", json);
@@ -90,7 +103,7 @@ public class GetGridSchemaHandlerTest {
 		}).getMessage();
 		assertEquals("GridAgentSessionContext cannot be null", message);
 
-		verifyZeroInteractions(mockGridManager, mockJsonSchemaManager);
+		verifyZeroInteractions(mockGridDao, mockJsonSchemaManager);
 	}
 
 }

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
@@ -84,8 +85,11 @@ public class EntityViewSourceHandler implements SourceHandler {
 
 	void initialize() throws NotFoundException, LockUnavilableException, TableUnavailableException,
 			TableFailedException, IOException {
-		requiredColumnNames = session.getGridJsonSchema$Id() != null
-				? new HashSet<>(jsonSchemaManager.getValidationSchema(session.getGridJsonSchema$Id()).getRequired())
+		JsonSchema jsonSchema = session.getGridJsonSchema$Id() != null ? jsonSchemaManager.getValidationSchema(session.getGridJsonSchema$Id())
+				: null;
+
+		requiredColumnNames = jsonSchema != null && jsonSchema.getRequired() != null
+				? new HashSet<>(jsonSchema.getRequired())
 				: Collections.emptySet();
 
 		tempFile = fileProvider.createTempFile("Source-" + session.getSourceEntityId(), ".bin");

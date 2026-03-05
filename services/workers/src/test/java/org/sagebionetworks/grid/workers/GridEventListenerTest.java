@@ -2,7 +2,9 @@ package org.sagebionetworks.grid.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -52,6 +56,8 @@ public class GridEventListenerTest {
 	private GridManager mockManager;
 	@Mock
 	private UserInfo mockUser;
+	@Captor
+	private ArgumentCaptor<List<EventContext>> contextsCaptor;
 
 	@InjectMocks
 	private GridEventListener listener;
@@ -189,16 +195,13 @@ public class GridEventListenerTest {
 		// call under test
 		listener.onNewPatchRegistration(patchDataRequest);
 
-		verify(mockPublisher, times(1)).publishEventResponse(any(), any(), any(Integer.class));
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseComplete, 1099);
-		String patchNotification = "[8,\"patch\",[[[9,1]],[0]]]";
-		// only other active connections receive the patch notification
-		verify(mockPublisher, times(2)).publishEventResponse(any(), any(), any(String.class));
-		verify(mockPublisher).publishEventResponse(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999"),
-				JsonRxMessageType.Notification, "new-patch");
-		verify(mockPublisher).publishEventResponse(new EventContext(EventType.MESSAGE, EventSource.WEBSOCKET, "con888"),
-				JsonRxMessageType.Notification, "new-patch");
-		verify(mockPublisher, never()).publishEventResponse(context, patchNotification);
+		// Verify batch call with contexts for other connections (excluding the caller)
+		verify(mockPublisher).publishEventResponses(contextsCaptor.capture(), eq(JsonRxMessageType.Notification), eq("new-patch"));
+		List<EventContext> capturedContexts = contextsCaptor.getValue();
+		assertEquals(2, capturedContexts.size());
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999")));
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.WEBSOCKET, "con888")));
 	}
 
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.auth.CallersContext;
@@ -17,6 +18,7 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
+	private boolean isCertified;
 	private Long id;
 	private String realmId;
 	private Date creationDate;
@@ -122,6 +124,12 @@ public class UserInfo {
 	public boolean isAdmin() {
 		return isAdmin;
 	}
+	public void setCertified(boolean certified) {
+		this.isCertified = certified;
+	}
+	public boolean isCertified() {
+		return isCertified;
+	}
 	
 	public boolean hasTwoFactorAuthEnabled() {
 		return hasTwoFactorAuthEnabled;
@@ -140,85 +148,33 @@ public class UserInfo {
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((context == null) ? 0 : context.hashCode());
-		result = prime * result + ((creationDate == null) ? 0 : creationDate.hashCode());
-		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
-		result = prime * result + (hasTwoFactorAuthEnabled ? 1231 : 1237);
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + (isAdmin ? 1231 : 1237);
-		result = prime * result + ((realmAnonymousUserId == null) ? 0 : realmAnonymousUserId.hashCode());
-		result = prime * result + ((realmAuthenticatedUsersId == null) ? 0 : realmAuthenticatedUsersId.hashCode());
-		result = prime * result + ((realmId == null) ? 0 : realmId.hashCode());
-		result = prime * result + ((realmPublicUsersId == null) ? 0 : realmPublicUsersId.hashCode());
-		return result;
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		UserInfo userInfo = (UserInfo) o;
+		return isAdmin == userInfo.isAdmin && isCertified == userInfo.isCertified &&
+				hasTwoFactorAuthEnabled == userInfo.hasTwoFactorAuthEnabled && Objects.equals(groups, userInfo.groups)
+				&& Objects.equals(id, userInfo.id) && Objects.equals(realmId, userInfo.realmId)
+				&& Objects.equals(creationDate, userInfo.creationDate) && Objects.equals(context, userInfo.context)
+				&& Objects.equals(realmAnonymousUserId, userInfo.realmAnonymousUserId)
+				&& Objects.equals(realmAuthenticatedUsersId, userInfo.realmAuthenticatedUsersId)
+				&& Objects.equals(realmPublicUsersId, userInfo.realmPublicUsersId);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		UserInfo other = (UserInfo) obj;
-		if (context == null) {
-			if (other.context != null)
-				return false;
-		} else if (!context.equals(other.context))
-			return false;
-		if (creationDate == null) {
-			if (other.creationDate != null)
-				return false;
-		} else if (!creationDate.equals(other.creationDate))
-			return false;
-		if (groups == null) {
-			if (other.groups != null)
-				return false;
-		} else if (!groups.equals(other.groups))
-			return false;
-		if (hasTwoFactorAuthEnabled != other.hasTwoFactorAuthEnabled)
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (isAdmin != other.isAdmin)
-			return false;
-		if (realmAnonymousUserId == null) {
-			if (other.realmAnonymousUserId != null)
-				return false;
-		} else if (!realmAnonymousUserId.equals(other.realmAnonymousUserId))
-			return false;
-		if (realmAuthenticatedUsersId == null) {
-			if (other.realmAuthenticatedUsersId != null)
-				return false;
-		} else if (!realmAuthenticatedUsersId.equals(other.realmAuthenticatedUsersId))
-			return false;
-		if (realmId == null) {
-			if (other.realmId != null)
-				return false;
-		} else if (!realmId.equals(other.realmId))
-			return false;
-		if (realmPublicUsersId == null) {
-			if (other.realmPublicUsersId != null)
-				return false;
-		} else if (!realmPublicUsersId.equals(other.realmPublicUsersId))
-			return false;
-		return true;
+	public int hashCode() {
+		return Objects.hash(groups, isAdmin, isCertified, id, realmId, creationDate, hasTwoFactorAuthEnabled, context,
+				realmAnonymousUserId, realmAuthenticatedUsersId, realmPublicUsersId);
 	}
+
 
 	@Override
 	public String toString() {
-		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", realmId=" + realmId
+		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", isCertified=" + isCertified + ", id=" + id + ", realmId=" + realmId
 				+ ", creationDate=" + creationDate + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
 				+ ", context=" + context + ", realmAnonymousUserId=" + realmAnonymousUserId
 				+ ", realmAuthenticatedUsersId=" + realmAuthenticatedUsersId + ", realmPublicUsersId="
 				+ realmPublicUsersId + "]";
 	}
-	
+
 }

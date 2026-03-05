@@ -18,13 +18,11 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 public class ReplicaChangeSetTest {
 
 	private GridConnectionInfo connection;
-	private LogicalTimestamp patchId;
 	private Map<IndexType, Set<LogicalTimestamp>> map;
 
 	@BeforeEach
 	public void before() {
 		connection = new GridConnectionInfo().setConnectionId("con123").setReplicaId(2L).setSessionId("session444");
-		patchId = new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(99L);
 		map = new LinkedHashMap<>();
 		List<LogicalTimestamp> arrs = List.of(new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(110L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
@@ -40,10 +38,10 @@ public class ReplicaChangeSetTest {
 	public void testToAndFromJson() {
 
 		// call under test
-		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, patchId, map);
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, map);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\",\"patchId\":[3,99],"
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\","
 				+ "\"changes\":{\"arr\":[[3,110],[2,8],[3,112]],\"con\":[[3,113],[2,10]],\"obj\":[]}}", json);
 
 		// call under test
@@ -55,10 +53,10 @@ public class ReplicaChangeSetTest {
 	public void testToAndFromJsonWithNull() {
 
 		// call under test
-		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, patchId, null);
+		ReplicaChangeSet rcs = ReplicaChangeSet.fromPatch(connection, null);
 		// call under test
 		String json = rcs.toJson();
-		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\",\"patchId\":[3,99]}", json);
+		assertEquals("{\"sessionId\":\"session444\",\"replicaId\":2,\"changeSource\":\"PATCH\"}", json);
 
 		// call under test
 		ReplicaChangeSet clone = new ReplicaChangeSet(json);

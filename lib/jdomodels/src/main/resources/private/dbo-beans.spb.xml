@@ -22,6 +22,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
+				<bean class ="org.sagebionetworks.repo.model.dbo.persistence.DBOCertifiedUser"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
@@ -238,6 +239,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealm" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCertifiedUser" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />

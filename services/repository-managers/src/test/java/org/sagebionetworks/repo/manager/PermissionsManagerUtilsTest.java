@@ -191,7 +191,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setId("resource id");
 		acl.setResourceAccess(ras);
 		// certify userInfo
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 	}
 	

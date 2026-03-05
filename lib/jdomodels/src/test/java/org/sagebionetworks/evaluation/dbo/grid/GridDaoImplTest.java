@@ -358,17 +358,18 @@ public class GridDaoImplTest {
 		String s3Key = "thekey";
 		Duration expires = Duration.ofSeconds(100L);
 		// call under test
-		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(session.getSessionId(), patchId, s3Key, expires));
+		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(session.getSessionId(), patchId, s3Key, expires, 100L));
 
 		PatchInfo patch = dao.getPatchInfo(session.getSessionId(), patchId).get();
 		assertNotNull(patch);
-		assertEquals(session.getSessionId(), patch.getSesisonId());
+		assertEquals(session.getSessionId(), patch.getSessionId());
 		assertEquals(patchId, patch.getPatchId());
 		assertNotNull(patch.getCreatedOn());
 		assertNotNull(patch.getExpiresOn());
 		assertTrue(patch.getCreatedOn().getTime() < patch.getExpiresOn().getTime());
 		assertEquals(s3Key, patch.getS3Key());
+		assertEquals(100L, patch.getSizeBytes());
 
 	}
 
@@ -380,19 +381,19 @@ public class GridDaoImplTest {
 		String s3Key = "thekey";
 		Duration expires = Duration.ofSeconds(100L);
 		// call under test
-		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires));
-		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires));
+		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires, 100L));
+		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires, 100L));
 
 		PatchInfo patchOne = dao.getPatchInfo(sessionOne.getSessionId(), patchId).get();
 		assertNotNull(patchOne);
-		assertEquals(sessionOne.getSessionId(), patchOne.getSesisonId());
+		assertEquals(sessionOne.getSessionId(), patchOne.getSessionId());
 		assertEquals(patchId, patchOne.getPatchId());
 
 		PatchInfo patchTwo = dao.getPatchInfo(sessionTwo.getSessionId(), patchId).get();
 		assertNotNull(patchTwo);
-		assertEquals(sessionTwo.getSessionId(), patchTwo.getSesisonId());
+		assertEquals(sessionTwo.getSessionId(), patchTwo.getSessionId());
 		assertEquals(patchId, patchTwo.getPatchId());
 	}
 
@@ -411,8 +412,8 @@ public class GridDaoImplTest {
 		List<LogicalTimestamp> patchIds = createTestPatchIds(3, 4);
 		patchIds.stream().forEach(p -> {
 			String s3Key = p.toString();
-			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, expires));
-			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, expires));
+			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, expires, 100L));
+			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, expires, 100L));
 		});
 
 		List<LogicalTimestamp> patchIdsSortedBySeq = patchIds.stream().sorted((p1, p2) -> {
@@ -424,12 +425,23 @@ public class GridDaoImplTest {
 		}).collect(Collectors.toList());
 
 		// call under test
-		List<LogicalTimestamp> list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(), List.of(), 100);
-		// empty clock should return all patches
-		assertEquals(patchIdsSortedBySeq, list);
+		List<PatchInfo> list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), List.of(), 100);
+		// empty clock should return all patches in order of sequence number
+		assertEquals(patchIdsSortedBySeq, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		// also verify that the returned patch info includes other fields (testing the row mapper)
+		for (int i = 0; i < patchIds.size(); i++) {
+			PatchInfo info = list.get(i);
+			assertEquals(sessionOne.getSessionId(), info.getSessionId());
+			assertEquals(patchIdsSortedBySeq.get(i), info.getPatchId());
+			assertNotNull(info.getCreatedOn());
+			assertNotNull(info.getExpiresOn());
+			assertTrue(info.getCreatedOn().getTime() < info.getExpiresOn().getTime());
+			assertNotNull(info.getS3Key());
+			assertEquals(100L, info.getSizeBytes());
+		}
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L)),
@@ -438,33 +450,33 @@ public class GridDaoImplTest {
 		assertEquals(Collections.emptyList(), list);
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(7L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(5L)),
 				100);
 
-		List<LogicalTimestamp> expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
+		List<LogicalTimestamp> expectedPatchIds = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
 
-		assertEquals(expected, list);
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(6L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L)),
 				100);
 
-		expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L),
+		expectedPatchIds = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
 
-		assertEquals(expected, list);
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 	}
 
 	@Test

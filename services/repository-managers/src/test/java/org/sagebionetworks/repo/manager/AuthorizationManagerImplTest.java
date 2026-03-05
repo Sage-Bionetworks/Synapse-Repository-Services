@@ -134,7 +134,7 @@ public class AuthorizationManagerImplTest {
 		
 		// Add new user to new group (in the user's info)
 		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		// Create team with teamAdmin as the admin
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");

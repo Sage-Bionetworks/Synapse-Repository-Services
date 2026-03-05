@@ -4,6 +4,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridSource;
@@ -162,7 +163,7 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	 * @param clock
 	 * @return {@link Optional#empty()} If the replica is up-to-date.
 	 */
-	Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
+	Optional<JSONArray> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
 
 	/**
 	 * Retrieve a pre-signed URL that can be used to download the latest snapshot data for a grid session.

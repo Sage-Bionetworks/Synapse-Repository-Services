@@ -13,6 +13,7 @@ import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.PatchUtils;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
@@ -92,8 +93,7 @@ public class GridReplicaPatchBuilderManagerImpl implements GridReplicaPatchBuild
 
 	@Override
 	public Optional<LogicalTimestamp> getCurrentClockIfAllPatchesApplied(String sessionId, Long replicaId) {
-		List<LogicalTimestamp> missingPatches = gridDao.listMissingPatchIdsForClock(sessionId,
-				gridIndexDao.getClock(sessionId, replicaId), 1);
+		List<PatchInfo> missingPatches = gridDao.listMissingPatchInfoForClock(sessionId, gridIndexDao.getClock(sessionId, replicaId), 1);
 		if (!missingPatches.isEmpty()) {
 			return Optional.empty();
 		}

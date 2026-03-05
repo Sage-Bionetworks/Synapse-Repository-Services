@@ -6,6 +6,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -16,18 +17,16 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class CertifiedUserManagerImplAutowiredTest {
 	
 	@Autowired
-	private GroupMembersDAO groupMembersDao;
+	private CertifiedUsersDAO certifiedUsersDAO;
 	
 
 
 	// this simple round-trip makes sure that the certified user group was properly bootstrapped
 	@Test
-	public void testCertifiedUserGroupExistence() throws Exception {
+	public void testCertifiedUserGroupExistence() {
 		Long arbitraryPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		String certifiedUserGroupId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
-		List<String> idList = Collections.singletonList(arbitraryPrincipalId.toString());
-		groupMembersDao.addMembers(certifiedUserGroupId, idList);
-		groupMembersDao.removeMembers(certifiedUserGroupId, idList);
+		certifiedUsersDAO.addCertifiedUser(arbitraryPrincipalId, true);
+		certifiedUsersDAO.removeCertifiedUser(arbitraryPrincipalId);
 	}
 
 }

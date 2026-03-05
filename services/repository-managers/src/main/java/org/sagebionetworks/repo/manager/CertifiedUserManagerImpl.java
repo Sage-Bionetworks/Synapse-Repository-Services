@@ -7,7 +7,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,13 +16,14 @@ import java.util.Random;
 import java.util.Set;
 
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -54,42 +54,40 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class CertifiedUserManagerImpl implements CertifiedUserManager {
-	
-	private static final String CERTIFIED_USERS_GROUP_ID = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+
 	private static final String UTF_8 = "UTF-8";
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers.certifiedUsersTest_v5.json";
-	
-	@Autowired
-	private AmazonS3Utility s3Utility;	
-	
-	@Autowired
-	private GroupMembersDAO groupMembersDao;
-	
-	@Autowired
+
+	private AmazonS3Utility s3Utility;
+
+	private CertifiedUsersDAO certifiedUsersDao;
+
+	private UserGroupDAO userGroupDao;
+
 	private QuizResponseDAO quizResponseDao;
 
-	@Autowired
 	private TransactionalMessenger transactionalMessenger;
-	
-	public CertifiedUserManagerImpl() {}
 	
 	/**
 	 * For unit testing
 	 * 
 	 * @param s3Utility
-	 * @param groupMembersDao
+	 * @param certifiedUsersDAO
 	 * @param quizResponseDao
 	 * @param transactionalMessenger
 	 */
+	@Autowired
 	public CertifiedUserManagerImpl(
 			 AmazonS3Utility s3Utility,
-			 GroupMembersDAO groupMembersDao,
+			 CertifiedUsersDAO certifiedUsersDAO,
+			 UserGroupDAO UserGroupDAO,
 			 QuizResponseDAO quizResponseDao,
 			 TransactionalMessenger transactionalMessenger
 			) {
 		this.s3Utility=s3Utility;
-		this.groupMembersDao=groupMembersDao;
+		this.certifiedUsersDao=certifiedUsersDAO;
+		this.userGroupDao=UserGroupDAO;
 		this.quizResponseDao=quizResponseDao;
 		this.transactionalMessenger=transactionalMessenger;
 	}
@@ -283,8 +281,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	/**
 	 * fills in 'pass' and 'score' in the response
-	 * @param quiz
-	 * @param response
+	 * @param quizGenerator
+	 * @param quizResponse
 	 */
 	public static PassingRecord scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
 		// The key in the following map is the *index* of the *question variety* 
@@ -380,9 +378,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		passingRecord.setResponseId(created.getId());
 		// if pass, add to Certified group
 		if (passingRecord.getPassed()) {
-			groupMembersDao.addMembers(
-					CERTIFIED_USERS_GROUP_ID, 
-					Collections.singletonList(userInfo.getId().toString()));
+			UserGroup userGroup = userGroupDao.get(userInfo.getId());
+			certifiedUsersDao.addCertifiedUser(userInfo.getId(), userGroup.getIsIndividual());
 		}
 		transactionalMessenger.sendMessageAfterCommit(userInfo.getId().toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.CREATE);
 		return passingRecord;
@@ -392,13 +389,10 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	public void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException {
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("You are not a Synapse Administrator.");
 		if (isCertified) {
-			groupMembersDao.addMembers(
-					CERTIFIED_USERS_GROUP_ID, 
-					Collections.singletonList(principalId.toString()));
+			UserGroup userGroup = userGroupDao.get(userInfo.getId());
+			certifiedUsersDao.addCertifiedUser(principalId, userGroup.getIsIndividual());
 		} else {
-			groupMembersDao.removeMembers(
-					CERTIFIED_USERS_GROUP_ID, 
-					Collections.singletonList(principalId.toString()));
+			certifiedUsersDao.removeCertifiedUser(principalId);
 		}
 	}
 	
@@ -414,6 +408,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		long quizId = quizGenerator.getId();
 		PaginatedResults<QuizResponse> result = new PaginatedResults<QuizResponse>();
+
 		if (principalId==null) {
 			result.setResults(quizResponseDao.getAllResponsesForQuiz(quizId, limit, offset));
 			result.setTotalNumberOfResults(quizResponseDao.getAllResponsesForQuizCount(quizId));
@@ -438,7 +433,6 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		
 		long quizId = quizGenerator.getId();
-		
 		return quizResponseDao.getLatestPassingRecord(quizId, principalId)
 			.orElseThrow(() -> new NotFoundException("No quiz results for quiz " + quizId + " and user " + principalId));
 	}
@@ -467,8 +461,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new ForbiddenException("Only an ACT member can perform this operation.");
 		}
-		
-		if (!groupMembersDao.areMemberOf(CERTIFIED_USERS_GROUP_ID, Set.of(principalId.toString()))) {
+
+		if (!certifiedUsersDao.isCertifiedUser(principalId.toString())) {
 			throw new IllegalArgumentException("The user " + principalId + " is not certified yet.");
 		}
 		
@@ -482,10 +476,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 			.filter( pr -> pr.getPassed() && !pr.getRevoked())
 			.map(PassingRecord::getResponseId)
 			.ifPresent(quizResponseDao::revokeQuizResponse);
-		
-		groupMembersDao.removeMembers(
-				CERTIFIED_USERS_GROUP_ID, 
-				Collections.singletonList(principalId.toString()));
+
+		certifiedUsersDao.removeCertifiedUser(principalId);
 		
 		transactionalMessenger.sendMessageAfterCommit(principalId.toString(), ObjectType.CERTIFIED_USER_PASSING_RECORD, ChangeType.UPDATE);
 		

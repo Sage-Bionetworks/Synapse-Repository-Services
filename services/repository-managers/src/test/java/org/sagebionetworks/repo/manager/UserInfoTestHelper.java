@@ -19,6 +19,12 @@ public class UserInfoTestHelper {
 	public static UserInfo createUserInfo(boolean isAdmin, Long userId) {
 		return createUserInfo(isAdmin, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
+
+	public static UserInfo createCertifiedUserInfo(boolean isAdmin, boolean isCertified) {
+		UserInfo result =new UserInfo(isAdmin, null, AuthorizationConstants.DEFAULT_REALM_ID);
+		result.setCertified(isCertified);
+		return result;
+	}
 	
 	public static UserInfo createAnonymousUserInfo() {
 		UserInfo result = createUserInfo(false,  BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());

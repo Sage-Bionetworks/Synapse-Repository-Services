@@ -64,7 +64,7 @@ public class DiscussionThreadManagerImplAutowiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		Project project = new Project();
 		project.setName("project");

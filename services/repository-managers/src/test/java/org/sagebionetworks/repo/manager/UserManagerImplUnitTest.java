@@ -34,6 +34,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RealmDao;
@@ -76,6 +77,8 @@ public class UserManagerImplUnitTest {
 	private UserProfileDAO userProfileDAO;
 	@Mock
 	private GroupMembersDAO mockGroupMembersDAO;
+	@Mock
+	private CertifiedUsersDAO mockCertifiedUsersDAO;
 	@Mock
 	private AuthenticationDAO mockAuthDAO;
 	@Mock
@@ -155,7 +158,8 @@ public class UserManagerImplUnitTest {
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
 		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
 		when(mockRealmDao.getRealmPrincipals(REALM_ID)).thenReturn(altRealmPrincipals);
-		
+		when(mockCertifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
+
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
@@ -187,6 +191,7 @@ public class UserManagerImplUnitTest {
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.EMPTY_LIST);
 		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(false);
 		when(mockRealmDao.getRealmPrincipals(REALM_ID)).thenReturn(altRealmPrincipals);
+		when(mockCertifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 		
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
@@ -216,7 +221,8 @@ public class UserManagerImplUnitTest {
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(someGroup));
 		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
 		when(mockRealmDao.getRealmPrincipals(DEFAULT_REALM_ID)).thenReturn(defaultRealmPrincipals);
-		
+		when(mockCertifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
+
 		SessionIdThreadLocal.clearThreadsSessionId();
 		
 		// method under test
@@ -240,6 +246,7 @@ public class UserManagerImplUnitTest {
 		when(mockGroupMembersDAO.getUsersGroups(principalId.toString())).thenReturn(Collections.singletonList(adminGroup));
 		when(mockAuthDAO.isTwoFactorAuthEnabled(anyLong())).thenReturn(true);
 		when(mockRealmDao.getRealmPrincipals(DEFAULT_REALM_ID)).thenReturn(defaultRealmPrincipals);
+		when(mockCertifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 				
 		// method under test
 		UserInfo userInfo = userManager.getUserInfo(principalId);
@@ -285,6 +292,7 @@ public class UserManagerImplUnitTest {
 		nu.setEmail(email);
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(username)).thenReturn(alias);
 		when(mockRealmDao.getRealmPrincipals(DEFAULT_REALM_ID)).thenReturn(defaultRealmPrincipals);
+		when(mockCertifiedUsersDAO.isCertifiedUser(anyString())).thenReturn(true);
 				
 		// method under test
 		UserInfo userInfo = userManager.createOrGetTestUser(admin, nu, null, true);

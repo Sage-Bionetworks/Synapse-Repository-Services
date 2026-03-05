@@ -105,7 +105,7 @@ public class EntityAclManagerImplUnitTest {
 
 		certifiedUserInfo = new UserInfo(false);
 		certifiedUserInfo.setId(1234567L);
-		certifiedUserInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		certifiedUserInfo.setCertified(true);
 
     	userId = 111L;
     	

@@ -125,9 +125,10 @@ public interface GridDao {
 	 * @param patchId
 	 * @param s3Key
 	 * @param expires
+	 * @param sizeBytes
 	 * @return True of this was a new patch, else false.
 	 */
-	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires);
+	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires, long sizeBytes);
 
 	/**
 	 * Save grid snapshot data.
@@ -149,14 +150,14 @@ public interface GridDao {
 	Optional<PatchInfo> getPatchInfo(String sessionId, LogicalTimestamp patchId);
 
 	/**
-	 * List all of the missing patches give a clock
-	 * 
+	 * List the missing patches with full info (including size) for a clock.
+	 *
 	 * @param sessionId
 	 * @param clock
 	 * @param limit
 	 * @return
 	 */
-	List<LogicalTimestamp> listMissingPatchIdsForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
+	List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
 
 	/**
 	 * List the active grid session for a user filtered by the provided sourceId.

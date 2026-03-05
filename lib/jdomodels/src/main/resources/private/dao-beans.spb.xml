@@ -108,7 +108,7 @@
 			   		<property name="aliasName" value="CERTIFIED_USERS" />
 			   		<property name="aliasId" value="6" />
 			   	</bean>
-			</property>			
+			</property>
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="6" />
@@ -158,6 +158,30 @@
 	<bean id="updateDefaultRealm" class="org.springframework.beans.factory.config.MethodInvokingBean" depends-on="userGroupDAO" >
 		<property name="targetObject" ref="realmDAO"/>
 		<property name="targetMethod" value="addPrincipalsToDefaultRealm"/>
+		<property name="arguments">
+			<util:map>
+				<entry key="273950">
+					<bean class="java.lang.Long">
+						<constructor-arg value="1"/>
+					</bean>
+				</entry>
+				<entry key="273948">
+					<bean class="java.lang.Long">
+						<constructor-arg value="2"/>
+					</bean>
+				</entry>
+				<entry key="273949">
+					<bean class="java.lang.Long">
+						<constructor-arg value="3"/>
+					</bean>
+				</entry>
+				<entry key="2">
+					<bean class="java.lang.Long">
+						<constructor-arg value="4"/>
+					</bean>
+				</entry>
+			</util:map>
+		</property>
 	</bean>
 
 	<bean id="principalPrefixDao"

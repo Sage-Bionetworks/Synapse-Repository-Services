@@ -7,11 +7,13 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
@@ -336,9 +338,10 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(body, "body");
 		String s3Key = String.format("%s.json", UUID.randomUUID().toString());
+		byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
 		s3Client.putObject(PutObjectRequest.builder().bucket(gridPatchBucket).key(s3Key).build(),
-				RequestBody.fromString(body, StandardCharsets.UTF_8));
-		return gridDao.savePatch(sessionId, patchId, s3Key, PATCH_DURATION);
+				RequestBody.fromBytes(bodyBytes));
+		return gridDao.savePatch(sessionId, patchId, s3Key, PATCH_DURATION, bodyBytes.length);
 	}
 
 	@Override
@@ -348,6 +351,9 @@ public class GridManagerImpl implements GridManager {
 		GridConnectionInfo thisCon = getConnectionInfo(connectionId);
 		return gridDao.listConnections(thisCon.getSessionId());
 	}
+
+	static final long PATCH_BATCH_BUDGET_BYTES = PatchUtils.MAX_BYTES_PER_PATCH - 1_000L; // WebSocket message limit, minus ~1KB for overhead
+	static final long PATCH_BATCH_CANDIDATE_LIMIT = PATCH_BATCH_BUDGET_BYTES / 10; // Assume minimum patch size of ~10B
 
 	@Override
 	public Optional<String> getNextSynchronizeResponse(EventContext context, List<LogicalTimestamp> clock) {
@@ -365,11 +371,57 @@ public class GridManagerImpl implements GridManager {
 			}
 		}
 
-		// Otherwise, find and send the next missing patch
-		// If this is empty. then the replica is up-to-date.
-		Optional<String> optional = this.getNextMissingPatch(context, clock);
-        // directly inline the patch body (it is always a JSON array)
-        return optional.map(patchBody -> "{\"type\":\"patch\",\"body\":" + patchBody + "}");
+		// The replica already has data, or there is no snapshot. Send patches
+		ValidateArgument.required(context, "context");
+		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
+		String sessionId = thisCon.getSessionId();
+		List<LogicalTimestamp> effectiveClock = clock != null ? clock : List.of();
+
+		List<PatchInfo> missingPatches = gridDao.listMissingPatchInfoForClock(sessionId, effectiveClock, PATCH_BATCH_CANDIDATE_LIMIT);
+		if (missingPatches.isEmpty()) {
+			return Optional.empty();
+		}
+		JSONArray patches = createMaxSizedPatchArray(sessionId, missingPatches);
+		JSONObject response = new JSONObject();
+		response.put("type", "patches");
+		response.put("body", patches);
+		return Optional.of(response.toString());
+	}
+
+	JSONArray createMaxSizedPatchArray(String sessionId, List<PatchInfo> candidatePatches) {
+		long cumulativeSize = 0;
+		JSONArray arrayOfPatches = new JSONArray();
+
+		for (PatchInfo candidate : candidatePatches) {
+			// Temporary code - there are patches in the database that were created before size was tracked.
+			// Once all patches have a size field, this check can be removed, and we can require size for all patches.
+			// This can happen once all patches without a size expire, or if we backfill the size for all existing patches.
+			if (candidate.getSizeBytes() == null) {
+				// Null size means pre-existing record — fallback to single-patch behavior
+				if (arrayOfPatches.length() == 0) {
+					Optional<JSONArray> body = getPatchBody(sessionId, candidate);
+					if (body.isPresent()) {
+						arrayOfPatches.put(body.get());
+					}
+					return arrayOfPatches;
+				}
+				// Stop accumulating; send what we have
+				break;
+			}
+
+			if (!(arrayOfPatches.length() == 0) && cumulativeSize + candidate.getSizeBytes() > PATCH_BATCH_BUDGET_BYTES) {
+				break;
+			}
+
+			Optional<JSONArray> body = getPatchBody(sessionId, candidate);
+			if (body.isEmpty()) {
+				break;
+			}
+			arrayOfPatches.put(body.get());
+			cumulativeSize += candidate.getSizeBytes();
+		}
+
+		return arrayOfPatches;
 	}
 
 	GridConnectionInfo getConnectionInfo(String connectionId) {
@@ -378,39 +430,37 @@ public class GridManagerImpl implements GridManager {
 	}
 
 	@Override
-	public Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock) {
+	public Optional<JSONArray> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock) {
 		ValidateArgument.required(context, "context");
 		ValidateArgument.required(clock, "clock");
 		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
 		// Get the first patch ID that this clock is missing.
-		List<LogicalTimestamp> missing = gridDao.listMissingPatchIdsForClock(thisCon.getSessionId(), clock, 1);
+		List<PatchInfo> missing = gridDao.listMissingPatchInfoForClock(thisCon.getSessionId(), clock, 1);
 		if (missing.isEmpty()) {
 			return Optional.empty();
 		}
-		LogicalTimestamp nextPatchId = missing.get(0);
+		PatchInfo nextPatch = missing.get(0);
 
-		return getPatchBody(thisCon.getSessionId(), nextPatchId);
+		return getPatchBody(thisCon.getSessionId(), nextPatch);
 	}
 
 	/**
 	 * Get the body of a patch for the given patch ID.
 	 * 
 	 * @param sessionId
-	 * @param patchId
+	 * @param patch
 	 * @return
 	 */
-	Optional<String> getPatchBody(String sessionId, LogicalTimestamp patchId) {
+	Optional<JSONArray> getPatchBody(String sessionId, PatchInfo patch) {
 		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(patchId, "patchId");
-		PatchInfo patch = gridDao.getPatchInfo(sessionId, patchId)
-				.orElseThrow(() -> new NotFoundException("Cannot find patch: " + patchId));
+		ValidateArgument.required(patch, "patch");
 		if (Instant.now().isAfter(patch.getExpiresOn().toInstant())) {
-			throw new NotFoundException("The requested patch has expired: " + patchId);
+			throw new NotFoundException("The requested patch has expired: " + patch.getPatchId());
 		}
 
 		return Optional.of(s3Client
 				.getObjectAsBytes(GetObjectRequest.builder().bucket(gridPatchBucket).key(patch.getS3Key()).build())
-				.asString(StandardCharsets.UTF_8));
+				.asString(StandardCharsets.UTF_8)).map(JSONArray::new);
 	}
 
 	@Override

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.view;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,6 +12,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import javax.management.Query;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -18,8 +22,13 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.sagebionetworks.grid.db.GridIndexManager;
+import org.sagebionetworks.repo.manager.grid.DocumentConstants;
 import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateMetadataChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
@@ -54,6 +63,7 @@ import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializabl
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.InsertObjectBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewConstantBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.NewObjectBuilder;
+import org.sagebionetworks.repo.model.grid.patch.operation.builder.OperationBuilder;
 import org.sagebionetworks.repo.model.grid.patch.operation.builder.Operations;
 import org.sagebionetworks.repo.model.grid.query.SelectByName;
 import org.sagebionetworks.repo.model.grid.query.ValidationOperator;
@@ -65,6 +75,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ClasspathUtil;
 import org.semver4j.Semver;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1277,6 +1288,49 @@ public class GridReplicaViewManagerImplAutowireTest {
 		List<RowView> page = gridViewManager.querySinglePage(header, List.of(), 100L, 0L);
 		assertEquals(7, page.size());
 	}
+	
+	@ParameterizedTest
+	@MethodSource("provideValidationQueries")
+	void testQueryWithIncludeValidationMessages(QueryElement query) throws IOException {
+
+		schema = List.of(new ColumnModel().setName("aString").setColumnType(ColumnType.STRING).setMaximumSize(100L));
+
+		rows = List.of(new Row().setValues(List.of("a")));
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+		List<RowView> rowViews = gridViewManager.querySinglePage(header, new QueryElement());
+		rowViews.forEach((r) -> {
+			LogicalTimestamp clock = gridIndexManger.getClock(sessionId, replicaId).get(0);
+			writeValidationState(r, clock,
+					new ValidationResults().setIsValid(false).setValidationErrorMessage("baseMessage")
+							.setAllValidationMessages(List.of("messageOne", "messageTwo")));
+		});
+
+		// call under test
+		QueryResult results = gridViewManager.querySinglePageAsQueryResult(header, query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(1, results.getRows().size());
+		org.sagebionetworks.repo.model.grid.query.result.Row row = results.getRows().get(0);
+		assertNotNull(row);
+		if (query.getIncludeValidationMessages() == null || query.getIncludeValidationMessages() == false) {
+			assertEquals(
+					new org.sagebionetworks.repo.model.grid.query.result.ValidationResults().setIsValid(false)
+							.setValidationErrorMessage("baseMessage").setAllValidationMessages(null),
+					row.getValidationResults());
+		} else {
+			assertEquals(new org.sagebionetworks.repo.model.grid.query.result.ValidationResults().setIsValid(false)
+					.setValidationErrorMessage("baseMessage")
+					.setAllValidationMessages(List.of("messageOne", "messageTwo")), row.getValidationResults());
+		}
+	}
+
+	private static Stream<Arguments> provideValidationQueries() {
+		return Stream.of(Arguments.of(new QueryElement().setIncludeValidationMessages(null)),
+				Arguments.of(new QueryElement().setIncludeValidationMessages(true)),
+				Arguments.of(new QueryElement().setIncludeValidationMessages(false)));
+	}
 
 	/**
 	 * Helper function to apply the provided rows as a set of patches to the replica
@@ -1300,6 +1354,33 @@ public class GridReplicaViewManagerImplAutowireTest {
 				patchRowHandler.nextRow(r);
 			});
 		}
+	}
+	
+	void writeValidationState(RowView row, LogicalTimestamp clock, ValidationResults newValidationResults) {
+		RowObject rowObject = row.getRowObject();
+		RowMetadata rowMetadata = row.getRowMetadata();
+		JSONObject validationState;
+		try {
+			validationState = EntityFactory.createJSONObjectForEntity(newValidationResults);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		LogicalTimestamp rowObjectId = rowObject != null ? rowObject.getObjectId() : null;
+		LogicalTimestamp metadataObjectId = rowMetadata != null ? rowMetadata.getObjectId() : null;
+
+		Patch patch = new Patch().setPatchId(LogicalTimestamp.newIncrement(clock, 1));
+
+		if (metadataObjectId == null) {
+			metadataObjectId = patch.addNewOperation(Operations.newObject());
+			patch.addNewOperation(Operations.insertObject().setObjectId(rowObjectId)
+					.setMap(Map.of(DocumentConstants.METADATA, metadataObjectId)));
+		}
+		LogicalTimestamp conId = patch
+				.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.JSON_OBJECT, validationState)));
+		patch.addNewOperation(Operations.insertObject().setObjectId(metadataObjectId)
+				.setMap(Map.of(DocumentConstants.ROW_VALIDATION, conId)));
+
+		gridIndexManger.applyPatch(sessionId, patch.getPatchId().getReplicaId(), patch);
 	}
 
 }

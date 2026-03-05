@@ -10,7 +10,7 @@ public class UserInfoHelpTest {
 
 	@Test
 	public void testIsCertified() {
-		assertTrue(UserInfoHelper.isCertified(UserInfoTestHelper.createUserInfo(false, BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId())));
+		assertTrue(UserInfoHelper.isCertified(UserInfoTestHelper.createCertifiedUserInfo(false, true)));
 		
 		assertFalse(UserInfoHelper.isCertified(UserInfoTestHelper.createUserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())));
 	}

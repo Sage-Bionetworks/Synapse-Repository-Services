@@ -108,7 +108,7 @@ public class StsManagerImplAutowiredTest {
 		user.setEmail(username + "@test.com");
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		// Create a test project which we will need.
 		Project project = new Project();

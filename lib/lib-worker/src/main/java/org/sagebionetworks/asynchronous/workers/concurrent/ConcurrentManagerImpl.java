@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.concurrent;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -106,7 +107,7 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 
 	@Override
 	public List<WorkerJob> pollForMessagesAndStartJobs(String queueUrl, int maxNumberOfMessages,
-			int messageVisibilityTimeoutSec, MessageDrivenRunner worker) {
+			int messageVisibilityTimeoutSec, MessageDrivenRunner worker, boolean isFifoQueue) {
 		ValidateArgument.required(queueUrl, "queueUrl");
 		ValidateArgument.required(worker, "worker");
 		ValidateArgument.requirement(maxNumberOfMessages >= 1,
@@ -116,23 +117,37 @@ public class ConcurrentManagerImpl implements ConcurrentManager {
 		ValidateArgument.requirement(messageVisibilityTimeoutSec >= 10,
 				"messageVisibilityTimeoutSec must be greater than or equals to 10.");
 
-		ReceiveMessageRequest request = new ReceiveMessageRequest()
-			.withQueueUrl(queueUrl)
-			.withWaitTimeSeconds(0)
-			.withMaxNumberOfMessages(maxNumberOfMessages)
-			.withVisibilityTimeout(messageVisibilityTimeoutSec); 
-		
-		if (worker.getMessageAttributeNames() != null && !worker.getMessageAttributeNames().isEmpty()) {
-			request.withMessageAttributeNames(worker.getMessageAttributeNames());
+		// Requesting `n` messages for a FIFO queue may return messages with the same MessageGroupId
+		// Instead, receive 1 message `n` times, which ensures in-order processing
+		// SQS will not provide the next message in the group until the previous message is deleted or its visibility timeout expires.
+		int requestCount = isFifoQueue ? maxNumberOfMessages : 1;
+		int messagesPerRequest = isFifoQueue ? 1 : maxNumberOfMessages;
+
+		List<WorkerJob> jobs = new ArrayList<>(maxNumberOfMessages);
+
+		for (int i = 0; i < requestCount; i++) {
+			ReceiveMessageRequest request = new ReceiveMessageRequest()
+					.withQueueUrl(queueUrl)
+					.withWaitTimeSeconds(0)
+					.withMaxNumberOfMessages(messagesPerRequest)
+					.withVisibilityTimeout(messageVisibilityTimeoutSec);
+
+			if (worker.getMessageAttributeNames() != null && !worker.getMessageAttributeNames().isEmpty()) {
+				request.withMessageAttributeNames(worker.getMessageAttributeNames());
+			}
+
+			// Poll for messages.
+			List<Message> messages = amazonSQSClient.receiveMessage(request).getMessages();
+			if (messages.isEmpty()) {
+				break;
+			}
+			// For each message, start a new job and add it to the list of jobs to return.
+			jobs.addAll(messages.stream()
+					.map((message) -> startWorkerJob(queueUrl, messageVisibilityTimeoutSec, worker, message))
+					.collect(Collectors.toList())
+			);
 		}
-		
-		// Poll for the requested number of messages.
-		List<Message> messages = amazonSQSClient.receiveMessage(request).getMessages();
-		
-		// For each message start a new job.
-		return messages.stream().map((message) -> {
-			return startWorkerJob(queueUrl, messageVisibilityTimeoutSec, worker, message);
-		}).collect(Collectors.toList());
+		return jobs;
 	}
 
 	/**

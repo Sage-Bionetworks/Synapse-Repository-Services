@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -62,12 +63,19 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 
 	private static final String GRID_INDEX_VIEW_TEMPLATE = loadStringFromClasspath("grid/grid-index-view-template.sql");
 
-	private static final Function<List<String>, RowMapper<RowView>> createRowViewMapper = (List<String> orderedSelectColumnName) -> (ResultSet rs, int rowNum) -> {
+	private static final BiFunction<Boolean, List<String>, RowMapper<RowView>> createRowViewMapper = (Boolean includeValidationMessages,List<String> orderedSelectColumnName) -> (ResultSet rs, int rowNum) -> {
 		List<ConstantNode> rowDataConNodes = new ArrayList<>();
 		JSONArray selectedVals = new JSONArray(rs.getString("SELECTED_VALS"));
 		for (int i = 0; i < selectedVals.length(); i++) {
 			if (selectedVals.optJSONObject(i) != null) {
 				rowDataConNodes.add(getConstantNodeFromVectorNodeJson(selectedVals.getJSONObject(i)));
+			}
+		}
+		ValidationResults validationResults = JDOSecondaryPropertyUtils
+				.createObjectFromJSON(ValidationResults.class, rs.getString("VAL_RES"));
+		if(!Boolean.TRUE.equals(includeValidationMessages)) {
+			if(validationResults != null) {
+				validationResults.setAllValidationMessages(null);
 			}
 		}
 		return new RowView().setArrNodeId(readNullableTimestamp(rs, "AN_REP", "AN_SEQ"))
@@ -76,8 +84,7 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 						.setObjectId(readNullableTimestamp(rs, "RO_REP", "RO_SEQ"))
 						.setMetadata(new RowMetadata().setObjectId(readNullableTimestamp(rs, "MO_REP", "MO_SEQ"))
 								.setRowValidation(new RowValidation()
-										.setValidationResults(JDOSecondaryPropertyUtils
-												.createObjectFromJSON(ValidationResults.class, rs.getString("VAL_RES")))
+										.setValidationResults(validationResults)
 										.setConstantId(readNullableTimestamp(rs, "RVC_REP", "RVC_SEQ")))
 								.setSynapseRow(new SynapseRow().setFromJSON(rs.getString("SYN_ROW"))
 										.setConstantId(readNullableTimestamp(rs, "SRC_REP", "SRC_SEQ"))))
@@ -171,7 +178,7 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 		// Choose the appropriate mapper based on whether the query is aggregate
 		RowMapper<RowView> mapper = query.isAggregate()
 				? createRowViewAggregationMapper.apply(columnNames)
-				: createRowViewMapper.apply(columnNames);
+				: createRowViewMapper.apply(query.getIncludeValidationMessages(), columnNames);
 		return gridIndexDao.query(sql, new MapSqlParameterSource(params), mapper);
 	}
 

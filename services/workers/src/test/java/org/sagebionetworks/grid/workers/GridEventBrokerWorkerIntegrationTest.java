@@ -38,10 +38,12 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -60,6 +62,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -70,6 +73,8 @@ import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.EventSource;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
@@ -114,6 +119,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.amazonaws.services.s3.model.GetObjectRequest;
+
 import au.com.bytecode.opencsv.CSVReader;
 
 @ExtendWith(SpringExtension.class)
@@ -123,6 +129,38 @@ public class GridEventBrokerWorkerIntegrationTest {
 	private static final long INTERNAL_REPLICA_ID = 66534L;
 
 	public static final long MAX_WAIT_MS = 120_000;
+
+	/**
+	 * The number of secondary websocket connections to create for measuring patch broadcast performance.
+	 */
+	private static final int SECONDARY_CONNECTION_COUNT = 5;
+
+	/**
+	 * Helper class to hold a secondary connection's replica, websocket, and message queue together.
+	 */
+	static class SecondaryConnection {
+		private final GridReplica replica;
+		private final WebSocket webSocket;
+		private final BlockingQueue<String> incomingMessages;
+
+		SecondaryConnection(GridReplica replica, WebSocket webSocket, BlockingQueue<String> incomingMessages) {
+			this.replica = replica;
+			this.webSocket = webSocket;
+			this.incomingMessages = incomingMessages;
+		}
+
+		GridReplica replica() {
+			return replica;
+		}
+
+		WebSocket webSocket() {
+			return webSocket;
+		}
+
+		BlockingQueue<String> incomingMessages() {
+			return incomingMessages;
+		}
+	}
 
 	@Autowired
 	private GridService gridService;
@@ -162,6 +200,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 	
 	@Autowired
 	private AccessControlListObjectHelper aclHelper;
+	
+	@Autowired
+	private GridDao gridDao;
 
 	private UserInfo admin;
 
@@ -226,7 +267,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 					assertNotNull(response.getGridSession());
 				}, MAX_WAIT_MS).getResponse().getGridSession();
 
-		// Create replica One
+		// Create replica One (the primary replica that sends patches)
 		GridReplica replicaOne = gridService
 				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
 				.getReplica();
@@ -241,80 +282,73 @@ public class GridEventBrokerWorkerIntegrationTest {
 		WebSocket wsOne = createConnection(urlOne, incomingMessagesOne);
 		waitForConnected(incomingMessagesOne);
 
-		// Create replica two.
-		GridReplica replicaTwo = gridService
-				.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
-				.getReplica();
+		// Create n secondary connections to measure patch broadcast performance
+		List<SecondaryConnection> secondaryConnections = createSecondaryConnections(session, SECONDARY_CONNECTION_COUNT);
 
-		String urlTwo = gridService
-				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
-						.setGridSessionId(session.getSessionId()).setReplicaId(replicaTwo.getReplicaId()))
-				.getPresignedUrl();
-		assertNotNull(urlOne);
+		try {
+			// Replica one sends a patch.
+			String patchBody = String.format("[[[%d,1]],[0]]", replicaOne.getReplicaId());
+			String patchRequest = String.format("[1,101,\"patch\", %s]", patchBody);
+			wsOne.send(patchRequest);
 
-		BlockingQueue<String> incomingMessagesTwo = new LinkedBlockingQueue<>();
-		WebSocket wsTwo = createConnection(urlTwo, incomingMessagesTwo);
-		waitForConnected(incomingMessagesTwo);
+			// Wait for response complete: [5,101]
+			assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 101, incomingMessagesOne));
 
-		// Replica one sends a patch.
-		String patchBody = String.format("[[[%d,1]],[0]]", replicaOne.getReplicaId());
-		String patchRequest = String.format("[1,101,\"patch\", %s]", patchBody);
-		wsOne.send(patchRequest);
+			// send a second patch;
+			patchBody = String.format("[[[%d,4]],[0]]", replicaOne.getReplicaId());
+			patchRequest = String.format("[1,102,\"patch\", %s]", patchBody);
+			wsOne.send(patchRequest);
 
-		// Wait for response complete: [5,101]
-		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 101, incomingMessagesOne));
+			// Wait for response complete: [5,102]
+			assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 102, incomingMessagesOne));
 
-		// send a second patch;
-		patchBody = String.format("[[[%d,4]],[0]]", replicaOne.getReplicaId());
-		patchRequest = String.format("[1,102,\"patch\", %s]", patchBody);
-		wsOne.send(patchRequest);
-
-		// Wait for response complete: [5,102]
-		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 102, incomingMessagesOne));
-
-		// The second replica should be notified of two patches
-		assertTrue(waitForMessage((a) -> a.optInt(0) == 8 && "new-patch".equals(a.optString(1)), incomingMessagesTwo));
-		assertTrue(waitForMessage((a) -> a.optInt(0) == 8 && "new-patch".equals(a.optString(1)), incomingMessagesTwo));
-
-		// Two's clock is currently empty so start a synchronize.
-		wsTwo.send("[1,99,\"synchronize-clock\",[]]");
-
-		List<LogicalTimestamp> clock = new ArrayList<>();
-		assertTrue(waitForMessage((a) -> {
-			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				JSONObject body = a.getJSONObject(2);
-				assertEquals("patch", body.getString("type"), "Expected patch type for empty grid");
-				Patch p = PatchCompactSerializable.deserialize(body.getJSONArray("body"));
-				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
-				return true;
-			} else {
-				return false;
+			// All secondary replicas should be notified of two patches
+			for (SecondaryConnection conn : secondaryConnections) {
+				assertTrue(waitForMessage((a) -> a.optInt(0) == 8 && "new-patch".equals(a.optString(1)), conn.incomingMessages()),
+						"Secondary connection " + conn.replica().getReplicaId() + " should receive first new-patch notification");
+				assertTrue(waitForMessage((a) -> a.optInt(0) == 8 && "new-patch".equals(a.optString(1)), conn.incomingMessages()),
+						"Secondary connection " + conn.replica().getReplicaId() + " should receive second new-patch notification");
 			}
-		}, incomingMessagesTwo));
 
-		// after applying the patch update the clock and synchronize again.
-		String newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
-		wsTwo.send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
+			// Use the first secondary connection for synchronization test
+			SecondaryConnection firstSecondary = secondaryConnections.get(0);
 
-		clock.clear();
-		assertTrue(waitForMessage((a) -> {
-			if (a.optInt(0) == 4 && a.optInt(1) == 99) {
-				JSONObject body = a.getJSONObject(2);
-				assertEquals("patch", body.getString("type"), "Expected patch type for empty grid");
-				Patch p = PatchCompactSerializable.deserialize(body.getJSONArray("body"));
-				clock.add(LogicalTimestamp.newIncrement(p.getPatchId(), p.getSpan()));
-				return true;
-			} else {
-				return false;
-			}
-		}, incomingMessagesTwo));
+			// First secondary's clock is currently empty so start a synchronize.
+			firstSecondary.webSocket().send("[1,99,\"synchronize-clock\",[]]");
 
-		// after the second sync, replica two should be up-to-date.
-		newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
-		wsTwo.send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
+			List<LogicalTimestamp> clock = new ArrayList<>();
+			assertTrue(waitForMessage((a) -> {
+				if (a.optInt(0) == 4 && a.optInt(1) == 99) {
+					JSONObject body = a.getJSONObject(2);
+					assertEquals("patches", body.getString("type"), "Expected multiple patches to be returned");
+					JSONArray patches = body.getJSONArray("body");
+					Patch lastPatch = PatchCompactSerializable.deserialize(patches.getJSONArray(patches.length() - 1));
+					clock.add(LogicalTimestamp.newIncrement(lastPatch.getPatchId(), lastPatch.getSpan()));
+					return true;
+				} else {
+					return false;
+				}
+			}, firstSecondary.incomingMessages()));
 
-		assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 99, incomingMessagesTwo));
+			// after the second sync, first secondary should be up-to-date.
+			String newClock = LogicalTimestampCompactSerializable.serializeClock(clock).toString();
+			firstSecondary.webSocket().send(String.format("[1,99,\"synchronize-clock\",%s]", newClock));
 
+			assertTrue(waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == 99, firstSecondary.incomingMessages()));
+		} finally {
+			// Clean up all connections
+			wsOne.close();
+			closeAllConnections(secondaryConnections);
+		}
+		
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<GridConnectionInfo> webSocketConnections = gridDao.listConnections(session.getSessionId()).stream()
+					.filter(c -> EventSource.WEBSOCKET.equals(c.getSource())).collect(Collectors.toList());
+			System.out.println(
+					"waiting for connections to drain. Current connection count: " + webSocketConnections.size());
+			return Pair.create(webSocketConnections.size() == 0, null);
+		});
+		
 	}
 
 	@Test
@@ -541,7 +575,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 			if (header.isEmpty()) {
 				return Pair.create(false, null);
 			}
-			List<RowView> rows = gridViewManager.querySinglePage(header.get(), 100L, 0L);
+			List<RowView> rows = gridViewManager.querySinglePage(header.get(),
+					new QueryElement().setIncludeValidationMessages(true));
 			if (rows.size() != 1) {
 				return Pair.create(false, null);
 			}
@@ -1005,6 +1040,48 @@ public class GridEventBrokerWorkerIntegrationTest {
 				new CreateSchemaRequest().setDryRun(false).setSchema(jsonSchema), (CreateSchemaResponse response) -> {
 					assertNotNull(response);
 				}, MAX_WAIT_MS).getResponse();
+	}
+
+	/**
+	 * Create n secondary websocket connections to the given grid session.
+	 * 
+	 * @param session The grid session to connect to
+	 * @param count The number of secondary connections to create
+	 * @return List of SecondaryConnection objects
+	 * @throws URISyntaxException
+	 */
+	List<SecondaryConnection> createSecondaryConnections(GridSession session, int count) throws URISyntaxException, InterruptedException {
+		List<SecondaryConnection> connections = new ArrayList<>();
+		for (int i = 0; i < count; i++) {
+			GridReplica replica = gridService
+					.createReplica(admin.getId(), new CreateReplicaRequest().setGridSessionId(session.getSessionId()))
+					.getReplica();
+
+			String url = gridService
+					.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
+							.setGridSessionId(session.getSessionId()).setReplicaId(replica.getReplicaId()))
+					.getPresignedUrl();
+
+			BlockingQueue<String> incomingMessages = new LinkedBlockingQueue<>();
+			WebSocket ws = createConnection(url, incomingMessages);
+			waitForConnected(incomingMessages);
+
+			connections.add(new SecondaryConnection(replica, ws, incomingMessages));
+		}
+		return connections;
+	}
+
+	/**
+	 * Close all websocket connections in the given list.
+	 * 
+	 * @param connections List of SecondaryConnection objects to close
+	 */
+	void closeAllConnections(List<SecondaryConnection> connections) {
+		for (SecondaryConnection conn : connections) {
+			if (conn.webSocket() != null) {
+				conn.webSocket().close();
+			}
+		}
 	}
 
 	/**

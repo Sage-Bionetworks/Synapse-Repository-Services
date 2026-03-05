@@ -246,6 +246,86 @@ public class EntityViewSourceHandlerTest {
 	}
 
 	@Test
+	public void testGetRowReaderWithNullJsonSchemaRequired() throws Exception {
+		List<String> requiredColumns = null;
+		when(mockJsonSchema.getRequired()).thenReturn(null);
+
+		List<ColumnModel> schema = List.of(
+				// aString
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
+				// anInt
+				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
+
+		List<Row> rows = List.of(
+				// 3
+				new Row().setRowId(3L).setVersionNumber(0L).setEtag("e1").setValues(Arrays.asList("c", null)),
+				// 5
+				new Row().setRowId(5L).setValues(Arrays.asList(null, null)));
+
+		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
+			 // call under test
+			 RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			List<RowSourceItem> results = StreamSupport
+					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
+
+			assertEquals(List.of(
+					// 3
+					new RowSourceItem(
+							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
+									new ConValue(ConType.UNDEFINED, null))),
+							"syn3", new SynapseRow().setRowId(3L).setVersionNumber(0L).setEtag("e1")),
+					// 5
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+							new ConValue(ConType.UNDEFINED, null))), "syn5", new SynapseRow().setRowId(5L))
+
+			), results);
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
+	public void testGetRowReaderWithEmptyJsonSchemaRequired() throws Exception {
+		List<String> requiredColumns = null;
+		when(mockJsonSchema.getRequired()).thenReturn(Collections.emptyList());
+
+		List<ColumnModel> schema = List.of(
+				// aString
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
+				// anInt
+				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
+
+		List<Row> rows = List.of(
+				// 3
+				new Row().setRowId(3L).setVersionNumber(0L).setEtag("e1").setValues(Arrays.asList("c", null)),
+				// 5
+				new Row().setRowId(5L).setValues(Arrays.asList(null, null)));
+
+		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
+			 // call under test
+			 RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			List<RowSourceItem> results = StreamSupport
+					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
+
+			assertEquals(List.of(
+					// 3
+					new RowSourceItem(
+							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
+									new ConValue(ConType.UNDEFINED, null))),
+							"syn3", new SynapseRow().setRowId(3L).setVersionNumber(0L).setEtag("e1")),
+					// 5
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+							new ConValue(ConType.UNDEFINED, null))), "syn5", new SynapseRow().setRowId(5L))
+
+			), results);
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
 	public void testGetCurrentSchema() throws Exception {
 		List<ColumnModel> schema = List.of(
 				// aString

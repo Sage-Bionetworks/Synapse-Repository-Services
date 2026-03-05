@@ -41,16 +41,14 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
@@ -88,9 +86,7 @@ public class AccessApprovalManagerImplUnitTest {
 	@Mock
 	private VerificationDAO mockVerificationDao;
 	@Mock
-	private GroupMembersDAO mockgroupMembersDao;
-	@Mock
-	private NodeDAO nodeDao;
+	private CertifiedUsersDAO mockCertifiedUsersDao;
 	@Mock
 	private UserManager mockUserManager;
 	
@@ -878,10 +874,7 @@ public class AccessApprovalManagerImplUnitTest {
 		HasAccessorRequirement req = new SelfSignAccessRequirement();
 		req.setIsCertifiedUserRequired(true);
 		req.setIsValidatedProfileRequired(false);
-		when(mockgroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				accessors))
-				.thenReturn(false);
+		when(mockCertifiedUsersDao.areAllCertifiedUsers(accessors)).thenReturn(false);
 		assertThrows(UserCertificationRequiredException.class, ()-> {
 			// call under test
 			manager.validateHasAccessorRequirement(req, accessors);
@@ -899,7 +892,7 @@ public class AccessApprovalManagerImplUnitTest {
 			// call under test
 			manager.validateHasAccessorRequirement(req, accessors);
 		});
-		verifyZeroInteractions(mockgroupMembersDao);
+		verifyZeroInteractions(mockCertifiedUsersDao);
 	}
 
 	@Test
@@ -907,10 +900,7 @@ public class AccessApprovalManagerImplUnitTest {
 		HasAccessorRequirement req = new SelfSignAccessRequirement();
 		req.setIsCertifiedUserRequired(true);
 		req.setIsValidatedProfileRequired(true);
-		when(mockgroupMembersDao.areMemberOf(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				accessors))
-				.thenReturn(true);
+		when(mockCertifiedUsersDao.areAllCertifiedUsers(accessors)).thenReturn(true);
 		when(mockVerificationDao.haveValidatedProfiles(accessors)).thenReturn(true);
 		// call under test
 		manager.validateHasAccessorRequirement(req, accessors);
@@ -923,7 +913,7 @@ public class AccessApprovalManagerImplUnitTest {
 		req.setIsValidatedProfileRequired(false);
 		// call under test
 		manager.validateHasAccessorRequirement(req, accessors);
-		verifyZeroInteractions(mockgroupMembersDao);
+		verifyZeroInteractions(mockCertifiedUsersDao);
 		verifyZeroInteractions(mockVerificationDao);
 	}
 	

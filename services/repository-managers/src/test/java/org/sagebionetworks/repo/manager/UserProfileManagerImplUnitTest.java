@@ -73,10 +73,6 @@ public class UserProfileManagerImplUnitTest {
 	@Mock
 	UserProfileDAO mockProfileDAO;
 	@Mock
-	UserGroupDAO mockUserGroupDAO;
-	@Mock
-	UserManager mockUserManager;
-	@Mock
 	FavoriteDAO mockFavoriteDAO;
 	@Mock
 	PrincipalAliasDAO mockPrincipalAliasDAO;
@@ -153,16 +149,15 @@ public class UserProfileManagerImplUnitTest {
 		alias.setType(AliasType.USER_OPEN_ID);
 		aliases.add(alias);
 		caller = UserInfoTestHelper.createUserInfo(false, 123L);
-		callersGroups = Sets.newHashSet(1L, 2L, 3L, caller.getId(),
+		callersGroups = Sets.newHashSet(1L, 2L, caller.getId(),
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		caller.setGroups(callersGroups);
+		caller.setCertified(true);
 		userToGetForGroups = Sets.newHashSet(4L, 5L, 6L,
 				userToGetFor.getId(),
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		teamToFetchId = null;
 		type = ProjectListType.CREATED;
 		sortColumn = ProjectListSortColumn.LAST_ACTIVITY;
@@ -366,11 +361,10 @@ public class UserProfileManagerImplUnitTest {
 		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublic(caller);
 		// should get a new copy
 		assertFalse(results == caller.getGroups());
-		assertEquals(caller.getGroups().size()-3, results.size());
+		assertEquals(caller.getGroups().size()-2, results.size());
 		// the following groups should have been removed.
 		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
-		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		// The user's id should still be in the set
 		assertTrue(results.contains(caller.getId()));
 	}
@@ -380,11 +374,10 @@ public class UserProfileManagerImplUnitTest {
 		Set<Long> results = UserProfileManagerImpl.getGroupsMinusPublicAndSelf(caller);
 		// should get a new copy
 		assertFalse(results == caller.getGroups());
-		assertEquals(caller.getGroups().size()-4, results.size());
+		assertEquals(caller.getGroups().size()-3, results.size());
 		// the following groups should have been removed.
 		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
-		assertFalse(results.contains(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		// The user's id should also be removed
 		assertFalse(results.contains(caller.getId()));
 	}

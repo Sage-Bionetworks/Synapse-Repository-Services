@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -51,6 +52,7 @@ public class UserManagerImpl implements UserManager {
 	private final UserGroupDAO userGroupDAO;
 	private final UserProfileDAO userProfileDAO;
 	private final GroupMembersDAO groupMembersDAO;
+	private final CertifiedUsersDAO certifiedUsersDAO;
 	private final AuthenticationDAO authDAO;
 	private final PrincipalAliasDAO principalAliasDAO;
 	private final NotificationEmailDAO notificationEmailDao;
@@ -68,7 +70,7 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO,
 			AuthenticationDAO authDAO, PrincipalAliasDAO principalAliasDAO, NotificationEmailDAO notificationEmailDao,
-			PrincipalOIDCBindingDao principalOIDCBindingDao,
+			PrincipalOIDCBindingDao principalOIDCBindingDao, CertifiedUsersDAO certifiedUsersDAO,
 			DBOBasicDao basicDAO, UserStatusDao userStatusDao, RealmDao realmDao) {
 		super();
 		this.userGroupDAO = userGroupDAO;
@@ -78,6 +80,7 @@ public class UserManagerImpl implements UserManager {
 		this.principalAliasDAO = principalAliasDAO;
 		this.notificationEmailDao = notificationEmailDao;
 		this.principalOidcBindingDao = principalOIDCBindingDao;
+		this.certifiedUsersDAO = certifiedUsersDAO;
 		this.userStatusDao = userStatusDao;
 		this.basicDAO = basicDAO;
 		this.realmDao=realmDao;
@@ -251,6 +254,7 @@ public class UserManagerImpl implements UserManager {
 		ui.setRealmAuthenticatedUsersId(Long.valueOf(realmPrincipals.getAuthenticatedUsers()));
 		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
+		ui.setCertified(certifiedUsersDAO.isCertifiedUser(principalId.toString()));
 		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
 		return ui;
 	}

@@ -28,24 +28,21 @@ public class ReplicaChangeSet {
 	private final String sessionId;
 	private final Long replicaId;
 	private final ChangeSource changeSource;
-	private final LogicalTimestamp patchId;
 	private final Map<IndexType, Set<LogicalTimestamp>> changes;
 
-	private ReplicaChangeSet(String sessionId, Long replicaId, LogicalTimestamp patchId, Map<IndexType, Set<LogicalTimestamp>> changes, ChangeSource changeSource) {
+	private ReplicaChangeSet(String sessionId, Long replicaId, Map<IndexType, Set<LogicalTimestamp>> changes, ChangeSource changeSource) {
 		this.sessionId = sessionId;
 		this.replicaId = replicaId;
-		this.patchId = patchId;
 		this.changes = changes;
 		this.changeSource = changeSource;
 	}
 
-	public static ReplicaChangeSet fromPatch(GridConnectionInfo connection, LogicalTimestamp patchId,
-			Map<IndexType, Set<LogicalTimestamp>> changes) {
-		return new ReplicaChangeSet(connection.getSessionId(), connection.getReplicaId(), patchId, changes,	ChangeSource.PATCH);
+	public static ReplicaChangeSet fromPatch(GridConnectionInfo connection, Map<IndexType, Set<LogicalTimestamp>> changes) {
+		return new ReplicaChangeSet(connection.getSessionId(), connection.getReplicaId(), changes,	ChangeSource.PATCH);
 	}
 
 	public static ReplicaChangeSet fromSnapshot(GridConnectionInfo connection) {
-		return new ReplicaChangeSet(connection.getSessionId(), connection.getReplicaId(), null, Collections.emptyMap(), ChangeSource.SNAPSHOT);
+		return new ReplicaChangeSet(connection.getSessionId(), connection.getReplicaId(), Collections.emptyMap(), ChangeSource.SNAPSHOT);
 	}
 
 	public ReplicaChangeSet(String jsonString) {
@@ -55,8 +52,6 @@ public class ReplicaChangeSet {
 	public ReplicaChangeSet(JSONObject json) {
 		this.sessionId = json.getString("sessionId");
 		this.replicaId = json.getLong("replicaId");
-		JSONArray patchIdArray = json.optJSONArray("patchId");
-		this.patchId = patchIdArray != null ? LogicalTimestampCompactSerializable.deserialize(patchIdArray) : null;
 		String changeSourceStr = json.optString("changeSource", null);
 		this.changeSource = changeSourceStr != null ? ChangeSource.valueOf(changeSourceStr) : null;
 		JSONObject changeObj = json.optJSONObject("changes");
@@ -79,9 +74,6 @@ public class ReplicaChangeSet {
 		json.put("sessionId", sessionId);
 		json.put("replicaId", replicaId);
 		json.put("changeSource", changeSource.name());
-		if (patchId != null) {
-			json.put("patchId", LogicalTimestampCompactSerializable.serialize(patchId));
-		}
 		if (changes != null) {
 			JSONObject changesObj = new JSONObject();
 			changes.forEach((k, s) -> {
@@ -102,10 +94,6 @@ public class ReplicaChangeSet {
 		return replicaId;
 	}
 
-	public LogicalTimestamp getPatchId() {
-		return patchId;
-	}
-
 	public Map<IndexType, Set<LogicalTimestamp>> getChanges() {
 		return changes;
 	}
@@ -116,7 +104,7 @@ public class ReplicaChangeSet {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changes, changeSource, patchId, replicaId, sessionId);
+		return Objects.hash(changes, changeSource, replicaId, sessionId);
 	}
 
 	@Override
@@ -129,8 +117,7 @@ public class ReplicaChangeSet {
 			return false;
 		ReplicaChangeSet other = (ReplicaChangeSet) obj;
 		return Objects.equals(changes, other.changes) && changeSource == other.changeSource
-				&& Objects.equals(patchId, other.patchId) && Objects.equals(replicaId, other.replicaId)
-				&& Objects.equals(sessionId, other.sessionId);
+				&& Objects.equals(replicaId, other.replicaId) && Objects.equals(sessionId, other.sessionId);
 	}
 
 	@Override

@@ -96,11 +96,12 @@ public class UsersEntityPermissionsDaoImplTest {
 			u.setIsIndividual(false);
 		}).getId());
 
-		Set<Long> userOneGroups = Sets.newHashSet(userOneId, teamOneId, BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId(),
+		Set<Long> userOneGroups = Sets.newHashSet(userOneId, teamOneId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		userOne = new UserInfo(false, userOneId, AuthorizationConstants.DEFAULT_REALM_ID);
 		userOne.setGroups(userOneGroups);
+		userOne.setCertified(true);
 		userOne.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		userOne.setRealmAuthenticatedUsersId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		userOne.setRealmPublicUsersId(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());

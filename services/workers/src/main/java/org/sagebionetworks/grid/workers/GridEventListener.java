@@ -1,7 +1,9 @@
 package org.sagebionetworks.grid.workers;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.grid.workers.message.ConnectionMessage;
 import org.sagebionetworks.grid.workers.message.DisconnectedMessage;
@@ -72,14 +74,13 @@ public class GridEventListener {
 			 * This is a new patch so let all other connected replicas know there is a new
 			 * patch.
 			 */
-			manager.listActiveConnections(message.getContext().getConnectionId()).stream()
+			List<EventContext> contexts = manager.listActiveConnections(message.getContext().getConnectionId()).stream()
 					// exclude the caller from the patch notification.
 					.filter(Predicate.not(c -> message.getContext().getConnectionId().equals(c.getConnectionId())))
-					.forEach(c -> {
-						publisher.publishEventResponse(
-								new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()),
-								JsonRxMessageType.Notification, "new-patch");
-					});
+					.map(c -> new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()))
+					.collect(Collectors.toList());
+			
+			publisher.publishEventResponses(contexts, JsonRxMessageType.Notification, "new-patch");
 		}
 	}
 
