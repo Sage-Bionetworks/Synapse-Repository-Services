@@ -49,7 +49,7 @@ jobs:
           if [ ${{ vars.USER }} ]; then
             USER=${{ vars.USER }}
           else
-            alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | cut -c1-7)
+            alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
             USER=$alpha_only_trunc_repo_name
           fi
           echo "USER=$USER" >> $GITHUB_OUTPUT
