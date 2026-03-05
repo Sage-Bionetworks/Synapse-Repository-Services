@@ -1,0 +1,16 @@
+{
+	"description": "Response for listing text analyzers.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The list of text analyzers.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.TextAnalyzer"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Pagination token for the next page, or null if no more results."
+		}
+	}
+}

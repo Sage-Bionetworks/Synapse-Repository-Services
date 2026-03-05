@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.MaterializedView;
 import org.sagebionetworks.repo.model.table.SubmissionView;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.VirtualTable;
+import org.sagebionetworks.repo.model.table.search.SearchIndex;
 
 /**
  * Utilities for entity type.
@@ -72,8 +73,10 @@ public class EntityTypeUtils {
 				// materialized view
 				buildMetadata(EntityType.materializedview, Arrays.asList(Project.class.getName(), Folder.class.getName()), MaterializedView.class, "Materialized View"),
 				// virtual table
-				buildMetadata(EntityType.virtualtable, Arrays.asList(Project.class.getName(), Folder.class.getName()), VirtualTable.class, "Virtual Table")
-				
+				buildMetadata(EntityType.virtualtable, Arrays.asList(Project.class.getName(), Folder.class.getName()), VirtualTable.class, "Virtual Table"),
+				// search index
+				buildMetadata(EntityType.searchindex, Arrays.asList(Project.class.getName(), Folder.class.getName()), SearchIndex.class, "Search Index")
+
 		};
 
 		className = new HashMap<String, Class<? extends Entity>>();
@@ -90,6 +93,7 @@ public class EntityTypeUtils {
 		className.put(MaterializedView.class.getName(), MaterializedView.class);
 		className.put(VirtualTable.class.getName(), VirtualTable.class);
 		className.put(RecordSet.class.getName(), RecordSet.class);
+		className.put(SearchIndex.class.getName(), SearchIndex.class);
 		
 		fileTypes = new ArrayList<>();
 		

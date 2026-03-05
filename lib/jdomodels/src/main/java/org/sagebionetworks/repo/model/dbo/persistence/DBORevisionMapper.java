@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_CONFIGURATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_UPSERT_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
@@ -69,6 +70,7 @@ public class DBORevisionMapper implements RowMapper<DBORevision> {
 			rev.setIsSearchEnabled(null);
 		}
 		rev.setDefiningSQL(rs.getString(COL_REVISION_DEFINING_SQL));
+		rev.setSearchConfigurationId(rs.getString(COL_REVISION_SEARCH_CONFIGURATION_ID));
 		if(includeAnnotations){
 			rev.setUserAnnotationsJSON(rs.getString(COL_REVISION_USER_ANNOS_JSON));
 			rev.setEntityPropertyAnnotations(rs.getBytes(COL_REVISION_ENTITY_PROPERTY_ANNOTATIONS_BLOB));

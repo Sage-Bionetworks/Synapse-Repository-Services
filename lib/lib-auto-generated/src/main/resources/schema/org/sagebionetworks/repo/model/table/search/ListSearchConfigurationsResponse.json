@@ -1,0 +1,16 @@
+{
+	"description": "Response containing a page of search configurations.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The list of search configurations for this page.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.SearchConfiguration"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Token for the next page of results, if more results exist."
+		}
+	}
+}

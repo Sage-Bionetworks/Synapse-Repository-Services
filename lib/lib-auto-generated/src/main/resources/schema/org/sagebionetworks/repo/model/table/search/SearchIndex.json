@@ -1,0 +1,21 @@
+{
+	"description": "A search index entity. Its content is defined by a Synapse SQL query (definingSQL) that references a single table-like entity. An OpenSearch index is built from the query results, supporting full-text search, faceted search, and autocomplete. Optionally references a SearchConfiguration for analyzer and synonym settings.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.VersionableEntity"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.HasDefiningSql"
+		}
+	],
+	"properties": {
+		"definingSQL": {
+			"description": "The Synapse SQL statement that defines which columns and rows are indexed. Must reference exactly one entity. Multi-entity JOINs are not supported.",
+			"type": "string"
+		},
+		"searchConfigurationId": {
+			"description": "The ID of the SearchConfiguration to apply when building this search index. If not provided, the system will check for a SearchConfigurationListSetting on the parent project/folder, or use platform defaults.",
+			"type": "string"
+		}
+	}
+}

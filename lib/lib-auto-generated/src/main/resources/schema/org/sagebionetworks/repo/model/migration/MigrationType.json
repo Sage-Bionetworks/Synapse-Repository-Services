@@ -523,6 +523,22 @@
             "description": "Table that stores validation stats for record sets"
 		},
 		{
+			"name": "TEXT_ANALYZER",
+			"description": "Text analyzer configurations for search"
+		},
+		{
+			"name": "SYNONYM_SET",
+			"description": "Table that stores synonym sets for search"
+		},
+		{
+			"name": "COLUMN_ANALYZER_OVERRIDE",
+			"description": "Table that stores column analyzer overrides for search"
+		},
+		{
+			"name": "SEARCH_CONFIGURATION",
+			"description": "Table that stores search configurations for search"
+		},
+		{
 			"name": "CHANGE",
 			"description": "TODO: Auto-generated description"
 		}

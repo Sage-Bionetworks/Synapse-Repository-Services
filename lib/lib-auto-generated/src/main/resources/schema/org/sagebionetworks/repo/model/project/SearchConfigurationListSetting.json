@@ -1,0 +1,14 @@
+{
+	"description": "Project setting that provides a default SearchConfiguration for all SearchIndex entities created within this project or folder. When a SearchIndex is created without an explicit searchConfigurationId, the system traverses the entity hierarchy to find this setting.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.project.ProjectSetting"
+		}
+	],
+	"properties": {
+		"searchConfigurationId": {
+			"type": "string",
+			"description": "The ID of the SearchConfiguration to use as the default for this project or folder."
+		}
+	}
+}

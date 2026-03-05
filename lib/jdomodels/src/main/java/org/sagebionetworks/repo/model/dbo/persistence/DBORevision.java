@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REF_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SCOPE_IDS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_CONFIGURATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_SEARCH_ENABLED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_USER_ANNOS_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_CSV_DESCRIPTOR;
@@ -69,6 +70,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		new FieldColumn("userAnnotationsJSON", COL_REVISION_USER_ANNOS_JSON),
 		new FieldColumn("isSearchEnabled", COL_REVISION_SEARCH_ENABLED),
 		new FieldColumn("definingSQL", COL_REVISION_DEFINING_SQL),
+		new FieldColumn("searchConfigurationId", COL_REVISION_SEARCH_CONFIGURATION_ID),
 		new FieldColumn("upsertKey", COL_REVISION_UPSERT_KEY),
 		new FieldColumn("csvDescriptor", COL_REVISION_CSV_DESCRIPTOR),
 		new FieldColumn("validationResultFileHandleId", COL_REVISION_VALIDATION_RES_FILE_HANDLE_ID).withHasFileHandleRef(true),
@@ -125,6 +127,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	private String userAnnotationsJSON;
 	private Boolean isSearchEnabled;
 	private String definingSQL;
+	private String searchConfigurationId;
 	private String upsertKey;
 	private String csvDescriptor;
 	private Long validationResultFileHandleId;
@@ -257,7 +260,15 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 	public void setDefiningSQL(String definingSQL) {
 		this.definingSQL = definingSQL;
 	}
-	
+
+	public String getSearchConfigurationId() {
+		return searchConfigurationId;
+	}
+
+	public void setSearchConfigurationId(String searchConfigurationId) {
+		this.searchConfigurationId = searchConfigurationId;
+	}
+
 	public String getUpsertKey() {
 		return upsertKey;
 	}
@@ -323,7 +334,8 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 			&& Objects.equals(isSearchEnabled, other.isSearchEnabled) && Objects.equals(items, other.items) && Objects.equals(label, other.label)
 			&& Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(owner, other.owner)
 			&& Objects.equals(validationResultFileHandleId, other.validationResultFileHandleId) && Objects.equals(referenceJson, other.referenceJson)
-			&& Objects.equals(revisionNumber, other.revisionNumber) && Arrays.equals(scopeIds, other.scopeIds) && Objects.equals(upsertKey, other.upsertKey)
+			&& Objects.equals(revisionNumber, other.revisionNumber) && Objects.equals(searchConfigurationId, other.searchConfigurationId)
+			&& Arrays.equals(scopeIds, other.scopeIds) && Objects.equals(upsertKey, other.upsertKey)
 			&& Objects.equals(userAnnotationsJSON, other.userAnnotationsJSON);
 	}
 
@@ -335,7 +347,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		result = prime * result + Arrays.hashCode(entityPropertyAnnotations);
 		result = prime * result + Arrays.hashCode(scopeIds);
 		result = prime * result + Objects.hash(activityId, comment, csvDescriptor, definingSQL, description, fileHandleId, isSearchEnabled, items, label, modifiedBy, modifiedOn,
-			owner, validationResultFileHandleId, referenceJson, revisionNumber, upsertKey, userAnnotationsJSON);
+			owner, validationResultFileHandleId, referenceJson, revisionNumber, searchConfigurationId, upsertKey, userAnnotationsJSON);
 		return result;
 	}
 
@@ -344,7 +356,7 @@ public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORev
 		return "DBORevision [owner=" + owner + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId + ", label=" + label + ", comment=" + comment + ", description="
 			+ description + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", fileHandleId=" + fileHandleId + ", columnModelIds=" + Arrays.toString(columnModelIds)
 			+ ", scopeIds=" + Arrays.toString(scopeIds) + ", items=" + items + ", entityPropertyAnnotations=" + Arrays.toString(entityPropertyAnnotations) + ", referenceJson="
-			+ referenceJson + ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + ", upsertKey=" + upsertKey
+			+ referenceJson + ", userAnnotationsJSON=" + userAnnotationsJSON + ", isSearchEnabled=" + isSearchEnabled + ", definingSQL=" + definingSQL + ", searchConfigurationId=" + searchConfigurationId + ", upsertKey=" + upsertKey
 			+ ", csvDescriptor=" + csvDescriptor + ", validationResultFileHandleId=" + validationResultFileHandleId + "]";
 	}
 }

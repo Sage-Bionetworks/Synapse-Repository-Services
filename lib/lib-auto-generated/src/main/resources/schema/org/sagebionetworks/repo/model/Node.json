@@ -97,7 +97,11 @@
         	"type":"boolean"
         },
         "definingSQL": {
-        	"description":"For materialized views and virtual tables, specifies the SQL defining the content of the table.",
+        	"description":"For materialized views, virtual tables, and search indexes, specifies the SQL defining the content.",
+        	"type": "string"
+        },
+        "searchConfigurationId": {
+        	"description":"For search index entities, the ID of the SearchConfiguration to apply when building the index.",
         	"type": "string"
         },
 		"validationResultFileHandleId": {

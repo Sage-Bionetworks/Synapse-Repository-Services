@@ -1,0 +1,16 @@
+{
+	"description": "Response containing a page of column analyzer overrides.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The list of column analyzer overrides for this page.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.ColumnAnalyzerOverride"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Token for the next page of results, if more results exist."
+		}
+	}
+}

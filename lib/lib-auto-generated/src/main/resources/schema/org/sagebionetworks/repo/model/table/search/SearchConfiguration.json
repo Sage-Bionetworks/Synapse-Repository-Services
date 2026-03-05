@@ -1,0 +1,61 @@
+{
+	"description": "A reusable search configuration resource. Bundles synonym sets, column analyzer overrides, and a default analyzer. Can be associated with projects or folders via the Project Settings framework for inheritance.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique ID of this search configuration."
+		},
+		"organizationId": {
+			"type": "string",
+			"description": "The ID of the Organization this resource belongs to."
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name. Unique within the organization."
+		},
+		"description": {
+			"type": "string",
+			"description": "Optional description."
+		},
+		"synonymSetIds": {
+			"type": "array",
+			"description": "Ordered list of SynonymSet IDs to apply. Rules from all sets are unioned.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"columnAnalyzerOverrideIds": {
+			"type": "array",
+			"description": "Ordered list of ColumnAnalyzerOverride IDs to apply. First-found-wins for duplicate columns.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"defaultAnalyzerId": {
+			"type": "string",
+			"description": "Default text analyzer ID for columns without an explicit override."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this resource."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this resource."
+		}
+	}
+}

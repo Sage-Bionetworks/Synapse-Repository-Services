@@ -1,0 +1,43 @@
+{
+	"description": "A database-stored text analyzer configuration. System analyzers have IDs 1-999; user-defined analyzers start at 1000+.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique ID of this text analyzer."
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name. Unique within the organization (or globally for system analyzers)."
+		},
+		"description": {
+			"type": "string",
+			"description": "Optional description."
+		},
+		"organizationId": {
+			"type": "string",
+			"description": "The ID of the Organization this resource belongs to. Null for system analyzers."
+		},
+		"settings": {
+			"description": "The analyzer configuration settings.",
+			"$ref": "org.sagebionetworks.repo.model.table.search.TextAnalyzerSettings"
+		},
+		"isSystem": {
+			"type": "boolean",
+			"description": "True if this is a system analyzer (read-only, IDs 1-999)."
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was last modified."
+		}
+	}
+}

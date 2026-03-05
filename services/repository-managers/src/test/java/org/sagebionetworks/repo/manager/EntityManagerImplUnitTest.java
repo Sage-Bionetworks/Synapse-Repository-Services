@@ -74,6 +74,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2Utils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.annotation.v2.Keys;
+import org.sagebionetworks.repo.model.table.search.SearchIndex;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.schema.DerivedAnnotationDao;
@@ -135,6 +136,9 @@ public class EntityManagerImplUnitTest {
 	private EntitySchemaValidationResultDao mockEntitySchemaValidationResultDao;
 	@Mock
 	private DerivedAnnotationDao mockDerivedAnnotationDao;
+
+	@Mock
+	private Node mockNode;
 
 	@Captor
 	private ArgumentCaptor<ChildStatsRequest> statsRequestCaptor;
@@ -1676,5 +1680,55 @@ public class EntityManagerImplUnitTest {
 		verify(mockDerivedAnnotationDao, never()).getDerivedAnnotations(any());
 	}
 
+	@Test
+	public void testCreateEntity_SearchIndex_nonSageUser_throwsUnauthorized() {
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(PARENT_ENTITY_ID);
+		when(mockUser.isAdmin()).thenReturn(false);
+		when(mockUser.getGroups()).thenReturn(Collections.emptySet());
+
+		assertThrows(UnauthorizedException.class, () -> {
+			entityManager.createEntity(mockUser, searchIndex, ACTIVITY_ID);
+		});
+	}
+
+	@Test
+	public void testCreateEntity_SearchIndex_admin_succeeds() throws Exception {
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(PARENT_ENTITY_ID);
+		when(mockUser.isAdmin()).thenReturn(true);
+		when(mockNodeManager.createNewNode(any(Node.class), any(), eq(mockUser))).thenReturn(mockNode);
+		when(mockNode.getId()).thenReturn(ENTITY_ID);
+
+		String result = entityManager.createEntity(mockUser, searchIndex, ACTIVITY_ID);
+
+		assertEquals(ENTITY_ID, result);
+	}
+
+	@Test
+	public void testUpdateEntity_SearchIndex_nonSageUser_throwsUnauthorized() throws Exception {
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setId(ENTITY_ID);
+		Node node = new Node();
+		node.setNodeType(EntityType.searchindex);
+		when(mockNodeManager.getNode(mockUser, ENTITY_ID)).thenReturn(node);
+		when(mockUser.isAdmin()).thenReturn(false);
+		when(mockUser.getGroups()).thenReturn(Collections.emptySet());
+
+		assertThrows(UnauthorizedException.class, () -> {
+			entityManager.updateEntity(mockUser, searchIndex, false, ACTIVITY_ID);
+		});
+	}
+
+	@Test
+	public void testDeleteEntity_SearchIndex_nonSageUser_throwsUnauthorized() {
+		when(mockNodeManager.getNodeType(ENTITY_ID)).thenReturn(EntityType.searchindex);
+		when(mockUser.isAdmin()).thenReturn(false);
+		when(mockUser.getGroups()).thenReturn(Collections.emptySet());
+
+		assertThrows(UnauthorizedException.class, () -> {
+			entityManager.deleteEntity(mockUser, ENTITY_ID);
+		});
+	}
 
 }

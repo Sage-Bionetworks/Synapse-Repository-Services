@@ -1,0 +1,45 @@
+{
+	"description": "The OpenSearch analyzer configuration. Stores the full definition of how text is analyzed.",
+	"properties": {
+		"builtInAnalyzer": {
+			"type": "string",
+			"description": "If set, uses a built-in OpenSearch analyzer (e.g., 'keyword') instead of custom config. All other fields are ignored."
+		},
+		"charFilters": {
+			"type": "map",
+			"description": "Named character filter definitions. Keys are filter names, values are JSON-serialized filter config objects.",
+			"key": { "type": "string" },
+			"value": { "type": "string" }
+		},
+		"tokenizer": {
+			"type": "string",
+			"description": "The tokenizer name (e.g., 'standard', 'whitespace'). For custom tokenizers, define in 'tokenizerConfig'."
+		},
+		"tokenizerConfig": {
+			"type": "map",
+			"description": "Optional custom tokenizer configuration as key-value pairs.",
+			"key": { "type": "string" },
+			"value": { "type": "string" }
+		},
+		"tokenFilters": {
+			"type": "map",
+			"description": "Named token filter definitions. Keys are filter names, values are JSON-serialized filter config objects.",
+			"key": { "type": "string" },
+			"value": { "type": "string" }
+		},
+		"filterOrder": {
+			"type": "array",
+			"description": "Ordered list of token filter names to apply. Can reference built-in filters (e.g., 'lowercase') or custom ones defined in 'tokenFilters'.",
+			"items": { "type": "string" }
+		},
+		"charFilterOrder": {
+			"type": "array",
+			"description": "Ordered list of character filter names to apply.",
+			"items": { "type": "string" }
+		},
+		"synonymAware": {
+			"type": "boolean",
+			"description": "Whether the synonym token filter should be appended when synonyms are configured."
+		}
+	}
+}

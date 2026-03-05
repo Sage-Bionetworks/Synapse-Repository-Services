@@ -53,6 +53,10 @@
 		{
 			"name": "recordset",
             "description": "A special type of file that captures record-based metadata as a special type of CSV."
+		},
+		{
+			"name": "searchindex",
+			"description": "A search index entity that provides search over Synapse data via OpenSearch."
 		}
     ]
 }

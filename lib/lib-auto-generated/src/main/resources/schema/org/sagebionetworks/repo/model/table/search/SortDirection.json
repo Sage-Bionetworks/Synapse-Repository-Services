@@ -1,0 +1,14 @@
+{
+	"description": "Sort direction for search results.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ASC",
+			"description": "Ascending order."
+		},
+		{
+			"name": "DESC",
+			"description": "Descending order."
+		}
+	]
+}

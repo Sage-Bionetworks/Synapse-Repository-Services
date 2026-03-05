@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.schema.EntityJsonSubject;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -59,6 +60,7 @@ import org.sagebionetworks.repo.model.schema.ListValidationResultsResponse;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.Table;
+import org.sagebionetworks.repo.model.table.search.SearchIndex;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
@@ -114,6 +116,9 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = NodeTranslationUtils.createFromEntity(newEntity);
 		// Set the type for this object
 		node.setNodeType(EntityTypeUtils.getEntityTypeForClass(newEntity.getClass()));
+		if (EntityType.searchindex.equals(node.getNodeType())) {
+			validateSearchIndexAccess(userInfo);
+		}
 		node.setActivityId(activityId);
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = new org.sagebionetworks.repo.model.Annotations();
 		// Now add all of the annotations and references from the entity
@@ -268,6 +273,9 @@ public class EntityManagerImpl implements EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if (entityId == null)
 			throw new IllegalArgumentException("Entity ID cannot be null");
+		if (EntityType.searchindex.equals(nodeManager.getNodeType(entityId))) {
+			validateSearchIndexAccess(userInfo);
+		}
 		nodeManager.delete(userInfo, entityId);
 	}
 
@@ -275,6 +283,9 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void deleteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		if (EntityType.searchindex.equals(nodeManager.getNodeType(id))) {
+			validateSearchIndexAccess(userInfo);
+		}
 		nodeManager.deleteVersion(userInfo, id, versionNumber);
 	}
 
@@ -318,6 +329,9 @@ public class EntityManagerImpl implements EntityManager {
 			InvalidModelException {
 
 		Node node = nodeManager.getNode(userInfo, updated.getId());
+		if (EntityType.searchindex.equals(node.getNodeType())) {
+			validateSearchIndexAccess(userInfo);
+		}
 		// Now get the annotations for this node
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
 				.getEntityPropertyAnnotations(userInfo, updated.getId());
@@ -345,6 +359,13 @@ public class EntityManagerImpl implements EntityManager {
 			 * breaking their tables/views by explicitly creating new entity versions, we
 			 * unconditionally ignore this parameter for table/views.
 			 */
+			newVersion = false;
+		}
+
+		if (updated instanceof SearchIndex) {
+			// SearchIndex does not support versioning. It is locked at version 1.
+			// The Python/R client syn.store() may set newVersion=true, so we
+			// unconditionally ignore this parameter for search indexes.
 			newVersion = false;
 		}
 
@@ -790,6 +811,12 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void truncateAll() {
 		nodeManager.truncateAll();
+	}
+
+	private void validateSearchIndexAccess(UserInfo userInfo) {
+		if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only Sage Bionetworks employees can manage search index entities.");
+		}
 	}
 
 }

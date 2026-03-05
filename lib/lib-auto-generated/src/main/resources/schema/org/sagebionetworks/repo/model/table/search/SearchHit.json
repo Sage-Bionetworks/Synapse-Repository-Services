@@ -1,0 +1,37 @@
+{
+	"description": "A single search result hit.",
+	"properties": {
+		"rowId": {
+			"type": "integer",
+			"description": "The row ID from the source table."
+		},
+		"rowVersion": {
+			"type": "integer",
+			"description": "The row version from the source table."
+		},
+		"score": {
+			"type": "number",
+			"description": "The relevance score for this hit."
+		},
+		"fields": {
+			"type": "map",
+			"description": "Map of column name to value for the requested return fields.",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"type": "string"
+			}
+		},
+		"highlights": {
+			"type": "map",
+			"description": "Map of column name to highlighted snippet, if highlight was requested.",
+			"key": {
+				"type": "string"
+			},
+			"value": {
+				"type": "string"
+			}
+		}
+	}
+}

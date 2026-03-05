@@ -19,5 +19,6 @@ public enum SubType {
 	datasetcollection,
 	materializedview,
 	virtualtable,
-	recordset
+	recordset,
+	searchindex
 }

@@ -96,9 +96,10 @@ public class NodeUtils {
 		rev.setReferenceJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getReference()));
 		rev.setIsSearchEnabled(dto.getIsSearchEnabled());
 		rev.setDefiningSQL(dto.getDefiningSQL());
+		rev.setSearchConfigurationId(dto.getSearchConfigurationId());
 		rev.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
 		rev.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
-		if (dto.getValidationResultFileHandleId() != null) {			
+		if (dto.getValidationResultFileHandleId() != null) {
 			rev.setValidationResultFileHandleId(KeyFactory.stringToKey(dto.getValidationResultFileHandleId()));
 		}
 	}
@@ -144,6 +145,7 @@ public class NodeUtils {
 		dbo.setItems(JDOSecondaryPropertyUtils.writeEntityListToJson(dto.getItems()));
 		dbo.setIsSearchEnabled(dto.getIsSearchEnabled());
 		dbo.setDefiningSQL(dto.getDefiningSQL());
+		dbo.setSearchConfigurationId(dto.getSearchConfigurationId());
 		dbo.setUpsertKey(JDOSecondaryPropertyUtils.writeStringListToJson(dto.getUpsertKey()));
 		dbo.setCsvDescriptor(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getCsvDescriptor()));
 		dbo.setValidationResultFileHandleId(translateFileHandleId(dto.getValidationResultFileHandleId()));
@@ -270,6 +272,7 @@ public class NodeUtils {
 		dto.setItems(JDOSecondaryPropertyUtils.readJsonToEntityList(rev.getItems(), EntityRef.class));
 		dto.setIsSearchEnabled(rev.getIsSearchEnabled());
 		dto.setDefiningSQL(rev.getDefiningSQL());
+		dto.setSearchConfigurationId(rev.getSearchConfigurationId());
 		dto.setUpsertKey(JDOSecondaryPropertyUtils.readJsonToStringList(rev.getUpsertKey()));
 		dto.setCsvDescriptor(JDOSecondaryPropertyUtils.createObjectFromJSON(CsvTableDescriptor.class, rev.getCsvDescriptor()));
 		if (rev.getValidationResultFileHandleId() != null) {			

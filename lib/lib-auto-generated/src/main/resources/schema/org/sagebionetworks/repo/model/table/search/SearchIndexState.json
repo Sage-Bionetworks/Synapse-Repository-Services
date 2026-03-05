@@ -1,0 +1,22 @@
+{
+	"description": "The state of a search index's OpenSearch index.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "CREATING",
+			"description": "Index build in progress. Queries submitted against this index will automatically retry until the build completes."
+		},
+		{
+			"name": "ACTIVE",
+			"description": "Index is live and serving queries."
+		},
+		{
+			"name": "FAILED",
+			"description": "Last build failed. Queries will fail with an error. Delete or update the SearchIndex to trigger a rebuild."
+		},
+		{
+			"name": "DELETING",
+			"description": "AOSS index cleanup in progress."
+		}
+	]
+}

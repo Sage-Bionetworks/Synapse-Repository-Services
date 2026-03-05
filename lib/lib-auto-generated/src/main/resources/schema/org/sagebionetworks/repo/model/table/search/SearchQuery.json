@@ -1,0 +1,101 @@
+{
+	"description": "A structured query against a SearchIndex's OpenSearch index. Submitted as an asynchronous job.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+		}
+	],
+	"properties": {
+		"searchIndexId": {
+			"type": "string",
+			"description": "The ID of the SearchIndex entity to query."
+		},
+		"queryType": {
+			"description": "Full-text query type. Default: SIMPLE_QUERY_STRING.",
+			"$ref": "org.sagebionetworks.repo.model.table.search.SearchQueryType"
+		},
+		"queryText": {
+			"type": "string",
+			"description": "The search text. Null or empty matches all documents."
+		},
+		"queryFields": {
+			"type": "array",
+			"description": "Column names with optional boost (e.g., 'studyName^3'). Empty means all indexed fields.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"booleanFilters": {
+			"type": "array",
+			"description": "Exact-match filters.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.query.KeyValue"
+			}
+		},
+		"termsFilters": {
+			"type": "array",
+			"description": "Multi-value filters (IN clause).",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.KeyValues"
+			}
+		},
+		"rangeFilters": {
+			"type": "array",
+			"description": "Range filters with min and max.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.query.KeyRange"
+			}
+		},
+		"existsFilters": {
+			"type": "array",
+			"description": "Columns that must have a non-null value.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"notExistsFilters": {
+			"type": "array",
+			"description": "Columns that must be null or missing.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"fuzziness": {
+			"type": "string",
+			"description": "Typo tolerance: 'AUTO', '0', '1', or '2'."
+		},
+		"facetRequests": {
+			"type": "array",
+			"description": "Columns to aggregate as facets.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.FacetRequest"
+			}
+		},
+		"returnFields": {
+			"type": "array",
+			"description": "Columns to include in results. Empty means all columns.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"sort": {
+			"type": "array",
+			"description": "Sort order. Default: relevance descending.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.search.SortField"
+			}
+		},
+		"highlight": {
+			"type": "boolean",
+			"description": "Whether to return highlighted snippets. Default: false."
+		},
+		"from": {
+			"type": "integer",
+			"description": "Zero-based pagination offset. Default: 0."
+		},
+		"size": {
+			"type": "integer",
+			"description": "Results per page. Default: 25. Max: 100."
+		}
+	}
+}
