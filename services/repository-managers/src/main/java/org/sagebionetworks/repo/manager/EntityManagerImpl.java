@@ -364,8 +364,6 @@ public class EntityManagerImpl implements EntityManager {
 
 		if (updated instanceof SearchIndex) {
 			// SearchIndex does not support versioning. It is locked at version 1.
-			// The Python/R client syn.store() may set newVersion=true, so we
-			// unconditionally ignore this parameter for search indexes.
 			newVersion = false;
 		}
 
@@ -814,6 +812,8 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	private void validateSearchIndexAccess(UserInfo userInfo) {
+		// Note: This is a pilot gate for SearchIndex's. This will be removed when we release OpenSearch index creation
+		// to the general Synapse user base in a later to be created ticket.
 		if (!AuthorizationUtils.isSageEmployeeOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only Sage Bionetworks employees can manage search index entities.");
 		}
