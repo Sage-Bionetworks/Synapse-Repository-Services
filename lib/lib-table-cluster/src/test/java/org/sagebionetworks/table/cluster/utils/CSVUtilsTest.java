@@ -73,6 +73,19 @@ public class CSVUtilsTest {
 	}
 
 	@Test
+	public void testCheckTypeStringList() {
+		String in = "[\"abcdef\", \"ghi\"]";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		assertEquals(6L, cm.getMaximumSize());
+		assertEquals(2L, cm.getMaximumListLength());
+		// Should yield the same type
+		ColumnModel back = CSVUtils.checkType(in, cm);
+		assertEquals(cm, back);
+	}
+
+	@Test
 	public void testCheckTypeBoolean() {
 		String in = "true";
 		ColumnModel cm = CSVUtils.checkType(in, null);

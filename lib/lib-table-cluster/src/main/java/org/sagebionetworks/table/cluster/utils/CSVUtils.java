@@ -1,8 +1,9 @@
 package org.sagebionetworks.table.cluster.utils;
 
 import java.io.Reader;
-import java.io.Writer;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -10,7 +11,6 @@ import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 
 import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
@@ -19,7 +19,7 @@ public class CSVUtils {
 	/**
 	 * When searching for a type this setups the order we check for.  Not all types are included.
 	 */
-	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT};
+	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.STRING_LIST, ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT};
 
 	/**
 	 * Create CSVReader with the correct parameters using the provided parameters or default values.
@@ -107,6 +107,16 @@ public class CSVUtils {
 		}
 	}
 	
+	public static long getMaxLengthOfStringListItems(JSONArray list) throws JSONException {
+		long maxLength = 0;
+		for (int i = 0; i < list.length(); i++) {
+			String element = list.getString(i);
+			if (element != null) {
+				maxLength = Math.max(maxLength, element.length());
+			}
+		}
+		return maxLength;
+	}
 
 	/**
 	 * Check if the given value is compatible with the given columnType.
@@ -122,8 +132,10 @@ public class CSVUtils {
 			return currentType;
 		}
 		long currentMaxSize = 0;
+		long currentMaxListLength = 0;
 		if(currentType != null){
 			currentMaxSize = currentType.getMaximumSize();
+			currentMaxListLength = currentType.getMaximumListLength() == null ? 0 : currentType.getMaximumListLength();
 		}
 		// The current type determines where lookup starts.
 		int startIndex = findIndexOf(currentType);
@@ -131,7 +143,21 @@ public class CSVUtils {
 		for(int i=startIndex; i<typesToCheck.length; i++){
 			ColumnModel cm = new ColumnModel();
 			cm.setColumnType(typesToCheck[i]);
-			long maxSize = Math.max(value.length(), currentMaxSize);
+			long size = value.length();
+			if (ColumnType.STRING_LIST.equals(typesToCheck[i])) {
+				try {
+					// get the largest length of a single item in the array
+					size = getMaxLengthOfStringListItems(new JSONArray(value));
+
+					// assign the maximumListLength
+					long maxListLength = Math.max(value.split(",").length, currentMaxListLength);
+					cm.setMaximumListLength(maxListLength);
+				} catch (JSONException e) {
+					// Not a string list
+					continue;
+				}
+			}
+			long maxSize = Math.max(size, currentMaxSize);
 			cm.setMaximumSize(maxSize);
 			try {
 				TableModelUtils.validateValue(value, cm);

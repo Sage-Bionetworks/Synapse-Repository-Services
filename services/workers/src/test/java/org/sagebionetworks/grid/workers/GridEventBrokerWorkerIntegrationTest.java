@@ -844,10 +844,10 @@ public class GridEventBrokerWorkerIntegrationTest {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName("RecordSet Test"), null);
 
 		String csvContent =
-			"integer_column,string_column,double_column,boolean_column" + System.lineSeparator() +
-			"1,test_1,1.1,true" 										+ System.lineSeparator() +
-			"2,test_2,,true" 											+ System.lineSeparator() +
-			"3,test_3,3.3,false";
+			"integer_column,string_column,double_column,boolean_column,array_column"+ System.lineSeparator() +
+			"1,test_1,1.1,true,[]" 													+ System.lineSeparator() +
+			"2,test_2,,true," 														+ System.lineSeparator() +
+			"3,test_3,3.3,false,\"[\\\"foo\\\",\\\"bar\\\"]\"";
 
 		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContent.getBytes(StandardCharsets.UTF_8), "recordset.csv", ContentType.create("text/csv"), null);
 
@@ -861,7 +861,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 			"integer_column", new JsonSchema().setType(Type.integer),
 			"string_column", new JsonSchema().setType(Type.string),
 			"double_column", new JsonSchema().setType(Type.number),
-			"boolean_column", new JsonSchema().setType(Type._boolean)
+			"boolean_column", new JsonSchema().setType(Type._boolean),
+			"array_column", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))
 		), List.of("double_column")).getNewVersionInfo().get$id();
 
 		entityService.bindSchemaToEntity(admin.getId(),
@@ -911,7 +912,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 		);
 
 		assertEquals(
-			List.of("integer_column", "string_column", "double_column", "boolean_column"),
+			List.of("integer_column", "string_column", "double_column", "boolean_column", "array_column"),
 			header.getOrderedColumns().stream().map(Column::getName).collect(Collectors.toList())
 		);
 
@@ -931,9 +932,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		assertEquals(
 			List.of(
-				"{\"integer_column\":1,\"string_column\":\"test_1\",\"double_column\":1.1,\"boolean_column\":true}",
+				"{\"integer_column\":1,\"string_column\":\"test_1\",\"double_column\":1.1,\"boolean_column\":true,\"array_column\":[]}",
 				"{\"integer_column\":2,\"string_column\":\"test_2\",\"double_column\":null,\"boolean_column\":true}",
-				"{\"integer_column\":3,\"string_column\":\"test_3\",\"double_column\":3.3,\"boolean_column\":false}"
+				"{\"integer_column\":3,\"string_column\":\"test_3\",\"double_column\":3.3,\"boolean_column\":false,\"array_column\":[\"foo\",\"bar\"]}"
 			),
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
@@ -993,9 +994,9 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		assertEquals(
 			List.of(
-				"{\"integer_column\":1,\"string_column\":\"test_1\",\"double_column\":1.1,\"boolean_column\":true}",
+				"{\"integer_column\":1,\"string_column\":\"test_1\",\"double_column\":1.1,\"boolean_column\":true,\"array_column\":[]}",
 				"{\"integer_column\":2,\"string_column\":\"test_2\",\"double_column\":2.2,\"boolean_column\":true}",
-				"{\"integer_column\":3,\"string_column\":\"test_3\",\"double_column\":3.3,\"boolean_column\":false}"
+				"{\"integer_column\":3,\"string_column\":\"test_3\",\"double_column\":3.3,\"boolean_column\":false,\"array_column\":[\"foo\",\"bar\"]}"
 			),
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
@@ -1021,13 +1022,13 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		// Now update the record set from a CSV file
 		String csvContents =
-			"integer_column,string_column,double_column,boolean_column" + System.lineSeparator() +
-			"1,test_1_updated,1.1,false" 								+ System.lineSeparator() + // update
+			"integer_column,string_column,double_column,boolean_column,array_column" + System.lineSeparator() +
+			"1,test_1_updated,1.1,false,\"[\\\"abc\\\",\\\"def\\\"]\""	+ System.lineSeparator() + // update
 																								   // Skip line 2
-			"3,test_3_updated,3.3,true" 								+ System.lineSeparator() + // update
-			"4,test_4_created,4.4,true"									+ System.lineSeparator() + // new row
-			"5,test_5_created,5.5,true"									+ System.lineSeparator() + // new row
-			"6,test_6_created,6.6,false";														   // new row
+			"3,test_3_updated,3.3,true,\"[]\"" 							+ System.lineSeparator() + // update
+			"4,test_4_created,4.4,true,\"[\\\"ghi\\\",\\\"123\\\"]\""	+ System.lineSeparator() + // new row
+			"5,test_5_created,5.5,true,"							+ System.lineSeparator() + // new row
+			"6,test_6_created,6.6,false,\"[\\\"456\\\",\\\"xyz\\\"]\"";							   // new row
 
 		S3FileHandle upsertFileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(), csvContents.getBytes(StandardCharsets.UTF_8), "recordset_upsert.csv", ContentType.create("text/csv"), null);
 
@@ -1039,7 +1040,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 				new ColumnModel().setName("integer_column").setColumnType(ColumnType.INTEGER),
 				new ColumnModel().setName("string_column").setColumnType(ColumnType.STRING),
 				new ColumnModel().setName("double_column").setColumnType(ColumnType.DOUBLE),
-				new ColumnModel().setName("boolean_column").setColumnType(ColumnType.BOOLEAN)
+				new ColumnModel().setName("boolean_column").setColumnType(ColumnType.BOOLEAN),
+				new ColumnModel().setName("array_column").setColumnType(ColumnType.STRING_LIST)
 			));
 
 		asynchronousJobWorkerHelper.assertJobResponse(admin, csvImportRequest, (GridCsvImportResponse response) -> {
@@ -1065,15 +1067,30 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		assertEquals(
 			List.of(
-				"{\"integer_column\":1,\"string_column\":\"test_1_updated\",\"double_column\":1.1,\"boolean_column\":false}",
+				"{\"integer_column\":1,\"string_column\":\"test_1_updated\",\"double_column\":1.1,\"boolean_column\":false,\"array_column\":[\"abc\",\"def\"]}",
 				"{\"integer_column\":2,\"string_column\":\"test_2\"," +    "\"double_column\":2.2,\"boolean_column\":true}",
-				"{\"integer_column\":3,\"string_column\":\"test_3_updated\",\"double_column\":3.3,\"boolean_column\":true}",
-				"{\"integer_column\":4,\"string_column\":\"test_4_created\",\"double_column\":4.4,\"boolean_column\":true}",
-				"{\"integer_column\":5,\"string_column\":\"test_5_created\",\"double_column\":5.5,\"boolean_column\":true}",
-				"{\"integer_column\":6,\"string_column\":\"test_6_created\",\"double_column\":6.6,\"boolean_column\":false}"
+				"{\"integer_column\":3,\"string_column\":\"test_3_updated\",\"double_column\":3.3,\"boolean_column\":true,\"array_column\":[]}",
+				"{\"integer_column\":4,\"string_column\":\"test_4_created\",\"double_column\":4.4,\"boolean_column\":true,\"array_column\":[\"ghi\",\"123\"]}",
+				"{\"integer_column\":5,\"string_column\":\"test_5_created\",\"double_column\":5.5,\"boolean_column\":true,\"array_column\":null}",
+				"{\"integer_column\":6,\"string_column\":\"test_6_created\",\"double_column\":6.6,\"boolean_column\":false,\"array_column\":[\"456\",\"xyz\"]}"
 			),
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
+
+		DownloadFromGridRequest csvDownloadRequest = new DownloadFromGridRequest()
+				.setSessionId(session.getSessionId())
+				.setIncludeRowIdAndRowVersion(false)
+				.setIncludeEtag(false);
+		List<String[]> downloadedCsvContents = createAndDownloadCsvFromGrid(csvDownloadRequest);
+
+		assertEquals(7, downloadedCsvContents.size());
+		assertArrayEquals(new String[] { "integer_column",	"string_column",	"double_column",	"boolean_column",	"array_column" 		}, downloadedCsvContents.get(0));
+		assertArrayEquals(new String[] { "1",			 	"test_1_updated",	"1.1",				"false", 			"[\"abc\",\"def\"]",}, downloadedCsvContents.get(1));
+		assertArrayEquals(new String[] { "2",			 	"test_2",			"2.2",				"true", 			null,  				}, downloadedCsvContents.get(2));
+		assertArrayEquals(new String[] { "3",			 	"test_3_updated",	"3.3",				"true", 			"[]",  				}, downloadedCsvContents.get(3));
+		assertArrayEquals(new String[] { "4",			 	"test_4_created",	"4.4",				"true", 			"[\"ghi\",\"123\"]",}, downloadedCsvContents.get(4));
+		assertArrayEquals(new String[] { "5",			 	"test_5_created",	"5.5",				"true", 			null, 	 			}, downloadedCsvContents.get(5));
+		assertArrayEquals(new String[] { "6",			 	"test_6_created",	"6.6",				"false", 			"[\"456\",\"xyz\"]",}, downloadedCsvContents.get(6));
 	}
 	
 	UserInfo createUser(){
