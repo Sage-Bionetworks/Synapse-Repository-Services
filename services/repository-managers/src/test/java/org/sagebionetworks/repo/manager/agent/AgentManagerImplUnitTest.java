@@ -351,6 +351,13 @@ public class AgentManagerImplUnitTest {
 				.build();
 
 		traceRequest = new TraceEventsRequest().setJobId(jobId).setNewerThanTimestamp(123L);
+
+		// Default stub: userManager returns the matching UserInfo for each user
+		// (lenient so tests that don't trigger this call don't fail)
+		Mockito.lenient().when(mockUserManager.getUserInfo(nonSageNonAdmin.getId())).thenReturn(nonSageNonAdmin);
+		Mockito.lenient().when(mockUserManager.getUserInfo(anonymousUserId)).thenReturn(anonymous);
+		Mockito.lenient().when(mockUserManager.getUserInfo(sageUser.getId())).thenReturn(sageUser);
+		Mockito.lenient().when(mockUserManager.getUserInfo(adminId)).thenReturn(admin);
 	}
 
 	@Test
