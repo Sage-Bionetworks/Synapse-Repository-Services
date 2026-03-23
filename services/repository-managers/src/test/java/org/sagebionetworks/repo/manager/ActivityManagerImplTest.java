@@ -94,7 +94,7 @@ public class ActivityManagerImplTest {
 	
 	@Test
 	public void testCreateActivityWithAnonymousUser() throws Exception {
-		UserInfo anonymousUser = UserInfoHelper.createAnonymousUserInfo();
+		UserInfo anonymousUser = UserInfoTestHelper.createAnonymousUserInfo();
 		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> { 
 			activityManager.createActivity(anonymousUser, new Activity());
 		});

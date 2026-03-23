@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_S
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -77,6 +78,24 @@ public class UserStatusDaoImpl implements UserStatusDao {
 			+ COL_USER_STATUS_DISABLED + " = ?";
 		
 		jdbcTemplate.update(sql, principalId, disabled, disabled);
+	}
+
+	@WriteTransaction
+	@Override
+	public void resetStatusToEnabled(long principalId) {
+
+		String sql = "INSERT INTO " + TABLE_USER_STATUS + " ("
+				+ COL_USER_STATUS_PRINCIPAL_ID + ", "
+				+ COL_USER_STATUS_ETAG + ","
+				+ COL_USER_STATUS_LAST_SEEN_ON + ","
+				+ COL_USER_STATUS_DISABLED + ") "
+				+ "VALUES (?, UUID(), NOW(), false) "
+				+ "ON DUPLICATE KEY UPDATE "
+				+ COL_USER_STATUS_ETAG + " = UUID(),"
+				+ COL_USER_STATUS_LAST_SEEN_ON + " = NOW(),"
+				+ COL_USER_STATUS_DISABLED + " = false";
+
+		jdbcTemplate.update(sql, principalId);
 	}
 	
 	@Override

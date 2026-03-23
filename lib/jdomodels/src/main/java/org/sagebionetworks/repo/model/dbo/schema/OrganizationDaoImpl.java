@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANI
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -47,11 +48,20 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	public Organization createOrganization(String name, Long createdBy) {
 		ValidateArgument.required(name, "name");
 		ValidateArgument.required(createdBy, "createdBy");
+		return createOrganization(name, createdBy, idGenerator.generateNewId(IdType.ORGANIZATION_ID));
+	}
+
+	@WriteTransaction
+	@Override
+	public Organization createOrganization(String name, Long createdBy, Long id) {
+		ValidateArgument.required(name, "name");
+		ValidateArgument.required(createdBy, "createdBy");
+		ValidateArgument.required(id, "id");
 		DBOOrganization dbo = new DBOOrganization();
 		dbo.setName(name);
 		dbo.setCreatedBy(createdBy);
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		dbo.setId(idGenerator.generateNewId(IdType.ORGANIZATION_ID));
+		dbo.setId(id);
 
 		try {
 			jdbcTemplate.update(
@@ -75,6 +85,19 @@ public class OrganizationDaoImpl implements OrganizationDao {
 					name);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Organization with name: '" + name + "' not found");
+		}
+	}
+
+	@Override
+	public Optional<Organization> getOrganizationById(String id) {
+		ValidateArgument.required(id, "id");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT * FROM " + TABLE_ORGANIZATION + " WHERE " + COL_ORGANIZATION_ID + " = ?", ROW_MAPPER,
+					id));
+		}
+		catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
 		}
 	}
 

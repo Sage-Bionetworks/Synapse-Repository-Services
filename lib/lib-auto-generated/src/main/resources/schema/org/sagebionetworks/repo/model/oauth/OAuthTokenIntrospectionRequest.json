@@ -1,0 +1,13 @@
+{
+    "description": "Request to introspect an OAuth 2.0 access token, loosely based on <a href=\"https://tools.ietf.org/html/rfc7662\">RFC 7662</a>.",
+ 	"properties": {
+		"token": {
+			"type": "string",
+			"description": "The access token to introspect"
+		},
+		"max_age": {
+			"type": "integer",
+			"description": "Optional maximum authentication age in seconds. If the user's authentication occurred more than this many seconds ago, the token is considered inactive."
+		}
+	}
+}

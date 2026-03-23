@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -20,10 +19,10 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -44,9 +43,9 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	
 	@Autowired
 	private UserManager userManager;
-	
+
 	@Autowired
-	private GroupMembersDAO groupMembersDAO;
+	private CertifiedUsersDAO certifiedUsersDAO;
 	
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
@@ -71,9 +70,7 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		user.setUserName(UUID.randomUUID().toString());
 		boolean acceptsTermsOfUse = true;
 		testUserId = userManager.createOrGetTestUser(adminUserInfo, user).getId();
-		groupMembersDAO.addMembers(
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-				Collections.singletonList(testUserId.toString()));
+		certifiedUsersDAO.addCertifiedUser(testUserId, true);
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		assertNotNull(this.entityService);

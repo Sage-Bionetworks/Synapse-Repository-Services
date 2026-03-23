@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -42,6 +43,7 @@ public class DataTypeDaoImplTest {
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
 		ug.setCreationDate(new Date());
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(ug);
 		userIdTwo = userGroupDAO.create(ug);
 

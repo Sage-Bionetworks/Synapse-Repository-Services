@@ -77,7 +77,7 @@ public class ProjectSettingsManagerAutowiredTest {
 		user.setEmail(username + "@test.com");
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		Project project = new Project();
 		project.setName("project" + RandomStringUtils.randomAlphanumeric(10));
@@ -105,7 +105,9 @@ public class ProjectSettingsManagerAutowiredTest {
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
 		
-		s3Client.createBucket(externalS3LocationSetting.getBucket());
+		if (! s3Client.doesBucketExist(externalS3LocationSetting.getBucket())) {
+			s3Client.createBucket(externalS3LocationSetting.getBucket());
+		}
 
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(username.length());

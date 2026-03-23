@@ -15,6 +15,7 @@ public class UserGroupUtils {
 		}
 		dbo.setCreationDate(dto.getCreationDate());
 		dbo.setIsIndividual(dto.getIsIndividual());
+		dbo.setRealmId(Long.parseLong(dto.getRealmId()));
 		dbo.setEtag(dto.getEtag());
 	}
 	
@@ -27,6 +28,7 @@ public class UserGroupUtils {
 		dto.setCreationDate(dbo.getCreationDate());
 		dto.setIsIndividual(dbo.getIsIndividual());
 		dto.setEtag(dbo.getEtag());
+		dto.setRealmId(dbo.getRealmId().toString());
 	}
 	
 	public static void copyDboToDto(List<DBOUserGroup> dbos, List<UserGroup> dtos) {

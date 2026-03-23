@@ -26,8 +26,12 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
+import org.sagebionetworks.repo.model.grid.SynchronizeGridRequest;
+import org.sagebionetworks.repo.model.grid.SynchronizeGridResponse;
 import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.service.GridService;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -158,6 +162,30 @@ public class GridController {
 	public @ResponseBody GridReplica getReplica(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String sessionId, @PathVariable Long replicaId) {
 		return gridService.getReplica(userId, sessionId, replicaId);
+	}
+
+	/**
+	 * List all replicas for a grid session.
+	 * <p>
+	 * Returns replica information including the replica type (user, agent, or
+	 * service) and whether the replica is currently connected to the session.
+	 * </p>
+	 * Forward the provided nextPageToken to get the next page of results.
+	 *
+	 * @param userId
+	 * @param sessionId - The grid session ID.
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GRID_SESSION_ID_REPLICA_LIST, method = RequestMethod.POST)
+	public @ResponseBody ListGridReplicasResponse listReplicas(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId,
+			@RequestBody ListGridReplicasRequest request) {
+		ValidateArgument.required(request, "request");
+		request.setGridSessionId(sessionId);
+		return gridService.listReplicas(userId, request);
 	}
 
 	/**
@@ -396,4 +424,78 @@ public class GridController {
                 .getJobStatusAndThrow(userId, asyncToken);
         return (GridCsvImportResponse) jobStatus.getResponseBody();
     }
+    
+	/**
+	 * Asynchronously start the synchronization of a grid session with its data
+	 * source. Synchronization is a two-phase process that ensures consistency
+	 * between the user's local changes and external changes made to the source:
+	 * 
+	 * <p>
+	 * <b>Phase 1: Schema Synchronization</b>
+	 * <ul>
+	 * <li>Synchronizes column definitions between the grid copy and source</li>
+	 * <li>Resolves schema conflicts</li>
+	 * </ul>
+	 * 
+	 * <p>
+	 * <b>Phase 2: Row Synchronization</b>
+	 * <ul>
+	 * <li>Synchronizes row data using the final schema from Phase 1</li>
+	 * <li>Merges cell-level changes when rows conflict</li>
+	 * <li>Pushes user changes from copy to source</li>
+	 * <li>Pulls external changes from source to copy</li>
+	 * </ul>
+	 * 
+	 * <p>
+	 * Use the returned job id and
+	 * <a href="${GET.grid.synchronize.async.get.asyncToken}">GET
+	 * /grid/synchronize/async/get</a> to get the results of the job.
+	 * 
+	 * @param userId  The ID of the user making the request
+	 * @param request The synchronization request containing the grid session ID
+	 * @return The async job ID to track the synchronization progress
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.GRID_SYNCHRONIZE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody AsyncJobId gridSynchronizeStart(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody SynchronizeGridRequest request) throws DatastoreException, NotFoundException, IOException {
+		ValidateArgument.required(request, "Request body");
+		AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, request);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of grid synchronization job started with
+	 * <a href="${POST.grid.synchronize.async.start}">POST
+	 * /grid/synchronize/async/start</a>.
+	 *
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code
+	 * of 202 (ACCEPTED) and the response body will be a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}"
+	 * >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId     The ID of the user making the request
+	 * @param asyncToken The job ID returned from the start request
+	 * @return The synchronization results
+	 * @throws Throwable
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GRID_SYNCHRONIZE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody SynchronizeGridResponse gridSynchronizeGet(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws Throwable {
+		ValidateArgument.required(asyncToken, "asyncToken");
+		AsynchronousJobStatus jobStatus = asynchronousJobServices.getJobStatusAndThrow(userId, asyncToken);
+		return (SynchronizeGridResponse) jobStatus.getResponseBody();
+	}
 }

@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.service;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -12,6 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -20,7 +19,6 @@ import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.http.HttpHeaders;
 
 public interface AdministrationService {
 
@@ -175,4 +173,32 @@ public interface AdministrationService {
 	 */
 	void expireQuarantinedEmail(Long userId, ExpireQuarantinedEmailRequest request);
 
+	/**
+	 * 
+	 * @param realm
+	 * @return
+	 */
+	Realm createRealm(Long userId, Realm realm);
+	
+	/**
+	 * 
+	 * @param realmId
+	 */
+	void deleteRealm(Long userId, String realmId);
+
+	/**
+	 *
+	 * @param userId
+	 * @param targetUserId
+	 */
+	void resetUserStatusToEnabled(Long userId, Long targetUserId);
+
+	/**
+	 * Backfill CHANGES entries for all existing grid sessions so they will be
+	 * re-indexed after migration.
+	 *
+	 * @param userId
+	 * @return The number of sessions backfilled.
+	 */
+	long backfillGridSessionChanges(Long userId);
 }

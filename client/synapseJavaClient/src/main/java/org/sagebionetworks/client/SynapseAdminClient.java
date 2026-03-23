@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.feature.FeatureStatus;
 import org.sagebionetworks.repo.model.limits.ProjectStorageLocationLimit;
@@ -316,5 +317,19 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException
 	 */
 	ProjectStorageLocationLimit setProjectStorageLocationLimit(ProjectStorageLocationLimit limit) throws SynapseException;
+	
+	
+	/**
+	 * Create a new security realm
+	 * @param realm
+	 * @return
+	 */
+	Realm createRealm(Realm realm )throws SynapseException;
+	
+	/**
+	 * Delete a security realm
+	 * @param id
+	 */
+	void deleteRealm(String id) throws SynapseException;
 
 }

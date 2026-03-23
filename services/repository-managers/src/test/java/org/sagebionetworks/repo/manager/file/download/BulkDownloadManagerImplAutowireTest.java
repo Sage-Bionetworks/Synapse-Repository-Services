@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -47,6 +48,7 @@ public class BulkDownloadManagerImplAutowireTest {
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date(System.currentTimeMillis()));
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userOneIdLong = userGroupDao.create(ug);
 		userOneId = ""+userOneIdLong;
 		boolean isAdmin = false;

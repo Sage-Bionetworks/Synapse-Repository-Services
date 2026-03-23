@@ -77,12 +77,10 @@ public class StatisticsManagerTest {
 
 	@Test
 	public void testGetProjectStatisticsAsAnonymous() {
-
 		String projectId = "4356";
-		Long userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 
 		when(mockRequest.getObjectId()).thenReturn(projectId);
-		when(mockUserInfo.getId()).thenReturn(userId);
+		when(mockUserInfo.isUserAnonymous()).thenReturn(true);
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			// Call under test
@@ -96,11 +94,10 @@ public class StatisticsManagerTest {
 	public void testGetProjectStatisticsAsAdmin() {
 
 		String projectId = "4356";
-		Long userId = 123L;
 
 		when(mockRequest.getObjectId()).thenReturn(projectId);
-		when(mockUserInfo.getId()).thenReturn(userId);
 		when(mockUserInfo.isAdmin()).thenReturn(true);
+		when(mockUserInfo.isUserAnonymous()).thenReturn(false);
 		when(mockProvider.getObjectStatistics(any())).thenReturn(mockResponse);
 	
 		// Call under test
@@ -114,12 +111,11 @@ public class StatisticsManagerTest {
 	
 	@Test
 	public void testGetProjectStatisticsWithNoAccess() {
-		Long userId = 123L;
 		String projectId = "123";
 
 		when(mockRequest.getObjectId()).thenReturn(projectId);
-		when(mockUserInfo.getId()).thenReturn(userId);
 		when(mockUserInfo.isAdmin()).thenReturn(false);
+		when(mockUserInfo.isUserAnonymous()).thenReturn(false);
 		when(mockAuthManager.canAccess(any(), any(), any(), any())).thenReturn(mockAuthStatus);
 		doThrow(UnauthorizedException.class).when(mockAuthStatus).checkAuthorizationOrElseThrow();
 

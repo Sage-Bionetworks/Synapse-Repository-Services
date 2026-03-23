@@ -178,7 +178,7 @@ public class MultipartManagerV2Impl implements MultipartManagerV2 {
 		PartUtils.validatePartSize(request.getPartSizeBytes());
 
 		// anonymous cannot upload. See: PLFM-2621.
-		if (AuthorizationUtils.isUserAnonymous(user)) {
+		if (user.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous cannot upload files.");
 		}
 	}

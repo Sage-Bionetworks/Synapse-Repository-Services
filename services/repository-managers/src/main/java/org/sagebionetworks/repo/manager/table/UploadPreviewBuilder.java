@@ -214,8 +214,9 @@ public class UploadPreviewBuilder {
 				schema[i].setColumnType(ColumnType.STRING);
 				schema[i].setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
 			}
-			// Only STRINGS should keep the max size
-			if(!ColumnType.STRING.equals(schema[i].getColumnType())){
+			// Only STRING and STRING_LIST should keep the max size
+			if(!ColumnType.STRING.equals(schema[i].getColumnType())
+					&& !ColumnType.STRING_LIST.equals(schema[i].getColumnType())){
 				schema[i].setMaximumSize(null);
 			}
 			/*

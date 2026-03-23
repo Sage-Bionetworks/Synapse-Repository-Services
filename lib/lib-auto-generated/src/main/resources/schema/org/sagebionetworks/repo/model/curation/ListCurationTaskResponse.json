@@ -3,9 +3,17 @@
   "properties": {
     "page": {
       "type": "array",
-      "items":{
-        "$ref" : "org.sagebionetworks.repo.model.curation.CurationTask"
-      }
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.curation.CurationTask"
+      },
+      "description": "Deprecated. Use 'bundlePage' instead. A list of task definitions only."
+    },
+    "bundlePage": {
+      "type": "array",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.curation.TaskBundle"
+      },
+      "description": "A list of task bundles containing both the definition and the current status."
     },
     "nextPageToken": {
       "type": "string",

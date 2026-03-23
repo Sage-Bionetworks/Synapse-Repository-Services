@@ -132,14 +132,14 @@ public class FileHandleManagerImplAutowireTest {
 		user.setEmail(username + "@test.com");
 		user.setUserName(username);
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		user = new NewUser();
 		username2 = UUID.randomUUID().toString();
 		user.setEmail(username2 + "@test.com");
 		user.setUserName(username2);
 		userInfo2 = userManager.getUserInfo(userManager.createUser(user));
-		userInfo2.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo2.setCertified(true);
 		
 		anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		anonymousUserInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
@@ -403,7 +403,9 @@ public class FileHandleManagerImplAutowireTest {
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
-		s3Client.createBucket(externalS3LocationSetting.getBucket());
+		if (! s3Client.doesBucketExist(externalS3LocationSetting.getBucket())) {
+			s3Client.createBucket(externalS3LocationSetting.getBucket());
+		}
 
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();

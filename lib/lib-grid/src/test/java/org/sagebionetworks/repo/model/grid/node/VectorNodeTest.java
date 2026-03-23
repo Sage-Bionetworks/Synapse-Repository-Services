@@ -2,10 +2,14 @@ package org.sagebionetworks.repo.model.grid.node;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.json.JSONArray;
@@ -38,8 +42,8 @@ public class VectorNodeTest {
 	@MethodSource("validValues")
 	public void testToAndFromJSON(Object value) {
 		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		vec.getValues().put("c1", new ConstantNode().setId(id2).setValue(value));
-		vec.getValues().put("c2", new ConstantNode().setId(id3).setValue("other value"));
+		vec.getValues().put(1, new ConstantNode().setId(id2).setValue(value));
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("other value"));
 		// call under test
 		String json = vec.getValueAsJson();
 		// call under test
@@ -65,10 +69,10 @@ public class VectorNodeTest {
 	@Test
 	public void testGetValueAsJson() {
 		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		vec.getValues().put("c1", new ConstantNode().setId(id2).setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray("[1,2,3]"))));
-		vec.getValues().put("c2", new ConstantNode().setId(id3).setValue(new ConValue(ConType.STRING, "other value")));
-		vec.getValues().put("c3", new ConstantNode().setId(id4).setValue(new ConValue(ConType.NULL, null)));
-		vec.getValues().put("c4", new ConstantNode().setId(id5).setValue(new ConValue(ConType.UNDEFINED, null)));
+		vec.getValues().put(1, new ConstantNode().setId(id2).setValue(new ConValue(ConType.JSON_ARRAY, new JSONArray("[1,2,3]"))));
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue(new ConValue(ConType.STRING, "other value")));
+		vec.getValues().put(3, new ConstantNode().setId(id4).setValue(new ConValue(ConType.NULL, null)));
+		vec.getValues().put(4, new ConstantNode().setId(id5).setValue(new ConValue(ConType.UNDEFINED, null)));
 		String json = vec.getValueAsJson();
 		assertEquals("{\"c1\":{\"v\":[[1,2,3]],\"i\":[3,4]},\"c2\":{\"v\":[\"other value\"],\"i\":[5,6]},\"c3\":{\"v\":[null],\"i\":[7,8]},\"c4\":{\"v\":[0,0],\"i\":[9,10]}}", json);
 		VectorNode other = new VectorNode().setId(id).setValueFromJson(json);
@@ -164,11 +168,82 @@ public class VectorNodeTest {
 	public void testAttemptInsertWithNullValue() {
 		VectorNode vec = new VectorNode().setId(id).setValueFromJson("{\"c0\":{\"v\":[111],\"i\":[3,4]}}");
 		VectorNode update = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
-		update.getValues().put("c1", null);
+		update.getValues().put(1, null);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			assertTrue(vec.attemptInsert(update));
 		}).getMessage();
 		assertEquals("Cannot set a vector index to null", message);
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, new ConstantNode().setId(id3).setValue("value2"));
+		vec.getValues().put(2, new ConstantNode().setId(id4).setValue("value3"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(4, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // node ID first
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2));
+		assertEquals(id4, timestamps.get(3));
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(null);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithEmptyValues() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(id, timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullConstantNode() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, null); // null node
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("value2"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(3, timestamps.size());
+		assertEquals(id, timestamps.get(0));
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2)); // null was filtered out
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullConstantId() {
+		VectorNode vec = new VectorNode().setId(id).setValues(new LinkedHashMap<>());
+		vec.getValues().put(0, new ConstantNode().setId(id2).setValue("value1"));
+		vec.getValues().put(1, new ConstantNode().setId(null).setValue("value2")); // null ID
+		vec.getValues().put(2, new ConstantNode().setId(id3).setValue("value3"));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = vec.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(3, timestamps.size());
+		assertEquals(id, timestamps.get(0));
+		assertEquals(id2, timestamps.get(1));
+		assertEquals(id3, timestamps.get(2)); // null ID was filtered out
 	}
 }

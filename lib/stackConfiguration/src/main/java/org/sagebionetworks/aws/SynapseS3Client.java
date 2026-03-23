@@ -80,6 +80,8 @@ public interface SynapseS3Client {
 	Bucket createBucket(String bucketName)
 			throws SdkClientException, AmazonServiceException;
 
+	boolean doesBucketExist(String bucketName) throws SdkClientException;
+
 	boolean doesObjectExist(String bucketName, String objectName)
 			throws AmazonServiceException, SdkClientException;
 

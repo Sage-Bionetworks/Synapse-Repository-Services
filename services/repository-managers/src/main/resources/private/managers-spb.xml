@@ -106,6 +106,8 @@
 
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
 
+	<bean id="realmManager" class="org.sagebionetworks.repo.manager.RealmManagerImpl" />
+
 	<bean id="userCredentialValidator" class="org.sagebionetworks.repo.manager.UserCredentialValidatorImpl" />
 
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.authentication.AuthenticationManagerImpl" />

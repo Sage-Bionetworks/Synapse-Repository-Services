@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.UserCertificationRequiredException;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACTAccessRequirementInterface;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -18,13 +18,11 @@ import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -66,21 +64,24 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private final AccessRequirementDAO accessRequirementDAO;
 	private final AccessApprovalDAO accessApprovalDAO;
 	private final VerificationDAO verificationDao;
-	private final GroupMembersDAO groupMembersDao;
+	private final CertifiedUsersDAO certifiedUsersDAO;
 	private final TransactionalMessenger transactionalMessenger;
 	private final NodeDAO nodeDao;
+	private final UserManager userManager;
 	
 	@Autowired
 	public AccessApprovalManagerImpl(AccessRequirementDAO accessRequirementDAO, AccessApprovalDAO accessApprovalDAO,
-			VerificationDAO verificationDao, GroupMembersDAO groupMembersDao,
-			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao) {
+			VerificationDAO verificationDao, CertifiedUsersDAO certifiedUsersDAO,
+			TransactionalMessenger transactionalMessenger, NodeDAO nodeDao, UserManager userManager) {
 		super();
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.accessApprovalDAO = accessApprovalDAO;
 		this.verificationDao = verificationDao;
-		this.groupMembersDao = groupMembersDao;
+		this.certifiedUsersDAO = certifiedUsersDAO;
 		this.transactionalMessenger = transactionalMessenger;
 		this.nodeDao = nodeDao;
+		this.userManager = userManager;
+		
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
@@ -121,8 +122,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 
 		ValidateArgument.required(accessApproval.getAccessorId(), "accessorId");
+		UserInfo accessorUserInfo = userManager.getUserInfo(Long.parseLong(accessApproval.getAccessorId()));
 		ValidateArgument.requirement(
-				!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(accessApproval.getAccessorId()),
+				!accessorUserInfo.isUserAnonymous(),
 				"Cannot create an AccessApproval for anonymous user.");
 		if (ar instanceof HasAccessorRequirement) {
 			validateHasAccessorRequirement((HasAccessorRequirement) ar,
@@ -284,9 +286,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	@Override
 	public void validateHasAccessorRequirement(HasAccessorRequirement req, Set<String> accessors) {
 		if (req.getIsCertifiedUserRequired()) {
-			if(!groupMembersDao.areMemberOf(
-					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-					accessors)){
+			if(!certifiedUsersDAO.areAllCertifiedUsers(accessors)){
 				throw new UserCertificationRequiredException("Accessors must be Synapse Certified Users.");
 			}
 		}

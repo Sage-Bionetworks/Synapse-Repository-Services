@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid.create;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +14,11 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
-import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
+import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
+import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.manager.table.UploadPreviewBuilder;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.RecordSet;
@@ -35,7 +36,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -49,8 +50,14 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 	private final EntityAuthorizationManager authorizationManager;
 	private final CsvFileHandleProvider csvProvider;
 	private final JsonSchemaManager jsonSchemaManager;
+	private final JsonSchemaValidationManager jsonSchemaValidationManager;
+	private final FileProvider fileProvider;
+	private final IndexedModelEncoderProvider encoderProvider;
 
-	public RecordSetCreateGridHandler(GridDao gridDao, EntityManager entityManager, FileHandleManager fileHandleManager, EntityAuthorizationManager authorizationManager, CsvFileHandleProvider csvProvider, JsonSchemaManager jsonSchemaManager) {
+	public RecordSetCreateGridHandler(GridDao gridDao, EntityManager entityManager, FileHandleManager fileHandleManager,
+									  EntityAuthorizationManager authorizationManager, CsvFileHandleProvider csvProvider,
+									  JsonSchemaManager jsonSchemaManager, JsonSchemaValidationManager jsonSchemaValidationManager,
+									  FileProvider fileProvider, IndexedModelEncoderProvider encoderProvider) {
 		super();
 		this.gridDao = gridDao;
 		this.entityManager = entityManager;
@@ -58,6 +65,9 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		this.authorizationManager = authorizationManager;
 		this.csvProvider = csvProvider;
 		this.jsonSchemaManager = jsonSchemaManager;
+		this.jsonSchemaValidationManager = jsonSchemaValidationManager;
+		this.fileProvider = fileProvider;
+		this.encoderProvider = encoderProvider;
 	}
 
 	@Override
@@ -67,7 +77,7 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 
 	@Override
 	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request,
-			PatchStore patchStore) {
+			SnapshotStore snapshotStore) {
 		String recordSetId = request.getRecordSetId();
 		
 		RecordSet recordSet = entityManager.getEntity(user, recordSetId, RecordSet.class);
@@ -79,7 +89,7 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 				.map(binding -> binding.getJsonSchemaVersionInfo().get$id());
 
 		GridSession session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())
-				.setSourceId(recordSet.getId()).setSchemaId(validationSchemaId.orElse(null)));
+				.setSourceId(recordSet.getId()).setSchemaId(validationSchemaId.orElse(null)).setOwner(request.getOwnerPrincipalId()));
 
 		GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.INTERNAL);
 
@@ -103,8 +113,9 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		// that allows to compute a suggested schema from a CSV file.
 		List<ColumnModel> schema = getSchemaFromCsv(fileHandle, csvDescriptor);
 
-		final List<String> columnsRequiredByJsonSchema = validationSchemaId
-				.map(jsonSchemaManager::getValidationSchema)
+		final Optional<JsonSchema> validationSchema = validationSchemaId.map(jsonSchemaManager::getValidationSchema);
+
+		final List<String> columnsRequiredByJsonSchema = validationSchema
 				.map(JsonSchema::getRequired)
 				.orElse(new ArrayList<>());
 
@@ -123,11 +134,10 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 			throw new IllegalArgumentException("Cannot determine the schema from the CSV file, at least one column header must be present.");
 		}
 
-		Long maxBytesPerRow = (long) TableModelUtils.calculateMaxRowSize(schema);
-
 		// We can now read the CSV file again and reuse the PatchRowHandler.
 		CSVReader csvReader = csvProvider.getCsvReader(fileHandle, csvDescriptor);
-		PatchRowHandler rowHandler = getPatchRowHandler(patchStore, session, replica, schema, maxBytesPerRow, columnsRequiredByJsonSchemaIndices);
+		SnapshotRowHandler rowHandler = getSnapshotRowHandler(snapshotStore, session, replica, schema, columnsRequiredByJsonSchemaIndices,
+				fileProvider, user.getId(), validationSchema.orElse(null));
 		
 		try (csvReader; rowHandler) {
 
@@ -162,9 +172,11 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		}
 	}
 
-	PatchRowHandler getPatchRowHandler(PatchStore patchStore, GridSession session, GridReplica replica,
-			List<ColumnModel> schema, Long maxBytesPerRow, List<Integer> requiredColumnIndices) {
-		return new PatchRowHandler(patchStore, session.getSessionId(), replica.getReplicaId(), schema, maxBytesPerRow, requiredColumnIndices);
+	SnapshotRowHandler getSnapshotRowHandler(SnapshotStore snapshotStore, GridSession session, GridReplica replica,
+											 List<ColumnModel> schema, List<Integer> requiredColumnIndices, FileProvider fileProvider,
+											 Long createdByUserId, JsonSchema validationSchema) {
+		return new SnapshotRowHandler(snapshotStore, session.getSessionId(), replica.getReplicaId(), schema, requiredColumnIndices,
+				fileProvider, encoderProvider, createdByUserId, jsonSchemaValidationManager, validationSchema);
 	}
 
 }

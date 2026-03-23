@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
@@ -144,6 +145,21 @@ public class AuthenticationController {
 		);
 	}
 
+	/**
+	 * Retrieve an anonymous access token for the given security realm.  By including
+	 * the returned token as the Bearer token in the Authorization header of subsequent
+	 * requests, the client indicates its scope is that of a particular security realm.
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ANONYMOUS_TOKEN, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessTokenResponse getAnonymousToken(
+			@RequestParam(value = UrlHelpers.PARAM_REALM_ID, required = true) String realmId,
+			UriComponentsBuilder uriComponentsBuilder) throws NotFoundException {
+		return authenticationService.getAnonymousAccessToken(realmId, EndpointHelper.getEndpoint(uriComponentsBuilder));
+	}
+	
 	/**
 	 * Retrieve an access token that will be usable for 24 hours. 
 	 * The user must accept the terms of use before the access token

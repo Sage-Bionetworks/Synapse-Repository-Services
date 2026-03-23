@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.context.AgentContextValidator;
 import org.sagebionetworks.repo.manager.agent.handler.OpenApiReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
@@ -90,12 +91,13 @@ public class AgentManagerImpl implements AgentManager {
 	private final AgentContextValidator contextValidator;
 	private Logger logger;
 	private final Consumer cloudWatchConsumer;
+	private final UserManager userManager;
 
 	@Autowired
 	public AgentManagerImpl(AgentDao agentDao, AgentClientProvider agentClientProvider,
 			Map<AgentSuffix, String> stackBedrockAgentIds, ReturnControlHandlerProvider handlerProvider, Clock clock,
 			AsynchronousJobStatusDAO statusDao, FeatureManager featureManager, AgentContextValidator contextValidator,
-			Consumer consumer) {
+			Consumer consumer, UserManager userManager) {
 		super();
 		this.agentDao = agentDao;
 		this.agentClientProvider = agentClientProvider;
@@ -113,6 +115,7 @@ public class AgentManagerImpl implements AgentManager {
 		this.featureManager = featureManager;
 		this.contextValidator = contextValidator;
 		this.cloudWatchConsumer = consumer;
+		this.userManager = userManager;
 	}
 
 	@Autowired
@@ -352,7 +355,8 @@ public class AgentManagerImpl implements AgentManager {
 	Long getRunAsUser(AgentSession session) {
 		switch (session.getAgentAccessLevel()) {
 		case PUBLICLY_ACCESSIBLE:
-			return AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+			UserInfo startedByUserInfo = userManager.getUserInfo(session.getStartedBy());
+			return startedByUserInfo.getRealmAnonymousUserId();
 		case READ_YOUR_PRIVATE_DATA:
 		case WRITE_YOUR_PRIVATE_DATA:
 			return session.getStartedBy();

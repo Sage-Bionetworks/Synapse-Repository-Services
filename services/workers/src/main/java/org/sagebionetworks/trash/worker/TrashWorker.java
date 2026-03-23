@@ -13,6 +13,7 @@ import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 public class TrashWorker implements ProgressingRunner {
 	private final static Logger LOG = LogManager.getLogger(TrashWorker.class);
@@ -28,7 +29,7 @@ public class TrashWorker implements ProgressingRunner {
 	@Autowired
 	private WorkerLogger workerLogger;
 
-	private UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+	private UserInfo adminUser = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), DEFAULT_REALM_ID);
 
 	@Override
 	public void run(ProgressCallback progressCallback) {

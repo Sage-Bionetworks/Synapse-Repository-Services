@@ -1,0 +1,17 @@
+{
+	"description": "A per-column analyzer override entry. Specifies which analyzers to use at index time and search time for a specific column.",
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "The name of the column to override. Must exist in the entity's schema."
+		},
+		"indexAnalyzerId": {
+			"type": "string",
+			"description": "The ID of the TextAnalyzer to use when indexing this column."
+		},
+		"searchAnalyzerId": {
+			"type": "string",
+			"description": "The ID of the TextAnalyzer to use when searching this column."
+		}
+	}
+}

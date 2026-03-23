@@ -179,7 +179,7 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 * Deny if the user is anonymous.
 	 */
 	DENY_IF_ANONYMOUS((c) -> {
-		if (AuthorizationUtils.isUserAnonymous(c.getUser())) {
+		if (c.getUser().isUserAnonymous()) {
 			return Optional.of(new UsersEntityAccessInfo(c,
 					AuthorizationStatus.accessDenied(ERR_MSG_ANONYMOUS_USERS_HAVE_ONLY_READ_ACCESS_PERMISSION)));
 		} else {

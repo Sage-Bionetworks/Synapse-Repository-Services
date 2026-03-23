@@ -230,7 +230,13 @@
 				<version>${jackson.version}</version>
 			</dependency>
 
-			<!-- Used for timer triggers (cron-like) Note: spring-context-support 
+			<dependency>
+				<groupId>com.fasterxml.jackson.dataformat</groupId>
+				<artifactId>jackson-dataformat-cbor</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+
+			<!-- Used for timer triggers (cron-like) Note: spring-context-support
 				also depends on this libary as an optional dependancy. Since spring-context-support 
 				version 5.1.5.RELEASE uses quartz version 2.3.0 that is the version of quartz 
 				we are using. See the spring-context-support pom.xml. -->

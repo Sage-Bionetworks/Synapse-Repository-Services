@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.IndexNode;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
@@ -126,12 +127,21 @@ public interface GridIndexDao {
 
 	/**
 	 * Set a single clock value for a replica.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param replicaId
 	 * @param clock
 	 */
 	void setClock(String sessionId, Long replicaId, LogicalTimestamp clock);
+
+	/**
+	 * Set a batch of clock values for a replica.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @param clocks
+	 */
+	void setClocks(String sessionId, Long replicaId, List<LogicalTimestamp> clocks);
 
 	/**
 	 * Save a batch of {@link ValueNode} to a replica.
@@ -181,44 +191,57 @@ public interface GridIndexDao {
 	void createArrayBatch(String sessionIdString, Long replicaId, List<LogicalTimestamp> arrayIds);
 
 	/**
-	 * Insert an {@link ArrayNode} into an array.
+	 * Insert an {@link RGANode} into an array.
 	 * 
 	 * @param sessionIdString
 	 * @param replicaId
 	 * @param toInsert
 	 */
-	void insertIntoArray(String sessionIdString, Long replicaId, ArrayNode toInsert);
+	void insertIntoRepeatedGrowableArray(String sessionIdString, Long replicaId, RGANode toInsert);
 
 	/**
-	 * Get a single page of ordered {@link ArrayNode}.
+	 * Batch insert RGA nodes directly without conflict resolution.
+	 * Use only when array is guaranteed empty or nodes have correct references already set.
+	 * This is a fast path for snapshot imports where arrays are known to be freshly created.
+	 *
+	 * @param sessionIdString the session ID
+	 * @param replicaId the replica ID
+	 * @param nodes the list of RGANodes to insert
+	 */
+	void batchInsertRgaNodes(String sessionIdString, Long replicaId, List<RGANode> nodes);
+
+	/**
+	 * Get a single page of ordered {@link RGANode}.
 	 * 
 	 * @param sessionIdString
 	 * @param replicaId
 	 * @param arrayId
+	 * @param includeTombstones
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	List<ArrayNode> getArrayNodesInOrder(String sessionIdString, Long replicaId, LogicalTimestamp arrayId, Long limit,
-			Long offset);
+	ArrayNode getArrayNode(String sessionIdString, Long replicaId, LogicalTimestamp arrayId,
+			boolean includeTombstones, Long limit, Long offset);
 
 
 	/**
-	 * 
+	 * Returns the last node ID in the given array, or the array node ID itself if the array is empty.
+	 * This is intended to be used to append new nodes to the end of an array.
 	 * @param sessionIdString
 	 * @param replicaId
 	 * @param arrayId
 	 * 
-	 * @return The last node in the given array, empty if the array has no nodes.
+	 * @return The last node ID in the given array, or the array node ID itself if the array is empty.
 	 */
-	Optional<ArrayNode> getArrayLastNode(String sessionIdString, Long replicaId, LogicalTimestamp arrayId);
+	LogicalTimestamp getArrayLastNodeId(String sessionIdString, Long replicaId, LogicalTimestamp arrayId);
 	
 	/**
-	 * Given a new {@link ArrayNode} to insert, find the location where the node
+	 * Given a new {@link RGANode} to insert, find the location where the node
 	 * should actually be inserted following the RGA insert algorithm (specifically
 	 * step three).
 	 */
-	Optional<LogicalTimestamp> findArrayInsertLocation(String sessionIdString, Long replicaId, ArrayNode toInsert);
+	Optional<LogicalTimestamp> findRgaInsertLocation(String sessionIdString, Long replicaId, RGANode toInsert);
 
 	/**
 	 * Marks as deleted all the nodes that belongs to the given arrayId and falls into the given batch of id ranges.
@@ -228,7 +251,7 @@ public interface GridIndexDao {
 	 * @param arrayId
 	 * @param idRangeBatch A batch of intervals of logical timestamps
 	 */
-	void deleteArrayNodes(String sessionId, Long replicaId, LogicalTimestamp arrayId, List<Timespan> idRangeBatch);
+	void deleteRgaNodes(String sessionId, Long replicaId, LogicalTimestamp arrayId, List<Timespan> idRangeBatch);
 	
 	/**
 	 * Create the next message ID to start a new message chain.The id resets to zero

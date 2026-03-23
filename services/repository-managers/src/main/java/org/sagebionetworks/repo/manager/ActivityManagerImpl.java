@@ -46,7 +46,7 @@ public class ActivityManagerImpl implements ActivityManager {
 	public String createActivity(UserInfo userInfo, Activity activity)
 			throws DatastoreException, InvalidModelException {		
 		
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException("Cannot create activity with anonymous user.");
 		}
 		

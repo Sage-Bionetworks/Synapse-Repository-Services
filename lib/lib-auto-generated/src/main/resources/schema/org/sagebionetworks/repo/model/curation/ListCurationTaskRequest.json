@@ -1,10 +1,27 @@
 {
-  "description": "Request for a single page of CurationTasks for a project.",
+  "description": "Request for a single page of CurationTasks with optional filtering.",
   "properties": {
     "projectId": {
       "type": "string",
-      "description": "The project ID. Required.",
-      "required": true
+      "description": "Optional. The synId of the project. If omitted, results are aggregated across projects."
+    },
+    "assigneeIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Optional. Filter tasks assigned to specific users or teams."
+    },
+    "assignedToMe": {
+      "type": "boolean",
+      "description": "Optional. When true, filter to tasks assigned to the caller or any team the caller belongs to. Cannot be combined with assigneeIds."
+    },
+    "stateFilter": {
+      "type": "array",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.curation.TaskState"
+      },
+      "description": "Optional. Filter tasks by their current state."
     },
     "nextPageToken": {
       "type": "string",

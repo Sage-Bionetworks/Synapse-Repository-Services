@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -101,6 +102,7 @@ public class DBOSubscriptionDAOImplTest {
 		// create a user to create a project
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userIdLong = userGroupDAO.create(user);
 		userId = userIdLong.toString();
 		usersToDelete.add(userId);

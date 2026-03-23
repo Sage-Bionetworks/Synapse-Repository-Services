@@ -73,7 +73,7 @@ public class EntityBundleV2ControllerTest extends AbstractAutowiredControllerTes
 		adminUserId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
-		adminUserInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		adminUserInfo.setCertified(true);
 	}
 
 	@AfterEach

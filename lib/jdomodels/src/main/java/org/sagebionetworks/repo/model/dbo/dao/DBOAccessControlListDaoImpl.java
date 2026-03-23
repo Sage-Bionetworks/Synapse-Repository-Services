@@ -24,6 +24,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -80,26 +81,6 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String BIND_PARENT_ID = "bParentId";
 	private static final String BIND_GROUP_IDS = "bGroupIds";
-	
-	private static final String SELECT_RESOURCE_INTERSECTION = "SELECT acl."
-			+ COL_ACL_OWNER_ID
-			+ " as "+COL_ACL_OWNER_ID+" FROM "
-			+ AUTHORIZATION_SQL_TABLES
-			+ " WHERE "
-			+ AUTHORIZATION_SQL_JOIN
-			+ " AND ra."
-			+ COL_RESOURCE_ACCESS_GROUP_ID
-			+ " IN (:"
-			+ PRINCIPAL_IDS_BIND_VAR
-			+ ") AND at."
-			+ COL_RESOURCE_ACCESS_TYPE_ELEMENT
-			+ "=:"
-			+ ACCESS_TYPE_BIND_VAR
-			+ " AND acl."
-			+ COL_ACL_OWNER_ID
-			+ " IN (:"
-			+ RESOURCE_ID_BIND_VAR
-			+ ") AND acl." + COL_ACL_OWNER_TYPE + "=:" + RESOURCE_TYPE_BIND_VAR;
 	
 	private static final String SELECT_HAS_ACCESS_TYPE = "SELECT COUNT(*) = 1 FROM (SELECT acl." + COL_ACL_OWNER_ID + " FROM "
 			+ AUTHORIZATION_SQL_TABLES
@@ -541,37 +522,35 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(Set<Long> groups,
-			Set<Long> benefactors, ObjectType resourceType,
-			ACCESS_TYPE accessType) {
+	public Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors, ObjectType ownerType,
+			ACCESS_TYPE... accessTypes) {
 		ValidateArgument.required(groups, "groups");
 		ValidateArgument.required(benefactors, "benefactors");
-		ValidateArgument.required(resourceType, "resourceType");
-		ValidateArgument.required(accessType, "accessType");
+		ValidateArgument.required(ownerType, "ownerType");
+		if (accessTypes == null || accessTypes.length < 1) {
+			accessTypes = new ACCESS_TYPE[] { ACCESS_TYPE.READ };
+		}
 		if (groups.isEmpty() || benefactors.isEmpty()) {
 			// there will be no matches for empty inputs.
 			return new HashSet<Long>(0);
 		}
 		Map<String, Object> namedParameters = new HashMap<String, Object>(4);
-		namedParameters.put(RESOURCE_ID_BIND_VAR,
-				benefactors);
-		namedParameters
-				.put(PRINCIPAL_IDS_BIND_VAR, groups);
-		namedParameters.put(RESOURCE_TYPE_BIND_VAR,
-				resourceType.name());
-		namedParameters.put(ACCESS_TYPE_BIND_VAR,
-				accessType.name());
-		// query
-		List<Long> result = namedParameterJdbcTemplate.query(
-				SELECT_RESOURCE_INTERSECTION,
-				namedParameters, new RowMapper<Long>() {
+		namedParameters.put("resourceId", benefactors);
+		namedParameters.put("principalIds", groups);
+		namedParameters.put("ownerType", ownerType.name());
+		Set<String> accessTypeNames = Arrays.stream(accessTypes).map(ACCESS_TYPE::name).collect(Collectors.toSet());
+		namedParameters.put("requiredAccessTypes", accessTypeNames);
+		namedParameters.put("numberOfRequiredTypes", accessTypes.length);
 
-					@Override
-					public Long mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						return rs.getLong(COL_ACL_OWNER_ID);
-					}
-				});
+		String sql = "SELECT acl.OWNER_ID FROM ACL acl JOIN ACL_RESOURCE_ACCESS ra ON acl.ID = ra.OWNER_ID"
+				+ " JOIN ACL_RESOURCE_ACCESS_TYPE at ON ra.ID = at.ID_OID"
+				+ " WHERE ra.GROUP_ID IN (:principalIds) AND acl.OWNER_ID IN (:resourceId)"
+				+ " AND acl.OWNER_TYPE = :ownerType AND at.STRING_ELE IN (:requiredAccessTypes)"
+				+ " GROUP BY acl.OWNER_ID HAVING COUNT(DISTINCT at.STRING_ELE) = :numberOfRequiredTypes";
+		// query
+		List<Long> result = namedParameterJdbcTemplate.query(sql, namedParameters, (ResultSet rs, int rowNum) -> {
+			return rs.getLong(COL_ACL_OWNER_ID);
+		});
 		return new HashSet<Long>(result);
 	}
 

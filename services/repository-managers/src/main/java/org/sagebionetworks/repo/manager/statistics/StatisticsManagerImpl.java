@@ -35,7 +35,7 @@ public class StatisticsManagerImpl implements StatisticsManager {
 		ValidateArgument.required(request.getObjectId(), "The object id");
 
 		// Anonymous pre-check
-		if (AuthorizationUtils.isUserAnonymous(user)) {
+		if (user.isUserAnonymous()) {
 			throw new UnauthorizedException("Anonymous users may not access statistics");
 		}
 		

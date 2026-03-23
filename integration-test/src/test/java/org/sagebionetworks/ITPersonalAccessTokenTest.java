@@ -70,7 +70,7 @@ public class ITPersonalAccessTokenTest {
 		// Use the personal access token as a bearer token
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(personalAccessToken);
-			JSONObject userInfo = synapseAnonymous.getUserInfoAsJSON();
+			JSONObject userInfo = synapseAnonymous.getUserInfoAsJSON(false);
 			// check userInfo
 			assertEquals(profile.getOwnerId(), (String)userInfo.get("userid"));
 			assertEquals(profile.getEmails().get(0), (String)userInfo.get("email"));
@@ -103,7 +103,7 @@ public class ITPersonalAccessTokenTest {
 		// The token should no longer work
 		try {
 			synapseAnonymous.setBearerAuthorizationToken(personalAccessToken);
-			assertThrows(SynapseUnauthorizedException.class, () -> synapseAnonymous.getUserInfoAsJSON());
+			assertThrows(SynapseUnauthorizedException.class, () -> synapseAnonymous.getUserInfoAsJSON(false));
 		} finally {
 			synapseAnonymous.removeAuthorizationHeader();
 		}

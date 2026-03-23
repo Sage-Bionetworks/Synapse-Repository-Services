@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
@@ -53,7 +53,7 @@ public class TrashManagerImpl implements TrashManager {
 	private NodeDAO nodeDao;
 
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	private AccessControlListManager aclManager;
 
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
@@ -109,7 +109,7 @@ public class TrashManagerImpl implements TrashManager {
 	 */
 	void deleteAllAclsInHierarchy(final String nodeId) {
 		// If this node has an ACL then delete it.
-		aclDAO.delete(nodeId, ObjectType.ENTITY);
+		aclManager.delete(nodeId, ObjectType.ENTITY);
 		
 		// Delete all ACLs within the hierarchy
 		// Get the list of all parentIds for this hierarchy.
@@ -120,8 +120,8 @@ public class TrashManagerImpl implements TrashManager {
 			throw new IllegalArgumentException(UNABLE_TO_DELETE_TOO_MANY_SUB_FOLDERS);
 		}
 		// Lookup all children with ACLs for the given parents.
-		List<Long> childrenWithAcls = aclDAO.getChildrenEntitiesWithAcls(new LinkedList<Long>(allParentIds));
-		aclDAO.delete(childrenWithAcls, ObjectType.ENTITY);
+		List<Long> childrenWithAcls = aclManager.getChildrenEntitiesWithAcls(new LinkedList<Long>(allParentIds));
+		aclManager.delete(childrenWithAcls, ObjectType.ENTITY);
 	}
 
 	/**
@@ -208,7 +208,7 @@ public class TrashManagerImpl implements TrashManager {
 		if(NodeUtils.isRootEntityId(newParentId)){
 			// Create an ACL for this entity.
 			AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, currentUser, new Date());
-			aclDAO.create(acl, ObjectType.ENTITY);
+			aclManager.create(currentUser, acl, ObjectType.ENTITY, node.getCreatedByPrincipalId());
 		}
 
 		// Update the trash can table
@@ -287,7 +287,7 @@ public class TrashManagerImpl implements TrashManager {
 		} while (!deleted);
 		
 		
-		aclDAO.delete(keyId, ObjectType.ENTITY);
+		aclManager.delete(keyId, ObjectType.ENTITY);
 		
 	}
 

@@ -32,16 +32,6 @@ public interface TeamService {
 	 */
 	public Team create(Long userId,
 			Team team) throws UnauthorizedException, InvalidModelException, DatastoreException, NotFoundException;
-
-	/**
-	 * 
-	 * @param limit
-	 * @param offset
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public PaginatedResults<Team> get(long limit, long offset)
-			throws DatastoreException;
 	
 	/**
 	 * 
@@ -52,7 +42,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<Team> get(String fragment, long limit, long offset)
+	public PaginatedResults<Team> get(Long userId, String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 	
 	/**

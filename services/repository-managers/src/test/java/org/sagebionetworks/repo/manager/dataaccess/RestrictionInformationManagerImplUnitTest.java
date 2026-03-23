@@ -169,7 +169,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -237,7 +237,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 				
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -311,7 +311,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -378,7 +378,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -447,7 +447,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -518,7 +518,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -550,7 +550,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, info);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(Arrays.asList(entityIdAsLong), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(entityIdAsLong));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(entityIdAsLong));
 	}
 
 	@Test
@@ -857,7 +857,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		assertEquals(expected, response);
 		
 		verify(mockRestrictionStatusDao).getEntityStatusAsMap(List.of(123L, 456L, 789L), userInfo.getId(), userInfo.getGroups());
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), List.of(123L, 456L, 789L));
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, List.of(123L, 456L, 789L));
 		
 	}
 	

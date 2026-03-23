@@ -61,12 +61,13 @@ public interface PrincipalPrefixDAO {
 	/**
 	 * List a single page of teams that match the given prefix;
 	 *
+	 * @param realmId
 	 * @param prefix
 	 * @param limit
 	 * @param offset
 	 * @return A list of IDs corresponding to matching teams.
 	 */
-	List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset);
+	List<Long> listTeamsForPrefix(Long realmId, String prefix, Long limit, Long offset);
 
 	/**
 	 * For a given team, list all members that share the given prefix.

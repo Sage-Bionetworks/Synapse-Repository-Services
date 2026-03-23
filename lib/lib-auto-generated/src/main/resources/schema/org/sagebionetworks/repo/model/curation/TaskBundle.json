@@ -1,0 +1,13 @@
+{
+  "description": "A bundle containing a CurationTask and its associated TaskStatus.",
+  "properties": {
+    "task": {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTask",
+      "description": "The configuration and metadata of the task."
+    },
+    "status": {
+      "$ref": "org.sagebionetworks.repo.model.curation.TaskStatus",
+      "description": "The dynamic lifecycle status and execution details of the task."
+    }
+  }
+}

@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -20,11 +19,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.RealmManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -65,6 +67,8 @@ public class AdministrationServiceImplTest {
 	private PasswordValidator mockPasswordValidator;
 	@Mock
 	private EmailQuarantineDao mockEmailQuarantineDao;
+	@Mock
+	private RealmManager mockRealmManager;
 
 	@InjectMocks
 	private AdministrationServiceImpl adminService;
@@ -198,7 +202,7 @@ public class AdministrationServiceImplTest {
 		LoginResponse expected = new LoginResponse().setAccessToken("token");
 		
 		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
-		when(mockAuthManager.loginWithNoPasswordOrTwoFaCheck(anyLong(), any())).thenReturn(expected);
+		when(mockAuthManager.loginWithNoPasswordOrTwoFaCheck(any(UserInfo.class), any())).thenReturn(expected);
 		
 		// Call under test
 		LoginResponse result = adminService.getUserAccessToken(adminUserId, nonAdminUserId);
@@ -206,7 +210,7 @@ public class AdministrationServiceImplTest {
 		assertEquals(expected, result);
 		
 		verify(mockUserManager).getUserInfo(adminUserId);
-		verify(mockAuthManager).loginWithNoPasswordOrTwoFaCheck(nonAdminUserId, null);
+		verify(mockAuthManager).loginWithNoPasswordOrTwoFaCheck(admin, null);
 	}
 	
 	@Test
@@ -270,5 +274,24 @@ public class AdministrationServiceImplTest {
 		assertEquals("The request.email is required and must not be the empty string.", result);
 		
 		verifyZeroInteractions(mockEmailQuarantineDao);
+	}
+	
+	@Test
+	public void testCreateRealm() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		Realm realm = new Realm();
+		Realm createdRealm = new Realm();
+		when(mockRealmManager.createRealm(admin, realm)).thenReturn(createdRealm);
+		Realm result = adminService.createRealm(adminUserId, realm);
+		assertEquals(createdRealm, result);
+		verify(mockRealmManager).createRealm(admin, realm);
+	}
+
+	@Test
+	public void testDeleteRealm() {
+		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
+		String realmId = "testRealmId";
+		adminService.deleteRealm(adminUserId, realmId);
+		verify(mockRealmManager).deleteRealm(admin, realmId);
 	}
 }

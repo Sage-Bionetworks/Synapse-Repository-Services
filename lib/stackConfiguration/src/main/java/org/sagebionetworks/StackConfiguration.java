@@ -510,6 +510,24 @@ public interface StackConfiguration {
 	public String getOAuth2ArcusBioDiscoveryDocument();
 
 	/**
+	 * OIDC Client ID for Sage Bionetworks Identity Provider
+	 * @return
+	 */
+	public String getOAuth2SageBioClientId();
+
+	/**
+	 * OIDC Client Secret for Sage Bionetworks Identity Provider
+	 * @return
+	 */
+	public String getOAuth2SageBioClientSecret();
+	
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document
+	 * @return
+	 */
+	public String getOAuth2SageBioDiscoveryDocument();
+
+	/**
 	 * 
 	 * @return
 	 */

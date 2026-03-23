@@ -9,7 +9,6 @@ import java.util.Set;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -37,11 +36,12 @@ import com.google.common.collect.Sets.SetView;
 
 @Service
 public class EntityAclManagerImpl implements EntityAclManager {
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
 
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
-	private AccessControlListDAO aclDAO;
+	private AccessControlListManager aclManager;
 	@Autowired
 	private ProjectSettingsManager projectSettingsManager;
 	@Autowired
@@ -64,7 +64,8 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		if (!benefactor.equals(KeyFactory.keyToString(KeyFactory.stringToKey(nodeId)))) {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
-		AccessControlList acl = aclDAO.get(nodeId, ObjectType.ENTITY);
+		AccessControlList acl = aclManager.getAcl(nodeId, ObjectType.ENTITY).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, nodeId, ObjectType.ENTITY)));
 		return acl;
 	}
 	
@@ -85,14 +86,14 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		entityAuthorizationManager.hasAccess(userInfo, entityId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(entityId);
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.touch(userInfo.getId(), entityId);
 				
-		AccessControlList oldAcl = aclDAO.get(entityId, ObjectType.ENTITY);
+		AccessControlList oldAcl = aclManager.getAcl(entityId, ObjectType.ENTITY).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, entityId, ObjectType.ENTITY)));
 		
-		aclDAO.update(acl, ObjectType.ENTITY);
+		aclManager.update(userInfo, acl, ObjectType.ENTITY, ownerId);
 		
 		// Now we compare the old and the new acl to see what might have
 		// changed, so we can send notifications out.
@@ -121,7 +122,8 @@ public class EntityAclManagerImpl implements EntityAclManager {
 			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		}
 		
-		return aclDAO.get(entityId, ObjectType.ENTITY);
+		return aclManager.getAcl(entityId, ObjectType.ENTITY).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, entityId, ObjectType.ENTITY)));
 	}
 
 
@@ -136,9 +138,6 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		}
 		// check permissions of user to change permissions for the resource
 		entityAuthorizationManager.hasAccess(userInfo, benefactorId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
-		
-		// validate the Entity owners will still have access.
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, node.getCreatedByPrincipalId());
 
 		// Can't override ACL inheritance if the entity lives inside an STS-enabled folder.
 		// If the project setting is defined on the current entity, you can still override ACL inheritance.
@@ -149,9 +148,10 @@ public class EntityAclManagerImpl implements EntityAclManager {
 
 		// Before we can update the ACL we must grab the lock on the node.
 		String newEtag = nodeDao.touch(userInfo.getId(), entityId);
-		// persist acl and return
-		aclDAO.create(acl, ObjectType.ENTITY);
-		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
+		// validate the acl and persist acl
+		aclManager.create(userInfo, acl, ObjectType.ENTITY, node.getCreatedByPrincipalId());
+		acl = aclManager.getAcl(entityId, ObjectType.ENTITY).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, entityId, ObjectType.ENTITY)));
 		// Send a container message for projects or folders.
 		if(NodeUtils.isProjectOrFolder(node.getNodeType())){
 			// Notify listeners of the hierarchy change to this container.
@@ -176,7 +176,7 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		String newEtag = nodeDao.touch(userInfo.getId(), entityId);
 		
 		// delete access control list
-		aclDAO.delete(entityId, ObjectType.ENTITY);
+		aclManager.delete(entityId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
 		String benefactor = nodeDao.getBenefactor(entityId);
@@ -192,7 +192,8 @@ public class EntityAclManagerImpl implements EntityAclManager {
 			transactionalMessenger.sendMessageAfterCommit(entityId, ObjectType.ENTITY_CONTAINER, ChangeType.UPDATE);
 		}
 		
-		return aclDAO.get(benefactor, ObjectType.ENTITY);
+		return aclManager.getAcl(benefactor, ObjectType.ENTITY).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, benefactor, ObjectType.ENTITY)));
 	}
 	
 	/**
@@ -222,7 +223,7 @@ public class EntityAclManagerImpl implements EntityAclManager {
 		if(user.isAdmin()){
 			return new HashSet<Long>(0);
 		}
-		return aclDAO.getNonVisibleChilrenOfEntity(user.getGroups(), parentId);
+		return aclManager.getNonVisibleChilrenOfEntity(user.getGroups(), parentId);
 	}
 
 }

@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.TeamSortOrder;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import java.util.Collection;
@@ -36,13 +37,29 @@ public interface TeamManager {
 	public Team create(UserInfo userInfo, Team team) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 
 	/**
+	 * Create a new Team
+	 * @param userInfo
+	 * @param team
+	 * @param realmId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
+	 * 
+	 * Create a team in a specific realm.  This is only used internally, to set up the default admin' team
+	 * for a new realm by a Synapse administrator.
+	 */
+	public Team create(UserInfo userInfo, Team team, String realmId) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+
+	/**
 	 * Retrieve the Teams in the system, paginated
 	 * @param offset
 	 * @param limit
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public PaginatedResults<Team> list(long limit, long offset) throws DatastoreException;
+	public PaginatedResults<Team> list(UserInfo userInfo, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 
@@ -261,4 +278,13 @@ public interface TeamManager {
 	public List<MessageToUserAndBody> createJoinedTeamNotifications(UserInfo joinerInfo,
 			UserInfo memberInfo, String teamId, String teamEndpoint,
 			String notificationUnsubscribeEndpoint) throws NotFoundException;
+
+	/**
+	 * Bootstrap the given team.  This is only used internally, to set up the default admins team with initial ACL.
+	 * @param team
+	 * @param realmId
+	 *
+	 */
+
+	 String bootstrapTeam(BootstrapTeam team, String realmId);
 }

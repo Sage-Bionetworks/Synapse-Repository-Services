@@ -10,11 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -60,7 +59,7 @@ public class FormManagerImpl implements FormManager {
 	FormDao formDao;
 
 	@Autowired
-	AccessControlListDAO aclDao;
+	AccessControlListManager aclManager;
 
 	@Autowired
 	AuthorizationManager authManager;
@@ -79,7 +78,7 @@ public class FormManagerImpl implements FormManager {
 		if (existingGroup.isPresent()) {
 			FormGroup group = existingGroup.get();
 			// Does the caller have access to the group?
-			AuthorizationStatus status = aclDao.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP,
+			AuthorizationStatus status = aclManager.canAccess(user, group.getGroupId(), ObjectType.FORM_GROUP,
 					ACCESS_TYPE.READ);
 			if (status.isAuthorized()) {
 				// return the existing group
@@ -94,7 +93,7 @@ public class FormManagerImpl implements FormManager {
 		// Create an ACL for the
 		AccessControlList acl = AccessControlListUtil.createACL(group.getGroupId(), user, FORM_GROUP_ADMIN_PERMISSIONS,
 				new Date());
-		aclDao.create(acl, ObjectType.FORM_GROUP);
+		aclManager.create(user, acl, ObjectType.FORM_GROUP, Long.parseLong(group.getGroupId()));
 		return group;
 	}
 
@@ -103,8 +102,9 @@ public class FormManagerImpl implements FormManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(groupId, "groupId");
 		// Validate read access.
-		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return aclDao.get(groupId, ObjectType.FORM_GROUP);
+		aclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		return aclManager.getAcl(groupId, ObjectType.FORM_GROUP).orElseThrow(() ->
+				new NotFoundException(String.format("ACL for '%s' of type '%s' does not exist", groupId, ObjectType.FORM_GROUP.name())));
 	}
 
 	@WriteTransaction
@@ -123,14 +123,11 @@ public class FormManagerImpl implements FormManager {
 		// unconditionally use the groupId from the URL path.
 		acl.setId(groupId);
 
-		// Ensure the user does not revoke their own access to the ACL.
-		PermissionsManagerUtils.validateACLContent(acl, user, groupIdLong);
-
 		// Validate CHANGE_PERMISSIONS
-		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS)
+		aclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.CHANGE_PERMISSIONS)
 				.checkAuthorizationOrElseThrow();
 
-		aclDao.update(acl, ObjectType.FORM_GROUP);
+		aclManager.update(user, acl, ObjectType.FORM_GROUP, groupIdLong);
 		return getGroupAcl(user, groupId);
 	}
 
@@ -147,7 +144,7 @@ public class FormManagerImpl implements FormManager {
 
 		validateName(request.getName());
 		// must have submit on the group.
-		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
+		aclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.SUBMIT).checkAuthorizationOrElseThrow();
 		// Must own the fileHandle
 		authManager.canAccessRawFileHandleById(user, request.getFileHandleId()).checkAuthorizationOrElseThrow();
 		return formDao.createFormData(user.getId(), groupId, request.getName(), request.getFileHandleId());
@@ -171,7 +168,7 @@ public class FormManagerImpl implements FormManager {
 	/**
 	 * Validate that update is allowed given the current state.
 	 * 
-	 * @param currentState
+	 * @param formDataId
 	 */
 	void validateCanUpdateState(String formDataId) {
 		ValidateArgument.required(formDataId, "formDataId");
@@ -251,7 +248,7 @@ public class FormManagerImpl implements FormManager {
 		ValidateArgument.required(formDataId, "formDataId");
 		String groupId = formDao.getFormDataGroupId(formDataId);
 		// must have the provided permission on the group.
-		aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, permission).checkAuthorizationOrElseThrow();
+		aclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, permission).checkAuthorizationOrElseThrow();
 	}
 
 	/**
@@ -329,7 +326,7 @@ public class FormManagerImpl implements FormManager {
 			throw new IllegalArgumentException("Reviewer cannot filter by: "+StateEnum.WAITING_FOR_SUBMISSION);
 		}
 		// must have the provided permission on the group.
-		aclDao.canAccess(user, request.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)
+		aclManager.canAccess(user, request.getGroupId(), ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION)
 				.checkAuthorizationOrElseThrow();
 		NextPageToken token = new NextPageToken(request.getNextPageToken());
 		List<FormData> page = formDao.listFormDataForReviewer(request, token.getLimitForQuery(), token.getOffset());
@@ -397,12 +394,12 @@ public class FormManagerImpl implements FormManager {
 		}
 		// Non creator must have the READ_PRIVATE_SUBMISSION on the group.
 		String groupId = formDao.getFormDataGroupId(formDataId);
-		return aclDao.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		return aclManager.canAccess(user, groupId, ObjectType.FORM_GROUP, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 	}
 
 	@Override
 	public void truncateAll() {
-		aclDao.truncateAll();
+		aclManager.truncateAll();
 		formDao.truncateAll();
 	}
 
@@ -410,7 +407,7 @@ public class FormManagerImpl implements FormManager {
 	public FormGroup getFormGroup(UserInfo user, String id) {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(id, "id");
-		aclDao.canAccess(user, id, ObjectType.FORM_GROUP, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		aclManager.canAccess(user, id, ObjectType.FORM_GROUP, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		return formDao.getFormGroup(id);
 	}
 

@@ -4,10 +4,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.EventSource;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
@@ -24,12 +27,13 @@ public interface GridDao {
 	GridSession createGridSession(CreateGridSession create);
 
 	/**
-	 * Get the user that started the grid session.
+	 * Get the user/team that owns the the grid session.
 	 * 
 	 * @param gridSessionId
 	 * @return
 	 */
-	Optional<Long> getGridSessionStartedBy(String gridSessionId);
+	Optional<Long> getGridSessionOwner(String gridSessionId);
+
 
 	/**
 	 * Get session by ID.
@@ -61,13 +65,23 @@ public interface GridDao {
 
 	/**
 	 * Get the replica createdBy of the replica matching the parameters.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param replicaId
 	 * @param isAgent
 	 * @return
 	 */
 	Optional<Long> getReplicaCreatedBy(String sessionId, Long replicaId);
+
+	/**
+	 * List all replicas for a session with their connection status.
+	 *
+	 * @param sessionId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<GridReplicaInfo> listReplicas(String sessionId, long limit, long offset);
 
 	/**
 	 * Crete a new connection.
@@ -117,14 +131,25 @@ public interface GridDao {
 
 	/**
 	 * Save grid patch data.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param patchId
 	 * @param s3Key
 	 * @param expires
+	 * @param sizeBytes
 	 * @return True of this was a new patch, else false.
 	 */
-	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires);
+	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires, long sizeBytes);
+
+	/**
+	 * Save grid snapshot data.
+	 *
+	 * @param sessionId
+	 * @param clockTable
+	 * @param s3Key
+	 * @return True of this was a new snapshot, else false.
+	 */
+	boolean saveSnapshot(String sessionId, ClockTable clockTable, String s3Key, Long createdByPrincipalId);
 
 	/**
 	 * Get information about a patch.
@@ -136,14 +161,14 @@ public interface GridDao {
 	Optional<PatchInfo> getPatchInfo(String sessionId, LogicalTimestamp patchId);
 
 	/**
-	 * List all of the missing patches give a clock
-	 * 
+	 * List the missing patches with full info (including size) for a clock.
+	 *
 	 * @param sessionId
 	 * @param clock
 	 * @param limit
 	 * @return
 	 */
-	List<LogicalTimestamp> listMissingPatchIdsForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
+	List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
 
 	/**
 	 * List the active grid session for a user filtered by the provided sourceId.
@@ -171,5 +196,27 @@ public interface GridDao {
 	 * @return
 	 */
 	Optional<GridConnectionInfo> getConnection(String sessionId, Long replicaId);
+	
+	/**
+	 * Get the grid session source information.
+	 * @param sessionId
+	 * @return Optional.empty() if the session does not have a source.
+	 */
+	Optional<GridSource> getSessionSource(String sessionId);
 
+	/**
+	 * Gets the latest grid snapshot, based on created date
+	 * @param sessionId
+	 * @return
+	 */
+	Optional<GridSnapshot> getLatestSnapshot(String sessionId);
+
+	/**
+	 * List all grid session IDs.
+	 *
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<String> listAllSessionIds(long limit, long offset);
 }

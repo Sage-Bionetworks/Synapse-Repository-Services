@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.grid.node;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -30,6 +31,14 @@ public class ValueNode implements Node, HasJsonValue<ValueNode>, CanInsert<Inser
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		if (value == null) {
+			return Stream.of(getId());
+		}
+		return Stream.of(getId(), value);
 	}
 
 	public LogicalTimestamp getValue() {

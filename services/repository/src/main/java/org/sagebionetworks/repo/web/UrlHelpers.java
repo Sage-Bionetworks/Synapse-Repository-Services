@@ -454,6 +454,7 @@ public class UrlHelpers {
 	
 	public static final String GRID_SESSION_ID_REPLICA = GRID_SESSION_ID+"/replica";
 	public static final String GRID_SESSION_ID_REPLICA_ID = GRID_SESSION_ID_REPLICA+"/{replicaId}";
+	public static final String GRID_SESSION_ID_REPLICA_LIST = GRID_SESSION_ID_REPLICA+"/list";
 
     public static final String GRID_DOWNLOAD = GRID+"/download";
     public static final String GRID_DOWNLOAD_CSV = GRID_DOWNLOAD+"/csv";
@@ -466,11 +467,16 @@ public class UrlHelpers {
     public static final String GRID_IMPORT_CSV_ASYNC_START = GRID+"/import/csv"+ASYNC_START_REQUEST;
     public static final String GRID_IMPORT_CSV_ASYNC_GET = GRID+"/import/csv"+ASYNC_GET_REQUEST;
     
+    public static final String GRID_SYNCHRONIZE_ASYNC_START = GRID+"/synchronize"+ASYNC_START_REQUEST;
+    public static final String GRID_SYNCHRONIZE_ASYNC_GET = GRID+"/synchronize"+ASYNC_GET_REQUEST;
+    
     public static final String GRID_SESSION_ID_PRESIGNED_URL = GRID_SESSION_ID+"/presigned/url";
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
 	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
-	
+
+	public static final String ADMIN_GRID_SESSION_BACKFILL = ADMIN + GRID_SESSION + "/backfill";
+
 	/*
 	 * The regular expression is needed in the path variable due to:
 	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-
@@ -1250,6 +1256,7 @@ public class UrlHelpers {
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	public static final String OAUTH_2_REVOKE = AUTH_OAUTH_2+"/revoke";
+	public static final String OAUTH_2_INTROSPECT = AUTH_OAUTH_2+"/introspect";
 	public static final String OAUTH_2_TOKEN_ID = OAUTH_2_TOKEN + "/{tokenId}";
 	public static final String OAUTH_2_TOKEN_ID_METADATA = OAUTH_2_TOKEN_ID + "/metadata";
 
@@ -1272,7 +1279,13 @@ public class UrlHelpers {
 
 	public static final String AUTH_LOGIN = "/login";
 	public static final String AUTH_LOGIN_2 = "/login2";
+	public static final String ANONYMOUS_TOKEN = "/anonymousToken";
 	public static final String AUTHENTICATED_ON = "/authenticatedOn";
+	
+	/**
+	 * Request parameter to specify a security realm
+	 */
+	public static final String PARAM_REALM_ID = "realm";
 	
 	// Endpoint for webhook management
 	public static final String WEBHOOK = "/webhook";
@@ -1296,6 +1309,7 @@ public class UrlHelpers {
     public static final String CURATION_TASK = "/curation/task";
     public static final String CURATION_TASK_ID = CURATION_TASK + "/{taskId}";
     public static final String CURATION_TASK_LIST = CURATION_TASK + LIST;
+    public static final String CURATION_TASK_STATUS = CURATION_TASK_ID + "/status";
 	
 	/**
 	 * API for creating integration test users
@@ -1321,6 +1335,17 @@ public class UrlHelpers {
 	
 	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
 	
+	public static final String REALM = "/realm";
+	public static final String ADMIN_REALM = ADMIN+REALM;
+	public static final String REALM_LIST = REALM + "/list";
+	public static final String REALM_ID = REALM + ID;
+	public static final String REALM_PRINCIPALS = REALM + "/principals";
+	public static final String REALM_ID_PRINCIPALS = REALM + ID+"/principals";
+	public static final String ADMIN_REALM_ID = ADMIN_REALM + ID;
+
+	public static final String RESET_USER_STATUS = "/resetuserstatus";
+	public static final String ADMIN_RESET_USER_STATUS = ADMIN + RESET_USER_STATUS + "/{targetUserId}";
+	
 	/**
 	 * Request paramter to specify a target user id
 	 */
@@ -1337,6 +1362,16 @@ public class UrlHelpers {
 	public static final String DRS_SERVICE_INFO = "/service-info";
 	public static final String DRS_OBJECT = "/objects/{object_id}";
 	public static final String DRS_FETCH_BYTES = DRS_OBJECT + "/access/{access_id}";
+
+	// Search - Text Analyzer
+	public static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";
+	public static final String SEARCH_TEXT_ANALYZER_ID = SEARCH_TEXT_ANALYZER + "/{id}";
+	public static final String SEARCH_TEXT_ANALYZER_LIST = SEARCH_TEXT_ANALYZER + "/list";
+
+	// Search - Column Analyzer Override
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE = "/search/column/analyzer/override";
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_ID = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/{columnAnalyzerOverrideId}";
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_LIST = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/list";
 
 	static {
 		@SuppressWarnings("rawtypes")

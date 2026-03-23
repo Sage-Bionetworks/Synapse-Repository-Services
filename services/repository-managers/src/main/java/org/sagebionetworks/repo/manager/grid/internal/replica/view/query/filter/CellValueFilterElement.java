@@ -106,14 +106,14 @@ public class CellValueFilterElement implements FilterElement {
 		sqlBuilder.append("(");
 		if (CellValueOperatorElement.NOT_EQUALS.equals(operator)) {
 			// If the check is "!=", then we want to include undefined/timestamp values, which will never equal the passed value
-			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("]') != 1 OR");
+			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("].v') != 1 OR");
 		} else {
 			// For all other operators, we want to exclude undefined/timestamp values, which cannot be compared to the passed value
-			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("]') = 1 AND");
+			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("].v') = 1 AND");
 		}
 
 		String function = isString(value) ? "->>" : "->";
-		sqlBuilder.append(" VALS").append(function).append("'$[").append(columnIndex).append("][0]' ").append(operator.toSql());
+		sqlBuilder.append(" VALS").append(function).append("'$[").append(columnIndex).append("].v[0]' ").append(operator.toSql());
 
 		if (isJsonType(value)) {
 			sqlBuilder.append(" CAST(:").append(bind).append(" AS JSON)");
@@ -126,7 +126,7 @@ public class CellValueFilterElement implements FilterElement {
 	}
 
 	private void handleMultipleValues(StringBuilder sqlBuilder, Map<String, Object> params, String bind,
-			Integer columnIndex) {
+									  Integer columnIndex) {
 		if (!(value instanceof JSONArray) || ((JSONArray) value).length() == 0) {
 			throw new IllegalArgumentException("Expected at least one value for operation: " + operator);
 		}
@@ -135,14 +135,14 @@ public class CellValueFilterElement implements FilterElement {
 
 		if (CellValueOperatorElement.NOT_IN.equals(operator)) {
 			// If the check is "NOT IN", then we want to include undefined/timestamp values, which will never match the passed values
-			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("]') != 1 OR");
+			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("].v') != 1 OR");
 		} else {
 			// For all other operators ("IN"), we want to exclude undefined/timestamp values, which cannot be compared to the passed value
-			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("]') = 1 AND");
+			sqlBuilder.append(" JSON_LENGTH(VALS, '$[").append(columnIndex).append("].v') = 1 AND");
 		}
 
 
-		sqlBuilder.append(" VALS->'$[").append(columnIndex).append("][0]' ").append(operator.toSql());
+		sqlBuilder.append(" VALS->'$[").append(columnIndex).append("].v[0]' ").append(operator.toSql());
 		sqlBuilder.append(" (:").append(bind).append(")");
 
 		List<Object> toBind = new ArrayList<>();
@@ -163,7 +163,7 @@ public class CellValueFilterElement implements FilterElement {
 		}
 
 		// NOTE: These operators check the entire array, not just the first element.
-		sqlBuilder.append(" VALS->'$[").append(columnIndex).append("]' ").append(operator.toSql());
+		sqlBuilder.append(" VALS->'$[").append(columnIndex).append("].v' ").append(operator.toSql());
 	}
 
 	private boolean isJsonType(Object val) {

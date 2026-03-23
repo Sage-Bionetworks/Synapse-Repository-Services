@@ -309,7 +309,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean isAnonymousUser(UserInfo userInfo) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		return AuthorizationUtils.isUserAnonymous(userInfo);
+		return userInfo.isUserAnonymous();
 	}
 
 	@Override
@@ -391,8 +391,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors) {
-		return aclManager.getAccessibleBenefactors(userInfo, objectType, benefactors);
+	public Set<Long> getAccessibleBenefactors(UserInfo userInfo, ObjectType objectType, Set<Long> benefactors, ACCESS_TYPE...types) {
+		return aclManager.getAccessibleBenefactors(userInfo, objectType, benefactors, types);
 	}
 
 	@Override

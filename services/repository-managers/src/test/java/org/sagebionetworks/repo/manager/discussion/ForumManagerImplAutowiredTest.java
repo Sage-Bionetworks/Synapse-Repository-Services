@@ -46,7 +46,7 @@ public class ForumManagerImplAutowiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, nu);
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		Node newNode = new Node();
 		newNode.setName("project");

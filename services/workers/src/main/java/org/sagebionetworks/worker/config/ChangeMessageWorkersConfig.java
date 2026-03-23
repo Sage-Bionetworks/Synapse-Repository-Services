@@ -11,6 +11,7 @@ import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleStreamWorker;
+import org.sagebionetworks.grid.workers.GridSessionIndexWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationReconciliationWorker;
 import org.sagebionetworks.replication.workers.ObjectReplicationWorker;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -239,6 +240,29 @@ public class ChangeMessageWorkersConfig {
 				.withRepeatInterval(2010)
 				.withStartDelay(270)
 				.build();
+	}
+
+	@Bean
+	public SimpleTriggerFactoryBean gridSessionIndexWorkerTrigger(GridSessionIndexWorker gridSessionIndexWorker) {
+
+		String queueName = stackConfig.getQueueName("GRID_SESSION_INDEX");
+		MessageDrivenRunner worker = new ChangeMessageBatchProcessor(amazonSQSClient, queueName, gridSessionIndexWorker);
+
+		return new WorkerTriggerBuilder()
+			.withStack(ConcurrentWorkerStack.builder()
+				.withSemaphoreLockKey("gridSessionIndexWorker")
+				.withSemaphoreMaxLockCount(5)
+				.withSemaphoreLockAndMessageVisibilityTimeoutSec(120)
+				.withMaxThreadsPerMachine(2)
+				.withSingleton(concurrentStackManager)
+				.withCanRunInReadOnly(true)
+				.withQueueName(queueName)
+				.withWorker(worker)
+				.build()
+			)
+			.withRepeatInterval(2000)
+			.withStartDelay(500)
+			.build();
 	}
 
 	@Bean

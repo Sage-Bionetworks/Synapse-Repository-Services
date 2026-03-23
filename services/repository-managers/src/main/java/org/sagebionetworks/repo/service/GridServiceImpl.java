@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +53,12 @@ public class GridServiceImpl implements GridService {
 	public ListGridSessionsResponse listActiveGridSessions(Long userId, ListGridSessionsRequest request) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return gridManager.listActiveGridSessions(user, request);
+	}
+
+	@Override
+	public ListGridReplicasResponse listReplicas(Long userId, ListGridReplicasRequest request) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return gridManager.listReplicas(user, request);
 	}
 
 	@Override

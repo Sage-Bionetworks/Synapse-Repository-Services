@@ -546,22 +546,27 @@ public class PrincipalPrefixDAOImplTest {
 	@Test
 	public void testListTeamsForPrefix(){
 		addDefaultAlias();
-		List<Long> results = principalPrefixDao.listTeamsForPrefix("r", 1000L, 0L);
+		List<Long> results = principalPrefixDao.listTeamsForPrefix(0L, "r", 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		assertEquals(teamAllId, results.get(0));
 		assertEquals(teamEvenId, results.get(1));
 		assertEquals(teamOddId, results.get(2));
+
+		// All the teams are in default realm, passing realm 1 should give Zero results
+		results = principalPrefixDao.listTeamsForPrefix(1L, "r", 1000L, 0L);
+		assertNotNull(results);
+		assertEquals(0, results.size());
 		
 		// Full paging
-		results = principalPrefixDao.listTeamsForPrefix("rteam", 2L, 1L);
+		results = principalPrefixDao.listTeamsForPrefix(0L, "rteam", 2L, 1L);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		assertEquals(teamEvenId, results.get(0));
 		assertEquals(teamOddId, results.get(1));
 		
 		// single
-		results = principalPrefixDao.listTeamsForPrefix("rteama", 100L, 0L);
+		results = principalPrefixDao.listTeamsForPrefix(0L, "rteama", 100L, 0L);
 		assertNotNull(results);
 		assertEquals(1, results.size());
 		assertEquals(teamAllId, results.get(0));
@@ -572,7 +577,7 @@ public class PrincipalPrefixDAOImplTest {
 		addDefaultAlias();
 		// Prefix with no alpha-numerics
 		String prefixWithNoAlphaNumerics = "#$%";
-		List<Long> results = principalPrefixDao.listTeamsForPrefix(prefixWithNoAlphaNumerics, 1000L, 0L);
+		List<Long> results = principalPrefixDao.listTeamsForPrefix(0L, prefixWithNoAlphaNumerics, 1000L, 0L);
 		assertNotNull(results);
 		assertEquals(3, results.size());
 	}

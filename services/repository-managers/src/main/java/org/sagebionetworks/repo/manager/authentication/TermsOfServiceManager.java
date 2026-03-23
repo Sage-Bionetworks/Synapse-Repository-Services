@@ -82,9 +82,9 @@ public class TermsOfServiceManager {
 		authDao.addTermsOfServiceAgreement(principalId, versionToSign.getVersion(), clock.now());
 	}
 	
-	public TermsOfServiceStatus getUserTermsOfServiceStatus(long userId) {
-		ValidateArgument.requirement(!AuthorizationUtils.isUserAnonymous(userId), "Cannot get terms of service status for the anonymous user.");
-		
+	public TermsOfServiceStatus getUserTermsOfServiceStatus(UserInfo userInfo) {
+		ValidateArgument.requirement(!userInfo.isUserAnonymous(), "Cannot get terms of service status for the anonymous user.");
+		Long userId = userInfo.getId();
 		TermsOfServiceStatus status = new TermsOfServiceStatus()
 			.setUserId(String.valueOf(userId))
 			.setUserCurrentTermsOfServiceState(TermsOfServiceState.MUST_AGREE_NOW);
@@ -134,8 +134,8 @@ public class TermsOfServiceManager {
 		return getTermsOfServiceInfo();
 	}
 	
-	public boolean hasUserAcceptedTermsOfService(long userId) {
-		return !TermsOfServiceState.MUST_AGREE_NOW.equals(getUserTermsOfServiceStatus(userId).getUserCurrentTermsOfServiceState());
+	public boolean hasUserAcceptedTermsOfService(UserInfo userInfo) {
+		return !TermsOfServiceState.MUST_AGREE_NOW.equals(getUserTermsOfServiceStatus(userInfo).getUserCurrentTermsOfServiceState());
 	}
 
 	public Semver refreshLatestVersion() {

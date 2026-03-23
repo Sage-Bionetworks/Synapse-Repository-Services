@@ -4,6 +4,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
@@ -70,10 +71,12 @@ public interface OpenIDConnectManager {
 	 * requested in the scopes / claims embedded in the access token
 	 * 
 	 * @param accessToken
+	 * @param oauthEndpoint
+	 * @param acceptHeader
 	 * @return either a JWT or a JSON Object, depending on whether the client registered a value for
-	 * userinfo_signed_response_alg
+	 * userinfo_signed_response_alg.  We allow overriding the returned format via the Accept header
 	 */
-	Object getUserInfo(String accessToken, String oauthEndpoint);
+	Object getUserInfo(String accessToken, String oauthEndpoint, String acceptHeader);
 	
 	/**
 	 * 
@@ -99,5 +102,14 @@ public interface OpenIDConnectManager {
 	 * @param userId
 	 */
 	void revokeUserAccess(Long userId);
+
+	/**
+	 * Introspect an OAuth 2.0 access token, returning whether the token is active and its claims.
+	 *
+	 * @param token the access token to introspect
+	 * @param maxAge optional maximum authentication age in seconds
+	 * @return the introspection response
+	 */
+	OAuthTokenIntrospectionResponse introspectToken(String token, Long maxAge);
 
 }

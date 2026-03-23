@@ -48,4 +48,28 @@ public class GridEventResponsePublisherImpl implements GridEventResponsePublishe
 		publishEventResponse(context, message);
 	}
 
+	@Override
+	public void publishEventResponses(List<EventContext> contexts, JsonRxMessageType type, String method) {
+		ValidateArgument.required(contexts, "contexts");
+		ValidateArgument.required(type, "type");
+		ValidateArgument.required(method, "method");
+		
+		if (contexts.isEmpty()) {
+			return;
+		}
+		
+		String message = String.format("[%d,\"%s\"]", type.getCode(), method);
+		
+		// Group contexts by EventSource and delegate to each handler's batch method
+		contexts.stream()
+			.collect(Collectors.groupingBy(EventContext::getEventSource))
+			.forEach((source, sourceContexts) -> {
+				GridEventResponsePublishHandler handler = handlerMap.get(source);
+				if (handler == null) {
+					throw new IllegalStateException("No handler found for: " + source);
+				}
+				handler.publishEventResponses(sourceContexts, message);
+			});
+	}
+
 }

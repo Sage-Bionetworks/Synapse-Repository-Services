@@ -6,6 +6,7 @@ public class CreateGridSession {
 	private Long userId;
 	private String sourceId;
 	private String schemaId;
+	private Long owner;
 
 	public Long getUserId() {
 		return userId;
@@ -34,9 +35,24 @@ public class CreateGridSession {
 		return this;
 	}
 
+	public Long getOwner() {
+		return owner;
+	}
+
+	
+	public CreateGridSession setOwner(String ownerString) {
+		this.owner = ownerString != null? Long.parseLong(ownerString):null;
+		return this;
+	}
+	
+	public CreateGridSession setOwner(Long owner) {
+		this.owner = owner;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(schemaId, sourceId, userId);
+		return Objects.hash(owner, schemaId, sourceId, userId);
 	}
 
 	@Override
@@ -48,13 +64,14 @@ public class CreateGridSession {
 		if (getClass() != obj.getClass())
 			return false;
 		CreateGridSession other = (CreateGridSession) obj;
-		return Objects.equals(schemaId, other.schemaId) && Objects.equals(sourceId, other.sourceId)
-				&& Objects.equals(userId, other.userId);
+		return Objects.equals(owner, other.owner) && Objects.equals(schemaId, other.schemaId)
+				&& Objects.equals(sourceId, other.sourceId) && Objects.equals(userId, other.userId);
 	}
 
 	@Override
 	public String toString() {
-		return "CreateGridSession [userId=" + userId + ", sourceId=" + sourceId + ", schemaId=" + schemaId + "]";
+		return "CreateGridSession [userId=" + userId + ", sourceId=" + sourceId + ", schemaId=" + schemaId + ", owner="
+				+ owner + "]";
 	}
 
 }

@@ -421,6 +421,7 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
+	public static final String COL_USER_GROUP_REALM = "REALM";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
 
     // The group members table
@@ -1398,6 +1399,7 @@ public class SqlConstants {
 	public static final String COL_GRID_SESSION_REP_ID_SERVICE =	"REP_ID_SERVICE";
 	public static final String COL_GRID_SESSION_SOURCE_ID =			"SOURCE_ID";
 	public static final String COL_GRID_SESSION_SCHEMA_ID =			"SCHEMA_ID";
+	public static final String COL_GRID_SESSION_OWNER =				"OWNER_ID";
 	public static final String DDL_GRID_SESSION = "schema/grid/Grid-Session-ddl.sql";
 	
 	public static final String TABLE_GRID_REPLICA =					"GRID_REPLICA";
@@ -1427,8 +1429,18 @@ public class SqlConstants {
 	public static final String COL_GRID_PAT_CREATED_ON = 			"CREATED_ON";
 	public static final String COL_GRID_PAT_EXPIRES_ON = 			"EXPIRES_ON";
 	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
+	public static final String COL_GRID_PAT_SIZE_BYTES = 			"SIZE_BYTES";
 	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
 	
+	public static final String TABLE_GRID_SNAPSHOT = 				"GRID_SNAPSHOT";
+	public static final String COL_GRID_SNAPSHOT_ID =				"ID";
+	public static final String COL_GRID_SNAPSHOT_SESSION_ID = 		"SESSION_ID";
+	public static final String COL_GRID_SNAPSHOT_CLOCK_TABLE = 		"CLOCK_TABLE";
+	public static final String COL_GRID_SNAPSHOT_CREATED_ON = 		"CREATED_ON";
+	public static final String COL_GRID_SNAPSHOT_CREATED_BY = 		"CREATED_BY";
+	public static final String COL_GRID_SNAPSHOT_S3_KEY	= 			"S3_KEY";
+	public static final String DDL_GRID_SNAPSHOT =	"schema/grid/Grid-Snapshot-ddl.sql";
+
 	public static final String TABLE_USER_STATUS					= "USER_STATUS";
 	public static final String COL_USER_STATUS_PRINCIPAL_ID			= "PRINCIPAL_ID";
 	public static final String COL_USER_STATUS_ETAG					= "ETAG";
@@ -1446,9 +1458,15 @@ public class SqlConstants {
     public static final String COL_CURATION_TASK_CREATED_ON = "CREATED_ON";
     public static final String COL_CURATION_TASK_MODIFIED_ON = "MODIFIED_ON";
     public static final String COL_CURATION_TASK_MODIFIED_BY = "MODIFIED_BY";
+    public static final String COL_CURATION_TASK_ASSIGNEE = "ASSIGNEE";
     public static final String COL_CURATION_TASK_TASK_PROPERTIES = "TASK_PROPERTIES";
     public static final String DDL_CURATION_TASK = "schema/CurationTask-ddl.sql";
-    
+    public static final String COL_CURATION_TASK_STATE = "STATE";
+    public static final String COL_CURATION_TASK_EXECUTION_DETAILS = "EXECUTION_DETAILS";
+    public static final String COL_CURATION_TASK_STATE_UPDATED_BY = "STATE_UPDATED_BY";
+    public static final String COL_CURATION_TASK_STATE_UPDATED_ON = "STATE_UPDATED_ON";
+
+
     // Table to track a record set validation summary for a specific version
  	public static final String TABLE_RECORDSET_VALIDATION_STATS					= "RECORDSET_VALIDATION_STATS";
  	public static final String COL_RECORDSET_VALIDATION_STATS_ID				= "ID";
@@ -1457,6 +1475,35 @@ public class SqlConstants {
  	public static final String COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION	= "RECORDSET_VERSION";
  	public static final String COL_RECORDSET_VALIDATION_STATS_JSON				= "STATS_JSON";
  	public static final String DDL_FILE_RECORDSET_VALIDATION_STATS				= "schema/RecordSetValidationStats-ddl.sql";
+
+	// The certified users table
+	public static final String TABLE_CERTIFIED_USERS                            = "CERTIFIED_USERS";
+	public static final String COL_CERTIFIED_USERS_USER_ID                   	= "USER_ID";
+
+	public static final String DDL_FILE_CERTIFIED_USERS                            = "schema/CertifiedUsers-ddl.sql";
+ 	
+ 	// Tables to represent security Realms
+ 	public static final String TABLE_REALM = "SYNAPSE_REALM";
+ 	public static final String COL_REALM_ID = "ID";
+ 	public static final String COL_REALM_CREATED_ON = "CREATED_ON";
+ 	public static final String COL_REALM_NAME = "NAME";
+ 	public static final String DDL_FILE_REALM = "schema/Realm-ddl.sql";
+ 	
+	public static final String TABLE_REALM_IDP = "SYNAPSE_REALM_IDP";
+	public static final String COL_REALM_IDP_REALM_ID = "REALM_ID";
+	public static final String COL_REALM_IDP_PROVIDER = "PROVIDER";
+	public static final String DDL_FILE_REALM_IDP = "schema/RealmIdentityProvider-ddl.sql";
+
+	public static final String TABLE_REALM_PRINCIPAL = "SYNAPSE_REALM_PRINCIPAL";
+	public static final String COL_REALM_PRINCIPAL_ID = "ID";
+	public static final String COL_REALM_PRINCIPAL_REALM_ID = "REALM_ID";
+	public static final String COL_REALM_PRINCIPAL_PRINCIPAL_ID = "PRINCIPAL_ID";
+	public static final String COL_REALM_PRINCIPAL_PRINCIPAL_TYPE = "TYPE";
+	public static final String REALM_PRINCIPAL_TYPE_ANONYMOUS = "ANONYMOUS";
+	public static final String REALM_PRINCIPAL_TYPE_PUBLIC = "PUBLIC";
+	public static final String REALM_PRINCIPAL_TYPE_AUTHENTICATED = "AUTHENTICATED";
+	public static final String REALM_PRINCIPAL_TYPE_ADMINISTRATORS = "ADMINISTRATORS";
+	public static final String DDL_FILE_REALM_PRINCIPAL = "schema/RealmPrincipal-ddl.sql";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

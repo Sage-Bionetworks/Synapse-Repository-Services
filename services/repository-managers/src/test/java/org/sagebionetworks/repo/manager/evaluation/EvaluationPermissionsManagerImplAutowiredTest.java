@@ -77,7 +77,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
@@ -320,7 +320,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 		evaluationPermissionsManager.deleteAcl(adminUserInfo, evalId);
 
-		// ACL does not exist yet (e-tag is null)
+		// ACL does not exist yet
 		try {
 			AccessControlList acl = new AccessControlList();
 			acl.setId(evalId);
@@ -510,7 +510,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
 		// userInfo includes this team
-		String teamId = BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+		String teamId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString();
 		
 		// false if user is on team but lacks submit privilege
 		assertFalse(evaluationPermissionsManager.
@@ -659,6 +659,29 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 					// as expected
 				}
 			}
+		}
+	}
+	
+	@Test
+	public void testAnonymousInACL() throws Exception {
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+
+		// add READ privilege to ACL for anonymous
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ_PRIVATE_SUBMISSION));
+		Set<ResourceAccess> raSet = Collections.singleton(ra);
+		acl.setResourceAccess(raSet);
+		try {
+			// Call under test
+			evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+			fail("Expected InvalidModelException");
+		} catch (InvalidModelException e) {
+			// as expected
 		}
 	}
 	

@@ -20,8 +20,7 @@ public class AuthorizationUtilsTest {
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setGroups(new HashSet<Long>());
 		assertFalse(AuthorizationUtils.isCertifiedUser(userInfo));
-		userInfo.getGroups().add(
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		assertTrue(AuthorizationUtils.isCertifiedUser(userInfo));
 	}
 

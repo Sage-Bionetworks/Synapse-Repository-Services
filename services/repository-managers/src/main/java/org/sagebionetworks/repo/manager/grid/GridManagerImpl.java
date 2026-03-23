@@ -1,23 +1,34 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import static org.sagebionetworks.repo.manager.file.FileHandleManagerImpl.PRESIGNED_URL_EXPIRE_TIME_MS;
+
+import java.io.File;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -29,19 +40,31 @@ import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.GridUtils;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.model.UploadResult;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -72,23 +95,34 @@ public class GridManagerImpl implements GridManager {
 	private final AwsCredentialsProvider awsCredentialsProvider;
 	private final WebsocketApi websocketApi;
 	private final GridDao gridDao;
+	private final String gridSnapshotBucket;
 	private final String gridPatchBucket;
 	private final S3Client s3Client;
+	private final SynapseS3Client synapseS3Client;
 	private final InternalReplicaToHubEventPublisher internalEventPublisher;
 	private final List<CreateGridHandler> createGridHandlers;
+	private final GridAuthorizationManager gridAuthorizationManager;
+	private final TransferManager transferManager;
+	private final TransactionalMessenger transactionalMessenger;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
-			StackConfiguration config, S3Client s3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
-			List<CreateGridHandler> createHandlers) {
+	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
+	   List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager, TransferManager transferManager,
+	   TransactionalMessenger transactionalMessenger) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
 		this.gridDao = gridDao;
+		this.gridSnapshotBucket = String.format("%s.grid.snapshot.sagebase.org", config.getStack());
 		this.gridPatchBucket = String.format("%s.grid.patch.sagebase.org", config.getStack());
 		this.s3Client = s3Client;
+		this.synapseS3Client = synapseS3Client;
 		this.internalEventPublisher = internalEventPublisher;
 		this.createGridHandlers = createHandlers;
+		this.gridAuthorizationManager = gridAuthorizationManager;
+		this.transferManager = transferManager;
+		this.transactionalMessenger = transactionalMessenger;
 	}
 
 	@WriteTransaction
@@ -100,8 +134,8 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.requirement(request.getInitialQuery() == null || request.getRecordSetId() == null,
 				"Cannot set both initialQuery and recordSetId.");
 
-		// Must authenticate to create a grid session.
-		AuthorizationUtils.disallowAnonymous(user);
+		Long ownerId = gridAuthorizationManager.validateGridOwner(user, request.getOwnerPrincipalId());
+		request.setOwnerPrincipalId(ownerId.toString());
 
 		CreateGridHandler handler = createGridHandlers.stream()
 			.filter(h -> h.canCreate(request))
@@ -152,9 +186,10 @@ public class GridManagerImpl implements GridManager {
 				new Connection().setGridSessionId(GridUtils.gridSessionIdAsLong(session.getSessionId()))
 						.setReplicaId(replica.getReplicaId()).setUserId(user.getId()));
 	}
+	
 
 	/**
-	 * Currently, only the user that started the session may access it.
+	 * If the grid owner is a team, the user must belong to the team, or the user must be the owner user.
 	 * 
 	 * @param user
 	 * @param gridSessionId
@@ -162,12 +197,7 @@ public class GridManagerImpl implements GridManager {
 	void validGridSessionAccess(UserInfo user, String gridSessionId) {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(gridSessionId, "gridSessionId");
-
-		Long startedBy = gridDao.getGridSessionStartedBy(gridSessionId)
-				.orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
-		if (!AuthorizationUtils.isUserCreatorOrAdmin(user, startedBy.toString())) {
-			throw new UnauthorizedException("You are not authorized to access this resource.");
-		}
+		gridAuthorizationManager.hasGridSessionAccess(user, gridSessionId).checkAuthorizationOrElseThrow();
 	}
 
 	@Override
@@ -317,9 +347,16 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(body, "body");
 		String s3Key = String.format("%s.json", UUID.randomUUID().toString());
+		byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
 		s3Client.putObject(PutObjectRequest.builder().bucket(gridPatchBucket).key(s3Key).build(),
-				RequestBody.fromString(body, StandardCharsets.UTF_8));
-		return gridDao.savePatch(sessionId, patchId, s3Key, PATCH_DURATION);
+				RequestBody.fromBytes(bodyBytes));
+		boolean isNew = gridDao.savePatch(sessionId, patchId, s3Key, PATCH_DURATION, bodyBytes.length);
+		if (isNew) {
+			transactionalMessenger.sendMessageAfterCommit(
+					GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
+					ChangeType.UPDATE);
+		}
+		return isNew;
 	}
 
 	@Override
@@ -330,45 +367,132 @@ public class GridManagerImpl implements GridManager {
 		return gridDao.listConnections(thisCon.getSessionId());
 	}
 
+	static final long PATCH_BATCH_BUDGET_BYTES = PatchUtils.MAX_BYTES_PER_PATCH - 1_000L; // WebSocket message limit, minus ~1KB for overhead
+	static final long PATCH_BATCH_CANDIDATE_LIMIT = PATCH_BATCH_BUDGET_BYTES / 10; // Assume minimum patch size of ~10B
+
+	@Override
+	public Optional<String> getNextSynchronizeResponse(EventContext context, List<LogicalTimestamp> clock) {
+		// Always start a new replica with a snapshot
+		boolean getSnapshot = clock == null || clock.isEmpty();
+
+		if (getSnapshot) {
+			Optional<URL> snapshotPresignedUrl = this.getLatestSnapshotPresignedUrl(context);
+			if (snapshotPresignedUrl.isPresent()) {
+				// Send the snapshot URL to the caller
+				JSONObject messageBody = new JSONObject();
+				messageBody.put("type", "snapshot");
+				messageBody.put("body", snapshotPresignedUrl.get().toString());
+				return Optional.of(messageBody.toString());
+			}
+		}
+
+		// The replica already has data, or there is no snapshot. Send patches
+		ValidateArgument.required(context, "context");
+		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
+		String sessionId = thisCon.getSessionId();
+		List<LogicalTimestamp> effectiveClock = clock != null ? clock : List.of();
+
+		List<PatchInfo> missingPatches = gridDao.listMissingPatchInfoForClock(sessionId, effectiveClock, PATCH_BATCH_CANDIDATE_LIMIT);
+		if (missingPatches.isEmpty()) {
+			return Optional.empty();
+		}
+		JSONArray patches = createMaxSizedPatchArray(sessionId, missingPatches);
+		JSONObject response = new JSONObject();
+		response.put("type", "patches");
+		response.put("body", patches);
+		return Optional.of(response.toString());
+	}
+
+	JSONArray createMaxSizedPatchArray(String sessionId, List<PatchInfo> candidatePatches) {
+		long cumulativeSize = 0;
+		JSONArray arrayOfPatches = new JSONArray();
+
+		for (PatchInfo candidate : candidatePatches) {
+			// Temporary code - there are patches in the database that were created before size was tracked.
+			// Once all patches have a size field, this check can be removed, and we can require size for all patches.
+			// This can happen once all patches without a size expire, or if we backfill the size for all existing patches.
+			if (candidate.getSizeBytes() == null) {
+				// Null size means pre-existing record — fallback to single-patch behavior
+				if (arrayOfPatches.length() == 0) {
+					Optional<JSONArray> body = getPatchBody(sessionId, candidate);
+					if (body.isPresent()) {
+						arrayOfPatches.put(body.get());
+					}
+					return arrayOfPatches;
+				}
+				// Stop accumulating; send what we have
+				break;
+			}
+
+			if (!(arrayOfPatches.length() == 0) && cumulativeSize + candidate.getSizeBytes() > PATCH_BATCH_BUDGET_BYTES) {
+				break;
+			}
+
+			Optional<JSONArray> body = getPatchBody(sessionId, candidate);
+			if (body.isEmpty()) {
+				break;
+			}
+			arrayOfPatches.put(body.get());
+			cumulativeSize += candidate.getSizeBytes();
+		}
+
+		return arrayOfPatches;
+	}
+
 	GridConnectionInfo getConnectionInfo(String connectionId) {
 		return gridDao.getConnection(connectionId)
 				.orElseThrow(() -> new NotFoundException("No Connection Found: " + connectionId));
 	}
 
 	@Override
-	public Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock) {
+	public Optional<JSONArray> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock) {
 		ValidateArgument.required(context, "context");
 		ValidateArgument.required(clock, "clock");
 		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
 		// Get the first patch ID that this clock is missing.
-		List<LogicalTimestamp> missing = gridDao.listMissingPatchIdsForClock(thisCon.getSessionId(), clock, 1);
+		List<PatchInfo> missing = gridDao.listMissingPatchInfoForClock(thisCon.getSessionId(), clock, 1);
 		if (missing.isEmpty()) {
 			return Optional.empty();
 		}
-		LogicalTimestamp nextPatchId = missing.get(0);
+		PatchInfo nextPatch = missing.get(0);
 
-		return getPatchBody(thisCon.getSessionId(), nextPatchId);
+		return getPatchBody(thisCon.getSessionId(), nextPatch);
 	}
 
 	/**
 	 * Get the body of a patch for the given patch ID.
 	 * 
 	 * @param sessionId
-	 * @param patchId
+	 * @param patch
 	 * @return
 	 */
-	Optional<String> getPatchBody(String sessionId, LogicalTimestamp patchId) {
+	Optional<JSONArray> getPatchBody(String sessionId, PatchInfo patch) {
 		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(patchId, "patchId");
-		PatchInfo patch = gridDao.getPatchInfo(sessionId, patchId)
-				.orElseThrow(() -> new NotFoundException("Cannot find patch: " + patchId));
+		ValidateArgument.required(patch, "patch");
 		if (Instant.now().isAfter(patch.getExpiresOn().toInstant())) {
-			throw new NotFoundException("The requested patch has expired: " + patchId);
+			throw new NotFoundException("The requested patch has expired: " + patch.getPatchId());
 		}
 
 		return Optional.of(s3Client
 				.getObjectAsBytes(GetObjectRequest.builder().bucket(gridPatchBucket).key(patch.getS3Key()).build())
-				.asString(StandardCharsets.UTF_8));
+				.asString(StandardCharsets.UTF_8)).map(JSONArray::new);
+	}
+
+	@Override
+	public Optional<URL> getLatestSnapshotPresignedUrl(EventContext context) {
+		ValidateArgument.required(context, "context");
+		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
+
+		Optional<GridSnapshot> snapshot = gridDao.getLatestSnapshot(thisCon.getSessionId());
+
+		if (snapshot.isEmpty()) {
+			return Optional.empty();
+		}
+
+		GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(gridSnapshotBucket, snapshot.get().getS3Key(), HttpMethod.GET);
+		request.setExpiration(new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS));
+
+		return Optional.of(synapseS3Client.generatePresignedUrl(request));
 	}
 
 	@Override
@@ -383,6 +507,19 @@ public class GridManagerImpl implements GridManager {
 				: gridDao.listActiveGridSession(user.getId(), nextPageToken.getLimitForQuery(),
 						nextPageToken.getOffset());
 		return new ListGridSessionsResponse().setPage(page)
+				.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
+	}
+
+	@Override
+	public ListGridReplicasResponse listReplicas(UserInfo user, ListGridReplicasRequest request) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getGridSessionId(), "request.gridSessionId");
+		validGridSessionAccess(user, request.getGridSessionId());
+		NextPageToken nextPageToken = new NextPageToken(request.getNextPageToken());
+		List<GridReplicaInfo> page = gridDao.listReplicas(request.getGridSessionId(), nextPageToken.getLimitForQuery(),
+				nextPageToken.getOffset());
+		return new ListGridReplicasResponse().setPage(page)
 				.setNextPageToken(nextPageToken.getNextPageTokenForCurrentResults(page));
 	}
 
@@ -408,6 +545,54 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public Optional<GridConnectionInfo> getConnection(String gridSessionId, Long agentsReplicaId) {
 		return gridDao.getConnection(gridSessionId, agentsReplicaId);
+	}
+
+	@Override
+	public Optional<GridSource> getSessionSource(String sessionId) {
+		return gridDao.getSessionSource(sessionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public void saveSnapshot(String sessionId, ClockTable clockTable, Long createdBy, File snapshotFile) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(clockTable, "clockTable");
+		ValidateArgument.required(createdBy, "createdBy");
+		ValidateArgument.required(snapshotFile, "snapshotFile");
+
+		String s3Key = String.format("snapshot/%s/%d-%s.cbor", sessionId, System.currentTimeMillis(), UUID.randomUUID());
+		ObjectMetadata objectMetadata = new ObjectMetadata();
+		objectMetadata.setContentType("application/cbor");
+
+		UploadResult uploadResult;
+		try {
+			uploadResult = transferManager.upload(gridSnapshotBucket, s3Key, snapshotFile).waitForUploadResult();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new RuntimeException("Snapshot upload was interrupted", e);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to upload snapshot to S3", e);
+		}
+		gridDao.saveSnapshot(sessionId, clockTable, uploadResult.getKey(), createdBy);
+	}
+
+	@WriteTransaction
+	@Override
+	public long backfillGridSessionChanges() {
+		long count = 0;
+		long offset = 0;
+		long limit = 100;
+		List<String> sessionIds;
+		while (!(sessionIds = gridDao.listAllSessionIds(limit, offset)).isEmpty()) {
+			for (String sessionId : sessionIds) {
+				transactionalMessenger.sendMessageAfterCommit(
+						GridUtils.gridSessionIdAsLong(sessionId).toString(), ObjectType.GRID_SESSION,
+						ChangeType.UPDATE);
+				count++;
+			}
+			offset += limit;
+		}
+		return count;
 	}
 
 }

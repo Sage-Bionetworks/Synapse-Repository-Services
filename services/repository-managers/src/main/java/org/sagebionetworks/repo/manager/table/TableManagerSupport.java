@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -311,7 +312,7 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @param benefactorIds
 	 * @return
 	 */
-	Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds);
+	Set<Long> getAccessibleBenefactors(UserInfo user, ObjectType benefactorType, Set<Long> benefactorIds, ACCESS_TYPE...types);
 
 	/**
 	 * Get the default ColumnModels for a view based on the object type and the

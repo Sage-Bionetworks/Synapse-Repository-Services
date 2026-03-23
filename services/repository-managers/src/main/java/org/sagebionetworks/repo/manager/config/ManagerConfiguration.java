@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.manager.file.scanner.RowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.SerializedFieldRowMapperSupplier;
 import org.sagebionetworks.repo.manager.file.scanner.tables.TableFileHandleScanner;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
+import org.sagebionetworks.repo.manager.oauth.AWSCognitoOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.ArcusBioProvider;
 import org.sagebionetworks.repo.manager.oauth.GoogleOAuth2Provider;
 import org.sagebionetworks.repo.manager.oauth.OAuthProviderBinding;
@@ -99,6 +100,7 @@ import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiAsyncClient;
 import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiClient;
 import software.amazon.awssdk.services.apigatewayv2.ApiGatewayV2Client;
 import software.amazon.awssdk.services.apigatewayv2.model.Api;
@@ -277,7 +279,8 @@ public class ManagerConfiguration {
 			SimpleHttpClient client) {
 		return Map.of(OAuthProvider.GOOGLE_OAUTH_2_0, googleOAuthProvider(config, client), 
 				OAuthProvider.ORCID, orcidOAuthProvider(config, client),
-				OAuthProvider.ARCUS_BIOSCIENCES, arcusBioOAuthProvider(config, client)
+				OAuthProvider.ARCUS_BIOSCIENCES, arcusBioOAuthProvider(config, client),
+				OAuthProvider.SAGE_BIONETWORKS, sageBioOAuthProvider(config, client)
 				);
 	}
 
@@ -297,6 +300,12 @@ public class ManagerConfiguration {
 	public ArcusBioProvider arcusBioOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
 		return new ArcusBioProvider(config.getOAuth2ArcusBioClientId(), config.getOAuth2ArcusBioClientSecret(),
 				new OIDCConfig(client, config.getOAuth2ArcusBioDiscoveryDocument()));
+	}
+
+	@Bean
+	public AWSCognitoOAuth2Provider sageBioOAuthProvider(StackConfiguration config, SimpleHttpClient client) {
+		return new AWSCognitoOAuth2Provider(config.getOAuth2SageBioClientId(), config.getOAuth2SageBioClientSecret(),
+				new OIDCConfig(client, config.getOAuth2SageBioDiscoveryDocument()));
 	}
 
 	@Bean
@@ -494,6 +503,20 @@ public class ManagerConfiguration {
 			WebsocketApi websocketApi) throws URISyntaxException {
 		return ApiGatewayManagementApiClient.builder().endpointOverride(new URI(websocketApi.getHttpUrl()))
 				.credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+
+	@Bean
+	public ApiGatewayManagementApiAsyncClient createApiGatewayManagementApiAsyncClient(
+			AwsCredentialsProvider credentialProvider, WebsocketApi websocketApi) throws URISyntaxException {
+		return ApiGatewayManagementApiAsyncClient.builder()
+				.endpointOverride(new URI(websocketApi.getHttpUrl()))
+				.credentialsProvider(credentialProvider)
+				.region(Region.US_EAST_1)
+				.httpClientBuilder(NettyNioAsyncHttpClient.builder()
+						.maxConcurrency(50)
+						.connectionTimeout(Duration.ofSeconds(5))
+						.connectionAcquisitionTimeout(Duration.ofSeconds(10)))
+				.build();
 	}
 
 	@Bean

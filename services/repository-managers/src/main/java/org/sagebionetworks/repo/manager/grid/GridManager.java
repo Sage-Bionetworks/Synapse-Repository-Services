@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import java.net.URL;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONArray;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridPresignedUrlResponse;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
@@ -17,12 +20,14 @@ import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
-public interface GridManager extends PatchStore {
+public interface GridManager extends PatchStore, SnapshotStore {
 
 	/**
 	 * Create a new grid session.
@@ -63,15 +68,24 @@ public interface GridManager extends PatchStore {
 	CreateReplicaResponse createReplica(UserInfo user, String gridSessionId, boolean isAgent, EventSource source);
 
 	/**
-	 * 
+	 *
 	 * Get the identified replica.
-	 * 
+	 *
 	 * @param user
 	 * @param sessionId
 	 * @param repicaId
 	 * @return
 	 */
 	GridReplica getReplica(UserInfo user, String sessionId, Long repicaId);
+
+	/**
+	 * List all replicas for a grid session with their connection status and type.
+	 *
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	ListGridReplicasResponse listReplicas(UserInfo user, ListGridReplicasRequest request);
 
 	/**
 	 * Create new presigned URL to establish a websocket connection to the grid.
@@ -144,13 +158,30 @@ public interface GridManager extends PatchStore {
 	List<GridConnectionInfo> listActiveConnections(String connectionId);
 
 	/**
+	 * Given a replica's clock, find the next snapshot or patch that the replica is missing, and format a message that
+	 * can be sent to the replica to apply the snapshot/patch.
+	 *
+	 * @param context
+	 * @param clock
+	 * @return {@link Optional#empty()} If the replica is up-to-date.
+	 */
+	Optional<String> getNextSynchronizeResponse(EventContext context, List<LogicalTimestamp> clock);
+
+	/**
 	 * Given a replica's clock, find the next patch that the replica is missing.
 	 * 
 	 * @param context
 	 * @param clock
 	 * @return {@link Optional#empty()} If the replica is up-to-date.
 	 */
-	Optional<String> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
+	Optional<JSONArray> getNextMissingPatch(EventContext context, List<LogicalTimestamp> clock);
+
+	/**
+	 * Retrieve a pre-signed URL that can be used to download the latest snapshot data for a grid session.
+	 * @param context
+	 * @return
+	 */
+	Optional<URL> getLatestSnapshotPresignedUrl(EventContext context);
 
 	ListGridSessionsResponse listActiveGridSessions(UserInfo user, ListGridSessionsRequest request);
 
@@ -168,5 +199,21 @@ public interface GridManager extends PatchStore {
 	GridReplica createAgentReplica(UserInfo user, GridSession session);
 
 	Optional<GridConnectionInfo> getConnection(String gridSessionId, Long agentsReplicaId);
+	
+	/**
+	 * Get the grid session source information.
+	 * @param sessionId
+	 * @return Optional.empty() if the session does not have a source.
+	 */
+	Optional<GridSource> getSessionSource(String sessionId);
+
+	/**
+	 * Backfill CHANGES entries for all existing grid sessions. This must be run on
+	 * the source stack before migration so the entries migrate with the CHANGES
+	 * table.
+	 *
+	 * @return The number of sessions backfilled.
+	 */
+	long backfillGridSessionChanges();
 
 }

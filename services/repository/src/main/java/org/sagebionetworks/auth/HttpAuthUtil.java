@@ -27,6 +27,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 
+import io.netty.util.internal.StringUtil;
+
 public class HttpAuthUtil {
 	private static final Decoder BASE64_DECODER = Base64.getDecoder();
 	private static final String INVALID_AUTH_MSG_FORMAT = "Invalid Authorization header for basic authentication (%s)"; 
@@ -197,6 +199,14 @@ public class HttpAuthUtil {
 			er.setReason(errorCode.name());
 		}
 		reject(resp, er, status);
+	}
+	
+	public static boolean isAnonymous(HttpServletRequest httpRequest) {
+		String param = httpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM);
+		if (StringUtil.isNullOrEmpty(param)) {
+			return true;
+		}
+		return Boolean.parseBoolean(param);
 	}
 
 }

@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.model.dbo.schema;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +60,27 @@ public class OrganizationDaoImplTest {
 		assertEquals(created, fetched);
 		// call under test
 		organizationDao.deleteOrganization(fetched.getId());
+	}
+
+	@Test
+	public void testGetOrganizationById() {
+		Organization created = organizationDao.createOrganization(name, adminUserId);
+		assertNotNull(created);
+
+		// call under test
+		Optional<Organization> fetched = organizationDao.getOrganizationById(created.getId());
+		assertTrue(fetched.isPresent());
+		assertEquals(created, fetched.get());
+		// call under test
+		organizationDao.deleteOrganization(fetched.get().getId());
+	}
+
+	@Test
+	public void testGetOrganizationByNonExistingId() {
+		// call under test
+		Optional<Organization> fetched = organizationDao.getOrganizationById("-99");
+		assertTrue(fetched.isEmpty());
+
 	}
 	
 	@Test

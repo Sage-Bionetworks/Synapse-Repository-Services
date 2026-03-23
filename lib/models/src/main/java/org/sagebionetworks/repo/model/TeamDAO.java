@@ -46,13 +46,14 @@ public interface TeamDAO {
 	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get the Teams in the system
-	 * 
+	 * Get the Teams of the specified realm in the system
+	 *
+	 * @param realmId
 	 * @param offset
 	 * @param limit
-	 * 
+	 *
 	 */
-	public List<Team> getInRange(long limit, long offset) throws DatastoreException;
+	public List<Team> getInRange(String realmId, long limit, long offset) throws DatastoreException;
 	
 	/**
 	 * 

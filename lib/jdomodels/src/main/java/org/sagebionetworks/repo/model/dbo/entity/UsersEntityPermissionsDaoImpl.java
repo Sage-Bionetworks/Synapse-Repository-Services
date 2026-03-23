@@ -12,6 +12,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DDLUtilsImpl;
 import org.sagebionetworks.util.ValidateArgument;
@@ -31,7 +32,8 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 	private NamedParameterJdbcTemplate namedJdbcTemplate;
 
 	@Override
-	public Map<Long, UserEntityPermissionsState> getEntityPermissionsAsMap(Set<Long> userGroups, List<Long> entityIds) {
+	public Map<Long, UserEntityPermissionsState> getEntityPermissionsAsMap(UserInfo userInfo, List<Long> entityIds) {
+		Set<Long> userGroups = userInfo.getGroups();
 		ValidateArgument.required(userGroups, "userGroups");
 		if (userGroups.isEmpty()) {
 			throw new IllegalArgumentException("User's groups cannot be empty");
@@ -48,7 +50,7 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 		params.addValue("usersGroups", userGroups);
 		params.addValue("entityIds", entityIds);
 		params.addValue("depth", NodeConstants.MAX_PATH_DEPTH_PLUS_ONE);
-		params.addValue("publicId", BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		params.addValue("publicId", userInfo.getRealmPublicUsersId());
 		namedJdbcTemplate.query(GET_ENTITY_PERMISSION_SQL, params, new RowCallbackHandler() {
 
 			@Override
@@ -81,8 +83,8 @@ public class UsersEntityPermissionsDaoImpl implements UsersEntityPermissionsDao 
 	}
 
 	@Override
-	public List<UserEntityPermissionsState> getEntityPermissions(Set<Long> usersPrincipalIds, List<Long> entityIds) {
-		return new ArrayList<UserEntityPermissionsState>(getEntityPermissionsAsMap(usersPrincipalIds, entityIds).values());
+	public List<UserEntityPermissionsState> getEntityPermissions(UserInfo userInfo, List<Long> entityIds) {
+		return new ArrayList<UserEntityPermissionsState>(getEntityPermissionsAsMap(userInfo, entityIds).values());
 	}
 
 }

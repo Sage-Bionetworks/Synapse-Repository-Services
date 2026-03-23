@@ -66,9 +66,10 @@ public class BaseClientImpl implements BaseClient {
 
 	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 	protected static final String APPLICATION_JSON = "application/json";
-	private static final String APPLICATION_JSON_CHARSET_UTF8 = APPLICATION_JSON+"; charset="+SYNAPSE_ENCODING_CHARSET;
+	protected static final String APPLICATION_JSON_CHARSET_UTF8 = APPLICATION_JSON+"; charset="+SYNAPSE_ENCODING_CHARSET;
 
 	protected static final String APPLICATION_JWT = "application/jwt";
+	protected static final String APPLICATION_JWT_CHARSET_UTF8 = APPLICATION_JWT+"; charset="+SYNAPSE_ENCODING_CHARSET;
 	
 	private static final String CONTENT_LENGTH = "Content-Length";
 	protected static final String CONTENT_TYPE = "Content-Type";

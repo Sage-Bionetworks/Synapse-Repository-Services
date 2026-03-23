@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -74,6 +75,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Initialize a UserGroup
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(true);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		userId = userGroupDAO.create(ug);
 	
 		groupsToDelete.add(userId.toString());
@@ -130,7 +132,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertFalse(authDAO.checkUserCredentials(userId, credential.getPassHash()));
 		
 		assertTrue(authDAO.getPasswordModifiedOn(userId).get().toInstant().isAfter(now));
-		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)));
+		assertTrue(authDAO.getPasswordExpiresOn(userId).get().toInstant().isAfter(now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS)),
+				"Password exipration is: "+authDAO.getPasswordExpiresOn(userId).get().toInstant()+" and should be after "+now.plus(DBOCredential.MAX_PASSWORD_VALIDITY_DAYS, ChronoUnit.DAYS));
 
 	}
 	
@@ -160,7 +163,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Most bootstrapped users should have signed the terms
 		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
 		for (BootstrapPrincipal agg: ugs) {
-			if (agg instanceof BootstrapUser && !AuthorizationUtils.isUserAnonymous(agg.getId())) {
+			if (agg instanceof BootstrapUser && !BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
 				basicDAO.getObjectByPrimaryKey(DBOCredential.class, param).get();

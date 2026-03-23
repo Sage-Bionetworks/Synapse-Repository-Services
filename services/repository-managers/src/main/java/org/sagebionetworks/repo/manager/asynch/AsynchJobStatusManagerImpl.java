@@ -10,8 +10,12 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.table.TableQueryUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -23,16 +27,16 @@ import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.asynch.ReadOnlyRequestBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.transactions.NewWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
-	
+
 	public static final String JOB_TYPE = "JobType";
 
 	public static final String METRIC_NAME = "Job elapse time";
@@ -41,54 +45,69 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
 	public static final String METRIC_NAMESPACE_PREFIX = "Asynchronous-Jobs-";
 
-	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);	
-	
-	
-	private static final String JOB_ABORTED_MESSAGE = "Job aborted because the stack was not in: "+StatusEnum.READ_WRITE;
+	static private Log log = LogFactory.getLog(AsynchJobStatusManagerImpl.class);
 
-	@Autowired
-	AsynchronousJobStatusDAO asynchJobStatusDao;
-	@Autowired
-	StackStatusDao stackStatusDao;
-	@Autowired
-	AsynchJobQueuePublisher asynchJobQueuePublisher;
-	@Autowired
-	JobHashProvider jobHashProvider;
-	@Autowired
-	StackConfiguration stackConfig;
-	@Autowired
-	Consumer cloudeWatch;
+	private static final String JOB_ABORTED_MESSAGE = "Job aborted because the stack was not in: "
+			+ StatusEnum.READ_WRITE;
+
+	private final AsynchronousJobStatusDAO asynchJobStatusDao;
+	private final StackStatusDao stackStatusDao;
+	private final AsynchJobQueuePublisher asynchJobQueuePublisher;
+	private final JobHashProvider jobHashProvider;
+	private final StackConfiguration stackConfig;
+	private final Consumer cloudeWatch;
+	private final AuthorizationManager authorizationManager;
+
+	public AsynchJobStatusManagerImpl(AsynchronousJobStatusDAO asynchJobStatusDao, StackStatusDao stackStatusDao,
+			AsynchJobQueuePublisher asynchJobQueuePublisher, JobHashProvider jobHashProvider,
+			StackConfiguration stackConfig, Consumer cloudeWatch, AuthorizationManager authorizationManager) {
+		super();
+		this.asynchJobStatusDao = asynchJobStatusDao;
+		this.stackStatusDao = stackStatusDao;
+		this.asynchJobQueuePublisher = asynchJobQueuePublisher;
+		this.jobHashProvider = jobHashProvider;
+		this.stackConfig = stackConfig;
+		this.cloudeWatch = cloudeWatch;
+		this.authorizationManager = authorizationManager;
+	}
+
 	String metricNamespace;
+
 	/*
 	 * (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager#lookupJobStatus(java.lang.String)
+	 * 
+	 * @see org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager#
+	 * lookupJobStatus(java.lang.String)
 	 */
 	@Override
-	public AsynchronousJobStatus lookupJobStatus(String jobId)
-			throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus lookupJobStatus(String jobId) throws DatastoreException, NotFoundException {
 		// Get the status
 		AsynchronousJobStatus status = asynchJobStatusDao.getJobStatus(jobId);
-		
-		// If a job is running and the stack is not in READ-WRITE mode then the job is failed.
-		if(AsynchJobState.PROCESSING.equals(status.getJobState())){
-			if (! (status.getRequestBody() instanceof ReadOnlyRequestBody)) {
+
+		// If a job is running and the stack is not in READ-WRITE mode then the job is
+		// failed.
+		if (AsynchJobState.PROCESSING.equals(status.getJobState())) {
+			if (!(status.getRequestBody() instanceof ReadOnlyRequestBody)) {
 				// Since the job is processing check the state of the stack.
 				checkStackReadWrite();
 			}
 		}
 		return status;
 	}
-	
+
 	@Override
-	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
-		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId)
+			throws DatastoreException, NotFoundException {
+		if (userInfo == null)
+			throw new IllegalArgumentException("UserInfo cannot be null");
 		// Get the status
 		AsynchronousJobStatus status = lookupJobStatus(jobId);
 		// Only the user that started a job can read it
-		if(!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())) {
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
 		}
-		// The context can contain information that we do not want to return to the caller.
+		// The context can contain information that we do not want to return to the
+		// caller.
 		status.setCallersContext(null);
 		return status;
 	}
@@ -107,41 +126,53 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
-	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
-		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		if(body instanceof CacheableRequestBody){
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body)
+			throws DatastoreException, NotFoundException {
+		if (user == null)
+			throw new IllegalArgumentException("UserInfo cannot be null");
+		if (body == null)
+			throw new IllegalArgumentException("Body cannot be null");
+		if (body instanceof CacheableRequestBody) {
+			CacheableRequestBody cacheable = (CacheableRequestBody) body;
 			/*
-			 *  Before we start a CacheableRequestBody job, we need to determine if a job already exists
-			 *  for this request and user.
+			 * A user could have cached job results that they no longer have access to.
+			 * Therefore, we only check the cache if the user still has access to the table.
+			 * See: PLFM-9391.
 			 */
-			String requestHash = jobHashProvider.getJobHash((CacheableRequestBody) body);
-			// if the requestHash is null the job cannot be cached.
-			if(requestHash != null){
-				// Does this job already exist
-				AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
-				if(status != null){
-					/*
-					 * If here then the caller has already made this exact request
-					 * and the object has not changed since the last request.
-					 * Therefore, we return the same job status as before without
-					 * starting a new job.
-					 */
-					log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, status.getJobId()));
-					return status;
+			String tableId = TableQueryUtils.getTableIdFromRequestBodyAsIdAndVersion(cacheable).getId().toString();
+			if (authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).isAuthorized()) {
+				/*
+				 * Before we start a CacheableRequestBody job, we need to determine if a job
+				 * already exists for this request and user.
+				 */
+				String requestHash = jobHashProvider.getJobHash(cacheable);
+				// if the requestHash is null the job cannot be cached.
+				if (requestHash != null) {
+					// Does this job already exist
+					AsynchronousJobStatus status = findJobsMatching(requestHash, body, user.getId());
+					if (status != null) {
+						/*
+						 * If here then the caller has already made this exact request and the object
+						 * has not changed since the last request. Therefore, we return the same job
+						 * status as before without starting a new job.
+						 */
+						log.info(String.format(CACHED_MESSAGE_TEMPLATE, user.getId(), requestHash, status.getJobId()));
+						return status;
+					}
 				}
 			}
 		}
-		
+
 		// Start the job.
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user, body);
 		// publish a message to get the work started
 		asynchJobQueuePublisher.publishMessage(status);
-		// The context can contain information that we do not want to return to the caller.
+		// The context can contain information that we do not want to return to the
+		// caller.
 		status.setCallersContext(null);
 		return status;
 	}
-	
+
 	/**
 	 * Find a job that matches the given requestHash, objectEtag, body and userId.
 	 * 
@@ -151,12 +182,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	 * @param userId
 	 * @return
 	 */
-	private AsynchronousJobStatus findJobsMatching(String requestHash, AsynchronousRequestBody body, Long userId){
+	private AsynchronousJobStatus findJobsMatching(String requestHash, AsynchronousRequestBody body, Long userId) {
 		// Find all jobs that match this request.
 		List<AsynchronousJobStatus> matches = asynchJobStatusDao.findCompletedJobStatus(requestHash, userId);
 		if (matches != null) {
-			for(AsynchronousJobStatus match: matches){
-				if(body.equals(match.getRequestBody())){
+			for (AsynchronousJobStatus match : matches) {
+				if (body.equals(match.getRequestBody())) {
 					return match;
 				}
 			}
@@ -164,7 +195,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// no match found
 		return null;
 	}
-
 
 	@NewWriteTransaction
 	@Override
@@ -175,14 +205,14 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	/**
-	 * If the stack is not in read-write mode an IllegalStateException will be thrown.
+	 * If the stack is not in read-write mode an IllegalStateException will be
+	 * thrown.
 	 */
 	private void checkStackReadWrite() {
-		if(!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())){
+		if (!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())) {
 			throw new IllegalStateException(JOB_ABORTED_MESSAGE);
 		}
 	}
-
 
 	@WriteTransaction
 	@Override
@@ -203,12 +233,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public void setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException, IOException {
 		/*
-		 *  For a cacheable requests we need to calculate a request hash.
-		 *  This hash can be used to find jobs that already match an existing request.
+		 * For a cacheable requests we need to calculate a request hash. This hash can
+		 * be used to find jobs that already match an existing request.
 		 */
 		AsynchronousJobStatus status = lookupJobStatus(jobId);
 		String requestHash = null;
-		if(status.getRequestBody() instanceof CacheableRequestBody){
+		if (status.getRequestBody() instanceof CacheableRequestBody) {
 			CacheableRequestBody request = (CacheableRequestBody) status.getRequestBody();
 			requestHash = jobHashProvider.getJobHash(request);
 		}
@@ -217,10 +247,10 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		pushCloudwatchMetric(runtimeMS, type);
 	}
-	
 
 	/**
 	 * Push a cloudwatch metric to recored the elapse time of the given job type.
+	 * 
 	 * @param runtimeMS
 	 * @param type
 	 */
@@ -234,10 +264,10 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		profileData.setDimension(Collections.singletonMap(JOB_TYPE, type.name()));
 		this.cloudeWatch.addProfileData(profileData);
 	}
-	
+
 	public String getMetricNamespace() {
-		if(this.metricNamespace == null) {
-			this.metricNamespace = METRIC_NAMESPACE_PREFIX+stackConfig.getStackInstance();
+		if (this.metricNamespace == null) {
+			this.metricNamespace = METRIC_NAMESPACE_PREFIX + stackConfig.getStackInstance();
 		}
 		return this.metricNamespace;
 	}
@@ -246,6 +276,5 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public void emptyAllQueues() {
 		asynchJobQueuePublisher.emptyAllQueues();
 	}
-	
 
 }

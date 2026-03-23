@@ -1,0 +1,21 @@
+{
+	"description": "Summary information about a replica in a grid session.",
+	"properties": {
+		"replicaId": {
+			"description": "The unique identifier for the replica within the grid session.",
+			"type": "integer"
+		},
+		"createdBy": {
+			"description": "The ID of the user that created this replica.",
+			"type": "string"
+		},
+		"isConnected": {
+			"description": "When true, this replica has an active connection to the grid session.",
+			"type": "boolean"
+		},
+		"replicaType": {
+			"description": "The type of this replica.",
+			"$ref": "org.sagebionetworks.repo.model.grid.GridReplicaType"
+		}
+	}
+}

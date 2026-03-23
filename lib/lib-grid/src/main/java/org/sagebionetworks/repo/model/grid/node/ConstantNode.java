@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.grid.node;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.json.JSONArray;
 import org.json.JSONWriter;
@@ -41,56 +42,25 @@ public class ConstantNode implements Node, HasJsonValue<ConstantNode> {
 		return this;
 	}
 
-	public JSONArray toCompact() {
-		JSONArray compact = new JSONArray();
-		// All constants start with 0
-		compact.put(0);
-		// Next, the node's timestamp
-		JSONArray nodeTimestamp = new JSONArray();
-		nodeTimestamp.put(id.getReplicaId());
-		nodeTimestamp.put(id.getSequenceNumber());
-		compact.put(nodeTimestamp);
-		// The last two values represent the value.
-		JSONArray valueCompactArray = this.getConValue().toCompact();
-		for (int i = 0; i < valueCompactArray.length(); i++) {
-			compact.put(valueCompactArray.get(i));
-		}
-		return compact;
-	}
-
-	public ConstantNode fromCompact(JSONArray compactArray) {
-		ValidateArgument.required(compactArray, "compactArray");
-		ValidateArgument.requirement(compactArray.length() == 3 || compactArray.length() == 4, "must be 3 or 4 elements");
-		ValidateArgument.requirement(compactArray.getInt(0) == 0, "first element must be 0 for ConstantNode");
-		ValidateArgument.requirement(compactArray.getJSONArray(1).length() == 2, "second element must be a timestamp array of length 2");
-
-		JSONArray nodeTimestamp = compactArray.getJSONArray(1);
-		this.id = new LogicalTimestamp()
-				.setReplicaId(nodeTimestamp.getLong(0))
-				.setSequenceNumber(nodeTimestamp.getLong(1));
-		// The value starts at index 2
-		JSONArray valueCompactArray = new JSONArray();
-		for (int i = 2; i < compactArray.length(); i++) {
-			valueCompactArray.put(compactArray.get(i));
-		}
-		this.value = ConValue.fromCompact(valueCompactArray);
-		return this;
-	}
-
-
 	@Override
 	public ConstantNode setValueFromJson(String jsonString) {
-		return fromCompact(new JSONArray(jsonString));
+		this.value = ConValue.fromCompact(new JSONArray(jsonString));
+		return this;
 	}
 
 	@Override
 	public String getValueAsJson() {
-		return JSONWriter.valueToString(this.toCompact());
+		return this.value.toCompact().toString();
 	}
 
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		return Stream.of(getId());
 	}
 
 	@Override

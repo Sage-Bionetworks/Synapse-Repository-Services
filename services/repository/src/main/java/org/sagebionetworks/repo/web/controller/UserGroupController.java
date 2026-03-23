@@ -33,10 +33,10 @@ public class UserGroupController {
 	ServiceProvider serviceProvider;
 
 	/**
-	 * Get the user-groups in the system
+	 * List the user groups in the given security realm.
 	 * @param userId - The user that is making the request.
 	 * @param request
-	 * @return The UserGroups for individuals
+	 * @return The UserGroups (not individuals)
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	@RequiredScope({view})

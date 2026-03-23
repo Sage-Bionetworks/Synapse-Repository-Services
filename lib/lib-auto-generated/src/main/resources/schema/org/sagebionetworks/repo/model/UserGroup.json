@@ -13,6 +13,9 @@
 			"description": "The date this user or group was created.",
 			"title": "Created On"
 		},
+		"realmId": {
+			"type": "string"
+		},
 		"uri": {
 			"type": "string"
 		}

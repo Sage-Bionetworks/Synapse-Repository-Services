@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationResponse;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -77,6 +78,8 @@ public interface AuthenticationService {
 	LoginResponse validateOAuthAuthenticationCodeAndLogin(OAuthValidationRequest request, String tokenIssuer) throws NotFoundException;
 	
 	LoginResponse createAccountViaOauth(OAuthAccountCreationRequest request, String tokenIssuer) throws NotFoundException;
+
+	AccessTokenResponse getAnonymousAccessToken(String realmId, String tokenIssuer) throws NotFoundException;
 
 	PrincipalAlias bindExternalID(Long userId, OAuthValidationRequest validationRequest);
 

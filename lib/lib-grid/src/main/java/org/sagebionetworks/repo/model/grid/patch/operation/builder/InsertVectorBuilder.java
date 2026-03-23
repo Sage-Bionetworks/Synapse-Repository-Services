@@ -44,4 +44,10 @@ public final class InsertVectorBuilder extends OperationBuilder {
     public int hashCode() {
         return Objects.hash(vectorId, map);
     }
+
+	@Override
+	public String toString() {
+		return "InsertVectorBuilder [vectorId=" + vectorId + ", map=" + map + "]";
+	}
+    
 }

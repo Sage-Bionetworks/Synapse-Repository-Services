@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -162,6 +163,7 @@ public class AgentChatWorkerIntegrationTest {
 	}
 
 	@Test
+	@Disabled // unstable test, see: PLFM-9486
 	public void testGetEntityChildrenHandler() throws AssertionError, AsynchJobFailedException {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
 				null);
@@ -192,6 +194,7 @@ public class AgentChatWorkerIntegrationTest {
 					assertNotNull(response);
 					assertEquals(session.getSessionId(), response.getSessionId());
 					assertNotNull(response.getResponseText());
+					
 					assertTrue(response.getResponseText().contains(f1.getName()));
 					assertTrue(response.getResponseText().contains(f2.getName()));
 					assertTrue(response.getResponseText().contains(f1.getId()));

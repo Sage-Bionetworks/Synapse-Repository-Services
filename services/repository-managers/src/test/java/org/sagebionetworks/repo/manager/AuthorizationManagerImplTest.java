@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -128,11 +129,12 @@ public class AuthorizationManagerImplTest {
 		// Create a new group
 		testGroup = new UserGroup();
 		testGroup.setIsIndividual(false);
+		testGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		testGroup.setId(userGroupDAO.create(testGroup).toString());
 		
 		// Add new user to new group (in the user's info)
 		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		// Create team with teamAdmin as the admin
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");

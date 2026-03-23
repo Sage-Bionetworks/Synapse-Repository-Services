@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -13,19 +14,14 @@ public interface UserGroupDAO {
 	 */
 	public List<UserGroup> get(List<String> ids) throws DatastoreException;
 
-	/**
-	 * a variant of the generic 'getAll' query, this allows the caller to
-	 * separately retrieve the individual and non-individual groups.
-	 */	
-	public Collection<UserGroup> getAll(boolean isIndividual) throws DatastoreException;
-
+	 Map<String, Set<String>> getUsersRealms(List<String> ids) throws DatastoreException;
 
 	/**
 	 * a variant of the generic 'getInRange' query, this allows the caller to
 	 * separately retrieve the individual and non-individual groups.
 	 */
 
-	public List<UserGroup> getInRange(long fromIncl, long toExcl, boolean isIndividual) throws DatastoreException;
+	public List<UserGroup> getInRange(long fromIncl, long toExcl, boolean isIndividual, String realmId) throws DatastoreException;
 
 	
 	/**
@@ -87,12 +83,6 @@ public interface UserGroupDAO {
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
 	
-	/**
-	 * Get the total count of all users and groups.
-	 * @return
-	 * @throws DatastoreException
-	 */
-	long getCount() throws DatastoreException;
 	
 	/**
 	 * Get the bootstrap principals
@@ -122,6 +112,4 @@ public interface UserGroupDAO {
 	public boolean isIndividual(Long principalId);
 
 	public void truncateAll();
-
-
 }

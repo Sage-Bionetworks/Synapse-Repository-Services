@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.grid.node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
@@ -13,18 +14,34 @@ import org.sagebionetworks.util.ValidateArgument;
 public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<VectorNode> {
 
 	private LogicalTimestamp id;
-	private Map<String, ConstantNode> values;
+	private Map<Integer, ConstantNode> values;
 
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
 	}
 
-	public Map<String, ConstantNode> getValues() {
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
+
+		if (values == null || values.isEmpty()) {
+			return nodeIdStream;
+		}
+
+		Stream<LogicalTimestamp> constantIdStream = values.values().stream()
+				.filter(Objects::nonNull)
+				.map(ConstantNode::getId)
+				.filter(Objects::nonNull);
+
+		return Stream.concat(nodeIdStream, constantIdStream);
+	}
+
+	public Map<Integer, ConstantNode> getValues() {
 		return values;
 	}
 
-	public VectorNode setValues(Map<String, ConstantNode> values) {
+	public VectorNode setValues(Map<Integer, ConstantNode> values) {
 		this.values = values;
 		return this;
 	}
@@ -43,12 +60,16 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 		JSONObject ob = new JSONObject(json);
 		this.values = new LinkedHashMap<>(ob.length());
 		ob.keySet().forEach(k -> {
-			JSONObject sub = ob.getJSONObject(k);
-			values.put(k,
-					new ConstantNode().setId(LogicalTimestampCompactSerializable.deserialize(sub.getJSONArray("i")))
-							.setValue(ConValue.fromCompact(sub.optJSONArray("v"))));
+			JSONObject constantNodeAsJson = ob.getJSONObject(k);
+			Integer intKey = Integer.valueOf(k.substring(1));
+			values.put(intKey, getConstantNodeFromVectorNodeJson(constantNodeAsJson));
 		});
 		return this;
+	}
+
+	public static ConstantNode getConstantNodeFromVectorNodeJson(JSONObject constantNode) {
+		return new ConstantNode().setId(LogicalTimestampCompactSerializable.deserialize(constantNode.getJSONArray("i")))
+				.setValue(ConValue.fromCompact(constantNode.optJSONArray("v")));
 	}
 
 	@Override
@@ -60,7 +81,7 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 		values.forEach((k, v) -> {
 			if (v != null) {
 				JSONObject sub = new JSONObject();
-				ob.put(k, sub);
+				ob.put(String.format("c%s", k), sub);
 				sub.put("v", v.getConValue().toCompact());
 				sub.put("i", LogicalTimestampCompactSerializable.serialize(v.getId()));
 			}
@@ -82,8 +103,8 @@ public class VectorNode implements Node, HasJsonValue<VectorNode>, CanInsert<Vec
 			this.values = new LinkedHashMap<>();
 		}
 		boolean wasChanged = false;
-		for (Map.Entry<String, ConstantNode> entry : change.getValues().entrySet()) {
-			String key = entry.getKey();
+		for (Map.Entry<Integer, ConstantNode> entry : change.getValues().entrySet()) {
+			Integer key = entry.getKey();
 			ConstantNode changeNode = entry.getValue();			
 			if (changeNode == null) {
 				throw new IllegalArgumentException("Cannot set a vector index to null");

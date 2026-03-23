@@ -21,6 +21,10 @@
 		"validatedUser": {
 			"type": "boolean",
 			"description": "True if a verification approved states should be added for the user"
+		},
+		"identityProvider": {
+			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider",
+			"description": "Identity provider used to infer the user's realm."
 		}
 	}
 }

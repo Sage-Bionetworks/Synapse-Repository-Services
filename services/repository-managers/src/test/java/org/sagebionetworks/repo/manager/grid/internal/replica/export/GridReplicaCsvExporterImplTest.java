@@ -17,7 +17,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,8 +44,10 @@ import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
+import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.util.csv.CSVWriterProvider;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -103,10 +104,16 @@ public class GridReplicaCsvExporterImplTest {
         rowViews = new ArrayList<>();
         rowViews.add(new RowView().setRowObject(new RowObject()
                 .setMetadata(new RowMetadata().setSynapseRow(new SynapseRow().setRowId(1L).setVersionNumber(2L).setEtag("etag1")))
-                .setData(new RowData().setCells(Arrays.asList(new ConValue(ConType.STRING, "a"), new ConValue(ConType.STRING, "b"))))));
+                .setData(new RowData().setNodes(Arrays.asList(
+                        new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.STRING, "a")),
+                        new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, "b"))
+                )))));
         rowViews.add(new RowView().setRowObject(new RowObject()
                 .setMetadata(new RowMetadata().setSynapseRow(new SynapseRow().setRowId(3L).setVersionNumber(4L).setEtag("etag2")))
-                .setData(new RowData().setCells(Arrays.asList(new ConValue(ConType.STRING, "c"), new ConValue(ConType.STRING, "d"))))));
+                .setData(new RowData().setNodes(Arrays.asList(
+                         new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.STRING, "c")),
+                         new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.STRING, "d"))
+                )))));
     }
 
     @Test
@@ -292,7 +299,10 @@ public class GridReplicaCsvExporterImplTest {
     @Test
     public void testExportGridAsCsvWithNullOrEmptyValues() throws IOException {
         rowViews.get(0).getRowObject().getMetadata().getSynapseRow().setRowId(null).setVersionNumber(null).setEtag(null);
-        rowViews.get(0).getRowObject().getData().setCells(Arrays.asList(new ConValue(ConType.STRING, "a"), new ConValue(ConType.STRING, "")));
+        rowViews.get(0).getRowObject().getData().setNodes(Arrays.asList(
+                 new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.STRING, "a")),
+                 new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, ""))
+        ));
 
         when(mockGridManager.getGridSession(userInfo, sessionId)).thenReturn(mockGridSession);
         when(gridReplicaSupport.getGridHeaderOrThrow(mockGridSession)).thenReturn(mockGridHeader);

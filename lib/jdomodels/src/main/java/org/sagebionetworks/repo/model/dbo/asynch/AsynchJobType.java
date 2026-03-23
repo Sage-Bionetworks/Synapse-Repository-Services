@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
@@ -33,6 +34,8 @@ import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
+import org.sagebionetworks.repo.model.grid.SynchronizeGridRequest;
+import org.sagebionetworks.repo.model.grid.SynchronizeGridResponse;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationResponse;
 import org.sagebionetworks.repo.model.report.DownloadStorageReportRequest;
@@ -91,36 +94,50 @@ public enum AsynchJobType {
 	QUERY_DOWNLOAD_LIST(DownloadListQueryRequest.class, DownloadListQueryResponse.class),
 
 	ADD_TO_DOWNLOAD_LIST(AddToDownloadListRequest.class, AddToDownloadListResponse.class),
-	
+
 	ADD_TO_DOWNLOAD_LIST_STATS(AddToDownloadListStatsRequest.class, AddToDownloadListStatsResponse.class),
-	
+
 	DOWNLOAD_LIST_PACKAGE(DownloadListPackageRequest.class, DownloadListPackageResponse.class),
-	
+
 	DOWNLOAD_LIST_MANIFEST(DownloadListManifestRequest.class, DownloadListManifestResponse.class),
-	
+
 	FILE_HANDLE_ARCHIVAL_REQUEST(FileHandleArchivalRequest.class, FileHandleArchivalResponse.class),
-	
+
 	FILE_HANDLE_RESTORE_REQUEST(FileHandleRestoreRequest.class, FileHandleRestoreResponse.class),
-	
+
 	AGENT_CHAT(AgentChatRequest.class, AgentChatResponse.class),
-	
+
 	QUERY_AS_PFB(DownloadPFBRequest.class, DownloadPFBResult.class),
-	
+
 	GRID_CREATE(CreateGridRequest.class, CreateGridResponse.class),
 
-    DOWNLOAD_CSV_FROM_GRID(DownloadFromGridRequest.class, DownloadFromGridResult.class),
-    
-    GRID_EXPORT_RECORDSET(GridRecordSetExportRequest.class, GridRecordSetExportResponse.class),
-    
-    GRID_IMPORT_CSV(GridCsvImportRequest.class, GridCsvImportResponse.class);
+	DOWNLOAD_CSV_FROM_GRID(DownloadFromGridRequest.class, DownloadFromGridResult.class),
 
-	private Class<? extends AsynchronousRequestBody> requestClass;
-	private Class<? extends AsynchronousResponseBody> responseClass;
+	GRID_EXPORT_RECORDSET(GridRecordSetExportRequest.class, GridRecordSetExportResponse.class),
+
+	GRID_IMPORT_CSV(GridCsvImportRequest.class, GridCsvImportResponse.class),
+
+	GRID_SYNCHRONIZATION(SynchronizeGridRequest.class, SynchronizeGridResponse.class,
+			(s) -> new FifoQueueParameters()
+					.setMessageGroupId(((SynchronizeGridRequest) s.getRequestBody()).getGridSessionId())
+					.setMessageDeduplicationId(s.getJobId()));
+
+	private final Class<? extends AsynchronousRequestBody> requestClass;
+	private final Class<? extends AsynchronousResponseBody> responseClass;
+	private final FifoQueueParameterProvider fifoParameterProvider;
 
 	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass,
 			Class<? extends AsynchronousResponseBody> responseClass) {
 		this.requestClass = requestClass;
 		this.responseClass = responseClass;
+		this.fifoParameterProvider = null;
+	}
+
+	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass,
+			Class<? extends AsynchronousResponseBody> responseClass, FifoQueueParameterProvider fifoParameterProvider) {
+		this.requestClass = requestClass;
+		this.responseClass = responseClass;
+		this.fifoParameterProvider = fifoParameterProvider;
 	}
 
 	/**
@@ -151,12 +168,27 @@ public enum AsynchJobType {
 		return this.responseClass;
 	}
 
+	public boolean isFifoQueue() {
+		return fifoParameterProvider != null;
+	}
+
+	public FifoQueueParameters getFifoParameters(AsynchronousJobStatus status) {
+		if (fifoParameterProvider == null) {
+			throw new UnsupportedOperationException("This job type does not use FIFO queues");
+		}
+		return fifoParameterProvider.getParameters(status);
+	}
+
 	/**
 	 * The suffix of the queue name where jobs of this type are published.
 	 * 
 	 * @return
 	 */
 	public String getQueueName() {
-		return StackConfigurationSingleton.singleton().getQueueName(this.name());
+		StringBuilder nameBuilder = new StringBuilder(this.name());
+		if (isFifoQueue()) {
+			nameBuilder.append(".fifo");
+		}
+		return StackConfigurationSingleton.singleton().getQueueName(nameBuilder.toString());
 	}
 }

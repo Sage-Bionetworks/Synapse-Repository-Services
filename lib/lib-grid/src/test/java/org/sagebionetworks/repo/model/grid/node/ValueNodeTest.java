@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,5 +136,28 @@ public class ValueNodeTest {
 			assertFalse(val.attemptInsert(new InsertValue(insertValOperationId, ids.get(2), ids.get(1))));
 		}).getMessage();
 		assertEquals("The ID of the passed change does not match the ID of this value.", message);
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithValue() {
+		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(ids.get(1));
+
+		// call under test
+		List<LogicalTimestamp> timestamps = val.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(2, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0)); // node ID first
+		assertEquals(ids.get(1), timestamps.get(1));
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullValue() {
+		ValueNode val = new ValueNode().setId(ids.get(0)).setValue(null);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = val.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0)); // only node ID
 	}
 }

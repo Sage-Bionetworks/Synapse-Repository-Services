@@ -49,8 +49,6 @@ public class EntityAuthorizationManagerUnitTest {
 	private AccessRestrictionStatusDao mockAccessRestrictionStatusDao;
 	@Mock
 	private UsersEntityPermissionsDao mockUsersEntityPermissionsDao;
-	@Mock
-	private TwoFactorAuthManager mockTwoFactorAuthManager;
 
 	@InjectMocks
 	@Spy
@@ -75,7 +73,7 @@ public class EntityAuthorizationManagerUnitTest {
 	public void before() {
 		boolean isAdmin = false;
 		userInfo = new UserInfo(isAdmin, 123L);
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		userInfo.getGroups().add(userInfo.getId());
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		entityId = "syn456";
@@ -99,16 +97,18 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
 		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(false);
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -119,7 +119,7 @@ public class EntityAuthorizationManagerUnitTest {
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
 		
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
@@ -127,7 +127,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -140,7 +140,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
@@ -150,7 +150,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -163,7 +163,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasCreate(true);
-		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(false);
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
 		UserEntityPermissions expected = createAllFalseUserEntityPermissions();
@@ -173,7 +173,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -195,7 +195,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanChangePermissions(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -221,7 +221,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanCertifiedUserEdit(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -247,7 +247,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanCertifiedUserEdit(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -273,7 +273,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanCertifiedUserEdit(false);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -295,7 +295,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanChangeSettings(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -317,7 +317,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanDelete(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -340,7 +340,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanCertifiedUserEdit(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -353,7 +353,7 @@ public class EntityAuthorizationManagerUnitTest {
 		
 		permissionsState.withDoesEntityExist(true);
 		permissionsState.withHasUpdate(true);
-		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(false);
 
 		// call under test
 		UserEntityPermissions permissions = entityAuthManager.getUserPermissionsForEntity(userInfo, entityId);
@@ -364,7 +364,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanCertifiedUserEdit(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -386,7 +386,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanView(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -408,7 +408,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanPublicRead(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -430,7 +430,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanDownload(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -441,6 +441,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
 		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
 		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
@@ -454,7 +455,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanUpload(false);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -477,7 +478,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsCertifiedUser(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -499,7 +500,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanModerate(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -522,7 +523,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setOwnerPrincipalId(createdBy);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -546,7 +547,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanEnableInheritance(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -567,7 +568,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsEntityOpenData(false);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -588,7 +589,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsEntityOpenData(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -608,7 +609,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsEntityOpenData(false);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
 	}
@@ -633,7 +634,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setOwnerPrincipalId(userInfo.getId());
 		assertEquals(expected, permissions);
 
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 	}
 
@@ -657,7 +658,7 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setIsDataContributor(true);
 		assertEquals(expected, permissions);
 
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 	}
 	
@@ -676,10 +677,10 @@ public class EntityAuthorizationManagerUnitTest {
 		expected.setCanUpload(true);
 		assertEquals(expected, permissions);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 		verify(mockAccessRestrictionStatusDao).getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
 	}
 	
@@ -734,7 +735,7 @@ public class EntityAuthorizationManagerUnitTest {
 		AuthorizationStatus expected = AuthorizationStatus.authorized();
 		assertEquals(expected, status);
 		
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 	}
 
 	@Test
@@ -748,7 +749,7 @@ public class EntityAuthorizationManagerUnitTest {
 				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.READ));
 		assertEquals(expected, status);
 
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 	}
 	
 	@Test
@@ -764,7 +765,7 @@ public class EntityAuthorizationManagerUnitTest {
 		AuthorizationStatus expected = AuthorizationStatus.authorized();
 		assertEquals(expected, status);
 
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 	}
 	
 	@Test
@@ -781,7 +782,7 @@ public class EntityAuthorizationManagerUnitTest {
 				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DELETE));
 		assertEquals(expected, status);
 
-		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo.getGroups(), entityIds);
+		verify(mockUsersEntityPermissionsDao).getEntityPermissionsAsMap(userInfo, entityIds);
 	}
 	
 	@Test

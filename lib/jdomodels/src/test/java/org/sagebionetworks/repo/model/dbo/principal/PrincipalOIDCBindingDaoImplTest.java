@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -39,7 +40,8 @@ public class PrincipalOIDCBindingDaoImplTest {
 	@BeforeEach
 	public void before() {
 		dao.truncateAll();
-		Long principalId = userGroupDao.create(new UserGroup().setCreationDate(new Date()).setIsIndividual(true));
+		Long principalId = userGroupDao.create(new UserGroup().
+				setCreationDate(new Date()).setIsIndividual(true).setRealmId(AuthorizationConstants.DEFAULT_REALM_ID));
 		alias = aliasDao.bindAliasToPrincipal(new PrincipalAlias().setAlias(UUID.randomUUID().toString() + "@gmail.com").setType(AliasType.USER_EMAIL).setPrincipalId(principalId));
 	}
 

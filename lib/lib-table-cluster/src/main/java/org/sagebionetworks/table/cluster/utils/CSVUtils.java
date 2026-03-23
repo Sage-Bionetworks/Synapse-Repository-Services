@@ -1,16 +1,19 @@
 package org.sagebionetworks.table.cluster.utils;
 
 import java.io.Reader;
-import java.io.Writer;
+import java.util.Optional;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
+import org.sagebionetworks.util.ValidateArgument;
 
 import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtils {
@@ -19,7 +22,31 @@ public class CSVUtils {
 	/**
 	 * When searching for a type this setups the order we check for.  Not all types are included.
 	 */
-	private static final ColumnType[] typesToCheck = new ColumnType[]{ColumnType.BOOLEAN, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.DATE, ColumnType.ENTITYID, ColumnType.STRING, ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT};
+	private static final ColumnType[] typesToCheck = new ColumnType[] {
+			//
+			ColumnType.BOOLEAN_LIST,
+			//
+			ColumnType.INTEGER_LIST,
+			//
+			ColumnType.STRING_LIST,
+			//
+			ColumnType.JSON,
+			//
+			ColumnType.BOOLEAN,
+			//
+			ColumnType.INTEGER,
+			//
+			ColumnType.DOUBLE,
+			//
+			ColumnType.DATE,
+			//
+			ColumnType.ENTITYID,
+			//
+			ColumnType.STRING,
+			//
+			ColumnType.MEDIUMTEXT,
+			//
+			ColumnType.LARGETEXT };
 
 	/**
 	 * Create CSVReader with the correct parameters using the provided parameters or default values.
@@ -111,28 +138,51 @@ public class CSVUtils {
 	/**
 	 * Check if the given value is compatible with the given columnType.
 	 * If not, a ColumnModel that is compatible will be found and returned.
-	 * 
+	 *
 	 * @param value If null, then the currentType will be returned.
 	 * @param currentType If null, then a compatible type will be returned.
 	 * @return
 	 */
 	public static ColumnModel checkType(String value, ColumnModel currentType) {
+		if(currentType != null) {
+			ValidateArgument.required(currentType.getMaximumSize(), "maximumSize");
+		}
 		// We can tell nothing from null or empty cells.
 		if(value == null || "".equals(value.trim())){
+			return currentType;
+		}
+		// Parse the value as a JSON array once for use during the type scan.
+		Optional<ListInfo> listInfo = parseListValue(value);
+		// Empty JSON arrays provide no element type information, treat as no data.
+		if (listInfo.isPresent() && listInfo.get().listSize == 0) {
 			return currentType;
 		}
 		long currentMaxSize = 0;
 		if(currentType != null){
 			currentMaxSize = currentType.getMaximumSize();
 		}
-		// The current type determines where lookup starts.
+		Long currentListSize = currentType != null ? currentType.getMaximumListLength() : null;
 		int startIndex = findIndexOf(currentType);
 		// Try each type in order
 		for(int i=startIndex; i<typesToCheck.length; i++){
+			ColumnType type = typesToCheck[i];
 			ColumnModel cm = new ColumnModel();
-			cm.setColumnType(typesToCheck[i]);
-			long maxSize = Math.max(value.length(), currentMaxSize);
+			cm.setColumnType(type);
+			long maxSize;
+			if (listInfo.isPresent() && type == ColumnType.STRING_LIST) {
+				maxSize = Math.max(listInfo.get().maxElementSize, currentMaxSize);
+			} else {
+				maxSize = Math.max(value.length(), currentMaxSize);
+			}
 			cm.setMaximumSize(maxSize);
+			if (ColumnTypeListMappings.isList(type)) {
+				if (listInfo.isPresent()) {
+					long valueListSize = listInfo.get().listSize;
+					cm.setMaximumListLength(currentListSize != null ? Math.max(valueListSize, currentListSize) : valueListSize);
+				} else {
+					cm.setMaximumListLength(currentListSize);
+				}
+			}
 			try {
 				TableModelUtils.validateValue(value, cm);
 				// We have a match.
@@ -145,7 +195,40 @@ public class CSVUtils {
 		// We failed to match a type
 		throw new IllegalArgumentException(ERROR_CELLS_EXCEED_MAX);
 	}
-	
+
+	static class ListInfo {
+		final long listSize;
+		final long maxElementSize;
+
+		ListInfo(long listSize, long maxElementSize) {
+			this.listSize = listSize;
+			this.maxElementSize = maxElementSize;
+		}
+	}
+
+	/**
+	 * Parse the value as a JSON array and return the list size and max element string length.
+	 * @return Empty if the value does not start with '[' or is not a valid JSON array.
+	 */
+	static Optional<ListInfo> parseListValue(String value) {
+		String trimmed = value.trim();
+		if (!trimmed.startsWith("[")) {
+			return Optional.empty();
+		}
+		try {
+			JSONArray array = new JSONArray(trimmed);
+			long maxElementSize = 0;
+			for (int i = 0; i < array.length(); i++) {
+				if (!array.isNull(i)) {
+					maxElementSize = Math.max(maxElementSize, array.getString(i).length());
+				}
+			}
+			return Optional.of(new ListInfo(array.length(), maxElementSize));
+		} catch (JSONException e) {
+			return Optional.empty();
+		}
+	}
+
 	/**
 	 * Find the index of the given ColumnModel from the typesToCheck.
 	 * @param currentType
@@ -155,12 +238,21 @@ public class CSVUtils {
 		if(currentType == null){
 			return 0;
 		}
-		for(int i=0; i<typesToCheck.length; i++){
-			if(typesToCheck[i].equals(currentType.getColumnType())){
+		return findIndexOfType(currentType.getColumnType());
+	}
+
+	/**
+	 * Find the index of the given ColumnType from the typesToCheck.
+	 * @param type
+	 * @return
+	 */
+	static int findIndexOfType(ColumnType type) {
+		for (int i = 0; i < typesToCheck.length; i++) {
+			if (typesToCheck[i].equals(type)) {
 				return i;
 			}
 		}
-		throw new IllegalArgumentException("Unkown ColumnType: "+currentType.getColumnType());
+		throw new IllegalArgumentException("Unkown ColumnType: " + type);
 	}
 
 	/**

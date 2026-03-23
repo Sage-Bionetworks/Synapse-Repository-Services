@@ -201,6 +201,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	void testIssueToken_anonymous() {
 		UserInfo anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
 		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.issueToken(anonymousUserInfo, ACCESS_TOKEN, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT));
@@ -378,6 +379,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 	void testGetTokens_anonymous() {
 		UserInfo anonymousUserInfo = new UserInfo(false);
 		anonymousUserInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
 		assertThrows(UnauthenticatedException.class, () -> personalAccessTokenManager.getTokenRecords(anonymousUserInfo, null));

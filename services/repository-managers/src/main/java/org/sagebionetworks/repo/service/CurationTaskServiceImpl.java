@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,5 +54,17 @@ public class CurationTaskServiceImpl implements CurationTaskService {
     public ListCurationTaskResponse getCurationTasks(Long userId, ListCurationTaskRequest request) {
         UserInfo userInfo = userManager.getUserInfo(userId);
         return curationTaskManager.getCurationTasks(userInfo, request);
+    }
+
+    @Override
+    public TaskStatus getTaskStatus(Long userId, Long taskId) {
+        UserInfo userInfo = userManager.getUserInfo(userId);
+        return curationTaskManager.getTaskStatus(userInfo, taskId);
+    }
+
+    @Override
+    public TaskStatus updateTaskStatus(Long userId, Long taskId, TaskStatus statusUpdate) {
+        UserInfo userInfo = userManager.getUserInfo(userId);
+        return curationTaskManager.updateTaskStatus(userInfo, taskId, statusUpdate);
     }
 }

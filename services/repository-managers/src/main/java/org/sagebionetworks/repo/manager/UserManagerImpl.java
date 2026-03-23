@@ -9,11 +9,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -24,7 +25,10 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.CallersContext;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
@@ -37,7 +41,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,11 +52,13 @@ public class UserManagerImpl implements UserManager {
 	private final UserGroupDAO userGroupDAO;
 	private final UserProfileDAO userProfileDAO;
 	private final GroupMembersDAO groupMembersDAO;
+	private final CertifiedUsersDAO certifiedUsersDAO;
 	private final AuthenticationDAO authDAO;
 	private final PrincipalAliasDAO principalAliasDAO;
 	private final NotificationEmailDAO notificationEmailDao;
 	private final PrincipalOIDCBindingDao principalOidcBindingDao;
 	private final UserStatusDao userStatusDao;
+	private final RealmDao realmDao;
 	
 	/**
 	 * Testing purposes only
@@ -65,8 +70,8 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO,
 			AuthenticationDAO authDAO, PrincipalAliasDAO principalAliasDAO, NotificationEmailDAO notificationEmailDao,
-			PrincipalOIDCBindingDao principalOIDCBindingDao,
-			DBOBasicDao basicDAO, UserStatusDao userStatusDao) {
+			PrincipalOIDCBindingDao principalOIDCBindingDao, CertifiedUsersDAO certifiedUsersDAO,
+			DBOBasicDao basicDAO, UserStatusDao userStatusDao, RealmDao realmDao) {
 		super();
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
@@ -75,8 +80,10 @@ public class UserManagerImpl implements UserManager {
 		this.principalAliasDAO = principalAliasDAO;
 		this.notificationEmailDao = notificationEmailDao;
 		this.principalOidcBindingDao = principalOIDCBindingDao;
+		this.certifiedUsersDAO = certifiedUsersDAO;
 		this.userStatusDao = userStatusDao;
 		this.basicDAO = basicDAO;
+		this.realmDao=realmDao;
 	}
 
 	@Override
@@ -94,11 +101,18 @@ public class UserManagerImpl implements UserManager {
 		if (alias != null) {
 			throw new NameConflictException("User '" + user.getUserName() + "' already exists");
 		}
+		String realmId=AuthorizationConstants.DEFAULT_REALM_ID;
 		// Make sure that the subject for an oauth provider is not bound yet
 		if (user.getOauthProvider() != null) {
 			lookupOidcBindingBySubject(user.getOauthProvider(), user.getSubject()).ifPresent((principalId)-> {
 				throw new NameConflictException("The provided '" + user.getOauthProvider() +"' account is already registered with Synapse");
 			});
+			IdentityProvider identityProvider = new OAuthIdentityProvider().setProvider(user.getOauthProvider());
+			Optional<String> optionalRealmId=realmDao.getRealmIdForIdentityProvider(identityProvider);
+			if (optionalRealmId.isEmpty()) {
+				throw new IllegalArgumentException("There is no security realm associated with "+user.getOauthProvider().name());
+			}
+			realmId=optionalRealmId.get();
 		}
 		
 		Date createdOn = new Date();
@@ -106,6 +120,7 @@ public class UserManagerImpl implements UserManager {
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(createdOn);
+		individualGroup.setRealmId(realmId);
 		Long principalId = userGroupDAO.create(individualGroup);
 		
 		// Make some credentials for this user
@@ -129,7 +144,7 @@ public class UserManagerImpl implements UserManager {
 	
 	/**
 	 * This method is idempotent.
-	 * @param profile
+	 * @param user
 	 * @param principalId
 	 */
 	private void bindAllAliases(NewUser user, Long principalId) {
@@ -203,19 +218,21 @@ public class UserManagerImpl implements UserManager {
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
 		if(!principal.getIsIndividual()) throw new IllegalArgumentException("Principal: "+principalId+" is not a User");
-		// Lookup the user's name
-		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
+
+		RealmPrincipal realmPrincipals = realmDao.getRealmPrincipals(principal.getRealmId());
+
+		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to
 		Set<Long> groups = new HashSet<Long>();
-		boolean isUserAnonymous = AuthorizationUtils.isUserAnonymous(principalId);
+		boolean isUserAnonymous = (principalId==Long.parseLong(realmPrincipals.getAnonymousUser()));
 		// Everyone except the anonymous users belongs to "authenticated users"
 		if (!isUserAnonymous) {
 			// All authenticated users belong to the authenticated user group
-			groups.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+			groups.add(Long.parseLong(realmPrincipals.getAuthenticatedUsers()));
 		}
 		
 		// Everyone belongs to their own group and to Public
 		groups.add(principalId);
-		groups.add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		groups.add(Long.parseLong(realmPrincipals.getPublicGroup()));
 		// Add all groups the user belongs to
 		List<UserGroup> groupFromDAO = groupMembersDAO.getUsersGroups(principal.getId());
 		// Add each group
@@ -229,12 +246,15 @@ public class UserManagerImpl implements UserManager {
 		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
 			isAdmin = true;
 		}
-		UserInfo ui = new UserInfo(isAdmin);
-		ui.setId(principalId);
+		UserInfo ui = new UserInfo(isAdmin, principalId, principal.getRealmId());
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);
+		ui.setRealmAnonymousUserId(Long.valueOf(realmPrincipals.getAnonymousUser()));
+		ui.setRealmAuthenticatedUsersId(Long.valueOf(realmPrincipals.getAuthenticatedUsers()));
+		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));
 		ui.setTwoFactorAuthEnabled(authDAO.isTwoFactorAuthEnabled(principalId));
+		ui.setCertified(certifiedUsersDAO.isCertifiedUser(principalId.toString()));
 		ui.setContext(new CallersContext().setSessionId(SessionIdThreadLocal.getThreadsSessionId().orElse("missing")));
 		return ui;
 	}
@@ -250,14 +270,9 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public Collection<UserGroup> getGroups() throws DatastoreException {
-		return userGroupDAO.getAll(false);
-	}
-
-	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) 
 			throws DatastoreException, UnauthorizedException {
-		return userGroupDAO.getInRange(startIncl, endExcl, false);
+		return userGroupDAO.getInRange(startIncl, endExcl, false, userInfo.getRealmId());
 	}
 
 	@Override

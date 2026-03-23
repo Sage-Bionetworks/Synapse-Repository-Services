@@ -337,7 +337,7 @@ public class DownloadListManagerImpl implements DownloadListManager {
 	 */
 	static void validateUser(UserInfo userInfo) {
 		ValidateArgument.required(userInfo, "userInfo");
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthorizedException(YOU_MUST_LOGIN_TO_ACCESS_YOUR_DOWNLOAD_LIST);
 		}
 	}

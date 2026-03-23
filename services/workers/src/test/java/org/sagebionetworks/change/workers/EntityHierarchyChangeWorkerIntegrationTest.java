@@ -16,6 +16,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -68,7 +69,7 @@ public class EntityHierarchyChangeWorkerIntegrationTest {
 		// this is still an integration test even though a mock progress is used.
 		MockitoAnnotations.initMocks(this);
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(); 
-		adminUser = new UserInfo(true, userId);
+		adminUser = new UserInfo(true, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		indexDao = tableConnectionFactory.getAllConnections().get(0);
 		
 		project = new Project();

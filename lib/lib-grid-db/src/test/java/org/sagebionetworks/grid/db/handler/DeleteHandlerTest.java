@@ -67,8 +67,8 @@ public class DeleteHandlerTest {
 
         assertEquals(Set.of(nodeOne, nodeTwo), result);
         
-        verify(mockDao).deleteArrayNodes(sessionId, replicaId, nodeOne, nodeOneIds);
-        verify(mockDao).deleteArrayNodes(sessionId, replicaId, nodeTwo, nodeTwoIds);
+        verify(mockDao).deleteRgaNodes(sessionId, replicaId, nodeOne, nodeOneIds);
+        verify(mockDao).deleteRgaNodes(sessionId, replicaId, nodeTwo, nodeTwoIds);
         verifyNoMoreInteractions(mockDao);
     }
     

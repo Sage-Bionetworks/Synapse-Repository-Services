@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.service.TeamServiceImpl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TeamServiceTest {
+	private static final Long USER_ID =123L;
 	
 	@Mock
 	private UserManager mockUserManager;
@@ -62,6 +62,7 @@ public class TeamServiceTest {
 	
 	private Team team = null;
 	private TeamMember member = null;
+	private UserInfo userInfo = null;
 	
 	@BeforeEach
 	public void before() throws Exception {
@@ -73,6 +74,7 @@ public class TeamServiceTest {
 		UserGroupHeader ugh = new UserGroupHeader();
 		ugh.setUserName("John Smith");
 		member.setMember(ugh);
+		userInfo = new UserInfo(false, USER_ID, "0");
 	}
 	
 	@Test
@@ -80,23 +82,23 @@ public class TeamServiceTest {
 		List<Long> listWithTeam = Arrays.asList(99L);
 		List<Long> emptyList = new LinkedList<>();
 
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("foo", 1L, 0L)).thenReturn(listWithTeam);
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("ba", 1L, 0L)).thenReturn(listWithTeam);
-		when(mockPrincipalPrefixDAO.listTeamsForPrefix("bas", 1L, 0L)).thenReturn(emptyList);
-
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix(0L,"foo", 1L, 0L)).thenReturn(listWithTeam);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix(0L,"ba", 1L, 0L)).thenReturn(listWithTeam);
+		when(mockPrincipalPrefixDAO.listTeamsForPrefix(0L, "bas", 1L, 0L)).thenReturn(emptyList);
+		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 		List<Team> expected = new ArrayList<Team>(); expected.add(team);
 		ListWrapper<Team> wrapped = new ListWrapper<Team>();
 		wrapped.setList(expected);
 		when(mockTeamManager.list(any(List.class))).thenReturn(wrapped);
-		PaginatedResults<Team> pr = teamService.get("foo", 1, 0);
+		PaginatedResults<Team> pr = teamService.get(123L, "foo", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
-		pr = teamService.get("ba", 1, 0);
+		pr = teamService.get(123L,"ba", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		
 		// no match
-		pr = teamService.get("bas", 1, 0);
+		pr = teamService.get(123L,"bas", 1, 0);
 		assertEquals(2L, pr.getTotalNumberOfResults());
 	}
 	
@@ -135,17 +137,18 @@ public class TeamServiceTest {
 
 		assertEquals(0L, teamService.getMemberCount("101", "bas").getCount().longValue());
 }
-	
+
 	@Test
 	public void testGetTeamNoFragment() throws Exception {
-		teamService.get(null, 1, 0);
-		verify(mockTeamManager).list(1, 0);
+		when(mockUserManager.getUserInfo(123L)).thenReturn(userInfo);
+		teamService.get(123L, null, 1, 0);
+		verify(mockTeamManager).list(userInfo, 1, 0);
 	}
 
 	@Test
 	public void testGetTeamWithUnderMinLimit() {
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			teamService.get(null, 0, 0);
+			teamService.get(123L,null, 0, 0);
 		});
 		assertEquals("limit must be between 1 and 50", ex.getMessage());
 	}
@@ -153,7 +156,7 @@ public class TeamServiceTest {
 	@Test
 	public void testGetTeamWithOverMaxLimit() {
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			teamService.get(null, 51, 0);
+			teamService.get(123L,null, 51, 0);
 		});
 		assertEquals("limit must be between 1 and 50", ex.getMessage());
 	}
@@ -161,7 +164,7 @@ public class TeamServiceTest {
 	@Test
 	public void testGetTeamWithNegativeOffset() {
 		IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, ()-> {
-			teamService.get(null, 50, -1);
+			teamService.get(123L,null, 50, -1);
 		});
 		assertEquals("'offset' may not be negative", ex.getMessage());
 	}
@@ -221,8 +224,12 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
-		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		UserInfo userInfo1 = new UserInfo(false);
+		userInfo1.setId(userId);
+		userInfo1.setRealmId("0");
+		UserInfo userInfo2 = new UserInfo(false);
+		userInfo2.setId(principalId);
+		userInfo2.setRealmId("0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();
@@ -252,8 +259,12 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
-		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		UserInfo userInfo1 = new UserInfo(false);
+		userInfo1.setId(userId);
+		userInfo1.setRealmId("0");
+		UserInfo userInfo2 = new UserInfo(false);
+		userInfo2.setId(principalId);
+		userInfo2.setRealmId("0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();
@@ -296,8 +307,12 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false); userInfo1.setId(userId);
-		UserInfo userInfo2 = new UserInfo(false); userInfo2.setId(principalId);
+		UserInfo userInfo1 = new UserInfo(false);
+		userInfo1.setId(userId);
+		userInfo1.setRealmId("0");
+		UserInfo userInfo2 = new UserInfo(false);
+		userInfo2.setId(principalId);
+		userInfo2.setRealmId("0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -140,7 +141,7 @@ public interface TableQueryManager {
 	 * @throws IOException
 	 */
 	QueryResultBundle runQueryAsStream(ProgressCallback progressCallback, UserInfo user, Query request,
-			RowHandlerProvider provider) throws TableUnavailableException, NotFoundException, TableFailedException,
+			RowHandlerProvider provider, ACCESS_TYPE...types) throws TableUnavailableException, NotFoundException, TableFailedException,
 			LockUnavilableException, IOException;
 
 	Long getMaxBytesPerRequest();

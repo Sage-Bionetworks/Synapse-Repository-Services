@@ -32,6 +32,7 @@ public class QueryElement implements Element {
 	private List<OrderByItemElement> orderBy;
 	private Long limit;
 	private Long offset;
+	private Boolean includeValidationMessages;
 
 	public QueryElement() {
 		select = List.of(new SelectAllElement());
@@ -48,6 +49,7 @@ public class QueryElement implements Element {
 		
 		this.limit = query.getLimit();
 		this.offset = query.getOffset();
+		this.includeValidationMessages = query.getIncludeValidationMessages();
 	}
 
 	@Override
@@ -151,9 +153,18 @@ public class QueryElement implements Element {
 		return this;
 	}
 
+	public Boolean getIncludeValidationMessages() {
+		return includeValidationMessages;
+	}
+
+	public QueryElement setIncludeValidationMessages(Boolean includeValidationMessages) {
+		this.includeValidationMessages = includeValidationMessages;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(groupBy, limit, offset, orderBy, select, where);
+		return Objects.hash(groupBy, includeValidationMessages, limit, offset, orderBy, select, where);
 	}
 
 	@Override
@@ -165,15 +176,17 @@ public class QueryElement implements Element {
 		if (getClass() != obj.getClass())
 			return false;
 		QueryElement other = (QueryElement) obj;
-		return Objects.equals(groupBy, other.groupBy) && Objects.equals(limit, other.limit)
-				&& Objects.equals(offset, other.offset) && Objects.equals(orderBy, other.orderBy)
-				&& Objects.equals(select, other.select) && Objects.equals(where, other.where);
+		return Objects.equals(groupBy, other.groupBy) && includeValidationMessages == other.includeValidationMessages
+				&& Objects.equals(limit, other.limit) && Objects.equals(offset, other.offset)
+				&& Objects.equals(orderBy, other.orderBy) && Objects.equals(select, other.select)
+				&& Objects.equals(where, other.where);
 	}
 
 	@Override
 	public String toString() {
 		return "QueryElement [select=" + select + ", where=" + where + ", groupBy=" + groupBy + ", orderBy=" + orderBy
-				+ ", limit=" + limit + ", offset=" + offset + "]";
+				+ ", limit=" + limit + ", offset=" + offset + ", includeValidationMessages=" + includeValidationMessages
+				+ "]";
 	}
 
 	public boolean isAggregate() {

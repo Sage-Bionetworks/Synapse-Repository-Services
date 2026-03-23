@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 
@@ -19,6 +20,7 @@ public class UserGroupUtilsTest {
 		dto.setIsIndividual(true);
 		dto.setUri("/userGroup");
 		dto.setEtag("Bloop");
+		dto.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
 		UserGroup dto2 = new UserGroup();

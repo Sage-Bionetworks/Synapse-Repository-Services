@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengeDAO;
@@ -100,6 +101,7 @@ public class DBOChallengeTeamDAOImplTest {
 		Team team = new Team();
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		Long id = userGroupDAO.create(ug);
 		
 		team.setId(id.toString());

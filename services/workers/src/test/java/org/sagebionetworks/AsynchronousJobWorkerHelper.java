@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Dataset;
@@ -335,5 +336,14 @@ public interface AsynchronousJobWorkerHelper {
 	 */
 	boolean waitForMessage(Predicate<JSONArray> handler, BlockingQueue<String> incomingMessages)
 			throws InterruptedException;
+
+	/**
+	 * Wait for the internal grid connection info.
+	 * @param gridSessionId
+	 * @param maxWaitMs
+	 * @return
+	 * @throws Exception 
+	 */
+	GridConnectionInfo getInternalGridConnection(String gridSessionId, long maxWaitMs) throws Exception;
 
 }

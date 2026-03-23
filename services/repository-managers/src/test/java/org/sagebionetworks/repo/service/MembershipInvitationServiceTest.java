@@ -94,7 +94,7 @@ public class MembershipInvitationServiceTest {
 	@Test
 	public void testInviteByEmailCertified() throws Exception {
 		
-		userInfo.setGroups(Collections.singleton(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
+		userInfo.setCertified(true);
 		
 		MembershipInvitation mis = new MembershipInvitation();
 		mis.setInviteeEmail("me@domain.com");

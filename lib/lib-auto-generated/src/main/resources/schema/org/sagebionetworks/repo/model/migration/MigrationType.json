@@ -3,12 +3,28 @@
 	"type": "string",
 	"enum": [
 		{
+			"name": "REALM",
+			"description": "Security Realm"
+		},
+		{
+			"name": "REALM_IDP",
+			"description": "Identity provider for a security realm"
+		},
+		{
 			"name": "PRINCIPAL",
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "REALM_PRINCIPAL",
+			"description": "System-generated principals for security realm"
+		},
+		{
 			"name": "GROUP_MEMBERS",
 			"description": "TODO: Auto-generated description"
+		},
+		{
+			"name": "CERTIFIED_USERS",
+			"description": "Certified users to use the Synapse."
 		},
 		{
 			"name": "CREDENTIAL",
@@ -495,6 +511,10 @@
 			"description": "Table that tracks grid replica patches."
 		},
 		{
+			"name": "GRID_SNAPSHOT",
+			"description": "Table that tracks grid replica snapshots."
+		},
+		{
 		  "name": "CURATION_TASK",
 		  "description": "Table that stores curation task information."
 		},
@@ -505,6 +525,14 @@
 		{
 			"name": "RECORDSET_VALIDATION_STATS",
             "description": "Table that stores validation stats for record sets"
+		},
+		{
+			"name": "TEXT_ANALYZER",
+			"description": "Text analyzer configurations for search"
+		},
+		{
+			"name": "COLUMN_ANALYZER_OVERRIDE",
+			"description": "Table that stores column analyzer overrides for search"
 		},
 		{
 			"name": "CHANGE",

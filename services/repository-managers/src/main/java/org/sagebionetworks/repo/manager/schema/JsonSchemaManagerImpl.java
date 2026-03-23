@@ -16,10 +16,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -31,6 +30,8 @@ import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
+import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
 import org.sagebionetworks.repo.model.dbo.schema.ValidationJsonSchemaIndexDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -72,6 +73,8 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	public static final String SAGEBIONETWORKS_RESERVED_MESSAGE = "The name 'sagebionetworks' is reserved, and cannot be included in an Organziation's name";
 
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
+
 	public static final int MAX_ORGANZIATION_NAME_CHARS = 250;
 	public static final int MIN_ORGANZIATION_NAME_CHARS = 6;
 	
@@ -81,7 +84,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	private OrganizationDao organizationDao;
 
 	@Autowired
-	private AccessControlListDAO aclDao;
+	private AccessControlListManager aclManager;
 
 	@Autowired
 	private JsonSchemaDao jsonSchemaDao;
@@ -98,23 +101,37 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@Autowired
 	private JsonSchemaValidatorFactory validatorFactory;
 
+	@Autowired
+	private TextAnalyzerDao textAnalyzerDao;
+
+	@Autowired
+	private ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
+
 	public static final Set<ACCESS_TYPE> ADMIN_PERMISSIONS = Sets.newHashSet(READ, CREATE, CHANGE_PERMISSIONS, UPDATE,
 			DELETE);
 
 	@WriteTransaction
 	@Override
 	public Organization createOrganziation(UserInfo user, CreateOrganizationRequest request) {
+		return createOrganziation(user, request, null);
+	}
+
+	@WriteTransaction
+	@Override
+	public Organization createOrganziation(UserInfo user, CreateOrganizationRequest request, Long id) {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(request, "OrganizationRequest");
 
 		AuthorizationUtils.disallowAnonymous(user);
 
 		String processedOrganizationName = processAndValidateOrganizationName(user, request.getOrganizationName());
-		Organization org = organizationDao.createOrganization(processedOrganizationName, user.getId());
+		Organization org = id != null
+				? organizationDao.createOrganization(processedOrganizationName, user.getId(), id)
+				: organizationDao.createOrganization(processedOrganizationName, user.getId());
 
 		// Create an ACL for the
 		AccessControlList acl = AccessControlListUtil.createACL(org.getId(), user, ADMIN_PERMISSIONS, new Date());
-		aclDao.create(acl, ObjectType.ORGANIZATION);
+		aclManager.create(user, acl, ObjectType.ORGANIZATION, Long.parseLong(org.getCreatedBy()));
 
 		return org;
 	}
@@ -152,9 +169,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(organziationId, "organziationId");
 		// Validate read access.
-		aclDao.canAccess(user, organziationId, ObjectType.ORGANIZATION, ACCESS_TYPE.READ)
+		aclManager.canAccess(user, organziationId, ObjectType.ORGANIZATION, ACCESS_TYPE.READ)
 				.checkAuthorizationOrElseThrow();
-		return aclDao.get(organziationId, ObjectType.ORGANIZATION);
+		return aclManager.getAcl(organziationId, ObjectType.ORGANIZATION).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, organziationId, ObjectType.ORGANIZATION)));
 	}
 
 	@WriteTransaction
@@ -163,24 +181,20 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(user, "UserInfo");
 		ValidateArgument.required(organziationId, "organziationId");
 		ValidateArgument.required(acl, "acl");
-		Long organziationIdLong;
-		try {
-			organziationIdLong = Long.parseLong(organziationId);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid organziationId: " + organziationId);
-		}
-		// id must match the value from the URL path.
-		acl.setId(organziationId);
 
-		// Ensure the user does not revoke their own access to the ACL.
-		PermissionsManagerUtils.validateACLContent(acl, user, organziationIdLong);
+		Organization org = organizationDao.getOrganizationById(organziationId).orElseThrow(() ->
+				new NotFoundException("Organization with id: " + organziationId + " does not exists."));
+
+		// id must match the value from the URL path.
+		acl.setId(org.getId());
 
 		// Validate CHANGE_PERMISSIONS
-		aclDao.canAccess(user, organziationId, ObjectType.ORGANIZATION, ACCESS_TYPE.CHANGE_PERMISSIONS)
+		aclManager.canAccess(user, organziationId, ObjectType.ORGANIZATION, ACCESS_TYPE.CHANGE_PERMISSIONS)
 				.checkAuthorizationOrElseThrow();
 
-		aclDao.update(acl, ObjectType.ORGANIZATION);
-		return aclDao.get(organziationId, ObjectType.ORGANIZATION);
+		aclManager.update(user, acl, ObjectType.ORGANIZATION, Long.parseLong(org.getCreatedBy()));
+		return aclManager.getAcl(organziationId, ObjectType.ORGANIZATION).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, organziationId, ObjectType.ORGANIZATION)));
 	}
 
 	@WriteTransaction
@@ -190,12 +204,12 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		ValidateArgument.required(id, "id");
 
 		if (!user.isAdmin()) {
-			aclDao.canAccess(user, id, ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
+			aclManager.canAccess(user, id, ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE).checkAuthorizationOrElseThrow();
 		}
 
 		organizationDao.deleteOrganization(id);
 
-		aclDao.delete(id, ObjectType.ORGANIZATION);
+		aclManager.delete(id, ObjectType.ORGANIZATION);
 	}
 
 	@Override
@@ -225,7 +239,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 		// User must have create on the organization.
 		Organization organization = organizationDao.getOrganizationByName(schemaId.getOrganizationName().toString());
-		aclDao.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
+		aclManager.canAccess(user, organization.getId(), ObjectType.ORGANIZATION, ACCESS_TYPE.CREATE)
 				.checkAuthorizationOrElseThrow();
 		List<SchemaDependency> dependencies = findAllDependencies(request.getSchema());
 		NewSchemaVersionRequest newVersionRequest = new NewSchemaVersionRequest()
@@ -313,8 +327,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 
 	/**
 	 * Find all of the dependencies for the given schema.
-	 * 
-	 * @param id
+	 *
 	 * @param schema
 	 * @return
 	 */
@@ -382,7 +395,10 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@WriteTransaction
 	@Override
 	public void truncateAll() {
+		textAnalyzerDao.truncateAll();
+		columnAnalyzerOverrideDao.truncateAll();
 		jsonSchemaDao.truncateAll();
+		aclManager.truncateAll();
 		organizationDao.truncateAll();
 	}
 
@@ -402,7 +418,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 		}
 		// Must have delete on the organization
 		if (!user.isAdmin()) {
-			aclDao.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
+			aclManager.canAccess(user, versionInfo.getOrganizationId(), ObjectType.ORGANIZATION, ACCESS_TYPE.DELETE)
 					.checkAuthorizationOrElseThrow();
 		}
 		if (parsedId.getSemanticVersion() == null) {
@@ -464,7 +480,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	 * A validation schema is a self-contained representation of a schema.
 	 * Specifically, each external '$ref' in the schema is loaded into the local
 	 * '$defs' map. Each '$ref' is then changed to reference the local '$defs' map.
-	 * @param id
+	 * @param $id
 	 * @return
 	 */
 	JsonSchema buildValidationSchema(String $id) {
@@ -476,7 +492,7 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	/**
 	 * Recursively build the validation schema for the given $id.
 	 * 
-	 * @param visitedSchemas
+	 * @param visitedStack
 	 * @param $id
 	 * @return
 	 */

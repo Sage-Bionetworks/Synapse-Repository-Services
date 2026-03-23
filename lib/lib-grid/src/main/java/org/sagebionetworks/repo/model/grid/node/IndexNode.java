@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.grid.node;
 
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
@@ -12,6 +13,11 @@ public class IndexNode implements Node {
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		return Stream.of(getId());
 	}
 
 	public IndexType getType() {

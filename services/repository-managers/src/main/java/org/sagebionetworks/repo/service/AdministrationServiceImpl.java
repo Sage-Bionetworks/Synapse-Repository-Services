@@ -6,12 +6,15 @@ import java.util.Date;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.manager.RealmManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
+import org.sagebionetworks.repo.manager.principal.UserStatusManager;
 import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -22,6 +25,8 @@ import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.ses.EmailQuarantineDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
@@ -89,6 +94,15 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Autowired
 	private EmailQuarantineDao emailQuarantineDao;
 
+	@Autowired
+	private RealmManager realmManager;
+
+	@Autowired
+	private UserStatusManager userStatusManager;
+
+	@Autowired
+	private GridManager gridManager;
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
@@ -132,12 +146,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return res;
 	}
 
-	void adminCheck(Long userId) {
+	UserInfo adminCheck(Long userId) {
 		ValidateArgument.required(userId, "userid");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) {
 			throw new UnauthorizedException("Only an administrator may access this service.");
 		}
+		return userInfo;
 	}
 
 	@Override
@@ -166,6 +181,10 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
+		if (userSpecs.getIdentityProvider() instanceof OAuthIdentityProvider) {
+			OAuthIdentityProvider oidp = (OAuthIdentityProvider)userSpecs.getIdentityProvider();
+			nu.setOauthProvider(oidp.getProvider());
+		}
 		
 		// If null, do not sign
 		boolean signTermsOfService = Boolean.TRUE.equals(userSpecs.getTou());
@@ -241,8 +260,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	@Override
 	public LoginResponse getUserAccessToken(Long userId, Long targetUserId) {
 		ValidateArgument.required(targetUserId, "The targetUserId");
-		adminCheck(userId);
-		return authManager.loginWithNoPasswordOrTwoFaCheck(targetUserId, null);
+		UserInfo userInfo = adminCheck(userId);
+		return authManager.loginWithNoPasswordOrTwoFaCheck(userInfo, null);
 	}
 	
 	@Override
@@ -253,6 +272,30 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		adminCheck(userId);
 		
 		emailQuarantineDao.expireQuarantinedEmail(request.getEmail());		
+	}
+
+	@Override
+	public Realm createRealm(Long userId, Realm realm) {
+		UserInfo userInfo = adminCheck(userId);
+		return realmManager.createRealm(userInfo, realm);
+	}
+
+	@Override
+	public void deleteRealm(Long userId, String realmId) {
+		UserInfo userInfo = adminCheck(userId);
+		realmManager.deleteRealm(userInfo, realmId);
+	}
+
+	@Override
+	public void resetUserStatusToEnabled(Long userId, Long targetUserId) {
+		UserInfo userInfo = adminCheck(userId);
+		userStatusManager.resetUserStatusToEnabled(targetUserId);
+	}
+
+	@Override
+	public long backfillGridSessionChanges(Long userId) {
+		adminCheck(userId);
+		return gridManager.backfillGridSessionChanges();
 	}
 
 }

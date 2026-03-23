@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -47,6 +48,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
         for (int i = 0; i < NUMBER_O_MONKEYS; i++) {
             UserGroup monkey = new UserGroup();
             monkey.setIsIndividual(true);
+            monkey.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
             monkeyIds.add(userGroupDAO.create(monkey).toString());
         }
         
@@ -55,6 +57,7 @@ public class DBOGroupMembersDAOImplDeadlockTest {
         for (int i = 0; i < NUMBER_O_BARRELS; i++) {
             UserGroup barrel = new UserGroup();
             barrel.setIsIndividual(false);
+            barrel.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
             barrelIds.add(userGroupDAO.create(barrel).toString());
         }
 	}

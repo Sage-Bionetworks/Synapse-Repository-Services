@@ -48,7 +48,7 @@ public class InactiveUsersWorkerIntegrationTest {
 		UserInfo  adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		userInfo = userManager.createOrGetTestUser(adminUserInfo, new NewUser().setUserName(UUID.randomUUID().toString()).setEmail(UUID.randomUUID().toString() + "@foo.org"));
 		
-		userStatusDao.setLastSeenOn(List.of(userInfo.getId()), Date.from(Instant.now().minus(200, ChronoUnit.DAYS)));
+		userStatusDao.setLastSeenOn(List.of(userInfo.getId()), Date.from(Instant.now().minus(390, ChronoUnit.DAYS)));
 	}
 	
 	@Test

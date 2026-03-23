@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.grid.create;
 
-import org.sagebionetworks.repo.manager.grid.PatchStore;
+import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
@@ -24,10 +24,10 @@ public class EmptyCreateGridHandler implements CreateGridHandler {
 	}
 
 	@Override
-	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user, CreateGridRequest request,
-			PatchStore patchStore) {
-		return new CreateGridHandlerResult()
-				.setGridSession(gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())));
+	public CreateGridHandlerResult createGrid(AsyncJobProgressCallback callback, UserInfo user,
+			CreateGridRequest request, SnapshotStore snapshotStore) {
+		return new CreateGridHandlerResult().setGridSession(gridDao.createGridSession(
+				new CreateGridSession().setUserId(user.getId()).setOwner(request.getOwnerPrincipalId())));
 	}
 
 }

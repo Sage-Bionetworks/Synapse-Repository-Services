@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -48,6 +49,14 @@ public interface AuthenticationManager {
 	 */
 	LoginResponse login(LoginRequest request, String tokenIssuer);
 	
+	
+	/**return an access token for the anonymous user in the given realm
+	 * @param realmId
+	 * @param issuer
+	 * @return
+	 */
+	AccessTokenResponse getAnonymousAccessToken(String realmId, String issuer);
+	
 	/**
 	 * Bypass password check and just create a login response for the user, if the user has 2FA enabled TwoFactorAuthRequiredException is thrown.
 	 * 
@@ -64,7 +73,7 @@ public interface AuthenticationManager {
 	 * @param principalId
 	 * @return
 	 */
-	LoginResponse loginWithNoPasswordOrTwoFaCheck(long principalId, String tokenIssuer);
+	LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo userInfo, String tokenIssuer);
 	
 	/**
 	 * Performs the login through 2FA, the request can be built out of the TwoFactorAuthRequiredException and an otp code

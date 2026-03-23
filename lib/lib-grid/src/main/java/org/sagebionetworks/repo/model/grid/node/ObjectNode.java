@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.grid.node;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -18,6 +19,20 @@ public class ObjectNode implements Node, HasJsonValue<ObjectNode>, CanInsert<Ins
 	@Override
 	public LogicalTimestamp getId() {
 		return id;
+	}
+
+	@Override
+	public Stream<LogicalTimestamp> streamReferencedTimestamps() {
+		Stream<LogicalTimestamp> nodeIdStream = Stream.of(getId());
+
+		if (value == null || value.isEmpty()) {
+			return nodeIdStream;
+		}
+
+		Stream<LogicalTimestamp> valueStream = value.values().stream()
+				.filter(Objects::nonNull);
+
+		return Stream.concat(nodeIdStream, valueStream);
 	}
 
 	public Map<String, LogicalTimestamp> getValue() {

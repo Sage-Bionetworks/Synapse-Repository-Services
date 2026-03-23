@@ -16,4 +16,11 @@ public interface GridReplicaValidationManager {
 	 */
 	void validateChanges(String sessionId, Long replicaId, Collection<LogicalTimestamp> changedVectorIds);
 
+	/**
+	 * Validates the changes across all rows.
+	 * @param sessionId
+	 * @param replicaId
+	 */
+	void validateAllRows(String sessionId, Long replicaId);
+
 }

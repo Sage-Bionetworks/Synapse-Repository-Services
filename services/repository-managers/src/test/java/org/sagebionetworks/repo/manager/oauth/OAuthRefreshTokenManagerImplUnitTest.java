@@ -12,6 +12,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -92,7 +93,7 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 
 		// Call under test
-		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_ID, CLIENT_ID, scopes, claimsRequest);
+		OAuthRefreshTokenAndMetadata actual = oauthRefreshTokenManager.createRefreshToken(USER_INFO, CLIENT_ID, scopes, claimsRequest);
 		assertNotNull(actual);
 		assertEquals(TOKEN_ID, actual.getMetadata().getTokenId());
 		assertTrue(StringUtils.isNotBlank(actual.getRefreshToken()));
@@ -113,14 +114,16 @@ public class OAuthRefreshTokenManagerImplUnitTest {
 
 	@Test
 	public void testCreateRefreshToken_anonymousUser() {
-		String anonymousUser = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		Long anonymousUser = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anonInfo = new UserInfo(false, anonymousUser, DEFAULT_REALM_ID);
+		anonInfo.setRealmAnonymousUserId(anonymousUser);
 
 		List<OAuthScope> scopes = Arrays.asList(OAuthScope.authorize, OAuthScope.openid);
 		OIDCClaimsRequest claimsRequest = new OIDCClaimsRequest();
 		claimsRequest.setUserinfo(Collections.emptyMap());
 		claimsRequest.setId_token(Collections.emptyMap());
 
-		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonymousUser, CLIENT_ID, scopes, claimsRequest));
+		assertThrows(UnauthorizedException.class, () -> oauthRefreshTokenManager.createRefreshToken(anonInfo, CLIENT_ID, scopes, claimsRequest));
 	}
 
 	@Test

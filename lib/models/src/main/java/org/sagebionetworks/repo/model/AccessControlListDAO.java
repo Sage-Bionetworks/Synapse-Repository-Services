@@ -131,15 +131,15 @@ public interface AccessControlListDAO  {
 	int delete(List<Long> ids, ObjectType ownerType) throws DatastoreException;
 
 	/**
-	 * Given a set of benefactors, and benefactors, return the sub-set of benefactors the that any given principal can see.
+	 * Given a set of benefactors, return the sub-set of benefactors the that any given principal can see.
 	 * @param groups
 	 * @param benefactors
 	 * @param entity
-	 * @param read
+	 * @param types
 	 * @return
 	 */
 	Set<Long> getAccessibleBenefactors(Set<Long> groups, Set<Long> benefactors,
-			ObjectType entity, ACCESS_TYPE read);
+			ObjectType entity, ACCESS_TYPE...types);
 
 	/**
 	 * Retrieve all user groups that have ACCESS_TYPE accessType to the given object

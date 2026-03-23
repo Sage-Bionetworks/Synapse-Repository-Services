@@ -18,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -33,9 +32,6 @@ public class UserManagerImplTest {
 	
 	@Autowired
 	private UserManager userManager;
-	
-	@Autowired
-	private AuthenticationDAO authDAO;
 	
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
@@ -59,9 +55,9 @@ public class UserManagerImplTest {
 	@Test
 	public void testGetAnonymous() throws Exception {
 		UserInfo ui = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		assertTrue(AuthorizationUtils.isUserAnonymous(ui));
-		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getId()));
-		assertTrue(AuthorizationUtils.isUserAnonymous(Long.parseLong(ui.getId().toString())));
+		assertTrue(ui.isUserAnonymous());
+		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), ui.getId());
+		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), Long.parseLong(ui.getId().toString()));
 		assertNotNull(ui.getId());
 		assertEquals(2, ui.getGroups().size());
 		assertTrue(ui.getGroups().contains(ui.getId()));
@@ -78,7 +74,7 @@ public class UserManagerImplTest {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		Long principalId = userManager.createUser(user);;
+		Long principalId = userManager.createUser(user);
 		groupsToDelete.add(principalId.toString());
 		
 		// Check that the UserInfo is populated
@@ -101,6 +97,10 @@ public class UserManagerImplTest {
 		// Should include Public and authenticated users' group.
 		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+		
+		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), ui.getRealmAnonymousUserId());
+		assertEquals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), ui.getRealmAuthenticatedUsersId());
+		assertEquals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ui.getRealmPublicUsersId());
 	}
 	
 	@Test

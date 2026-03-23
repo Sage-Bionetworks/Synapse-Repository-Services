@@ -10,10 +10,12 @@ import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.password.InvalidPasswordException;
 import org.sagebionetworks.repo.manager.password.PasswordValidator;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
@@ -24,6 +26,7 @@ import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
+import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthLoginRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthOtpType;
@@ -84,6 +87,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Autowired
 	private UserStatusDao userStatusDao;
 	
+	@Autowired
+	private RealmDao realmDao;
+	
 	@Override
 	@WriteTransaction
 	public void setPassword(Long principalId, String password) {
@@ -108,6 +114,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new IllegalArgumentException("Unknown implementation of ChangePasswordInterface");
 		}
 
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// changing a password is only allowed if the user is in the default Synapse realm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			throw new IllegalArgumentException("Cannot set user password in realm "+userInfo.getRealmId());
+		}
 		setPassword(userId, changePasswordInterface.getNewPassword());
 		userCredentialValidator.forceResetLoginThrottle(userId);
 		return userId;
@@ -209,30 +220,51 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			}
 		});
 		
-		return loginWithNoPasswordCheck(userId, tokenIssuer);
+		UserInfo user = userManager.getUserInfo(userId);
+		// user must be in default Synapse reealm
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(user.getRealmId())) {
+			throw new UnauthorizedException("Cannot log in using a password.  Use the designated identity provider instead.");
+		}
+		
+		return loginWithNoPasswordCheckInternal(user, tokenIssuer);
 	}
 
 	@Override
 	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
 		UserInfo user = userManager.getUserInfo(principalId);
-		
+		return loginWithNoPasswordCheckInternal(user, issuer);
+	}
+	
+	private LoginResponse loginWithNoPasswordCheckInternal(UserInfo user, String issuer) {
+		long principalId = user.getId();
 		if (user.hasTwoFactorAuthEnabled()) {
 			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION));
 		}
 		
-		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
 	}
 	
 	@Override
-	public LoginResponse loginWithNoPasswordOrTwoFaCheck(long principalId, String issuer) {
-		return getLoginResponseAfterSuccessfulAuthentication(principalId, issuer);
+	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer) {
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
 	}
 	
 	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
-				
-		return getLoginResponseAfterSuccessfulAuthentication(request.getUserId(), issuer);
+		UserInfo user = userManager.getUserInfo(request.getUserId());
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
+	}
+	
+	@Override
+	public AccessTokenResponse getAnonymousAccessToken(String realmId, String issuer) {
+		RealmPrincipal realmPrincipals = realmDao.getRealmPrincipals(realmId);
+		String principalId = realmPrincipals.getAnonymousUser();
+		// this is the same type of token created at log-in, except it's for the 'anonymous' user
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(Long.parseLong(principalId), issuer);
+		AccessTokenResponse response = new AccessTokenResponse();
+		response.setAccessToken(accessToken);
+		return response;
 	}
 	
 	@Override
@@ -325,7 +357,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	public AuthenticatedOn getAuthenticatedOn(UserInfo userInfo) {
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
+		if (userInfo.isUserAnonymous()) {
 			throw new UnauthenticatedException("Cannot retrieve authentication time stamp for anonymous user.");
 		}
 		// Note the date will be null if the user has not logged in
@@ -366,12 +398,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulAuthentication(long principalId, String issuer) {
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(UserInfo userInfo, String issuer) {
+		long principalId = userInfo.getId();
 		validateAccountStatus(principalId);
 		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer);
-		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(principalId);
+		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(userInfo);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfService, newAuthenticationReceipt);
 	}

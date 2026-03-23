@@ -1,0 +1,11 @@
+{
+	"description": "List of IDs of realms",
+	"properties": {
+		"realms":{
+			"type": "array",
+			"items":{
+				"type": "string"
+			}
+		}
+	}
+}

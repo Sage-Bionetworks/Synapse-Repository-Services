@@ -60,19 +60,7 @@ public class IntendedChangeSerializable {
 		for (int i = 0; i < array.length(); i++) {
 			JSONArray sub = array.getJSONArray(i);
 			IntendedChangeType type = IntendedChangeType.fromCode(sub.getInt(0));
-			switch (type) {
-			case update_row_metadata:
-				list.add(new UpdateMetadataChange(sub.getJSONObject(1)));
-				break;
-			case insert_row:
-				list.add(new InsertRowChange(sub.getJSONObject(1)));
-				break;
-			case update_row:
-				list.add(new UpdateRowChange(sub.getJSONObject(1)));
-				break;
-			default:
-				throw new IllegalArgumentException("Unknown type:" + type);
-			}
+			list.add(type.createFromJson(sub.getJSONObject(1)));
 		}
 		return list;
 	}

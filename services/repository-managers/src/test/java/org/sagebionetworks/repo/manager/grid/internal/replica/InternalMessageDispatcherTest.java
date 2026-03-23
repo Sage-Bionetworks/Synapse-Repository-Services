@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -108,12 +109,17 @@ public class InternalMessageDispatcherTest {
 		JSONArray array = new JSONArray();
 		array.put(JsonRxMessageType.ResponseData.getCode());
 		array.put(chainId);
-		array.put(PatchCompactSerializable.serialize(patch));
+		JSONObject body = new JSONObject();
+		body.put("type", "patches");
+		JSONArray patches = new JSONArray();
+		patches.put(PatchCompactSerializable.serialize(patch));
+		body.put("body", patches);
+		array.put(body);
 		message = new JsonRxMessage(array);
 		bundle = new JsonRxMessageBundle(message, connection, mockCallback);
 		// call under test
 		dispatcher.dispatchMessage(bundle);
-		verify(mockGridReplicaManager).onApplyPatch(mockCallback, connection, chainId, patch);
+		verify(mockGridReplicaManager).onApplyPatches(mockCallback, connection, chainId, List.of(patch));
 	}
 
 	@Test

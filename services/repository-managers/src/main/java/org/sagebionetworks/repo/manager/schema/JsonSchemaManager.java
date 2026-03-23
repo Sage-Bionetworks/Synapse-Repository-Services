@@ -45,7 +45,16 @@ public interface JsonSchemaManager {
 	 * @return
 	 */
 	Organization createOrganziation(UserInfo user, CreateOrganizationRequest request);
-	
+
+	/**
+	 * Create a new Organization with a specific ID.
+	 * @param user
+	 * @param request
+	 * @param id The specific ID to assign to the organization.
+	 * @return
+	 */
+	Organization createOrganziation(UserInfo user, CreateOrganizationRequest request, Long id);
+
 	/**
 	 * Get the current ACL for the identified organization.
 	 * 
@@ -99,7 +108,6 @@ public interface JsonSchemaManager {
 
 	/**
 	 * Get the latest version of the given schema.
-	 * @param user
 	 * @param organizationName
 	 * @param schemaName
 	 * @return

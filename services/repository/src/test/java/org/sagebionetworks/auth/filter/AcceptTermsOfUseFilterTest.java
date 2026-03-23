@@ -1,5 +1,18 @@
 package org.sagebionetworks.auth.filter;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.PrintWriter;
+
+import javax.servlet.FilterChain;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,20 +21,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.service.auth.AuthenticationService;
-
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.PrintWriter;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -42,14 +46,18 @@ class AcceptTermsOfUseFilterTest {
 	private AcceptTermsOfUseFilter filter;
 	
 	private static final Long userId = 101L;
+	private UserInfo userInfo;
 
 	@BeforeEach
 	public void beforeEach() {	
+		userInfo = new UserInfo(false, userId, "0");
+		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 	
 	@Test
 	void testHASAcceptedTermsOfUse() throws Exception {
 		when(mockRequest.getParameter("userId")).thenReturn(userId.toString());
+		when(mockRequest.getParameter("anonymous")).thenReturn("false");
 		when(mockAuthService.hasUserAcceptedTermsOfService(userId)).thenReturn(true);
 		
 		// method under test
@@ -61,7 +69,9 @@ class AcceptTermsOfUseFilterTest {
 	
 	@Test
 	void testAnonymous() throws Exception {
-		when(mockRequest.getParameter("userId")).thenReturn(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
+		Long anonId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		when(mockRequest.getParameter("userId")).thenReturn(anonId.toString());
+		when(mockRequest.getParameter("anonymous")).thenReturn("true");
 		
 		// method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -73,6 +83,7 @@ class AcceptTermsOfUseFilterTest {
 	@Test
 	public void testHasNOTAcceptedTermsOfUse() throws Exception {
 		when(mockRequest.getParameter("userId")).thenReturn(userId.toString());
+		when(mockRequest.getParameter("anonymous")).thenReturn("false");
 		when(mockResponse.getWriter()).thenReturn(mockPrintWriter);
 
 		// method under test

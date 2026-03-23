@@ -11,9 +11,10 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.cloudwatch.Consumer;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.web.HttpRequestIdentifier;
 import org.sagebionetworks.repo.web.HttpRequestIdentifierUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ public class RequestThrottleFilter implements Filter {
 		HttpRequestIdentifier httpRequestIdentifier = HttpRequestIdentifierUtils.getRequestIdentifier(request);
 
 		//TODO: remove exception for anonymous users once java client has a way to get session id from cookies
-		if ( isMigrationAdmin(httpRequestIdentifier.getUserId()) || AuthorizationUtils.isUserAnonymous(httpRequestIdentifier.getUserId())) { //do not throttle the admin responsible for migration.
+		if (isMigrationAdmin(httpRequestIdentifier.getUserId()) || HttpAuthUtil.isAnonymous((HttpServletRequest)request)) { //do not throttle the admin responsible for migration.
 			//proceed to next filter and exit early
 			chain.doFilter(request, response);
 			return;

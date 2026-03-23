@@ -28,10 +28,12 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -43,8 +45,11 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -57,12 +62,15 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOTeamDAOImplTest {
-	
+	public static final String DEFAULT_REALM_ID = "0";
 	@Autowired
 	private TeamDAO teamDAO;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private RealmDao realmDAO;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -85,10 +93,12 @@ public class DBOTeamDAOImplTest {
 	private List<String> teamsToDelete;
 	private String aclToDelete;
 	private List<String> usersToDelete;
+
+	private Realm realm;
 	
 	@BeforeEach
 	public void setup() {
-		List<Team> teams = teamDAO.getInRange(1000, 0);
+		List<Team> teams = teamDAO.getInRange(DEFAULT_REALM_ID, 1000, 0);
 		for (Team team : teams) {
 			teamDAO.delete(team.getId());
 		}
@@ -111,6 +121,10 @@ public class DBOTeamDAOImplTest {
 
 		for (String userId : usersToDelete) {
 			userGroupDAO.delete(userId);
+		}
+
+		if (realm != null) {
+			realmDAO.deleteRealm(realm.getId());
 		}
 		
 		fileHanldeDAO.truncateTable();
@@ -146,6 +160,7 @@ public class DBOTeamDAOImplTest {
 	public void testCreateTeam() {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -165,10 +180,32 @@ public class DBOTeamDAOImplTest {
 		team.setEtag(createdTeam.getEtag()); // Fill in the missing eTag on the object we created
 		assertEquals(team, createdTeam);
 
-		// Test all of the methods that retrieve teams
-		assertEquals(1, teamDAO.getInRange(1, 0).size());
-		assertEquals(0, teamDAO.getInRange(2, 1).size()); // Pagination
-		assertEquals(1, teamDAO.getCount());
+		realm = realmDAO.createRealm(new Realm().setName("test realm").setCreatedOn(new Date())
+				.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.SAGE_BIONETWORKS))));
+		assertNotNull(realm.getId());
+
+		UserGroup groupTwo = new UserGroup();
+		groupTwo.setIsIndividual(false);
+		groupTwo.setRealmId(realm.getId());
+		groupTwo.setId(userGroupDAO.create(groupTwo).toString());
+		teamsToDelete.add(groupTwo.getId());
+
+		Team teamTwo = new Team();
+		Long teamTwoId = Long.parseLong(groupTwo.getId());
+		teamTwo.setId(""+teamTwoId);
+		teamTwo.setName("Test Create Team Team");
+		teamTwo.setCanPublicJoin(false);
+		teamTwo.setCanRequestMembership(true);
+
+		Team createdTeamTwo = teamDAO.create(teamTwo);
+		assertNotNull(createdTeamTwo.getEtag());
+		team.setEtag(createdTeamTwo.getEtag()); // Fill in the missing eTag on the object we created
+
+		//There is 2 team and both are in separate realm. getInRange() method should get one team only from default realm.
+		assertEquals(1, teamDAO.getInRange(DEFAULT_REALM_ID,5, 0).size());
+		assertEquals(0, teamDAO.getInRange(DEFAULT_REALM_ID,2, 1).size()); // Pagination
+		//getCount() method is only used in this test class so no need to validate realm
+		assertEquals(2, teamDAO.getCount());
 
 		// Make sure the team isn't counted as a user in the team
 		assertEquals(0, teamDAO.getForMemberInRange(""+id, 1, 0).size());
@@ -533,6 +570,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetValidTeam() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -556,6 +594,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testValidateTeamExists() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -583,6 +622,7 @@ public class DBOTeamDAOImplTest {
 	private Team createTeam(String teamName, String icon, String createdBy, String modifiedBy) {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 
@@ -606,6 +646,7 @@ public class DBOTeamDAOImplTest {
 	private UserGroup createIndividual() {
 		UserGroup user = new UserGroup();
 		user.setIsIndividual(true);
+		user.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setId(userGroupDAO.create(user).toString());
 		createUserProfile(user.getId());
 		usersToDelete.add(user.getId());
@@ -661,6 +702,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamPublic() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();
@@ -675,6 +717,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamOpen() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();
@@ -689,6 +732,7 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testGetStateTeamClosed() {
 		UserGroup group = new UserGroup();
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		teamsToDelete.add(group.getId());
 		Team team = new Team();

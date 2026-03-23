@@ -114,6 +114,9 @@ public class DockerClientAuthFilter extends BasicAuthenticationFilter {
 	 */
 	private void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain, Optional<UserIdAndAccessToken> userIdAndAccessToken) throws ServletException, IOException {
 		
+		// TODO The following will be a problem if, in the future, we allow anonymous operations
+		// like 'docker pull' and a user makes a container image 'public' in a non-default realm
+		// The 'docker pull' will fail for an unauthenticated request.  This is captured in PLFM-9437
 		String userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
 		
 		Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(request);

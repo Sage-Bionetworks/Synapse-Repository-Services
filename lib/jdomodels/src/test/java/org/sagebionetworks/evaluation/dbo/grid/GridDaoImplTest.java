@@ -1,7 +1,7 @@
 package org.sagebionetworks.evaluation.dbo.grid;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -24,17 +24,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
+import org.sagebionetworks.repo.model.dbo.grid.GridSource;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
+import org.sagebionetworks.repo.model.grid.GridReplicaType;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
+import org.sagebionetworks.repo.model.grid.RequestOrigin;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,6 +54,7 @@ public class GridDaoImplTest {
 
 	private Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	private Long otherUser = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+	private Long teamId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 
 	@Autowired
 	private GridDao dao;
@@ -85,15 +94,39 @@ public class GridDaoImplTest {
 		assertEquals(GridConstants.START_REPLICA_ID_SERVICE, session.getLastReplicaIdService());
 		assertNull(session.getSourceEntityId());
 		assertNull(session.getGridJsonSchema$Id());
+		assertEquals(adminUserId.toString(), session.getOwnerPrincipalId());
 
 		// call under test
 		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 	}
+	
+	@Test
+	public void testCreateGridSessionWithOwner() {
+
+		// call under test
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId).setOwner(teamId));
+		assertNotNull(session);
+		assertEquals(adminUserId.toString(), session.getStartedBy());
+		assertNotNull(session.getSessionId());
+		assertNotNull(session.getStartedOn());
+		assertNotNull(session.getEtag());
+		assertEquals(GridConstants.START_REPLICA_ID_CLIENT, session.getLastReplicaIdClient());
+		assertEquals(GridConstants.START_REPLICA_ID_SERVICE, session.getLastReplicaIdService());
+		assertNull(session.getSourceEntityId());
+		assertNull(session.getGridJsonSchema$Id());
+		assertEquals(teamId.toString(), session.getOwnerPrincipalId());
+
+		// call under test
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(session, back);
+		assertEquals(Optional.empty(), dao.getSessionSource(session.getSessionId()));
+	}
 
 	@Test
 	public void testCreateGridSessionWithTableIdAndSchema() {
 		Node node = nodeDao.createNewNode(NodeTestUtils.createNew("source", adminUserId));
+		GridSource expectedSource = new GridSource(KeyFactory.stringToKey(node.getId()), EntityType.project);
 		// call under test
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)
 				.setSourceId(node.getId()).setSchemaId("someorg-someschema"));
@@ -111,6 +144,8 @@ public class GridDaoImplTest {
 		GridSession back = dao.getGridSession(session.getSessionId()).get();
 		assertEquals(session, back);
 		assertEquals(session, back);
+		
+		assertEquals(Optional.of(expectedSource), dao.getSessionSource(session.getSessionId()));
 	}
 
 	@Test
@@ -120,16 +155,23 @@ public class GridDaoImplTest {
 	}
 
 	@Test
-	public void testGetGridSessionStartedBy() {
+	public void testGetGridSessionOwner() {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		// call under test
-		assertEquals(Optional.of(adminUserId), dao.getGridSessionStartedBy(session.getSessionId()));
+		assertEquals(Optional.of(adminUserId), dao.getGridSessionOwner(session.getSessionId()));
+	}
+	
+	@Test
+	public void testGetGridSessionOwnerWithTeam() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId).setOwner(teamId));
+		// call under test
+		assertEquals(Optional.of(teamId), dao.getGridSessionOwner(session.getSessionId()));
 	}
 
 	@Test
 	public void testGetGridSessionStartedByDoesNotExist() {
 		// call under test
-		assertEquals(Optional.empty(), dao.getGridSessionStartedBy("doesnotexist"));
+		assertEquals(Optional.empty(), dao.getGridSessionOwner("doesnotexist"));
 	}
 
 	@Test
@@ -290,7 +332,7 @@ public class GridDaoImplTest {
 
 		// call under test
 		List<GridConnectionInfo> listed = dao.listConnections(session.getSessionId());
-		List<GridConnectionInfo> expected = source == EventSource.WEBSOCKET ? List.of(f1, f2) : List.of(f2, f1);
+		List<GridConnectionInfo> expected = source.getRequestOrigin() == RequestOrigin.USER ? List.of(f1, f2) : List.of(f2, f1);
 		assertEquals(expected, listed);
 
 		// call under test
@@ -318,17 +360,18 @@ public class GridDaoImplTest {
 		String s3Key = "thekey";
 		Duration expires = Duration.ofSeconds(100L);
 		// call under test
-		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(session.getSessionId(), patchId, s3Key, expires));
+		assertTrue(dao.savePatch(session.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(session.getSessionId(), patchId, s3Key, expires, 100L));
 
 		PatchInfo patch = dao.getPatchInfo(session.getSessionId(), patchId).get();
 		assertNotNull(patch);
-		assertEquals(session.getSessionId(), patch.getSesisonId());
+		assertEquals(session.getSessionId(), patch.getSessionId());
 		assertEquals(patchId, patch.getPatchId());
 		assertNotNull(patch.getCreatedOn());
 		assertNotNull(patch.getExpiresOn());
 		assertTrue(patch.getCreatedOn().getTime() < patch.getExpiresOn().getTime());
 		assertEquals(s3Key, patch.getS3Key());
+		assertEquals(100L, patch.getSizeBytes());
 
 	}
 
@@ -340,19 +383,19 @@ public class GridDaoImplTest {
 		String s3Key = "thekey";
 		Duration expires = Duration.ofSeconds(100L);
 		// call under test
-		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires));
-		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires));
-		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires));
+		assertTrue(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(sessionOne.getSessionId(), patchId, s3Key, expires, 100L));
+		assertTrue(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires, 100L));
+		assertFalse(dao.savePatch(sessionTwo.getSessionId(), patchId, s3Key, expires, 100L));
 
 		PatchInfo patchOne = dao.getPatchInfo(sessionOne.getSessionId(), patchId).get();
 		assertNotNull(patchOne);
-		assertEquals(sessionOne.getSessionId(), patchOne.getSesisonId());
+		assertEquals(sessionOne.getSessionId(), patchOne.getSessionId());
 		assertEquals(patchId, patchOne.getPatchId());
 
 		PatchInfo patchTwo = dao.getPatchInfo(sessionTwo.getSessionId(), patchId).get();
 		assertNotNull(patchTwo);
-		assertEquals(sessionTwo.getSessionId(), patchTwo.getSesisonId());
+		assertEquals(sessionTwo.getSessionId(), patchTwo.getSessionId());
 		assertEquals(patchId, patchTwo.getPatchId());
 	}
 
@@ -371,8 +414,8 @@ public class GridDaoImplTest {
 		List<LogicalTimestamp> patchIds = createTestPatchIds(3, 4);
 		patchIds.stream().forEach(p -> {
 			String s3Key = p.toString();
-			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, expires));
-			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, expires));
+			assertTrue(dao.savePatch(sessionOne.getSessionId(), p, s3Key, expires, 100L));
+			assertTrue(dao.savePatch(sessionTwo.getSessionId(), p, s3Key, expires, 100L));
 		});
 
 		List<LogicalTimestamp> patchIdsSortedBySeq = patchIds.stream().sorted((p1, p2) -> {
@@ -384,12 +427,23 @@ public class GridDaoImplTest {
 		}).collect(Collectors.toList());
 
 		// call under test
-		List<LogicalTimestamp> list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(), List.of(), 100);
-		// empty clock should return all patches
-		assertEquals(patchIdsSortedBySeq, list);
+		List<PatchInfo> list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), List.of(), 100);
+		// empty clock should return all patches in order of sequence number
+		assertEquals(patchIdsSortedBySeq, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		// also verify that the returned patch info includes other fields (testing the row mapper)
+		for (int i = 0; i < patchIds.size(); i++) {
+			PatchInfo info = list.get(i);
+			assertEquals(sessionOne.getSessionId(), info.getSessionId());
+			assertEquals(patchIdsSortedBySeq.get(i), info.getPatchId());
+			assertNotNull(info.getCreatedOn());
+			assertNotNull(info.getExpiresOn());
+			assertTrue(info.getCreatedOn().getTime() < info.getExpiresOn().getTime());
+			assertNotNull(info.getS3Key());
+			assertEquals(100L, info.getSizeBytes());
+		}
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L)),
@@ -398,33 +452,33 @@ public class GridDaoImplTest {
 		assertEquals(Collections.emptyList(), list);
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(7L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(5L)),
 				100);
 
-		List<LogicalTimestamp> expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
+		List<LogicalTimestamp> expectedPatchIds = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
 
-		assertEquals(expected, list);
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 
 		// call under test
-		list = dao.listMissingPatchIdsForClock(sessionOne.getSessionId(),
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(),
 				List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
 						new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(6L),
 						new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L)),
 				100);
 
-		expected = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L),
+		expectedPatchIds = List.of(new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(4L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(6L),
 				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(8L),
 				new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(8L));
 
-		assertEquals(expected, list);
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 	}
 
 	@Test
@@ -638,6 +692,174 @@ public class GridDaoImplTest {
 			}
 		});
 		return ids;
+	}
+
+	@Test
+	public void testSaveSnapshot() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(20L)));
+		String s3Key = "snapshot-key";
+		// call under test
+		assertTrue(dao.saveSnapshot(session.getSessionId(), clockTable, s3Key, adminUserId));
+
+		// call under test
+		GridSnapshot snapshot = dao.getLatestSnapshot(session.getSessionId()).get();
+		assertNotNull(snapshot);
+		assertEquals(session.getSessionId(), snapshot.getSessionId());
+		assertEquals(clockTable, snapshot.getClockTable());
+		assertNotNull(snapshot.getCreatedOn());
+		assertEquals(adminUserId, snapshot.getCreatedBy());
+		assertEquals(s3Key, snapshot.getS3Key());
+		assertNotNull(snapshot.getId());
+	}
+
+	@Test
+	public void testSaveSnapshotWithMultipleSessions() {
+		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String s3Key = "snapshot-key";
+		// call under test
+		assertTrue(dao.saveSnapshot(sessionOne.getSessionId(), clockTable, s3Key, adminUserId));
+		assertTrue(dao.saveSnapshot(sessionTwo.getSessionId(), clockTable, s3Key, otherUser));
+
+		GridSnapshot snapshotOne = dao.getLatestSnapshot(sessionOne.getSessionId()).get();
+		assertNotNull(snapshotOne);
+		assertEquals(sessionOne.getSessionId(), snapshotOne.getSessionId());
+		assertEquals(clockTable, snapshotOne.getClockTable());
+		assertEquals(adminUserId, snapshotOne.getCreatedBy());
+
+		GridSnapshot snapshotTwo = dao.getLatestSnapshot(sessionTwo.getSessionId()).get();
+		assertNotNull(snapshotTwo);
+		assertEquals(sessionTwo.getSessionId(), snapshotTwo.getSessionId());
+		assertEquals(clockTable, snapshotTwo.getClockTable());
+		assertEquals(otherUser, snapshotTwo.getCreatedBy());
+	}
+
+	@Test
+	public void testGetLatestSnapshotDoesNotExist() {
+		// call under test
+		assertEquals(Optional.empty(), dao.getLatestSnapshot("doesnotexist"));
+	}
+
+	@Test
+	public void testGetLatestSnapshotWithMultiple() throws InterruptedException {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable1 = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		ClockTable clockTable2 = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(20L)));
+
+		// Save snapshots with delays to ensure different created times
+		dao.saveSnapshot(session.getSessionId(), clockTable1, "key1", adminUserId);
+		Thread.sleep(1001L);
+		dao.saveSnapshot(session.getSessionId(), clockTable2, "key2", adminUserId);
+
+		// call under test - should get the latest snapshot
+		GridSnapshot latest = dao.getLatestSnapshot(session.getSessionId()).get();
+		assertNotNull(latest);
+		assertEquals(clockTable2, latest.getClockTable());
+		assertEquals("key2", latest.getS3Key());
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullSessionId() {
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(null, clockTable, "key", adminUserId);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullClockTable() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(session.getSessionId(), null, "key", adminUserId);
+		}).getMessage();
+		assertEquals("clockTable is required.", message);
+	}
+
+	@Test
+	public void testSaveSnapshotWithNullS3Key() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		ClockTable clockTable = new ClockTable(List.of(
+				new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L)));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.saveSnapshot(session.getSessionId(), clockTable, null, adminUserId);
+		}).getMessage();
+		assertEquals("s3Key is required.", message);
+	}
+
+	@Test
+	public void testGetLatestSnapshotWithNullSessionId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.getLatestSnapshot(null);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+	}
+
+	@Test
+	public void testListReplicas() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		// Create a user replica, an agent replica, and a service replica
+		GridReplica userReplica = dao.createReplica(adminUserId, session.getSessionId(), false,
+				EventSource.WEBSOCKET);
+		GridReplica agentReplica = dao.createReplica(adminUserId, session.getSessionId(), true, EventSource.AGENT);
+		GridReplica serviceReplica = dao.createReplica(adminUserId, session.getSessionId(), false,
+				EventSource.INTERNAL);
+		// Create a connection for only the user replica
+		dao.createConnection(new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(adminUserId).setReplicaId(userReplica.getReplicaId())
+				.setSessionId(session.getSessionId()).setSource(EventSource.WEBSOCKET));
+		// call under test
+		List<GridReplicaInfo> results = dao.listReplicas(session.getSessionId(), 100, 0);
+		assertEquals(3, results.size());
+		// Service replica has lowest replicaId (decremented), so comes first
+		GridReplicaInfo serviceInfo = results.get(0);
+		assertEquals(serviceReplica.getReplicaId(), serviceInfo.getReplicaId());
+		assertEquals(adminUserId.toString(), serviceInfo.getCreatedBy());
+		assertEquals(GridReplicaType.SERVICE, serviceInfo.getReplicaType());
+		assertFalse(serviceInfo.getIsConnected());
+		// User replica comes next
+		GridReplicaInfo userInfo = results.get(1);
+		assertEquals(userReplica.getReplicaId(), userInfo.getReplicaId());
+		assertEquals(GridReplicaType.USER, userInfo.getReplicaType());
+		assertTrue(userInfo.getIsConnected());
+		// Agent replica has highest replicaId (incremented from user range)
+		GridReplicaInfo agentInfo = results.get(2);
+		assertEquals(agentReplica.getReplicaId(), agentInfo.getReplicaId());
+		assertEquals(GridReplicaType.AGENT, agentInfo.getReplicaType());
+		assertFalse(agentInfo.getIsConnected());
+	}
+
+	@Test
+	public void testListReplicasWithPagination() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
+		dao.createReplica(adminUserId, session.getSessionId(), false, EventSource.WEBSOCKET);
+		// call under test
+		List<GridReplicaInfo> firstPage = dao.listReplicas(session.getSessionId(), 2, 0);
+		assertEquals(2, firstPage.size());
+		List<GridReplicaInfo> secondPage = dao.listReplicas(session.getSessionId(), 2, 2);
+		assertEquals(1, secondPage.size());
+	}
+
+	@Test
+	public void testListReplicasWithNoReplicas() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		// call under test
+		List<GridReplicaInfo> results = dao.listReplicas(session.getSessionId(), 100, 0);
+		assertTrue(results.isEmpty());
 	}
 
 }

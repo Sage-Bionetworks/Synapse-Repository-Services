@@ -20,7 +20,7 @@ public class LiteralSetValueProcessor implements SetValueProcessor<LiteralSetVal
 		if (rawSetValue.isNull("value")) {
 			return Optional.of(new ConValue(ConType.NULL, null));
 		}
-		return Optional.of(new ConValue(ConType.fromValue(sv.getValue()), sv.getValue()));
+		return Optional.of(new ConValue(ConType.fromValue(rawSetValue.get("value")), rawSetValue.get("value")));
 	}
 
 	@Override

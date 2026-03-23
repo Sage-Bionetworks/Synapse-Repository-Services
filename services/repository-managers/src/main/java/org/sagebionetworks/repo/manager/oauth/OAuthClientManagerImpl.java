@@ -17,14 +17,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NotificationManager;
-import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -57,6 +56,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	private static final String NOTIFICATION_TPL_CLIENT_SECRET_GENERATED = "message/OAuthClientSecretGeneratedNotification.html.vtl";
 	private static final String NOTIFICATION_TPL_CLIENT_VERIFIED = "message/OAuthClientVerifiedNotification.html.vtl";
 	private static final String NOTIFICATION_TPL_CLIENT_VERIFICATION_REQUIRED = "message/OAuthClientVerificationRequiredNotification.html.vtl";
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
 	
 	private OAuthClientDao oauthClientDao;
 	
@@ -67,20 +67,20 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	private UserManager userManager;
 	
 	private NotificationManager notificationManager;
-	
-	private AccessControlListDAO aclDAO;
-	
+
+	private AccessControlListManager aclManager;
+
 	@Autowired
-	public OAuthClientManagerImpl(OAuthClientDao oauthClientDao, AccessControlListDAO aclDAO,
-			SimpleHttpClient httpClient, AuthorizationManager authManager, UserManager userManager,
-			NotificationManager notificationManager) {
+	public OAuthClientManagerImpl(OAuthClientDao oauthClientDao, SimpleHttpClient httpClient,
+								  AuthorizationManager authManager, UserManager userManager,
+								  NotificationManager notificationManager, AccessControlListManager aclManager) {
 		super();
 		this.oauthClientDao = oauthClientDao;
-		this.aclDAO=aclDAO;
 		this.httpClient = httpClient;
 		this.authManager = authManager;
 		this.userManager = userManager;
 		this.notificationManager = notificationManager;
+		this.aclManager = aclManager;
 	}
 
 	public static void validateOAuthClientForCreateOrUpdate(OAuthClient oauthClient) {
@@ -173,7 +173,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	}
 
 	public static boolean canCreate(UserInfo userInfo) {
-		return !AuthorizationUtils.isUserAnonymous(userInfo);
+		return !userInfo.isUserAnonymous();
 	}
 	
 	AccessControlList createAccessControlList(Long creatorId, String oauthClientId) {
@@ -211,7 +211,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		OAuthClient client = oauthClientDao.createOAuthClient(oauthClient);
 		
 		AccessControlList acl = createAccessControlList(userInfo.getId(), oauthClient.getClient_id());
-		aclDAO.create(acl, ObjectType.OAUTH_CLIENT);
+		aclManager.create(userInfo, acl, ObjectType.OAUTH_CLIENT, Long.parseLong(client.getCreatedBy()));
 		
 		Map<String, Object> notificationContext = new HashMap<>();
 		
@@ -376,7 +376,7 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		
 		OAuthClient client = oauthClientDao.getOAuthClient(id);
 		
-		aclDAO.delete(id, ObjectType.OAUTH_CLIENT);
+		aclManager.delete(id, ObjectType.OAUTH_CLIENT);
 		oauthClientDao.deleteOAuthClient(id);
 		
 		Map<String, Object> notificationContext = new HashMap<>();
@@ -391,7 +391,8 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 	@Override
 	public AccessControlList getAccessControlList(UserInfo userInfo, String clientId) {
 		authManager.canAccess(userInfo, clientId, ObjectType.OAUTH_CLIENT, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return  aclDAO.get(clientId, ObjectType.OAUTH_CLIENT);
+		return  aclManager.getAcl(clientId, ObjectType.OAUTH_CLIENT).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, clientId, ObjectType.OAUTH_CLIENT)));
 	}
 	
 	@WriteTransaction
@@ -403,9 +404,9 @@ public class OAuthClientManagerImpl implements OAuthClientManager {
 		ValidateArgument.requirement(clientId.equals(acl.getId()), "Id in URI must match id in ACL object.");
 		authManager.canAccess(userInfo, acl.getId(), ObjectType.OAUTH_CLIENT, ACCESS_TYPE.CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 		OAuthClient client = oauthClientDao.getOAuthClient(acl.getId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(client.getCreatedBy()));
-		aclDAO.update(acl, ObjectType.OAUTH_CLIENT);
-		return aclDAO.get(acl.getId(), ObjectType.OAUTH_CLIENT);
+		aclManager.update(userInfo, acl, ObjectType.OAUTH_CLIENT, Long.parseLong(client.getCreatedBy()));
+		return aclManager.getAcl(acl.getId(), ObjectType.OAUTH_CLIENT).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, clientId, ObjectType.OAUTH_CLIENT)));
 	}
 
 	@WriteTransaction

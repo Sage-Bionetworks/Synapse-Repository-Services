@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -234,6 +235,63 @@ public class ObjectNodeTest {
 			node.attemptInsert(change);
 		}).getMessage();
 		assertEquals("Cannot set an object value to null", message);
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithValues() {
+		Map<String, LogicalTimestamp> value = new LinkedHashMap<>();
+		value.put("one", ids.get(1));
+		value.put("two", ids.get(2));
+		value.put("three", ids.get(3));
+		ObjectNode node = new ObjectNode().setId(ids.get(0)).setValue(value);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = node.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(4, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0)); // node ID first
+		assertEquals(ids.get(1), timestamps.get(1));
+		assertEquals(ids.get(2), timestamps.get(2));
+		assertEquals(ids.get(3), timestamps.get(3));
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullValue() {
+		ObjectNode node = new ObjectNode().setId(ids.get(0)).setValue(null);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = node.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithEmptyValue() {
+		ObjectNode node = new ObjectNode().setId(ids.get(0)).setValue(new LinkedHashMap<>());
+
+		// call under test
+		List<LogicalTimestamp> timestamps = node.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(1, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0)); // only node ID
+	}
+
+	@Test
+	public void testStreamReferencedTimestampsWithNullMapValue() {
+		Map<String, LogicalTimestamp> value = new LinkedHashMap<>();
+		value.put("one", ids.get(1));
+		value.put("two", null); // null value in map
+		value.put("three", ids.get(2));
+		ObjectNode node = new ObjectNode().setId(ids.get(0)).setValue(value);
+
+		// call under test
+		List<LogicalTimestamp> timestamps = node.streamReferencedTimestamps().collect(Collectors.toList());
+
+		assertEquals(3, timestamps.size());
+		assertEquals(ids.get(0), timestamps.get(0));
+		assertEquals(ids.get(1), timestamps.get(1));
+		assertEquals(ids.get(2), timestamps.get(2)); // null was filtered out
 	}
 
 }

@@ -1,7 +1,12 @@
 package org.sagebionetworks.grid.db;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -62,4 +67,8 @@ public class GridDatabaseConfig {
 		return new DataSourceTransactionManager(gridDatabaseConnectionPool);
 	}
 
+	@Bean
+	public SnapshotFileIndexBuilder snapshotFileIndexBuilder() {
+		return new SnapshotFileIndexBuilder();
+	}
 }

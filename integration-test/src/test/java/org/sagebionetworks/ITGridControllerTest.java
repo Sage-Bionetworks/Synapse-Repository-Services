@@ -50,6 +50,10 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
+import org.sagebionetworks.repo.model.grid.GridReplicaType;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -131,6 +135,20 @@ public class ITGridControllerTest {
 		// call under test
 		GridReplica replicaClone = synapse.getGridReplica(replica.getGridSessionId(), replica.getReplicaId());
 		assertEquals(replica, replicaClone);
+
+		// call under test
+		ListGridReplicasResponse listReplicasResp = synapse
+				.listGridReplicas(new ListGridReplicasRequest().setGridSessionId(session.getSessionId()));
+		assertNotNull(listReplicasResp);
+		assertNotNull(listReplicasResp.getPage());
+		// Should contain the user replica we just created plus any service replicas
+		assertTrue(listReplicasResp.getPage().size() >= 1);
+		// Find our user replica in the list
+		GridReplicaInfo userReplica = listReplicasResp.getPage().stream()
+				.filter(r -> r.getReplicaId().equals(replica.getReplicaId())).findFirst().orElse(null);
+		assertNotNull(userReplica);
+		assertEquals(GridReplicaType.USER, userReplica.getReplicaType());
+		assertEquals(replica.getCreatedBy(), userReplica.getCreatedBy());
 
 		// call under test
 		CreateGridPresignedUrlResponse urlResponse = synapse.createGridPresignedUrl(new CreateGridPresignedUrlRequest()

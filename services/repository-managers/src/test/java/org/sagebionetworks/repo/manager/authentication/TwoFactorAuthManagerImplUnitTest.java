@@ -379,6 +379,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	public void testGet2FAStatusWithAnonymousUser() {
 		
 		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		TwoFactorAuthStatus expected = new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
 		
@@ -446,6 +447,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	@Test
 	public void testAssertValidUserWithAnonymousUser() {
 		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		String result = assertThrows(UnauthorizedException.class, () -> {			
 			// Call under test

@@ -5,10 +5,12 @@ package org.sagebionetworks.repo.model;
  */
 public class AuthorizationConstants {
 
+	public static final String DEFAULT_REALM_ID = "0";
+	
 	/**
 	 * These are default users and groups that are guaranteed to be initialized by the system
 	 * 
-	 * The values reflect that of dao-beans.spb.xml  
+	 * The values reflect those of dao-beans.spb.xml  
 	 */
 	public enum BOOTSTRAP_PRINCIPAL {
 		THE_ADMIN_USER(1L), 
@@ -77,6 +79,13 @@ public class AuthorizationConstants {
 	 * pre-processing filter.
 	 */
 	public static final String USER_ID_PARAM = "userId";
+	
+	/**
+	 * Request parameter indicating whether the user is anonymous. Note that
+	 * callers of the service do not actually use this parameter. Instead they
+	 * use a token parameter which is then validated to determine if the user is anonymous
+	 */
+	public static final String ANONYMOUS_PARAM = "anonymous";
 	
 	/**
 	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the
@@ -224,6 +233,18 @@ public class AuthorizationConstants {
 	 * Standard name for the HTTP Header containing credentials, bearer token, or other authentication/authorization information
 	 */
 	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	/**
+	 * Standard name for the HTTP Accept Header
+	 */
+	public static final String ACCEPT_HEADER_NAME = "Accept";
+	
+	/**
+	 * Some MIME types that can be used in the Accept header
+	 */
+	public static final String APPLICATION_JSON_MIME_TYPE_LOWERCASE = "application/json".toLowerCase();
+	public static final String APPLICATION_JWT_MIME_TYPE_LOWERCASE = "application/jwt".toLowerCase();
+	
 	
 	/**
 	 * Internal header name used when passing authorization from a Synapse HTTP Filter to a Spring Controller

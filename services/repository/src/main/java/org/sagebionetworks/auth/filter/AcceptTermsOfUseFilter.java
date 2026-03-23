@@ -13,7 +13,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.service.auth.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -53,7 +52,8 @@ public class AcceptTermsOfUseFilter implements Filter {
 		Long userId = Long.parseLong(userIdParam);
 		
 		// If the user is not anonymous, check if they have accepted the terms of use
-		if (!BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(userId)) {
+		boolean isAnonymous = HttpAuthUtil.isAnonymous(httpRequest);
+		if (!isAnonymous) {
 			if (!authenticationService.hasUserAcceptedTermsOfService(userId)) {
 				HttpAuthUtil.rejectWithErrorResponse(httpResponse, TOU_UNSIGNED_REASON, HttpStatus.FORBIDDEN);
 				return;

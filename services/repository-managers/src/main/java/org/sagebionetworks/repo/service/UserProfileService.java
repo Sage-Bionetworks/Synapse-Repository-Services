@@ -117,7 +117,7 @@ public interface UserProfileService {
 	 * @param ids
 	 * @return
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<Long> ids)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids)
 			throws DatastoreException, NotFoundException ;
 
 	/**
@@ -135,7 +135,7 @@ public interface UserProfileService {
 	 * @throws IOException
 	 */
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
-			String prefixFilter, TypeFilter filter, Integer offset, Integer limit)
+			Long userId, String prefixFilter, TypeFilter filter, Integer offset, Integer limit)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -220,7 +220,6 @@ public interface UserProfileService {
 	 * @param request
 	 * @return
 	 */
-	public UserGroupHeaderResponse getUserGroupHeadersByAlias(
-			AliasList request);
+	public UserGroupHeaderResponse getUserGroupHeadersByAlias(Long userId, AliasList request);
 
 }

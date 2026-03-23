@@ -73,16 +73,6 @@ public class TeamServiceImpl implements TeamService {
 		return teamMember;
 	}
 
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.TeamService#get(long, long)
-	 */
-	@Override
-	public PaginatedResults<Team> get(long limit, long offset)
-			throws DatastoreException {
-		return teamManager.list(limit, offset);
-	}
-
 	@Override
 	public ListWrapper<Team> list(List<Long> ids) throws DatastoreException, NotFoundException {
 		return teamManager.list(ids);
@@ -99,16 +89,18 @@ public class TeamServiceImpl implements TeamService {
 	 * @see org.sagebionetworks.repo.web.service.TeamService#get(java.lang.String, long, long)
 	 */
 	@Override
-	public PaginatedResults<Team> get(String fragment, long limit, long offset)
+	public PaginatedResults<Team> get(Long userId, String fragment, long limit, long offset)
 			throws DatastoreException, NotFoundException  {
 
 		ValidateArgument.requirement(limit > 0 && limit <= MAX_LIMIT, "limit must be between 1 and "+MAX_LIMIT);
 		ValidateArgument.requirement(offset >= 0, "'offset' may not be negative");
+		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		if (fragment==null || fragment.trim().length()==0) {
-			return teamManager.list(limit, offset);
+			return teamManager.list(userInfo, limit, offset);
 		}
-		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(fragment, limit, offset);
+
+		List<Long> teamIds = principalPrefixDAO.listTeamsForPrefix(Long.parseLong(userInfo.getRealmId()), fragment, limit, offset);
 		List<Team> teams = teamManager.list(teamIds).getList();
 		return PaginatedResults.createWithLimitAndOffset(teams, limit, offset);
 	}

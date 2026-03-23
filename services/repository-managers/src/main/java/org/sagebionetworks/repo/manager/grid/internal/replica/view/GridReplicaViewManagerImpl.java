@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.view;
 
+import static org.sagebionetworks.repo.model.grid.node.VectorNode.getConstantNodeFromVectorNodeJson;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -39,8 +42,8 @@ import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.ObjectNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.node.VectorNode;
-import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.grid.query.result.Row;
@@ -60,12 +63,19 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 
 	private static final String GRID_INDEX_VIEW_TEMPLATE = loadStringFromClasspath("grid/grid-index-view-template.sql");
 
-	private static final Function<List<String>, RowMapper<RowView>> createRowViewMapper = (List<String> orderedSelectColumnName) -> (ResultSet rs, int rowNum) -> {
-		List<ConValue> cells = new ArrayList<>();
+	private static final BiFunction<Boolean, List<String>, RowMapper<RowView>> createRowViewMapper = (Boolean includeValidationMessages,List<String> orderedSelectColumnName) -> (ResultSet rs, int rowNum) -> {
+		List<ConstantNode> rowDataConNodes = new ArrayList<>();
 		JSONArray selectedVals = new JSONArray(rs.getString("SELECTED_VALS"));
 		for (int i = 0; i < selectedVals.length(); i++) {
-			if (selectedVals.optJSONArray(i) != null) {
-				cells.add(ConValue.fromCompact(selectedVals.getJSONArray(i)));
+			if (selectedVals.optJSONObject(i) != null) {
+				rowDataConNodes.add(getConstantNodeFromVectorNodeJson(selectedVals.getJSONObject(i)));
+			}
+		}
+		ValidationResults validationResults = JDOSecondaryPropertyUtils
+				.createObjectFromJSON(ValidationResults.class, rs.getString("VAL_RES"));
+		if(!Boolean.TRUE.equals(includeValidationMessages)) {
+			if(validationResults != null) {
+				validationResults.setAllValidationMessages(null);
 			}
 		}
 		return new RowView().setArrNodeId(readNullableTimestamp(rs, "AN_REP", "AN_SEQ"))
@@ -74,15 +84,14 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 						.setObjectId(readNullableTimestamp(rs, "RO_REP", "RO_SEQ"))
 						.setMetadata(new RowMetadata().setObjectId(readNullableTimestamp(rs, "MO_REP", "MO_SEQ"))
 								.setRowValidation(new RowValidation()
-										.setValidationResults(JDOSecondaryPropertyUtils
-												.createObjectFromJSON(ValidationResults.class, rs.getString("VAL_RES")))
+										.setValidationResults(validationResults)
 										.setConstantId(readNullableTimestamp(rs, "RVC_REP", "RVC_SEQ")))
 								.setSynapseRow(new SynapseRow().setFromJSON(rs.getString("SYN_ROW"))
 										.setConstantId(readNullableTimestamp(rs, "SRC_REP", "SRC_SEQ"))))
 						.setData(new RowData()
 								.setVectorId(readNullableTimestamp(rs, "VEC_REP", "VEC_SEQ"))
-								.setCells(cells)
-								.setRowJsonDocument(gridRowToJsonObject(orderedSelectColumnName, cells))));
+								.setNodes(rowDataConNodes)
+								.setRowJsonDocument(gridRowToJsonObject(orderedSelectColumnName, rowDataConNodes))));
 	};
 
 	private static final Function<List<String>, RowMapper<RowView>> createRowViewAggregationMapper = (List<String> columnNames) -> (ResultSet rs, int rowNum) -> {
@@ -155,7 +164,7 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 		StringJoiner joiner = new StringJoiner(",");
 		// read the values out of each array in the order defined in the header.
 		header.getOrderedColumns().forEach(c -> {
-			joiner.add(String.format("JSON_EXTRACT(V1.VEC_VAL, '$.c%d.v')", c.getVectorIndex()));
+			joiner.add(String.format("JSON_EXTRACT(V1.VEC_VAL, '$.c%d')", c.getVectorIndex()));
 		});
 
 		String select = joiner.toString();
@@ -169,7 +178,7 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 		// Choose the appropriate mapper based on whether the query is aggregate
 		RowMapper<RowView> mapper = query.isAggregate()
 				? createRowViewAggregationMapper.apply(columnNames)
-				: createRowViewMapper.apply(columnNames);
+				: createRowViewMapper.apply(query.getIncludeValidationMessages(), columnNames);
 		return gridIndexDao.query(sql, new MapSqlParameterSource(params), mapper);
 	}
 
@@ -232,17 +241,17 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 				.getVectors(gridSessionId, replicaId, List.of(root.getValue().get("columnNames"))).get(0);
 
 		LogicalTimestamp columnOrderArrId = root.getValue().get("columnOrder");
-		List<ArrayNode> columnOrder = gridIndexDao.getArrayNodesInOrder(gridSessionId, replicaId, columnOrderArrId,
-				1000L, 0l);
+		ArrayNode columnOrder = gridIndexDao.getArrayNode(gridSessionId, replicaId, columnOrderArrId,
+				false, 1000L, 0l);
 
 		Map<LogicalTimestamp, Long> columnOrderValues = gridIndexDao
 				.getConstants(gridSessionId, replicaId,
-						columnOrder.stream().map(ArrayNode::getDataId).collect(Collectors.toList()))
+						columnOrder.getElements().stream().map(RGANode::getDataId).collect(Collectors.toList()))
 				.stream().collect(Collectors.toMap(ConstantNode::getId, (c) -> ((Long) c.getConValue().getValue())));
 
-		List<Column> columns = columnOrder.stream().map(a -> {
+		List<Column> columns = columnOrder.getElements().stream().map(a -> {
 			Long vectorIndex = columnOrderValues.get(a.getDataId());
-			String columnName = (String) columnNames.getValues().get("c" + vectorIndex).getConValue().getValue();
+			String columnName = (String) columnNames.getValues().get(vectorIndex.intValue()).getConValue().getValue();
 			return new Column()
 				.setVectorIndex(vectorIndex.intValue())
 				.setName(columnName)
@@ -311,22 +320,22 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 	/**
 	 * Transforms a list of ordered column names and a list of CRDT ConstantNode values into a JSON object
 	 */
-	public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, List<ConValue> constantNodeValues) {
+	public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, List<ConstantNode> rowDataConstantNodes) {
 		ValidateArgument.required(orderedColumnNames, "orderedColumnNames");
-		ValidateArgument.required(constantNodeValues, "constantNodeValues");
+		ValidateArgument.required(rowDataConstantNodes, "rowDataConstantNodes");
 
-		if (constantNodeValues.isEmpty()) {
+		if (rowDataConstantNodes.isEmpty()) {
 			return new JSONObject();
 		}
 
 		JSONObject json = new JSONObject();
-		for (int i = 0; i < orderedColumnNames.size() && i < constantNodeValues.size(); i++) {
+		for (int i = 0; i < orderedColumnNames.size() && i < rowDataConstantNodes.size(); i++) {
 			String col = orderedColumnNames.get(i);
-			if (constantNodeValues.get(i) == null || constantNodeValues.get(i).isUndefined()) {
+			if (rowDataConstantNodes.get(i) == null || rowDataConstantNodes.get(i).getConValue() == null || rowDataConstantNodes.get(i).getConValue().isUndefined()) {
 				// The JSON Joy CRDT spec allows 'undefined' values; omit these from the JSON object
 				continue;
 			}
-			json.put(col, constantNodeValues.get(i).getValue());
+			json.put(col, rowDataConstantNodes.get(i).getConValue().getValue());
 		}
 		return json;
 	}

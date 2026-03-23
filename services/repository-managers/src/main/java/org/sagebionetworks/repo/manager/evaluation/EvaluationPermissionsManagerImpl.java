@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.SUBMIT;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE_SUBMISSION;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -19,13 +20,10 @@ import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
-import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -43,14 +41,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsManager {
 
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
+
+	private final EvaluationDAO evaluationDAO;
+	private final UserManager userManager;
+	private final AccessControlListManager aclManager;
+	private final SubmissionDAO submissionDAO;
+
 	@Autowired
-	private AccessControlListDAO aclDAO;
-	@Autowired
-	private EvaluationDAO evaluationDAO;
-	@Autowired
-	private UserManager userManager;
-	@Autowired
-	private SubmissionDAO submissionDAO;
+	public EvaluationPermissionsManagerImpl(EvaluationDAO evaluationDAO,
+											UserManager userManager, AccessControlListManager aclManager,
+											SubmissionDAO submissionDAO) {
+		this.evaluationDAO = evaluationDAO;
+		this.userManager = userManager;
+		this.aclManager = aclManager;
+		this.submissionDAO = submissionDAO;
+	}
 
 	@Override
 	public AccessControlList createAcl(UserInfo userInfo, AccessControlList acl)
@@ -75,10 +81,10 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final String evalOwerId = eval.getOwnerId();
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
 
-		final String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
-		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
+		aclManager.create(userInfo, acl, ObjectType.EVALUATION, Long.parseLong(evalOwerId));
+		acl = aclManager.getAcl(evalId, ObjectType.EVALUATION).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, evalId, ObjectType.EVALUATION)));
 		return acl;
 	}
 
@@ -99,16 +105,20 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new IllegalArgumentException("ACL's evaluation ID must not be null or empty.");
 		}
 
+		if(acl.getResourceAccess() == null) {
+			acl.setResourceAccess(Collections.emptySet());
+		}
+
 		final Evaluation eval = getEvaluation(evalId);
 		hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).checkAuthorizationOrElseThrow();
 
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		validateUserGroupPermissions(acl.getResourceAccess());
+		validateUserGroupPermissions(acl.getResourceAccess(), userInfo);
 
-		aclDAO.update(acl, ObjectType.EVALUATION);
-		return aclDAO.get(evalId, ObjectType.EVALUATION);
+		aclManager.update(userInfo, acl, ObjectType.EVALUATION, evalOwnerId);
+		return aclManager.getAcl(evalId, ObjectType.EVALUATION).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, evalId, ObjectType.EVALUATION)));
 	}
 
 	@Override
@@ -125,7 +135,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
-		aclDAO.delete(evalId, ObjectType.EVALUATION);
+		aclManager.delete(evalId, ObjectType.EVALUATION);
 	}
 
 	@Override
@@ -138,8 +148,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
-		AccessControlList acl = aclDAO.get(evalId, ObjectType.EVALUATION);
-		return acl;
+		return aclManager.getAcl(evalId, ObjectType.EVALUATION).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, evalId, ObjectType.EVALUATION)));
 	}
 
 	/**
@@ -154,7 +164,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		return hasAccess(userInfo, accessType).orElseGet(() -> {
-			if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType)) {
+			if (!aclManager.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType)) {
 				return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
 			}
 			
@@ -174,7 +184,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 				.collect(Collectors.toSet());
 		
 		return hasAccess(userInfo, accessType).orElseGet(() -> {
-			Set<Long> accessibleSet = aclDAO.getAccessibleBenefactors(userInfo.getGroups(), benefactorIds, ObjectType.EVALUATION, accessType);
+			Set<Long> accessibleSet = aclManager.getAccessibleBenefactors(userInfo, ObjectType.EVALUATION, benefactorIds, accessType);
 			
 			if (accessibleSet.size() != benefactorIds.size()) {
 				return AuthorizationStatus.accessDenied("User lacks "+accessType+" access to all the evaluations in the set.");
@@ -223,7 +233,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		permission.setOwnerPrincipalId(KeyFactory.stringToKey(eval.getOwnerId()));
 
 		// Public read
-		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUser = userManager.getUserInfo(userInfo.getRealmAnonymousUserId());
 		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).isAuthorized());
 
 		// Other permissions
@@ -242,17 +252,23 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	/*
 	 * Ensures that public/anonymous users are not given more permissions than they should be allowed to have on an evaluation
 	 */
-	private static void validateUserGroupPermissions(Set<ResourceAccess> resourceAccess) {
+	private static void validateUserGroupPermissions(Set<ResourceAccess> resourceAccess, UserInfo userInfo) {
 		for (ResourceAccess ra : resourceAccess) {
-			if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+			if (ra.getPrincipalId().equals(userInfo.getRealmPublicUsersId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
 					throw new InvalidModelException("Public users may only have read access on an evaluation.");
 				}
-			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+			} else if (ra.getPrincipalId().equals(userInfo.getRealmAnonymousUserId())) {
+				// Note, we need to check all anonymous users (from all realms) are rejected
+				// however anonymous users from other realms will be addressed by the constraint
+				// that all ACL entries must be from the same realm
+				// (Ditto for authenticted users and the public group.)
+				//
+				// PLFM-9438 TODO Anonymous should not be in an ACL AT ALL
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
 					throw new InvalidModelException("Anonymous users may only have read access on an evaluation.");
 				}
-			} else if (ra.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())) {
+			} else if (ra.getPrincipalId().equals(userInfo.getRealmAuthenticatedUsersId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_AUTH_USER_MAXIMUM_ACCESS_PERMISSIONS)) {
 					throw new InvalidModelException("Only read access on an evaluation can be granted to all authenticated Synapse users.");
 				}
@@ -261,7 +277,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 	
 	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
-		return AuthorizationUtils.isUserAnonymous(userInfo) && !READ.equals(accessType);
+		return userInfo.isUserAnonymous() && !READ.equals(accessType);
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {

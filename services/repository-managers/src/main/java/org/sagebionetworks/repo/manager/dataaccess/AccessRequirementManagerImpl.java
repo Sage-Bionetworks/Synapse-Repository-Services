@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
@@ -75,6 +75,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final Long DEFAULT_OFFSET = 0L;
 	public static final Long DEFAULT_EXPIRATION_PERIOD = 0L;
 	public static final int MAX_DESCRIPTION_LENGHT = 50;
+	public static final String ACL_DOES_NOT_EXIST = "ACL for '%s' of type '%s' does not exist";
 	
 	private AccessRequirementDAO accessRequirementDAO;
 
@@ -90,14 +91,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	private TransactionalMessenger transactionalMessenger;
 	
-	private AccessControlListDAO aclDao;
+	private AccessControlListManager aclManager;
 	
 	private DataAccessAuthorizationManager daAuthManager;
 	
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
-			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListDAO aclDao,
+			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListManager aclManager,
 			DataAccessAuthorizationManager daAuthManager) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
@@ -106,7 +107,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.jiraClient = jiraClient;
 		this.projectSettingsManager = projectSettingsManager;
 		this.transactionalMessenger = transactionalMessenger;
-		this.aclDao = aclDao;
+		this.aclManager = aclManager;
 		this.daAuthManager = daAuthManager;
 	}
 
@@ -382,7 +383,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			return;
 		}
 		signalSubjectIds(ar.getSubjectIds(), new ArrayList<RestrictableObjectDescriptor>());
-		aclDao.delete(accessRequirementId, ObjectType.ACCESS_REQUIREMENT);
+		aclManager.delete(accessRequirementId, ObjectType.ACCESS_REQUIREMENT);
 		accessRequirementDAO.delete(accessRequirementId);
 		
 		// When deleting we do not specify a version since all the history is cleared
@@ -508,7 +509,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
 		
-		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+		return aclManager.getAcl(aclArId, ObjectType.ACCESS_REQUIREMENT).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, aclArId, ObjectType.ACCESS_REQUIREMENT.name())));
 	}
 	
 	@Override
@@ -516,22 +518,24 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public AccessControlList createAccessRequirementAcl(UserInfo userInfo, String accessRequirementId, AccessControlList acl) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		AccessRequirementUtils.validateAccessRequirementAcl(acl, userInfo);
 		
 		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
 		// since the ARs do not have any ACL when created
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only an ACT member can assign an ACL to an access requirement.");
 		}
-		
-		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+
+		AccessRequirement accessRequirement = getAccessRequirement(accessRequirementId);
+		String aclArId = accessRequirement.getId().toString();
 		
 		acl.setId(aclArId);
 		acl.setCreationDate(Date.from(Instant.now()));
-		
-		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);
-		
-		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+
+		aclManager.create(userInfo, acl, ObjectType.ACCESS_REQUIREMENT,Long.parseLong(accessRequirement.getCreatedBy()));
+
+		return aclManager.getAcl(aclArId, ObjectType.ACCESS_REQUIREMENT).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, aclArId, ObjectType.ACCESS_REQUIREMENT.name())));
 	}
 	
 	@Override
@@ -540,21 +544,23 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
-		AccessRequirementUtils.validateAccessRequirementAcl(acl);
+		AccessRequirementUtils.validateAccessRequirementAcl(acl, userInfo);
 		
 		// The only permission check we do is that the user is part of ACT, note that we do not check/require CHANGE_PERMISSIONS 
 		// since the ARs do not have any ACL when created
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only an ACT member can update the ACL of an access requirement.");
 		}
-		
-		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
+
+		AccessRequirement accessRequirement = getAccessRequirement(accessRequirementId);
+		String aclArId = accessRequirement.getId().toString();
 		
 		acl.setId(aclArId);		
 				
-		aclDao.update(acl, ObjectType.ACCESS_REQUIREMENT);
-		
-		return aclDao.get(aclArId, ObjectType.ACCESS_REQUIREMENT);
+		aclManager.update(userInfo, acl, ObjectType.ACCESS_REQUIREMENT, Long.parseLong(accessRequirement.getCreatedBy()));
+
+		return aclManager.getAcl(aclArId, ObjectType.ACCESS_REQUIREMENT).orElseThrow(() ->
+				new NotFoundException(String.format(ACL_DOES_NOT_EXIST, aclArId, ObjectType.ACCESS_REQUIREMENT.name())));
 	}
 	
 	@Override
@@ -571,7 +577,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		String aclArId = getAccessRequirement(accessRequirementId).getId().toString();
 		
-		aclDao.delete(aclArId, ObjectType.ACCESS_REQUIREMENT);
+		aclManager.delete(aclArId, ObjectType.ACCESS_REQUIREMENT);
 	}
 
 	@WriteTransaction

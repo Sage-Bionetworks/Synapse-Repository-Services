@@ -10,10 +10,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -38,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -69,18 +71,21 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String ID_PARAM_NAME = "id";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
 	private static final String ETAG_PARAM_NAME = "etag";
+	private static final String REALM_PARAM_NAME = "realm";
 
 	private static final String SELECT_MULTI_BY_PRINCIPAL_IDS = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_ID+" IN (:"+ID_PARAM_NAME+")";
-	
-	private static final String SELECT_BY_IS_INDIVID_SQL = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
-			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME;
+
+	private static final String SELECT_REALMS_FOR_PRINCIPAL_IDS =
+			"SELECT ID, REALM FROM " + SqlConstants.TABLE_USER_GROUP +
+					" WHERE " + SqlConstants.COL_USER_GROUP_ID + " IN (:" + ID_PARAM_NAME + ")";
 	
 	private static final String SELECT_BY_IS_INDIVID_SQL_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
+			" AND "+SqlConstants.COL_USER_GROUP_REALM+"=:"+REALM_PARAM_NAME+
+			" ORDER BY "+SqlConstants.COL_USER_GROUP_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_ETAG_AND_LOCK_ROW_BY_ID = 
@@ -101,6 +106,16 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper = (new DBOUserGroup()).getTableMapping();
+
+	public static final ResultSetExtractor<Map<String, Set<String>>> realmToUserIdsMapper = rs -> {
+		Map<String, Set<String>> map = new HashMap<>();
+		while (rs.next()) {
+			String realm = rs.getString("REALM");
+			String id = rs.getString("ID");
+			map.computeIfAbsent(realm, k -> new HashSet<>()).add(id);
+		}
+		return map;
+	};
 	
 	
 
@@ -110,17 +125,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	public void setBootstrapPrincipals(List<BootstrapPrincipal> bootstrapPrincipals) {
 		this.bootstrapPrincipals = bootstrapPrincipals;
-	}
-
-	@Override
-	public Collection<UserGroup> getAll(boolean isIndividual)
-			throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
-		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, param, userGroupRowMapper);
-		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		UserGroupUtils.copyDboToDto(dbos, dtos);
-		return dtos;
 	}
 	
 	@Override
@@ -132,16 +136,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 	
 	@Override
-	public long getCount()  throws DatastoreException {
-		return basicDao.getCount(DBOUserGroup.class);
-	}
-	
-	@Override
 	public List<UserGroup> getInRange(long fromIncl, long toExcl,
-			boolean isIndividual) throws DatastoreException {
+			boolean isIndividual, String realmId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		param.addValue(OFFSET_PARAM_NAME, fromIncl);
+		param.addValue(REALM_PARAM_NAME, realmId);
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
@@ -176,7 +176,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
 		// If the create is successful, it should have a new etag
 		dbo.setEtag(UUID.randomUUID().toString());
-		// Bootstraped users will have IDs already assigned.
+		// Bootstrapped users will have IDs already assigned.
 		if(dbo.getId() == null){
 			// We allow the ID generator to create all other IDs
 			dbo.setId(idGenerator.generateNewId(IdType.PRINCIPAL_ID));
@@ -227,6 +227,19 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		return dtos;
 	}
 
+	@Override
+	public Map<String, Set<String>> getUsersRealms(List<String> ids) throws DatastoreException {
+		Map<String, Set<String>> realmMap = new HashMap<>();
+		if (ids.isEmpty()) {
+			return realmMap;
+		}
+
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID_PARAM_NAME, ids);
+		realmMap = namedJdbcTemplate.query(SELECT_REALMS_FOR_PRINCIPAL_IDS, param, realmToUserIdsMapper);
+		return realmMap;
+	}
+
 	@WriteTransaction
 	@Override
 	public void update(UserGroup dto) throws DatastoreException,
@@ -258,7 +271,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	@Override
 	@WriteTransaction
 	public void bootstrapUsers() throws Exception {
-		// Reserver an ID well above the current
+		// Reserve an ID well above the current
 		idGenerator.reserveId(START_OF_USER_IDS, IdType.PRINCIPAL_ID);
 		
 		// Boot strap all users and groups
@@ -280,6 +293,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 				}else{
 					newUg.setIsIndividual(false);
 				}
+				newUg.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 				this.createPrivate(newUg);
 			}
 		}

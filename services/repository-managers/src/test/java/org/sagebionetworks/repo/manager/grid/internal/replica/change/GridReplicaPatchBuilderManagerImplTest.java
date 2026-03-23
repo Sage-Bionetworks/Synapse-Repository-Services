@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.change.GridReplica
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 @ExtendWith(MockitoExtension.class)
@@ -200,7 +201,7 @@ public class GridReplicaPatchBuilderManagerImplTest {
 		Long last = 101L;
 		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId)).thenReturn(Optional.of(last));
 		when(mockGridIndexDao.getClock(sessionId, replicaId)).thenReturn(currentClock);
-		when(mockGridDao.listMissingPatchIdsForClock(sessionId, currentClock, 1)).thenReturn(List.of());
+		when(mockGridDao.listMissingPatchInfoForClock(sessionId, currentClock, 1)).thenReturn(List.of());
 
 		// call under test
 		Optional<LogicalTimestamp> result = manager.getCurrentClockIfAllPatchesApplied(sessionId, replicaId);
@@ -211,7 +212,7 @@ public class GridReplicaPatchBuilderManagerImplTest {
 	public void testGetCurrentClockWithNoSequence() {
 		when(mockGridIndexDao.getClockSequenceNumber(sessionId, replicaId, replicaId)).thenReturn(Optional.empty());
 		when(mockGridIndexDao.getClock(sessionId, replicaId)).thenReturn(currentClock);
-		when(mockGridDao.listMissingPatchIdsForClock(sessionId, currentClock, 1)).thenReturn(List.of());
+		when(mockGridDao.listMissingPatchInfoForClock(sessionId, currentClock, 1)).thenReturn(List.of());
 
 		// call under test
 		Optional<LogicalTimestamp> result = manager.getCurrentClockIfAllPatchesApplied(sessionId, replicaId);
@@ -221,8 +222,8 @@ public class GridReplicaPatchBuilderManagerImplTest {
 	@Test
 	public void testGetCurrentClockWithMissingPatches() {
 		when(mockGridIndexDao.getClock(sessionId, replicaId)).thenReturn(currentClock);
-		when(mockGridDao.listMissingPatchIdsForClock(sessionId, currentClock, 1))
-				.thenReturn(List.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(999L)));
+		when(mockGridDao.listMissingPatchInfoForClock(sessionId, currentClock, 1))
+				.thenReturn(List.of(new PatchInfo().setPatchId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(999L))));
 
 		// call under test
 		Optional<LogicalTimestamp> result = manager.getCurrentClockIfAllPatchesApplied(sessionId, replicaId);

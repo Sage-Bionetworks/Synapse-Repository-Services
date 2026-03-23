@@ -113,7 +113,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		List<UserProfile> page = userProfileManager.getInRange(userInfo, offset, endExcl);
+		List<UserProfile> page = userProfileManager.getInRange(userInfo, offset, endExcl, userInfo.getRealmId());
 		for (UserProfile profile : page) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		}
@@ -132,7 +132,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public ListWrapper<UserProfile> listUserProfiles(Long userId, IdList ids)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		ListWrapper<UserProfile> results = userProfileManager.list(ids);
+		ListWrapper<UserProfile> results = userProfileManager.list(ids, userInfo.getRealmId());
 		for (UserProfile profile : results.getList()) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		}
@@ -149,9 +149,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<Long> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids) 
 			throws DatastoreException, NotFoundException {
-		List<UserGroupHeader> headers = principalAliasDAO.listPrincipalHeaders(ids);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		List<UserGroupHeader> headers = principalAliasDAO.listPrincipalHeaders(ids, userInfo.getRealmId());
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
 		response.setChildren(headers);
 		response.setTotalNumberOfResults((long) headers.size());
@@ -160,7 +161,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, TypeFilter filter,
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(Long userId, String prefix, TypeFilter filter,
 			Integer offset, Integer limit) 
 					throws DatastoreException, NotFoundException {
 		if(filter == null){
@@ -175,7 +176,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			offsetLong = offset.longValue();
 		}
 		List<Long> ids = listPrincipalsForPrefix(prefix, filter,  offsetLong, limitLong);
-		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(ids);
+		UserGroupHeaderResponsePage response = getUserGroupHeadersByIds(userId, ids);
 		response.setPrefixFilter(prefix);
 		// The total is estimated.
 		response.setTotalNumberOfResults(PaginatedResults.calculateTotalWithLimitAndOffset(response.getChildren().size(), limit, offset));
@@ -380,7 +381,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserGroupHeadersByAlias(org.sagebionetworks.repo.model.principal.AliasList)
 	 */
 	@Override
-	public UserGroupHeaderResponse getUserGroupHeadersByAlias(AliasList request) {
+	public UserGroupHeaderResponse getUserGroupHeadersByAlias(Long userId, AliasList request) {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getList(), "request.list");
 		ValidateArgument.requirement(!request.getList().isEmpty(),
@@ -393,10 +394,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		 * Note: Callers can only lookup team names and user names. They
 		 * cannot lookup email addresses or other alias types.
 		 */
+		UserInfo userInfo = userManager.getUserInfo(userId);
 		List<AliasType> types = Lists.newArrayList(AliasType.TEAM_NAME, AliasType.USER_NAME);
 		List<Long> principalIds = principalAliasDAO.findPrincipalsWithAliases(request.getList(), types);
 		// Convert the Ids to headers
-		List<UserGroupHeader> resultList = principalAliasDAO.listPrincipalHeaders(principalIds);
+		List<UserGroupHeader> resultList = principalAliasDAO.listPrincipalHeaders(principalIds, userInfo.getRealmId());
 		UserGroupHeaderResponse response = new UserGroupHeaderResponse();
 		response.setList(resultList);
 		return response;

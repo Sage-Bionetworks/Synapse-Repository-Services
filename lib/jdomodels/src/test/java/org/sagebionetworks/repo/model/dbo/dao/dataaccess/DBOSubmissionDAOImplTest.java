@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -122,11 +123,13 @@ public class DBOSubmissionDAOImplTest {
 		user1 = new UserGroup();
 		user1.setIsIndividual(true);
 		user1.setCreationDate(new Date());
+		user1.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user1.setId(userGroupDAO.create(user1).toString());
 
 		user2 = new UserGroup();
 		user2.setIsIndividual(true);
 		user2.setCreationDate(new Date());
+		user2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		user2.setId(userGroupDAO.create(user2).toString());
 
 		// create a node
@@ -1197,18 +1200,116 @@ public class DBOSubmissionDAOImplTest {
 		
 		assertEquals(expected, result);
 	}
-	
+
+	@Test
+	public void testSearchSubmissionsWithACTOnlyAndExemptionEligibleAcl() {
+		// AR1 has an ACL with only EXEMPTION_ELIGIBLE (should be treated as ACT_ONLY)
+		addAclWithAccessTypes(accessRequirement.getId(), List.of(user1.getId()), Set.of(ACCESS_TYPE.EXEMPTION_ELIGIBLE));
+
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.ACT_ONLY;
+		long limit = 10;
+		long offset = 0;
+
+		// Both submissions should be returned since AR1 only has EXEMPTION_ELIGIBLE (not REVIEW_SUBMISSIONS)
+		// and AR2 has no ACL at all
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s1),
+			submissionDao.getSubmission(s2)
+		);
+
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testSearchSubmissionsWithDelegatedOnlyAndExemptionEligibleAcl() {
+		// AR1 has an ACL with only EXEMPTION_ELIGIBLE (should NOT be treated as DELEGATED_ONLY)
+		addAclWithAccessTypes(accessRequirement.getId(), List.of(user1.getId()), Set.of(ACCESS_TYPE.EXEMPTION_ELIGIBLE));
+		// AR2 has an ACL with REVIEW_SUBMISSIONS (should be treated as DELEGATED_ONLY)
+		addReviewers(accessRequirement2.getId(), List.of(user1.getId()));
+
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		SubmissionReviewerFilterType reviewerFilterType = SubmissionReviewerFilterType.DELEGATED_ONLY;
+		long limit = 10;
+		long offset = 0;
+
+		// Only s2 should be returned since AR2 has REVIEW_SUBMISSIONS
+		// AR1 only has EXEMPTION_ELIGIBLE so s1 should NOT be included
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
+
+		List<Submission> result = submissionDao.searchAllSubmissions(reviewerFilterType, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+
+		assertEquals(expected, result);
+	}
+
+	@Test
+	public void testSearchSubmissionsWithMixedPermissions() {
+		// AR1 has an ACL with both REVIEW_SUBMISSIONS and EXEMPTION_ELIGIBLE (should be treated as DELEGATED_ONLY)
+		addAclWithAccessTypes(accessRequirement.getId(), List.of(user1.getId()), Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS, ACCESS_TYPE.EXEMPTION_ELIGIBLE));
+
+		String s1 = submissionDao.createSubmission(createSubmission(accessRequirement, researchProject, System.currentTimeMillis(), user1.getId())).getSubmissionId();
+		String s2 = submissionDao.createSubmission(createSubmission(accessRequirement2, researchProject, System.currentTimeMillis() + 1000, user2.getId())).getSubmissionId();
+
+		String accessorId = null;
+		String requirementId = null;
+		List<SubmissionSearchSort> sort = List.of(new SubmissionSearchSort().setField(SubmissionSortField.MODIFIED_ON));
+		SubmissionState state = null;
+		String reviewerId = null;
+		long limit = 10;
+		long offset = 0;
+
+		// Test ACT_ONLY: should only return s2 (AR2 has no ACL)
+		List<Submission> expected = List.of(
+			submissionDao.getSubmission(s2)
+		);
+
+		List<Submission> result = submissionDao.searchAllSubmissions(SubmissionReviewerFilterType.ACT_ONLY, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+
+		assertEquals(expected, result);
+
+		// Test DELEGATED_ONLY: should only return s1 (AR1 has REVIEW_SUBMISSIONS)
+		expected = List.of(
+			submissionDao.getSubmission(s1)
+		);
+
+		result = submissionDao.searchAllSubmissions(SubmissionReviewerFilterType.DELEGATED_ONLY, sort, accessorId, requirementId, reviewerId, state, limit, offset);
+
+		assertEquals(expected, result);
+	}
+
 	private void addReviewers(Long arId, List<String> reviewerIds) {
+		addAclWithAccessTypes(arId, reviewerIds, Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS));
+	}
+
+	private void addAclWithAccessTypes(Long arId, List<String> principalIds, Set<ACCESS_TYPE> accessTypes) {
 		AccessControlList acl = new AccessControlList()
 			.setId(arId.toString())
 			.setCreationDate(new Date())
 			.setCreatedBy(user1.getId())
 			.setModifiedBy(user1.getId())
 			.setModifiedOn(new Date())
-			.setResourceAccess(reviewerIds.stream().map(reviewerId -> 
-				new ResourceAccess().setAccessType(Set.of(ACCESS_TYPE.REVIEW_SUBMISSIONS)).setPrincipalId(Long.valueOf(reviewerId))
+			.setResourceAccess(principalIds.stream().map(principalId ->
+				new ResourceAccess().setAccessType(accessTypes).setPrincipalId(Long.valueOf(principalId))
 			).collect(Collectors.toSet()));
-		
+
 		aclDao.create(acl, ObjectType.ACCESS_REQUIREMENT);
 	}
 	

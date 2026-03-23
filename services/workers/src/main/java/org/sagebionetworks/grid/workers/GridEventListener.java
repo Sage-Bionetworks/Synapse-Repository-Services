@@ -1,7 +1,9 @@
 package org.sagebionetworks.grid.workers;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.grid.workers.message.ConnectionMessage;
 import org.sagebionetworks.grid.workers.message.DisconnectedMessage;
@@ -14,6 +16,7 @@ import org.sagebionetworks.repo.manager.grid.response.GridEventResponsePublisher
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventType;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.context.event.EventListener;
@@ -47,15 +50,34 @@ public class GridEventListener {
 		UserInfo user = userManager.getUserInfo(message.getConnection().getUserId());
 		// Save the connection.
 		manager.createReplicaConnection(user, message.getContext(), message.getConnection());
-		// notify the call they are connected.
+		// notify the caller they are connected.
 		publisher.publishEventResponse(message.getContext(), JsonRxMessageType.Notification, "connected");
+		// Broadcast replica-connected to all other active connections.
+		List<EventContext> contexts = manager.listActiveConnections(message.getContext().getConnectionId()).stream()
+				.filter(Predicate.not(c -> message.getContext().getConnectionId().equals(c.getConnectionId())))
+				.map(c -> new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()))
+				.collect(Collectors.toList());
+		publisher.publishEventResponses(contexts, JsonRxMessageType.Notification, "replica-connected");
 	}
 
 	@EventListener
 	public void onDisconnected(DisconnectedMessage message) {
 		ValidateArgument.required(message, "message");
 		ValidateArgument.required(message.getContext(), "message.context");
-		manager.removeReplicatConnection(message.getContext().getEventType(), message.getContext().getConnectionId());
+		String connectionId = message.getContext().getConnectionId();
+		// Get active connections BEFORE removing (need connection to look up session).
+		List<EventContext> contexts = List.of();
+		Optional<GridConnectionInfo> connection = manager.getConnectionInfoOptional(connectionId);
+		if (connection.isPresent()) {
+			contexts = manager.listActiveConnections(connectionId).stream()
+					.filter(Predicate.not(c -> connectionId.equals(c.getConnectionId())))
+					.map(c -> new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()))
+					.collect(Collectors.toList());
+		}
+		// Remove the connection.
+		manager.removeReplicatConnection(message.getContext().getEventType(), connectionId);
+		// Broadcast replica-disconnected to remaining connections.
+		publisher.publishEventResponses(contexts, JsonRxMessageType.Notification, "replica-disconnected");
 	}
 
 	@EventListener
@@ -72,14 +94,13 @@ public class GridEventListener {
 			 * This is a new patch so let all other connected replicas know there is a new
 			 * patch.
 			 */
-			manager.listActiveConnections(message.getContext().getConnectionId()).stream()
+			List<EventContext> contexts = manager.listActiveConnections(message.getContext().getConnectionId()).stream()
 					// exclude the caller from the patch notification.
 					.filter(Predicate.not(c -> message.getContext().getConnectionId().equals(c.getConnectionId())))
-					.forEach(c -> {
-						publisher.publishEventResponse(
-								new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()),
-								JsonRxMessageType.Notification, "new-patch");
-					});
+					.map(c -> new EventContext(EventType.MESSAGE, c.getSource(), c.getConnectionId()))
+					.collect(Collectors.toList());
+			
+			publisher.publishEventResponses(contexts, JsonRxMessageType.Notification, "new-patch");
 		}
 	}
 
@@ -87,17 +108,16 @@ public class GridEventListener {
 	public void onSynchronizeClock(SynchronizeClockMessage message) {
 		ValidateArgument.required(message, "message");
 
-		Optional<String> optional = manager.getNextMissingPatch(message.getContext(), message.getClock());
-		if (optional.isEmpty()) {
+		Optional<String> nextMessage = manager.getNextSynchronizeResponse(message.getContext(), message.getClock());
+		if (nextMessage.isEmpty()) {
 			// The clock is up-to-date.
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseComplete,
 					message.getRequestId());
-		}else {
-			// The caller needs to apply the provided patch
+		} else {
+			// Send the patch/snapshot to the replica.
 			publisher.publishEventResponse(message.getContext(), JsonRxMessageType.ResponseData,
-					message.getRequestId(), optional.get());
+					message.getRequestId(), nextMessage.get());
 		}
-
 	}
 
 }

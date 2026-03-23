@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -105,6 +106,7 @@ public class DBOAccessRequirementDAOImplTest {
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
+		individualGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 		
 		// note: we set up multiple nodes and multiple evaluations to ensure that filtering works

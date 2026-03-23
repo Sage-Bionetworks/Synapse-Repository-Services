@@ -96,9 +96,13 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.auth.AccessTokenGenerationRequest;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecordList;
+import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Realm;
+import org.sagebionetworks.repo.model.auth.RealmIdList;
+import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
@@ -113,6 +117,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
@@ -228,6 +233,8 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
@@ -249,6 +256,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -342,6 +351,12 @@ import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.table.search.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.table.search.ListColumnAnalyzerOverridesRequest;
+import org.sagebionetworks.repo.model.table.search.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.table.search.ListTextAnalyzersRequest;
+import org.sagebionetworks.repo.model.table.search.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.table.search.TextAnalyzer;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -2236,23 +2251,25 @@ public interface SynapseClient extends BaseClient {
 	 * bearer token (which must be included as the authorization header).
 	 * 
 	 * The result is expected to be a JWT token, which is invoked by the 
-	 * client having registered a 'user info signed response algorithm'.
+	 * client having registered a 'user info signed response algorithm' or
+	 * by adding the header 'Accept: application/jwt'
 	 * 
 	 * @return
 	 */
-	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException;
+	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken(boolean includeAcceptHeader) throws SynapseException;
 	
 	/**
 	 * Get the user information for the user specified by the authorization
 	 * bearer token (which must be included as the authorization header).
 	 * 
 	 * The result is expected to be a Map, which is invoked by the 
-	 * client having omitted a 'user info signed response algorithm'.
+	 * client having omitted a 'user info signed response algorithm', 
+	 * or by adding the header 'Accept: application/json'
 	 * 
 	 * @return
 	 */
-	JSONObject getUserInfoAsJSON() throws SynapseException;
-
+	JSONObject getUserInfoAsJSON(boolean includeAcceptHeader) throws SynapseException;
+	
 	/**
 	 * Get a paginated record of the OAuth clients that currently have access to the
 	 * logged-in user's Synapse resources via OAuth 2.0 refresh tokens.
@@ -2301,6 +2318,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws UnsupportedEncodingException 
 	 */
 	void revokeTokenURLEncoded(String token) throws SynapseException, UnsupportedEncodingException;
+
+	/**
+	 * Introspects an access token, returning whether it is active and its claims.
+	 * Authenticated by the calling Synapse user (not an OAuth client).
+	 */
+	OAuthTokenIntrospectionResponse introspectToken(OAuthTokenIntrospectionRequest request) throws SynapseException;
 
 	/**
 	 * Updates the metadata for a particular refresh token.
@@ -4342,6 +4365,17 @@ public interface SynapseClient extends BaseClient {
 	LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request) throws SynapseException;
 	
 	/**
+	 * Retrieve an anonymous access token for the given security realm.  By including
+	 * the returned token as the Bearer token in the Authorization header of subsequent
+	 * requests, the client indicates its scope is that of a particular security realm.
+	 * 
+	 * @param realmId
+	 * @return
+	 * @throws SynapseException
+	 */
+	AccessTokenResponse getAnonymousAccessToken(String realmId) throws SynapseException;
+	
+	/**
 	 * Sends a notification that allows to reset 2fa
 	 * 
 	 * @param request
@@ -4366,7 +4400,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Creates a new webhook.
 	 * 
-	 * @param reqeust
+	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -4580,6 +4614,14 @@ public interface SynapseClient extends BaseClient {
 	GridReplica getGridReplica(String sessionId, Long replicaId) throws SynapseException;
 
 	/**
+	 * List all replicas for a grid session.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListGridReplicasResponse listGridReplicas(ListGridReplicasRequest request) throws SynapseException;
+
+	/**
 	 * Create a websocket presigned URL to connect to a grid.
 	 * @param request
 	 * @return
@@ -4626,5 +4668,38 @@ public interface SynapseClient extends BaseClient {
     void deleteMetadataTask(Long taskId) throws SynapseException;
 
     ListCurationTaskResponse listMetadataTasks(ListCurationTaskRequest request) throws SynapseException;
+
+    TaskStatus getTaskStatus(Long taskId) throws SynapseException;
+
+    TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException;
+
+    RealmIdList listRealmIds() throws SynapseException ;
+    
+    Realm getRealm(String id) throws SynapseException ;
+    
+    RealmPrincipal getRealmPrincipals(String id) throws SynapseException ;
+    
+    RealmPrincipal getRealmPrincipals() throws SynapseException;
+
+    TextAnalyzer createTextAnalyzer(TextAnalyzer analyzer) throws SynapseException;
+
+    TextAnalyzer getTextAnalyzer(String id) throws SynapseException;
+
+    TextAnalyzer updateTextAnalyzer(TextAnalyzer analyzer) throws SynapseException;
+
+    void deleteTextAnalyzer(String id) throws SynapseException;
+
+    ListTextAnalyzersResponse listTextAnalyzers(ListTextAnalyzersRequest request) throws SynapseException;
+
+    ColumnAnalyzerOverride createColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException;
+
+    ColumnAnalyzerOverride getColumnAnalyzerOverride(String id) throws SynapseException;
+
+    ColumnAnalyzerOverride updateColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException;
+
+    void deleteColumnAnalyzerOverride(String id) throws SynapseException;
+
+    ListColumnAnalyzerOverridesResponse listColumnAnalyzerOverrides(ListColumnAnalyzerOverridesRequest request) throws SynapseException;
+
 }
 

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +24,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
-import org.sagebionetworks.repo.model.grid.node.ArrayNode;
+import org.sagebionetworks.repo.model.grid.node.RGANode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -83,8 +82,8 @@ public class JoinedRowChangePublisherTest {
 
 	@Test
 	public void testProcessJoinedRows() {
-		when(mockGridIndexDao.getArrayLastNode(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
-			.thenReturn(Optional.of(new ArrayNode().setNodeId(mockTimestamp)));
+		when(mockGridIndexDao.getArrayLastNodeId(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
+			.thenReturn(mockTimestamp);
 		
 		when(mockConnInfo.getSessionId()).thenReturn(header.getSessionId());
 		when(mockConnInfo.getConnectionId()).thenReturn("connId");

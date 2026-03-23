@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.agent.handler.grid;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +24,7 @@ public class LiteralSetValueProcessorTest {
 	}
 
 	@Test
-	public void testCreateConValueWithJSONArray() {
+	public void testCreateConValueWithString() {
 		LiteralSetValue sv = new LiteralSetValue().setColumnName("a").setValue("a string");
 		JSONObject svRaw = new JSONObject("{\"columnName\":\"a\", \"value\":\"a string\"}");
 
@@ -32,6 +34,43 @@ public class LiteralSetValueProcessorTest {
 		assertEquals(ConType.STRING, result.getType());
 		assertEquals("a string", result.getValue());
 	}
+
+	@Test
+	public void testCreateConValueWithNumber() {
+		LiteralSetValue sv = new LiteralSetValue().setColumnName("a").setValue(2L);
+		JSONObject svRaw = new JSONObject("{\"columnName\":\"a\", \"value\": 2 }");
+
+		// call under test
+		ConValue result = handler.createConValue(row, sv, svRaw).get();
+
+		assertEquals(ConType.LONG, result.getType());
+		assertEquals(2L, result.getValue());
+	}
+
+	@Test
+	public void testCreateConValueWithJSONObject() {
+		LiteralSetValue sv = new LiteralSetValue().setColumnName("a").setValue("{\"foo\":\"bar\"}");
+		JSONObject svRaw = new JSONObject("{\"columnName\":\"a\", \"value\": {\"foo\":\"bar\"}}");
+
+		// call under test
+		ConValue result = handler.createConValue(row, sv, svRaw).get();
+
+		assertEquals(ConType.JSON_OBJECT, result.getType());
+		assertTrue(new JSONObject("{\"foo\":\"bar\"}").similar(result.getValue()));
+	}
+
+	@Test
+	public void testCreateConValueWithJSONArray() {
+		LiteralSetValue sv = new LiteralSetValue().setColumnName("a").setValue("[\"a string\"]");
+		JSONObject svRaw = new JSONObject("{\"columnName\":\"a\", \"value\":[\"a string\"]}");
+
+		// call under test
+		ConValue result = handler.createConValue(row, sv, svRaw).get();
+
+		assertEquals(ConType.JSON_ARRAY, result.getType());
+		assertTrue(new JSONArray("[\"a string\"]").similar(result.getValue()));
+	}
+
 
 	@Test
 	public void testCreateConValueWithNull() {

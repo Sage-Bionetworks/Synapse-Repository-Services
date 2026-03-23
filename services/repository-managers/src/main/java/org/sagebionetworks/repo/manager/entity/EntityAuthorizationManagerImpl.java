@@ -68,7 +68,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(parentId, "parentId");
 		ValidateArgument.required(entityCreateType, "entityCreateType");
 		UserEntityPermissionsState state = usersEntityPermissionsDao
-				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(parentId)).stream()
+				.getEntityPermissions(userInfo, KeyFactory.stringToKeySingletonList(parentId)).stream()
 				.findFirst().get();
 		return EntityAuthorizationUtils.determineCreateAccess(userInfo, state, entityCreateType).getAuthorizationStatus();
 	}
@@ -78,7 +78,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(userInfo, "UserInfo");
 		ValidateArgument.required(entityId, "entityId");
 		UserEntityPermissionsState state = usersEntityPermissionsDao
-				.getEntityPermissions(userInfo.getGroups(), KeyFactory.stringToKeySingletonList(entityId)).stream()
+				.getEntityPermissions(userInfo, KeyFactory.stringToKeySingletonList(entityId)).stream()
 				.findFirst().get();
 		return EntityAuthorizationUtils.determineCreateAccess(userInfo, state, state.getEntityType()).getAuthorizationStatus();
 	}

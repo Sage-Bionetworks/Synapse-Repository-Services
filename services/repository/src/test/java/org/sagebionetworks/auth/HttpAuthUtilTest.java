@@ -274,5 +274,21 @@ class HttpAuthUtilTest {
 		verify(mockWriter).println("{\"concreteType\":\"org.sagebionetworks.repo.model.ErrorResponse\",\"reason\":\"missing token\"}");
 		
 	}
-
+	
+	@Test
+	void testIsAnonymousTrue() throws Exception {
+		when(httpRequest.getParameter("anonymous")).thenReturn("true");
+		assertTrue(HttpAuthUtil.isAnonymous(httpRequest));
+	}	
+	@Test
+	void testIsAnonymousFalse() throws Exception {
+		when(httpRequest.getParameter("anonymous")).thenReturn("false");
+		assertFalse(HttpAuthUtil.isAnonymous(httpRequest));
+	}
+	
+	@Test
+	void testIsAnonymousMissing() throws Exception {
+		when(httpRequest.getParameter("anonymous")).thenReturn(null);
+		assertTrue(HttpAuthUtil.isAnonymous(httpRequest));
+	}
 }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -30,8 +32,8 @@ public class FileHandleAuthorizationManagerImplTest {
 	
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false, 123L);
-		adminUser = new UserInfo(true, 455L);
+		userInfo = new UserInfo(false, 123L, DEFAULT_REALM_ID);
+		adminUser = new UserInfo(true, 455L, DEFAULT_REALM_ID);
 	}
 
 	@Test
@@ -43,7 +45,7 @@ public class FileHandleAuthorizationManagerImplTest {
 		assertTrue(manager.canAccessRawFileHandleById(adminUser, fileHandlId).isAuthorized(), "Admin should have access to all FileHandles");
 		assertTrue(manager.canAccessRawFileHandleById(userInfo, fileHandlId).isAuthorized(), "Creator should have access to their own FileHandles");
 		// change the users id
-		UserInfo notTheCreatoro = new UserInfo(false, "999999");
+		UserInfo notTheCreatoro = new UserInfo(false, 999999L, DEFAULT_REALM_ID);
 		assertFalse(manager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId).isAuthorized(), "Only the creator (or admin) should have access a FileHandle");
 		verify(fileHandleDao, times(2)).getHandleCreator(fileHandlId);
 	}

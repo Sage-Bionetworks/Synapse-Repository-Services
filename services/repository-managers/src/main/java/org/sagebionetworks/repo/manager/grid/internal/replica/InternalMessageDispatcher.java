@@ -1,7 +1,13 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.sagebionetworks.grid.db.GridIndexManager;
 import org.sagebionetworks.grid.db.MessageChain;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
@@ -23,7 +29,7 @@ public class InternalMessageDispatcher {
 	public void dispatchMessage(JsonRxMessageBundle bundle) {
 		ValidateArgument.required(bundle, "bundle");
 		ValidateArgument.required(bundle.getConnection(), "bundle.connection");
-		ValidateArgument.required(bundle.getMessage(), "bundle.messgae");
+		ValidateArgument.required(bundle.getMessage(), "bundle.message");
 		ValidateArgument.required(bundle.getProgressCallback(), "bundle.callback");
 
 		if (!handleMessage(bundle)) {
@@ -75,10 +81,37 @@ public class InternalMessageDispatcher {
 		}
 
 		if (GridReplicaManager.SYNCHRONIZE_CLOCK.equals(chain.get().getMethod())) {
-			Patch patch = PatchCompactSerializable.deserialize((JSONArray) bundle.getMessage().getBody().get());
-			gridReplicaManager.onApplyPatch(bundle.getProgressCallback(), bundle.getConnection(),
-					bundle.getMessage().getId().get(), patch);
-			return true;
+			JSONObject messageBody = (JSONObject) bundle.getMessage().getBody().get();
+			if (!messageBody.has("type")) {
+				throw new IllegalArgumentException("ResponseData body must have a 'type' field.");
+			}
+			String type = messageBody.getString("type");
+			switch (type) {
+			case "snapshot": {
+				String urlString = messageBody.getString("body");
+				URL url;
+				try {
+					url = new URL(urlString);
+				} catch (MalformedURLException e) {
+					throw new IllegalArgumentException("Invalid snapshot URL: " + urlString, e);
+				}
+				gridReplicaManager.onApplySnapshot(bundle.getProgressCallback(), bundle.getConnection(),
+						bundle.getMessage().getId().get(), url);
+				return true;
+			} case "patches": {
+				JSONArray patchesAsJson = messageBody.getJSONArray("body");
+				List<Patch> patchList = new ArrayList<>(patchesAsJson.length());
+				for (int i = 0; i < patchesAsJson.length(); i++) {
+					JSONArray patchJson = patchesAsJson.getJSONArray(i);
+					patchList.add(PatchCompactSerializable.deserialize(patchJson));
+				}
+				gridReplicaManager.onApplyPatches(bundle.getProgressCallback(), bundle.getConnection(),
+						bundle.getMessage().getId().get(), patchList);
+
+				return true;
+			} default:
+				throw new IllegalArgumentException("Unknown ResponseData body type: " + type);
+			}
 		}
 		return false;
 	}

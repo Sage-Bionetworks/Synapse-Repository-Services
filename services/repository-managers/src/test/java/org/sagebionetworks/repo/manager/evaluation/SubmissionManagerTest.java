@@ -16,6 +16,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,9 +53,6 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.MessageToUserAndBody;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.evaluation.EvaluationPermissionsManager;
-import org.sagebionetworks.repo.manager.evaluation.SubmissionEligibilityManager;
-import org.sagebionetworks.repo.manager.evaluation.SubmissionManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -197,8 +195,8 @@ public class SubmissionManagerTest {
     @BeforeEach
     public void setUp() throws Exception {
 		// User Info
-    	ownerInfo = new UserInfo(false, OWNER_ID);
-    	userInfo = new UserInfo(false, USER_ID);
+    	ownerInfo = new UserInfo(false, Long.parseLong(OWNER_ID), DEFAULT_REALM_ID);
+    	userInfo = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID);
     	
     	// FileHandles
 		List<FileHandle> handles = new ArrayList<FileHandle>();

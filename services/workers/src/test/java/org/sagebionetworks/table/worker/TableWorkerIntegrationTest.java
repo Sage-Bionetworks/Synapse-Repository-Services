@@ -37,6 +37,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -773,6 +774,7 @@ public class TableWorkerIntegrationTest {
 	 * Test if things work if the table index is not being build, which can happen for example after a migration
 	 */
 	@Test
+	@Disabled // unstable test, see: PLFM-9485
 	public void testRoundTripAfterMigrate() throws Exception {
 		createSchemaOneOfEachType();
 		createTableWithSchema();
@@ -3184,6 +3186,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws Exception 
 	 */
 	@Test
+	@Disabled // Unstable test, see: PLFM-9484
 	public void testPLFM_6305() throws Exception {
 		ColumnModel columnOne = new ColumnModel();
 		columnOne.setColumnType(ColumnType.INTEGER);

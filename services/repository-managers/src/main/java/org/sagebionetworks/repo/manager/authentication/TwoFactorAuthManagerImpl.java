@@ -131,7 +131,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	public TwoFactorAuthStatus get2FaStatus(UserInfo user) {
 		ValidateArgument.required(user, "The user");
 		
-		if (AuthorizationUtils.isUserAnonymous(user)) {
+		if (user.isUserAnonymous()) {
 			return new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
 		}
 		
@@ -366,7 +366,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 
 	void assertValidUser(UserInfo user) {
 		ValidateArgument.required(user, "The user");
-		if (AuthorizationUtils.isUserAnonymous(user)) {
+		if (user.isUserAnonymous()) {
 			throw new UnauthorizedException("You need to authenticate to perform this action");
 		}
 	}

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipInvitation;
 import org.sagebionetworks.repo.model.MembershipInvitationDAO;
@@ -58,6 +59,7 @@ public class MembershipInvitationDAOImplTest {
 	public void before() throws Exception {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(false);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		group.setId(userGroupDAO.create(group).toString());
 		Long groupId = Long.parseLong(group.getId());
 		
@@ -76,6 +78,7 @@ public class MembershipInvitationDAOImplTest {
 		// Create another user
 		individUser = new UserGroup();
 		individUser.setIsIndividual(true);
+		individUser.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		individUser.setId(userGroupDAO.create(individUser).toString());
 		
 		// Initialize the submission but let the tests create it

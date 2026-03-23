@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -74,6 +75,7 @@ public class DBOGroupMembersDAOImplTest {
 	private UserGroup createTestGroup(boolean isIndividual) throws Exception {
 		UserGroup group = new UserGroup();
 		group.setIsIndividual(isIndividual);
+		group.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		String id = userGroupDAO.create(group).toString();
 		assertNotNull(id);
 		groupsToDelete.add(id);

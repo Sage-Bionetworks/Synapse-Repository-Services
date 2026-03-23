@@ -193,6 +193,10 @@
         {
             "name": "OAUTH_CLIENT",
             "description": "An OAuth 2.0 Client."
+        },
+        {
+            "name": "GRID_SESSION",
+            "description": "A grid session change that triggers index rebuilding."
         }
     ]
 }

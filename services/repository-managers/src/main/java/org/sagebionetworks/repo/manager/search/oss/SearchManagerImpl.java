@@ -147,8 +147,13 @@ public class SearchManagerImpl implements SearchManager {
             }
 
             // Create the search request
+            log.info("preparing an OpensearchRequest for query {}.", searchQuery.toString());
             SearchRequest searchRequest = OssUtil.generateSearchRequest(userInfo, searchQuery);
-            SearchResults results = OssUtil.convertToSynapseSearchResult(openSearchClient.search(searchRequest, DocumentFields.class), searchRequest.from());
+            log.info("Search request prepared and sending to Opensearch.");
+            SearchResponse<DocumentFields> response = openSearchClient.search(searchRequest, DocumentFields.class);
+            log.info("Opensearch response received total hit {}.", response.hits().total());
+            SearchResults results = OssUtil.convertToSynapseSearchResult(response, searchRequest.from());
+            log.info("Synapse search result prepared with {} result.", results.getHits().size());
 
             if (results != null && results.getHits() != null) {
                 if (includePath) {

@@ -19,6 +19,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -60,6 +61,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		ug.setEtag("etag");
 		ug.setId(id.toString());
 		ug.setIsIndividual(false);
+		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		Mockito.when(mockIdGenerator.generateNewId(IdType.PRINCIPAL_ID)).thenReturn(id);
 		doAnswer(new Answer<DBOUserGroup>(){
@@ -70,6 +72,7 @@ public class DBOUserGroupDAOImplUnitTest {
 		DBOUserGroup dbo = new DBOUserGroup();
 		dbo.setId(Long.parseLong(ug.getId()));
 		dbo.setEtag(ug.getEtag());
+		dbo.setRealmId(Long.parseLong(AuthorizationConstants.DEFAULT_REALM_ID));
 		UserGroupUtils.copyDtoToDbo(ug, dbo);
 		when(mockNamedJdbcTemplate.queryForObject(anyString(), any(SqlParameterSource.class), any(RowMapper.class))).thenReturn(dbo);
 		when(mockBasicDAO.update(any(DatabaseObject.class))).thenReturn(true);

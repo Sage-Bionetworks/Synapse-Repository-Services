@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthConsentGrantedResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequest;
 import org.sagebionetworks.repo.model.oauth.OIDCAuthorizationRequestDescription;
@@ -429,10 +431,11 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	Object getUserInfoGET(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.ACCEPT_HEADER_NAME, required=false) String acceptHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder), acceptHeader);
 	}
 
 	/**
@@ -451,10 +454,27 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	Object getUserInfoPOST(
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
+			@RequestHeader(value = AuthorizationConstants.ACCEPT_HEADER_NAME, required=false) String acceptHeader,
 			UriComponentsBuilder uriComponentsBuilder
 			)  throws NotFoundException, OAuthClientNotVerifiedException {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder));
+		return serviceProvider.getOpenIDConnectService().getUserInfo(accessToken, EndpointHelper.getEndpoint(uriComponentsBuilder), acceptHeader);
+	}
+
+	/**
+	 * Introspect an OAuth 2.0 access token, returning whether the token is active and its claims.
+	 * This endpoint is authenticated by a Synapse user (not an OIDC client).
+	 * Any authenticated user can introspect any token.
+	 * This endpoint does not require acceptance of the Terms of Service.
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OAUTH_2_INTROSPECT, method = RequestMethod.POST)
+	public @ResponseBody
+	OAuthTokenIntrospectionResponse introspectToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody OAuthTokenIntrospectionRequest request) {
+		return serviceProvider.getOpenIDConnectService().introspectToken(userId, request);
 	}
 
 	/**

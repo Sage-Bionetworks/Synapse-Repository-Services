@@ -18,18 +18,26 @@ public class UserInfo {
 	private Set<Long> groups;
 	
 	private final boolean isAdmin;
+	private boolean isCertified;
 	private Long id;
+	private String realmId;
 	private Date creationDate;
 	private boolean hasTwoFactorAuthEnabled;
 	private CallersContext context;
+	private Long realmAnonymousUserId;
+	private Long realmAuthenticatedUsersId;
+	private Long realmPublicUsersId;
 
+	// Note: this is only used in unit tests
+	@Deprecated
 	public UserInfo(boolean isAdmin) {
 		this.isAdmin = isAdmin;
 	}
 	
+	// Note: this is only used in unit tests
 	@Deprecated
-	public UserInfo(boolean isAdmin, String id){
-		this(isAdmin, Long.parseLong(id));
+	public UserInfo(boolean isAdmin, Long id){
+		this(isAdmin, id, null);
 	}
 	
 	/**
@@ -37,11 +45,40 @@ public class UserInfo {
 	 * @param isAdmin
 	 * @param id
 	 */
-	public UserInfo(boolean isAdmin, Long id){
+	public UserInfo(boolean isAdmin, Long id, String realmId){
 		this.isAdmin = isAdmin;
 		this.id = id;
 		this.groups = new LinkedHashSet<Long>();
 		this.groups.add(this.id);
+		this.realmId=realmId;
+	}
+	
+	public boolean isUserAnonymous() {
+		return id==null || id.equals(realmAnonymousUserId);
+	}
+
+	public Long getRealmAnonymousUserId() {
+		return realmAnonymousUserId;
+	}
+
+	public void setRealmAnonymousUserId(Long realmAnonymousUserId) {
+		this.realmAnonymousUserId = realmAnonymousUserId;
+	}
+
+	public Long getRealmAuthenticatedUsersId() {
+		return realmAuthenticatedUsersId;
+	}
+
+	public void setRealmAuthenticatedUsersId(Long realmAuthenticatedUsersId) {
+		this.realmAuthenticatedUsersId = realmAuthenticatedUsersId;
+	}
+
+	public Long getRealmPublicUsersId() {
+		return realmPublicUsersId;
+	}
+
+	public void setRealmPublicUsersId(Long realmPublicUsersId) {
+		this.realmPublicUsersId = realmPublicUsersId;
 	}
 
 	public Set<Long> getGroups() {
@@ -58,6 +95,14 @@ public class UserInfo {
 	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
+	}
+
+	public String getRealmId() {
+		return realmId;
+	}
+
+	public void setRealmId(String realmId) {
+		this.realmId = realmId;
 	}
 
 	public Long getId() {
@@ -79,6 +124,12 @@ public class UserInfo {
 	public boolean isAdmin() {
 		return isAdmin;
 	}
+	public void setCertified(boolean certified) {
+		this.isCertified = certified;
+	}
+	public boolean isCertified() {
+		return isCertified;
+	}
 	
 	public boolean hasTwoFactorAuthEnabled() {
 		return hasTwoFactorAuthEnabled;
@@ -97,30 +148,33 @@ public class UserInfo {
 	}
 
 	@Override
-	public int hashCode() {
-		return Objects.hash(context, creationDate, groups, hasTwoFactorAuthEnabled, id, isAdmin);
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		UserInfo userInfo = (UserInfo) o;
+		return isAdmin == userInfo.isAdmin && isCertified == userInfo.isCertified &&
+				hasTwoFactorAuthEnabled == userInfo.hasTwoFactorAuthEnabled && Objects.equals(groups, userInfo.groups)
+				&& Objects.equals(id, userInfo.id) && Objects.equals(realmId, userInfo.realmId)
+				&& Objects.equals(creationDate, userInfo.creationDate) && Objects.equals(context, userInfo.context)
+				&& Objects.equals(realmAnonymousUserId, userInfo.realmAnonymousUserId)
+				&& Objects.equals(realmAuthenticatedUsersId, userInfo.realmAuthenticatedUsersId)
+				&& Objects.equals(realmPublicUsersId, userInfo.realmPublicUsersId);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		UserInfo other = (UserInfo) obj;
-		return Objects.equals(context, other.context)
-				&& Objects.equals(creationDate, other.creationDate) && Objects.equals(groups, other.groups)
-				&& hasTwoFactorAuthEnabled == other.hasTwoFactorAuthEnabled && Objects.equals(id, other.id)
-				&& isAdmin == other.isAdmin;
+	public int hashCode() {
+		return Objects.hash(groups, isAdmin, isCertified, id, realmId, creationDate, hasTwoFactorAuthEnabled, context,
+				realmAnonymousUserId, realmAuthenticatedUsersId, realmPublicUsersId);
 	}
+
 
 	@Override
 	public String toString() {
-		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", id=" + id + ", creationDate=" + creationDate
-				+ ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
-				+ ", context=" + context + "]";
+		return "UserInfo [groups=" + groups + ", isAdmin=" + isAdmin + ", isCertified=" + isCertified + ", id=" + id + ", realmId=" + realmId
+				+ ", creationDate=" + creationDate + ", hasTwoFactorAuthEnabled=" + hasTwoFactorAuthEnabled
+				+ ", context=" + context + ", realmAnonymousUserId=" + realmAnonymousUserId
+				+ ", realmAuthenticatedUsersId=" + realmAuthenticatedUsersId + ", realmPublicUsersId="
+				+ realmPublicUsersId + "]";
 	}
-	
+
 }

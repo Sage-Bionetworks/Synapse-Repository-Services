@@ -1,0 +1,47 @@
+{
+	"description": "A text analyzer configuration. Used to configure how text is tokenized for a search index.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique ID of this text analyzer."
+		},
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization this resource belongs to."
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name. Unique within the organization."
+		},
+		"description": {
+			"type": "string",
+			"description": "Optional description."
+		},
+		"settings": {
+			"description": "The analyzer configuration settings.",
+			"$ref": "org.sagebionetworks.repo.model.table.search.TextAnalyzerSettings"
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this resource."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this resource."
+		}
+	}
+}

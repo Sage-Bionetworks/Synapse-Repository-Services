@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_REALM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_PREFIX;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
@@ -91,7 +92,8 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 					+ TABLE_PRINCIPAL_PREFIX + " P JOIN " + TABLE_USER_GROUP + " U ON P."
 					+ COL_PRINCIPAL_PREFIX_PRINCIPAL_ID + " = U." + COL_USER_GROUP_ID
 					+ " JOIN " + TABLE_TEAM + " T ON U." + COL_USER_GROUP_ID + " = T."
-					+ COL_TEAM_ID + " WHERE P." + COL_PRINCIPAL_PREFIX_TOKEN
+					+ COL_TEAM_ID + " WHERE U." + COL_USER_GROUP_REALM +" = ? "
+					+ "AND P." + COL_PRINCIPAL_PREFIX_TOKEN
 					+ " LIKE ? LIMIT ? OFFSET ?";
 
 
@@ -217,10 +219,10 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 	 * @see org.sagebionetworks.repo.model.dbo.principal.PrincipalPrefixDAO#listTeamsForPrefix(java.lang.String, java.lang.Long, java.lang.Long)
 	 */
 	@Override
-	public List<Long> listTeamsForPrefix(String prefix, Long limit, Long offset) {
+	public List<Long> listTeamsForPrefix(Long realmId, String prefix, Long limit, Long offset) {
 		String processed = preProcessToken(prefix);
 		return jdbcTemplate.queryForList(SQL_LIST_TEAMS_FOR_PREFIX,
-				Long.class, processed + WILDCARD, limit, offset);
+				Long.class, realmId, processed + WILDCARD, limit, offset);
 	}
 	
 	/*
