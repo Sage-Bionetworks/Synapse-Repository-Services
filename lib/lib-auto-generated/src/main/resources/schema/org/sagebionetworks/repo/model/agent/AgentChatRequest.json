@@ -20,6 +20,7 @@
 		},
 		"context": {
 			"type": "array",
+			"description": "Additional structured data to send to the agent.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.agent.AgentPromptSessionContext"
 			}

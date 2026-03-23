@@ -23,12 +23,12 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvid
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
 import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentPromptSessionContext;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
@@ -216,28 +216,16 @@ public class AgentManagerImpl implements AgentManager {
 				.enableTrace(enableTrace).inputText(request.getChatText())
 				.sessionState(sessionState -> {
 					Map<String, String> promptSessionAttributes = new HashMap<>();
-					if (!AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(session.getStartedBy())) {
+					if (!userManager.getUserInfo(session.getStartedBy()).isUserAnonymous()) {
 						promptSessionAttributes.put("user_id", session.getStartedBy().toString());
 					}
 
 					promptSessionAttributes.put(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString());
 
 					if (request.getContext() != null) {
-						request.getContext().forEach(context -> {
-							try {
-								JSONObjectAdapter writeTo = new JSONObjectAdapterImpl();
-								context.writeToJSONObject(writeTo);
-								writeTo.keys().forEachRemaining(k -> {
-									try {
-										promptSessionAttributes.put(k, writeTo.get(k).toString());
-									} catch (JSONObjectAdapterException e) {
-										throw new IllegalArgumentException(e);
-									}
-								});
-							} catch (JSONObjectAdapterException e) {
-								throw new IllegalArgumentException("Failed to serialize session context", e);
-							}
-						});
+						request.getContext().forEach(context ->
+								addContextToSessionAttributes(context, promptSessionAttributes)
+						);
 					}
 					sessionState.promptSessionAttributes(promptSessionAttributes);
 				})
@@ -479,6 +467,28 @@ public class AgentManagerImpl implements AgentManager {
 		});
 		List<Parameter> requestBodyParams = getRequestBody(input.requestBody());
 		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBodyParams, context);
+	}
+
+	/**
+	 * Serializes a single {@link AgentPromptSessionContext} into the provided prompt session attributes map.
+	 *
+	 * @param context    the context object to serialize
+	 * @param attributes the map to populate with the context's key/value pairs
+	 */
+	void addContextToSessionAttributes(AgentPromptSessionContext context, Map<String, String> attributes) {
+		try {
+			JSONObjectAdapter writeTo = new JSONObjectAdapterImpl();
+			context.writeToJSONObject(writeTo);
+			writeTo.keys().forEachRemaining(k -> {
+				try {
+					attributes.put(k, writeTo.get(k).toString());
+				} catch (JSONObjectAdapterException e) {
+					throw new IllegalArgumentException(e);
+				}
+			});
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("Failed to serialize session context", e);
+		}
 	}
 
 	List<Parameter> getRequestBody(ApiRequestBody body) {
