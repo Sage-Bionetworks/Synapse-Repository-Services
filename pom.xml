@@ -1093,7 +1093,7 @@
 			   custom ServletInput/OutputStream implementations in the codebase that would need to be modified.
 		-->		
 		<org.springframework.version>5.3.39</org.springframework.version>
-		<jackson.version>2.20.0</jackson.version>
+		<jackson.version>2.21.1</jackson.version>
 		<xstream.version>1.4.17</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<mysql.mysql-connector-java.version>8.0.33</mysql.mysql-connector-java.version>
