@@ -181,7 +181,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(team, createdTeam);
 
 		realm = realmDAO.createRealm(new Realm().setName("test realm").setCreatedOn(new Date())
-				.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.ARCUS_BIOSCIENCES))));
+				.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.SAGE_BIONETWORKS))));
 		assertNotNull(realm.getId());
 
 		UserGroup groupTwo = new UserGroup();

@@ -137,6 +137,7 @@ public class SearchManagerImpl implements SearchManager {
 
     @Override
     public SearchResults search(UserInfo userInfo, SearchQuery searchQuery) {
+        long start = System.currentTimeMillis();
         try {
             boolean includePath = false;
             if (searchQuery.getReturnFields() != null) {
@@ -147,21 +148,26 @@ public class SearchManagerImpl implements SearchManager {
             }
 
             // Create the search request
-            log.info("preparing an OpensearchRequest for query {}.", searchQuery.toString());
+            long t1 = System.currentTimeMillis() - start;
             SearchRequest searchRequest = OssUtil.generateSearchRequest(userInfo, searchQuery);
-            log.info("Search request prepared and sending to Opensearch.");
+            long t2 = System.currentTimeMillis() - start;
             SearchResponse<DocumentFields> response = openSearchClient.search(searchRequest, DocumentFields.class);
-            log.info("Opensearch response received total hit {}.", response.hits().total());
+            long t3 = System.currentTimeMillis() - start;
             SearchResults results = OssUtil.convertToSynapseSearchResult(response, searchRequest.from());
-            log.info("Synapse search result prepared with {} result.", results.getHits().size());
+            long t4 = System.currentTimeMillis() - start;
+            long t5 = System.currentTimeMillis();
 
             if (results != null && results.getHits() != null) {
                 if (includePath) {
                     // FIELD_PATH is resolved here after search results are retrieved from OpenSearch
                     addPathDataToHits(results.getHits());
                 }
+                t5 = System.currentTimeMillis() - start;
                 addAliasesToHits(results.getHits());
             }
+            long tEnd = System.currentTimeMillis() - start;
+            log.info("Search timing: staringOfSearch={} preparingRequest={} sendingToOpensearch={} resultReceivedFromOpensearch={} " +
+                    " convertedToSynapseResult={} pathAddedToHits={} aliasesAddedToHits={}.", start, t1, t2, t3, t4, t5, tEnd);
             return results;
         } catch (IOException exception) {
             log.error(exception);

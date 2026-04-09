@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.service.auth;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,6 +23,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthResponseType;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCSigningAlgorithm;
 import org.sagebionetworks.repo.model.oauth.OIDCSubjectIdentifierType;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OIDConnectConfiguration;
 import org.sagebionetworks.repo.service.auth.OpenIDConnectServiceImpl;
 
@@ -81,11 +85,41 @@ public class OpenIDConnectServiceImplTest {
 	@Test
 	public void testGetUserInfo() throws Exception {
 		String accessToken = "acess token";
-		
+
 		// method under test
-		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT);
-		
-		verify(oidcManager).getUserInfo(accessToken, OAUTH_ENDPOINT);
+		oidcServiceImpl.getUserInfo(accessToken, OAUTH_ENDPOINT, null);
+
+		verify(oidcManager).getUserInfo(accessToken, OAUTH_ENDPOINT, null);
+	}
+
+	@Test
+	public void testIntrospectToken() {
+		Long userId = 101L;
+		String token = "some.jwt.token";
+		Long maxAge = 120L;
+		OAuthTokenIntrospectionRequest request = new OAuthTokenIntrospectionRequest();
+		request.setToken(token);
+		request.setMax_age(maxAge);
+
+		OAuthTokenIntrospectionResponse expectedResponse = new OAuthTokenIntrospectionResponse().setActive(true);
+		when(oidcManager.introspectToken(token, maxAge)).thenReturn(expectedResponse);
+
+		// method under test
+		OAuthTokenIntrospectionResponse result = oidcServiceImpl.introspectToken(userId, request);
+
+		assertEquals(expectedResponse, result);
+		verify(oidcManager).introspectToken(token, maxAge);
+	}
+
+	@Test
+	public void testIntrospectToken_nullRequest() {
+		assertThrows(IllegalArgumentException.class, () -> oidcServiceImpl.introspectToken(101L, null));
+	}
+
+	@Test
+	public void testIntrospectToken_nullToken() {
+		OAuthTokenIntrospectionRequest request = new OAuthTokenIntrospectionRequest();
+		assertThrows(IllegalArgumentException.class, () -> oidcServiceImpl.introspectToken(101L, request));
 	}
 
 }

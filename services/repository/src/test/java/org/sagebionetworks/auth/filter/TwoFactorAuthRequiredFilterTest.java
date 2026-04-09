@@ -71,6 +71,7 @@ public class TwoFactorAuthRequiredFilterTest {
 	public void testDoFilterWithFeatureDisabledAndNotAdmin() throws Exception {
 		
 		when(mockHttpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn("123");
+		when(mockHttpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn("false");
 		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_2FA_REQUIREMENT)).thenReturn(true);
 		when(mockGroupMemberDao.areMemberOf(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString(), Set.of("123"))).thenReturn(false);
 		
@@ -86,6 +87,7 @@ public class TwoFactorAuthRequiredFilterTest {
 	public void testDoFilterWithFeatureDisabledAndIsAdminAndTwoFaEnabled() throws Exception {
 		
 		when(mockHttpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn("123");
+		when(mockHttpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn("false");
 		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_2FA_REQUIREMENT)).thenReturn(true);
 		when(mockGroupMemberDao.areMemberOf(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString(), Set.of("123"))).thenReturn(true);
 		when(mockAuthDao.isTwoFactorAuthEnabled(123L)).thenReturn(true);
@@ -100,6 +102,7 @@ public class TwoFactorAuthRequiredFilterTest {
 	public void testDoFilterWithFeatureDisabledAndIsAdminAndTwoFaDisabled() throws Exception {
 		
 		when(mockHttpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn("123");
+		when(mockHttpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn("false");
 		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_2FA_REQUIREMENT)).thenReturn(true);
 		when(mockGroupMemberDao.areMemberOf(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString(), Set.of("123"))).thenReturn(true);
 		when(mockAuthDao.isTwoFactorAuthEnabled(123L)).thenReturn(false);
@@ -115,6 +118,7 @@ public class TwoFactorAuthRequiredFilterTest {
 	@Test
 	public void testDoFilterWithFeatureEnabledAndTwoFaEnabled() throws Exception {
 		when(mockHttpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(USER_ID);
+		when(mockHttpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn("false");
 		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_2FA_REQUIREMENT)).thenReturn(false);
 		when(mockAuthDao.isTwoFactorAuthEnabled(123L)).thenReturn(true);
 		
@@ -130,6 +134,7 @@ public class TwoFactorAuthRequiredFilterTest {
 	public void testDoFilterWithFeatureEnabledAndTwoFaDisabled() throws Exception {
 		
 		when(mockHttpRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn("123");
+		when(mockHttpRequest.getParameter(AuthorizationConstants.ANONYMOUS_PARAM)).thenReturn("false");
 		when(mockFeatureManager.isFeatureEnabled(Feature.DISABLE_2FA_REQUIREMENT)).thenReturn(false);
 		when(mockAuthDao.isTwoFactorAuthEnabled(123L)).thenReturn(false);
 		

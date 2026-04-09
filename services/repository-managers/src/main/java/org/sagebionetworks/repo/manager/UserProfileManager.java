@@ -48,7 +48,7 @@ public interface UserProfileManager {
 	 * Default to not include e-mail addresses.
 	 */
 	public List<UserProfile> getInRange(UserInfo userInfo,
-			long startIncl, long endExcl) throws DatastoreException,
+			long startIncl, long endExcl, String realmId) throws DatastoreException,
 			NotFoundException;
 
 	/**
@@ -58,7 +58,7 @@ public interface UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException;
+	public ListWrapper<UserProfile> list(IdList ids, String realmId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a UserProfile.

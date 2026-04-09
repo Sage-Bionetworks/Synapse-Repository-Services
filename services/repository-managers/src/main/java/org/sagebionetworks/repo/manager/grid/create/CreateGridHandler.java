@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.create;
 
-import org.sagebionetworks.repo.manager.grid.PatchStore;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;

@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.RealmManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -98,6 +99,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	private UserStatusManager userStatusManager;
+
+	@Autowired
+	private GridManager gridManager;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -286,6 +290,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void resetUserStatusToEnabled(Long userId, Long targetUserId) {
 		UserInfo userInfo = adminCheck(userId);
 		userStatusManager.resetUserStatusToEnabled(targetUserId);
+	}
+
+	@Override
+	public long backfillGridSessionChanges(Long userId) {
+		adminCheck(userId);
+		return gridManager.backfillGridSessionChanges();
 	}
 
 }

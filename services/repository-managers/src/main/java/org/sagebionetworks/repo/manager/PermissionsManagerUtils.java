@@ -6,9 +6,9 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -21,7 +21,7 @@ public class PermissionsManagerUtils {
 	 * @param realmIds realmIds is the list of realm ids for the principals listed in the TENTATIVE ACL.
 	 * @param ownerId the principal(user) id of the owner of the resource.
 	 */
-	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Set<String> realmIds, Long ownerId) throws InvalidModelException {
+	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Set<String> realmIds, ObjectType objectType, Long ownerId) throws InvalidModelException {
 
 		if (acl.getId() == null) {
 			throw new InvalidModelException("Resource ID is null");
@@ -32,7 +32,10 @@ public class PermissionsManagerUtils {
 		if(acl.getCreationDate() == null) {
 			acl.setCreationDate(new Date(System.currentTimeMillis()));
 		}
-
+		if (objectType == ObjectType.ACCESS_REQUIREMENT) {
+			// we do not check permissions because only ACT can create or update ACLs for Access Requirements.
+			return;
+		}
 		// Verify that the caller maintains permissions access
 		String callerPrincipalId = userInfo.getId().toString();
 		boolean callerIsOwner = ownerId !=null && callerPrincipalId.equals(ownerId.toString());
@@ -42,7 +45,7 @@ public class PermissionsManagerUtils {
 			if (ra.getPrincipalId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 			if (userInfo.getGroups().contains(ra.getPrincipalId())) { 
-				if (ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+				if (ra.getAccessType().contains(ObjectTypeToAccessType.getAccessTypesForObjectType(objectType))) {
 					// Found caller in the ACL, with access to change permissions
 					foundCallerInAcl = true;
 				}

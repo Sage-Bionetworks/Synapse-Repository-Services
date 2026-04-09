@@ -187,8 +187,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 	
 	@Override
-	public List<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
-		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+	public List<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, String realmId) throws DatastoreException, NotFoundException{
+		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, realmId);
 		addAliasesToProfiles(userProfiles);
 		addTwoFactorAuthInfo(userProfiles);
 		addTermsOfServiceAgreements(userProfiles);
@@ -201,8 +201,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public ListWrapper<UserProfile> list(IdList ids) throws DatastoreException, NotFoundException {
-		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList());
+	public ListWrapper<UserProfile> list(IdList ids, String realmId) throws DatastoreException, NotFoundException {
+		List<UserProfile> userProfiles = userProfileDAO.list(ids.getList(), realmId);
 		addAliasesToProfiles(userProfiles);
 		addTwoFactorAuthInfo(userProfiles);
 		addTermsOfServiceAgreements(userProfiles);
@@ -336,22 +336,20 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	/**
 	 * Remove PUBLIC_GROUP, AUTHENTICATED_USERS_GROUP, and CERTIFIED_USERS from the passed set.
-	 * @param usersGroups
+	 * @param userInfo
 	 * @return
 	 */
 	public static Set<Long> getGroupsMinusPublic(UserInfo userInfo){
 		Set<Long> groups = Sets.newHashSet(userInfo.getGroups());
 		groups.remove(userInfo.getRealmPublicUsersId());
 		groups.remove(userInfo.getRealmAuthenticatedUsersId());
-		groups.remove(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		return groups;
 	}
 
 	/**
 	 * Remove PUBLIC_GROUP, AUTHENTICATED_USERS_GROUP, and CERTIFIED_USERS, and the passed UserId
 	 * from the passed principal IDs.
-	 * @param usersGroups
-	 * @param userId
+	 * @param userInfo
 	 * @return
 	 */
 	public static Set<Long> getGroupsMinusPublicAndSelf(UserInfo userInfo) {

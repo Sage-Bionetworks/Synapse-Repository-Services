@@ -1,0 +1,13 @@
+{
+	"description": "Request to list synonym sets, optionally filtered by organization.",
+	"properties": {
+		"organizationName": {
+			"type": "string",
+			"description": "Optional filter by organization name."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Token for the next page of results."
+		}
+	}
+}

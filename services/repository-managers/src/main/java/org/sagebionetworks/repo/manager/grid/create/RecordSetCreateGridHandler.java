@@ -10,12 +10,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.grid.CsvSchemaReconciler;
+import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
 import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -53,13 +53,12 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 	private final JsonSchemaManager jsonSchemaManager;
 	private final JsonSchemaValidationManager jsonSchemaValidationManager;
 	private final FileProvider fileProvider;
-	private final SynapseS3Client s3Client;
-	private final StackConfiguration stackConfig;
+	private final IndexedModelEncoderProvider encoderProvider;
 
 	public RecordSetCreateGridHandler(GridDao gridDao, EntityManager entityManager, FileHandleManager fileHandleManager,
 									  EntityAuthorizationManager authorizationManager, CsvFileHandleProvider csvProvider,
 									  JsonSchemaManager jsonSchemaManager, JsonSchemaValidationManager jsonSchemaValidationManager,
-									  FileProvider fileProvider, SynapseS3Client s3Client, StackConfiguration stackConfig) {
+									  FileProvider fileProvider, IndexedModelEncoderProvider encoderProvider) {
 		super();
 		this.gridDao = gridDao;
 		this.entityManager = entityManager;
@@ -69,8 +68,7 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		this.jsonSchemaManager = jsonSchemaManager;
 		this.jsonSchemaValidationManager = jsonSchemaValidationManager;
 		this.fileProvider = fileProvider;
-		this.s3Client = s3Client;
-		this.stackConfig = stackConfig;
+		this.encoderProvider = encoderProvider;
 	}
 
 	@Override
@@ -117,6 +115,9 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 		List<ColumnModel> schema = getSchemaFromCsv(fileHandle, csvDescriptor);
 
 		final Optional<JsonSchema> validationSchema = validationSchemaId.map(jsonSchemaManager::getValidationSchema);
+
+		// See: PLFM-9558
+		validationSchema.ifPresent(vs -> CsvSchemaReconciler.reconcile(schema, vs));
 
 		final List<String> columnsRequiredByJsonSchema = validationSchema
 				.map(JsonSchema::getRequired)
@@ -179,7 +180,7 @@ public class RecordSetCreateGridHandler implements CreateGridHandler {
 											 List<ColumnModel> schema, List<Integer> requiredColumnIndices, FileProvider fileProvider,
 											 Long createdByUserId, JsonSchema validationSchema) {
 		return new SnapshotRowHandler(snapshotStore, session.getSessionId(), replica.getReplicaId(), schema, requiredColumnIndices,
-				fileProvider, createdByUserId, jsonSchemaValidationManager, validationSchema);
+				fileProvider, encoderProvider, createdByUserId, jsonSchemaValidationManager, validationSchema);
 	}
 
 }

@@ -59,10 +59,10 @@ public class PatchRowHandler implements RowHandler {
 		rowsArrayRef = rowsOperationId;
 		lastRowRef = rowsOperationId;
 		Map<String, LogicalTimestamp> objectMap = new LinkedHashMap<>();
-		objectMap.put("doc_version", documentVersionOperationId);
-		objectMap.put("columnNames", columnNamesOperationId);
-		objectMap.put("columnOrder", columnOrderOperationId);
-		objectMap.put("rows", rowsOperationId);
+		objectMap.put(DocumentConstants.DOC_VERSION, documentVersionOperationId);
+		objectMap.put(DocumentConstants.COLUMN_NAMES, columnNamesOperationId);
+		objectMap.put(DocumentConstants.COLUMN_ORDER, columnOrderOperationId);
+		objectMap.put(DocumentConstants.ROWS, rowsOperationId);
 		currentPatch.addNewOperation(
 				Operations.insertObject().setObjectId(rootObjectOperationId).setMap(objectMap)
 		);
@@ -139,7 +139,7 @@ public class PatchRowHandler implements RowHandler {
 
 		// Attach the "synapseRow" constant to the row metadata map
 		Map<String, LogicalTimestamp> metadataMapForRow = new LinkedHashMap<>();
-		metadataMapForRow.put("synapseRow", synapseRowMetadataRef);
+		metadataMapForRow.put(DocumentConstants.SYNAPSE_ROW, synapseRowMetadataRef);
 
 		currentPatch.addNewOperation(Operations.insertObject()
 				.setObjectId(metadataObjectForRowRef)
@@ -180,10 +180,10 @@ public class PatchRowHandler implements RowHandler {
 
 		Map<String, LogicalTimestamp> rowObjectMap = new LinkedHashMap<>();
 
-		rowObjectMap.put("data", rowDataRef);
+		rowObjectMap.put(DocumentConstants.DATA, rowDataRef);
 		
 		getRowMetadata(row).ifPresent(rowMetadataRef -> {
-			rowObjectMap.put("metadata", rowMetadataRef);
+			rowObjectMap.put(DocumentConstants.METADATA, rowMetadataRef);
 		});
 		
 		currentPatch.addNewOperation(Operations.insertObject()

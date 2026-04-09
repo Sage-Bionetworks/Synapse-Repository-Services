@@ -174,7 +174,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oidcTokenManager.validateJWT(tokenResponse.getId_token());
 
 		// method under test
-		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(tokenResponse.getAccess_token(), OAUTH_ENDPOINT);
+		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(tokenResponse.getAccess_token(), OAUTH_ENDPOINT, null);
 
 		oidcTokenManager.validateJWT(oidcUserInfo.getJwt());
 
@@ -211,7 +211,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oidcTokenManager.validateJWT(newTokenResponse.getId_token());
 
 		// method under test
-		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(newTokenResponse.getAccess_token(), OAUTH_ENDPOINT);
+		JWTWrapper oidcUserInfo = (JWTWrapper) openIDConnectManager.getUserInfo(newTokenResponse.getAccess_token(), OAUTH_ENDPOINT, null);
 
 		oidcTokenManager.validateJWT(oidcUserInfo.getJwt());
 

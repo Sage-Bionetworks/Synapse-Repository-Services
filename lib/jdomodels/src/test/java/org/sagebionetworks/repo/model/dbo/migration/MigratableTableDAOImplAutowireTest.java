@@ -91,12 +91,12 @@ public class MigratableTableDAOImplAutowireTest {
 		
 	@Autowired
 	private OrganizationDao orgDao;
-	
+
 	@Autowired
 	private JsonSchemaDao schemaDao;
-	
+
 	private String creatorUserGroupId;
-	
+
 	@BeforeEach
 	public void before() {
 		schemaDao.truncateAll();
@@ -105,7 +105,7 @@ public class MigratableTableDAOImplAutowireTest {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
-	
+
 	@AfterEach
 	public void after(){
 		fileHandleDao.truncateTable();

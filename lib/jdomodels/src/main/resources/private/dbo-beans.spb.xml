@@ -22,6 +22,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalPrefix" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
+				<bean class ="org.sagebionetworks.repo.model.dbo.persistence.DBOCertifiedUser"/>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
@@ -145,6 +146,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOSchemaValidationResults" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBOValidationJsonSchemaIndex" />
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBODerivedAnnotations" />
+				<!-- Search Configuration -->
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOTextAnalyzer" />
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOColumnAnalyzerOverride" />
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOSynonymSet" />
 				<!-- Download -->
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.file.download.DBODownloadListItem" />
@@ -238,6 +243,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealm" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCertifiedUser" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAuthenticatedOn" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
@@ -370,6 +376,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.auth.DBOUserStatus"/>
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.schema.DBORecordSetValidationStats"/>
+				<!-- Search Configuration -->
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOTextAnalyzer" />
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOColumnAnalyzerOverride" />
+				<bean class="org.sagebionetworks.repo.model.dbo.search.DBOSynonymSet" />
 
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" /> <!-- THIS MUST ALWAYS BE THE LAST BEAN -->
 			</list>

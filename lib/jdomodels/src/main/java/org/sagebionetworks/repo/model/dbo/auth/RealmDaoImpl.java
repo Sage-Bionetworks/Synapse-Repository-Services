@@ -19,6 +19,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -61,6 +62,8 @@ public class RealmDaoImpl implements RealmDao {
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	private Map<String,Long> principalIdToRealmPrincipalDboId;
 	
 	private static final String SYNAPSE_IDENTITY_PROVIDER = "SYNAPSE";
 	
@@ -174,41 +177,57 @@ public class RealmDaoImpl implements RealmDao {
 		List<DBORealmPrincipal> result = new ArrayList<DBORealmPrincipal>();
 		DBORealmPrincipal dbo = new DBORealmPrincipal();
 		dbo.setRealmId(stringToLong(realmPrincipal.getRealmId()));
-		dbo.setId(idGenerator.generateNewId(IdType.REALM_PRINCIPAL));
 		dbo.setPrincipalId(stringToLong(realmPrincipal.getAnonymousUser()));
+		dbo.setId(principalIdToRealmPrincipalDboId.getOrDefault(dbo.getPrincipalId().toString(),
+				idGenerator.generateNewId(IdType.REALM_PRINCIPAL)));
 		dbo.setPrincipalType(REALM_PRINCIPAL_TYPE_ANONYMOUS);
 		result.add(dbo);
 		dbo = new DBORealmPrincipal();
 		dbo.setRealmId(stringToLong(realmPrincipal.getRealmId()));
-		dbo.setId(idGenerator.generateNewId(IdType.REALM_PRINCIPAL));
 		dbo.setPrincipalId(stringToLong(realmPrincipal.getPublicGroup()));
+		dbo.setId(principalIdToRealmPrincipalDboId.getOrDefault(dbo.getPrincipalId().toString(),
+				idGenerator.generateNewId(IdType.REALM_PRINCIPAL)));
 		dbo.setPrincipalType(REALM_PRINCIPAL_TYPE_PUBLIC);
 		result.add(dbo);
 		dbo = new DBORealmPrincipal();
 		dbo.setRealmId(stringToLong(realmPrincipal.getRealmId()));
-		dbo.setId(idGenerator.generateNewId(IdType.REALM_PRINCIPAL));
 		dbo.setPrincipalId(stringToLong(realmPrincipal.getAuthenticatedUsers()));
+		dbo.setId(principalIdToRealmPrincipalDboId.getOrDefault(dbo.getPrincipalId().toString(),
+				idGenerator.generateNewId(IdType.REALM_PRINCIPAL)));
 		dbo.setPrincipalType(REALM_PRINCIPAL_TYPE_AUTHENTICATED);
 		result.add(dbo);
 		dbo = new DBORealmPrincipal();
 		dbo.setRealmId(stringToLong(realmPrincipal.getRealmId()));
-		dbo.setId(idGenerator.generateNewId(IdType.REALM_PRINCIPAL));
 		dbo.setPrincipalId(stringToLong(realmPrincipal.getAdministrativeGroup()));
+		dbo.setId(principalIdToRealmPrincipalDboId.getOrDefault(dbo.getPrincipalId().toString(),
+				idGenerator.generateNewId(IdType.REALM_PRINCIPAL)));
 		dbo.setPrincipalType(REALM_PRINCIPAL_TYPE_ADMINISTRATORS);
 		result.add(dbo);
 		return result;
 	}
 
-	private DBORealm createPrivate(Realm dto) {
+	private static String sqlInsertCmd(boolean idempotent) {
+		return idempotent ? "INSERT IGNORE" : "INSERT";
+	}
+	
+	/**
+	 * 
+	 * @param dto the Realm to create
+	 * @param idempotent create idempotently, required for the bootstrapped realm
+	 * @return
+	 */
+	private DBORealm createRealmPrivate(Realm dto, boolean idempotent) {
 		dto.setCreatedOn(new Date());
 		DBORealm dbo = copyRealmToDBORealm(dto);
 		dbo = basicDao.createNew(dbo);
 		
-		// remove existing IDPs for this realm
-		jdbcTemplate.update(DELETE_IDPS_SQL, dto.getId());
 		// create the IDPs
 		List<DBORealmIdentityProvider> idps = copyRealmToRealmIdps(dto);
-		basicDao.createBatch(idps);
+		List<Object[]> batchArgs = new ArrayList<Object[]>();
+		for (DBORealmIdentityProvider idp: idps) {
+			batchArgs.add(new Object[] { idp.getRealmId(), idp.getIdentityProvider() } );
+		}
+		jdbcTemplate.batchUpdate(sqlInsertCmd(idempotent)+" INTO SYNAPSE_REALM_IDP (REALM_ID, PROVIDER) VALUES (?,?) ", batchArgs);
 		return dbo;
 	}
 
@@ -216,19 +235,32 @@ public class RealmDaoImpl implements RealmDao {
 	@Override
 	public Realm createRealm(Realm dto) {
 		dto.setId(idGenerator.generateNewId(IdType.REALM).toString());
-		createPrivate(dto);
+		// idempotent MUST be false for the DB to ensure an IdP is not reused across realms
+		createRealmPrivate(dto, false);
 		return dto;
 	}
 	
 	@WriteTransaction
 	@Override
 	public RealmPrincipal createRealmPrincipals(RealmPrincipal dto) {
-		// remove the principals for the realm, prior to recreating them
-		jdbcTemplate.update(DELETE_PRINCIPALS_SQL, dto.getRealmId());
-		// create realm principals
+		// idempotent MUST be false for the DB to ensure realm principals aren't reused across realms
+		return createRealmPrincipalsPrivate(dto, false);
+	}
+	
+	/**
+	 * 
+	 * @param dto
+	 * @param idempotent create idempotently, required for the bootstrapped realm
+	 * @return
+	 */
+	private RealmPrincipal createRealmPrincipalsPrivate(RealmPrincipal dto, boolean idempotent) {
 		List<DBORealmPrincipal> principals = copyRealmPrincipalsToDBOList(dto);
 		if (!principals.isEmpty()) {
-			basicDao.createBatch(principals);
+			List<Object[]> batchArgs = new ArrayList<Object[]>();
+			for (DBORealmPrincipal p: principals) {
+				batchArgs.add(new Object[] { p.getId(), p.getRealmId(), p.getPrincipalId(), p.getPrincipalType() } );
+			}
+			jdbcTemplate.batchUpdate(sqlInsertCmd(idempotent)+" INTO SYNAPSE_REALM_PRINCIPAL (ID, REALM_ID, PRINCIPAL_ID, TYPE) VALUES (?,?,?,?) ", batchArgs);
 		}
 		return dto;
 	}
@@ -317,12 +349,15 @@ public class RealmDaoImpl implements RealmDao {
 		orcidIdp.setProvider(OAuthProvider.ORCID);
 		idps.add(orcidIdp);
 		defaultRealm.setIdentityProvider(idps);
-		createPrivate(defaultRealm);
+		// idempotent MUST be true to ensure that multiple, concurrent servers
+		// can bootstrap the default realm without any errors
+		createRealmPrivate(defaultRealm, true);
 	}
 
 	@WriteTransaction
 	@Override
-	public void addPrincipalsToDefaultRealm() {
+	public void addPrincipalsToDefaultRealm(Map<String,Long> principalIdToRealmPrincipalDboId) {
+		this.principalIdToRealmPrincipalDboId=principalIdToRealmPrincipalDboId;
 		RealmPrincipal realmPrincipal = new RealmPrincipal();
 		realmPrincipal.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
 		// Note, that the Synapse Administrator group is doing 'double duty' here by also being the
@@ -331,7 +366,9 @@ public class RealmDaoImpl implements RealmDao {
 		realmPrincipal.setAnonymousUser(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		realmPrincipal.setAuthenticatedUsers(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString());
 		realmPrincipal.setPublicGroup(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
-		createRealmPrincipals(realmPrincipal);
+		// idempotent MUST be true to ensure that multiple, concurrent servers
+		// can bootstrap the default realm without any errors
+		createRealmPrincipalsPrivate(realmPrincipal, true);
 	}
 	
 	@Override

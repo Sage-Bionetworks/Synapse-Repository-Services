@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.grid.synch.row;
 
 import org.sagebionetworks.repo.manager.grid.synch.core.Merge;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
 
 /**
  * Defines the merge strategy for resolving conflicts between copy rows and
@@ -37,11 +37,11 @@ import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
  * without data loss.
  *
  * @see RowCopyItem the type of rows in the copy
- * @see RowHeader the type of row identifiers from the source
+ * @see RowSourceItemReference the type of row identifiers from the source
  * @see CellCopyItem the individual cells compared during merging
  * @see CellSourceItem the source cell values compared during merging
  * @see RowMergeImpl the implementation that performs cell-level synchronization
  */
-public interface RowMerge extends Merge<RowCopyItem, RowHeader> {
+public interface RowMerge extends Merge<RowCopyItem, RowSourceItemReference> {
 
 }

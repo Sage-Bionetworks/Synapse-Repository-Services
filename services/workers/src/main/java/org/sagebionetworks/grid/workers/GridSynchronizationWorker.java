@@ -1,7 +1,5 @@
 package org.sagebionetworks.grid.workers;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.grid.synch.GridSynchronizationManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -14,8 +12,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class GridSynchronizationWorker implements AsyncJobRunner<SynchronizeGridRequest, SynchronizeGridResponse> {
 	
-	private static final Logger log = LogManager.getLogger(GridSynchronizationWorker.class);
-
 	private final GridSynchronizationManager manager;
 
 	public GridSynchronizationWorker(GridSynchronizationManager manager) {

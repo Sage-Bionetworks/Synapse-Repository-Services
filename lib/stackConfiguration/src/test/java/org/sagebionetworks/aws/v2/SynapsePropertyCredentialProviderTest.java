@@ -78,6 +78,32 @@ public class SynapsePropertyCredentialProviderTest {
 	}
 	
 	@Test
+	public void testWithEmptyId() {
+		Properties props=new Properties();
+		props.put("org.sagebionetworks.stack.iam.key", "theKey");
+		props.put("org.sagebionetworks.stack.iam.id", "");
+		SynapsePropertyCredentialProvider provider = new SynapsePropertyCredentialProvider("testing", props);
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			provider.resolveCredentials();
+		}).getMessage();
+		assertEquals("No properties for name: testing", message);
+	}
+
+	@Test
+	public void testWithEmptyKey() {
+		Properties props=new Properties();
+		props.put("org.sagebionetworks.stack.iam.key", "");
+		props.put("org.sagebionetworks.stack.iam.id", "theId");
+		SynapsePropertyCredentialProvider provider = new SynapsePropertyCredentialProvider("testing", props);
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			provider.resolveCredentials();
+		}).getMessage();
+		assertEquals("No properties for name: testing", message);
+	}
+
+	@Test
 	public void testWithNullKey() {
 		Properties props=new Properties();
 		String key = "theKey";

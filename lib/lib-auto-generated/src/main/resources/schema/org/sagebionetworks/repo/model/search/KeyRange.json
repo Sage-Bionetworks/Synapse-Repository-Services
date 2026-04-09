@@ -1,0 +1,18 @@
+{
+	"description": "A range filter. Matches rows where min <= value <= max. At least one of either 'min' or 'max' must be set for this range to be valid.",
+	"properties": {
+		"key": {
+			"required": true,
+			"type": "string",
+			"description": "The column name to filter on."
+		},
+		"min": {
+			"type": "string",
+			"description": "The minimum value in the range (inclusive). At least one of either 'min' or 'max' must be set."
+		},
+		"max": {
+			"type": "string",
+			"description": "The maximum value in the range (inclusive). At least one of either 'min' or 'max' must be set."
+		}
+	}
+}

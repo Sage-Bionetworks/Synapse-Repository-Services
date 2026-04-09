@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.synch.core.SynchronizationLogic;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
 import org.sagebionetworks.repo.manager.grid.synch.handler.SourceHandler;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopy;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyImpl;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowMerge;
@@ -40,7 +40,7 @@ public class SynchronizeProviderImpl implements SynchronizeProvider {
 	}
 
 	@Override
-	public RowSource getRowSource(RowReader sourceReader, SourceHandler handler) {
+	public RowSource getRowSource(RowSourceItemReader sourceReader, SourceHandler handler) {
 		return new RowSourceImpl(handler, sourceReader);
 	}
 

@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.EntityType;
@@ -969,7 +968,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
 		});
 		// enuser userTwo is certified
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1071,7 +1070,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1093,7 +1092,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1116,7 +1115,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
@@ -1140,7 +1139,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.UPDATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
@@ -1243,7 +1242,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
 		
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 		
 		String parentId = project.getId();
 		EntityType createType = EntityType.project;
@@ -1266,7 +1265,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
 		
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 		
 		String parentId = project.getId();
 		EntityType createType = EntityType.file;
@@ -1290,7 +1289,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
 		
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		
 		String parentId = project.getId();
 		EntityType createType = EntityType.file;
@@ -1312,7 +1311,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);;
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1334,7 +1333,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1358,7 +1357,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.READ));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		String entityId = project.getId();
 		UserInfo user = adminUserInfo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
@@ -1394,7 +1393,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			n.setCreatedByPrincipalId(userOne.getId());
 			n.setParentId("" + NodeConstants.BOOTSTRAP_NODES.TRASH.getId());
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CREATE;
@@ -1420,7 +1419,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1443,7 +1442,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = project.getId();
 		UserInfo user = userTwo;
@@ -1466,7 +1465,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
@@ -1490,7 +1489,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
@@ -1885,7 +1884,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_SETTINGS));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
@@ -1906,7 +1905,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CHANGE_SETTINGS));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
@@ -1928,7 +1927,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userOne.getId(), ACCESS_TYPE.READ));
 		});
-		userOne.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userOne.setCertified(true);
 		String entityId = project.getId();
 		UserInfo user = userOne;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
@@ -1949,7 +1948,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(project.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		String entityId = project.getId();
 		UserInfo user = userTwo;
 		ACCESS_TYPE accessType = ACCESS_TYPE.CHANGE_SETTINGS;
@@ -2317,7 +2316,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(false);
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
 		
@@ -2344,7 +2343,7 @@ public class EntityAuthorizationManagerAutowireTest {
 			a.setId(folder.getId());
 			a.getResourceAccess().add(createResourceAccess(userTwo.getId(), ACCESS_TYPE.CREATE));
 		});
-		userTwo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userTwo.setCertified(true);
 		String entityId = folder.getId();
 		UserInfo user = userTwo;
 		

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
@@ -21,24 +20,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import org.json.JSONArray;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.grid.PatchRowHandler;
+import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
 import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -55,9 +48,7 @@ import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridUtils;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.patch.Patch;
-import org.sagebionetworks.repo.model.grid.patch.compact.PatchCompactSerializable;
+import org.sagebionetworks.repo.model.grid.encoding.IndexedModelEncoder;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
@@ -66,15 +57,8 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.FileProvider;
 
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import com.amazonaws.services.s3.model.UploadPartResult;
 import au.com.bytecode.opencsv.CSVReader;
 
 @ExtendWith(MockitoExtension.class)
@@ -110,18 +94,18 @@ public class RecordSetCreateGridHandlerTest {
 	@Mock
 	private FileProvider mockFileProvider;
 
-	@Captor
-	private ArgumentCaptor<String> patchCaptor;
+	@Mock
+	private IndexedModelEncoderProvider mockEncoderProvider;
+
+	@Mock
+	private IndexedModelEncoder mockEncoder;
 
 	@Spy
 	@InjectMocks
 	RecordSetCreateGridHandler handler;
 
-	@TempDir
-	File tempDir;
-	private File tempFile;
-
-	private static final String mockStackName = "test";
+	@Mock
+	private File mockFile;
 
 	private Long userId;
 	private String gridSessionId;
@@ -168,8 +152,6 @@ public class RecordSetCreateGridHandlerTest {
 		recordSet = new RecordSet().setId("syn456").setDataFileHandleId(csvFile.getId())
 				.setCsvDescriptor(csvDescriptor);
 
-		// Create a real temp file for testing
-		tempFile = new File(tempDir, "snapshot-test.cbor");
 	}
 	
 	@Test
@@ -384,7 +366,8 @@ public class RecordSetCreateGridHandlerTest {
 
 	@Test
 	public void testGetSnapshotRowHandler() throws IOException {
-		when(mockFileProvider.createTempFile("snapshot", ".cbor")).thenReturn(tempFile);
+		when(mockFileProvider.createTempFile("snapshot", ".cbor")).thenReturn(mockFile);
+		when(mockEncoderProvider.getEncoder(any(), any())).thenReturn(mockEncoder);
 		gridSession = new GridSession().setSessionId(gridSessionId);
 
 		// Call under test
@@ -398,7 +381,7 @@ public class RecordSetCreateGridHandlerTest {
 		snapshotHandler.nextRow(new Row().setValues(Arrays.asList("1", "one")));
 		snapshotHandler.close();
 
-		verify(mockSnapshotStore).saveSnapshot(eq(gridSessionId), any(), eq(userId), eq(tempFile));
+		verify(mockSnapshotStore).saveSnapshot(eq(gridSessionId), any(), eq(userId), eq(mockFile));
 	}
 
 	@Test

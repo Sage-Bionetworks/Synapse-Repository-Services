@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_PATCH_ID_SEQ;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SESSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_CREATE_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_REPLICA_IS_AGENT;
@@ -51,6 +52,8 @@ import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridConstants;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
+import org.sagebionetworks.repo.model.grid.GridReplicaType;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.GridUtils;
@@ -103,11 +106,12 @@ public class GridDaoImpl implements GridDao {
 	};
 
 	private final RowMapper<PatchInfo> PATCH_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
-		return new PatchInfo().setSesisonId(rs.getString(COL_GRID_PAT_SESSION_ID))
+		return new PatchInfo().setSessionId(rs.getString(COL_GRID_PAT_SESSION_ID))
 				.setPatchId(new LogicalTimestamp().setReplicaId(rs.getLong(COL_GRID_PAT_PATCH_ID_REP))
 						.setSequenceNumber(rs.getLong(COL_GRID_PAT_PATCH_ID_SEQ)))
 				.setCreatedOn(rs.getTimestamp(COL_GRID_PAT_CREATED_ON))
-				.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON)).setS3Key(rs.getString(COL_GRID_PAT_S3_KEY));
+				.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON)).setS3Key(rs.getString(COL_GRID_PAT_S3_KEY))
+				.setSizeBytes(rs.getObject(COL_GRID_PAT_SIZE_BYTES, Long.class));
 	};
 
 	private final RowMapper<GridSnapshot> SNAPSHOT_INFO_MAPPER = (ResultSet rs, int rowNum) -> {
@@ -254,6 +258,36 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
+	public List<GridReplicaInfo> listReplicas(String sessionId, long limit, long offset) {
+		ValidateArgument.required(sessionId, "sessionId");
+		return jdbcTemplate.query(
+				"SELECT r.REPLICA_ID, r.CREATED_BY, r.IS_AGENT, (c.REPLICA_ID IS NOT NULL) AS IS_CONNECTED"
+						+ " FROM GRID_REPLICA r"
+						+ " LEFT JOIN GRID_CONNECTION c ON r.SESSION_ID = c.SESSION_ID AND r.REPLICA_ID = c.REPLICA_ID"
+						+ " WHERE r.SESSION_ID = ?"
+						+ " ORDER BY r.REPLICA_ID ASC"
+						+ " LIMIT ? OFFSET ?",
+				(ResultSet rs, int rowNum) -> {
+					long replicaId = rs.getLong(COL_GRID_REPLICA_REPLICA_ID);
+					boolean isAgent = rs.getBoolean(COL_GRID_REPLICA_IS_AGENT);
+					GridReplicaType type;
+					if (isAgent) {
+						type = GridReplicaType.AGENT;
+					} else if (GridConstants.isUserReplica(replicaId)) {
+						type = GridReplicaType.USER;
+					} else {
+						type = GridReplicaType.SERVICE;
+					}
+					return new GridReplicaInfo()
+							.setReplicaId(replicaId)
+							.setCreatedBy(rs.getString(COL_GRID_REPLICA_CREATE_BY))
+							.setIsConnected(rs.getBoolean("IS_CONNECTED"))
+							.setReplicaType(type);
+				},
+				sessionId, limit, offset);
+	}
+
+	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM GRID_SESSION WHERE ID > -1");
 
@@ -348,7 +382,7 @@ public class GridDaoImpl implements GridDao {
 
 	@WriteTransaction
 	@Override
-	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires) {
+	public boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires, long sizeBytes) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(patchId, "patchId");
 		ValidateArgument.required(s3Key, "s3Key");
@@ -357,9 +391,9 @@ public class GridDaoImpl implements GridDao {
 		Long id = idGenerator.generateNewId(IdType.GRID_SESSION_ID);
 		return jdbcTemplate.update(
 				"INSERT IGNORE INTO GRID_PATCH "
-						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY)"
-						+ " VALUES (?,?,?,?,NOW(),NOW() + INTERVAL ? SECOND,?)",
-				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), expires.getSeconds(), s3Key) > 0;
+						+ "(ID, SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ, CREATED_ON, EXPIRES_ON, S3_KEY, SIZE_BYTES)"
+						+ " VALUES (?,?,?,?,NOW(),NOW() + INTERVAL ? SECOND,?,?)",
+				id, sessionId, patchId.getReplicaId(), patchId.getSequenceNumber(), expires.getSeconds(), s3Key, sizeBytes) > 0;
 	}
 
 	@WriteTransaction
@@ -404,8 +438,7 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
-	public List<LogicalTimestamp> listMissingPatchIdsForClock(String sessionId, List<LogicalTimestamp> clock,
-			long limit) {
+	public List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit) {
 		ValidateArgument.required(sessionId, "sessionId");
 		ValidateArgument.required(clock, "clock");
 		if (clock.isEmpty()) {
@@ -416,7 +449,7 @@ public class GridDaoImpl implements GridDao {
 			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
 		});
 		String sql = String.format(LIST_MISSING_PATCHES, rows.toString());
-		return jdbcTemplate.query(sql, TIMESTAMP_MAPPER, sessionId, limit);
+		return jdbcTemplate.query(sql, PATCH_INFO_MAPPER, sessionId, limit);
 	}
 
 	@Override
@@ -445,6 +478,12 @@ public class GridDaoImpl implements GridDao {
 	public void deleteGridSession(String sessionId) {
 		ValidateArgument.required(sessionId, "sessionId");
 		jdbcTemplate.update("DELETE FROM GRID_SESSION WHERE SESSION_ID = ?", sessionId);
+	}
+
+	@Override
+	public List<String> listAllSessionIds(long limit, long offset) {
+		return jdbcTemplate.queryForList("SELECT SESSION_ID FROM GRID_SESSION ORDER BY ID ASC LIMIT ? OFFSET ?",
+				String.class, limit, offset);
 	}
 
 	@Override

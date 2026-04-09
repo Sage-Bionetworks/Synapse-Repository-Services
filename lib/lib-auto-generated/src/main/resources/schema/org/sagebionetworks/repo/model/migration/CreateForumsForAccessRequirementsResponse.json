@@ -1,0 +1,14 @@
+{
+	"description": "Response for the CreateForumsForAccessRequirementsRequest.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminResponse"
+		}
+	],
+	"properties": {
+		"forumsCreated": {
+			"description": "The number of forums created for access requirements.",
+			"type": "integer"
+		}
+	}
+}

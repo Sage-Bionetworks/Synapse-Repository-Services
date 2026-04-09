@@ -8,7 +8,16 @@ public class ArrayTranslator implements Translator {
 
 	@Override
 	public ConValue translate(String string) {
-		return new ConValue(ConType.JSON_ARRAY, new JSONArray(string));
+		JSONArray array;
+		if (string.startsWith("[")) {
+			array = new JSONArray(string);
+		} else {
+			array = new JSONArray();
+			for (String element : string.split(",")) {
+				array.put(element.trim());
+			}
+		}
+		return new ConValue(ConType.JSON_ARRAY, array);
 	}
 
 }

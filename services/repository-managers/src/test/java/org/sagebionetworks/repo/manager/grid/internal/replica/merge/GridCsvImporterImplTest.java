@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
 import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
@@ -70,7 +71,9 @@ public class GridCsvImporterImplTest {
 	private GridCsvImportDao mockImportDao;
 	@Mock
 	private JoinedRowChangePublisher mockChangePublisher;
-	
+	@Mock
+	private JsonSchemaManager mockJsonSchemaManager;
+
 	@InjectMocks
 	private GridCsvImporterImpl importer;
 
@@ -138,20 +141,20 @@ public class GridCsvImporterImplTest {
 			"2,2,false" + System.lineSeparator();
 		
 		gridRows = List.of(
-			new RowView().setRowObject(new RowObject().setData(new RowData().setNodes(
-				Arrays.asList(
+			new RowView().setRowObject(new RowObject().setData(new RowData()
+					.setNodes(Arrays.asList(
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.LONG, 0)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.LONG, 1)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.BOOLEAN, true))
-				)
-			))),
-			new RowView().setRowObject(new RowObject().setData(new RowData().setNodes(
-				Arrays.asList(
+					)).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(98L))
+			)),
+			new RowView().setRowObject(new RowObject().setData(new RowData()
+					.setNodes(Arrays.asList(
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(104L)).setValue(new ConValue(ConType.LONG, 2)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(105L)).setValue(new ConValue(ConType.LONG, 3)),
 						new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(106L)).setValue(new ConValue(ConType.BOOLEAN, true))
-				)
-			)))
+					)).setVectorId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(99L)))
+			)
 		);
 		
 		joinedRows = List.of(

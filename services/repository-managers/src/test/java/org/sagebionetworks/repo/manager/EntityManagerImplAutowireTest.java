@@ -113,7 +113,7 @@ public class EntityManagerImplAutowireTest {
 		nu.setEmail("just.a.test@sagebase.org");
 		userId = userManager.createUser(nu);
 		userInfo = userManager.getUserInfo(userId);
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();

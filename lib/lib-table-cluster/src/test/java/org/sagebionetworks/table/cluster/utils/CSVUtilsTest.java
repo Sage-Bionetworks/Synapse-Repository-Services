@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 
 import au.com.bytecode.opencsv.CSVReader;
-import au.com.bytecode.opencsv.CSVWriter;
 import au.com.bytecode.opencsv.Constants;
 
 public class CSVUtilsTest {
@@ -440,9 +439,224 @@ public class CSVUtilsTest {
 		assertEquals(12, csvReader.getSkipLines());
 	}
 
+	@Test
+	public void testCheckTypeJsonObject() {
+		ColumnModel cm = CSVUtils.checkType("{\"a\":1}", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.JSON, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeEmptyJsonObject() {
+		ColumnModel cm = CSVUtils.checkType("{}", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.JSON, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeIntegerArray() {
+		ColumnModel cm = CSVUtils.checkType("[1,2,3]", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER_LIST, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeStringArray() {
+		ColumnModel cm = CSVUtils.checkType("[\"a\",\"b\"]", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeEmptyArray() {
+		// Empty arrays are treated as no data
+		ColumnModel cm = CSVUtils.checkType("[]", null);
+		assertEquals(null, cm);
+	}
+
+	@Test
+	public void testCheckTypeEmptyArrayWithExistingType() {
+		ColumnModel existing = new ColumnModel();
+		existing.setColumnType(ColumnType.INTEGER_LIST);
+		existing.setMaximumSize(5L);
+		existing.setMaximumListLength(2L);
+		ColumnModel cm = CSVUtils.checkType("[]", existing);
+		// Should not change the existing type
+		assertEquals(existing, cm);
+	}
+
+	@Test
+	public void testCheckTypeNestedArray() {
+		ColumnModel cm = CSVUtils.checkType("[[1,2],[3,4]]", null);
+		assertNotNull(cm);
+		// This is a side effect of the JSONArray reading this as an array of strings.
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeArrayWithObjects() {
+		ColumnModel cm = CSVUtils.checkType("[{\"a\":1}]", null);
+		assertNotNull(cm);
+		// This is a side effect of the JSONArray reading this as an array of strings.
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeArrayWithNulls() {
+		ColumnModel cm = CSVUtils.checkType("[null, 1]", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.JSON, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeMixedArray() {
+		// Mixed integers and strings -> STRING_LIST
+		ColumnModel cm = CSVUtils.checkType("[1, \"a\"]", null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeWidenIntegerListToStringList() {
+		ColumnModel intList = new ColumnModel();
+		intList.setColumnType(ColumnType.INTEGER_LIST);
+		intList.setMaximumSize(5L);
+		intList.setMaximumListLength(3L);
+		ColumnModel cm = CSVUtils.checkType("[\"a\",\"b\"]", intList);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
+		// maximumListLength should be carried forward (max of 3 and 2)
+		assertEquals(Long.valueOf(3), cm.getMaximumListLength());
+	}
+
+	@Test
+	public void testCheckTypeWidenIntegerListToJson() {
+		ColumnModel intList = new ColumnModel();
+		intList.setColumnType(ColumnType.INTEGER_LIST);
+		intList.setMaximumSize(5L);
+		intList.setMaximumListLength(3L);
+		ColumnModel cm = CSVUtils.checkType("{\"a\":1}", intList);
+		assertNotNull(cm);
+		assertEquals(ColumnType.JSON, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeWidenStringListToJson() {
+		ColumnModel strList = new ColumnModel();
+		strList.setColumnType(ColumnType.STRING_LIST);
+		strList.setMaximumSize(5L);
+		strList.setMaximumListLength(2L);
+		ColumnModel cm = CSVUtils.checkType("{\"a\":1}", strList);
+		assertNotNull(cm);
+		assertEquals(ColumnType.JSON, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeJsonToNonJsonFallsToString() {
+		ColumnModel jsonType = new ColumnModel();
+		jsonType.setColumnType(ColumnType.JSON);
+		jsonType.setMaximumSize(5L);
+		ColumnModel cm = CSVUtils.checkType("abc", jsonType);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+	}
+
+	@Test
+	public void testCheckTypeNonJsonToJsonFallsToString() {
+		ColumnModel intType = new ColumnModel();
+		intType.setColumnType(ColumnType.INTEGER);
+		intType.setMaximumSize(3L);
+		ColumnModel cm = CSVUtils.checkType("[1,2,3]", intType);
+		assertNotNull(cm);
+		assertEquals(ColumnType.STRING, cm.getColumnType());
+	}
+	
+	@Test
+	public void testCheckTypeWithStartBracketOnly() {
+		// call under test
+		ColumnModel cm = CSVUtils.checkType("[one json", null);
+		assertEquals(new ColumnModel().setColumnType(ColumnType.STRING).setMaximumSize(9L), cm);
+	}
+	
+	@Test
+	public void testCheckTypeWithStartCurlyBracketOnly() {
+		// call under test
+		ColumnModel cm = CSVUtils.checkType("{one json", null);
+		assertEquals(new ColumnModel().setColumnType(ColumnType.STRING).setMaximumSize(9L), cm);
+	}
+	
+	@Test
+	public void testCheckTypeWithCurrentJSONAndValueJSON() {
+		ColumnModel current = new ColumnModel().setColumnType(ColumnType.JSON).setMaximumSize(4L);
+		// call under test
+		ColumnModel cm = CSVUtils.checkType("{\"a\":123}",current);
+		assertEquals(new ColumnModel().setColumnType(ColumnType.JSON).setMaximumSize(9L), cm);
+	}
+
+	@Test
+	public void testCheckTypeWithCurrentStringListValueStringList() {
+		ColumnModel current = new ColumnModel().setColumnType(ColumnType.STRING_LIST).setMaximumSize(4L)
+				.setMaximumListLength(1L);
+		// call under test
+		ColumnModel cm = CSVUtils.checkType("[\"a\",\"b\"]", current);
+		// maximumSize is max of current (4) and longest element "a"/"b" (1) = 4
+		assertEquals(
+				new ColumnModel().setColumnType(ColumnType.STRING_LIST).setMaximumSize(4L).setMaximumListLength(2L),
+				cm);
+	}
+
+	@Test
+	public void testCheckTypeWithCurrentIntListAndValueIntList() {
+		ColumnModel current = new ColumnModel().setColumnType(ColumnType.INTEGER_LIST).setMaximumSize(4L);
+		// call under test
+		ColumnModel cm = CSVUtils.checkType("[1,2,3,4]", current);
+		assertEquals(
+				new ColumnModel().setColumnType(ColumnType.INTEGER_LIST).setMaximumSize(9L).setMaximumListLength(4L),
+				cm);
+	}
+
+	@Test
+	public void testParseListValueWithValidArray() {
+		Optional<CSVUtils.ListInfo> result = CSVUtils.parseListValue("[\"a\",\"bb\",\"ccc\"]");
+		assertTrue(result.isPresent());
+		assertEquals(3, result.get().listSize);
+		assertEquals(3, result.get().maxElementSize);
+	}
+
+	@Test
+	public void testParseListValueWithEmptyArray() {
+		Optional<CSVUtils.ListInfo> result = CSVUtils.parseListValue("[]");
+		assertTrue(result.isPresent());
+		assertEquals(0, result.get().listSize);
+		assertEquals(0, result.get().maxElementSize);
+	}
+
+	@Test
+	public void testParseListValueWithNotAnArray() {
+		assertFalse(CSVUtils.parseListValue("not json").isPresent());
+	}
+
+	@Test
+	public void testParseListValueWithJsonObject() {
+		assertFalse(CSVUtils.parseListValue("{\"a\":1}").isPresent());
+	}
+
+	@Test
+	public void testParseListValueWithInvalidBracketString() {
+		assertFalse(CSVUtils.parseListValue("[not json").isPresent());
+	}
+
+	@Test
+	public void testParseListValueWithIntegerArray() {
+		Optional<CSVUtils.ListInfo> result = CSVUtils.parseListValue("[1,2,3]");
+		assertTrue(result.isPresent());
+		assertEquals(3, result.get().listSize);
+		assertEquals(1, result.get().maxElementSize);
+	}
+
 	/**
 	 * Validate the expected types.
-	 * 
+	 *
 	 * @param expected
 	 * @param cm
 	 */

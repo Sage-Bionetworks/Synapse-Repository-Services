@@ -1,17 +1,25 @@
 package org.sagebionetworks.repo.manager.curation;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.dbo.curation.CurationTaskDao;
@@ -27,12 +35,15 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
 
     private final CurationTaskDao curationTaskDao;
     private final AuthorizationManager authorizationManager;
+    private final AccessControlListManager aclManager;
     private final EntityManager entityManager;
 
     @Autowired
-    public CurationTaskManagerImpl(CurationTaskDao curationTaskDao, AuthorizationManager authorizationManager, EntityManager entityManager) {
+    public CurationTaskManagerImpl(CurationTaskDao curationTaskDao, AuthorizationManager authorizationManager,
+            AccessControlListManager aclManager, EntityManager entityManager) {
         this.curationTaskDao = curationTaskDao;
         this.authorizationManager = authorizationManager;
+        this.aclManager = aclManager;
         this.entityManager = entityManager;
     }
 
@@ -85,14 +96,90 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
     @Override
     public ListCurationTaskResponse getCurationTasks(UserInfo userInfo, ListCurationTaskRequest request) {
         NextPageToken token = new NextPageToken(request.getNextPageToken());
+
+        ValidateArgument.requirement(
+                !(Boolean.TRUE.equals(request.getAssignedToMe()) && request.getAssigneeIds() != null),
+                "Cannot specify both 'assignedToMe' and 'assigneeIds'.");
+
+        List<Long> assigneeIds;
+        if (Boolean.TRUE.equals(request.getAssignedToMe())) {
+            assigneeIds = new ArrayList<>(userInfo.getGroups());
+        } else if (request.getAssigneeIds() != null) {
+            assigneeIds = request.getAssigneeIds().stream().map(Long::parseLong).collect(Collectors.toList());
+        } else {
+            assigneeIds = null;
+        }
+        
+        List<Long> accessibleProjectIds;
+
+        if (request.getProjectId() != null) {
+            authorizationManager.canAccess(userInfo, request.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+                    .checkAuthorizationOrElseThrow();
+            accessibleProjectIds = List.of(KeyFactory.stringToKey(request.getProjectId()));
+        } else {
+            Set<Long> allTaskProjectIds = curationTaskDao.getDistinctProjectIds();
+            if (allTaskProjectIds.isEmpty()) {
+                return new ListCurationTaskResponse().setPage(List.of()).setBundlePage(List.of());
+            }
+            accessibleProjectIds = new ArrayList<>(
+                    aclManager.getAccessibleBenefactors(userInfo, ObjectType.ENTITY, allTaskProjectIds, ACCESS_TYPE.READ));
+            if (accessibleProjectIds.isEmpty()) {
+                return new ListCurationTaskResponse().setPage(List.of()).setBundlePage(List.of());
+            }
+        }
+
+        List<TaskBundle> bundles = curationTaskDao.getCurationTaskBundles(
+                accessibleProjectIds, assigneeIds, request.getStateFilter(),
+                token.getLimitForQuery(), token.getOffset());
+
+        List<CurationTask> tasks = bundles.stream().map(TaskBundle::getTask).collect(Collectors.toList());
+
         ListCurationTaskResponse response = new ListCurationTaskResponse();
-
-        authorizationManager.canAccess(userInfo, request.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-
-        List<CurationTask> tasks = curationTaskDao.getCurationTasks(KeyFactory.stringToKey(request.getProjectId()), token.getLimitForQuery(), token.getOffset());
         response.setPage(tasks);
+        response.setBundlePage(bundles);
         response.setNextPageToken(token.getNextPageTokenForCurrentResults(tasks));
         return response;
+    }
+
+
+    @Override
+    public TaskStatus getTaskStatus(UserInfo userInfo, Long taskId) {
+        CurationTask task = curationTaskDao.getCurationTask(taskId)
+                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+
+        authorizationManager.canAccess(userInfo, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)
+                .checkAuthorizationOrElseThrow();
+
+        return curationTaskDao.getTaskStatus(taskId);
+    }
+
+	@Override
+    @WriteTransaction
+    public TaskStatus updateTaskStatus(UserInfo userInfo, Long taskId, TaskStatus statusUpdate) {
+        ValidateArgument.required(statusUpdate, "statusUpdate");
+        ValidateArgument.required(statusUpdate.getState(), "state");
+        ValidateArgument.required(statusUpdate.getEtag(), "etag");
+
+        CurationTask task = curationTaskDao.getCurationTask(taskId)
+                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+
+        boolean hasUpdateAccess = authorizationManager
+                .canAccess(userInfo, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
+                .isAuthorized();
+
+        boolean isAssignee = task.getAssigneePrincipalId() != null
+                && isAuthorizedAssignee(userInfo, Long.parseLong(task.getAssigneePrincipalId()));
+
+        if (!hasUpdateAccess && !isAssignee) {
+            throw new UnauthorizedException("You must have UPDATE access on the project or be an assignee of the task.");
+        }
+
+        return curationTaskDao.updateTaskStatus(userInfo.getId(), taskId, statusUpdate);
+    }
+
+    private boolean isAuthorizedAssignee(UserInfo user, Long assigneeId) {
+        return AuthorizationUtils.isUserCreatorOrAdmin(user, assigneeId.toString())
+                || user.getGroups().contains(assigneeId);
     }
 
     private void validateCurationTask(UserInfo userInfo, CurationTask task) {

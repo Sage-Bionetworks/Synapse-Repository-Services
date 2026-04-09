@@ -30,7 +30,7 @@ public abstract class AbstractSynapseAWSCredentialsProvider implements AWSCreden
 				String accessKey = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_IAM_ID));
 				String secretKey = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_IAM_KEY));
 				String sessionToken = StringUtils.trim(properties.getProperty(ORG_SAGEBIONETWORKS_STACK_SESSION_TOKEN));
-				if (accessKey != null && secretKey != null) {
+				if (!StringUtils.isNullOrEmpty(accessKey) && !StringUtils.isNullOrEmpty(secretKey)) {
 					if (!StringUtils.isNullOrEmpty(sessionToken)) {
 						return new BasicSessionCredentials(accessKey, secretKey, sessionToken);
 					} else {

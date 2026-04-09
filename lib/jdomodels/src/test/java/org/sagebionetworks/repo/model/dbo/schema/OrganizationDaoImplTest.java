@@ -28,7 +28,6 @@ public class OrganizationDaoImplTest {
 	private OrganizationDao organizationDao;
 	@Autowired
 	private JsonSchemaDao schemaDao;
-
 	Long adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 	String name;
@@ -38,7 +37,7 @@ public class OrganizationDaoImplTest {
 		name = "Foo.Bar";
 		organizationDao.truncateAll();
 	}
-	
+
 	@AfterEach
 	public void afterEach() {
 		schemaDao.truncateAll();

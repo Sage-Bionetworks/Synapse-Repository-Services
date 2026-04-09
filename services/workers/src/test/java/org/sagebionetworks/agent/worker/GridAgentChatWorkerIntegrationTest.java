@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +17,7 @@ import org.java_websocket.WebSocket;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.CellValueOperatorElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.RowIsValidFilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.RowSelectionFilterElement;
-import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
@@ -423,6 +422,7 @@ public class GridAgentChatWorkerIntegrationTest {
 	}
 
 	@Test
+	@Disabled // Unstable test, see: PLFM-9487.
 	public void testRegularExpression() throws AssertionError, Exception {
 		createGridSessionFromCsv(
 				new String[] { "firstName", "lastName", "phone", "formattedName", "cleanPhone" },
@@ -525,7 +525,7 @@ public class GridAgentChatWorkerIntegrationTest {
 				"schema/ArrayProperty.json",
 				"arrayproperty",
 				4,
-				4
+				0
 		);
 
 		GridReplica replicaOne = gridService

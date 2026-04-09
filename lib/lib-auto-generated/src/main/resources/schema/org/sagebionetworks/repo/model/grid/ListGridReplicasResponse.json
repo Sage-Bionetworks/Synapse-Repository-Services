@@ -1,0 +1,16 @@
+{
+	"description": "Response containing a page of replicas for a grid session.",
+	"properties": {
+		"page": {
+			"description": "A single page of results.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.grid.GridReplicaInfo"
+			}
+		},
+		"nextPageToken": {
+			"description": "Forward this token to get the next page of results.",
+			"type": "string"
+		}
+	}
+}

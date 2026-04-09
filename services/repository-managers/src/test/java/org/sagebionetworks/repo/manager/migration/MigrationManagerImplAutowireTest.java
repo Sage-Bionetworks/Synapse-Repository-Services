@@ -2,11 +2,14 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +26,13 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -40,8 +49,14 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationRangeChecksumReque
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeChecksumRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountRequest;
 import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.migration.BackupManifest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsRequest;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsResponse;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -89,7 +104,15 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	private DBOBasicDao basicDao;
 
+	@Autowired
+	private AccessRequirementDAO accessRequirementDAO;
+
+	@Autowired
+	private ForumDAO forumDao;
+
 	private List<String> toDelete;
+	private List<Long> arIdsToDelete;
+	private List<Long> forumIdsToDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
 	private S3FileHandle withPreview;
@@ -109,6 +132,8 @@ public class MigrationManagerImplAutowireTest {
 		mockProgressCallback = Mockito.mock(ProgressCallback.class);
 		mockProgressCallbackVoid = Mockito.mock(ProgressCallback.class);
 		toDelete = new LinkedList<String>();
+		arIdsToDelete = new ArrayList<>();
+		forumIdsToDelete = new ArrayList<>();
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		creatorUserGroupId = adminUser.getId().toString();
 		assertNotNull(creatorUserGroupId);
@@ -171,7 +196,20 @@ public class MigrationManagerImplAutowireTest {
 			} catch (Exception e) {
 			}
 		}
-		userManager.truncateAll();
+		for (Long forumId : forumIdsToDelete) {
+			try {
+				forumDao.deleteForum(forumId);
+			} catch (Exception e) {
+			}
+		}
+		// Clean up access requirements
+		for (Long arId : arIdsToDelete) {
+			try {
+				accessRequirementDAO.delete(arId.toString());
+			} catch (Exception e) {
+			}
+		}
+		//userManager.truncateAll();
 	}
 	
 	@Test
@@ -511,5 +549,79 @@ public class MigrationManagerImplAutowireTest {
 		// Call under test
 		migrationManager.restoreStream(stream, manifest);
 	}
-	
+
+	@Test
+	public void testCreateForumsForAccessRequirements() {
+		String nodeId = projectIds[0];
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(nodeId);
+		rod.setType(RestrictableObjectType.ENTITY);
+
+		// Create two ManagedACTAccessRequirements
+		ManagedACTAccessRequirement managedAR1 = new ManagedACTAccessRequirement();
+		managedAR1.setCreatedBy(creatorUserGroupId);
+		managedAR1.setCreatedOn(new Date());
+		managedAR1.setModifiedBy(creatorUserGroupId);
+		managedAR1.setModifiedOn(new Date());
+		managedAR1.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		managedAR1.setSubjectIds(Arrays.asList(rod));
+		managedAR1.setIsTwoFaRequired(false);
+		managedAR1 = accessRequirementDAO.create(managedAR1);
+		arIdsToDelete.add(managedAR1.getId());
+
+		ManagedACTAccessRequirement managedAR2 = new ManagedACTAccessRequirement();
+		managedAR2.setCreatedBy(creatorUserGroupId);
+		managedAR2.setCreatedOn(new Date());
+		managedAR2.setModifiedBy(creatorUserGroupId);
+		managedAR2.setModifiedOn(new Date());
+		managedAR2.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		managedAR2.setSubjectIds(Arrays.asList(rod));
+		managedAR2.setIsTwoFaRequired(false);
+		managedAR2 = accessRequirementDAO.create(managedAR2);
+		arIdsToDelete.add(managedAR2.getId());
+
+		// Create one TermsOfUseAccessRequirement (non-managed, should not get a forum)
+		TermsOfUseAccessRequirement touAR = new TermsOfUseAccessRequirement();
+		touAR.setCreatedBy(creatorUserGroupId);
+		touAR.setCreatedOn(new Date());
+		touAR.setModifiedBy(creatorUserGroupId);
+		touAR.setModifiedOn(new Date());
+		touAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		touAR.setSubjectIds(Arrays.asList(rod));
+		touAR.setVersionNumber(1L);
+		touAR.setTermsOfUse("terms");
+		touAR = accessRequirementDAO.create(touAR);
+		arIdsToDelete.add(touAR.getId());
+
+		// Call under test
+		CreateForumsForAccessRequirementsResponse response = migrationManager.createForumsForAccessRequirements(
+				adminUser, new CreateForumsForAccessRequirementsRequest());
+
+		// Should have created exactly 2 forums (one per ManagedACTAR)
+		assertEquals(2L, response.getForumsCreated());
+
+		// Verify forums exist for managed ARs
+		Forum forum1 = forumDao.getForumByObjectIdAndType(managedAR1.getId().toString(), ForumObjectType.ACCESS_REQUIREMENT);
+		assertNotNull(forum1);
+		assertEquals(ForumObjectType.ACCESS_REQUIREMENT, forum1.getObjectType());
+		forumIdsToDelete.add(Long.parseLong(forum1.getId()));
+
+		Forum forum2 = forumDao.getForumByObjectIdAndType(managedAR2.getId().toString(), ForumObjectType.ACCESS_REQUIREMENT);
+		assertNotNull(forum2);
+		assertEquals(ForumObjectType.ACCESS_REQUIREMENT, forum2.getObjectType());
+		forumIdsToDelete.add(Long.parseLong(forum2.getId()));
+
+		// Verify no forum exists for the TermsOfUse AR
+		String touARId = touAR.getId().toString();
+		assertThrows(NotFoundException.class, () -> {
+			forumDao.getForumByObjectIdAndType(touARId, ForumObjectType.ACCESS_REQUIREMENT);
+		});
+
+
+		// Call again - should be idempotent (0 new forums)
+		CreateForumsForAccessRequirementsResponse response2 = migrationManager.createForumsForAccessRequirements(
+				adminUser, new CreateForumsForAccessRequirementsRequest());
+		assertEquals(0L, response2.getForumsCreated());
+	}
+
 }

@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager.grid;
 
+import static org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridReplicaValidationManagerImpl.cleanupValidationResults;
 import static org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManagerImpl.gridRowToJsonObject;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -50,14 +49,9 @@ import org.sagebionetworks.util.ValidateArgument;
  * A handler that can build and save a snapshot from a table row query.
  */
 public class SnapshotRowHandler implements RowHandler {
-    public static final String FIELD_SYNAPSE_ROW = "synapseRow";
-    public static final String FIELD_ROW_VALIDATION = "rowValidation";
-    public static final String FIELD_DOC_VERSION = "doc_version";
-    public static final String FIELD_COLUMN_NAMES = "columnNames";
-    public static final String FIELD_COLUMN_ORDER = "columnOrder";
-    public static final String FIELD_ROWS = "rows";
-    public static final String FIELD_METADATA = "metadata";
-    public static final String FIELD_DATA = "data";
+
+    private final FileProvider fileProvider;
+    private final IndexedModelEncoderProvider encoderProvider;
 
     private IndexedModelEncoder encoder;
     private OutputStream encoderOutputStream;
@@ -78,13 +72,14 @@ public class SnapshotRowHandler implements RowHandler {
     private final List<String> columnNames;
 
     private long nextNodeSequenceNumber = 1;
+    private boolean closed = false;
 
     static private Logger log = LogManager.getLogger(SnapshotRowHandler.class);
 
     /**
      * Simple holder class for document structure nodes
      */
-    private static class DocumentStructure {
+    static class DocumentStructure {
         final ObjectNode rootObjectNode;
         final ConstantNode documentVersionNode;
         final VectorNode columnNamesNode;
@@ -105,7 +100,7 @@ public class SnapshotRowHandler implements RowHandler {
     /**
      * Result from building column schema
      */
-    private static class ColumnSchemaResult {
+    static class ColumnSchemaResult {
         final Translator[] translators;
         final List<Node> nodesToWrite;
 
@@ -116,8 +111,8 @@ public class SnapshotRowHandler implements RowHandler {
     }
 
     public SnapshotRowHandler(SnapshotStore snapshotStore, String sessionId, Long replicaId, List<ColumnModel> schema,
-                              List<Integer> requiredColumnIndices, FileProvider fileProvider, Long createdByUserId,
-                              JsonSchemaValidationManager jsonSchemaValidationManager, JsonSchema validationSchema) {
+                              List<Integer> requiredColumnIndices, FileProvider fileProvider, IndexedModelEncoderProvider encoderProvider,
+                              Long createdByUserId, JsonSchemaValidationManager jsonSchemaValidationManager, JsonSchema validationSchema) {
         super();
         ValidateArgument.required(snapshotStore, "snapshotStore");
 
@@ -127,6 +122,8 @@ public class SnapshotRowHandler implements RowHandler {
         this.sessionId = sessionId;
         this.requiredColumnIndices = requiredColumnIndices;
         this.createdByUserId = createdByUserId;
+        this.fileProvider = fileProvider;
+        this.encoderProvider = encoderProvider;
 
         // Validation fields
         this.validationSchema = validationSchema;
@@ -174,7 +171,7 @@ public class SnapshotRowHandler implements RowHandler {
      *
      * @return A DocumentStructure object containing the created nodes
      */
-    private DocumentStructure buildDocumentStructure() {
+    DocumentStructure buildDocumentStructure() {
         ObjectNode rootObjectNode = new ObjectNode().setId(nextTimestamp());
         ConstantNode documentVersionNode = new ConstantNode()
             .setId(nextTimestamp())
@@ -190,10 +187,10 @@ public class SnapshotRowHandler implements RowHandler {
             .setElements(new ArrayList<>());
 
         Map<String, LogicalTimestamp> objectMap = new LinkedHashMap<>();
-        objectMap.put(FIELD_DOC_VERSION, documentVersionNode.getId());
-        objectMap.put(FIELD_COLUMN_NAMES, columnNamesNode.getId());
-        objectMap.put(FIELD_COLUMN_ORDER, columnOrderNode.getId());
-        objectMap.put(FIELD_ROWS, rowsNode.getId());
+        objectMap.put(DocumentConstants.DOC_VERSION, documentVersionNode.getId());
+        objectMap.put(DocumentConstants.COLUMN_NAMES, columnNamesNode.getId());
+        objectMap.put(DocumentConstants.COLUMN_ORDER, columnOrderNode.getId());
+        objectMap.put(DocumentConstants.ROWS, rowsNode.getId());
         rootObjectNode.setValue(objectMap);
 
         return new DocumentStructure(
@@ -213,9 +210,9 @@ public class SnapshotRowHandler implements RowHandler {
      * @param columnOrderNode The array node that will hold column order
      * @return A ColumnSchemaResult containing the translators and nodes to write
      */
-    private ColumnSchemaResult buildColumnSchema(List<ColumnModel> schema,
-                                                  VectorNode columnNamesNode,
-                                                  ArrayNode columnOrderNode) {
+    ColumnSchemaResult buildColumnSchema(List<ColumnModel> schema,
+                                          VectorNode columnNamesNode,
+                                          ArrayNode columnOrderNode) {
         if (schema.isEmpty()) {
             return new ColumnSchemaResult(new Translator[0], Collections.emptyList());
         }
@@ -265,10 +262,10 @@ public class SnapshotRowHandler implements RowHandler {
      * @param columnSchemaNodes The column schema nodes to write
      * @throws IOException if writing fails
      */
-    private void initializeEncoderAndWriteInitialNodes(DocumentStructure documentStructure,
-                                                        List<Node> columnSchemaNodes) throws IOException {
-        this.encoderOutputStream = new BufferedOutputStream(new FileOutputStream(snapshotFile));
-        this.encoder = new IndexedModelEncoder(encoderOutputStream, documentStructure.rootObjectNode.getId());
+    void initializeEncoderAndWriteInitialNodes(DocumentStructure documentStructure,
+                                                List<Node> columnSchemaNodes) throws IOException {
+        this.encoderOutputStream = fileProvider.createFileOutputStream(snapshotFile);
+        this.encoder = encoderProvider.getEncoder(encoderOutputStream, documentStructure.rootObjectNode.getId());
 
         // Write initial document structure nodes (excluding rowsNode which is written at the end)
         encoder.writeNode(documentStructure.rootObjectNode);
@@ -303,7 +300,7 @@ public class SnapshotRowHandler implements RowHandler {
      * @param nodeConsumer consumer to collect created nodes
      * @return a reference to the object node containing the row metadata if metadata is present, an empty Optional otherwise.
      */
-    private Optional<ObjectNode> getRowMetadata(Row row, VectorNode rowDataNode, Consumer<Node> nodeConsumer) {
+    Optional<ObjectNode> getRowMetadata(Row row, VectorNode rowDataNode, Consumer<Node> nodeConsumer) {
         boolean hasSynapseRow = row.getRowId() != null || row.getVersionNumber() != null || row.getEtag() != null;
         boolean hasValidation = validationSchema != null && jsonSchemaValidationManager != null;
 
@@ -326,14 +323,14 @@ public class SnapshotRowHandler implements RowHandler {
                     .setId(nextTimestamp())
                     .setValue(new ConValue(ConType.JSON_ARRAY, synapseRowArray));
             nodeConsumer.accept(synapseRowMetadata);
-            metadataMap.put(FIELD_SYNAPSE_ROW, synapseRowMetadata.getId());
+            metadataMap.put(DocumentConstants.SYNAPSE_ROW, synapseRowMetadata.getId());
         }
 
         // Add validation result - MUST be after all data constants to have a higher timestamp
         if (hasValidation) {
             ConstantNode validationConstant = createValidationConstant(rowDataNode.getValues());
             nodeConsumer.accept(validationConstant);
-            metadataMap.put(FIELD_ROW_VALIDATION, validationConstant.getId());
+            metadataMap.put(DocumentConstants.ROW_VALIDATION, validationConstant.getId());
         }
 
         metadataObject.setValue(metadataMap);
@@ -348,7 +345,7 @@ public class SnapshotRowHandler implements RowHandler {
      * @param cellValues the map of column index to ConstantNode values
      * @return a ConstantNode containing the validation results as a JSON object
      */
-    private ConstantNode createValidationConstant(Map<Integer, ConstantNode> cellValues) {
+    ConstantNode createValidationConstant(Map<Integer, ConstantNode> cellValues) {
         // Convert Map<Integer, ConstantNode> to List<ConstantNode> ordered by index
         List<ConstantNode> orderedNodes = IntStream.range(0, columnNames.size())
                 .mapToObj(i -> cellValues.get(i))
@@ -363,10 +360,7 @@ public class SnapshotRowHandler implements RowHandler {
         // Validate
         ValidationResults results = jsonSchemaValidationManager.validate(validationSchema, subject);
 
-        // Cleanup validation results (match GridReplicaValidationManagerImpl.cleanupValidationResults)
-        results.setValidatedOn(null);
-        results.setSchema$id(null);
-        results.setValidationException(null);
+        cleanupValidationResults(results);
 
         // Serialize and create constant - timestamp will be > all data constants
         try {
@@ -385,7 +379,7 @@ public class SnapshotRowHandler implements RowHandler {
      * @param row the table query Row for which Synapse Row metadata should be created
      * @return a reference to the vector node containing the row values.
      */
-    private VectorNode getRowData(Row row, Consumer<Node> nodeConsumer) {
+    VectorNode getRowData(Row row, Consumer<Node> nodeConsumer) {
         VectorNode rowVector = new VectorNode().setId(nextTimestamp());
         nodeConsumer.accept(rowVector);
 
@@ -412,11 +406,11 @@ public class SnapshotRowHandler implements RowHandler {
 
         Map<String, LogicalTimestamp> rowObjectMap = new LinkedHashMap<>();
 
-        rowObjectMap.put(FIELD_DATA, rowDataNode.getId());
+        rowObjectMap.put(DocumentConstants.DATA, rowDataNode.getId());
 
         // Pass VectorNode for validation - it contains the ConstantNodes via getValues()
         getRowMetadata(row, rowDataNode, newNodes::add)
-                .ifPresent(rowMetadata -> rowObjectMap.put(FIELD_METADATA, rowMetadata.getId()));
+                .ifPresent(rowMetadata -> rowObjectMap.put(DocumentConstants.METADATA, rowMetadata.getId()));
 
         rowObject.setValue(rowObjectMap);
 
@@ -460,6 +454,7 @@ public class SnapshotRowHandler implements RowHandler {
                 } catch (IOException e) {
                     log.error("Failed to close encoder output stream", e);
                 }
+                closed = true;
             }
         }
     }
@@ -467,6 +462,9 @@ public class SnapshotRowHandler implements RowHandler {
 
     @Override
     public void close() throws IOException {
+        if (closed) {
+            return;
+        }
         try {
             finalizeEncoding();
             snapshotStore.saveSnapshot(this.sessionId, this.encoder.getClockTable(), createdByUserId, snapshotFile);
@@ -480,7 +478,7 @@ public class SnapshotRowHandler implements RowHandler {
         }
     }
 
-    private LogicalTimestamp nextTimestamp() {
+    LogicalTimestamp nextTimestamp() {
         return new LogicalTimestamp()
                 .setReplicaId(this.replicaId)
                 .setSequenceNumber(this.nextNodeSequenceNumber++);

@@ -23,7 +23,7 @@ public class SynapsePropertyCredentialProvider implements AwsCredentialsProvider
 		String id = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.id")) : null;
 		String token = props != null ? StringUtils.trim(props.getProperty("org.sagebionetworks.stack.iam.session.token")) : null;
 		credentials = null;
-		if (key != null && id != null) {
+		if (!StringUtils.isEmpty(key) && !StringUtils.isEmpty(id)) {
 			if (StringUtils.isEmpty(token)) {
 				credentials =  AwsBasicCredentials.create(id, key);
 			} else {

@@ -16,6 +16,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.dbo.persistence.discussion.DBODiscussionSearchIndexRecord;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.Match;
 import org.sagebionetworks.repo.model.helper.NodeDaoObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,13 +53,14 @@ public class DiscussionSearchIndexDaoImplTest {
 			node.setNodeType(EntityType.project);
 		}).getId();
 		
-		forumId = Long.valueOf(forumDao.createForum(projectId).getId());
+		forumId = Long.valueOf(forumDao.createForum(projectId, ForumObjectType.ENTITY).getId());
 		threadId = Long.valueOf(threadDao.createThread(forumId.toString(), idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID).toString(), "title", "some_key", BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId()).getId());
 	}
 	
 	@AfterEach
 	public void after() {
 		nodeHelper.truncateAll();
+		forumDao.deleteForum(forumId);
 	}
 	
 	@Test

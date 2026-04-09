@@ -10,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,6 +71,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	private static final String ID_PARAM_NAME = "id";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
 	private static final String ETAG_PARAM_NAME = "etag";
+	private static final String REALM_PARAM_NAME = "realm";
 
 	private static final String SELECT_MULTI_BY_PRINCIPAL_IDS = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
@@ -81,13 +81,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 			"SELECT ID, REALM FROM " + SqlConstants.TABLE_USER_GROUP +
 					" WHERE " + SqlConstants.COL_USER_GROUP_ID + " IN (:" + ID_PARAM_NAME + ")";
 	
-	private static final String SELECT_BY_IS_INDIVID_SQL = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
-			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME;
-	
 	private static final String SELECT_BY_IS_INDIVID_SQL_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
+			" AND "+SqlConstants.COL_USER_GROUP_REALM+"=:"+REALM_PARAM_NAME+
+			" ORDER BY "+SqlConstants.COL_USER_GROUP_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_ETAG_AND_LOCK_ROW_BY_ID = 
@@ -128,17 +126,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	public void setBootstrapPrincipals(List<BootstrapPrincipal> bootstrapPrincipals) {
 		this.bootstrapPrincipals = bootstrapPrincipals;
 	}
-
-	@Override
-	public Collection<UserGroup> getAll(boolean isIndividual)
-			throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
-		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, param, userGroupRowMapper);
-		List<UserGroup> dtos = new ArrayList<UserGroup>();
-		UserGroupUtils.copyDboToDto(dbos, dtos);
-		return dtos;
-	}
 	
 	@Override
 	public List<UserGroup> getAllPrincipals() {
@@ -149,16 +136,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 	
 	@Override
-	public long getCount()  throws DatastoreException {
-		return basicDao.getCount(DBOUserGroup.class);
-	}
-	
-	@Override
 	public List<UserGroup> getInRange(long fromIncl, long toExcl,
-			boolean isIndividual) throws DatastoreException {
+			boolean isIndividual, String realmId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		param.addValue(OFFSET_PARAM_NAME, fromIncl);
+		param.addValue(REALM_PARAM_NAME, realmId);
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	

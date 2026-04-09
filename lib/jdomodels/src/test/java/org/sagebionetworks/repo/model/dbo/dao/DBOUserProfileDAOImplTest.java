@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,19 +21,24 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.broadcast.UserNotificationInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
@@ -65,6 +71,12 @@ public class DBOUserProfileDAOImplTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private RealmDao realmDao;
+	
 	private UserGroup principal = null;
 	private UserGroup principal2 = null;
 	
@@ -73,28 +85,32 @@ public class DBOUserProfileDAOImplTest {
 	
 	private List<String> toDelete;
 	
+	private String realmId;
+	
 	@Before
 	public void setUp() throws Exception {
+		userProfileDAO.truncateAll();
+		
+		// create a realm
+		Realm testRealm = new Realm();
+		testRealm.setName("test");
+		testRealm.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.SAGE_BIONETWORKS)));
+		testRealm = realmDao.createRealm(testRealm);
+		this.realmId=testRealm.getId();
+		
 		principal = new UserGroup();
 		principal.setIsIndividual(true);
 		principal.setCreationDate(new Date());
-		principal.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		principal.setRealmId(DEFAULT_REALM_ID);
 		principal.setId(userGroupDAO.create(principal).toString());
 		principal2 = new UserGroup();
 		principal2.setIsIndividual(true);
 		principal2.setCreationDate(new Date());
-		principal2.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		principal2.setRealmId(DEFAULT_REALM_ID);
 		principal2.setId(userGroupDAO.create(principal2).toString());
 		toDelete = new LinkedList<String>();
 		principalToDelete = new ArrayList<UserGroup>();
-		for (int i=0; i<2; i++) {
-			UserGroup individualGroup = new UserGroup();
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
-			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
-			principalToDelete.add(individualGroup);
-		}
+
 		fileHandlesToDelete = new LinkedList<String>();
 	}
 		
@@ -120,6 +136,11 @@ public class DBOUserProfileDAOImplTest {
 			}
 		}
 		principalToDelete.clear();
+		
+		if (realmId!=null) {
+			realmDao.deleteRealm(realmId);
+			realmId=null;
+		}
 	}
 	
 	/**
@@ -256,15 +277,28 @@ public class DBOUserProfileDAOImplTest {
 		userProfileDAO.get("-123");
 	}
 	
+	private long getCount() throws DatastoreException {
+		return basicDao.getCount(DBOUserProfile.class);
+	}
+	
 	@Test
-	public void testCRUD() throws Exception{
+	public void testCRUD() throws Exception {
+		long initialCount = getCount();
+		assertEquals(0, initialCount);
+
 		List<UserProfile> userProfiles = new ArrayList<UserProfile>();
-		long initialCount = userProfileDAO.getCount();
-		// Create it
-		for (UserGroup ug : principalToDelete) {
-			// Create a new user profile
+
+		for (int i=0; i<2; i++) {
+			// Create the underlying UserGroup object, in the 'new' realm
+			UserGroup individualGroup = new UserGroup();
+			individualGroup.setIsIndividual(true);
+			individualGroup.setCreationDate(new Date());
+			individualGroup.setRealmId(this.realmId);
+			individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+			principalToDelete.add(individualGroup);
+			// Now create a new user profile for the object
 			UserProfile userProfile = new UserProfile();
-			userProfile.setOwnerId(ug.getId());
+			userProfile.setOwnerId(individualGroup.getId());
 			userProfile.setFirstName("foo");
 			userProfile.setLastName("bar");
 			userProfile.setRStudioUrl("http://rstudio.com");
@@ -280,7 +314,7 @@ public class DBOUserProfileDAOImplTest {
 			userProfile.setCreatedOn(userGroupDAO.get(Long.parseLong(id)).getCreationDate());
 		}
 		
-		assertEquals(userProfiles.size()+initialCount, userProfileDAO.getCount());
+		assertEquals(userProfiles.size()+initialCount, getCount());
 		
 		// Fetch it
 		UserProfile userProfile = userProfiles.get(0);
@@ -291,16 +325,30 @@ public class DBOUserProfileDAOImplTest {
 		
 		Long idLong1 = Long.parseLong(userProfiles.get(1).getOwnerId());
 		Long idLong0 = Long.parseLong(userProfiles.get(0).getOwnerId());
-		List<UserProfile> listed = userProfileDAO.list(Arrays.asList(new Long[]{idLong1, idLong0}));
+		List<UserProfile> listed = userProfileDAO.list(Arrays.asList(new Long[]{idLong1, idLong0}), this.realmId);
 		assertEquals(2, listed.size());
 		assertEquals(Arrays.asList(new UserProfile[]{userProfiles.get(1), userProfiles.get(0)}), listed);
-		try {
-			userProfileDAO.list(Arrays.asList(new Long[]{idLong1, 87765443L+idLong0}));
-			fail("NotFoundException expected");
-		} catch (NotFoundException e) {
-			//as expected
-		}
+		
+		// if a valid ID from another realm is included, a NotFoundException should be thrown
+		// in this case principal is in the default realm and so it doesn't appear in the query
+		// for profiles in 'realmId'
+		assertThrows(NotFoundException.class, ()->{
+			userProfileDAO.list(Arrays.asList(new Long[]{idLong1, Long.parseLong(principal.getId())}), this.realmId);
+		});
+		
+		assertThrows(NotFoundException.class, ()->{
+			userProfileDAO.list(Arrays.asList(new Long[]{idLong1, 87765443L+idLong0}), this.realmId);
+		});
 
+		
+		// make sure 'getInRange' returns the user profiles, and only those in the realm
+		List<UserProfile> paginatedList = userProfileDAO.getInRange(0, Long.MAX_VALUE, this.realmId);
+		assertEquals(Arrays.asList(new UserProfile[]{userProfiles.get(0), userProfiles.get(1)}), paginatedList);
+		
+		// test pagination
+		assertEquals(userProfiles.get(0), userProfileDAO.getInRange(0, 1, this.realmId).get(0));
+		assertEquals(userProfiles.get(1), userProfileDAO.getInRange(1, 10, this.realmId).get(0));
+		
 		// Update it
 		UserProfile updatedProfile = userProfileDAO.update(clone);
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
@@ -319,7 +367,7 @@ public class DBOUserProfileDAOImplTest {
 			userProfileDAO.delete(up.getOwnerId());
 		}
 
-		assertEquals(initialCount, userProfileDAO.getCount());
+		assertEquals(initialCount, getCount());
 	}
 	
 	@Test
@@ -355,7 +403,10 @@ public class DBOUserProfileDAOImplTest {
 	}
 	
 	@Test
-	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
+	public void testBootstrapUsers() throws DatastoreException, NotFoundException {
+		// method under test
+		userProfileDAO.bootstrapProfiles();
+		
 		List<BootstrapPrincipal> boots = this.userGroupDAO.getBootstrapPrincipals();
 		assertNotNull(boots);
 		assertTrue(boots.size() >0);

@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
@@ -64,6 +65,12 @@ public class DiscussionServiceImpl implements DiscussionService{
 	public Forum getForum(Long userId, String forumId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return forumManager.getForum(user, forumId);
+	}
+
+	@Override
+	public Forum getForumByObjectIdAndType(Long userId, String objectId, ForumObjectType objectType) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return forumManager.getForumByObjectIdAndType(user, objectId, objectType);
 	}
 
 	@Override

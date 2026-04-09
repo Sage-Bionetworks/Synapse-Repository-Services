@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.discussion;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -20,6 +24,10 @@ public class ForumManagerImpl implements ForumManager {
 	private NodeDAO nodeDao;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private AccessRequirementDAO accessRequirementDao;
+	@Autowired
+	private DataAccessAuthorizationManager dataAccessAuthorizationManager;
 
 	@WriteTransaction
 	@Override
@@ -27,11 +35,15 @@ public class ForumManagerImpl implements ForumManager {
 		validateProjectIdAndThrowException(projectId);
 		UserInfo.validateUserInfo(user);
 		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return forumDao.createForum(projectId);
+		return forumDao.createForum(projectId, ForumObjectType.ENTITY);
 	}
 
 	private void validateProjectIdAndThrowException(String projectId) {
 		ValidateArgument.required(projectId, "projectId");
+		validateProjectExists(projectId);
+	}
+
+	private void validateProjectExists(String projectId) {
 		if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(projectId))) {
 			throw new NotFoundException("Project does not exist.");
 		}
@@ -44,7 +56,7 @@ public class ForumManagerImpl implements ForumManager {
 		UserInfo.validateUserInfo(user);
 		authorizationManager.canAccess(user, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
 		try {
-			return forumDao.getForumByProjectId(projectId);
+			return forumDao.getForumByObjectIdAndType(projectId, ForumObjectType.ENTITY);
 		} catch (NotFoundException e) {
 			return createForum(user, projectId);
 		}
@@ -55,7 +67,43 @@ public class ForumManagerImpl implements ForumManager {
 		ValidateArgument.required(forumId, "forumId");
 		UserInfo.validateUserInfo(user);
 		Forum forum = forumDao.getForum(Long.parseLong(forumId));
-		authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		switch (forum.getObjectType()) {
+			case ENTITY:
+				authorizationManager.canAccess(user, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+				break;
+			case ACCESS_REQUIREMENT:
+				dataAccessAuthorizationManager.canReviewAccessRequirementSubmissions(user, forum.getObjectId()).checkAuthorizationOrElseThrow();
+				break;
+			default:
+				throw new IllegalArgumentException("Forum object type not supported: " + forum.getObjectType());
+		}
 		return forum;
+	}
+
+	@Override
+	public Forum getForumByObjectIdAndType(UserInfo user, String objectId, ForumObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		UserInfo.validateUserInfo(user);
+
+		if (ForumObjectType.ENTITY.equals(objectType)) {
+			validateProjectExists(objectId);
+			authorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
+		}
+
+		if (ForumObjectType.ACCESS_REQUIREMENT.equals(objectType)) {
+			validateAccessRequirementForForum(objectId);
+			dataAccessAuthorizationManager.canReviewAccessRequirementSubmissions(user, objectId).checkAuthorizationOrElseThrow();
+		}
+
+		return forumDao.getForumByObjectIdAndType(objectId, objectType);
+
+	}
+
+	private void validateAccessRequirementForForum(String accessRequirementId) {
+		String concreteType = accessRequirementDao.getConcreteType(accessRequirementId);
+		if (!ManagedACTAccessRequirement.class.getName().equals(concreteType)) {
+			throw new IllegalArgumentException("Forums are only supported for managed access requirements.");
+		}
 	}
 }

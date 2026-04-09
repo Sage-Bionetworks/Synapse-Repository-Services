@@ -192,4 +192,13 @@ public interface AdministrationService {
 	 * @param targetUserId
 	 */
 	void resetUserStatusToEnabled(Long userId, Long targetUserId);
+
+	/**
+	 * Backfill CHANGES entries for all existing grid sessions so they will be
+	 * re-indexed after migration.
+	 *
+	 * @param userId
+	 * @return The number of sessions backfilled.
+	 */
+	long backfillGridSessionChanges(Long userId);
 }

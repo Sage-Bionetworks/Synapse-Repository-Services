@@ -1,0 +1,10 @@
+{
+  "description": "An interface for task-specific execution details. The concrete type determines which task-type-specific properties are available.",
+  "type": "interface",
+  "properties": {
+    "concreteType": {
+      "type": "string",
+      "description": "Indicates which implementation of TaskExecutionDetails this object represents."
+    }
+  }
+}

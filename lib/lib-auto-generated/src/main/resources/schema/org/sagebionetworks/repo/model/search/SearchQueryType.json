@@ -1,0 +1,34 @@
+{
+	"description": "The type of full-text query to execute against a search index.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "SIMPLE_QUERY_STRING",
+			"description": "Default. Supports +, -, |, quotes, ~, *, () operators. Best for user-facing search boxes."
+		},
+		{
+			"name": "MATCH",
+			"description": "Standard full-text match. Best for programmatic queries."
+		},
+		{
+			"name": "MULTI_MATCH",
+			"description": "Matches across multiple fields with configurable boost."
+		},
+		{
+			"name": "MATCH_PHRASE",
+			"description": "Exact phrase matching. Terms must appear in order and adjacent."
+		},
+		{
+			"name": "PREFIX",
+			"description": "Prefix matching for autocomplete and type-ahead."
+		},
+		{
+			"name": "WILDCARD",
+			"description": "Supports * and ? wildcards. Use sparingly."
+		},
+		{
+			"name": "MATCH_ALL",
+			"description": "Returns all documents. Used automatically when queryText is null or empty."
+		}
+	]
+}

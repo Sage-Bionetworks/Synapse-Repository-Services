@@ -118,6 +118,29 @@ public class SchemaSourceImpl implements SchemaSource {
 	}
 
 	/**
+	 * Returns whether columns can be added to or removed from this source.
+	 * Delegates to {@link SourceHandler#canAddRemoveColumns()}.
+	 *
+	 * @return true if columns can be added to or removed from this source, false
+	 *         otherwise
+	 */
+	@Override
+	public boolean isItemAdditionSupported() {
+		return handler.canAddRemoveColumns();
+	}
+
+	/**
+	 * Returns whether columns can be removed from this source. Delegates to
+	 * {@link SourceHandler#canAddRemoveColumns()}.
+	 *
+	 * @return true if columns can be removed from this source, false otherwise
+	 */
+	@Override
+	public boolean isItemRemovalSupported() {
+		return handler.canAddRemoveColumns();
+	}
+
+	/**
 	 * Adds a column to the source schema. Called during Phase 2 of
 	 * {@link SynchronizationLogic#synchronize} when a column exists in the copy but
 	 * not in the source, and was changed by the user (pushing user addition to

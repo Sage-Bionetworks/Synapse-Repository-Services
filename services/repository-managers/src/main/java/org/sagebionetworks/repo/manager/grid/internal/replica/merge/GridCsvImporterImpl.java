@@ -7,16 +7,19 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import org.sagebionetworks.grid.db.GridTransaction;
 import org.sagebionetworks.repo.manager.file.CsvFileHandleProvider;
+import org.sagebionetworks.repo.manager.grid.CsvSchemaReconciler;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.grid.EventSource;
@@ -24,6 +27,7 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -40,14 +44,16 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 	private final GridCsvImportDao importDao;
 	private final CsvFileHandleProvider csvProvider;
 	private final JoinedRowChangePublisher changePublisher;
-	
-	public GridCsvImporterImpl(GridCsvImportDao importDao, GridManager gridManager, GridReplicaViewManager gridViewManager, GridReplicaSupport replicaSupport, CsvFileHandleProvider csvProvider, JoinedRowChangePublisher changePublisher) {
+	private final JsonSchemaManager jsonSchemaManager;
+
+	public GridCsvImporterImpl(GridCsvImportDao importDao, GridManager gridManager, GridReplicaViewManager gridViewManager, GridReplicaSupport replicaSupport, CsvFileHandleProvider csvProvider, JoinedRowChangePublisher changePublisher, JsonSchemaManager jsonSchemaManager) {
 		this.importDao = importDao;
 		this.gridManager = gridManager;
 		this.replicaSupport = replicaSupport;
 		this.gridViewManager = gridViewManager;
 		this.csvProvider = csvProvider;
 		this.changePublisher = changePublisher;
+		this.jsonSchemaManager = jsonSchemaManager;
 	}
 	
 	@Override
@@ -62,7 +68,11 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 		ValidateArgument.requirement(Boolean.TRUE.equals(request.getCsvDescriptor().getIsFirstLineHeader()), "The request.csvDescriptor.isFirstLineHeader must be true.");
 	
 		GridSession gridSession = gridManager.getGridSession(user, request.getSessionId());
-		
+
+		Optional.ofNullable(gridSession.getGridJsonSchema$Id())
+				.map(jsonSchemaManager::getValidationSchema)
+				.ifPresent(vs -> CsvSchemaReconciler.reconcile(request.getSchema(), vs));
+
 		GridHeader gridHeader = replicaSupport.getGridHeaderOrThrow(gridSession);
 		
 		// Gets the connection info for the publisher now so that we fail fast

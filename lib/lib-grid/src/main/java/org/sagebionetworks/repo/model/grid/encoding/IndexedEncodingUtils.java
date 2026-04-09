@@ -12,6 +12,11 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public final class IndexedEncodingUtils {
 
+	// The minimum value of length that requires extended encoding. Lengths less than this can be encoded directly in the first byte.
+	// NOTE: The JSON CRDT specification claims this is 31, but in the json-joy implementation, it is actually 24.
+	// See https://github.com/streamich/json-joy/issues/986
+	private final static int INLINE_LENGTH_THRESHOLD = 24;
+
 	private IndexedEncodingUtils() {
 		// Utility class
 	}
@@ -20,8 +25,14 @@ public final class IndexedEncodingUtils {
 	 * Write the node type and length header byte(s).
 	 *
 	 * The first byte encodes the node type in bits 7-5 (3 bits) and the length in bits 4-0 (5 bits).
-	 * When the length is 31 or greater, bits 4-0 are set to 0x1F and the actual length is encoded
-	 * as a vu57 integer in the following bytes.
+	 *
+	 * NOTE: The JSON CRDT spec says lengths 0-30 are inline and 31 triggers vu57 extension.
+	 * However, the json-joy library implementation uses CBOR-style encoding:
+	 *   - 0-23: inline in the lower 5 bits
+	 *   - 24: 1-byte unsigned length follows
+	 *   - 25: 2-byte big-endian unsigned length follows
+	 *   - 26: 4-byte big-endian unsigned length follows
+	 * We match the library's actual behavior for interoperability.
 	 *
 	 * @param nodeType the node type (3 bits, 0-7)
 	 * @param length the length value
@@ -32,30 +43,39 @@ public final class IndexedEncodingUtils {
 	public static int writeNodeHeader(int nodeType, long length, OutputStream out) throws IOException {
 		ValidateArgument.required(out, "out");
 
-		int bytesWritten = 0;
-		// Type occupies bits 7-5 (3 bits), length occupies bits 4-0 (5 bits)
-		nodeType = (byte) (nodeType << 5);
-		if (length < 31) {
-			// When length e is less than 31, the first 3 bits of TL encode the node type c and the remaining 5 bits
-			// encode the length e.
-			nodeType |= (int) length;
-			out.write(nodeType);
-			bytesWritten += 1;
+		int majorOverlay = (nodeType & 0x07) << 5;
+
+		if (length < INLINE_LENGTH_THRESHOLD) {
+			// Length fits directly in the lower 5 bits
+			out.write(majorOverlay | (int) length);
+			return 1;
+		} else if (length <= 0xFF) {
+			// minor = 24: 1-byte unsigned length follows
+			out.write(majorOverlay | 24);
+			out.write((int) length);
+			return 2;
+		} else if (length <= 0xFFFF) {
+			// minor = 25: 2-byte big-endian unsigned length follows
+			out.write(majorOverlay | 25);
+			out.write((int) (length >> 8) & 0xFF);
+			out.write((int) length & 0xFF);
+			return 3;
 		} else {
-			// When length is 31 or greater, the first byte encodes the node type c, and the remaining bits are set to 1.
-			// The length is encoded as a vu57 integer.
-			nodeType |= 0b0001_1111; // length extension indicator
-			out.write(nodeType);
-			bytesWritten += 1;
-			byte[] encodedLength = Vu57Utils.encodeVu57(length);
-			out.write(encodedLength);
-			bytesWritten += encodedLength.length;
+			// minor = 26: 4-byte big-endian unsigned length follows
+			out.write(majorOverlay | 26);
+			out.write((int) (length >> 24) & 0xFF);
+			out.write((int) (length >> 16) & 0xFF);
+			out.write((int) (length >> 8) & 0xFF);
+			out.write((int) length & 0xFF);
+			return 5;
 		}
-		return bytesWritten;
 	}
 
 	/**
 	 * Read the node type and length header from the input stream.
+	 *
+	 * Uses CBOR-style length decoding to match json-joy's actual behavior.
+	 * See {@link #writeNodeHeader} for details on the encoding.
 	 *
 	 * @param in the input stream
 	 * @return a TypeAndLength containing the node type and length
@@ -69,19 +89,39 @@ public final class IndexedEncodingUtils {
 			throw new IOException("Unexpected end of stream while reading node type and length");
 		}
 
-		// Type occupies bits 7-5 (3 bits), length occupies bits 4-0 (5 bits)
 		int nodeType = (firstByte >> 5) & 0x07;
-
-		// Extract length from lower 5 bits
-		int lengthPart = firstByte & 0x1F;
+		int minor = firstByte & 0x1F;
 
 		long length;
-		if (lengthPart < 31) {
-			// Length is directly encoded in the lower 5 bits
-			length = lengthPart;
+		if (minor < INLINE_LENGTH_THRESHOLD) {
+			length = minor;
+		} else if (minor == 24) {
+			// 1-byte unsigned length
+			int b = in.read();
+			if (b == -1) {
+				throw new IOException("Unexpected end of stream while reading 1-byte length");
+			}
+			length = b;
+		} else if (minor == 25) {
+			// 2-byte big-endian unsigned length
+			int b1 = in.read();
+			int b2 = in.read();
+			if (b1 == -1 || b2 == -1) {
+				throw new IOException("Unexpected end of stream while reading 2-byte length");
+			}
+			length = (b1 << 8) | b2;
+		} else if (minor == 26) {
+			// 4-byte big-endian unsigned length
+			int b1 = in.read();
+			int b2 = in.read();
+			int b3 = in.read();
+			int b4 = in.read();
+			if (b1 == -1 || b2 == -1 || b3 == -1 || b4 == -1) {
+				throw new IOException("Unexpected end of stream while reading 4-byte length");
+			}
+			length = ((long) b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
 		} else {
-			// Length extension: read vu57 for actual length
-			length = Vu57Utils.decodeVu57(in);
+			throw new IOException("Unsupported minor value in node header: " + minor);
 		}
 
 		return new IndexedNodeHeader(nodeType, length);

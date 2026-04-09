@@ -142,7 +142,7 @@ public class ITAccessTokenTest {
 
 			// We can make this request, even though we don't have full OAuth scope (just 'openid')
 			// since the service requires just openid
-			synapseClientLackingCredentials.getUserInfoAsJSON();
+			synapseClientLackingCredentials.getUserInfoAsJSON(false);
 		} finally {
 			synapseClientLackingCredentials.removeAuthorizationHeader();
 		}		

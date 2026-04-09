@@ -923,7 +923,8 @@ public class SqlConstants {
 	// Forum table
 	public static final String TABLE_FORUM = "FORUM";
 	public static final String COL_FORUM_ID = "ID";
-	public static final String COL_FORUM_PROJECT_ID = "PROJECT_ID";
+	public static final String COL_FORUM_OBJECT_ID = "OBJECT_ID";
+	public static final String COL_FORUM_OBJECT_TYPE = "OBJECT_TYPE";
 	public static final String COL_FORUM_ETAG = "ETAG";
 	public static final String DDL_FORUM = "schema/discussion/Forum-ddl.sql";
 
@@ -1429,6 +1430,7 @@ public class SqlConstants {
 	public static final String COL_GRID_PAT_CREATED_ON = 			"CREATED_ON";
 	public static final String COL_GRID_PAT_EXPIRES_ON = 			"EXPIRES_ON";
 	public static final String COL_GRID_PAT_S3_KEY	= 				"S3_KEY";
+	public static final String COL_GRID_PAT_SIZE_BYTES = 			"SIZE_BYTES";
 	public static final String DDL_GRID_PATCH =	"schema/grid/Grid-Patch-ddl.sql";
 	
 	public static final String TABLE_GRID_SNAPSHOT = 				"GRID_SNAPSHOT";
@@ -1461,7 +1463,12 @@ public class SqlConstants {
     public static final String COL_CURATION_TASK_ASSIGNEE = "ASSIGNEE";
     public static final String COL_CURATION_TASK_TASK_PROPERTIES = "TASK_PROPERTIES";
     public static final String DDL_CURATION_TASK = "schema/CurationTask-ddl.sql";
-    
+    public static final String COL_CURATION_TASK_STATE = "STATE";
+    public static final String COL_CURATION_TASK_EXECUTION_DETAILS = "EXECUTION_DETAILS";
+    public static final String COL_CURATION_TASK_STATE_UPDATED_BY = "STATE_UPDATED_BY";
+    public static final String COL_CURATION_TASK_STATE_UPDATED_ON = "STATE_UPDATED_ON";
+
+
     // Table to track a record set validation summary for a specific version
  	public static final String TABLE_RECORDSET_VALIDATION_STATS					= "RECORDSET_VALIDATION_STATS";
  	public static final String COL_RECORDSET_VALIDATION_STATS_ID				= "ID";
@@ -1470,6 +1477,12 @@ public class SqlConstants {
  	public static final String COL_RECORDSET_VALIDATION_STATS_RECORDSET_VERSION	= "RECORDSET_VERSION";
  	public static final String COL_RECORDSET_VALIDATION_STATS_JSON				= "STATS_JSON";
  	public static final String DDL_FILE_RECORDSET_VALIDATION_STATS				= "schema/RecordSetValidationStats-ddl.sql";
+
+	// The certified users table
+	public static final String TABLE_CERTIFIED_USERS                            = "CERTIFIED_USERS";
+	public static final String COL_CERTIFIED_USERS_USER_ID                   	= "USER_ID";
+
+	public static final String DDL_FILE_CERTIFIED_USERS                            = "schema/CertifiedUsers-ddl.sql";
  	
  	// Tables to represent security Realms
  	public static final String TABLE_REALM = "SYNAPSE_REALM";
@@ -1520,6 +1533,20 @@ public class SqlConstants {
 	public static final int MAX_BYTES_PER_LONG_AS_STRING = 20*2; // 20 chars at 2 bytes per char.;
 	public static final int MAX_LONGS_PER_IN_CLAUSE = MAX_ALLOWED_PACKET_BYTES/MAX_BYTES_PER_LONG_AS_STRING;
 	
+	// Synonym Set
+	public static final String TABLE_SYNONYM_SET					= "SYNONYM_SET";
+	public static final String COL_SYNSET_ID						= "ID";
+	public static final String COL_SYNSET_ETAG						= "ETAG";
+	public static final String COL_SYNSET_ORGANIZATION_NAME			= "ORGANIZATION_NAME";
+	public static final String COL_SYNSET_NAME						= "NAME";
+	public static final String COL_SYNSET_DESCRIPTION				= "DESCRIPTION";
+	public static final String COL_SYNSET_RULES						= "RULES";
+	public static final String COL_SYNSET_CREATED_BY				= "CREATED_BY";
+	public static final String COL_SYNSET_CREATED_ON				= "CREATED_ON";
+	public static final String COL_SYNSET_MODIFIED_BY				= "MODIFIED_BY";
+	public static final String COL_SYNSET_MODIFIED_ON				= "MODIFIED_ON";
+	public static final String DDL_SYNONYM_SET						= "schema/SynonymSet-ddl.sql";
+
 	/**
 	 * Function names:
 	 */

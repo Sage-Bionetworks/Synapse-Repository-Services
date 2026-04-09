@@ -1036,16 +1036,16 @@ public class GridIndexDaoImplTest {
 	}
 	
 	@Test
-	public void testGetRgaLastNode() {
+	public void testGetArrayLastNodeId() {
 		// Creates an empty array
 		LogicalTimestamp arrOneId = new LogicalTimestamp().setReplicaId(4L).setSequenceNumber(44L);
-		
+
 		createArray(sessionIdOne, replicaIdOne, arrOneId);
+
+		// Call under test - return the array ID when there are no rows
+		LogicalTimestamp lastNodeId = gridIndexDao.getArrayLastNodeId(sessionIdOne, replicaIdOne, arrOneId);
 		
-		// Call under test
-		Optional<RGANode> lastNode = gridIndexDao.getRgaLastNode(sessionIdOne, replicaIdOne, arrOneId);
-		
-		assertTrue(lastNode.isEmpty());
+		assertEquals(lastNodeId, arrOneId);
 		
 		RGANode firstNode = new RGANode()
 			.setContainerId(arrOneId)
@@ -1057,7 +1057,7 @@ public class GridIndexDaoImplTest {
 		gridIndexDao.insertIntoRepeatedGrowableArray(sessionIdOne, replicaIdOne, firstNode);
 		
 		// Call under test
-		assertEquals(Optional.of(firstNode), gridIndexDao.getRgaLastNode(sessionIdOne, replicaIdOne, arrOneId));
+		assertEquals(firstNode.getNodeId(), gridIndexDao.getArrayLastNodeId(sessionIdOne, replicaIdOne, arrOneId));
 		
 		RGANode secondNode = new RGANode()
 			.setContainerId(arrOneId)
@@ -1069,7 +1069,7 @@ public class GridIndexDaoImplTest {
 		gridIndexDao.insertIntoRepeatedGrowableArray(sessionIdOne, replicaIdOne, secondNode);
 		
 		// Call under test
-		assertEquals(Optional.of(secondNode), gridIndexDao.getRgaLastNode(sessionIdOne, replicaIdOne, arrOneId));
+		assertEquals(secondNode.getNodeId(), gridIndexDao.getArrayLastNodeId(sessionIdOne, replicaIdOne, arrOneId));
 		
 		// Deletes the first node
 		gridIndexDao.deleteRgaNodes(sessionIdOne, replicaIdOne, arrOneId, List.of(
@@ -1077,7 +1077,7 @@ public class GridIndexDaoImplTest {
 		));
 		
 		// Call under test
-		assertEquals(Optional.of(secondNode), gridIndexDao.getRgaLastNode(sessionIdOne, replicaIdOne, arrOneId));
+		assertEquals(secondNode.getNodeId(), gridIndexDao.getArrayLastNodeId(sessionIdOne, replicaIdOne, arrOneId));
 	}
 	
 	@Test

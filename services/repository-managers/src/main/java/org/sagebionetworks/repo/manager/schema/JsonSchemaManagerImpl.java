@@ -30,6 +30,9 @@ import org.sagebionetworks.repo.model.dbo.schema.BindSchemaRequest;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.NewSchemaVersionRequest;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
+import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
+import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.dbo.schema.SchemaDependency;
 import org.sagebionetworks.repo.model.dbo.schema.ValidationJsonSchemaIndexDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -99,19 +102,36 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@Autowired
 	private JsonSchemaValidatorFactory validatorFactory;
 
+	@Autowired
+	private TextAnalyzerDao textAnalyzerDao;
+
+	@Autowired
+	private SynonymSetDao synonymSetDao;
+
+	@Autowired
+	private ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
+
 	public static final Set<ACCESS_TYPE> ADMIN_PERMISSIONS = Sets.newHashSet(READ, CREATE, CHANGE_PERMISSIONS, UPDATE,
 			DELETE);
 
 	@WriteTransaction
 	@Override
 	public Organization createOrganziation(UserInfo user, CreateOrganizationRequest request) {
+		return createOrganziation(user, request, null);
+	}
+
+	@WriteTransaction
+	@Override
+	public Organization createOrganziation(UserInfo user, CreateOrganizationRequest request, Long id) {
 		ValidateArgument.required(user, "User");
 		ValidateArgument.required(request, "OrganizationRequest");
 
 		AuthorizationUtils.disallowAnonymous(user);
 
 		String processedOrganizationName = processAndValidateOrganizationName(user, request.getOrganizationName());
-		Organization org = organizationDao.createOrganization(processedOrganizationName, user.getId());
+		Organization org = id != null
+				? organizationDao.createOrganization(processedOrganizationName, user.getId(), id)
+				: organizationDao.createOrganization(processedOrganizationName, user.getId());
 
 		// Create an ACL for the
 		AccessControlList acl = AccessControlListUtil.createACL(org.getId(), user, ADMIN_PERMISSIONS, new Date());
@@ -379,7 +399,11 @@ public class JsonSchemaManagerImpl implements JsonSchemaManager {
 	@WriteTransaction
 	@Override
 	public void truncateAll() {
+		textAnalyzerDao.truncateAll();
+		synonymSetDao.truncateAll();
+		columnAnalyzerOverrideDao.truncateAll();
 		jsonSchemaDao.truncateAll();
+		aclManager.truncateAll();
 		organizationDao.truncateAll();
 	}
 

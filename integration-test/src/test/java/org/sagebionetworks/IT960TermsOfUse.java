@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -32,6 +33,8 @@ import org.sagebionetworks.repo.model.auth.TermsOfServiceRequirements;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceState;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceStatus;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.warehouse.WarehouseTestHelper;
 
 @ExtendWith(ITTestExtension.class)
@@ -171,6 +174,22 @@ public class IT960TermsOfUse {
 		assertNotNull(status.getLastAgreementVersion());
 	}
 	
+	@Test
+	public void testIntrospectTokenWithoutAcceptingTermsOfUse() throws SynapseException {
+		// A user who has not accepted the ToS should still be able to introspect a token
+		String token = rejectTOUsynapse.getAccessToken();
+
+		OAuthTokenIntrospectionRequest request = new OAuthTokenIntrospectionRequest();
+		request.setToken(token);
+
+		OAuthTokenIntrospectionResponse response = rejectTOUsynapse.introspectToken(request);
+
+		assertTrue(response.getActive());
+		assertNotNull(response.getSub());
+		assertNotNull(response.getExp());
+		assertNotNull(response.getAud());
+	}
+
 	@Test
 	public void testUpdateTermsOfServiceRequirments(SynapseAdminClient adminSynapse) throws SynapseException {
 		TermsOfServiceInfo info = synapse.getTermsOfServiceInfo();

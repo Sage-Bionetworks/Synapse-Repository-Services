@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.curation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -11,6 +12,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +29,10 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
+import org.sagebionetworks.repo.model.curation.TaskState;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
+import org.sagebionetworks.repo.model.curation.execution.GridExecutionDetails;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -346,6 +352,221 @@ class CurationTaskDaoAutowireTest {
         created.setInstructions(newInstructions);
 
         assertThrows(ConflictingUpdateException.class, () -> dao.updateCurationTask(userId, created));
+    }
+
+    @Test
+    public void testGetTaskStatus() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        // call under test
+        TaskStatus status = dao.getTaskStatus(created.getTaskId());
+
+        assertEquals(created.getTaskId(), status.getTaskId());
+        assertEquals(TaskState.NOT_STARTED, status.getState());
+        assertEquals(created.getEtag(), status.getEtag());
+        assertNull(status.getExecutionDetails());
+        assertNull(status.getLastUpdatedBy());
+        assertNull(status.getLastUpdatedOn());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testGetTaskStatusNotFound() {
+        // call under test
+        assertThrows(NotFoundException.class, () -> dao.getTaskStatus(9999999L));
+    }
+
+    @Test
+    public void testUpdateTaskStatus() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        TaskStatus initialStatus = dao.getTaskStatus(created.getTaskId());
+        assertEquals(TaskState.NOT_STARTED, initialStatus.getState());
+        assertEquals(created.getEtag(), initialStatus.getEtag());
+
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag(initialStatus.getEtag());
+
+        // call under test
+        TaskStatus updated = dao.updateTaskStatus(userId, created.getTaskId(), statusUpdate);
+
+        assertEquals(TaskState.IN_PROGRESS, updated.getState());
+        assertNotEquals(initialStatus.getEtag(), updated.getEtag());
+        assertEquals(userId.toString(), updated.getLastUpdatedBy());
+        assertNotNull(updated.getLastUpdatedOn());
+        assertNull(updated.getExecutionDetails());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskStatusWithExecutionDetails() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        TaskStatus initialStatus = dao.getTaskStatus(created.getTaskId());
+
+        GridExecutionDetails executionDetails = new GridExecutionDetails();
+        executionDetails.setActiveSessionId("session-123");
+
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag(initialStatus.getEtag())
+                .setExecutionDetails(executionDetails);
+
+        // call under test
+        TaskStatus updated = dao.updateTaskStatus(userId, created.getTaskId(), statusUpdate);
+
+        assertEquals(TaskState.IN_PROGRESS, updated.getState());
+        assertNotNull(updated.getExecutionDetails());
+        assertTrue(updated.getExecutionDetails() instanceof GridExecutionDetails);
+        assertEquals("session-123", ((GridExecutionDetails) updated.getExecutionDetails()).getActiveSessionId());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskStatusConflicting() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag("wrong-etag");
+
+        // call under test
+        assertThrows(ConflictingUpdateException.class,
+                () -> dao.updateTaskStatus(userId, created.getTaskId(), statusUpdate));
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskStatusNotFound() {
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag("0");
+
+        // call under test
+        assertThrows(NotFoundException.class,
+                () -> dao.updateTaskStatus(userId, 9999999L, statusUpdate));
+    }
+
+    @Test
+    public void testGetCurationTaskBundles() {
+        CurationTask created1 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        CurationTask created2 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("rnaseq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)));
+
+        // call under test
+        List<TaskBundle> bundles = dao.getCurationTaskBundles(
+                List.of(KeyFactory.stringToKey(project1.getId())),
+                null, null, 10, 0);
+
+        assertEquals(2, bundles.size());
+        assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
+        assertEquals(TaskState.NOT_STARTED, bundles.get(0).getStatus().getState());
+        assertEquals(created2.getTaskId(), bundles.get(1).getTask().getTaskId());
+        assertEquals(TaskState.NOT_STARTED, bundles.get(1).getStatus().getState());
+
+        dao.deleteCurationTask(created1.getTaskId());
+        dao.deleteCurationTask(created2.getTaskId());
+    }
+
+    @Test
+    public void testGetCurationTaskBundlesWithAssigneeFilter() {
+        CurationTask created1 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setAssigneePrincipalId(userId.toString())
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        CurationTask created2 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("rnaseq")
+                .setAssigneePrincipalId(modifiedByUserId.toString())
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)));
+
+        // call under test - filter by userId
+        List<TaskBundle> bundles = dao.getCurationTaskBundles(
+                List.of(KeyFactory.stringToKey(project1.getId())),
+                List.of(userId), null, 10, 0);
+
+        assertEquals(1, bundles.size());
+        assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
+
+        dao.deleteCurationTask(created1.getTaskId());
+        dao.deleteCurationTask(created2.getTaskId());
+    }
+
+    @Test
+    public void testGetCurationTaskBundlesWithStateFilter() {
+        CurationTask created1 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        CurationTask created2 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("rnaseq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)));
+
+        // Move created1 to IN_PROGRESS
+        TaskStatus status = dao.getTaskStatus(created1.getTaskId());
+        dao.updateTaskStatus(userId, created1.getTaskId(),
+                new TaskStatus().setState(TaskState.IN_PROGRESS).setEtag(status.getEtag()));
+
+        // call under test - filter by IN_PROGRESS
+        List<TaskBundle> bundles = dao.getCurationTaskBundles(
+                List.of(KeyFactory.stringToKey(project1.getId())),
+                null, List.of(TaskState.IN_PROGRESS), 10, 0);
+
+        assertEquals(1, bundles.size());
+        assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
+        assertEquals(TaskState.IN_PROGRESS, bundles.get(0).getStatus().getState());
+
+        dao.deleteCurationTask(created1.getTaskId());
+        dao.deleteCurationTask(created2.getTaskId());
+    }
+
+    @Test
+    public void testGetDistinctProjectIds() {
+        CurationTask created1 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        CurationTask created2 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project2.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)));
+
+        // call under test
+        Set<Long> projectIds = dao.getDistinctProjectIds();
+
+        assertTrue(projectIds.contains(KeyFactory.stringToKey(project1.getId())));
+        assertTrue(projectIds.contains(KeyFactory.stringToKey(project2.getId())));
+
+        dao.deleteCurationTask(created1.getTaskId());
+        dao.deleteCurationTask(created2.getTaskId());
     }
 
     private CurationTaskProperties createTaskProperties(CurationTaskPropertiesType taskType) {

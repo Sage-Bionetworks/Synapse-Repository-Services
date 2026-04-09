@@ -94,6 +94,30 @@ public class SchemaSourceImplTest {
 		assertFalse(source.matches(new ColumnCopyItem().setColumnName("a"), new ColumnSourceItem().setColumnName("b")));
 	}
 
+	@Test
+	public void testIsItemAdditionSupported() {
+		setupSource(List.of());
+		when(mockHandler.canAddRemoveColumns()).thenReturn(false);
+
+		// call under test
+		assertFalse(source.isItemAdditionSupported());
+
+		verify(mockHandler).canAddRemoveColumns();
+		verifyNoMoreInteractions(mockHandler);
+	}
+
+	@Test
+	public void testIsItemRemovalSupported() {
+		setupSource(List.of());
+		when(mockHandler.canAddRemoveColumns()).thenReturn(false);
+
+		// call under test
+		assertFalse(source.isItemRemovalSupported());
+
+		verify(mockHandler).canAddRemoveColumns();
+		verifyNoMoreInteractions(mockHandler);
+	}
+
 	void setupSource(List<String> schema) {
 		when(mockHandler.getCurrentSourceSchema()).thenReturn(schema);
 		source = new SchemaSourceImpl(mockHandler);

@@ -1,0 +1,44 @@
+{
+    "description": "Response from token introspection conforming to <a href=\"https://tools.ietf.org/html/rfc7662\">RFC 7662</a>.",
+ 	"properties": {
+		"active": {
+			"type": "boolean",
+			"description": "Whether the token is active"
+		},
+		"scope": {
+			"type": "string",
+			"description": "A JSON string containing a space-separated list of scopes associated with this token, in the format described in Section 3.3 of OAuth 2.0"
+		},
+		"aud": {
+			"type": "string",
+			"description": "The audience (realm or OAuth Client) the token was issued for"
+		},
+		"sub": {
+			"type": "string",
+			"description": "Subject identifier. For a first-party access token, this is the Synapse user ID. For tokens issued to OAuth Clients, this is a PPID (Pairwise Pseudonymous Identifier)"
+		},
+		"token_type": {
+			"$ref": "org.sagebionetworks.repo.model.auth.TokenType"
+		},
+		"exp": {
+			"type": "integer",
+			"description": "Expiration time (seconds since epoch)"
+		},
+		"iat": {
+			"type": "integer",
+			"description": "Issued at time (seconds since epoch)"
+		},
+		"auth_time": {
+			"type": "integer",
+			"description": "Time of user authentication (seconds since epoch)"
+		},
+		"iss": {
+			"type": "string",
+			"description": "Token issuer"
+		},
+		"jti": {
+			"type": "string",
+			"description": "Unique token identifier"
+		}
+	}
+}

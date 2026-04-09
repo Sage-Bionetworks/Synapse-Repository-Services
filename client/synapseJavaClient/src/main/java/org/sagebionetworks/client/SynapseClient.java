@@ -117,6 +117,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
@@ -151,6 +152,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
@@ -232,6 +234,8 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
@@ -253,6 +257,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -346,6 +352,15 @@ import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.SynonymSet;
+import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -2240,23 +2255,25 @@ public interface SynapseClient extends BaseClient {
 	 * bearer token (which must be included as the authorization header).
 	 * 
 	 * The result is expected to be a JWT token, which is invoked by the 
-	 * client having registered a 'user info signed response algorithm'.
+	 * client having registered a 'user info signed response algorithm' or
+	 * by adding the header 'Accept: application/jwt'
 	 * 
 	 * @return
 	 */
-	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException;
+	Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken(boolean includeAcceptHeader) throws SynapseException;
 	
 	/**
 	 * Get the user information for the user specified by the authorization
 	 * bearer token (which must be included as the authorization header).
 	 * 
 	 * The result is expected to be a Map, which is invoked by the 
-	 * client having omitted a 'user info signed response algorithm'.
+	 * client having omitted a 'user info signed response algorithm', 
+	 * or by adding the header 'Accept: application/json'
 	 * 
 	 * @return
 	 */
-	JSONObject getUserInfoAsJSON() throws SynapseException;
-
+	JSONObject getUserInfoAsJSON(boolean includeAcceptHeader) throws SynapseException;
+	
 	/**
 	 * Get a paginated record of the OAuth clients that currently have access to the
 	 * logged-in user's Synapse resources via OAuth 2.0 refresh tokens.
@@ -2305,6 +2322,12 @@ public interface SynapseClient extends BaseClient {
 	 * @throws UnsupportedEncodingException 
 	 */
 	void revokeTokenURLEncoded(String token) throws SynapseException, UnsupportedEncodingException;
+
+	/**
+	 * Introspects an access token, returning whether it is active and its claims.
+	 * Authenticated by the calling Synapse user (not an OAuth client).
+	 */
+	OAuthTokenIntrospectionResponse introspectToken(OAuthTokenIntrospectionRequest request) throws SynapseException;
 
 	/**
 	 * Updates the metadata for a particular refresh token.
@@ -2828,6 +2851,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	Forum getForum(String forumId) throws SynapseException;
+
+	/**
+	 * Get or create forum for the given object.
+	 *
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 * @throws SynapseException
+	 */
+	Forum getForumByObjectIdAndType(String objectId, ForumObjectType objectType) throws SynapseException;
 
 	/**
 	 * Create a new Discussion Reply
@@ -4381,7 +4414,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Creates a new webhook.
 	 * 
-	 * @param reqeust
+	 * @param request
 	 * @return
 	 * @throws SynapseException
 	 */
@@ -4595,6 +4628,14 @@ public interface SynapseClient extends BaseClient {
 	GridReplica getGridReplica(String sessionId, Long replicaId) throws SynapseException;
 
 	/**
+	 * List all replicas for a grid session.
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	ListGridReplicasResponse listGridReplicas(ListGridReplicasRequest request) throws SynapseException;
+
+	/**
 	 * Create a websocket presigned URL to connect to a grid.
 	 * @param request
 	 * @return
@@ -4641,7 +4682,11 @@ public interface SynapseClient extends BaseClient {
     void deleteMetadataTask(Long taskId) throws SynapseException;
 
     ListCurationTaskResponse listMetadataTasks(ListCurationTaskRequest request) throws SynapseException;
-    
+
+    TaskStatus getTaskStatus(Long taskId) throws SynapseException;
+
+    TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException;
+
     RealmIdList listRealmIds() throws SynapseException ;
     
     Realm getRealm(String id) throws SynapseException ;
@@ -4649,5 +4694,36 @@ public interface SynapseClient extends BaseClient {
     RealmPrincipal getRealmPrincipals(String id) throws SynapseException ;
     
     RealmPrincipal getRealmPrincipals() throws SynapseException;
+
+    TextAnalyzer createTextAnalyzer(TextAnalyzer analyzer) throws SynapseException;
+
+    TextAnalyzer getTextAnalyzer(String id) throws SynapseException;
+
+    TextAnalyzer updateTextAnalyzer(TextAnalyzer analyzer) throws SynapseException;
+
+    void deleteTextAnalyzer(String id) throws SynapseException;
+
+    ListTextAnalyzersResponse listTextAnalyzers(ListTextAnalyzersRequest request) throws SynapseException;
+
+    ColumnAnalyzerOverride createColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException;
+
+    ColumnAnalyzerOverride getColumnAnalyzerOverride(String id) throws SynapseException;
+
+    ColumnAnalyzerOverride updateColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException;
+
+    void deleteColumnAnalyzerOverride(String id) throws SynapseException;
+
+    ListColumnAnalyzerOverridesResponse listColumnAnalyzerOverrides(ListColumnAnalyzerOverridesRequest request) throws SynapseException;
+
+	SynonymSet createSynonymSet(SynonymSet synonymSet) throws SynapseException;
+
+	SynonymSet getSynonymSet(String id) throws SynapseException;
+
+	SynonymSet updateSynonymSet(SynonymSet synonymSet) throws SynapseException;
+
+	void deleteSynonymSet(String id) throws SynapseException;
+
+	ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException;
+
 }
 

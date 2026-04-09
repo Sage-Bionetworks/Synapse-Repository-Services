@@ -444,4 +444,20 @@ public class AdministrationController {
 		serviceProvider.getAdministrationService().resetUserStatusToEnabled(userId, targetUserId);
 	}
 
+	/**
+	 * Backfill CHANGES entries for all existing grid sessions. This must be run on
+	 * the source stack before migration so the entries migrate with the CHANGES table,
+	 * allowing the destination stack to re-index grid sessions after migration.
+	 *
+	 * @param userId Must be an administrator.
+	 * @return The number of sessions backfilled.
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_GRID_SESSION_BACKFILL, method = RequestMethod.POST)
+	public @ResponseBody long backfillGridSessionChanges(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) {
+		return serviceProvider.getAdministrationService().backfillGridSessionChanges(userId);
+	}
+
 }

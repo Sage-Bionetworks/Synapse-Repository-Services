@@ -34,32 +34,22 @@ public interface UserProfileDAO {
 	 * 
 	 * @param startIncl
 	 * @param endExcl
-	 * @param sort
-	 * @param ascending
-	 * @param schema
+	 * @param realmId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException;
+	public List<UserProfile> getInRange(long startIncl, long endExcl, String realmId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
 	 * @param ids
+	 * @param realmId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<UserProfile> list(List<Long> ids) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get the total count of UserProfiles in the system
-	 * 
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public long getCount() throws DatastoreException, NotFoundException;
+	public List<UserProfile> list(List<Long> ids, String realmId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Updates the 'shallow' properties of an object.

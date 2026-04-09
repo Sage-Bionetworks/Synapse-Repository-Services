@@ -51,6 +51,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -94,12 +96,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	private AccessControlListManager aclManager;
 	
 	private DataAccessAuthorizationManager daAuthManager;
-	
+
+	private ForumDAO forumDao;
+
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
 			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListManager aclManager,
-			DataAccessAuthorizationManager daAuthManager) {
+			DataAccessAuthorizationManager daAuthManager, ForumDAO forumDao) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
 		this.nodeDao = nodeDao;
@@ -109,6 +113,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.transactionalMessenger = transactionalMessenger;
 		this.aclManager = aclManager;
 		this.daAuthManager = daAuthManager;
+		this.forumDao = forumDao;
 	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
@@ -235,9 +240,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		signalSubjectIds(Collections.emptyList(), subjects);
 		
 		T ar = (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
-		
+
+		if (ar instanceof ManagedACTAccessRequirement) {
+			forumDao.createForum(ar.getId().toString(), ForumObjectType.ACCESS_REQUIREMENT);
+		}
+
 		sendChangeMessage(userInfo.getId(), ChangeType.CREATE, ar.getId(), ar.getVersionNumber());
-		
+
 		return ar;
 	}
 

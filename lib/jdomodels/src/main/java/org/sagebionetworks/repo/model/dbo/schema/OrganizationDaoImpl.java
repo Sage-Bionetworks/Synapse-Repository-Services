@@ -48,11 +48,20 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	public Organization createOrganization(String name, Long createdBy) {
 		ValidateArgument.required(name, "name");
 		ValidateArgument.required(createdBy, "createdBy");
+		return createOrganization(name, createdBy, idGenerator.generateNewId(IdType.ORGANIZATION_ID));
+	}
+
+	@WriteTransaction
+	@Override
+	public Organization createOrganization(String name, Long createdBy, Long id) {
+		ValidateArgument.required(name, "name");
+		ValidateArgument.required(createdBy, "createdBy");
+		ValidateArgument.required(id, "id");
 		DBOOrganization dbo = new DBOOrganization();
 		dbo.setName(name);
 		dbo.setCreatedBy(createdBy);
 		dbo.setCreatedOn(new Timestamp(System.currentTimeMillis()));
-		dbo.setId(idGenerator.generateNewId(IdType.ORGANIZATION_ID));
+		dbo.setId(id);
 
 		try {
 			jdbcTemplate.update(

@@ -1,0 +1,31 @@
+{
+  "description": "Tracks the dynamic lifecycle and progress of a CurationTask.",
+  "properties": {
+    "taskId": {
+      "type": "integer",
+      "description": "The unique identifier of the associated curation task."
+    },
+    "state": {
+      "$ref": "org.sagebionetworks.repo.model.curation.TaskState",
+      "description": "The current state of the task in its lifecycle."
+    },
+    "executionDetails": {
+      "$ref": "org.sagebionetworks.repo.model.curation.TaskExecutionDetails",
+      "description": "Task-type-specific execution details. Null if no execution details are available."
+    },
+    "lastUpdatedBy": {
+      "type": "string",
+      "description": "The principal ID of the user who last updated the status."
+    },
+    "lastUpdatedOn": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of when the status was last updated."
+    },
+    "etag": {
+      "type": "string",
+      "description": "Optimistic concurrency control token for the task status.",
+      "transient": true
+    }
+  }
+}

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.Match;
 import org.sagebionetworks.repo.model.discussion.UpdateReplyMessage;
 import org.sagebionetworks.repo.model.discussion.UpdateThreadMessage;
@@ -214,7 +215,7 @@ public class ITDiscussion {
 	@Test
 	public void testThreadCountsForEntityIdList() throws SynapseException {
 		// create a forum
-		Forum forum = synapse.getForumByProjectId(projectId);
+		Forum forum = synapse.getForumByObjectIdAndType(projectId, ForumObjectType.ENTITY);
 		String forumId = forum.getId();
 		// create a thread
 		CreateDiscussionThread toCreate = new CreateDiscussionThread();

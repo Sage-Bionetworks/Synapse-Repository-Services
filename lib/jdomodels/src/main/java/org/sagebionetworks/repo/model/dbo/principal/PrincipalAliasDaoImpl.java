@@ -91,10 +91,13 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			+", P."+COL_USER_PROFILE_LAST_NAME
 			+ " FROM "
 			+ TABLE_PRINCIPAL_ALIAS+" A LEFT OUTER JOIN "+TABLE_USER_PROFILE+" P"
-			+ " ON (A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = P."+COL_USER_PROFILE_ID+")"
+					+ " ON (A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = P."+COL_USER_PROFILE_ID+")"
+			+" LEFT OUTER JOIN "+TABLE_USER_GROUP+" G"
+			+ " ON (A."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = G."+COL_USER_GROUP_ID+")"
 			+ " WHERE "
 			+ "A."+COL_PRINCIPAL_ALIAS_TYPE+" IN ('"+AliasEnum.USER_NAME+"', '"+AliasEnum.TEAM_NAME+"') "
-			+ "AND A.PRINCIPAL_ID IN (:principalIds)";
+			+ "AND A.PRINCIPAL_ID IN (:principalIds) "
+			+ "AND G.REALM=:realm";
 	
 	private static final String TYPE_LIST = "typeList";
 	private static final String UNIQUE_ALIAS_LIST = "uniqueAliasList";
@@ -363,13 +366,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	}
 
 	@Override
-	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds) {
+	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds, String realmId) {
 		ValidateArgument.required(principalIds, "principalIds");
+		ValidateArgument.required(realmId, "realmId");
 		if (principalIds.isEmpty()) {
 			return new LinkedList<>();
 		}
 		final Map<Long, UserGroupHeader> headerMap = new HashMap<>(principalIds.size());
-		MapSqlParameterSource parameters = new MapSqlParameterSource("principalIds", principalIds);
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("principalIds", principalIds);
+		parameters.addValue("realm", realmId);
 		namedTemplate.query(SQL_SELECT_USER_GROUP_HEADERS, parameters, new RowCallbackHandler() {
 
 			@Override

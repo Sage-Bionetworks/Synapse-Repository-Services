@@ -3,8 +3,13 @@ WITH replica_clock (rep_id, seq) AS (
     %s
 )
 SELECT
+  gp.SESSION_ID,
   gp.PATCH_ID_REP,
-  gp.PATCH_ID_SEQ
+  gp.PATCH_ID_SEQ,
+  gp.CREATED_ON,
+  gp.EXPIRES_ON,
+  gp.S3_KEY,
+  gp.SIZE_BYTES
 FROM
   GRID_PATCH AS gp
 LEFT JOIN

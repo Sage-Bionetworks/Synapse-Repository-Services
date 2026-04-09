@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REALM_PRINCIPAL_REALM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REALM_PRINCIPAL;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,9 +26,11 @@ import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
 import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -35,10 +39,13 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 class RealmDaoImplTest {
 	
 	private static final List<IdentityProvider> IDP_LIST = List.of(new OAuthIdentityProvider().
-			setProvider(OAuthProvider.ARCUS_BIOSCIENCES));
+			setProvider(OAuthProvider.SAGE_BIONETWORKS));
 	
 	@Autowired
 	private RealmDao realmDao;
+	
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -102,6 +109,23 @@ class RealmDaoImplTest {
 		assertEquals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString(), defaultRealmPrincipals.getPublicGroup());
 		assertEquals(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString(), defaultRealmPrincipals.getAdministrativeGroup());
 
+		String sql="SELECT * FROM "+TABLE_REALM_PRINCIPAL+" WHERE "+COL_REALM_PRINCIPAL_REALM_ID+" = ?";
+		List<DBORealmPrincipal> principals = jdbcTemplate.query(sql, (new DBORealmPrincipal()).getTableMapping(), id);
+		for (DBORealmPrincipal dbo: principals) {
+			if (dbo.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				assertEquals(1L, dbo.getId());
+			}
+			if (dbo.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+				assertEquals(3L, dbo.getId());
+			}
+			if (dbo.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())) {
+				assertEquals(2L, dbo.getId());
+			}
+			if (dbo.getPrincipalId().equals(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId())) {
+				assertEquals(4L, dbo.getId());
+			}
+		}
+		
 		// method under test
 		Optional<String> realmForAnonymous = realmDao.getRealmForAnonymousPrincipal(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
 		

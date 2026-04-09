@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.grid;
 import java.io.File;
 
 import org.sagebionetworks.repo.model.grid.ClockTable;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public interface SnapshotStore {
 

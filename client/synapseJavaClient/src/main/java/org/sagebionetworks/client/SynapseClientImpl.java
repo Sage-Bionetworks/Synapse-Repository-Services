@@ -146,6 +146,7 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationResponse;
@@ -185,6 +186,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
@@ -270,6 +272,8 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
@@ -293,6 +297,8 @@ import org.sagebionetworks.repo.model.oauth.OAuthGrantType;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformation;
 import org.sagebionetworks.repo.model.oauth.OAuthRefreshTokenInformationList;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionRequest;
+import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlRequest;
 import org.sagebionetworks.repo.model.oauth.OAuthUrlResponse;
@@ -397,6 +403,15 @@ import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
+import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.SynonymSet;
+import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -626,6 +641,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_AUDIT_CLIENTS = AUTH_OAUTH_2_AUDIT + "/grantedClients";
 	public static final String METADATA = "/metadata";
 	public static final String REVOKE = "/revoke";
+	public static final String AUTH_OAUTH_2_INTROSPECT = AUTH_OAUTH_2 + "/introspect";
 	public static final String TOKENS = "/tokens";
 
 	public static final String AUTH_OAUTH_2_GRANT_TYPE_PARAM = "grant_type";
@@ -714,7 +730,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String SUBSCRIPTION = "/subscription";
 	private static final String LIST = "/list";
 	private static final String OBJECT_TYPE_PARAM = "objectType";
-	private static final String OBJECT = "/object";	
+	private static final String OBJECT = "/object";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -757,7 +773,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	protected static final String REALM = "/realm";
 	protected static final String PRINCIPALS = "/principals";
-	
+
+	private static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";
+	private static final String SEARCH_TEXT_ANALYZER_LIST = SEARCH_TEXT_ANALYZER + "/list";
+	private static final String SEARCH_SYNONYM_SET = "/search/synonym/set";
+	private static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
+	private static final String SEARCH_COLUMN_ANALYZER_OVERRIDE = "/search/column/analyzer/override";
+	private static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_LIST = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/list";
 
 	/**
 	 * Default constructor uses the default repository and file services endpoints.
@@ -4747,9 +4769,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 */
 	@Override
-	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken() throws SynapseException {
+	public Jwt<JwsHeader,Claims> getUserInfoAsJSONWebToken(boolean includeAcceptHeader) throws SynapseException {
 		Map<String,String> requestHeaders = new HashMap<String,String>();
 		requestHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, getAuthorizationHeader());
+		if (includeAcceptHeader) {
+			requestHeaders.put(ACCEPT, APPLICATION_JWT_CHARSET_UTF8);
+		} else {
+			requestHeaders.remove(ACCEPT);
+		}
 		SimpleHttpResponse response = dispatchSynapseRequest(
 				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
 		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
@@ -4773,8 +4800,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 */
 	@Override
-	public JSONObject getUserInfoAsJSON() throws SynapseException {
-		return getJson(getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO);
+	public JSONObject getUserInfoAsJSON(boolean includeAcceptHeader) throws SynapseException {
+		Map<String,String> requestHeaders = new HashMap<String,String>();
+		requestHeaders.put(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, getAuthorizationHeader());
+		if (includeAcceptHeader) {
+			requestHeaders.put(ACCEPT, APPLICATION_JSON_CHARSET_UTF8);
+		} else {
+			requestHeaders.remove(ACCEPT);
+		}
+		
+		SimpleHttpResponse response = dispatchSynapseRequest(
+				getAuthEndpoint(), AUTH_OAUTH_2_USER_INFO, GET, null, requestHeaders, null);
+		if (!ClientUtils.is200sStatusCode(response.getStatusCode())) {
+			ClientUtils.throwException(response.getStatusCode(), response.getContent());
+		}
+		
+		validateContentType(response, APPLICATION_JSON);
+		return ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 	}
 
 	@Override
@@ -4820,6 +4862,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		SimpleHttpResponse response = dispatchSynapseRequest(getAuthEndpoint(),
 				AUTH_OAUTH_2 + REVOKE, POST, requestBody, headers, null);
 		ClientUtils.checkStatusCodeAndThrowException(response);
+	}
+
+	@Override
+	public OAuthTokenIntrospectionResponse introspectToken(OAuthTokenIntrospectionRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_INTROSPECT, request, OAuthTokenIntrospectionResponse.class);
 	}
 
 	@Override
@@ -5138,6 +5186,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Forum getForum(String forumId) throws SynapseException {
 		ValidateArgument.required(forumId, "forumId");
 		return getJSONEntity(getRepoEndpoint(), FORUM+"/"+forumId, Forum.class);
+	}
+
+	@Override
+	public Forum getForumByObjectIdAndType(String objectId, ForumObjectType objectType) throws SynapseException {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+		return getJSONEntity(getRepoEndpoint(), FORUM+"/"+objectId+"/"+objectType.name(), Forum.class);
 	}
 
 	@Override
@@ -6513,6 +6568,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	public ListGridReplicasResponse listGridReplicas(ListGridReplicasRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(),
+				"/grid/session/" + request.getGridSessionId() + "/replica/list", request,
+				ListGridReplicasResponse.class);
+	}
+
+	@Override
 	public CreateGridPresignedUrlResponse createGridPresignedUrl(CreateGridPresignedUrlRequest request)
 			throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/grid/session/" + request.getGridSessionId() + "/presigned/url", request,
@@ -6584,6 +6646,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
         return postJSONEntity(getRepoEndpoint(), "/curation/task/list", request, ListCurationTaskResponse.class);
     }
 
+    @Override
+    public TaskStatus getTaskStatus(Long taskId) throws SynapseException {
+        return getJSONEntity(getRepoEndpoint(), "/curation/task/" + taskId + "/status", TaskStatus.class);
+    }
+
+    @Override
+    public TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException {
+        return putJSONEntity(getRepoEndpoint(), "/curation/task/" + taskId + "/status", statusUpdate, TaskStatus.class);
+    }
+
 	@Override
 	public RealmIdList listRealmIds() throws SynapseException {
 	       return getJSONEntity(getRepoEndpoint(), REALM+"/list", RealmIdList.class);
@@ -6603,4 +6675,98 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public RealmPrincipal getRealmPrincipals() throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), REALM+PRINCIPALS, RealmPrincipal.class);
 	}
+
+	@Override
+	public TextAnalyzer createTextAnalyzer(TextAnalyzer analyzer) throws SynapseException {
+		ValidateArgument.required(analyzer, "analyzer");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_TEXT_ANALYZER, analyzer, TextAnalyzer.class);
+	}
+
+	@Override
+	public TextAnalyzer getTextAnalyzer(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		return getJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_TEXT_ANALYZER, id), TextAnalyzer.class);
+	}
+
+	@Override
+	public TextAnalyzer updateTextAnalyzer(TextAnalyzer analyzer) throws SynapseException {
+		ValidateArgument.required(analyzer, "analyzer");
+		ValidateArgument.required(analyzer.getId(), "analyzer.id");
+		return putJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_TEXT_ANALYZER, analyzer.getId()), analyzer, TextAnalyzer.class);
+	}
+
+	@Override
+	public void deleteTextAnalyzer(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		deleteUri(getRepoEndpoint(), createEntityUri(SEARCH_TEXT_ANALYZER, id));
+	}
+
+	@Override
+	public ListTextAnalyzersResponse listTextAnalyzers(ListTextAnalyzersRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_TEXT_ANALYZER_LIST, request, ListTextAnalyzersResponse.class);
+	}
+
+	@Override
+	public ColumnAnalyzerOverride createColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException {
+		ValidateArgument.required(override, "override");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_COLUMN_ANALYZER_OVERRIDE, override, ColumnAnalyzerOverride.class);
+	}
+
+	@Override
+	public ColumnAnalyzerOverride getColumnAnalyzerOverride(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		return getJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_COLUMN_ANALYZER_OVERRIDE, id), ColumnAnalyzerOverride.class);
+	}
+
+	@Override
+	public ColumnAnalyzerOverride updateColumnAnalyzerOverride(ColumnAnalyzerOverride override) throws SynapseException {
+		ValidateArgument.required(override, "override");
+		ValidateArgument.required(override.getId(), "override.id");
+		return putJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_COLUMN_ANALYZER_OVERRIDE, override.getId()), override, ColumnAnalyzerOverride.class);
+	}
+
+	@Override
+	public void deleteColumnAnalyzerOverride(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		deleteUri(getRepoEndpoint(), createEntityUri(SEARCH_COLUMN_ANALYZER_OVERRIDE, id));
+	}
+
+	@Override
+	public ListColumnAnalyzerOverridesResponse listColumnAnalyzerOverrides(ListColumnAnalyzerOverridesRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_COLUMN_ANALYZER_OVERRIDE_LIST, request, ListColumnAnalyzerOverridesResponse.class);
+	}
+
+	@Override
+	public SynonymSet createSynonymSet(SynonymSet synonymSet) throws SynapseException {
+		ValidateArgument.required(synonymSet, "synonymSet");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_SYNONYM_SET, synonymSet, SynonymSet.class);
+	}
+
+	@Override
+	public SynonymSet getSynonymSet(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		return getJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_SYNONYM_SET, id), SynonymSet.class);
+	}
+
+	@Override
+	public SynonymSet updateSynonymSet(SynonymSet synonymSet) throws SynapseException {
+		ValidateArgument.required(synonymSet, "synonymSet");
+		ValidateArgument.required(synonymSet.getId(), "synonymSet.id");
+		return putJSONEntity(getRepoEndpoint(), createEntityUri(SEARCH_SYNONYM_SET, synonymSet.getId()), synonymSet, SynonymSet.class);
+	}
+
+	@Override
+	public void deleteSynonymSet(String id) throws SynapseException {
+		ValidateArgument.required(id, "id");
+		deleteUri(getRepoEndpoint(), createEntityUri(SEARCH_SYNONYM_SET, id));
+	}
+
+	@Override
+	public ListSynonymSetsResponse listSynonymSets(ListSynonymSetsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), SEARCH_SYNONYM_SET_LIST, request, ListSynonymSetsResponse.class);
+	}
+
 }

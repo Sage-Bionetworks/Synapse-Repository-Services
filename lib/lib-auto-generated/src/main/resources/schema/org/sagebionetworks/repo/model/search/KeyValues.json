@@ -1,0 +1,20 @@
+{
+	"description": "A multi-value filter (IN clause). Matches rows where the key column contains any of the listed values.",
+	"properties": {
+		"key": {
+			"type": "string",
+			"description": "The column name to filter on."
+		},
+		"values": {
+			"type": "array",
+			"description": "The values to match.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"not": {
+			"type": "boolean",
+			"description": "If true, excludes matching values instead. Default: false."
+		}
+	}
+}

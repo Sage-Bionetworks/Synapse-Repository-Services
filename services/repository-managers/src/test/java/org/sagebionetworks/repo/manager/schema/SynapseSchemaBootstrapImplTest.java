@@ -286,7 +286,7 @@ public class SynapseSchemaBootstrapImplTest {
 		verify(mockJsonSchemaManager).getOrganizationByName(admin, organizationName);
 		CreateOrganizationRequest expectedRequest = new CreateOrganizationRequest();
 		expectedRequest.setOrganizationName(organizationName);
-		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest);
+		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest, SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ID);
 	}
 	
 	@Test
@@ -295,7 +295,7 @@ public class SynapseSchemaBootstrapImplTest {
 		doReturn(objectSchemas).when(bootstrapSpy).loadAllSchemasAndReferences(any());
 		when(mockTranslator.translate(any())).thenReturn(jsonSchema, jsonSchemaTwo);
 		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(),any());
-		doNothing().when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		doReturn(new Organization()).when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
 		doNothing().when(bootstrapSpy).replaceReferencesWithLatestVersion(any());
 		// call under test
 		bootstrapSpy.bootstrapSynapseSchemas();

@@ -97,6 +97,7 @@ public class RequestThrottleFilterTest {
 		ProfileData profileData = new ProfileData();
 		when(mockRequestThrottler.doThrottle(any(HttpRequestIdentifier.class)))
 				.thenThrow(new RequestThrottledException(throttleMessage, profileData));
+		mockRequest.setParameter(AuthorizationConstants.ANONYMOUS_PARAM, "false");
 
 		//method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
@@ -113,7 +114,8 @@ public class RequestThrottleFilterTest {
 	@Test
 	public void testThrottlerPassed() throws Exception {
 		when(mockRequestThrottler.doThrottle(any(HttpRequestIdentifier.class))).thenReturn(mockRequestThrottlerCleanup);
-
+		mockRequest.setParameter(AuthorizationConstants.ANONYMOUS_PARAM, "false");
+		
 		//method under test
 		filter.doFilter(mockRequest, mockResponse, mockFilterChain);
 

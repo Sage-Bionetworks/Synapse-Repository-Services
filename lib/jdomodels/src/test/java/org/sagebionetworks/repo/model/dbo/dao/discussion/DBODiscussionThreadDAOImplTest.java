@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadStat;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCount;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -79,7 +80,7 @@ public class DBODiscussionThreadDAOImplTest {
 		project.setParentId(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		projectId = nodeDao.createNew(project);
 		// create a forum
-		Forum dto = forumDao.createForum(projectId);
+		Forum dto = forumDao.createForum(projectId, ForumObjectType.ENTITY);
 		forumId = dto.getId();
 		forumIdLong = Long.parseLong(forumId);
 		threadId = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
@@ -90,6 +91,9 @@ public class DBODiscussionThreadDAOImplTest {
 		if (projectId != null) nodeDao.delete(projectId);
 		if (userId != null) userGroupDAO.delete(userId.toString());
 		if (userId2 != null) userGroupDAO.delete(userId.toString());
+		if (forumId != null) {
+			forumDao.deleteForum(forumIdLong);
+		}
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -576,7 +580,7 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testBuildGetQuery() {
 		String baseQuery = DBODiscussionThreadDAOImpl.SQL_SELECT_THREADS_BY_FORUM_ID;
 		assertEquals("not ordered","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.OBJECT_ID AS OBJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
@@ -592,7 +596,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("ordered by pinned and last activity","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.OBJECT_ID AS OBJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
@@ -609,7 +613,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 0L, DiscussionThreadOrder.PINNED_AND_LAST_ACTIVITY, true, DiscussionFilter.NO_FILTER));
 		assertEquals("limit","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.OBJECT_ID AS OBJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
@@ -625,7 +629,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LIMIT 100 OFFSET 0",
 				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 100L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("offset","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.OBJECT_ID AS OBJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"
@@ -641,7 +645,7 @@ public class DBODiscussionThreadDAOImplTest {
 				+ " LIMIT 10 OFFSET 2",
 				DBODiscussionThreadDAOImpl.buildGetQuery(baseQuery, 10L, 2L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("filtered","SELECT DISCUSSION_THREAD.ID AS ID,"
-				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.PROJECT_ID AS PROJECT_ID,"
+				+ " DISCUSSION_THREAD.FORUM_ID AS FORUM_ID, FORUM.OBJECT_ID AS OBJECT_ID,"
 				+ " DISCUSSION_THREAD.TITLE AS TITLE, DISCUSSION_THREAD.CREATED_ON AS CREATED_ON,"
 				+ " DISCUSSION_THREAD.CREATED_BY AS CREATED_BY, DISCUSSION_THREAD.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_THREAD.ETAG AS ETAG, DISCUSSION_THREAD.MESSAGE_KEY AS MESSAGE_KEY,"

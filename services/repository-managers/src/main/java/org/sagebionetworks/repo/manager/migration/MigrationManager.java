@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsRequest;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsResponse;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
@@ -228,5 +230,16 @@ public interface MigrationManager {
 	 * @return
 	 */
 	RestoreTypeResponse restoreStream(InputStream input, BackupManifest manifest);
+
+	/**
+	 * Create forums for all ManagedACTAccessRequirements that do not yet have a forum.
+	 * This is a one-time backfill operation intended to be run after migration.
+	 *
+	 * @param user
+	 * @param request
+	 * @return
+	 */
+	CreateForumsForAccessRequirementsResponse createForumsForAccessRequirements(UserInfo user,
+			CreateForumsForAccessRequirementsRequest request);
 
 }

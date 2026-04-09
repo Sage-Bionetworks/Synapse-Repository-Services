@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.util.ValidateArgument;
 
 public class ForumUtils {
 
@@ -11,9 +13,15 @@ public class ForumUtils {
 	 * @return dbo
 	 */
 	public static DBOForum createDBOFromDTO(Forum dto) {
+		ValidateArgument.required(dto.getObjectId(), "objectId");
+		ValidateArgument.required(dto.getObjectType(), "objectType");
+		if(dto.getProjectId() !=null){
+			throw new IllegalArgumentException("Project id should not be provided");
+		}
 		DBOForum dbo = new DBOForum();
 		dbo.setId(Long.parseLong(dto.getId()));
-		dbo.setProjectId(KeyFactory.stringToKey(dto.getProjectId()));
+		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
+		dbo.setObjectType(dto.getObjectType().name());
 		dbo.setEtag(dto.getEtag());
 		return dbo;
 	}
@@ -26,7 +34,16 @@ public class ForumUtils {
 	public static Forum createDTOFromDBO(DBOForum dbo) {
 		Forum dto = new Forum();
 		dto.setId(dbo.getId().toString());
-		dto.setProjectId(KeyFactory.keyToString(dbo.getProjectId()));
+		String objectIdStr = KeyFactory.keyToString(dbo.getObjectId());
+		dto.setObjectId(objectIdStr);
+		ForumObjectType objectType = dbo.getObjectType() != null
+				? ForumObjectType.valueOf(dbo.getObjectType())
+				: ForumObjectType.ENTITY;
+		dto.setObjectType(objectType);
+		// Populate projectId for backward compatibility when it's an entity forum
+		if (ForumObjectType.ENTITY.equals(objectType)) {
+			dto.setProjectId(objectIdStr);
+		}
 		dto.setEtag(dbo.getEtag());
 		return dto;
 	}

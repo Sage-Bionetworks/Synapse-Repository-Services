@@ -25,8 +25,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.repo.model.Entity;
@@ -50,17 +53,27 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
+import org.sagebionetworks.repo.model.grid.GridReplicaType;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
+import java.util.HashSet;
+import java.util.Set;
 
 @ExtendWith(ITTestExtension.class)
 public class ITGridControllerTest {
@@ -70,12 +83,33 @@ public class ITGridControllerTest {
 	private static long MAX_TME_MS = 30 * 1000;
     private static long ASYNC_JOB_POLL_TIME_MS = 1_000L;
 
+	private static SynapseClient synapseTwo;
+	private static Long userTwoToDelete;
+
+	private final SynapseAdminClient adminSynapse;
 	private final SynapseClient synapse;
-	
+
 	private Project project;
 
-	public ITGridControllerTest(SynapseClient synapse) {
+	public ITGridControllerTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
+		this.adminSynapse = adminSynapse;
 		this.synapse = synapse;
+	}
+
+	@BeforeAll
+	public static void beforeClass(SynapseAdminClient adminSynapse) throws Exception {
+		synapseTwo = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseTwo);
+		userTwoToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+	}
+
+	@AfterAll
+	public static void afterClass(SynapseAdminClient adminSynapse) throws Exception {
+		try {
+			if (userTwoToDelete != null) {
+				adminSynapse.deleteUser(userTwoToDelete);
+			}
+		} catch (SynapseException e) { }
 	}
 
     @BeforeEach
@@ -131,6 +165,20 @@ public class ITGridControllerTest {
 		// call under test
 		GridReplica replicaClone = synapse.getGridReplica(replica.getGridSessionId(), replica.getReplicaId());
 		assertEquals(replica, replicaClone);
+
+		// call under test
+		ListGridReplicasResponse listReplicasResp = synapse
+				.listGridReplicas(new ListGridReplicasRequest().setGridSessionId(session.getSessionId()));
+		assertNotNull(listReplicasResp);
+		assertNotNull(listReplicasResp.getPage());
+		// Should contain the user replica we just created plus any service replicas
+		assertTrue(listReplicasResp.getPage().size() >= 1);
+		// Find our user replica in the list
+		GridReplicaInfo userReplica = listReplicasResp.getPage().stream()
+				.filter(r -> r.getReplicaId().equals(replica.getReplicaId())).findFirst().orElse(null);
+		assertNotNull(userReplica);
+		assertEquals(GridReplicaType.USER, userReplica.getReplicaType());
+		assertEquals(replica.getCreatedBy(), userReplica.getCreatedBy());
 
 		// call under test
 		CreateGridPresignedUrlResponse urlResponse = synapse.createGridPresignedUrl(new CreateGridPresignedUrlRequest()
@@ -249,6 +297,31 @@ public class ITGridControllerTest {
 		
 		assertEquals(1, res.size());
 		assertNotNull(res.get(0).getPreSignedURL());
+
+		// Grant the second user DOWNLOAD permission on the project
+		AccessControlList acl = synapse.getACL(project.getId());
+		Set<ResourceAccess> resourceAccesses = acl.getResourceAccess();
+		ResourceAccess userTwoAccess = new ResourceAccess();
+		userTwoAccess.setPrincipalId(Long.parseLong(synapseTwo.getMyProfile().getOwnerId()));
+		userTwoAccess.setAccessType(new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD)));
+		resourceAccesses.add(userTwoAccess);
+		acl.setResourceAccess(resourceAccesses);
+		synapse.updateACL(acl);
+
+		// Verify that a different user (not the file handle creator) can download the validation file
+		List<FileResult> resTwo = synapseTwo.getFileHandleAndUrlBatch(new BatchFileRequest()
+			.setIncludePreviewPreSignedURLs(false)
+			.setIncludeFileHandles(false)
+			.setIncludePreSignedURLs(true)
+			.setRequestedFiles(List.of(new FileHandleAssociation()
+				.setAssociateObjectId(recordSet.getId())
+				.setAssociateObjectType(FileHandleAssociateType.FileEntity)
+				.setFileHandleId(recordSet.getValidationFileHandleId())
+			))
+		).getRequestedFiles();
+
+		assertEquals(1, resTwo.size());
+		assertNotNull(resTwo.get(0).getPreSignedURL());
     }
 
     private TableEntity createTableForInitialGrid() throws Exception {

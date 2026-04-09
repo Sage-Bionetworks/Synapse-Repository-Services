@@ -18,6 +18,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.inject.Inject;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.grid.ClockTable;
@@ -48,7 +50,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	public static final int MAX_MESSAGE_ID = 65535;
 
 	// The maximum number of nodes to process in a single batch during snapshot import.
-	private static final int SNAPSHOT_IMPORT_BATCH_SIZE = 1000;
+	public static final int DEFAULT_SNAPSHOT_IMPORT_BATCH_SIZE = 1000;
 
 	private static final Logger log = LogManager.getLogger(GridIndexManagerImpl.class);
 
@@ -56,14 +58,22 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private final OperationDispatcher operationDispatcher;
 	private final SnapshotFileIndexBuilder snapshotIndexBuilder;
 	private final SeekingNodeReaderProvider readerProvider;
+	private final int snapshotImportBatchSize;
 
+	@Inject
 	public GridIndexManagerImpl(GridIndexDao dao, OperationDispatcher operationDispatcher, SnapshotFileIndexBuilder snapshotIndexBuilder,
 								SeekingNodeReaderProvider readerProvider) {
+		this(dao, operationDispatcher, snapshotIndexBuilder, readerProvider, DEFAULT_SNAPSHOT_IMPORT_BATCH_SIZE);
+	}
+
+	public GridIndexManagerImpl(GridIndexDao dao, OperationDispatcher operationDispatcher, SnapshotFileIndexBuilder snapshotIndexBuilder,
+								SeekingNodeReaderProvider readerProvider, int snapshotImportBatchSize) {
 		super();
 		this.dao = dao;
 		this.operationDispatcher = operationDispatcher;
 		this.snapshotIndexBuilder = snapshotIndexBuilder;
 		this.readerProvider = readerProvider;
+		this.snapshotImportBatchSize = snapshotImportBatchSize;
 	}
 
 	@Override
@@ -149,7 +159,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private void importConstantsFromSnapshot(String sessionId, Long replicaId, SeekingNodeReader reader) throws IOException {
 		Stream<ConstantNode> stream = reader.streamConstantNodes();
 
-		for (List<ConstantNode> batch : Iterables.partition(stream::iterator, SNAPSHOT_IMPORT_BATCH_SIZE)) {
+		for (List<ConstantNode> batch : Iterables.partition(stream::iterator, snapshotImportBatchSize)) {
 			dao.saveIndex(sessionId, replicaId, IndexType.con, batch.stream().map(Node::getId).collect(Collectors.toList()));
 			dao.saveNewConstants(sessionId, replicaId, batch);
 		}
@@ -161,7 +171,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private void importObjectsFromSnapshot(String sessionId, Long replicaId, SeekingNodeReader reader) throws IOException {
 		Stream<ObjectNode> stream = reader.streamObjectNodes();
 
-		for (List<ObjectNode> batch : Iterables.partition(stream::iterator, SNAPSHOT_IMPORT_BATCH_SIZE)) {
+		for (List<ObjectNode> batch : Iterables.partition(stream::iterator, snapshotImportBatchSize)) {
 			dao.saveIndex(sessionId, replicaId, IndexType.obj, batch.stream().map(Node::getId).collect(Collectors.toList()));
 			dao.saveObjects(sessionId, replicaId, batch);
 		}
@@ -173,7 +183,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private void importValuesFromSnapshot(String sessionId, Long replicaId, SeekingNodeReader reader) throws IOException {
 		Stream<ValueNode> stream = reader.streamValueNodes();
 
-		for (List<ValueNode> batch : Iterables.partition(stream::iterator, SNAPSHOT_IMPORT_BATCH_SIZE)) {
+		for (List<ValueNode> batch : Iterables.partition(stream::iterator, snapshotImportBatchSize)) {
 			dao.saveIndex(sessionId, replicaId, IndexType.val, batch.stream().map(Node::getId).collect(Collectors.toList()));
 			dao.saveValues(sessionId, replicaId, batch);
 		}
@@ -185,7 +195,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private void importArraysFromSnapshot(String sessionId, Long replicaId, SeekingNodeReader reader) throws IOException {
 		Stream<ArrayNode> stream = reader.streamArrayNodes();
 
-		for (List<ArrayNode> batch : Iterables.partition(stream::iterator, SNAPSHOT_IMPORT_BATCH_SIZE)) {
+		for (List<ArrayNode> batch : Iterables.partition(stream::iterator, snapshotImportBatchSize)) {
 			List<LogicalTimestamp> ids = batch.stream().map(Node::getId).collect(Collectors.toList());
 			dao.saveIndex(sessionId, replicaId, IndexType.arr, ids);
 			dao.createArrayBatch(sessionId, replicaId, ids);
@@ -207,7 +217,7 @@ public class GridIndexManagerImpl implements GridIndexManager {
 	private void importVectorsFromSnapshot(String sessionId, Long replicaId, SeekingNodeReader reader) throws IOException {
 		Stream<VectorNode> stream = reader.streamVectorNodes();
 
-		for (List<VectorNode> batch : Iterables.partition(stream::iterator, SNAPSHOT_IMPORT_BATCH_SIZE)) {
+		for (List<VectorNode> batch : Iterables.partition(stream::iterator, snapshotImportBatchSize)) {
 			dao.saveIndex(sessionId, replicaId, IndexType.vec, batch.stream().map(Node::getId).collect(Collectors.toList()));
 
 			// Populate each vector with its constant values

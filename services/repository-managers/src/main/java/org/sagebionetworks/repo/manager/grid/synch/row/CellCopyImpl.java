@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.grid.synch.row;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,20 +12,20 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 
 public class CellCopyImpl implements Copy<CellCopyItem, CellSourceItem> {
 
-	private final RowCopyItem copyItem;
+	private final List<CellCopyItem> cells;
 	private final Map<String, ConValue> mergeCells;
 	private final Set<String> userDeletedCells;
 
-	public CellCopyImpl(RowCopyItem copyItem) {
-		this.copyItem = copyItem;
-		mergeCells = copyItem.getCells().stream()
-				.collect(Collectors.toMap(CellCopyItem::getName, CellCopyItem::getValue));
+	public CellCopyImpl(RowCopyItem copyItem, Set<String> finalColumnNames) {
+		this.cells = copyItem.getCells().stream().filter(c -> finalColumnNames.contains(c.getName()))
+				.collect(Collectors.toList());
+		mergeCells = cells.stream().collect(Collectors.toMap(CellCopyItem::getName, CellCopyItem::getValue));
 		this.userDeletedCells = getUserDeletedCells(copyItem);
 	}
 
 	@Override
 	public Stream<CellCopyItem> streamItems() {
-		return copyItem.getCells().stream();
+		return cells.stream();
 	}
 
 	@Override
@@ -45,15 +46,15 @@ public class CellCopyImpl implements Copy<CellCopyItem, CellSourceItem> {
 		mergeCells.put(item.getColumnName(), item.getValue());
 	}
 
-	private Set<String> getUserDeletedCells(RowCopyItem copyItem) {
+	static Set<String> getUserDeletedCells(RowCopyItem copyItem) {
 		return copyItem.getCells().stream()
 				.filter(cell -> cell.wasChangedByUser() && cell.getValue() != null
 						&& (ConType.UNDEFINED.equals(cell.getValue().getType())
 								|| ConType.NULL.equals(cell.getValue().getType())))
 				.map(CellCopyItem::getName).collect(Collectors.toSet());
 	}
-	
-	public Map<String, ConValue> getMergedCells(){
+
+	public Map<String, ConValue> getMergedCells() {
 		return mergeCells;
 	}
 

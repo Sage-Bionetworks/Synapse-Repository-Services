@@ -8,13 +8,23 @@ import org.sagebionetworks.repo.model.schema.Organization;
 public interface OrganizationDao {
 
 	/**
-	 * Create a new Organization.
-	 * 
+	 * Create a new Organization with an auto-generated ID.
+	 *
 	 * @param name
 	 * @param createdBy
 	 * @return
 	 */
 	Organization createOrganization(String name, Long createdBy);
+
+	/**
+	 * Create a new Organization with a specific ID.
+	 *
+	 * @param name
+	 * @param createdBy
+	 * @param id The specific ID to assign to the organization.
+	 * @return
+	 */
+	Organization createOrganization(String name, Long createdBy, Long id);
 
 	/**
 	 * Get an Organization by name.
@@ -47,7 +57,7 @@ public interface OrganizationDao {
 
 	/**
 	 * List a single page of Organizations.
-	 * @param limitForQuery
+	 * @param limit
 	 * @param offset
 	 * @return
 	 */

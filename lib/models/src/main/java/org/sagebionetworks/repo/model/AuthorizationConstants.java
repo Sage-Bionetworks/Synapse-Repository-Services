@@ -71,7 +71,17 @@ public class AuthorizationConstants {
 	 * Request parameter for a Team ID
 	 */
 	public static final String TEAM_ID_PARAM = "teamId";
-	
+
+	/**
+	 * Request parameter for Object Id for a Forum
+	 */
+	public static final String OBJECT_ID_PARAM = "objectId";
+
+	/**
+	 * Request parameter for Object Type for a Forum
+	 */
+	public static final String OBJECT_TYPE_PARAM = "objectType";
+
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they
@@ -233,6 +243,18 @@ public class AuthorizationConstants {
 	 * Standard name for the HTTP Header containing credentials, bearer token, or other authentication/authorization information
 	 */
 	public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+	
+	/**
+	 * Standard name for the HTTP Accept Header
+	 */
+	public static final String ACCEPT_HEADER_NAME = "Accept";
+	
+	/**
+	 * Some MIME types that can be used in the Accept header
+	 */
+	public static final String APPLICATION_JSON_MIME_TYPE_LOWERCASE = "application/json".toLowerCase();
+	public static final String APPLICATION_JWT_MIME_TYPE_LOWERCASE = "application/jwt".toLowerCase();
+	
 	
 	/**
 	 * Internal header name used when passing authorization from a Synapse HTTP Filter to a Spring Controller

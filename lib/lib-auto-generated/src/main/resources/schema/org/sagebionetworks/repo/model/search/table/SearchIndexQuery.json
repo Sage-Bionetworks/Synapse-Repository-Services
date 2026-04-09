@@ -1,0 +1,12 @@
+{
+	"description": "A search query against a SearchIndex entity's OpenSearch index. Extends SearchQuery with searchIndexId to identify which index to query.",
+	"extends": {
+		"$ref": "org.sagebionetworks.repo.model.search.SearchQuery"
+	},
+	"properties": {
+		"searchIndexId": {
+			"type": "string",
+			"description": "The ID of the SearchIndex entity to query."
+		}
+	}
+}

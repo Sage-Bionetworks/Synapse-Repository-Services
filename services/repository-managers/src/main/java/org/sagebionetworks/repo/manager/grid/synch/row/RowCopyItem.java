@@ -83,6 +83,13 @@ public interface RowCopyItem extends CopyItem {
 	LogicalTimestamp getVectorNodeId();
 
 	/**
+	 * The ID of the metadata object that defines this row's metadata.
+	 * 
+	 * @return
+	 */
+	LogicalTimestamp getMetadataNodeId();
+
+	/**
 	 * Gets the individual cells that comprise this row. During cell-level
 	 * synchronization (when copy and source rows don't match), the {@link RowMerge}
 	 * logic compares these cells with the corresponding source cells to determine

@@ -23,6 +23,10 @@
 		"offset": {
 			"type": "integer",
 			"description": "Optional. specifies the offset of the first row to return."
+		},
+		"includeValidationMessages": {
+			"type": "boolean",
+			"description": "When false, the 'allValidationMessages' array in the response will be omitted to save tokens. Defaults to false."
 		}
 	}
 }

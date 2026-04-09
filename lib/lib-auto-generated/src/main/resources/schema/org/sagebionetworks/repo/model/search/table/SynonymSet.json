@@ -1,0 +1,50 @@
+{
+	"description": "A shared set of synonym rules. SynonymSets belong to an Organization and can be referenced by SearchConfigurations. Cannot be deleted while referenced by any SearchConfiguration.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique ID of this synonym set."
+		},
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization this resource belongs to."
+		},
+		"name": {
+			"type": "string",
+			"description": "Display name. Unique within the organization."
+		},
+		"description": {
+			"type": "string",
+			"description": "Optional description of the synonym set."
+		},
+		"rules": {
+			"type": "array",
+			"description": "The list of synonym rules in this set.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.table.SynonymRule"
+			}
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this resource."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this resource."
+		}
+	}
+}

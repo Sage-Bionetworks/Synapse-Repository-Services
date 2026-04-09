@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionReplyBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionReplyOrder;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadReplyStat;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,7 +81,7 @@ public class DBODiscussionReplyDAOImplTest {
 		project.setParentId(StackConfigurationSingleton.singleton().getRootFolderEntityId());
 		projectId = nodeDao.createNew(project);
 		// create a forum
-		Forum dto = forumDao.createForum(projectId);
+		Forum dto = forumDao.createForum(projectId, ForumObjectType.ENTITY);
 		forumId = dto.getId();
 		// create a thread
 		threadIdLong = idGenerator.generateNewId(IdType.DISCUSSION_THREAD_ID);
@@ -98,6 +99,7 @@ public class DBODiscussionReplyDAOImplTest {
 				userGroupDAO.delete(userId.toString());
 			}
 		}
+		forumDao.deleteForum(Long.parseLong(forumId));
 	}
 
 	@Test (expected = IllegalArgumentException.class)
@@ -474,7 +476,7 @@ public class DBODiscussionReplyDAOImplTest {
 	@Test
 	public void testBuildGetRepliesQuery() {
 		assertEquals("include deleted replies",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"
@@ -486,7 +488,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.NO_FILTER));
 		assertEquals("only non deleted replies",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"
@@ -499,7 +501,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, null, null, DiscussionFilter.EXCLUDE_DELETED));
 		assertEquals("order ascending",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"
@@ -512,7 +514,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, true, DiscussionFilter.NO_FILTER));
 		assertEquals("order descending",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"
@@ -525,7 +527,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " LIMIT 10 OFFSET 0",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(10L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
 		assertEquals("limit",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"
@@ -538,7 +540,7 @@ public class DBODiscussionReplyDAOImplTest {
 				+ " LIMIT 2 OFFSET 0",
 				DBODiscussionReplyDAOImpl.buildGetRepliesQuery(2L, 0L, DiscussionReplyOrder.CREATED_ON, false, DiscussionFilter.NO_FILTER));
 		assertEquals("offset",
-				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, PROJECT_ID,"
+				"SELECT DISCUSSION_REPLY.ID AS ID , THREAD_ID, FORUM_ID, OBJECT_ID,"
 				+ " DISCUSSION_REPLY.MESSAGE_KEY AS MESSAGE_KEY , DISCUSSION_REPLY.CREATED_BY AS CREATED_BY,"
 				+ " DISCUSSION_REPLY.CREATED_ON AS CREATED_ON, DISCUSSION_REPLY.MODIFIED_ON AS MODIFIED_ON,"
 				+ " DISCUSSION_REPLY.ETAG AS ETAG, DISCUSSION_REPLY.IS_EDITED AS IS_EDITED,"

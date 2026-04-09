@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
@@ -77,6 +78,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private GroupMembersDAO groupMembersDAO;
 
 	@Autowired
+	CertifiedUsersDAO certifiedUsersDAO;
+
+	@Autowired
 	private TeamManager teamManager;
 
 	private Long adminUserId;
@@ -110,12 +114,10 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
-		boolean acceptsTermsOfUse = true;
 		testUserId = userManager.createOrGetTestUser(adminUserInfo, user).getId();
-		
-		 groupMembersDAO.addMembers(
-		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
-		 Collections.singletonList(testUserId.toString()));
+
+		certifiedUsersDAO.addCertifiedUser(testUserId, true);
+
 		testUserInfo = userManager.getUserInfo(testUserId);
 
 		Team team = new Team();

@@ -10,18 +10,19 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
  */
 public class PatchInfo {
 
-	private String sesisonId;
+	private String sessionId;
 	private LogicalTimestamp patchId;
 	private Timestamp createdOn;
 	private Timestamp expiresOn;
 	private String s3Key;
+	private Long sizeBytes;
 
-	public String getSesisonId() {
-		return sesisonId;
+	public String getSessionId() {
+		return sessionId;
 	}
 
-	public PatchInfo setSesisonId(String sesisonId) {
-		this.sesisonId = sesisonId;
+	public PatchInfo setSessionId(String sessionId) {
+		this.sessionId = sessionId;
 		return this;
 	}
 
@@ -61,9 +62,18 @@ public class PatchInfo {
 		return this;
 	}
 
+	public Long getSizeBytes() {
+		return sizeBytes;
+	}
+
+	public PatchInfo setSizeBytes(Long sizeBytes) {
+		this.sizeBytes = sizeBytes;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, expiresOn, patchId, s3Key, sesisonId);
+		return Objects.hash(createdOn, expiresOn, patchId, s3Key, sessionId, sizeBytes);
 	}
 
 	@Override
@@ -77,13 +87,13 @@ public class PatchInfo {
 		PatchInfo other = (PatchInfo) obj;
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(expiresOn, other.expiresOn)
 				&& Objects.equals(patchId, other.patchId) && Objects.equals(s3Key, other.s3Key)
-				&& Objects.equals(sesisonId, other.sesisonId);
+				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sizeBytes, other.sizeBytes);
 	}
 
 	@Override
 	public String toString() {
-		return "PatchInfo [sesisonId=" + sesisonId + ", patchId=" + patchId + ", createdOn=" + createdOn
-				+ ", expiresOn=" + expiresOn + ", s3Key=" + s3Key + "]";
+		return "PatchInfo [sessionId=" + sessionId + ", patchId=" + patchId + ", createdOn=" + createdOn
+				+ ", expiresOn=" + expiresOn + ", s3Key=" + s3Key + ", sizeBytes=" + sizeBytes + "]";
 	}
 
 }

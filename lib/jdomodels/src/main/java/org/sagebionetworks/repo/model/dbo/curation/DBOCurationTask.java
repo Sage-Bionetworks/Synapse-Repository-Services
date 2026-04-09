@@ -11,7 +11,6 @@ import java.util.Objects;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -29,7 +28,11 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
             new FieldColumn("modifiedBy", SqlConstants.COL_CURATION_TASK_MODIFIED_BY),
             new FieldColumn("modifiedOn", SqlConstants.COL_CURATION_TASK_MODIFIED_ON),
             new FieldColumn("taskPropertiesJson", SqlConstants.COL_CURATION_TASK_TASK_PROPERTIES),
-            new FieldColumn("assigneeId", SqlConstants.COL_CURATION_TASK_ASSIGNEE)
+            new FieldColumn("assigneeId", SqlConstants.COL_CURATION_TASK_ASSIGNEE),
+            new FieldColumn("state", SqlConstants.COL_CURATION_TASK_STATE),
+            new FieldColumn("executionDetailsJson", SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS),
+            new FieldColumn("stateUpdatedBy", SqlConstants.COL_CURATION_TASK_STATE_UPDATED_BY),
+            new FieldColumn("stateUpdatedOn", SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON)
     };
 
     private static final TableMapping<DBOCurationTask> TABLE_MAPPING = new TableMapping<>() {
@@ -47,7 +50,11 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
                     .setModifiedBy(rs.getLong(SqlConstants.COL_CURATION_TASK_MODIFIED_BY))
                     .setModifiedOn(rs.getTimestamp(SqlConstants.COL_CURATION_TASK_MODIFIED_ON))
                     .setTaskPropertiesJson(rs.getString(SqlConstants.COL_CURATION_TASK_TASK_PROPERTIES))
-                    .setAssigneeId(rs.getLong(SqlConstants.COL_CURATION_TASK_ASSIGNEE));
+                    .setAssigneeId(rs.getLong(SqlConstants.COL_CURATION_TASK_ASSIGNEE))
+                    .setState(rs.getString(SqlConstants.COL_CURATION_TASK_STATE))
+                    .setExecutionDetailsJson(rs.getString(SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS))
+                    .setStateUpdatedBy(rs.getLong(SqlConstants.COL_CURATION_TASK_STATE_UPDATED_BY))
+                    .setStateUpdatedOn(rs.getTimestamp(SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON));
         }
 
         @Override
@@ -82,6 +89,10 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
     private Timestamp modifiedOn;
     private String taskPropertiesJson;
     private Long assigneeId;
+    private String state;
+    private String executionDetailsJson;
+    private Long stateUpdatedBy;
+    private Timestamp stateUpdatedOn;
 
     public DBOCurationTask() {
     }
@@ -175,17 +186,53 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
         this.taskPropertiesJson = taskPropertiesJson;
         return this;
     }
-    
+
     public Long getAssigneeId() {
-		return assigneeId;
-	}
+        return assigneeId;
+    }
 
-	public DBOCurationTask setAssigneeId(Long assigneeId) {
-		this.assigneeId = assigneeId;
-		return this;
-	}
+    public DBOCurationTask setAssigneeId(Long assigneeId) {
+        this.assigneeId = assigneeId;
+        return this;
+    }
 
-	@Override
+    public String getState() {
+        return state;
+    }
+
+    public DBOCurationTask setState(String state) {
+        this.state = state;
+        return this;
+    }
+
+    public String getExecutionDetailsJson() {
+        return executionDetailsJson;
+    }
+
+    public DBOCurationTask setExecutionDetailsJson(String executionDetailsJson) {
+        this.executionDetailsJson = executionDetailsJson;
+        return this;
+    }
+
+    public Long getStateUpdatedBy() {
+        return stateUpdatedBy;
+    }
+
+    public DBOCurationTask setStateUpdatedBy(Long stateUpdatedBy) {
+        this.stateUpdatedBy = stateUpdatedBy;
+        return this;
+    }
+
+    public Date getStateUpdatedOn() {
+        return stateUpdatedOn;
+    }
+
+    public DBOCurationTask setStateUpdatedOn(Timestamp stateUpdatedOn) {
+        this.stateUpdatedOn = stateUpdatedOn;
+        return this;
+    }
+
+    @Override
     public TableMapping<DBOCurationTask> getTableMapping() {
         return TABLE_MAPPING;
     }
@@ -197,7 +244,20 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
 
     @Override
     public MigratableTableTranslation<DBOCurationTask, DBOCurationTask> getTranslator() {
-        return new BasicMigratableTableTranslation<>();
+        return new MigratableTableTranslation<DBOCurationTask, DBOCurationTask>() {
+            @Override
+            public DBOCurationTask createDatabaseObjectFromBackup(DBOCurationTask backup) {
+                if (backup.getState() == null) {
+                    backup.setState("NOT_STARTED");
+                }
+                return backup;
+            }
+
+            @Override
+            public DBOCurationTask createBackupFromDatabaseObject(DBOCurationTask dbo) {
+                return dbo;
+            }
+        };
     }
 
     @Override
@@ -216,34 +276,41 @@ public class DBOCurationTask implements MigratableDatabaseObject<DBOCurationTask
     }
 
     @Override
-	public int hashCode() {
-		return Objects.hash(assigneeId, createdBy, createdOn, dataType, etag, id, instructions, modifiedBy, modifiedOn,
-				projectId, taskPropertiesJson);
-	}
+    public int hashCode() {
+        return Objects.hash(assigneeId, createdBy, createdOn, dataType, etag, executionDetailsJson, id, instructions,
+                modifiedBy, modifiedOn, projectId, state, stateUpdatedBy, stateUpdatedOn,
+                taskPropertiesJson);
+    }
 
     @Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		DBOCurationTask other = (DBOCurationTask) obj;
-		return Objects.equals(assigneeId, other.assigneeId) && Objects.equals(createdBy, other.createdBy)
-				&& Objects.equals(createdOn, other.createdOn) && Objects.equals(dataType, other.dataType)
-				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
-				&& Objects.equals(instructions, other.instructions) && Objects.equals(modifiedBy, other.modifiedBy)
-				&& Objects.equals(modifiedOn, other.modifiedOn) && Objects.equals(projectId, other.projectId)
-				&& Objects.equals(taskPropertiesJson, other.taskPropertiesJson);
-	}
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        DBOCurationTask other = (DBOCurationTask) obj;
+        return Objects.equals(assigneeId, other.assigneeId) && Objects.equals(createdBy, other.createdBy)
+                && Objects.equals(createdOn, other.createdOn) && Objects.equals(dataType, other.dataType)
+                && Objects.equals(etag, other.etag)
+                && Objects.equals(executionDetailsJson, other.executionDetailsJson)
+                && Objects.equals(id, other.id) && Objects.equals(instructions, other.instructions)
+                && Objects.equals(modifiedBy, other.modifiedBy) && Objects.equals(modifiedOn, other.modifiedOn)
+                && Objects.equals(projectId, other.projectId) && Objects.equals(state, other.state)
+                && Objects.equals(stateUpdatedBy, other.stateUpdatedBy)
+                && Objects.equals(stateUpdatedOn, other.stateUpdatedOn)
+                && Objects.equals(taskPropertiesJson, other.taskPropertiesJson);
+    }
 
     @Override
-	public String toString() {
-		return "DBOCurationTask [id=" + id + ", dataType=" + dataType + ", projectId=" + projectId + ", instructions="
-				+ instructions + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", taskPropertiesJson="
-				+ taskPropertiesJson + ", assigneeId=" + assigneeId + "]";
-	}
+    public String toString() {
+        return "DBOCurationTask [id=" + id + ", dataType=" + dataType + ", projectId=" + projectId + ", instructions="
+                + instructions + ", etag=" + etag + ", createdBy=" + createdBy + ", createdOn=" + createdOn
+                + ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + ", taskPropertiesJson="
+                + taskPropertiesJson + ", assigneeId=" + assigneeId + ", state=" + state + ", executionDetailsJson="
+                + executionDetailsJson + ", stateUpdatedBy=" + stateUpdatedBy + ", stateUpdatedOn=" + stateUpdatedOn
+                + "]";
+    }
 
 }

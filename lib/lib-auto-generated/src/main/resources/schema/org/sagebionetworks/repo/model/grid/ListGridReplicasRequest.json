@@ -1,0 +1,13 @@
+{
+	"description": "Request to list all replicas for a grid session.",
+	"properties": {
+		"gridSessionId": {
+			"description": "The ID of the grid session.",
+			"type": "string"
+		},
+		"nextPageToken": {
+			"description": "Forward the returned 'nextPageToken' to get the next page of results.",
+			"type": "string"
+		}
+	}
+}

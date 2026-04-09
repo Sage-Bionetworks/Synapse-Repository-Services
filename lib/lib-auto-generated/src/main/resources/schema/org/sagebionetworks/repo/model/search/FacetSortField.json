@@ -1,0 +1,14 @@
+{
+	"description": "The field to sort facet values by in a terms aggregation.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "COUNT",
+			"description": "Sort by bucket document count. Maps to OpenSearch '_count'."
+		},
+		{
+			"name": "KEY",
+			"description": "Sort by bucket key value (alphabetical for strings, numeric for numbers). Maps to OpenSearch '_key'."
+		}
+	]
+}

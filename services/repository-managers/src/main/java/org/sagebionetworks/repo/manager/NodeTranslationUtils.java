@@ -85,6 +85,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
 		nameConvertion.put("columnIds", "columnModelIds");
 		nameConvertion.put("linksTo", "reference");
+		nameConvertion.put("validationFileHandleId", "validationResultFileHandleId");
 	}
 
 	static <T extends Entity> Field[] getTranslatableEntityFields(T base){

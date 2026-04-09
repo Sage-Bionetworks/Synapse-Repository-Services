@@ -78,6 +78,7 @@ import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.discussion.DiscussionFilter;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -830,6 +831,32 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockEntityAuthorizationManager.hasAccess(userInfo, projectId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(forum);
 		assertEquals(AuthorizationStatus.authorized(),
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanSubscribeARForumAuthorized() {
+		Forum arForum = new Forum();
+		arForum.setId(forumId);
+		arForum.setObjectId("456");
+		arForum.setObjectType(ForumObjectType.ACCESS_REQUIREMENT);
+		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(arForum);
+		when(mockDataAccessAuthManager.canReviewAccessRequirementSubmissions(userInfo, "456"))
+				.thenReturn(AuthorizationStatus.authorized());
+		assertEquals(AuthorizationStatus.authorized(),
+				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
+	}
+
+	@Test
+	public void testCanSubscribeARForumUnauthorized() {
+		Forum arForum = new Forum();
+		arForum.setId(forumId);
+		arForum.setObjectId("456");
+		arForum.setObjectType(ForumObjectType.ACCESS_REQUIREMENT);
+		when(mockForumDao.getForum(Long.parseLong(forumId))).thenReturn(arForum);
+		when(mockDataAccessAuthManager.canReviewAccessRequirementSubmissions(userInfo, "456"))
+				.thenReturn(AuthorizationStatus.accessDenied("no permission"));
+		assertEquals(AuthorizationStatus.accessDenied("no permission"),
 				authorizationManager.canSubscribe(userInfo, forumId, SubscriptionObjectType.FORUM));
 	}
 

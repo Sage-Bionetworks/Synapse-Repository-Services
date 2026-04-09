@@ -91,7 +91,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		nu.setUserName("cate001");
 		nu.setEmail("cate@Spies.org");
 		principalThree = userManger.createUser(nu);
-		// In the wild a worker will add these alais.
+		// In the wild a worker will add these aliases.
 		principalsToDelete.add(principalThree);
 		principalPrefixDAO.addPrincipalAlias(nu.getUserName(), principalThree);
 		principalPrefixDAO.addPrincipalName(nu.getFirstName(), nu.getLastName(), principalThree);
@@ -133,7 +133,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	
 	@Test
 	public void testHeaders() throws DatastoreException, NotFoundException{
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("j", null, 0, Integer.MAX_VALUE);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix(admin.getId(), "j", null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		assertNotNull(ughrp.getChildren());
 		assertTrue(ughrp.getChildren().size() >= 2);
@@ -157,7 +157,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 
 	@Test
 	public void testGetUserGroupHeadersNoFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("", null, 0, Integer.MAX_VALUE);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix(admin.getId(),"", null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		assertNotNull(children);
@@ -180,7 +180,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 
 	@Test
 	public void testGetUserGroupHeadersWithFilterUsername() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("cate001",null, 0, Integer.MAX_VALUE);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix(admin.getId(), "cate001",null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		assertNotNull(ughrp.getChildren());		
 		assertTrue(ughrp.getChildren().size() == 1);
@@ -190,7 +190,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 	
 	@Test
 	public void testGetUserGroupHeadersWithFilterByLastName() throws ServletException, IOException, DatastoreException, NotFoundException {
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("B",null, 0, Integer.MAX_VALUE);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix(admin.getId(), "B",null, 0, Integer.MAX_VALUE);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		assertNotNull(children);
@@ -217,7 +217,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		request.add(ANONYMOUS_USER.getPrincipalId());
 		request.add(principalThree);
 		// request
-		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByIds(request);
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByIds(admin.getId(), request);
 		assertNotNull(ughrp);
 		List<UserGroupHeader> children = ughrp.getChildren();
 		System.out.println(children.toString());

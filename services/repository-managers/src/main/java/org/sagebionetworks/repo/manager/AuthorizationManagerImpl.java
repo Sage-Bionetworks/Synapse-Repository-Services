@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.verification.VerificationDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.docker.RegistryEventAction;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
@@ -405,6 +406,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		switch (objectType) {
 			case FORUM:
 				Forum forum = forumDao.getForum(Long.parseLong(objectId));
+				if (ForumObjectType.ACCESS_REQUIREMENT.equals(forum.getObjectType())) {
+					return dataAccessAuthorizationManager.canReviewAccessRequirementSubmissions(userInfo, forum.getObjectId());
+				}
 				return canAccess(userInfo, forum.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
 			case THREAD:
 				String projectId = threadDao.getProjectId(objectId);

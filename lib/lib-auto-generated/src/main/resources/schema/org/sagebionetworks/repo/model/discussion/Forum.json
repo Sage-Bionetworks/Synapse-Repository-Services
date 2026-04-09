@@ -7,7 +7,15 @@
 		},
 		"projectId":{
 			"type":"string",
-			"description":"The ID of the project to which this forum belongs. This ID may or may not start with prefix 'syn'."
+			"description":"Deprecated. Use objectId instead. The ID of the project to which this forum belongs. This ID may or may not start with prefix 'syn'."
+		},
+		"objectId":{
+			"type":"string",
+			"description":"The ID of the object to which this forum belongs."
+		},
+		"objectType":{
+			"$ref":"org.sagebionetworks.repo.model.discussion.ForumObjectType",
+			"description":"The type of the object to which this forum belongs."
 		},
 		"etag": {
 			"type": "string",

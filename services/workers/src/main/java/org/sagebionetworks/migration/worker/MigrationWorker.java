@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.migration.AsyncMigrationTypeCountsRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsRequest;
 import org.sagebionetworks.repo.model.migration.RestoreTypeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.worker.AsyncJobRunner;
@@ -72,6 +73,8 @@ public class MigrationWorker implements AsyncJobRunner<AsyncMigrationRequest, As
 			return migrationManager.calculateOptimalRanges(user, (CalculateOptimalRangeRequest)req);
 		} else if (req instanceof BatchChecksumRequest) {
 			return migrationManager.calculateBatchChecksums(user, (BatchChecksumRequest)req);
+		} else if (req instanceof CreateForumsForAccessRequirementsRequest) {
+			return migrationManager.createForumsForAccessRequirements(user, (CreateForumsForAccessRequirementsRequest)req);
 		} else {
 			throw new IllegalArgumentException("AsyncMigrationRequest not supported.");
 		}

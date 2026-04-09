@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -83,6 +84,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.entity.NameIdType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -115,6 +117,8 @@ public class AccessRequirementManagerImplUnitTest {
 	private AccessControlListManager mockAclManager;
 	@Mock
 	private DataAccessAuthorizationManager mockDaAuthManager;
+	@Mock
+	private ForumDAO forumDao;
 
 	@InjectMocks
 	private AccessRequirementManagerImpl arm;
@@ -180,9 +184,26 @@ public class AccessRequirementManagerImplUnitTest {
 		
 		verify(accessRequirementDAO).create(ar);
 		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
-		
+		verify(forumDao).createForum(ar.getId().toString(), ForumObjectType.ACCESS_REQUIREMENT);
 		verify(mockTransactionalMessenger).sendMessageAfterCommit(
 			new ChangeMessage().setChangeType(ChangeType.CREATE).setObjectId(ar.getId().toString()).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
+		);
+	}
+
+	@Test
+	public void testACTAccessRequirementDoesNotCreateForum() {
+		ACTAccessRequirement ar = createACTAccessRequirement();
+		when(authorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(accessRequirementDAO.create(any())).thenAnswer(AdditionalAnswers.returnsFirstArg());
+
+		// call under test
+		arm.createAccessRequirement(userInfo, ar);
+		verify(accessRequirementDAO).create(ar);
+		verify(authorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		verifyZeroInteractions(forumDao);
+		verify(mockTransactionalMessenger).sendMessageAfterCommit(
+				new ChangeMessage().setChangeType(ChangeType.CREATE).setObjectId(ar.getId().toString())
+						.setObjectVersion(1L).setObjectType(ObjectType.ACCESS_REQUIREMENT).setUserId(userInfo.getId())
 		);
 	}
 	
@@ -957,7 +978,10 @@ public class AccessRequirementManagerImplUnitTest {
 		ar.setModifiedBy("3");
 		ar.setModifiedOn(new Date());
 		ar.setOpenJiraIssue(true);
-		ar.setSubjectIds(new LinkedList<RestrictableObjectDescriptor>());
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(TEST_ENTITY_ID);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
 		ar.setVersionNumber(1L);
 		return ar;
 	}

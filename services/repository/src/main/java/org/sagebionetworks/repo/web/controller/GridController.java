@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
+import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.SynchronizeGridRequest;
@@ -160,6 +162,30 @@ public class GridController {
 	public @ResponseBody GridReplica getReplica(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String sessionId, @PathVariable Long replicaId) {
 		return gridService.getReplica(userId, sessionId, replicaId);
+	}
+
+	/**
+	 * List all replicas for a grid session.
+	 * <p>
+	 * Returns replica information including the replica type (user, agent, or
+	 * service) and whether the replica is currently connected to the session.
+	 * </p>
+	 * Forward the provided nextPageToken to get the next page of results.
+	 *
+	 * @param userId
+	 * @param sessionId - The grid session ID.
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GRID_SESSION_ID_REPLICA_LIST, method = RequestMethod.POST)
+	public @ResponseBody ListGridReplicasResponse listReplicas(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String sessionId,
+			@RequestBody ListGridReplicasRequest request) {
+		ValidateArgument.required(request, "request");
+		request.setGridSessionId(sessionId);
+		return gridService.listReplicas(userId, request);
 	}
 
 	/**

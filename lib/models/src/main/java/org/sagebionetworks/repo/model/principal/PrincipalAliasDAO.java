@@ -59,7 +59,7 @@ public interface PrincipalAliasDAO {
 	 * @param principalIds
 	 * @return
 	 */
-	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds);
+	public List<UserGroupHeader> listPrincipalHeaders(List<Long> principalIds, String realmId);
 	
 	/**
 	 * Get all aliases for a principal and type.

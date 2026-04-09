@@ -115,6 +115,7 @@ public class SynchronizationLogicTest {
 		when(mockSource.getKey(copyItems.get(1))).thenReturn("two");
 		when(mockSource.consume("one")).thenReturn(Optional.empty());
 		when(mockSource.consume("two")).thenReturn(Optional.of(sourceItems.get(0)));
+		when(mockSource.isItemAdditionSupported()).thenReturn(true);
 
 		when(mockSource.matches(copyItems.get(1), sourceItems.get(0))).thenReturn(true);
 		List<TestSourceItem> emptyList = List.of();
@@ -124,6 +125,38 @@ public class SynchronizationLogicTest {
 		logic.synchronize(mockCopy, mockSource, mockMerge);
 
 		verify(mockSource).addItem(copyItems.get(0));
+
+		verifyNoMoreInteractions(mockCopy, mockSource, mockMerge);
+	}
+
+	@Test
+	public void testSynchronizeWithChangedInCopyButItemAdditionNotSupported() {
+		// When a row exists in the copy with user changes, but the source does not
+		// support row addition (e.g. entity views), the row should be removed from the
+		// copy rather than pushed to the source.
+		List<TestCopyItem> copyItems = List.of(
+				// one - changed by user but source no longer has it
+				new TestCopyItem().setValue("a").setId("one").setWasChangedByUser(true),
+				// two
+				new TestCopyItem().setValue("b").setId("two").setWasChangedByUser(false));
+		List<TestSourceItem> sourceItems = List.of(
+				// two
+				new TestSourceItem().setValue("b").setKey("two"));
+		when(mockCopy.streamItems()).thenReturn(copyItems.stream());
+		when(mockSource.getKey(copyItems.get(0))).thenReturn("one");
+		when(mockSource.getKey(copyItems.get(1))).thenReturn("two");
+		when(mockSource.consume("one")).thenReturn(Optional.empty());
+		when(mockSource.consume("two")).thenReturn(Optional.of(sourceItems.get(0)));
+		when(mockSource.isItemAdditionSupported()).thenReturn(false);
+
+		when(mockSource.matches(copyItems.get(1), sourceItems.get(0))).thenReturn(true);
+		List<TestSourceItem> emptyList = List.of();
+		when(mockSource.streamRemaining()).thenReturn(emptyList.stream());
+
+		// call under test
+		logic.synchronize(mockCopy, mockSource, mockMerge);
+
+		verify(mockCopy).removeItem(copyItems.get(0));
 
 		verifyNoMoreInteractions(mockCopy, mockSource, mockMerge);
 	}
@@ -199,11 +232,42 @@ public class SynchronizationLogicTest {
 		when(mockSource.matches(copyItems.get(0), sourceItems.get(0))).thenReturn(true);
 		when(mockSource.streamRemaining()).thenReturn(List.of(sourceItems.get(1)).stream());
 		when(mockCopy.wasDeletedByUser("two")).thenReturn(true);
+		when(mockSource.isItemRemovalSupported()).thenReturn(true);
 
 		// call under test
 		logic.synchronize(mockCopy, mockSource, mockMerge);
 
 		verify(mockSource).removeItem(sourceItems.get(1));
+
+		verifyNoMoreInteractions(mockCopy, mockSource, mockMerge);
+	}
+
+	@Test
+	public void testSynchronizeWithUserDeletedFromCopyButItemRemovalNotSupported() {
+		// When a row exists in the source but the user deleted it from the copy,
+		// and the source does not support item removal (e.g. entity views), the
+		// row should be pulled back into the copy rather than removed from the source.
+		List<TestCopyItem> copyItems = List.of(
+				// one
+				new TestCopyItem().setValue("a").setId("one").setWasChangedByUser(false));
+		List<TestSourceItem> sourceItems = List.of(
+				// one
+				new TestSourceItem().setValue("a").setKey("one"),
+				// two - user deleted from copy, but source does not support removal
+				new TestSourceItem().setValue("b").setKey("two"));
+		when(mockCopy.streamItems()).thenReturn(copyItems.stream());
+		when(mockSource.getKey(copyItems.get(0))).thenReturn("one");
+		when(mockSource.consume("one")).thenReturn(Optional.of(sourceItems.get(0)));
+
+		when(mockSource.matches(copyItems.get(0), sourceItems.get(0))).thenReturn(true);
+		when(mockSource.streamRemaining()).thenReturn(List.of(sourceItems.get(1)).stream());
+		when(mockCopy.wasDeletedByUser("two")).thenReturn(true);
+		when(mockSource.isItemRemovalSupported()).thenReturn(false);
+
+		// call under test
+		logic.synchronize(mockCopy, mockSource, mockMerge);
+
+		verify(mockCopy).addItem(sourceItems.get(1));
 
 		verifyNoMoreInteractions(mockCopy, mockSource, mockMerge);
 	}

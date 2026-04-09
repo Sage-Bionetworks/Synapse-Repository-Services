@@ -285,5 +285,10 @@ class HttpAuthUtilTest {
 		when(httpRequest.getParameter("anonymous")).thenReturn("false");
 		assertFalse(HttpAuthUtil.isAnonymous(httpRequest));
 	}
-
+	
+	@Test
+	void testIsAnonymousMissing() throws Exception {
+		when(httpRequest.getParameter("anonymous")).thenReturn(null);
+		assertTrue(HttpAuthUtil.isAnonymous(httpRequest));
+	}
 }

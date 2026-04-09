@@ -6,10 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -17,11 +16,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,16 +29,14 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.grid.ClockTable;
-import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex;
-import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
-import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex.NodePointer;
 import org.sagebionetworks.repo.model.grid.encoding.IndexedNodeCodecMapper;
 import org.sagebionetworks.repo.model.grid.encoding.SeekingNodeReader;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndex.NodePointer;
+import org.sagebionetworks.repo.model.grid.encoding.SnapshotFileIndexBuilder;
 import org.sagebionetworks.repo.model.grid.node.ArrayNode;
 import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.node.IndexType;
@@ -79,8 +71,6 @@ public class GridIndexManagerImplTest {
 	@Mock
 	private SeekingNodeReader mockReader;
 
-	@Spy
-	@InjectMocks
 	private GridIndexManagerImpl manager;
 
 	private String sessionId;
@@ -92,6 +82,9 @@ public class GridIndexManagerImplTest {
 
 	@BeforeEach
 	public void before() {
+		// Explicitly create the manager with default batch size and wrap it in a spy
+		manager = spy(new GridIndexManagerImpl(mockDao, mockOperationDispatcher, mockIndexBuilder, mockReaderProvider));
+
 		sessionId = "sessionOne";
 		replicaId = 123L;
 		newConstant = new NewConstant(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L),
@@ -426,6 +419,68 @@ public class GridIndexManagerImplTest {
 		});
 		assertTrue(ex.getMessage().contains("Failed to import snapshot"));
 		assertTrue(ex.getCause() instanceof IOException);
+	}
+
+	@Test
+	public void testApplySnapshotWithBatching() throws Exception {
+		Path snapshotFile = Path.of("/tmp/snapshot.cbor");
+
+		// Use a small batch size to verify batching behavior
+		int batchSize = 2;
+		GridIndexManagerImpl managerWithSmallBatch = new GridIndexManagerImpl(
+			mockDao, mockOperationDispatcher, mockIndexBuilder, mockReaderProvider, batchSize
+		);
+
+		LogicalTimestamp rootId = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(1L);
+
+		// Create 5 constant nodes to ensure multiple batches (5 nodes / batch size of 2 = 3 batches)
+		LogicalTimestamp constId1 = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(2L);
+		LogicalTimestamp constId2 = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(3L);
+		LogicalTimestamp constId3 = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(4L);
+		LogicalTimestamp constId4 = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(5L);
+		LogicalTimestamp constId5 = new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(6L);
+
+		ConstantNode constantNode1 = new ConstantNode().setId(constId1).setValue(new ConValue(ConType.LONG, 1L));
+		ConstantNode constantNode2 = new ConstantNode().setId(constId2).setValue(new ConValue(ConType.LONG, 2L));
+		ConstantNode constantNode3 = new ConstantNode().setId(constId3).setValue(new ConValue(ConType.LONG, 3L));
+		ConstantNode constantNode4 = new ConstantNode().setId(constId4).setValue(new ConValue(ConType.LONG, 4L));
+		ConstantNode constantNode5 = new ConstantNode().setId(constId5).setValue(new ConValue(ConType.LONG, 5L));
+
+		ClockTable clockTable = new ClockTable(List.of(rootId));
+
+		when(mockIndexBuilder.build(snapshotFile)).thenReturn(mockIndex);
+		when(mockIndex.getClockTable()).thenReturn(clockTable);
+		when(mockIndex.getRootNodeId()).thenReturn(rootId);
+		when(mockReaderProvider.create(snapshotFile, mockIndex)).thenReturn(mockReader);
+
+		// Return 5 constant nodes
+		when(mockReader.streamConstantNodes()).thenReturn(Stream.of(constantNode1, constantNode2, constantNode3, constantNode4, constantNode5));
+		when(mockReader.streamObjectNodes()).thenReturn(Stream.empty());
+		when(mockReader.streamValueNodes()).thenReturn(Stream.empty());
+		when(mockReader.streamArrayNodes()).thenReturn(Stream.empty());
+		when(mockReader.streamVectorNodes()).thenReturn(Stream.empty());
+		when(mockDao.createReplicaIfNotExists(sessionId, replicaId)).thenReturn(true);
+
+		// call under test
+		managerWithSmallBatch.applySnapshot(sessionId, replicaId, snapshotFile);
+
+		// Verify that saveIndex and saveNewConstants were called 3 times (5 nodes / 2 per batch = 3 batches)
+		verify(mockDao, times(3)).saveIndex(eq(sessionId), eq(replicaId), eq(IndexType.con), any());
+		verify(mockDao, times(3)).saveNewConstants(eq(sessionId), eq(replicaId), any());
+
+		// Verify first batch contains 2 nodes
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, List.of(constId1, constId2));
+		verify(mockDao).saveNewConstants(sessionId, replicaId, List.of(constantNode1, constantNode2));
+
+		// Verify second batch contains 2 nodes
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, List.of(constId3, constId4));
+		verify(mockDao).saveNewConstants(sessionId, replicaId, List.of(constantNode3, constantNode4));
+
+		// Verify third batch contains 1 node (remainder)
+		verify(mockDao).saveIndex(sessionId, replicaId, IndexType.con, List.of(constId5));
+		verify(mockDao).saveNewConstants(sessionId, replicaId, List.of(constantNode5));
+
+		verify(mockReader).close();
 	}
 
 }

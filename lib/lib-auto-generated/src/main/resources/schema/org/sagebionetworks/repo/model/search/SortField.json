@@ -1,0 +1,13 @@
+{
+	"description": "Sort specification for search results.",
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "The column name to sort by, or '_score' for relevance."
+		},
+		"direction": {
+			"description": "Sort direction.",
+			"$ref": "org.sagebionetworks.repo.model.search.SortDirection"
+		}
+	}
+}

@@ -1,0 +1,9 @@
+{
+	"description": "Request to create forums for all ManagedACTAccessRequirements that do not yet have a forum. This is a one-time backfill operation intended to be run after migration.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.migration.AdminRequest"
+		}
+	],
+	"properties": {}
+}

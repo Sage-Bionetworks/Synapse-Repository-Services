@@ -16,8 +16,7 @@ public class AuthorizationUtils {
 		if (userInfo.isAdmin()) {
 			return true;
 		}
-		return userInfo.getGroups() != null && userInfo.getGroups()
-				.contains(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		return userInfo.isCertified();
 	}
 
 	/**

@@ -1,0 +1,16 @@
+{
+	"description": "A single synonym rule. For EQUIVALENT rules, all terms are bidirectionally interchangeable. For EXPLICIT rules, the first term maps one-way to the remaining terms.",
+	"properties": {
+		"ruleType": {
+			"description": "The type of synonym rule.",
+			"$ref": "org.sagebionetworks.repo.model.search.table.SynonymRuleType"
+		},
+		"terms": {
+			"description": "The list of synonym terms. Minimum 2. For EQUIVALENT: all terms are interchangeable. For EXPLICIT: first term expands to the rest.",
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

@@ -1,0 +1,13 @@
+{
+	"description": "A field name and value pair from a search result hit.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The column name."
+		},
+		"value": {
+			"type": "string",
+			"description": "The column value."
+		}
+	}
+}

@@ -186,7 +186,7 @@ public class BucketOwnerVerifierImplAutowireTest {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		userInfo.getGroups().add(TEST_TEAM_ID);
 
 		return userInfo;

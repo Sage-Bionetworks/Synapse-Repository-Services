@@ -1,0 +1,15 @@
+{
+	"description": "The type of object to which a Forum is associated.",
+	"name": "ForumObjectType",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ENTITY",
+			"description": "A forum associated with a Synapse entity (e.g. a project)."
+		},
+		{
+			"name": "ACCESS_REQUIREMENT",
+			"description": "A forum associated with an access requirement."
+		}
+	]
+}

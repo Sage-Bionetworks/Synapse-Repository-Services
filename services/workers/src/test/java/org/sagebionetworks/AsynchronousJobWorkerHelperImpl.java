@@ -32,6 +32,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobUtils;
+import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.table.MaterializedViewManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -52,6 +53,8 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.grid.EventSource;
+import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.Organization;
@@ -286,6 +289,8 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	private EntityService entityService;
 	@Autowired
 	private JsonSchemaServices jsonSchemaService;
+	@Autowired
+	private GridManager gridManager;
 	
 	@Override
 	public <R extends AsynchronousRequestBody, T extends AsynchronousResponseBody> AsyncJobResponse<T> assertJobResponse(
@@ -796,5 +801,17 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 			}
 		} while (message != null);
 		return false;
+	}
+
+	@Override
+	public GridConnectionInfo getInternalGridConnection(String gridSessionId, long maxWaitMs) throws Exception {
+		return TimeUtils.waitFor(maxWaitMs, 1000L, () -> {
+			Optional<GridConnectionInfo> op = gridManager.getSingletonConnection(gridSessionId, EventSource.INTERNAL);
+			if(op.isEmpty()) {
+				return Pair.create(false, null);
+			}else {
+				return Pair.create(true, op.get());
+			}
+		});
 	}
 }

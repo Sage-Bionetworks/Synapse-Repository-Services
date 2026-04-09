@@ -82,8 +82,8 @@ public class JoinedRowChangePublisherTest {
 
 	@Test
 	public void testProcessJoinedRows() {
-		when(mockGridIndexDao.getRgaLastNode(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
-			.thenReturn(Optional.of(new RGANode().setNodeId(mockTimestamp)));
+		when(mockGridIndexDao.getArrayLastNodeId(header.getSessionId(), header.getReplicaId(), header.getRowsId()))
+			.thenReturn(mockTimestamp);
 		
 		when(mockConnInfo.getSessionId()).thenReturn(header.getSessionId());
 		when(mockConnInfo.getConnectionId()).thenReturn("connId");

@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.AddColumn;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteColumn;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.AddColumnChange;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.DeleteArrayNodeChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateColumnNames;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateColumnNamesChange;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
 import org.sagebionetworks.repo.manager.grid.synch.handler.CopyHandler;
@@ -77,9 +77,6 @@ public class SchemaCopyImplTest {
 		when(mockHeader.getColumnOrderArrId()).thenReturn(columnOrderArrId);
 		when(mockHeader.getColumnNamesVecId()).thenReturn(columnNamesVecId);
 
-		when(mockCopyHandler.getConnectionInfo()).thenReturn(mockConnection);
-		when(mockConnection.getReplicaId()).thenReturn(internalReplicaId);
-
 		copy = new SchemaCopyImpl(mockIntendedChangePublisher, mockCopyHandler);
 	}
 
@@ -132,11 +129,11 @@ public class SchemaCopyImplTest {
 		List<Column> finalSchema = copy.getFinalSchema();
 		assertEquals(expectedFinal, finalSchema);
 
-		verify(mockIntendedChangePublisher).publish(new DeleteColumn(columnOrderArrId, columnOrderNodeId));
+		verify(mockIntendedChangePublisher).publish(new DeleteArrayNodeChange(columnOrderArrId, columnOrderNodeId));
 
 		copy.close();
 		verify(mockIntendedChangePublisher)
-				.publish(new UpdateColumnNames(columnNamesVecId, Map.of(2, "one", 1, "two")));
+				.publish(new UpdateColumnNamesChange(columnNamesVecId, Map.of(2, "one", 1, "two")));
 
 		verifyNoMoreInteractions(mockConnection, mockCopyHandler, mockCopyHandler, mockIntendedChangePublisher);
 
@@ -158,12 +155,12 @@ public class SchemaCopyImplTest {
 		List<Column> finalSchema = copy.getFinalSchema();
 		assertEquals(expectedFinal, finalSchema);
 
-		verify(mockIntendedChangePublisher).publish(new AddColumn(columnOrderArrId, columnOrderArrId, 3L));
-		verify(mockIntendedChangePublisher).publish(new AddColumn(columnOrderArrId, columnOrderArrId, 4L));
+		verify(mockIntendedChangePublisher).publish(new AddColumnChange(columnOrderArrId, columnOrderArrId, 3L));
+		verify(mockIntendedChangePublisher).publish(new AddColumnChange(columnOrderArrId, columnOrderArrId, 4L));
 
 		copy.close();
-		verify(mockIntendedChangePublisher).publish(
-				new UpdateColumnNames(columnNamesVecId, Map.of(2, "one", 1, "two", 0, "three", 3, "four", 4, "five")));
+		verify(mockIntendedChangePublisher).publish(new UpdateColumnNamesChange(columnNamesVecId,
+				Map.of(2, "one", 1, "two", 0, "three", 3, "four", 4, "five")));
 
 		verifyNoMoreInteractions(mockConnection, mockCopyHandler, mockCopyHandler, mockIntendedChangePublisher);
 
@@ -185,14 +182,14 @@ public class SchemaCopyImplTest {
 		List<Column> finalSchema = copy.getFinalSchema();
 		assertEquals(expectedFinal, finalSchema);
 
-		verify(mockIntendedChangePublisher).publish(new AddColumn(columnOrderArrId, columnOrderArrId, 0L));
-		verify(mockIntendedChangePublisher).publish(new AddColumn(columnOrderArrId, columnOrderArrId, 1L));
+		verify(mockIntendedChangePublisher).publish(new AddColumnChange(columnOrderArrId, columnOrderArrId, 0L));
+		verify(mockIntendedChangePublisher).publish(new AddColumnChange(columnOrderArrId, columnOrderArrId, 1L));
 
 		copy.close();
 		// second close should not send a second change.
 		copy.close();
 		verify(mockIntendedChangePublisher)
-				.publish(new UpdateColumnNames(columnNamesVecId, Map.of(0, "four", 1, "five")));
+				.publish(new UpdateColumnNamesChange(columnNamesVecId, Map.of(0, "four", 1, "five")));
 
 		verifyNoMoreInteractions(mockConnection, mockCopyHandler, mockCopyHandler, mockIntendedChangePublisher);
 

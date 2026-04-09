@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
@@ -20,7 +20,7 @@ public class InsertRowChange implements IntendedChange {
 										// inserted
 	private List<ConValue> rowData; // The actual row data
 	private Integer[] rowVectorIndex; // The vector index of each column in the row data
-	private SynapseRow synapseRow;
+	private ConValue synapseRow; // Optional SynapeRow as a ConValue.
 
 	public InsertRowChange(LogicalTimestamp rowsArrayId, LogicalTimestamp nodeRefId, List<ConValue> rowData,
 			Integer[] rowVectorIndex) {
@@ -28,7 +28,7 @@ public class InsertRowChange implements IntendedChange {
 	}
 
 	public InsertRowChange(LogicalTimestamp rowsArrayId, LogicalTimestamp nodeRefId, List<ConValue> rowData,
-			Integer[] rowVectorIndex, SynapseRow synRow) {
+			Integer[] rowVectorIndex, ConValue synRow) {
 		ValidateArgument.required(rowsArrayId, "rowsArrayId");
 		ValidateArgument.required(rowData, "rowData");
 		ValidateArgument.required(rowVectorIndex, "rowVectorIndex");
@@ -56,7 +56,7 @@ public class InsertRowChange implements IntendedChange {
 		this.rowVectorIndex = json.getJSONArray("v").toList().stream().map(v -> (Integer) v).toArray(Integer[]::new);
 		JSONArray synArray = json.optJSONArray("s");
 		if(synArray != null) {
-			this.synapseRow = new SynapseRow().setFromJSONArray(synArray);
+			this.synapseRow = ConValue.fromCompact(synArray);
 		}
 	}
 
@@ -81,7 +81,7 @@ public class InsertRowChange implements IntendedChange {
 		json.put("v", new JSONArray(rowVectorIndex));
 
 		if (synapseRow != null) {
-			json.put("s", synapseRow.toJSONArray());
+			json.put("s", synapseRow.toCompact());
 		}
 
 		return json;
@@ -103,8 +103,8 @@ public class InsertRowChange implements IntendedChange {
 		return rowVectorIndex;
 	}
 
-	public SynapseRow getSynapseRow() {
-		return synapseRow;
+	public Optional<ConValue> getSynapseRow() {
+		return Optional.ofNullable(synapseRow);
 	}
 
 	@Override

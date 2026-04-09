@@ -226,14 +226,15 @@ public interface GridIndexDao {
 
 
 	/**
-	 * 
+	 * Returns the last node ID in the given array, or the array node ID itself if the array is empty.
+	 * This is intended to be used to append new nodes to the end of an array.
 	 * @param sessionIdString
 	 * @param replicaId
 	 * @param arrayId
 	 * 
-	 * @return The last node in the given array, empty if the array has no nodes.
+	 * @return The last node ID in the given array, or the array node ID itself if the array is empty.
 	 */
-	Optional<RGANode> getRgaLastNode(String sessionIdString, Long replicaId, LogicalTimestamp arrayId);
+	LogicalTimestamp getArrayLastNodeId(String sessionIdString, Long replicaId, LogicalTimestamp arrayId);
 	
 	/**
 	 * Given a new {@link RGANode} to insert, find the location where the node

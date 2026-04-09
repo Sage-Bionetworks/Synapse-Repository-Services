@@ -23,6 +23,10 @@
 			"description": "TODO: Auto-generated description"
 		},
 		{
+			"name": "CERTIFIED_USERS",
+			"description": "Certified users to use the Synapse."
+		},
+		{
 			"name": "CREDENTIAL",
 			"description": "TODO: Auto-generated description"
 		},
@@ -521,6 +525,18 @@
 		{
 			"name": "RECORDSET_VALIDATION_STATS",
             "description": "Table that stores validation stats for record sets"
+		},
+		{
+			"name": "TEXT_ANALYZER",
+			"description": "Text analyzer configurations for search"
+		},
+		{
+			"name": "COLUMN_ANALYZER_OVERRIDE",
+			"description": "Table that stores column analyzer overrides for search"
+		},
+		{
+			"name": "SYNONYM_SET",
+			"description": "Table that stores synonym sets for search"
 		},
 		{
 			"name": "CHANGE",

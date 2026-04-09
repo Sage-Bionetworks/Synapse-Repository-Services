@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.discussion;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.util.Random;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
@@ -16,15 +14,21 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+
+
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
 public class DBOForumDAOImplTest {
 	@Autowired
 	private ForumDAO forumDao;
@@ -34,9 +38,9 @@ public class DBOForumDAOImplTest {
 	private NodeDAO nodeDao;
 
 	private String userId = null;
-	private String projectId = null;
+	private String objectId = null;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		// create a user to create a project
 		UserGroup user = new UserGroup();
@@ -47,28 +51,28 @@ public class DBOForumDAOImplTest {
 		Node project = NodeTestUtils.createNew("projectName" + "-" + new Random().nextInt(),
 				Long.parseLong(userId));
 		project.setParentId(StackConfigurationSingleton.singleton().getRootFolderEntityId());
-		projectId = nodeDao.createNew(project);
+		objectId = nodeDao.createNew(project);
 	}
 
-	@After
+	@AfterEach
 	public void cleanup() {
-		if (projectId != null) nodeDao.delete(projectId);
+		if (objectId != null) nodeDao.delete(objectId);
 		if (userId != null) userGroupDAO.delete(userId);
 	}
 
 	@Test
 	public void testCreateGetDelete() {
 		// create a forum
-		Forum dto = forumDao.createForum(projectId);
+		Forum dto = forumDao.createForum(objectId, ForumObjectType.ENTITY);
 		long forumId = Long.parseLong(dto.getId());
 
 		// make sure we can find the forum created
 		assertEquals(forumDao.getForum(forumId), dto);
-		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
+		assertEquals(forumDao.getForumByObjectIdAndType(dto.getObjectId(), ForumObjectType.ENTITY), dto);
 
 		// cannot create more than one forum for a project
 		try {
-			forumDao.createForum(projectId);
+			forumDao.createForum(objectId, ForumObjectType.ENTITY);
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
@@ -84,7 +88,7 @@ public class DBOForumDAOImplTest {
 		}
 		// make sure that we can no longer find it with the project Id
 		try {
-			forumDao.getForumByProjectId(dto.getProjectId());
+			forumDao.getForumByObjectIdAndType(dto.getObjectId(), ForumObjectType.ENTITY);
 			fail("Should not be able to find a forum that has been deleted.");
 		} catch (NotFoundException e) {
 			// as expected
@@ -93,19 +97,31 @@ public class DBOForumDAOImplTest {
 
 	@Test
 	public void testKeyWithoutSynPrefix() {
-		Forum dto = forumDao.createForum(KeyFactory.stringToKey(projectId).toString());
+		Forum dto = forumDao.createForum(KeyFactory.stringToKey(objectId).toString(), ForumObjectType.ENTITY);
 		long forumId = Long.parseLong(dto.getId());
+		//call under test
 		assertEquals(forumDao.getForum(forumId), dto);
-		assertEquals(forumDao.getForumByProjectId(dto.getProjectId()), dto);
+		assertEquals(forumDao.getForumByObjectIdAndType(dto.getObjectId(), ForumObjectType.ENTITY), dto);
+		//Forum exists for project not for AR
+		assertThrows(NotFoundException.class, () -> forumDao.getForumByObjectIdAndType(dto.getObjectId(), ForumObjectType.ACCESS_REQUIREMENT));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void createWithNullProjectId() {
-		forumDao.createForum(null);
+	@Test
+	public void testCreateWithNullObjectId() {
+		assertThrows(IllegalArgumentException.class, () -> forumDao.createForum(null, ForumObjectType.ENTITY));
 	}
 
-	@Test (expected = IllegalArgumentException.class)
-	public void createGetNullProjectId() {
-		forumDao.getForumByProjectId(null);
+	@Test
+	public void testCreateWithNullObjectType() {
+		assertThrows(IllegalArgumentException.class, () -> forumDao.createForum("123", null));
+	}
+
+	@Test
+	public void testGetNullObjectId() {
+		assertThrows(IllegalArgumentException.class, () -> forumDao.getForumByObjectIdAndType(null, ForumObjectType.ENTITY));
+	}
+	@Test
+	public void testGetNullObjectType() {
+		assertThrows(IllegalArgumentException.class, () -> forumDao.getForumByObjectIdAndType("123", null));
 	}
 }

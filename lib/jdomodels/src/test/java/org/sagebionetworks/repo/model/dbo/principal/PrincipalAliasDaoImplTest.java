@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -23,14 +24,17 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.Realm;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
@@ -57,35 +61,58 @@ public class PrincipalAliasDaoImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDao;
 	
+	@Autowired
+	private RealmDao realmDao;
+	
 	@Mock
 	ResultSet mockResultSet;
 	
+	private String realmId;
+	
 	Long principalId;
 	Long principalId2;
+	Long principalInDefaultRealm;
 	List<Long> toDelete;
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException{
+	public void before() throws DatastoreException, NotFoundException {
 		MockitoAnnotations.initMocks(this);
 		toDelete = new LinkedList<Long>();
+		
+		// create a realm
+		Realm testRealm = new Realm();
+		testRealm.setName("test");
+		testRealm.setIdentityProvider(List.of(new OAuthIdentityProvider().setProvider(OAuthProvider.SAGE_BIONETWORKS)));
+		testRealm = realmDao.createRealm(testRealm);
+		this.realmId=testRealm.getId();
+		
+		
 		// Create a test user
 		UserGroup ug = new UserGroup();
 		ug.setCreationDate(new Date());
 		ug.setIsIndividual(true);
-		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		ug.setRealmId(this.realmId);
 		principalId = userGroupDao.create(ug);
 		toDelete.add(principalId);
 		
 		ug = new UserGroup();
 		ug.setCreationDate(new Date());
 		ug.setIsIndividual(true);
-		ug.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		ug.setRealmId(this.realmId);
 		principalId2 = userGroupDao.create(ug);
 		toDelete.add(principalId2);
+		
+		// create an alias in the default realm
+		ug = new UserGroup();
+		ug.setCreationDate(new Date());
+		ug.setIsIndividual(false);
+		ug.setRealmId(DEFAULT_REALM_ID);
+		principalInDefaultRealm = userGroupDao.create(ug);
+		toDelete.add(principalInDefaultRealm);
 	}
 	
 	@After
-	public void after(){
+	public void after() {
 		if(toDelete != null){
 			for(Long id: toDelete){
 				try {
@@ -93,10 +120,15 @@ public class PrincipalAliasDaoImplTest {
 				} catch (Exception e) {} 
 			}
 		}
+		
+		if (realmId!=null) {
+			realmDao.deleteRealm(realmId);
+			realmId=null;
+		}
 	}
 	
 	@Test
-	public void testCRUD() throws NotFoundException{
+	public void testCRUD() throws NotFoundException{ 
 		// Test binding an alias to a principal
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
@@ -508,7 +540,7 @@ public class PrincipalAliasDaoImplTest {
 	}
 	
 	@Test
-	public void testListPrincipalHeaders(){
+	public void testListPrincipalHeaders() {
 		// setup a user
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("User_One");
@@ -531,8 +563,16 @@ public class PrincipalAliasDaoImplTest {
 		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
 		assertNotNull(two);
 		
+
+		alias = new PrincipalAlias();
+		alias.setAlias("Team in Default Realm");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setPrincipalId(principalInDefaultRealm);
+		PrincipalAlias teamInDefaultRealm = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(teamInDefaultRealm);
+		
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId2, principalId));
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId2, principalId, principalInDefaultRealm), this.realmId);
 		assertNotNull(headers);
 		assertEquals(2, headers.size());
 		// the first header is for a team
@@ -568,7 +608,7 @@ public class PrincipalAliasDaoImplTest {
 		userProfileDao.create(profile);
 		
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId), this.realmId);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
 		// the first header is for a team
@@ -603,7 +643,7 @@ public class PrincipalAliasDaoImplTest {
 		userProfileDao.create(profile);
 		
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId));
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId), this.realmId);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
 		UserGroupHeader header = headers.get(0);
@@ -629,7 +669,7 @@ public class PrincipalAliasDaoImplTest {
 		long idDoesNotExist = -1L;
 		
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId, idDoesNotExist));
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(Lists.newArrayList(principalId, idDoesNotExist), this.realmId);
 		assertNotNull(headers);
 		assertEquals(1, headers.size());
 		UserGroupHeader header = headers.get(0);
@@ -640,7 +680,7 @@ public class PrincipalAliasDaoImplTest {
 	public void testListPrincipalHeadersEmpty(){
 		// empty list should not fail.
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(new LinkedList<Long>());
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(new LinkedList<Long>(), this.realmId);
 		assertNotNull(headers);
 		assertEquals(0, headers.size());
 	}
@@ -648,7 +688,7 @@ public class PrincipalAliasDaoImplTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testListPrincipalHeadersNull(){
 		// call under test
-		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(null);
+		List<UserGroupHeader> headers = principalAliasDao.listPrincipalHeaders(null, this.realmId);
 		assertNotNull(headers);
 		assertEquals(0, headers.size());
 	}
@@ -673,7 +713,7 @@ public class PrincipalAliasDaoImplTest {
 	}
 	
 	@Test	
-	public void testFindPrincipalsWithAliases(){
+	public void testFindPrincipalsWithAliases() {
 		// Test that we can get the aliases for two separate users in one call.
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("fooUser");

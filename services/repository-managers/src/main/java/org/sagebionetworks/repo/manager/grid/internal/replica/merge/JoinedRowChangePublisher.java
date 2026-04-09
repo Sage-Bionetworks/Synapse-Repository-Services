@@ -47,9 +47,7 @@ public class JoinedRowChangePublisher {
 			
 			// The iterator of joined rows is sorted by upsert key descending, this allows us to use the current last row id
 			// as the insert position for all new rows (since they will be inserted in reverse order)
-			LogicalTimestamp lastRowId = gridIndexDao.getRgaLastNode(header.getSessionId(), header.getReplicaId(), rowsArrayId)
-				.map(RGANode::getNodeId)
-				.orElse(null);
+			LogicalTimestamp lastRowId = gridIndexDao.getArrayLastNodeId(header.getSessionId(), header.getReplicaId(), rowsArrayId);
 			
 			while (joinedRowStream.hasNext()) {
 				JoinedRow joinedRow = joinedRowStream.next();

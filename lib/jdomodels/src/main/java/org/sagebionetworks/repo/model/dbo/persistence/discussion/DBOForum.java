@@ -2,21 +2,21 @@ package org.sagebionetworks.repo.model.dbo.persistence.discussion;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FORUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
+import java.util.Objects;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -28,15 +28,19 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_FORUM_ID, true).withIsBackupId(true),
-		new FieldColumn("projectId", COL_FORUM_PROJECT_ID),
+		new FieldColumn("objectId", COL_FORUM_OBJECT_ID),
+		new FieldColumn("objectType", COL_FORUM_OBJECT_TYPE),
 		new FieldColumn("etag", COL_FORUM_ETAG).withIsEtag(true)
 	};
 
 	private Long id;
+	// Temporary bridge field: old production backups serialize this field name.
+	// The translator copies this into objectId during migration.
 	private Long projectId;
+	// The canonical field that maps to the OBJECT_ID column.
+	private Long objectId;
+	private String objectType;
 	private String etag;
-
-	private static final MigratableTableTranslation<DBOForum, DBOForum> MIGRATION_MAPPER = new BasicMigratableTableTranslation<>();
 
 	public String getEtag() {
 		return etag;
@@ -54,22 +58,39 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 		this.id = id;
 	}
 
+	/**
+	 * @deprecated Use {@link #getObjectId()} instead. Kept for migration backup compatibility.
+	 */
 	public Long getProjectId() {
 		return projectId;
 	}
 
+	/**
+	 * @deprecated Use {@link #setObjectId(Long)} instead. Kept for migration backup compatibility.
+	 */
 	public void setProjectId(Long projectId) {
 		this.projectId = projectId;
 	}
 
+	public Long getObjectId() {
+		return objectId;
+	}
+
+	public void setObjectId(Long objectId) {
+		this.objectId = objectId;
+	}
+
+	public String getObjectType() {
+		return objectType;
+	}
+
+	public void setObjectType(String objectType) {
+		this.objectType = objectType;
+	}
+
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((projectId == null) ? 0 : projectId.hashCode());
-		return result;
+		return Objects.hash(etag, id, objectId, objectType);
 	}
 
 	@Override
@@ -81,27 +102,15 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 		if (getClass() != obj.getClass())
 			return false;
 		DBOForum other = (DBOForum) obj;
-		if (etag == null) {
-			if (other.etag != null)
-				return false;
-		} else if (!etag.equals(other.etag))
-			return false;
-		if (id == null) {
-			if (other.id != null)
-				return false;
-		} else if (!id.equals(other.id))
-			return false;
-		if (projectId == null) {
-			if (other.projectId != null)
-				return false;
-		} else if (!projectId.equals(other.projectId))
-			return false;
-		return true;
+		return Objects.equals(etag, other.etag)
+				&& Objects.equals(id, other.id)
+				&& Objects.equals(objectId, other.objectId)
+				&& Objects.equals(objectType, other.objectType);
 	}
 
 	@Override
 	public String toString() {
-		return "DBOForum [id=" + id + ", projectId=" + projectId + ", etag=" + etag + "]";
+		return "DBOForum [id=" + id + ", objectId=" + objectId + ", objectType=" + objectType + ", etag=" + etag + "]";
 	}
 
 	@Override
@@ -112,7 +121,8 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 			public DBOForum mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOForum dbo = new DBOForum();
 				dbo.setId(rs.getLong(COL_FORUM_ID));
-				dbo.setProjectId(rs.getLong(COL_FORUM_PROJECT_ID));
+				dbo.setObjectId(rs.getLong(COL_FORUM_OBJECT_ID));
+				dbo.setObjectType(rs.getString(COL_FORUM_OBJECT_TYPE));
 				dbo.setEtag(rs.getString(COL_FORUM_ETAG));
 				return dbo;
 			}
@@ -136,7 +146,7 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 			public Class<? extends DBOForum> getDBOClass() {
 				return DBOForum.class;
 			}
-			
+
 		};
 	}
 
@@ -146,7 +156,22 @@ public class DBOForum implements MigratableDatabaseObject<DBOForum, DBOForum>{
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOForum, DBOForum> getTranslator() { return MIGRATION_MAPPER;	}
+	public MigratableTableTranslation<DBOForum, DBOForum> getTranslator() {
+		return new BasicMigratableTableTranslation<DBOForum>() {
+			@Override
+			public DBOForum createDatabaseObjectFromBackup(DBOForum dbo) {
+				// Bridge: old backups have projectId but not objectId.
+				// Copy projectId into objectId so it maps to the OBJECT_ID column.
+				if (dbo.getObjectId() == null && dbo.getProjectId() != null) {
+					dbo.setObjectId(dbo.getProjectId());
+				}
+				if (dbo.getObjectType() == null) {
+					dbo.setObjectType("ENTITY");
+				}
+				return dbo;
+			}
+		};
+	}
 
 	@Override
 	public Class<? extends DBOForum> getBackupClass() {

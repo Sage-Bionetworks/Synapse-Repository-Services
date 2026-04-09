@@ -588,7 +588,7 @@ public class GridIndexDaoImpl implements GridIndexDao {
 	}
 
 	@Override
-	public Optional<RGANode> getRgaLastNode(String sessionIdString, Long replicaId, LogicalTimestamp arrayId) {
+	public LogicalTimestamp getArrayLastNodeId(String sessionIdString, Long replicaId, LogicalTimestamp arrayId) {
 		Long sessionId = validateReplica(sessionIdString, replicaId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("sessionId", sessionId);
@@ -600,7 +600,7 @@ public class GridIndexDaoImpl implements GridIndexDao {
 
 		return namedTemplate.query(String.format(LIST_ARRAY_ORDER_SQL, EXCLUDE_DELETED_NODES_SQL_COND, "DESC"), params, RGA_NODE_MAPPER)
 			.stream()
-			.findFirst();
+			.findFirst().map(RGANode::getNodeId).orElse(arrayId);
 	}
 
 	@Override

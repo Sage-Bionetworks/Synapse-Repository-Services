@@ -1,0 +1,14 @@
+{
+  "description": "Execution details for a metadata curation task involving a collaborative grid session.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.TaskExecutionDetails"
+    }
+  ],
+  "properties": {
+    "activeSessionId": {
+      "type": "string",
+      "description": "The unique identifier of the active CRDT grid session linked to this task."
+    }
+  }
+}

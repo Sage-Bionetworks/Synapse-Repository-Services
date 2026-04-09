@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_PATCH_ID_SEQ;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_S3_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SESSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GRID_PAT_SIZE_BYTES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_GRID_PATCH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GRID_PATCH;
 
@@ -32,6 +33,7 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 	private Timestamp createdOn;
 	private Timestamp expiresOn;
 	private String s3Key;
+	private Long sizeBytes;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_GRID_PAT_ID).withIsPrimaryKey(true).withIsBackupId(true),
@@ -40,7 +42,8 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 			new FieldColumn("patchIdSeq", COL_GRID_PAT_PATCH_ID_SEQ),
 			new FieldColumn("createdOn", COL_GRID_PAT_CREATED_ON),
 			new FieldColumn("expiresOn", COL_GRID_PAT_EXPIRES_ON),
-			new FieldColumn("s3Key", COL_GRID_PAT_S3_KEY), };
+			new FieldColumn("s3Key", COL_GRID_PAT_S3_KEY),
+			new FieldColumn("sizeBytes", COL_GRID_PAT_SIZE_BYTES), };
 	
 	@Override
 	public TableMapping<DBOGridPatch> getTableMapping() {
@@ -57,6 +60,7 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 				dbo.setCreatedOn(rs.getTimestamp(COL_GRID_PAT_CREATED_ON));
 				dbo.setExpiresOn(rs.getTimestamp(COL_GRID_PAT_EXPIRES_ON));
 				dbo.setS3Key(rs.getString(COL_GRID_PAT_S3_KEY));
+				dbo.setSizeBytes(rs.getLong(COL_GRID_PAT_SIZE_BYTES));
 				return dbo;
 			}
 
@@ -163,9 +167,17 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 		this.s3Key = s3Key;
 	}
 
+	public Long getSizeBytes() {
+		return sizeBytes;
+	}
+
+	public void setSizeBytes(Long sizeBytes) {
+		this.sizeBytes = sizeBytes;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(createdOn, expiresOn, id, patchIdRep, patchIdSeq, s3Key, sessionId);
+		return Objects.hash(createdOn, expiresOn, id, patchIdRep, patchIdSeq, s3Key, sessionId, sizeBytes);
 	}
 
 	@Override
@@ -180,13 +192,14 @@ public class DBOGridPatch implements MigratableDatabaseObject<DBOGridPatch, DBOG
 		return Objects.equals(createdOn, other.createdOn) && Objects.equals(expiresOn, other.expiresOn)
 				&& Objects.equals(id, other.id) && Objects.equals(patchIdRep, other.patchIdRep)
 				&& Objects.equals(patchIdSeq, other.patchIdSeq) && Objects.equals(s3Key, other.s3Key)
-				&& Objects.equals(sessionId, other.sessionId);
+				&& Objects.equals(sessionId, other.sessionId) && Objects.equals(sizeBytes, other.sizeBytes);
 	}
 
 	@Override
 	public String toString() {
 		return "DBOGridPatch [id=" + id + ", sessionId=" + sessionId + ", patchIdRep=" + patchIdRep + ", patchIdSeq="
-				+ patchIdSeq + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", s3Key=" + s3Key + "]";
+				+ patchIdSeq + ", createdOn=" + createdOn + ", expiresOn=" + expiresOn + ", s3Key=" + s3Key
+				+ ", sizeBytes=" + sizeBytes + "]";
 	}
 
 }

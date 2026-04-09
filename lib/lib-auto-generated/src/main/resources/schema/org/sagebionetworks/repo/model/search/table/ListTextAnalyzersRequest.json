@@ -1,0 +1,13 @@
+{
+	"description": "Request to list text analyzers. Returns all analyzers if no organizationName is provided.",
+	"properties": {
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization to list analyzers for. If not provided, lists all analyzers."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Optional pagination token from a previous response."
+		}
+	}
+}

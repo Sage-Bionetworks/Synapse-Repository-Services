@@ -128,6 +128,7 @@
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consentcheck</url-pattern>
 		<url-pattern>/auth/v1/oauth2/userinfo</url-pattern>
+		<url-pattern>/auth/v1/oauth2/introspect</url-pattern>
 		<url-pattern>/auth/v1/oauth2/audit/*</url-pattern>
 		<url-pattern>/auth/v1/2fa</url-pattern>
 		<url-pattern>/auth/v1/2fa/*</url-pattern>

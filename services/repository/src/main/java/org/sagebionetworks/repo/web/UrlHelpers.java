@@ -454,6 +454,7 @@ public class UrlHelpers {
 	
 	public static final String GRID_SESSION_ID_REPLICA = GRID_SESSION_ID+"/replica";
 	public static final String GRID_SESSION_ID_REPLICA_ID = GRID_SESSION_ID_REPLICA+"/{replicaId}";
+	public static final String GRID_SESSION_ID_REPLICA_LIST = GRID_SESSION_ID_REPLICA+"/list";
 
     public static final String GRID_DOWNLOAD = GRID+"/download";
     public static final String GRID_DOWNLOAD_CSV = GRID_DOWNLOAD+"/csv";
@@ -473,7 +474,9 @@ public class UrlHelpers {
 	
 	public static final String GRID_SESSION_ID_SCHEMA = GRID_SESSION_ID+"/schema";
 	public static final String GRID_SESSION_LIST = GRID_SESSION + "/list";
-	
+
+	public static final String ADMIN_GRID_SESSION_BACKFILL = ADMIN + GRID_SESSION + "/backfill";
+
 	/*
 	 * The regular expression is needed in the path variable due to:
 	 * https://stackoverflow.com/questions/3526523/spring-mvc-pathvariable-getting-
@@ -1151,6 +1154,9 @@ public class UrlHelpers {
 	public static final String OBJECT_ID_TYPE_ETAG = OBJECT+OBJECT_ID+OBJECT_TYPE+ETAG;
 	public static final String SUBSCRIPTION_SUBSCRIBERS = SUBSCRIPTION + "/subscribers";
 	public static final String SUBSCRIPTION_SUBSCRIBER_COUNT = SUBSCRIPTION_SUBSCRIBERS + "/count";
+
+	//Form service to search by id and Type
+	public static final String FORUM_BY_ID_TYPE = FORUM + OBJECT_ID + OBJECT_TYPE;
 	
 	// Docker authorization services
 	public static final String DOCKER_AUTHORIZATION = "/bearerToken";
@@ -1253,6 +1259,7 @@ public class UrlHelpers {
 	public static final String OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String OAUTH_2_AUTH_REQUEST_DESCRIPTION = AUTH_OAUTH_2+"/description";
 	public static final String OAUTH_2_REVOKE = AUTH_OAUTH_2+"/revoke";
+	public static final String OAUTH_2_INTROSPECT = AUTH_OAUTH_2+"/introspect";
 	public static final String OAUTH_2_TOKEN_ID = OAUTH_2_TOKEN + "/{tokenId}";
 	public static final String OAUTH_2_TOKEN_ID_METADATA = OAUTH_2_TOKEN_ID + "/metadata";
 
@@ -1305,6 +1312,7 @@ public class UrlHelpers {
     public static final String CURATION_TASK = "/curation/task";
     public static final String CURATION_TASK_ID = CURATION_TASK + "/{taskId}";
     public static final String CURATION_TASK_LIST = CURATION_TASK + LIST;
+    public static final String CURATION_TASK_STATUS = CURATION_TASK_ID + "/status";
 	
 	/**
 	 * API for creating integration test users
@@ -1357,6 +1365,26 @@ public class UrlHelpers {
 	public static final String DRS_SERVICE_INFO = "/service-info";
 	public static final String DRS_OBJECT = "/objects/{object_id}";
 	public static final String DRS_FETCH_BYTES = DRS_OBJECT + "/access/{access_id}";
+
+	// Search - Synonym Set
+	public static final String SEARCH_SYNONYM_SET = "/search/synonym/set";
+	public static final String SEARCH_SYNONYM_SET_ID = SEARCH_SYNONYM_SET + "/{synonymSetId}";
+	public static final String SEARCH_SYNONYM_SET_LIST = SEARCH_SYNONYM_SET + "/list";
+
+	// Search - Text Analyzer
+	public static final String SEARCH_TEXT_ANALYZER = "/search/text/analyzer";
+	public static final String SEARCH_TEXT_ANALYZER_ID = SEARCH_TEXT_ANALYZER + "/{id}";
+	public static final String SEARCH_TEXT_ANALYZER_LIST = SEARCH_TEXT_ANALYZER + "/list";
+
+	// Search - Column Analyzer Override
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE = "/search/column/analyzer/override";
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_ID = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/{columnAnalyzerOverrideId}";
+	public static final String SEARCH_COLUMN_ANALYZER_OVERRIDE_LIST = SEARCH_COLUMN_ANALYZER_OVERRIDE + "/list";
+
+	// Search - Query and Autocomplete
+	public static final String SEARCH_QUERY_ASYNC_START = "/search/query/async/start";
+	public static final String SEARCH_QUERY_ASYNC_GET = "/search/query/async/get/{asyncToken}";
+	public static final String SEARCH_AUTOCOMPLETE = "/search/autocomplete";
 
 	static {
 		@SuppressWarnings("rawtypes")

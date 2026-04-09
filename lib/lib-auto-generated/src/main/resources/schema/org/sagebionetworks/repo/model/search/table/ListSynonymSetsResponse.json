@@ -1,0 +1,16 @@
+{
+	"description": "Response containing a page of synonym sets.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The list of synonym sets for this page.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.table.SynonymSet"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "Token for the next page of results, if more results exist."
+		}
+	}
+}

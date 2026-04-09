@@ -44,5 +44,10 @@ public class DeleteBuilder extends OperationBuilder {
 		DeleteBuilder other = (DeleteBuilder) obj;
 		return Objects.equals(nodeId, other.nodeId) && Objects.equals(timeSpans, other.timeSpans);
 	}
+
+	@Override
+	public String toString() {
+		return "DeleteBuilder [nodeId=" + nodeId + ", timeSpans=" + timeSpans + "]";
+	}
 	
 }

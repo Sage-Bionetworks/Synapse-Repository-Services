@@ -1,0 +1,31 @@
+{
+	"description": "A single search result hit.",
+	"properties": {
+		"rowId": {
+			"type": "integer",
+			"description": "The row ID from the source table."
+		},
+		"rowVersion": {
+			"type": "integer",
+			"description": "The row version from the source table."
+		},
+		"score": {
+			"type": "number",
+			"description": "The relevance score for this hit."
+		},
+		"fields": {
+			"type": "array",
+			"description": "Column name/value pairs for the requested return fields.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.SearchFieldValue"
+			}
+		},
+		"highlights": {
+			"type": "array",
+			"description": "Column name/highlighted snippet pairs, if highlight was requested.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.SearchFieldValue"
+			}
+		}
+	}
+}

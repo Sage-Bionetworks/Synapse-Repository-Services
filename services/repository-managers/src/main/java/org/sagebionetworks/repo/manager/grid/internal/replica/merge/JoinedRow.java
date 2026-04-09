@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
 import java.util.List;
 
-import org.json.JSONArray;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 

@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.discussion.DiscussionThreadBundle;
 import org.sagebionetworks.repo.model.discussion.DiscussionThreadOrder;
 import org.sagebionetworks.repo.model.discussion.EntityThreadCounts;
 import org.sagebionetworks.repo.model.discussion.Forum;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.discussion.MessageURL;
 import org.sagebionetworks.repo.model.discussion.ReplyCount;
 import org.sagebionetworks.repo.model.discussion.ThreadCount;
@@ -45,7 +46,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.context.annotation.RequestScope;
 
 /**
  * <p>Discussions in Synapse are captured in the Project's Forum. Each 
@@ -105,6 +105,28 @@ public class DiscussionController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String forumId) throws DatastoreException, NotFoundException {
 		return serviceProvider.getDiscussionService().getForum(userId, forumId);
+	}
+
+	/**
+	 * This API is used to get the Forum's metadata for a given object ID and type.
+	 * For entity forums, the caller must have READ permission on the entity.
+	 * For access requirement forums, the caller must have REVIEW_SUBMISSIONS permission or an ACT member.
+	 * If the forum does not exist, it will throw exception
+	 *
+	 * @param userId - The ID of the user who is making the request.
+	 * @param objectId - The ID of the object to which the forum belongs.
+	 * @param objectType - The type of the object (ENTITY or ACCESS_REQUIREMENT).
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORUM_BY_ID_TYPE, method = RequestMethod.GET)
+	public @ResponseBody Forum getForumByObjectIdAndType(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = AuthorizationConstants.OBJECT_ID_PARAM) String objectId,
+			@PathVariable(value = AuthorizationConstants.OBJECT_TYPE_PARAM) ForumObjectType objectType) {
+
+		return serviceProvider.getDiscussionService().getForumByObjectIdAndType(userId, objectId, objectType);
 	}
 
 	/**

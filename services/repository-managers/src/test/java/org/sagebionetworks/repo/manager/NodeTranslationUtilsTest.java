@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.audit.NodeRecord;
@@ -310,6 +311,25 @@ public class NodeTranslationUtilsTest {
 		file.setDataFileHandleId(fileHandle);
 		FileEntity clone = cloneUsingNodeTranslation(file);
 		assertEquals(file, clone);
+	}
+
+	@Test
+	public void testRecordSetRoundTrip() throws InstantiationException, IllegalAccessException {
+		RecordSet recordSet = new RecordSet();
+		recordSet.setName("test-record-set");
+		recordSet.setDataFileHandleId("12345");
+		recordSet.setValidationFileHandleId("67890");
+		recordSet.setUpsertKey(Arrays.asList("col1"));
+		RecordSet clone = cloneUsingNodeTranslation(recordSet);
+		assertEquals(recordSet, clone);
+	}
+
+	@Test
+	public void testRecordSetValidationFileHandleIdOnNode() {
+		RecordSet recordSet = new RecordSet();
+		recordSet.setValidationFileHandleId("67890");
+		Node node = NodeTranslationUtils.createFromEntity(recordSet);
+		assertEquals("67890", node.getValidationResultFileHandleId());
 	}
 
 	@Test

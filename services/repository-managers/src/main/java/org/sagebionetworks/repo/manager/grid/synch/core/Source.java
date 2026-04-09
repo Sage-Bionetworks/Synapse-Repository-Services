@@ -69,4 +69,34 @@ public interface Source<C extends CopyItem, S extends SourceItem> {
   */
  boolean matches(C copyItem, S sourceItem);
 
+ /**
+  * Returns whether this source supports adding new items. When false, items
+  * that exist in the copy but not in the source will always be removed from
+  * the copy, even if they were changed by the user.
+  *
+  * <p>
+  * Defaults to true. Read-only sources (e.g. entity views) should return
+  * false.
+  *
+  * @return true if new items can be added to this source, false otherwise
+  */
+ default boolean isItemAdditionSupported() {
+  return true;
+ }
+
+ /**
+  * Returns whether this source supports removing items. When false, items
+  * that the user deleted from the copy but still exist in the source will be
+  * pulled back into the copy rather than removed from the source.
+  *
+  * <p>
+  * Defaults to true. Read-only sources (e.g. entity views) should return
+  * false.
+  *
+  * @return true if items can be removed from this source, false otherwise
+  */
+ default boolean isItemRemovalSupported() {
+  return true;
+ }
+
 }

@@ -100,6 +100,7 @@ import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiAsyncClient;
 import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiClient;
 import software.amazon.awssdk.services.apigatewayv2.ApiGatewayV2Client;
 import software.amazon.awssdk.services.apigatewayv2.model.Api;
@@ -502,6 +503,20 @@ public class ManagerConfiguration {
 			WebsocketApi websocketApi) throws URISyntaxException {
 		return ApiGatewayManagementApiClient.builder().endpointOverride(new URI(websocketApi.getHttpUrl()))
 				.credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	}
+
+	@Bean
+	public ApiGatewayManagementApiAsyncClient createApiGatewayManagementApiAsyncClient(
+			AwsCredentialsProvider credentialProvider, WebsocketApi websocketApi) throws URISyntaxException {
+		return ApiGatewayManagementApiAsyncClient.builder()
+				.endpointOverride(new URI(websocketApi.getHttpUrl()))
+				.credentialsProvider(credentialProvider)
+				.region(Region.US_EAST_1)
+				.httpClientBuilder(NettyNioAsyncHttpClient.builder()
+						.maxConcurrency(50)
+						.connectionTimeout(Duration.ofSeconds(5))
+						.connectionAcquisitionTimeout(Duration.ofSeconds(10)))
+				.build();
 	}
 
 	@Bean

@@ -21,6 +21,13 @@ import org.springframework.stereotype.Service;
 public class LogServiceImpl implements LogService {
 
 	private static final Logger log = LogManager.getLogger(LogService.class);
+	
+	/**
+	 * We disabled sending this data to CloudWatch as we are charged for each unique
+	 * metric combination. See: PLFM-9565. On the last stack where this was enabled
+	 * (prod-582) we were charged for a total of +2M distinct metrics (~$1000).
+	 */
+	private final boolean SHOULD_SEND_TO_CLOUD_WATCH = false;
 
 	@Autowired
 	Consumer consumer;
@@ -30,6 +37,12 @@ public class LogServiceImpl implements LogService {
 		log.error(logEntry.getLabel() + " - " + userAgent + ": " + logEntry.getMessage()
 				+ (logEntry.getStacktrace() == null ? "" : ("\n" + logEntry.getStacktrace())));
 
+		if(SHOULD_SEND_TO_CLOUD_WATCH) {
+			sendToCloudWatch(logEntry, userAgent);
+		}
+	}
+
+	private void sendToCloudWatch(final LogEntry logEntry, String userAgent) {
 		Date now = new Date();
 
 		// log twice, once with just the label

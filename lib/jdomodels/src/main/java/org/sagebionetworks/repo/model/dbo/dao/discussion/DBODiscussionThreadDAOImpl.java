@@ -21,7 +21,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_VIEW_THREAD_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_VIEW_USER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_ENTITY_REFERENCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD_STATS;
@@ -83,7 +83,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			DiscussionThreadBundle dto = new DiscussionThreadBundle();
 			dto.setId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_ID)));
 			dto.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
-			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID)));
+			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_OBJECT_ID)));
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);
 			dto.setTitle(new String(titleBlob.getBytes(1, (int) titleBlob.length()), UTF8));
 			dto.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_THREAD_CREATED_ON).getTime()));
@@ -158,7 +158,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" WHERE "+COL_DISCUSSION_THREAD_ID+" = ?";
 
 	private static final String SELECT_PROJECT_ID = "SELECT "
-			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID
+			+TABLE_FORUM+"."+COL_FORUM_OBJECT_ID
 			+" FROM "+TABLE_DISCUSSION_THREAD+", "+TABLE_FORUM
 			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID
 			+" = "+TABLE_FORUM+"."+COL_FORUM_ID
@@ -175,7 +175,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	private static final String SELECT_THREAD_BUNDLE = "SELECT "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" AS "+COL_DISCUSSION_THREAD_ID+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" AS "+COL_DISCUSSION_THREAD_FORUM_ID+", "
-			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID+" AS "+COL_FORUM_PROJECT_ID+", "
+			+TABLE_FORUM+"."+COL_FORUM_OBJECT_ID+" AS "+COL_FORUM_OBJECT_ID+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_TITLE+" AS "+COL_DISCUSSION_THREAD_TITLE+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_CREATED_ON+" AS "+COL_DISCUSSION_THREAD_CREATED_ON+", "
 			+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_CREATED_BY+" AS "+COL_DISCUSSION_THREAD_CREATED_BY+", "
@@ -226,7 +226,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID
 					+" = "+TABLE_FORUM+"."+COL_FORUM_ID;
 	public static final String ENTITY_ID_CONDITION = COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+" = :"+ID;
-	public static final String PROJECT_CONDITION = COL_FORUM_PROJECT_ID+" IN (:"+PROJECT_IDS+")";
+	public static final String PROJECT_CONDITION = COL_FORUM_OBJECT_ID+" IN (:"+PROJECT_IDS+")";
 	public static final String ENTITY_LIST_CONDITION = COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID+" IN (:"+ENTITY_IDS+")";
 
 	// Count the unique threads that mentioned the given entity and belong to a project in the given list
@@ -263,7 +263,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			+" GROUP BY "+COL_DISCUSSION_THREAD_ENTITY_REFERENCE_ENTITY_ID;
 
 	// Get a list of project that contains threads that mentioned an entity in the given list
-	public static final String SQL_GET_PROJECTS = "SELECT DISTINCT "+COL_FORUM_PROJECT_ID
+	public static final String SQL_GET_PROJECTS = "SELECT DISTINCT "+COL_FORUM_OBJECT_ID
 			+FORUM_THREAD_ENTITY_REF_JOIN
 			+" AND "+ENTITY_LIST_CONDITION;
 
@@ -481,7 +481,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		List<String> queryResult = jdbcTemplate.query(SELECT_PROJECT_ID, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID));
+				return KeyFactory.keyToString(rs.getLong(COL_FORUM_OBJECT_ID));
 			}
 		}, threadId);
 		if (queryResult.size() != 1) {
@@ -602,7 +602,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 		namedTemplate.query(SQL_GET_PROJECTS, parameters, new RowMapper<Void>(){
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
-				result.add(rs.getLong(COL_FORUM_PROJECT_ID));
+				result.add(rs.getLong(COL_FORUM_OBJECT_ID));
 				return null;
 			}
 		});

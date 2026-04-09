@@ -36,9 +36,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowHeader;
-import org.sagebionetworks.repo.manager.grid.synch.io.RowReader;
-import org.sagebionetworks.repo.manager.grid.synch.io.SynchRow;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReference;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItemReader;
+import org.sagebionetworks.repo.manager.grid.synch.io.RowSourceItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItemImpl;
 import org.sagebionetworks.repo.manager.schema.AnnotationsTranslator;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -166,31 +166,31 @@ public class EntityViewSourceHandlerTest {
 
 		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
 				// call under test
-				RowReader rowReader = handler.getSourceRowReader()) {
+				RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
-			List<SynchRow> results = StreamSupport
+			List<RowSourceItem> results = StreamSupport
 					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
-					.map(RowHeader::fetchRow).collect(Collectors.toList());
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
 
 			assertEquals(List.of(
 					// 1
-					new SynchRow(
+					new RowSourceItem(
 							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "a"), "anInt",
 									new ConValue(ConType.LONG, 111L))),
 							"syn1", new SynapseRow().setRowId(1L).setVersionNumber(8L).setEtag("e1")),
 					// 2
-					new SynchRow(
+					new RowSourceItem(
 							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "b"), "anInt",
 									new ConValue(ConType.LONG, 222L))),
 							"syn2", new SynapseRow().setRowId(2L).setVersionNumber(3L).setEtag("e2")),
 					// 3
-					new SynchRow(new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
 							new ConValue(ConType.NULL, null))), "syn3", new SynapseRow().setRowId(3L)),
 					// 4
-					new SynchRow(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
 							new ConValue(ConType.LONG, 333L))), "syn4", new SynapseRow().setRowId(4L)),
 					// 5
-					new SynchRow(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
 							new ConValue(ConType.NULL, null))), "syn5", new SynapseRow().setRowId(5L))
 
 			), results);
@@ -224,20 +224,100 @@ public class EntityViewSourceHandlerTest {
 
 		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
 				// call under test
-				RowReader rowReader = handler.getSourceRowReader()) {
+				RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
-			List<SynchRow> results = StreamSupport
+			List<RowSourceItem> results = StreamSupport
 					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
-					.map(RowHeader::fetchRow).collect(Collectors.toList());
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
 
 			assertEquals(List.of(
 					// 3
-					new SynchRow(
+					new RowSourceItem(
 							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
 									new ConValue(ConType.UNDEFINED, null))),
 							"syn3", new SynapseRow().setRowId(3L).setVersionNumber(0L).setEtag("e1")),
 					// 5
-					new SynchRow(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+							new ConValue(ConType.UNDEFINED, null))), "syn5", new SynapseRow().setRowId(5L))
+
+			), results);
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
+	public void testGetRowReaderWithNullJsonSchemaRequired() throws Exception {
+		List<String> requiredColumns = null;
+		when(mockJsonSchema.getRequired()).thenReturn(null);
+
+		List<ColumnModel> schema = List.of(
+				// aString
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
+				// anInt
+				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
+
+		List<Row> rows = List.of(
+				// 3
+				new Row().setRowId(3L).setVersionNumber(0L).setEtag("e1").setValues(Arrays.asList("c", null)),
+				// 5
+				new Row().setRowId(5L).setValues(Arrays.asList(null, null)));
+
+		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
+			 // call under test
+			 RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			List<RowSourceItem> results = StreamSupport
+					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
+
+			assertEquals(List.of(
+					// 3
+					new RowSourceItem(
+							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
+									new ConValue(ConType.UNDEFINED, null))),
+							"syn3", new SynapseRow().setRowId(3L).setVersionNumber(0L).setEtag("e1")),
+					// 5
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
+							new ConValue(ConType.UNDEFINED, null))), "syn5", new SynapseRow().setRowId(5L))
+
+			), results);
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
+	public void testGetRowReaderWithEmptyJsonSchemaRequired() throws Exception {
+		List<String> requiredColumns = null;
+		when(mockJsonSchema.getRequired()).thenReturn(Collections.emptyList());
+
+		List<ColumnModel> schema = List.of(
+				// aString
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("aString"),
+				// anInt
+				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
+
+		List<Row> rows = List.of(
+				// 3
+				new Row().setRowId(3L).setVersionNumber(0L).setEtag("e1").setValues(Arrays.asList("c", null)),
+				// 5
+				new Row().setRowId(5L).setValues(Arrays.asList(null, null)));
+
+		try (EntityViewSourceHandler handler = setupHandler(session, requiredColumns, schema, rows);
+			 // call under test
+			 RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			List<RowSourceItem> results = StreamSupport
+					.stream(Spliterators.spliteratorUnknownSize(rowReader.remainingRows(), Spliterator.ORDERED), false)
+					.map(RowSourceItemReference::fetchRow).collect(Collectors.toList());
+
+			assertEquals(List.of(
+					// 3
+					new RowSourceItem(
+							new TreeMap<>(Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
+									new ConValue(ConType.UNDEFINED, null))),
+							"syn3", new SynapseRow().setRowId(3L).setVersionNumber(0L).setEtag("e1")),
+					// 5
+					new RowSourceItem(new TreeMap<>(Map.of("aString", new ConValue(ConType.UNDEFINED, null), "anInt",
 							new ConValue(ConType.UNDEFINED, null))), "syn5", new SynapseRow().setRowId(5L))
 
 			), results);
@@ -253,7 +333,7 @@ public class EntityViewSourceHandlerTest {
 				// anInt
 				new ColumnModel().setColumnType(ColumnType.INTEGER).setName("anInt"));
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), schema,
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
 			assertEquals(List.of("aString", "anInt"), handler.getCurrentSourceSchema());
@@ -264,7 +344,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testGetRowKey() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
 			assertEquals("syn111", handler.getRowKey(
@@ -276,7 +356,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testGetRowKeyWithMissingSynapseRow() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			String message = assertThrows(IllegalArgumentException.class, () -> {
 				// call under test
@@ -290,7 +370,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testAddColumn() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
 			handler.addColumnToSource("one");
@@ -302,7 +382,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testRemoveColoum() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
 			handler.removeColumn("one");
@@ -312,12 +392,34 @@ public class EntityViewSourceHandlerTest {
 	}
 
 	@Test
-	public void testAddNewRowToSource() throws Exception {
+	public void testCanAddRemoveRows() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
-			handler.addNewRowToSource(new SynchRow(new TreeMap<String, ConValue>(), "theKey"));
+			assertEquals(false, handler.canAddRemoveRows());
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
+	public void testCanAddRemoveColumns() throws Exception {
+		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			// call under test
+			assertEquals(false, handler.canAddRemoveColumns());
+		}
+		verifyNoMoreInteractionsOnAllMocks();
+	}
+
+	@Test
+	public void testAddNewRowToSource() throws Exception {
+		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
+
+			// call under test
+			handler.addNewRowToSource(new RowSourceItem(new TreeMap<String, ConValue>(), "theKey"));
 			assertEquals(List.of("Cannot add the row: 'theKey' to a source view."), handler.getErrorMessages());
 		}
 		verifyNoMoreInteractionsOnAllMocks();
@@ -326,10 +428,10 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testRemoveRow() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			// call under test
-			handler.removeRow(new SynchRow(new TreeMap<String, ConValue>(), "theKey"));
+			handler.removeRow(new RowSourceItem(new TreeMap<String, ConValue>(), "theKey"));
 			assertEquals(List.of("Cannot remove the row: 'theKey' from a source view."), handler.getErrorMessages());
 		}
 		verifyNoMoreInteractionsOnAllMocks();
@@ -338,7 +440,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testTranslateCellChangesWithNullValue() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 			Map<String, ConValue> changes = new HashMap<>();
 			changes.put("aString", null);
 
@@ -354,7 +456,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testTranslateCellChangesWithUndefinedValue() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 			Map<String, ConValue> changes = new HashMap<>();
 			changes.put("aString", new ConValue(ConType.UNDEFINED, null));
 
@@ -370,7 +472,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testTranslateCellChangesWithJSONNull() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 			Map<String, ConValue> changes = new HashMap<>();
 			changes.put("aString", new ConValue(ConType.NULL, null));
 
@@ -386,7 +488,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testTranslateCellChangesWithValueNull() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 			Map<String, ConValue> changes = new HashMap<>();
 			changes.put("aString", new ConValue(ConType.STRING, null));
 
@@ -402,7 +504,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testTranslateCellChangesValidValues() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 			Map<String, ConValue> changes = Map.of("aString", new ConValue(ConType.STRING, "one"), "anInt",
 					new ConValue(ConType.LONG, 222L));
 
@@ -429,7 +531,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testApplyCellChangesFromCopyToSource() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			Map<String, ConValue> changes = Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
 					new ConValue(ConType.LONG, 222L));
@@ -454,7 +556,7 @@ public class EntityViewSourceHandlerTest {
 	@Test
 	public void testApplyCellChangesFromCopyToSourceWithIllegalArgument() throws Exception {
 		try (EntityViewSourceHandler handler = setupHandler(session, Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList()); RowReader rowReader = handler.getSourceRowReader()) {
+				Collections.emptyList()); RowSourceItemReader rowReader = handler.getSourceRowReader()) {
 
 			Map<String, ConValue> changes = Map.of("aString", new ConValue(ConType.STRING, "c"), "anInt",
 					new ConValue(ConType.LONG, 222L));

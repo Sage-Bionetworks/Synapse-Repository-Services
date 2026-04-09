@@ -171,6 +171,11 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 
+	/*
+	 * Do not add additional objects to SecondaryType list. UserGroup has etag and when etag is updated, the secondary types will be migrated.
+	 * If the migration is not required for each etag, It is unnecessary migration of secondary types.
+	 *
+	 */
 	@Override
 	public List<MigratableDatabaseObject<?,?>> getSecondaryTypes() {
 		List<MigratableDatabaseObject<?,?>> list = new LinkedList<MigratableDatabaseObject<?,?>>();

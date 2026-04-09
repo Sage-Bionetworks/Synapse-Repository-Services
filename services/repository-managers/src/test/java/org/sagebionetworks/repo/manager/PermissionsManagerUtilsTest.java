@@ -3,10 +3,13 @@ package org.sagebionetworks.repo.manager;
 import com.google.common.collect.ImmutableSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -56,7 +59,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setResourceAccess(ras);
 
 		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds,ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 	}
 
 	@Test
@@ -66,7 +69,7 @@ public class PermissionsManagerUtilsTest {
 
 		assertThrows(InvalidModelException.class, ()-> {
 			// Should fail, since user is not included with proper permissions in ACL
-			PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ObjectType.ENTITY, ownerId);
 		});
 	}
 
@@ -77,7 +80,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setId("resource id");
 
 		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, adminUserInfo, realmIds, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, adminUserInfo, realmIds, ObjectType.ENTITY, ownerId);
 	}
 
 	@Test
@@ -86,7 +89,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setId("resource id");
 
 		// Should not throw any exceptions
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 	}
 
 	@Test
@@ -106,7 +109,7 @@ public class PermissionsManagerUtilsTest {
 
 		assertThrows(InvalidModelException.class, ()-> {
 			// Should fail since user does not have permission editing rights in ACL
-			PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ObjectType.EVALUATION, ownerId);
 		});
 	}
 
@@ -130,7 +133,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setId("resource id");
 		acl.setResourceAccess(ras);
 
-		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, ObjectType.ORGANIZATION, ownerId);
 
 	}
 
@@ -150,7 +153,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setResourceAccess(ras);
 
 		assertThrows(InvalidModelException.class, ()-> {
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 		});
 	}
 
@@ -171,7 +174,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setResourceAccess(ras);
 		assertThrows(UserCertificationRequiredException.class, ()-> {
 			// userInfo is not certified
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 		});
 	}
 
@@ -188,8 +191,8 @@ public class PermissionsManagerUtilsTest {
 		acl.setId("resource id");
 		acl.setResourceAccess(ras);
 		// certify userInfo
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+		userInfo.setCertified(true);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 	}
 	
 	@Test
@@ -205,7 +208,7 @@ public class PermissionsManagerUtilsTest {
 
 		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
 			// Call under test
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
 		});
 
 		assertEquals("Cannot assign permissions to anonymous. To share resources with anonymous users, use the PUBLIC group id (" + AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() + ")", ex.getMessage());
@@ -223,7 +226,7 @@ public class PermissionsManagerUtilsTest {
 		acl.setResourceAccess(ImmutableSet.of(userRA));
 		
 		// Call under test
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds,ObjectType.ENTITY, ownerId);
 
 	}
 	
@@ -242,7 +245,7 @@ public class PermissionsManagerUtilsTest {
 		
 		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
 			// Call under test
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds,ObjectType.ENTITY, ownerId);
 		});
 		
 		assertEquals("Only READ permissions can be assigned to the public group", ex.getMessage());
@@ -268,7 +271,7 @@ public class PermissionsManagerUtilsTest {
 		// Should not throw any exceptions
 		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
 			// Call under test
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ObjectType.ENTITY, ownerId);
 		});
 
 		assertEquals("All principals in the ACL must be from the same realm.", ex.getMessage());
@@ -293,14 +296,14 @@ public class PermissionsManagerUtilsTest {
 		// Should not throw any exceptions caller is in default realm and ACl principal in different realm
 		InvalidModelException ex = assertThrows(InvalidModelException.class, () -> {
 			// Call under test
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ObjectType.ENTITY, ownerId);
 		});
 
 		assertEquals("All principals in the ACL must be from the same realm as the caller principal.", ex.getMessage());
 
 		// Admin caller can not change ACL principal in different realm
 		InvalidModelException exception = assertThrows(InvalidModelException.class, () -> {
-			PermissionsManagerUtils.validateACLContent(acl, adminUserInfo, realmIdSet, ownerId);
+			PermissionsManagerUtils.validateACLContent(acl, adminUserInfo, realmIdSet, ObjectType.ENTITY, ownerId);
 		});
 
 		assertEquals("All principals in the ACL must be from the same realm as the caller principal.", exception.getMessage());
@@ -323,7 +326,7 @@ public class PermissionsManagerUtilsTest {
 		Set<String> realmIdSet = Collections.emptySet();
 
 		// Call under test
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIdSet, ObjectType.ENTITY, ownerId);
 
 	}
 
@@ -344,13 +347,44 @@ public class PermissionsManagerUtilsTest {
 
 		// call under test. Null is passed a ownerId, which mean caller is not Owner, condition will fail and throw exception.
 		InvalidModelException exception = assertThrows(InvalidModelException.class, () -> {
-			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, null);
+			PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, null);
 		});
 
 		assertEquals("Caller is trying to revoke their own ACL editing permissions.", exception.getMessage());
 
 		// caller is owner, so no exception should be thrown.
-		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ownerId);
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
+	}
+
+	@Test
+	public void testValidateACLContentNoValidationAccessRequirement() {
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		// Should not throw any exceptions
+		PermissionsManagerUtils.validateACLContent(acl, userInfo, realmIds, ObjectType.ENTITY, ownerId);
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = ObjectType.class, names = {"ENTITY", "TEAM", "EVALUATION", "FORM_GROUP", "OAUTH_CLIENT", "ORGANIZATION", "PORTAL"})
+	public void testValidateACLContentForAllObjectTypes(ObjectType objectType) {
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setPrincipalId(otherUserInfo.getId());
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		if (objectType.equals(ObjectType.TEAM)) {
+			ats.add(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
+		} else {
+			ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		}
+		userRA.setAccessType(ats);
+
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);
+
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, realmIds, objectType, ownerId);
 	}
 
 }

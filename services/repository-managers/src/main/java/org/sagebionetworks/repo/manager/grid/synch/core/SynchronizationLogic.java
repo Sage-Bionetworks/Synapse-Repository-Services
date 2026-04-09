@@ -79,7 +79,7 @@ public class SynchronizationLogic {
 				// If items match, no action needed
 			} else {
 				// Item exists only in copy
-				if (copyItem.wasChangedByUser()) {
+				if (copyItem.wasChangedByUser() && source.isItemAdditionSupported()) {
 					// User added item - push to source
 					source.addItem(copyItem);
 				} else {
@@ -91,11 +91,11 @@ public class SynchronizationLogic {
 
 		// Phase 2: Process remaining items in source (items not in copy)
 		source.streamRemaining().forEach(sourceItem -> {
-			if (copy.wasDeletedByUser(sourceItem.getKey())) {
+			if (copy.wasDeletedByUser(sourceItem.getKey()) && source.isItemRemovalSupported()) {
 				// User deleted item from copy - remove from source
 				source.removeItem(sourceItem);
 			} else {
-				// Item was added to source - pull to copy
+				// Item was added to source, or source does not support removal - pull to copy
 				copy.addItem(sourceItem);
 			}
 		});

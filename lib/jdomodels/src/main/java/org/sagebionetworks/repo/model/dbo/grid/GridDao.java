@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridSnapshot;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
@@ -64,13 +65,23 @@ public interface GridDao {
 
 	/**
 	 * Get the replica createdBy of the replica matching the parameters.
-	 * 
+	 *
 	 * @param sessionId
 	 * @param replicaId
 	 * @param isAgent
 	 * @return
 	 */
 	Optional<Long> getReplicaCreatedBy(String sessionId, Long replicaId);
+
+	/**
+	 * List all replicas for a session with their connection status.
+	 *
+	 * @param sessionId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<GridReplicaInfo> listReplicas(String sessionId, long limit, long offset);
 
 	/**
 	 * Crete a new connection.
@@ -125,9 +136,10 @@ public interface GridDao {
 	 * @param patchId
 	 * @param s3Key
 	 * @param expires
+	 * @param sizeBytes
 	 * @return True of this was a new patch, else false.
 	 */
-	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires);
+	boolean savePatch(String sessionId, LogicalTimestamp patchId, String s3Key, Duration expires, long sizeBytes);
 
 	/**
 	 * Save grid snapshot data.
@@ -149,14 +161,14 @@ public interface GridDao {
 	Optional<PatchInfo> getPatchInfo(String sessionId, LogicalTimestamp patchId);
 
 	/**
-	 * List all of the missing patches give a clock
-	 * 
+	 * List the missing patches with full info (including size) for a clock.
+	 *
 	 * @param sessionId
 	 * @param clock
 	 * @param limit
 	 * @return
 	 */
-	List<LogicalTimestamp> listMissingPatchIdsForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
+	List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit);
 
 	/**
 	 * List the active grid session for a user filtered by the provided sourceId.
@@ -198,4 +210,13 @@ public interface GridDao {
 	 * @return
 	 */
 	Optional<GridSnapshot> getLatestSnapshot(String sessionId);
+
+	/**
+	 * List all grid session IDs.
+	 *
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	List<String> listAllSessionIds(long limit, long offset);
 }

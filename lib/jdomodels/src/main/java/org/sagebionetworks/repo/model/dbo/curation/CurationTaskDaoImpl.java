@@ -5,44 +5,60 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DATA_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_INSTRUCTIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_STATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_STATE_UPDATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_STATE_UPDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_TASK_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CURATION_TASK;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
+import org.sagebionetworks.repo.model.curation.TaskExecutionDetails;
+import org.sagebionetworks.repo.model.curation.TaskState;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.MandatoryWriteTransaction;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class CurationTaskDaoImpl implements CurationTaskDao {
 
     private final JdbcTemplate jdbcTemplate;
+    private final NamedParameterJdbcTemplate namedJdbcTemplate;
     private final IdGenerator idGenerator;
 
-    public CurationTaskDaoImpl(JdbcTemplate jdbcTemplate, IdGenerator idGenerator) {
+    public CurationTaskDaoImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate, IdGenerator idGenerator) {
         this.jdbcTemplate = jdbcTemplate;
+        this.namedJdbcTemplate = namedJdbcTemplate;
         this.idGenerator = idGenerator;
     }
 
@@ -60,6 +76,28 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                             JDOSecondaryPropertyUtils.createObjectFromJSON(CurationTaskProperties.class, rs.getString(COL_CURATION_TASK_TASK_PROPERTIES))
                     )
                     .setAssigneePrincipalId(rs.getString(COL_CURATION_TASK_ASSIGNEE));
+
+    private static final RowMapper<TaskStatus> TASK_STATUS_ROW_MAPPER = (rs, rowNum) -> {
+        String executionDetailsJson = rs.getString(COL_CURATION_TASK_EXECUTION_DETAILS);
+        TaskExecutionDetails executionDetails = executionDetailsJson != null
+                ? JDOSecondaryPropertyUtils.createObjectFromJSON(TaskExecutionDetails.class, executionDetailsJson)
+                : null;
+        Long stateUpdatedBy = rs.getObject(COL_CURATION_TASK_STATE_UPDATED_BY, Long.class);
+        Timestamp stateUpdatedOn = rs.getTimestamp(COL_CURATION_TASK_STATE_UPDATED_ON);
+        return new TaskStatus()
+                .setTaskId(rs.getLong(COL_CURATION_TASK_ID))
+                .setState(TaskState.valueOf(rs.getString(COL_CURATION_TASK_STATE)))
+                .setExecutionDetails(executionDetails)
+                .setLastUpdatedBy(stateUpdatedBy != null ? stateUpdatedBy.toString() : null)
+                .setLastUpdatedOn(stateUpdatedOn != null ? new Date(stateUpdatedOn.getTime()) : null)
+                .setEtag(rs.getString(COL_CURATION_TASK_ETAG));
+    };
+
+    private static final RowMapper<TaskBundle> TASK_BUNDLE_ROW_MAPPER = (rs, rowNum) -> {
+        CurationTask task = CURATION_TASK_ROW_MAPPER.mapRow(rs, rowNum);
+        TaskStatus status = TASK_STATUS_ROW_MAPPER.mapRow(rs, rowNum);
+        return new TaskBundle().setTask(task).setStatus(status);
+    };
 
     @Override
     @WriteTransaction
@@ -159,6 +197,77 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 + "ORDER BY " + COL_CURATION_TASK_ID + " LIMIT ? OFFSET ?";
 
         return jdbcTemplate.query(sql, CURATION_TASK_ROW_MAPPER, projectId, limit, offset);
+    }
+
+    @Override
+    public TaskStatus getTaskStatus(Long taskId) {
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT ID, STATE, EXECUTION_DETAILS, STATE_UPDATED_BY, STATE_UPDATED_ON, ETAG"
+                            + " FROM CURATION_TASK WHERE ID = ?",
+                    TASK_STATUS_ROW_MAPPER, taskId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("A curation task with ID " + taskId + " does not exist.");
+        }
+    }
+
+    @Override
+    @WriteTransaction
+    public TaskStatus updateTaskStatus(Long userId, Long taskId, TaskStatus statusUpdate) {
+        String currentEtag = getEtagForCurationTaskForUpdate(taskId);
+
+        if (!currentEtag.equals(statusUpdate.getEtag())) {
+            throw new ConflictingUpdateException(
+                    "The task status was updated since you last fetched it, please fetch it again and reapply your changes.");
+        }
+
+        String executionDetailsJson = statusUpdate.getExecutionDetails() != null
+                ? JDOSecondaryPropertyUtils.createJSONFromObject(statusUpdate.getExecutionDetails())
+                : null;
+
+        jdbcTemplate.update(
+                "UPDATE CURATION_TASK SET STATE = ?, EXECUTION_DETAILS = ?,"
+                        + " STATE_UPDATED_BY = ?, STATE_UPDATED_ON = NOW(3), ETAG = UUID()"
+                        + " WHERE ID = ?",
+                statusUpdate.getState().name(),
+                executionDetailsJson,
+                userId,
+                taskId);
+
+        return getTaskStatus(taskId);
+    }
+
+    @Override
+    public List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
+            List<TaskState> stateFilter, long limit, long offset) {
+        ValidateArgument.requiredNotEmpty(projectIds, "projectIds");
+
+        StringBuilder sql = new StringBuilder("SELECT * FROM CURATION_TASK WHERE PROJECT_ID IN (:projectIds)");
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("projectIds", projectIds);
+
+        if (assigneeIds != null && !assigneeIds.isEmpty()) {
+            sql.append(" AND ASSIGNEE IN (:assigneeIds)");
+            params.addValue("assigneeIds", assigneeIds);
+        }
+
+        if (stateFilter != null && !stateFilter.isEmpty()) {
+            List<String> stateNames = stateFilter.stream().map(TaskState::name).collect(Collectors.toList());
+            sql.append(" AND STATE IN (:stateFilter)");
+            params.addValue("stateFilter", stateNames);
+        }
+
+        sql.append(" ORDER BY ID LIMIT :limit OFFSET :offset");
+        params.addValue("limit", limit);
+        params.addValue("offset", offset);
+
+        return namedJdbcTemplate.query(sql.toString(), params, TASK_BUNDLE_ROW_MAPPER);
+    }
+
+    @Override
+    public Set<Long> getDistinctProjectIds() {
+        return new HashSet<>(jdbcTemplate.queryForList(
+                "SELECT DISTINCT PROJECT_ID FROM CURATION_TASK", Long.class));
     }
 
     @MandatoryWriteTransaction

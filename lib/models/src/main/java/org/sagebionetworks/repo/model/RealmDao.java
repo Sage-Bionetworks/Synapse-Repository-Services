@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Map;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
@@ -70,7 +71,7 @@ public interface RealmDao {
 	/**
 	 * Add principals to default realm
 	 */
-	public void addPrincipalsToDefaultRealm();
+	public void addPrincipalsToDefaultRealm(Map<String,Long> principalIdToRealmPrincipalDboId);
 	
 	/**
 	 * 

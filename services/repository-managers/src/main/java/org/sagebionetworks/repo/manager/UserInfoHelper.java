@@ -6,8 +6,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 
 public class UserInfoHelper {
 	public static boolean isCertified(UserInfo userInfo) {
-		return userInfo.getGroups().contains(
-				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		return userInfo.isCertified();
 	}
 
 	public static boolean isACTMember(UserInfo userInfo) {

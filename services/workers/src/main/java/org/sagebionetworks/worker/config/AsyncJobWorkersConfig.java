@@ -689,7 +689,7 @@ public class AsyncJobWorkersConfig {
                 .withStartDelay(2563)
                 .build();
     }
-    
+
 	@Bean
 	public SimpleTriggerFactoryBean gridSynchronizationWorkerTrigger(
 			GridSynchronizationWorker gridSynchronizationWorker) {
@@ -711,5 +711,4 @@ public class AsyncJobWorkersConfig {
 
 		return new WorkerTriggerBuilder().withStack(stack).withRepeatInterval(1134).withStartDelay(131).build();
 	}
-
 }

@@ -2,16 +2,15 @@ package org.sagebionetworks.grid.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -55,6 +56,8 @@ public class GridEventListenerTest {
 	private GridManager mockManager;
 	@Mock
 	private UserInfo mockUser;
+	@Captor
+	private ArgumentCaptor<List<EventContext>> contextsCaptor;
 
 	@InjectMocks
 	private GridEventListener listener;
@@ -114,10 +117,22 @@ public class GridEventListenerTest {
 	@Test
 	public void testOnConnection() {
 		when(mockUserManager.getUserInfo(userId)).thenReturn(mockUser);
+		List<GridConnectionInfo> activeCons = List.of(
+				new GridConnectionInfo().setConnectionId(connectionId).setSource(EventSource.WEBSOCKET),
+				new GridConnectionInfo().setConnectionId("con999").setSource(EventSource.INTERNAL),
+				new GridConnectionInfo().setConnectionId("con888").setSource(EventSource.WEBSOCKET));
+		when(mockManager.listActiveConnections(connectionId)).thenReturn(activeCons);
 		// call under test
 		listener.onConnection(connectionMessage);
 		verify(mockManager).createReplicaConnection(mockUser, context, connection);
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.Notification, "connected");
+		// Verify broadcast to other connections
+		verify(mockPublisher).publishEventResponses(contextsCaptor.capture(), eq(JsonRxMessageType.Notification),
+				eq("replica-connected"));
+		List<EventContext> capturedContexts = contextsCaptor.getValue();
+		assertEquals(2, capturedContexts.size());
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999")));
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.WEBSOCKET, "con888")));
 	}
 
 	@Test
@@ -151,9 +166,33 @@ public class GridEventListenerTest {
 	public void testOnDisconnected(EventType type) {
 		context = new EventContext(type, eventSource, connectionId);
 		disconnectMessage = new DisconnectedMessage(context, null, null);
+		GridConnectionInfo thisConnection = new GridConnectionInfo().setConnectionId(connectionId)
+				.setSource(EventSource.WEBSOCKET);
+		when(mockManager.getConnectionInfoOptional(connectionId)).thenReturn(Optional.of(thisConnection));
+		List<GridConnectionInfo> activeCons = List.of(thisConnection,
+				new GridConnectionInfo().setConnectionId("con999").setSource(EventSource.INTERNAL));
+		when(mockManager.listActiveConnections(connectionId)).thenReturn(activeCons);
 		// call under test
 		listener.onDisconnected(disconnectMessage);
 		verify(mockManager).removeReplicatConnection(type, connectionId);
+		// Verify broadcast to remaining connections
+		verify(mockPublisher).publishEventResponses(contextsCaptor.capture(), eq(JsonRxMessageType.Notification),
+				eq("replica-disconnected"));
+		List<EventContext> capturedContexts = contextsCaptor.getValue();
+		assertEquals(1, capturedContexts.size());
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999")));
+	}
+
+	@Test
+	public void testOnDisconnectedWithNoExistingConnection() {
+		when(mockManager.getConnectionInfoOptional(connectionId)).thenReturn(Optional.empty());
+		// call under test
+		listener.onDisconnected(disconnectMessage);
+		verify(mockManager).removeReplicatConnection(eventType, connectionId);
+		verify(mockManager, never()).listActiveConnections(any());
+		// Still broadcasts with empty list (no-op)
+		verify(mockPublisher).publishEventResponses(eq(List.of()), eq(JsonRxMessageType.Notification),
+				eq("replica-disconnected"));
 	}
 
 	@Test
@@ -192,16 +231,13 @@ public class GridEventListenerTest {
 		// call under test
 		listener.onNewPatchRegistration(patchDataRequest);
 
-		verify(mockPublisher, times(1)).publishEventResponse(any(), any(), any(Integer.class));
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseComplete, 1099);
-		String patchNotification = "[8,\"patch\",[[[9,1]],[0]]]";
-		// only other active connections receive the patch notification
-		verify(mockPublisher, times(2)).publishEventResponse(any(), any(), any(String.class));
-		verify(mockPublisher).publishEventResponse(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999"),
-				JsonRxMessageType.Notification, "new-patch");
-		verify(mockPublisher).publishEventResponse(new EventContext(EventType.MESSAGE, EventSource.WEBSOCKET, "con888"),
-				JsonRxMessageType.Notification, "new-patch");
-		verify(mockPublisher, never()).publishEventResponse(context, patchNotification);
+		// Verify batch call with contexts for other connections (excluding the caller)
+		verify(mockPublisher).publishEventResponses(contextsCaptor.capture(), eq(JsonRxMessageType.Notification), eq("new-patch"));
+		List<EventContext> capturedContexts = contextsCaptor.getValue();
+		assertEquals(2, capturedContexts.size());
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.INTERNAL, "con999")));
+		assertTrue(capturedContexts.contains(new EventContext(EventType.MESSAGE, EventSource.WEBSOCKET, "con888")));
 	}
 
 	@Test
@@ -230,61 +266,21 @@ public class GridEventListenerTest {
 	}
 
 	@Test
-	public void testOnSynchronizeClockWithPatch() {
-		String patch = "[[[9,1]],[0]]]";
-		when(mockManager.getNextMissingPatch(context, clock)).thenReturn(Optional.of(patch));
+	public void testOnSynchronizeClock() {
+		String message = "some-message";
+		when(mockManager.getNextSynchronizeResponse(context, clock)).thenReturn(Optional.of(message));
 
 		// call under test
 		listener.onSynchronizeClock(synchronizeClockMessage);
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"patch\",\"body\":"+patch+"}");
+		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, message);
 	}
 
 	@Test
-	public void testOnSynchronizeEmptyClockWithPatch() {
-		// Simulate the case where the caller sends an empty clock, but there is no snapshot
-		List<LogicalTimestamp> emptyClock = Collections.emptyList();
-		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId, LogicalTimestampCompactSerializable.serializeClock(emptyClock));
-		String patch = "[[[9,1]],[0]]]";
-		when(mockManager.getLatestSnapshotPresignedUrl(any())).thenReturn(Optional.empty());
-		when(mockManager.getNextMissingPatch(context, emptyClock)).thenReturn(Optional.of(patch));
-
-		// call under test
-		listener.onSynchronizeClock(synchronizeClockMessage);
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"patch\",\"body\":"+patch+"}");
-	}
-
-	@Test
-	public void testOnSynchronizeClockWithSnapshot() throws MalformedURLException {
-		// clock has to be empty to return a snapshot
-		synchronizeClockMessage = new SynchronizeClockMessage(context, requestId, LogicalTimestampCompactSerializable.serializeClock(Collections.emptyList()));
-		URL snapshotUrl = new URL("https://s3-url-to-snapshot.tld/snapshot-12345");
-		when(mockManager.getLatestSnapshotPresignedUrl(any())).thenReturn(Optional.of(snapshotUrl));
-
-
-		// call under test
-		listener.onSynchronizeClock(synchronizeClockMessage);
-
-		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseData, requestId, "{\"type\":\"snapshot\",\"body\":\""+snapshotUrl+"\"}");
-		verify(mockManager, never()).getNextMissingPatch(any(), any());
-	}
-
-	@Test
-	public void testOnSynchronizeClockWithDone() {
-		when(mockManager.getNextMissingPatch(context, clock)).thenReturn(Optional.empty());
+	public void testOnSynchronizeClockEmptyMessage() {
+		when(mockManager.getNextSynchronizeResponse(context, clock)).thenReturn(Optional.empty());
 
 		// call under test
 		listener.onSynchronizeClock(synchronizeClockMessage);
 		verify(mockPublisher).publishEventResponse(context, JsonRxMessageType.ResponseComplete, requestId);
-	}
-
-	@Test
-	public void testOnSynchronizeClockWithNullMessage() {
-		synchronizeClockMessage = null;
-
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			listener.onSynchronizeClock(synchronizeClockMessage);
-		}).getMessage();
-		assertEquals("message is required.", message);
 	}
 }

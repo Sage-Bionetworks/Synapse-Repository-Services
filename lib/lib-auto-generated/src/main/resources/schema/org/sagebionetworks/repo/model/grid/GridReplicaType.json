@@ -1,0 +1,18 @@
+{
+	"description": "The type of a grid replica.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "USER",
+			"description": "A replica created by a user via a WebSocket connection."
+		},
+		{
+			"name": "AGENT",
+			"description": "A replica created by an AI agent."
+		},
+		{
+			"name": "SERVICE",
+			"description": "A replica created by the system for internal operations such as initialization, validation, or user support."
+		}
+	]
+}

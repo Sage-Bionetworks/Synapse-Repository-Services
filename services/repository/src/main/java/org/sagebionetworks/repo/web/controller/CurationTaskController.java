@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.service.CurationTaskService;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -150,5 +151,43 @@ public class CurationTaskController {
             @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
             @RequestBody ListCurationTaskRequest request) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
         return service.getCurationTasks(userId, request);
+    }
+
+    /**
+     * Get the current status of a CurationTask. This is useful for fetching a fresh etag after
+     * a conflicting update (409).
+     *
+     * @param userId
+     * @param taskId the ID of the CurationTask
+     * @return the current TaskStatus
+     */
+    @RequiredScope({view})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_STATUS, method = RequestMethod.GET)
+    public @ResponseBody
+    TaskStatus getTaskStatus(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @PathVariable Long taskId) {
+        return service.getTaskStatus(userId, taskId);
+    }
+
+    /**
+     * Update the status of a CurationTask. The caller must have UPDATE access on the task's project
+     * or be an assignee of the task.
+     *
+     * @param userId
+     * @param taskId the ID of the CurationTask
+     * @param taskStatus the updated TaskStatus including the new state and etag
+     * @return the updated TaskStatus
+     */
+    @RequiredScope({view, modify})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_STATUS, method = RequestMethod.PUT)
+    public @ResponseBody
+    TaskStatus updateTaskStatus(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @PathVariable Long taskId,
+            @RequestBody TaskStatus taskStatus) {
+        return service.updateTaskStatus(userId, taskId, taskStatus);
     }
 }

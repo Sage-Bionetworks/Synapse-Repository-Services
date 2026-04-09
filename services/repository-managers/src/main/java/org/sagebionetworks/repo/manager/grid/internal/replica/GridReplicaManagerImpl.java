@@ -10,12 +10,15 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.grid.db.GridIndexManager;
@@ -31,7 +34,6 @@ import org.sagebionetworks.repo.model.grid.node.IndexType;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
-import org.sagebionetworks.simpleHttpClient.SimpleHttpResponse;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -89,13 +91,17 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	}
 
 	@Override
-	public void onApplyPatch(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, Patch patch) {
+	public void onApplyPatches(ProgressCallback callback, GridConnectionInfo connection, Integer messageId, List<Patch> patches) {
 		gridIndexManager.refreshMessageChain(connection.getSessionId(), connection.getReplicaId(), messageId);
-		Map<IndexType, Set<LogicalTimestamp>> changes = gridIndexManager.applyPatch(connection.getSessionId(),
-				connection.getReplicaId(), patch);
+		Map<IndexType, Set<LogicalTimestamp>> cumulativeChanges = new LinkedHashMap<>();
+		patches.forEach(patch -> {
+			Map<IndexType, Set<LogicalTimestamp>> patchChanges = gridIndexManager.applyPatch(connection.getSessionId(), connection.getReplicaId(), patch);
+			patchChanges.forEach((indexType, timestamps) -> cumulativeChanges.computeIfAbsent(indexType, k -> new LinkedHashSet<>()).addAll(timestamps));
+		});
+
+		sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, cumulativeChanges));
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
-		sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, patch.getPatchId(), changes));
 	}
 
 	@Override

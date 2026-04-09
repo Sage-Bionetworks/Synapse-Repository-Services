@@ -41,8 +41,13 @@ import org.sagebionetworks.repo.model.migration.BackupTypeRangeRequest;
 import org.sagebionetworks.repo.model.migration.BackupTypeResponse;
 import org.sagebionetworks.repo.model.migration.BatchChecksumRequest;
 import org.sagebionetworks.repo.model.migration.BatchChecksumResponse;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
+import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeRequest;
 import org.sagebionetworks.repo.model.migration.CalculateOptimalRangeResponse;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsRequest;
+import org.sagebionetworks.repo.model.migration.CreateForumsForAccessRequirementsResponse;
 import org.sagebionetworks.repo.model.migration.IdRange;
 import org.sagebionetworks.repo.model.migration.MigrationRangeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -55,6 +60,7 @@ import org.sagebionetworks.repo.model.migration.RestoreTypeResponse;
 import org.sagebionetworks.repo.model.migration.TypeData;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.transactions.MigrationWriteTransaction;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.FileProvider;
@@ -91,19 +97,20 @@ public class MigrationManagerImpl implements MigrationManager {
 	private SynapseS3Client s3Client;
 	private FileProvider fileProvider;
 	private JdbcTemplate jdbcTemplate;
+	private ForumDAO forumDao;
 
 	/**
 	 * The list of migration listeners
 	 */
 	List<? extends MigrationTypeListener> migrationListeners;
-	
+
 	/**
 	 * Migration types for principals.
 	 */
 	static Set<MigrationType> PRINCIPAL_TYPES;
-	
+
 	@Autowired
-	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, @Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners) {
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, @Qualifier("migrationJdbcTemplate") JdbcTemplate jdbcTemplate, StackStatusDao stackStatusDao, BackupFileStream backupFileStream, SynapseS3Client s3Client, FileProvider fileProvider, List<? extends MigrationTypeListener> migrationListeners, ForumDAO forumDao) {
 		this.migratableTableDao = migratableTableDao;
 		this.jdbcTemplate = jdbcTemplate;
 		this.stackStatusDao = stackStatusDao;
@@ -111,6 +118,7 @@ public class MigrationManagerImpl implements MigrationManager {
 		this.s3Client = s3Client;
 		this.fileProvider = fileProvider;
 		this.migrationListeners = migrationListeners;
+		this.forumDao = forumDao;
 	}
 	
 	/**
@@ -732,6 +740,28 @@ public class MigrationManagerImpl implements MigrationManager {
 		response.setCheksums(batches);
 		response.setMigrationType(request.getMigrationType());
 		return response;
+	}
+
+	@WriteTransaction
+	@Override
+	public CreateForumsForAccessRequirementsResponse createForumsForAccessRequirements(UserInfo user,
+			CreateForumsForAccessRequirementsRequest request) {
+		ValidateArgument.required(user, "User");
+		validateUser(user);
+		String managedType = ManagedACTAccessRequirement.class.getName();
+		// Find all ManagedACTAccessRequirements that do not have a forum
+		String sql = "SELECT AR.ID FROM ACCESS_REQUIREMENT AR"
+				+ " LEFT JOIN FORUM F ON F.OBJECT_ID = AR.ID AND F.OBJECT_TYPE = ?"
+				+ " WHERE AR.CONCRETE_TYPE = ?"
+				+ " AND F.ID IS NULL";
+		List<Long> arIdsWithoutForum = jdbcTemplate.queryForList(sql, Long.class,
+				ForumObjectType.ACCESS_REQUIREMENT.name(), managedType);
+		int count = 0;
+		for (Long arId : arIdsWithoutForum) {
+			forumDao.createForum(arId.toString(), ForumObjectType.ACCESS_REQUIREMENT);
+			count++;
+		}
+		return new CreateForumsForAccessRequirementsResponse().setForumsCreated((long) count);
 	}
 
 }

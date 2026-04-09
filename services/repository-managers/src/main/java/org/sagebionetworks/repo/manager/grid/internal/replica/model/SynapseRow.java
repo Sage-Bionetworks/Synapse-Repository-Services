@@ -6,6 +6,8 @@ import java.util.Objects;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 
 public class SynapseRow {
@@ -61,12 +63,12 @@ public class SynapseRow {
 	}
 
 	public SynapseRow setFromJSON(String json) {
-		if(json == null) {
+		if (json == null) {
 			return this;
 		}
 		return setFromJSONArray(new JSONArray(json));
 	}
-	
+
 	public SynapseRow setFromJSONArray(JSONArray jsonArray) {
 		if (jsonArray == null) {
 			return this;
@@ -85,6 +87,20 @@ public class SynapseRow {
 		return new JSONArray().put(this.rowId != null ? this.rowId : JSONObject.NULL)
 				.put(this.versionNumber != null ? this.versionNumber : JSONObject.NULL)
 				.put(this.etag != null ? this.etag : JSONObject.NULL);
+	}
+
+	public ConValue toConValue() {
+		return new ConValue(ConType.JSON_ARRAY, toJSONArray());
+	}
+	
+	public SynapseRow setFromConValue(ConValue value) {
+		if(value == null) {
+			return this;
+		}
+		if(!ConType.JSON_ARRAY.equals(value.getType())) {
+			throw new IllegalArgumentException("Expected a ContType.JSON_ARRAY");
+		}
+		return setFromJSONArray((JSONArray) value.getValue());
 	}
 
 	@Override

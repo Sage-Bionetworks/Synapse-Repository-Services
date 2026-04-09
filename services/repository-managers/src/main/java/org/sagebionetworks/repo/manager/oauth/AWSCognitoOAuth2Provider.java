@@ -7,7 +7,6 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.scribe.exceptions.OAuthException;
 import org.scribe.model.OAuthConfig;
 import org.scribe.model.Verifier;
-
 /**
  * OAuthProvider for AWS Cognito-based OpenID Connect server
  * 
@@ -24,10 +23,14 @@ public class AWSCognitoOAuth2Provider implements OAuthProviderBinding {
 
 	private String apiKey;
 	private String apiSecret;
-	private String authUrl;
-	String tokenUrl;
-	String userInfoUrl;
+	private OIDCConfig oidcConfig;
 	
+	private OAuth2Api getOAuth2Api() {
+		String authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
+		String tokenUrl = oidcConfig.getTokenEndpoint();;
+		String userInfoUrl =  oidcConfig.getUserInfoEndpoint();;
+		return new OAuth2Api(authUrl, tokenUrl, userInfoUrl);
+	}
 	/**
 	 * Thread safe OAuth 2.0 provider.
 	 * 
@@ -37,15 +40,12 @@ public class AWSCognitoOAuth2Provider implements OAuthProviderBinding {
 	public AWSCognitoOAuth2Provider(String apiKey, String apiSecret, OIDCConfig oidcConfig) {
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;
-		this.authUrl = oidcConfig.getAuthorizationEndpoint() + AUTH_URL_DEFAULT_PARAMS;
-		this.tokenUrl = oidcConfig.getTokenEndpoint();
-		this.userInfoUrl = oidcConfig.getUserInfoEndpoint();
+		this.oidcConfig=oidcConfig;
 	}
 	
 	@Override
 	public String getAuthorizationUrl(String redirectUrl) {
-		return new OAuth2Api(authUrl, tokenUrl, userInfoUrl).
-				getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
+		return getOAuth2Api().getAuthorizationUrl(new OAuthConfig(apiKey, null, redirectUrl, null, OIDC_SCOPES, null));
 	}
 
 	@Override
@@ -54,7 +54,7 @@ public class AWSCognitoOAuth2Provider implements OAuthProviderBinding {
 		ValidateArgument.required(redirectUrl, "The redirectUrl");
 		
 		try {
-			OAuth2Service service = (new OAuth2Api(authUrl, tokenUrl, userInfoUrl)).
+			OAuth2Service service = getOAuth2Api().
 					createService(new OAuthConfig(apiKey, apiSecret, redirectUrl, null, null, null));
 			
 			AccessTokenResponse accessTokenResponse = service.getAccessToken(null, new Verifier(authorizationCode));

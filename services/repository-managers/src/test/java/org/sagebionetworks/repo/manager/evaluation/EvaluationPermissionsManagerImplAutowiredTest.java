@@ -77,7 +77,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
-		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
+		userInfo.setCertified(true);
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		aclsToDelete = new ArrayList<String>();
@@ -510,7 +510,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
 		// userInfo includes this team
-		String teamId = BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+		String teamId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString();
 		
 		// false if user is on team but lacks submit privilege
 		assertFalse(evaluationPermissionsManager.

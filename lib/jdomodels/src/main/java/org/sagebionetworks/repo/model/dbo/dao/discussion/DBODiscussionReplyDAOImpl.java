@@ -14,7 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSI
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_LAST_ACTIVITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DISCUSSION_THREAD_STATS_NUMBER_OF_REPLIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_PROJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FORUM_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_REPLY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DISCUSSION_THREAD;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FORUM;
@@ -58,7 +58,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			dto.setId(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_ID)));
 			dto.setThreadId(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_THREAD_ID)));
 			dto.setForumId(Long.toString(rs.getLong(COL_DISCUSSION_THREAD_FORUM_ID)));
-			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID)));
+			dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_OBJECT_ID)));
 			dto.setMessageKey(rs.getString(COL_DISCUSSION_REPLY_MESSAGE_KEY));
 			dto.setCreatedBy(Long.toString(rs.getLong(COL_DISCUSSION_REPLY_CREATED_BY)));
 			dto.setCreatedOn(new Date(rs.getTimestamp(COL_DISCUSSION_REPLY_CREATED_ON).getTime()));
@@ -124,7 +124,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_ID+" AS "+COL_DISCUSSION_REPLY_ID+" , "
 			+COL_DISCUSSION_REPLY_THREAD_ID+", "
 			+COL_DISCUSSION_THREAD_FORUM_ID+", "
-			+COL_FORUM_PROJECT_ID+", "
+			+COL_FORUM_OBJECT_ID+", "
 			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_MESSAGE_KEY+" AS "+COL_DISCUSSION_REPLY_MESSAGE_KEY+" , "
 			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_CREATED_BY+" AS "+COL_DISCUSSION_REPLY_CREATED_BY+", "
 			+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_CREATED_ON+" AS "+COL_DISCUSSION_REPLY_CREATED_ON+", "
@@ -163,7 +163,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 	public static final DiscussionFilter DEFAULT_FILTER = DiscussionFilter.NO_FILTER;
 
 	public static final String SQL_SELECT_PROJECT_ID = "SELECT "
-			+TABLE_FORUM+"."+COL_FORUM_PROJECT_ID
+			+TABLE_FORUM+"."+COL_FORUM_OBJECT_ID
 			+" FROM "+TABLE_DISCUSSION_THREAD+", "+TABLE_FORUM+", "+TABLE_DISCUSSION_REPLY
 			+" WHERE "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_FORUM_ID+" = "+TABLE_FORUM+"."+COL_FORUM_ID
 			+ " AND "+TABLE_DISCUSSION_THREAD+"."+COL_DISCUSSION_THREAD_ID+" = "+TABLE_DISCUSSION_REPLY+"."+COL_DISCUSSION_REPLY_THREAD_ID
@@ -310,7 +310,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 		List<String> queryResult = jdbcTemplate.query(SQL_SELECT_PROJECT_ID, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return KeyFactory.keyToString(rs.getLong(COL_FORUM_PROJECT_ID));
+				return KeyFactory.keyToString(rs.getLong(COL_FORUM_OBJECT_ID));
 			}
 		}, replyId);
 		if (queryResult.size() != 1) {

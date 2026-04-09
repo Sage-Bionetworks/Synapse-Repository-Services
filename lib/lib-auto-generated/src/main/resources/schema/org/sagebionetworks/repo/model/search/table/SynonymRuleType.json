@@ -1,0 +1,14 @@
+{
+	"description": "The type of a synonym rule.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "EQUIVALENT",
+			"description": "Bidirectional. All terms are interchangeable."
+		},
+		{
+			"name": "EXPLICIT",
+			"description": "One-way expansion. First term maps to the rest."
+		}
+	]
+}

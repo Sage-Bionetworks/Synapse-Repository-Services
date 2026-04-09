@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.change;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
+import java.util.Optional;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
@@ -38,6 +38,7 @@ public class InsertRowChangeTest {
 		Integer[] rowVectorIndex = new Integer[] { 0, 1, 2 };
 		
 		InsertRowChange change = new InsertRowChange(arrId, nodeId, rowData, rowVectorIndex);
+		assertEquals(Optional.empty(), change.getSynapseRow());
 		
 		JSONObject json = change.toJson();
 		
@@ -54,11 +55,12 @@ public class InsertRowChangeTest {
 		Integer[] rowVectorIndex = new Integer[] { 0, 1, 2 };
 		SynapseRow sr = new SynapseRow().setRowId(1L).setVersionNumber(0L).setEtag("e1");
 		
-		InsertRowChange change = new InsertRowChange(arrId, nodeId, rowData, rowVectorIndex, sr);
+		InsertRowChange change = new InsertRowChange(arrId, nodeId, rowData, rowVectorIndex, sr.toConValue());
+		assertEquals(Optional.of(sr.toConValue()), change.getSynapseRow());
 		
 		JSONObject json = change.toJson();
 		
-		assertEquals("{\"a\":[123,1],\"n\":[123,45],\"d\":[[\"a\"],[\"b\"],[\"c\"]],\"v\":[0,1,2],\"s\":[1,0,\"e1\"]}", json.toString());
+		assertEquals("{\"a\":[123,1],\"n\":[123,45],\"d\":[[\"a\"],[\"b\"],[\"c\"]],\"v\":[0,1,2],\"s\":[[1,0,\"e1\"]]}", json.toString());
 		
 		assertEquals(change, new InsertRowChange(json));
 	}

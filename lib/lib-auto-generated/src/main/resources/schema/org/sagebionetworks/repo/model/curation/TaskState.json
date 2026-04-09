@@ -1,0 +1,23 @@
+{
+  "description": "The state of a curation task in its lifecycle.",
+  "name": "TaskState",
+  "type": "string",
+  "enum": [
+    {
+      "name": "NOT_STARTED",
+      "description": "The task has been created and assigned but work has not yet started."
+    },
+    {
+      "name": "IN_PROGRESS",
+      "description": "The assignee has actively started the task."
+    },
+    {
+      "name": "COMPLETED",
+      "description": "The task has been completed and verified."
+    },
+    {
+      "name": "CANCELED",
+      "description": "The task has been canceled and is no longer needed."
+    }
+  ]
+}
