@@ -137,6 +137,10 @@ Creating a worker `@Bean` trigger in Java config is **not enough**. Workers requ
 
 2. **Register the trigger in the Quartz scheduler** by adding a `<ref bean="...Trigger"/>` entry to the `workerTriggersList` in `services/workers/src/main/resources/main-scheduler-spb.xml`. **If this step is missed, the worker will never run** — the bean exists but Quartz never schedules it. There will be no error at startup; the worker silently does nothing.
 
+### Companion Synapse-Stack-Builder PR (Critical)
+
+Every new SQS queue must be provisioned in the separate **Synapse-Stack-Builder** CloudFormation project (`sns-and-sqs-config.json`) **before** the worker PR is merged. Queue names are resolved at runtime via `stackConfig.getQueueName("BASE_NAME")`; if the queue doesn't exist in AWS, the worker fails at startup when it calls the SQS client. No compile-time check catches this. Same applies when adding a new `AsynchJobType` — its async queue must be added to Stack-Builder too. Link the companion PR in the Synapse PR description.
+
 ### Legacy XML Config (do not add new ones)
 
 Some older workers are still wired in per-worker `*-spb.xml` files under `src/main/resources/`, imported by `main-scheduler-spb.xml`. Migrate these to `@Configuration` classes when modifying them.
@@ -157,6 +161,15 @@ Common transient exceptions to catch and retry:
 - `DeadlockLoserDataAccessException`
 - `AmazonServiceException` (service errors)
 - `TemporarilyUnavailableException`
+- `TableUnavailableException` — reuse the existing `TableQueryManager.query` flow; do not reinvent table-readiness probes.
+
+### Catch `Throwable`, not `Exception`, when the worker must persist a failure state
+
+Workers whose outermost catch writes a `FAILED` status (e.g., `SearchIndexLifecycleWorker` writing to `SEARCH_INDEX_STATUS`) MUST catch `Throwable`, not `Exception`. Catching only `Exception` lets `OutOfMemoryError` and other `Error`s fall through to the SQS retry loop, where they will never resolve. Catching `Throwable` ensures the failure is recorded so operators can see the problem.
+
+### State-machine workers: translate `IllegalStateException` to `RecoverableMessageException`
+
+When a worker's job targets a resource still in a transitional state (e.g., a SearchIndex in `CREATING`, a table still building), the manager should throw `IllegalStateException` with a descriptive message. The worker catches it at the boundary and re-throws as `RecoverableMessageException` so SQS retries until the resource is ready. Do NOT poll inside the worker — let SQS backoff handle the wait.
 
 ## Worker Categories
 
@@ -166,7 +179,8 @@ Common transient exceptions to catch and retry:
 | `table/` | Message-driven | Table index management, materialized view updates |
 | `replication/` | Batch message | Entity replication to index database |
 | `file/` | Message-driven | File preview generation |
-| `search/` | Message-driven | Search index (OpenSearch) updates |
+| `search/` (lifecycle) | Message-driven | `SearchIndexLifecycleWorker` — builds/rebuilds/deletes AOSS indexes. Subscribes to the `ENTITY` SNS topic via the `SEARCH_INDEX_LIFECYCLE` SQS queue; filters by node type internally (`searchindex`). |
+| `search/` (query) | Async job | `SearchQueryWorker` — runs async search queries against AOSS. CREATING index → `RecoverableMessageException` so SQS retries until `ACTIVE`. |
 | `schema/` | Message-driven | JSON Schema validation |
 | `migration/` | Batch message | Data migration workers |
 | `log/` | Scheduled | S3 log collation |
@@ -196,3 +210,5 @@ This worker drives index rebuilding after migration:
 - Mock managers/DAOs, verify expected calls
 - Test both success paths and error handling (RecoverableMessageException vs permanent failure)
 - Test ObjectType/ChangeType filtering logic
+- **Parameterized exception-type tests** for transient-vs-permanent classification: use `@ParameterizedTest` + `@ValueSource(classes = {LockReleaseFailedException.class, CannotAcquireLockException.class, DeadlockLoserDataAccessException.class})` to assert every retryable type maps to `RecoverableMessageException`. Avoids duplicated near-identical test methods and makes adding a new retryable type a one-line change.
+- **Parameterized state-machine tests** for workers whose behavior varies by resource state (e.g., SearchIndex CREATING/ACTIVE/FAILED). One `@ParameterizedTest` covering every enum value is preferred over one method per state.

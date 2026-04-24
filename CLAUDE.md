@@ -90,6 +90,15 @@ platform (root)
 - **Include real data in tests**: Don't test CRUD with empty payloads. If a feature serializes data (e.g., JSON columns), include actual values in the test fixture and verify the round-trip — because a bug in serialization won't surface if the payload is empty.
 - **List/filter tests need multiple groups**: When testing list/filter operations, create entries across at least 2 categories (e.g., 2 items in org1, 2 in org2). Verify each filtered list returns the correct subset AND verify ordering is deterministic — because a single-group test can pass even if filtering is broken.
 - **Update tests must verify data changed**: Assert that updated values are present in the result, not just that metadata (etag) rotated — because an etag rotation doesn't prove the data write succeeded.
+- **No `any()` matchers in stubs or in `verify(...)`**: use `eq()`, specific values, or `argThat(p -> ...)` predicates. Reserve `any()` for `verify(mock, never()).method(any(...))` where the argument is irrelevant. Why: `any()` in a stub hides what the method-under-test is required to pass — if the call site is wrong, the stub misses, returns null, and an assertion fails explicitly. `any()` in `verify` hides what was actually passed. The only exception is `never()`/`times(0)`, where the test asserts the method wasn't called at all.
+- **No `lenient()` stubs**: strict-stubbing is required. An unused stub means the test is wrong, not the stubbing strictness. Rewrite the test.
+- **Parameterized state-table tests for enum/flag combinations**: use `@ParameterizedTest` + `@ValueSource` / `@MethodSource` to cover every enum value (states, exception types, column type mappings) rather than writing near-duplicate test methods.
+- **Max-length boundary tests on composite unique keys**: for `UNIQUE(a, b)` on string columns, write two rows at max length differing only in the last character, then fetch each by ID and assert ALL fields round-tripped — MySQL index-key-length limits can silently truncate, collapsing two logically-distinct rows into one.
+- **`@InjectMocks` + `@Spy`**: use together when a test must verify the class under test calls its own internal method. Lets you `verify(spiedSelf).someInternalMethod(...)` without extracting an artificial collaborator.
+- **Mock at the immediate collaborator**: do not mock two seams down. The manager test mocks the DAO, not the JdbcTemplate. The worker test mocks the manager, not the DAO.
+- **External-service-backed managers are DAOs for testing purposes**: a manager that proxies AOSS, S3, or SNS (e.g., `OpenSearchManagerImpl`) needs an autowired test against the live service. Mock-only tests do not prove the client API contract holds.
+- **`ArgumentCaptor` for forwarded arguments**: when the manager translates user input (column names, filters, schemas) before passing to a collaborator, capture the translated shape and assert on it. This is where the test catches escaping/translation bugs.
+- **Assert custom exception messages**: when code throws `new X("specific remediation hint")`, the test that triggers it must assert `e.getMessage()` matches — otherwise the message is untested and can drift silently.
 
 ## Deployment & Migration
 
@@ -160,6 +169,25 @@ When a DB column is renamed (e.g., `PROJECT_ID` → `OBJECT_ID`), the backup XML
 ## Curation Grid (Curator)
 
 See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md` for the CRDT-based grid architecture, WebSocket protocol, and AI agent integration.
+
+## Search & Indexing
+
+See `services/repository-managers/CLAUDE.md` → "Search & Indexing" for the SearchIndex lifecycle and query paths. Quick orientation:
+
+- **SearchIndex is a Synapse Entity** (`VersionableEntity` + `HasDefiningSql`) managed via `/repo/v1/entity/*`. Query and config live under `/search/*`.
+- **Build-once semantics**: each AOSS index is a point-in-time snapshot. To rebuild, delete and recreate the entity.
+- **Two databases**: configuration tables (`TEXT_ANALYZER`, `SYNONYM_SET`, `COLUMN_ANALYZER_OVERRIDE`, `SEARCH_CONFIGURATION`) live in the transactional DB (migrated between stacks). `SEARCH_INDEX_STATUS` lives in the indexing DB (not migrated; rebuilt organically post-migration from replayed ENTITY change messages).
+- **Lifecycle worker** subscribes to ENTITY change messages via the `SEARCH_INDEX_LIFECYCLE` SQS queue and filters by node type internally — there is no dedicated SearchIndex `ObjectType` or SNS topic.
+- **Anonymous-user indexing**: the lifecycle worker streams data as the realm's anonymous user so `addRowLevelFilter()` enforces benefactor ACLs, guaranteeing only publicly visible rows enter the AOSS index.
+- **Authoritative design doc**: Confluence page "Architecture Design for OpenSearch Integration" (PLFM space).
+
+## PR & Process Patterns
+
+- **Every new SQS queue or async job type requires a companion Synapse-Stack-Builder PR** — queue provisioning is in a separate CloudFormation project. Worker will fail at startup if the queue is missing. Link the companion PR in the description.
+- **Stub-first PRs unblock UI work**: ship schemas + controllers returning mock data directly (no service/manager/DAO chain) so the frontend can wire real endpoints while the backend is being built. Replace in a follow-up PR without breaking the wire shape.
+- **Feature slicing**: large features ship as a series of small stacked PRs (e.g., SearchIndex was PLFM-9509 through PLFM-9518, ~9 PRs), each independently reviewable and mergeable. Favor this over a single monolithic PR.
+- **CLAUDE.md edits happen in the feature branch, not after**: when a reviewer names a durable convention, add it to the relevant CLAUDE.md in the same PR so the agent picks it up on the next iteration.
+- **Working-tree `pr-description-*.md` files**: Bryan sometimes drafts the PR body as a working-tree markdown file before opening the PR. If present, treat it as the authoritative description of what the PR is meant to deliver. These files are not checked in.
 
 ## Key Conventions
 

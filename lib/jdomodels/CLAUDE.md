@@ -60,6 +60,7 @@ new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true)  // isPrimaryKey
 
 - **Primary**: Has etag column (`withIsEtag(true)`), migrated independently, registered in `dbo-beans.spb.xml`
 - **Secondary**: Owned by a primary table, discovered via `getSecondaryTypes()`, has FK to owner's backup ID, NOT registered in `dbo-beans.spb.xml`
+- **One `MigrationType` per primary DBO**: secondaries are discovered via `getSecondaryTypes()`. Do not also register a secondary in `dbo-beans.spb.xml` — only the first registration takes effect and the subsequent one is silently ignored.
 
 ## DAO Pattern
 
@@ -109,6 +110,8 @@ Naming: `TABLE_` prefix for table names, `COL_` for columns, `DDL_` for DDL path
 
 This module primarily targets the **main (transactional) database**. The index database is managed by `lib-table-cluster`. The two databases use separate `DataSource` / `JdbcTemplate` beans.
 
+- **Indexing-DB tables are not migrated** — they re-build organically post-migration from replayed ENTITY change messages. Example: `SEARCH_INDEX_STATUS` starts empty after a fresh stack comes up; the `SearchIndexLifecycleWorker` sees missing status rows and triggers builds. When adding a new indexing-DB table, its DDL must tolerate "starts empty" — never seed it from a migration script.
+
 ## JSON Serialization in DAOs
 
 When serializing/deserializing `JSONEntity` objects to/from JSON strings for database storage, **always use `JDOSecondaryPropertyUtils`**:
@@ -121,6 +124,8 @@ MyClass obj = JDOSecondaryPropertyUtils.createObjectFromJSON(MyClass.class, json
 ```
 
 Do NOT create custom `ObjectMapper` or `JSONObjectAdapter` serialization code in DAO classes — the utilities in `JDOSecondaryPropertyUtils` are already tested and handle null/error cases.
+
+For simple arrays of scalars stored as JSON columns (e.g., `SEARCH_CONFIGURATION.SYNONYM_SET_IDS` — a plain JSON array of string IDs), use `JSONArray` directly. Cross-resource reference checks against these columns go through MySQL's `JSON_CONTAINS(col, JSON_QUOTE(?))` — don't load the column into Java and scan it.
 
 ## SQL Patterns
 
@@ -139,6 +144,11 @@ Do NOT create custom `ObjectMapper` or `JSONObjectAdapter` serialization code in
   }
   ```
   When a DAO catches and rewrites exceptions like this, **an autowired integration test must verify the user-facing error message**.
+- **Idempotent upsert via `INSERT ... ON DUPLICATE KEY UPDATE col = VALUES(col)`**: for bootstrappers and status tables where absence-vs-presence is the implicit trigger (e.g., `SEARCH_INDEX_STATUS` absence = needs build). `VALUES(col)` on the UPDATE branch reuses the insert row's bound values so parameters are bound once.
+- **`NamedParameterJdbcTemplate` for `IN (...)` batch lookups**: pass a `List` as a named parameter and let the template expand placeholders. Do NOT hand-roll comma-separated `?, ?, ?` or string-format the IN list — neither supports bind-variable safety.
+- **`Optional.ofNullable`, not `Optional.of`, when wrapping `JdbcTemplate` results**: `queryForObject` is documented to allow null in certain paths; `Optional.of(null)` throws NPE.
+- **Explicit `default` branch when switching on `ColumnType` or other enums**: throw `IllegalArgumentException("Unsupported type: " + type)`. Do not rely on fallthrough — adding a new enum value without updating the switch is a bug you want to surface at runtime with a clear message.
+- **ColumnType → external-system mapping as an enum**: when mapping `ColumnType` to a downstream system's concepts (OpenSearch field type, default analyzer, `ignoreAbove`), use an enum-per-`ColumnType` pattern like `ColumnTypeToOpenSearchMapping` rather than a switch or map. Adding a new `ColumnType` without adding its mapping is a compile error, not a runtime surprise.
 
 ## Method Naming Conventions
 

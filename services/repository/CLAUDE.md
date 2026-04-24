@@ -64,3 +64,9 @@ public class EntityController {
 - IT tests should cover all endpoints with basic happy-path verification. Deep branch coverage is handled by manager unit tests. Follow the pattern in existing IT tests (e.g., `ITGridControllerTest.java`).
 - Migration test: `MigratableTableDAOImplAutowireTest.testAllMigrationTypesRegistered()` — validates all `MigrationType` values have registered DBOs
 - **New controller endpoints**: Every new controller method needs a corresponding method in `SynapseClient`/`SynapseClientImpl` and an IT test in `integration-test/`.
+- **IT tests are expensive — push business-logic checks to the manager layer.** An IT test only proves HTTP wiring works (one happy-path per endpoint). Deep branch coverage, error paths, and edge cases belong in manager unit tests and `*DaoImplAutowiredTest`. If an assertion would pass with mocks, it does not belong in an IT test.
+- **UUID-suffix resource names in IT tests when there is no admin DELETE endpoint.** Fixed names fail with "same name already exists" on the second run against a populated dev DB. See `integration-test/CLAUDE.md` for the full pattern.
+
+## Stubbing endpoints for parallel UI development
+
+When the backend is blocking UI work, ship a stub-first PR: schemas + controllers that return mock data directly, with no service/manager/DAO chain behind them. This unblocks the UI against real endpoints and keeps the API contract stable. Replace the stub in a follow-up PR without changing the wire shape. See root `CLAUDE.md` → PR & Process Patterns.
