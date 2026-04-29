@@ -394,13 +394,13 @@ public class OpenSearchManagerImplAutoWiredTest {
 		casesByType.put(ColumnType.MEDIUMTEXT,    new RoundTripCase("alpha beta gamma",                   "alpha beta gamma"));
 		casesByType.put(ColumnType.LARGETEXT,     new RoundTripCase("alpha beta gamma",                   "alpha beta gamma"));
 		casesByType.put(ColumnType.LINK,          new RoundTripCase("https://example.org/a",              "https://example.org/a"));
-		casesByType.put(ColumnType.INTEGER,       new RoundTripCase("123",                                123L));
+		casesByType.put(ColumnType.INTEGER,       new RoundTripCase("123",                                123));
 		casesByType.put(ColumnType.INTEGER_LIST,  new RoundTripCase("[1,2,3]",                            List.of(1, 2, 3)));
 		casesByType.put(ColumnType.DATE,          new RoundTripCase("1609459200000",                      1609459200000L));
 		casesByType.put(ColumnType.DATE_LIST,     new RoundTripCase("[1609459200000,1609545600000]",      List.of(1609459200000L, 1609545600000L)));
-		casesByType.put(ColumnType.FILEHANDLEID,  new RoundTripCase("9876543",                            9876543L));
-		casesByType.put(ColumnType.SUBMISSIONID,  new RoundTripCase("555",                                555L));
-		casesByType.put(ColumnType.EVALUATIONID,  new RoundTripCase("777",                                777L));
+		casesByType.put(ColumnType.FILEHANDLEID,  new RoundTripCase("9876543",                            9876543));
+		casesByType.put(ColumnType.SUBMISSIONID,  new RoundTripCase("555",                                555));
+		casesByType.put(ColumnType.EVALUATIONID,  new RoundTripCase("777",                                777));
 		casesByType.put(ColumnType.ENTITYID,      new RoundTripCase("syn123456",                          "syn123456"));
 		casesByType.put(ColumnType.USERID,        new RoundTripCase("3412396",                            "3412396"));
 		casesByType.put(ColumnType.ENTITYID_LIST, new RoundTripCase("[\"syn1\",\"syn2\"]",                List.of("syn1", "syn2")));

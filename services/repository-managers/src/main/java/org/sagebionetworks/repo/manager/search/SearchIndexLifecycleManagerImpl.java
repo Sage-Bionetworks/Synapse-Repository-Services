@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
@@ -76,32 +75,24 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	/**
 	 * Convert a raw String row value (as delivered by the table query stream) into the Java
-	 * type expected by the column's OpenSearch mapping. List columns are JSON-array strings
-	 * mapped to scalar OS types; JSON columns are raw JSON strings mapped to {@code object};
-	 * scalar columns must be parsed to {@code Long}/{@code Double}/{@code Boolean}. Returning
-	 * the raw String for these types causes AOSS to reject every document.
+	 * type expected by the column's OpenSearch mapping. Bare-string columns (text / keyword /
+	 * link) pass through as {@code String}; everything else is parsed via Jackson's untyped
+	 * {@code readValue}, which yields the natural Java equivalent of the JSON token —
+	 * {@code Integer}/{@code Long}, {@code Double}, {@code Boolean}, {@code List}, or
+	 * {@code Map} — each of which the OpenSearch client serializes as the right JSON type.
+	 * Returning the raw String for non-string columns causes AOSS to reject the doc.
 	 */
 	static Object convertForDocument(String value, ColumnType type) {
 		if (value == null) {
 			return null;
 		}
-		try {
-			if (ColumnTypeToOpenSearchMapping.isListType(type)) {
-				return SEARCH_DOC_MAPPER.readValue(value, new TypeReference<List<Object>>() {});
-			}
-			if (ColumnTypeToOpenSearchMapping.isJsonType(type)) {
-				return SEARCH_DOC_MAPPER.readValue(value, Object.class);
-			}
-			if (ColumnTypeToOpenSearchMapping.isLongType(type)) {
-				return Long.parseLong(value);
-			}
-			if (ColumnTypeToOpenSearchMapping.isDoubleType(type)) {
-				return Double.parseDouble(value);
-			}
-			if (ColumnTypeToOpenSearchMapping.isBooleanType(type)) {
-				return Boolean.parseBoolean(value);
-			}
+		if (ColumnTypeToOpenSearchMapping.isTextType(type)
+				|| ColumnTypeToOpenSearchMapping.isKeywordType(type)
+				|| ColumnTypeToOpenSearchMapping.isLinkType(type)) {
 			return value;
+		}
+		try {
+			return SEARCH_DOC_MAPPER.readValue(value, Object.class);
 		} catch (IOException e) {
 			throw new IllegalArgumentException(
 					"Failed to convert column value for type " + type + ": " + value, e);
