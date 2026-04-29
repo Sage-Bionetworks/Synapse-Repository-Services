@@ -86,8 +86,18 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String SUB_FIELD_SEARCHABLE = "searchable";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	// AOSS reports a concurrent index-delete attempt with a reason text containing
+	// "concurrent deletes". Package-visible so callers can recognize and translate
+	// it into a recoverable SQS retry.
+	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
 	private static final String ANALYZER_PREFIX = "synapse_analyzer_";
 	private static final String SYNONYM_FILTER_NAME = "synapse_synonyms";
+
+	/** True when the OpenSearch error is AOSS's "concurrent deletes" rejection. */
+	static boolean isConcurrentDeleteError(OpenSearchException e) {
+		String reason = e.error() == null ? null : e.error().reason();
+		return reason != null && reason.contains(CONCURRENT_DELETES_MARKER);
+	}
 
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
@@ -137,7 +147,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if ("resource_already_exists_exception".equals(e.error().type())) {
 				return Optional.empty();
 			}
-			throw new RuntimeException("Failed to create search index: " + indexName, e);
+			throw new RuntimeException("Failed to create search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to create search index: " + indexName, e);
 		}
@@ -221,9 +232,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		try {
 			openSearchClient.indices().delete(req -> req.index(indexName));
 		} catch (OpenSearchException e) {
-			if (!INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-				throw new RuntimeException("Failed to delete search index: " + indexName, e);
+			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+				return;
 			}
+			// Concurrent deletes: rethrow the OpenSearchException (a RuntimeException)
+			// unwrapped so callers can recognize this case via isConcurrentDeleteError
+			// and translate to a recoverable SQS retry.
+			if (isConcurrentDeleteError(e)) {
+				throw e;
+			}
+			throw new RuntimeException("Failed to delete search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to delete search index: " + indexName, e);
 		}
@@ -253,7 +272,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			}
 
 			return (long) response.items().size();
-		} catch (OpenSearchException | IOException e) {
+		} catch (OpenSearchException e) {
+			throw new RuntimeException("Failed to bulk index to search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
+		} catch (IOException e) {
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}
@@ -436,7 +458,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
-			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
+			throw new RuntimeException("Failed to execute search on search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
 		}
@@ -1045,7 +1068,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			});
 		} catch (OpenSearchException e) {
 			throw new IllegalArgumentException(
-				"Invalid analyzer configuration: " + e.error().reason()
+				"Invalid analyzer configuration: " + describeError(e.error())
 				+ ". Check your tokenizer, token filters, and character filters.", e);
 		} catch (IOException e) {
 			throw new IllegalStateException(

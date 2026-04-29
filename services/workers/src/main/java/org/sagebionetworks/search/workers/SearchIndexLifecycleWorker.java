@@ -71,20 +71,20 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 					break;
 			}
 		} catch (RecoverableMessageException e) {
-			LOG.warn("Recoverable exception for entity {}: {}", entityId, e.getMessage());
+			LOG.warn("Recoverable exception for entity {}", entityId, e);
 			throw e;
 		} catch (TableUnavailableException | LockUnavilableException e) {
-			LOG.warn("Source table unavailable for entity {}, retrying: {}", entityId, e.getMessage());
+			LOG.warn("Source table unavailable for entity {}, retrying", entityId, e);
 			throw new RecoverableMessageException(e);
 		} catch (TableFailedException e) {
 			// Permanent failure — the manager already recorded FAILED in the DAO.
-			LOG.error("Source table failed for entity {}: {}", entityId, e.getMessage());
+			LOG.error("Source table failed for entity {}", entityId, e);
 		} catch (LockReleaseFailedException | CannotAcquireLockException | DeadlockLoserDataAccessException e) {
-			LOG.warn("Transient lock exception for entity {}, retrying: {}", entityId, e.getMessage());
+			LOG.warn("Transient lock exception for entity {}, retrying", entityId, e);
 			throw new RecoverableMessageException(e);
 		} catch (NotFoundException e) {
 			searchIndexLifecycleManager.handleDelete(entityId);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			LOG.error("Failed to process lifecycle message for entity: " + entityId, e);
 		}
 	}

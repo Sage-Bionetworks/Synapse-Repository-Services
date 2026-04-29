@@ -38,6 +38,11 @@ public interface OpenSearchManager {
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.
+	 * If AOSS rejects the delete because another delete is already in progress
+	 * for the same index, the underlying {@link org.opensearch.client.opensearch._types.OpenSearchException}
+	 * is re-thrown unwrapped so the caller can recognize the concurrent-delete case
+	 * and translate it into a recoverable SQS retry — by the time the retry runs,
+	 * the winning delete has finished and this call becomes a no-op.
 	 *
 	 * @param indexName The OpenSearch index name
 	 */
