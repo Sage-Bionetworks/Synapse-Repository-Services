@@ -147,20 +147,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
 				.build();
-		List<ColumnModel> schemaOfSelect = sqlQuery.getSchemaOfSelect();
-		// PLFM-9612 diagnostic: surface (id, name, columnType) for each parsed select column so
-		// we can correlate "analyzer 'null' for column N" failures with the upstream parse.
-		for (ColumnModel c : schemaOfSelect) {
-			LOG.info("registerSchema: searchIndexId={} parsed column id={} name={} type={}",
-					searchIndexId, c.getId(), c.getName(), c.getColumnType());
-		}
-		List<String> schemaIds = schemaOfSelect.stream()
-				.map(c -> {
-					ColumnModel persisted = columnModelManager.createColumnModel(c);
-					LOG.info("registerSchema: searchIndexId={} persisted column id={} name={} type={}",
-							searchIndexId, persisted.getId(), persisted.getName(), persisted.getColumnType());
-					return persisted.getId();
-				})
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columnModelManager.createColumnModel(c).getId())
 				.collect(Collectors.toList());
 		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
 		return schemaIds;
@@ -339,15 +327,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			qualifiedNames.add(ColumnTypeToOpenSearchMapping.getDefaultAnalyzerQualifiedName(column.getColumnType()));
 		}
 
-		// PLFM-9612 diagnostic: log requested vs loaded so an analyzer 'null' lookup in
-		// buildMappings can be traced back to either a missing DB row or an unexpected
-		// column type that didn't contribute its qualified name.
-		LOG.info("collectAndLoadAnalyzers: requested qualifiedNames={}", qualifiedNames);
-		Map<String, TextAnalyzer> loaded = new HashMap<>(
-				textAnalyzerDao.getByQualifiedNames(new ArrayList<>(qualifiedNames)));
-		LOG.info("collectAndLoadAnalyzers: loaded qualifiedNames={} (requested={}, loaded={})",
-				loaded.keySet(), qualifiedNames.size(), loaded.size());
-		return loaded;
+		return new HashMap<>(textAnalyzerDao.getByQualifiedNames(new ArrayList<>(qualifiedNames)));
 	}
 
 	private List<SynonymSet> loadSynonymSets(SearchConfiguration config) {
