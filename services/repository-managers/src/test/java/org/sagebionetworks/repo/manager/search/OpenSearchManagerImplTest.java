@@ -854,6 +854,35 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testDescribeErrorWithNullReturnsPlaceholder() {
+		// call under test
+		assertEquals("?", OpenSearchManagerImpl.describeError(null));
+	}
+
+	@Test
+	public void testDescribeErrorIncludesRootCauseAndMetadata() {
+		// AOSS sometimes leaves the outer reason generic and puts the real diagnostic in
+		// root_cause[] and metadata. Surface them so the failure is debuggable.
+		org.opensearch.client.opensearch._types.ErrorCause rootCause =
+				org.opensearch.client.opensearch._types.ErrorCause.of(b -> b
+						.type("illegal_argument_exception")
+						.reason("analyzer [synapse_analyzer_1] not found"));
+		org.opensearch.client.opensearch._types.ErrorCause outer =
+				org.opensearch.client.opensearch._types.ErrorCause.of(b -> b
+						.type("?")
+						.reason("Internal error occurred while processing request")
+						.rootCause(rootCause));
+
+		// call under test
+		String desc = OpenSearchManagerImpl.describeError(outer);
+
+		assertEquals(
+				"?: Internal error occurred while processing request"
+						+ " [rootCause=illegal_argument_exception: analyzer [synapse_analyzer_1] not found]",
+				desc);
+	}
+
+	@Test
 	public void testCreateIndexWithOpenSearchExceptionIncludesCauseChain() throws IOException {
 		String indexName = "search-index-syn1";
 		ErrorCause inner = ErrorCause.of(b -> b

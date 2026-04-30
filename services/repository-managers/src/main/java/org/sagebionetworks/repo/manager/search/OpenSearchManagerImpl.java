@@ -295,22 +295,47 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	/**
 	 * AOSS often returns a generic {@code reason} ("Internal error occurred while processing
-	 * request") on the outer error, with the actual cause buried in the nested {@code caused_by}
-	 * chain. Walk the chain so the surfaced message is diagnosable.
+	 * request") on the outer error, with the actual cause buried in {@code caused_by},
+	 * {@code root_cause[]}, {@code metadata}, or {@code stack_trace}. Surface all of them so
+	 * the failure is diagnosable.
 	 */
 	static String describeError(ErrorCause error) {
+		if (error == null) {
+			return "?";
+		}
 		StringBuilder sb = new StringBuilder();
-		ErrorCause current = error;
+		appendErrorCauseDetail(sb, error);
+		ErrorCause current = error.causedBy();
 		while (current != null) {
-			if (sb.length() > 0) {
-				sb.append(" caused by ");
-			}
-			sb.append(current.type() == null ? "?" : current.type())
-					.append(": ")
-					.append(current.reason() == null ? "?" : current.reason());
+			sb.append(" caused by ");
+			appendErrorCauseDetail(sb, current);
 			current = current.causedBy();
 		}
 		return sb.toString();
+	}
+
+	private static void appendErrorCauseDetail(StringBuilder sb, ErrorCause c) {
+		sb.append(c.type() == null ? "?" : c.type())
+				.append(": ")
+				.append(c.reason() == null ? "?" : c.reason());
+		if (!c.rootCause().isEmpty()) {
+			sb.append(" [rootCause=");
+			boolean first = true;
+			for (ErrorCause rc : c.rootCause()) {
+				if (!first) sb.append(", ");
+				sb.append(rc.type() == null ? "?" : rc.type())
+						.append(": ")
+						.append(rc.reason() == null ? "?" : rc.reason());
+				first = false;
+			}
+			sb.append("]");
+		}
+		if (!c.metadata().isEmpty()) {
+			sb.append(" [metadata=").append(c.metadata()).append("]");
+		}
+		if (c.stackTrace() != null) {
+			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
+		}
 	}
 
 	@Override
