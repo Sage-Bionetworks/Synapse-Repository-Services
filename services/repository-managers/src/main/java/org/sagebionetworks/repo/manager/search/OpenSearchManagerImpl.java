@@ -74,12 +74,17 @@ import org.sagebionetworks.util.ValidateArgument;
 
 import org.springframework.stereotype.Service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * Implementation of {@link OpenSearchManager} that wraps the OpenSearch Java client
  * for all AOSS operations.
  */
 @Service
 public class OpenSearchManagerImpl implements OpenSearchManager {
+
+	private static final Logger LOG = LogManager.getLogger(OpenSearchManagerImpl.class);
 
 	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
@@ -214,12 +219,20 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 		Map<Long, String> idToQualifiedName = buildIdToQualifiedNameMap(analyzers);
 
+		// PLFM-9612 diagnostic: log the analyzer-resolution context once per build so a
+		// failed lookup can be traced to which column / type / map state caused it.
+		LOG.info("buildMappings: defaultAnalyzer={} overrideKeys={} loadedAnalyzers={} idToQualifiedName={}",
+				defaultAnalyzer, overrideMap.keySet(), analyzers.keySet(), idToQualifiedName);
+
 		for (ColumnModel column : columns) {
 			String columnId = column.getId();
 			ColumnType columnType = column.getColumnType();
 			String effectiveAnalyzerName = resolveEffectiveAnalyzerName(
 					columnId, columnType, defaultAnalyzer, overrideMap, idToQualifiedName);
 			TextAnalyzer effectiveAnalyzer = analyzers.get(effectiveAnalyzerName);
+			LOG.info("buildMappings: column id={} name={} type={} → effectiveAnalyzerName={} effectiveAnalyzer={}",
+					columnId, column.getName(), columnType, effectiveAnalyzerName,
+					effectiveAnalyzer == null ? "null" : effectiveAnalyzer.getName());
 			ValidateArgument.required(effectiveAnalyzer, "analyzer '" + effectiveAnalyzerName + "' for column " + columnId);
 			ColumnAnalyzerOverrideEntry entry = overrideMap.get(columnId);
 
