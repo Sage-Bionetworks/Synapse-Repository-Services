@@ -3,15 +3,15 @@
     "enum": [
         {
             "name": "push",
-            "description": "TODO: Auto-generated description"
+            "description": "A Docker image or layer was pushed to the registry."
         },
         {
             "name": "pull",
-            "description": "TODO: Auto-generated description"
+            "description": "A Docker image or layer was pulled from the registry."
         },
         {
             "name": "mount",
-            "description": "TODO: Auto-generated description"
+            "description": "A Docker image or layer was mounted in the registry."
         }
     ]
 }

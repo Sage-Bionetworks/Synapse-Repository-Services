@@ -5,15 +5,15 @@
     "enum": [
         {
             "name": "NO_FILTER",
-            "description": "TODO: Auto-generated description"
+            "description": "Return all threads or replies, regardless of their status."
         },
         {
             "name": "DELETED_ONLY",
-            "description": "TODO: Auto-generated description"
+            "description": "Return only threads or replies that have been deleted."
         },
         {
             "name": "EXCLUDE_DELETED",
-            "description": "TODO: Auto-generated description"
+            "description": "Return only threads or replies that have not been deleted."
         }
     ]
 }

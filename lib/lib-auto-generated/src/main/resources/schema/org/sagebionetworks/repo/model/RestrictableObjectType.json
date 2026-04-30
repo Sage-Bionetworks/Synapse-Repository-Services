@@ -4,15 +4,15 @@
     "enum": [
         {
             "name": "ENTITY",
-            "description": "TODO: Auto-generated description"
+            "description": "A Synapse entity, such as a file, folder, or project."
         },
         {
             "name": "EVALUATION",
-            "description": "TODO: Auto-generated description"
+            "description": "An evaluation object, such as a challenge or competition."
         },
         {
             "name": "TEAM",
-            "description": "TODO: Auto-generated description"
+            "description": "A team object, representing a group of users."
         }
     ]
 }

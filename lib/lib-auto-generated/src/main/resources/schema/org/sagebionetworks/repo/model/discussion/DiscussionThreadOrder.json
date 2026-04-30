@@ -3,19 +3,19 @@
     "enum": [
         {
             "name": "NUMBER_OF_REPLIES",
-            "description": "TODO: Auto-generated description"
+            "description": "Order threads by the number of replies."
         },
         {
             "name": "NUMBER_OF_VIEWS",
-            "description": "TODO: Auto-generated description"
+            "description": "Order threads by the number of views."
         },
         {
             "name": "PINNED_AND_LAST_ACTIVITY",
-            "description": "TODO: Auto-generated description"
+            "description": "Order threads by pinned status and most recent activity."
         },
         {
             "name": "THREAD_TITLE",
-            "description": "TODO: Auto-generated description"
+            "description": "Order threads alphabetically by their title."
         }
     ]
 }

@@ -2,6 +2,6 @@
     "type": "string",
     "enum": [{
         "name": "CREATED_ON",
-        "description": "TODO: Auto-generated description"
+        "description": "Order replies by the date they were created."
     }]
 }

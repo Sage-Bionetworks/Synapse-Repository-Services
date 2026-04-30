@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.search.TextAnalyzerBootstrap;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -76,12 +77,18 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private ColumnModelManager columnModelManager;
     @Autowired
     private AsynchronousJobWorkerHelper asyncHelper;
+    @Autowired
+    private TextAnalyzerBootstrap textAnalyzerBootstrap;
 
     private UserInfo adminUser;
     private final List<Entity> entitiesToDelete = new ArrayList<>();
 
     @BeforeEach
     public void before() {
+        // The shared dev MySQL is mutated across modules — TextAnalyzerDaoImplAutowiredTest
+        // truncates TEXT_ANALYZER, and the workers Spring context's bootstrap may have run
+        // before that truncate. Re-seed defensively so this test owns its precondition.
+        textAnalyzerBootstrap.bootstrapSystemAnalyzers();
         adminUser = userManager.getUserInfo(
                 AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
     }

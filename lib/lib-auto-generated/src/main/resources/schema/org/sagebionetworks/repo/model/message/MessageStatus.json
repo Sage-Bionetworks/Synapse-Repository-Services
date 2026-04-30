@@ -18,15 +18,15 @@
             "enum": [
                 {
                     "name": "READ",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The recipient has read the message."
                 },
                 {
                     "name": "UNREAD",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The recipient has not read the message."
                 },
                 {
                     "name": "ARCHIVED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The recipient has archived the message."
                 }
             ]
         }

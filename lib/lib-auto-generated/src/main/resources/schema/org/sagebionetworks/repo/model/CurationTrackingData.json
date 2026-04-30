@@ -9,15 +9,15 @@
             "enum": [
                 {
                     "name": "loaded",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data has been loaded into the system and is ready for curation."
                 },
                 {
                     "name": "processed",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data has been processed as part of the curation workflow."
                 },
                 {
                     "name": "published",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The curated data has been published and is available for use."
                 }
             ]
         },

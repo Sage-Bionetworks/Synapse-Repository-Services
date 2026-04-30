@@ -9,15 +9,15 @@
 			"enum": [
 				{
 					"name": "PROCESSING",
-					"description": "TODO: Auto-generated description"
+					"description": "The job is currently being processed."
 				},
 				{
 					"name": "FAILED",
-					"description": "TODO: Auto-generated description"
+					"description": "The job has failed due to an error."
 				},
 				{
 					"name": "COMPLETE",
-					"description": "TODO: Auto-generated description"
+					"description": "The job has completed successfully."
 				}
 			]
 		},

@@ -4,11 +4,11 @@
     "enum": [
         {
             "name": "APPROVED",
-            "description": "TODO: Auto-generated description"
+            "description": "The access approval has been granted and is currently active."
         },
         {
             "name": "REVOKED",
-            "description": "TODO: Auto-generated description"
+            "description": "The access approval has been revoked and is no longer valid."
         }
     ]
 }

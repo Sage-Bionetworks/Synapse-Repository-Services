@@ -1677,7 +1677,7 @@ public class EntityController {
 	/**
 	 * Gets the temporary S3 credentials from STS for the given entity. These
 	 * credentials are only good for the bucket and base key specified by the
-	 * returned credentials and expire 12 hours after this API is called.
+	 * returned credentials and expire 1 hour after this API is called.
 	 *
 	 * <p>
 	 * The specified entity must be a folder with an STS-enabled storage location.

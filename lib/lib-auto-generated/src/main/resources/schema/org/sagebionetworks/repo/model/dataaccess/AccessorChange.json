@@ -13,15 +13,15 @@
             "enum": [
                 {
                     "name": "GAIN_ACCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Grant access to the user for the specified resource."
                 },
                 {
                     "name": "RENEW_ACCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Renew the user's access to the specified resource."
                 },
                 {
                     "name": "REVOKE_ACCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "Revoke the user's access to the specified resource."
                 }
             ]
         }

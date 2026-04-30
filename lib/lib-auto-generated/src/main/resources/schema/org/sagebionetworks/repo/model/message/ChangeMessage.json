@@ -15,15 +15,15 @@
             "enum": [
                 {
                     "name": "CREATE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A new object was created."
                 },
                 {
                     "name": "UPDATE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "An existing object was updated."
                 },
                 {
                     "name": "DELETE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "An object was deleted."
                 }
             ]
         },
