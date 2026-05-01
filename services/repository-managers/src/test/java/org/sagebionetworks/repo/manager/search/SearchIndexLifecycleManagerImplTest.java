@@ -267,6 +267,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				() -> manager.handleCreate(progressCallback, ENTITY_ID, USER_ID));
 
 		assertSame(concurrentDelete, thrown.getCause());
+		assertEquals("Concurrent delete in progress while building search index for entity "
+				+ ENTITY_ID, thrown.getMessage());
 		// The state row was set CREATING upfront, but no FAILED was recorded — this
 		// is transient, not a configuration failure.
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);

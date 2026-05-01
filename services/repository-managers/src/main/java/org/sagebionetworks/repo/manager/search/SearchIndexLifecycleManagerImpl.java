@@ -258,7 +258,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			if (e instanceof OpenSearchException
 					&& OpenSearchManagerImpl.isConcurrentDeleteError((OpenSearchException) e)) {
 				throw new RecoverableMessageException(
-						"Concurrent build in progress for entity " + entityId, e);
+						"Concurrent delete in progress while building search index for entity "
+								+ entityId, e);
 			}
 			LOG.error("Failed to build search index for entity: " + entityId, e);
 			String errorMessage = e.getMessage();
