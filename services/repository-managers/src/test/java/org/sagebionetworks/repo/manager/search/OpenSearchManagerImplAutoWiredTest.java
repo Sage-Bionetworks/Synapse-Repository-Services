@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -233,6 +234,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 				() -> openSearchManager.validateAnalyzerSettings(settings));
 		assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
 				"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
+		assertFalse(ex.getMessage().contains("index_not_found_exception"),
+				"AOSS routing error must not reach the caller, got: " + ex.getMessage());
 	}
 
 	@Test
@@ -246,17 +249,32 @@ public class OpenSearchManagerImplAutoWiredTest {
 				() -> openSearchManager.validateAnalyzerSettings(settings));
 		assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
 				"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
+		assertFalse(ex.getMessage().contains("index_not_found_exception"),
+				"AOSS routing error must not reach the caller, got: " + ex.getMessage());
 	}
 
 	@Test
 	public void testValidateAnalyzerSettingsWithCustomFilters() {
-		TextAnalyzerSettings settings = new TextAnalyzerSettings();
-		settings.setTokenizer("standard");
-		settings.setTokenFilters("{\"my_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"}}");
-		settings.setFilterOrder(Arrays.asList("my_stop", "lowercase"));
+		TextAnalyzerSettings valid = new TextAnalyzerSettings();
+		valid.setTokenizer("standard");
+		valid.setTokenFilters("{\"my_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"}}");
+		valid.setFilterOrder(Arrays.asList("my_stop", "lowercase"));
 
 		// call under test
-		assertDoesNotThrow(() -> openSearchManager.validateAnalyzerSettings(settings));
+		assertDoesNotThrow(() -> openSearchManager.validateAnalyzerSettings(valid));
+
+		TextAnalyzerSettings invalid = new TextAnalyzerSettings();
+		invalid.setTokenizer("standard");
+		invalid.setTokenFilters("{\"bad_ngram\":{\"type\":\"edge_ngram\",\"min_gram\":10,\"max_gram\":2}}");
+		invalid.setFilterOrder(Arrays.asList("bad_ngram"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> openSearchManager.validateAnalyzerSettings(invalid));
+		assertTrue(ex.getMessage().contains("Invalid analyzer configuration"),
+				"Expected 'Invalid analyzer configuration' in message, got: " + ex.getMessage());
+		assertFalse(ex.getMessage().contains("index_not_found_exception"),
+				"AOSS routing error must not reach the caller, got: " + ex.getMessage());
 	}
 
 	/**
