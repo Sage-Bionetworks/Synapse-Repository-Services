@@ -16,23 +16,23 @@
             "enum": [
                 {
                     "name": "NOT_FOUND",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The specified entity could not be found."
                 },
                 {
                     "name": "UNAUTHORIZED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The user does not have permission to update the entity."
                 },
                 {
                     "name": "CONCURRENT_UPDATE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The entity was updated concurrently by another process."
                 },
                 {
                     "name": "ILLEGAL_ARGUMENT",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The update request contained invalid or illegal arguments."
                 },
                 {
                     "name": "UNKNOWN",
-                    "description": "TODO: Auto-generated description"
+                    "description": "An unknown error occurred during the update."
                 }
             ]
         }

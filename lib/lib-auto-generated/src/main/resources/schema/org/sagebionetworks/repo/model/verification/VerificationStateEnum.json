@@ -5,19 +5,19 @@
     "enum": [
         {
             "name": "SUBMITTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The verification submission has been submitted and is awaiting review."
         },
         {
             "name": "APPROVED",
-            "description": "TODO: Auto-generated description"
+            "description": "The verification submission has been reviewed and approved."
         },
         {
             "name": "REJECTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The verification submission has been reviewed and rejected."
         },
         {
             "name": "SUSPENDED",
-            "description": "TODO: Auto-generated description"
+            "description": "The verification was previously approved but has been suspended due to a policy violation or other issue."
         }
     ],
     "links": [{

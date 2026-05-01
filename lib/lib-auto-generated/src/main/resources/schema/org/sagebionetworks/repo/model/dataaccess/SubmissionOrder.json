@@ -4,11 +4,11 @@
     "enum": [
         {
             "name": "CREATED_ON",
-            "description": "TODO: Auto-generated description"
+            "description": "Order submissions by the date they were created."
         },
         {
             "name": "MODIFIED_ON",
-            "description": "TODO: Auto-generated description"
+            "description": "Order submissions by the date they were last modified."
         }
     ]
 }

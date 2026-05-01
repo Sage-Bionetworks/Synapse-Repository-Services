@@ -63,7 +63,7 @@ public class DBODiscussionReplyDAOImpl implements DiscussionReplyDAO{
 			String objectType = rs.getString(COL_FORUM_OBJECT_TYPE);
 			dto.setObjectType(ForumObjectType.valueOf(objectType));
 			dto.setObjectId(rs.getString(COL_FORUM_OBJECT_ID));
-			if ("ENTITY".equals(objectType)) {
+			if (ForumObjectType.ENTITY == ForumObjectType.valueOf(objectType)) {
 				dto.setProjectId(KeyFactory.keyToString(rs.getLong(COL_FORUM_OBJECT_ID)));
 			}
 			dto.setMessageKey(rs.getString(COL_DISCUSSION_REPLY_MESSAGE_KEY));

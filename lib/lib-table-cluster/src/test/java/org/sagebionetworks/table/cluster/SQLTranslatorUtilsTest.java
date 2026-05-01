@@ -508,6 +508,72 @@ public class SQLTranslatorUtilsTest {
 	}
 
 	@Test
+	public void testGetSelectColumnsConcatAliasMatchingSourceColumn() throws ParseException {
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+
+		DerivedColumn derivedColumn = new TableQueryParser("concat('[', foo, '](', id, ')') as foo").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("foo", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertEquals(columnFoo.getId(), results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsConcatAliasNotInSchema() throws ParseException {
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+
+		DerivedColumn derivedColumn = new TableQueryParser("concat('[', foo, '](', id, ')') as new_alias").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("new_alias", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertNull(results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsConcatAliasIsQuotedHyphenatedName() throws ParseException {
+		// Hyphens in an identifier require a double-quoted alias; the resulting name is verbatim.
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.of(new SchemaColumnTranslationReference(columnFoo)));
+
+		DerivedColumn derivedColumn = new TableQueryParser("concat('[', foo, '](', id, ')') as \"non-existant-column\"").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("non-existant-column", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertNull(results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsLiteralWithAlias() throws ParseException {
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
+
+		DerivedColumn derivedColumn = new TableQueryParser("'usedInBridge2AI' as usedInBridge2AI").derivedColumn();
+		// call under test
+		SelectColumn results = SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper);
+		assertNotNull(results);
+		assertEquals("usedInBridge2AI", results.getName());
+		assertEquals(ColumnType.STRING, results.getColumnType());
+		assertNull(results.getId());
+	}
+
+	@Test
+	public void testGetSelectColumnsBareDoubleQuotedUnknownIdentifier() throws ParseException {
+		// Double-quoted strings parse as identifiers, not literals; an unknown identifier throws.
+		when(mapper.lookupColumnReference(any())).thenReturn(Optional.empty());
+
+		DerivedColumn derivedColumn = new TableQueryParser("\"usedInBridge2AI\"").derivedColumn();
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SQLTranslatorUtils.getSelectColumns(derivedColumn, mapper));
+		assertTrue(ex.getMessage().contains("Unknown column"));
+		assertTrue(ex.getMessage().contains("usedInBridge2AI"));
+	}
+
+	@Test
 	public void testGetSelectColumnsCurrentUser() throws ParseException{
 		
 		DerivedColumn derivedColumn = new TableQueryParser("current_user()").derivedColumn();

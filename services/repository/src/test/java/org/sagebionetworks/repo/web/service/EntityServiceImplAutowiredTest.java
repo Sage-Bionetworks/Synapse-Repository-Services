@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -908,6 +909,83 @@ public class EntityServiceImplAutowiredTest  {
 		assertThrows(NotFoundException.class, () -> {
 			entityService.validateDefiningSql(request);
 		});
+	}
+	
+	@Test
+	public void testSearchIndexCreateWithUnknownColumn() {
+		ColumnModel studyName = new ColumnModel();
+		studyName.setName("studyName");
+		studyName.setColumnType(ColumnType.STRING);
+		studyName.setMaximumSize(100L);
+		studyName = columnModelManager.createColumnModel(adminUserInfo, studyName);
+	
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SearchIndexSourceTable");
+		table.setColumnIds(Lists.newArrayList(studyName.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
+	
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(project.getId());
+		searchIndex.setName("BadCreateSearchIndex");
+		// Bare double-quoted strings parse as SQL identifiers; an unknown identifier
+		// must be rejected synchronously by the metadata provider on create.
+		searchIndex.setDefiningSQL("SELECT studyName, \"tag\" FROM " + table.getId());
+	
+		// call under test
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.createEntity(adminUserId, searchIndex, null);
+		}).getMessage();
+	
+		assertTrue(errorMessage.contains("Unknown column"),
+				"expected error message to mention 'Unknown column', got: " + errorMessage);
+		assertTrue(errorMessage.contains("tag"),
+				"expected error message to mention 'tag', got: " + errorMessage);
+	}
+	
+	@Test
+	public void testSearchIndexUpdateWithUnknownColumn() {
+		ColumnModel studyName = new ColumnModel();
+		studyName.setName("studyName");
+		studyName.setColumnType(ColumnType.STRING);
+		studyName.setMaximumSize(100L);
+		studyName = columnModelManager.createColumnModel(adminUserInfo, studyName);
+	
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SearchIndexSourceTable");
+		table.setColumnIds(Lists.newArrayList(studyName.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
+	
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(project.getId());
+		searchIndex.setName("UpdateRejectSearchIndex");
+		searchIndex.setDefiningSQL("SELECT studyName FROM " + table.getId());
+		searchIndex = entityService.createEntity(adminUserId, searchIndex, null);
+	
+		final String entityId = searchIndex.getId();
+		final String beforeEtag = searchIndex.getEtag();
+		final String beforeSql = searchIndex.getDefiningSQL();
+	
+		// Update with an unknown identifier — must be rejected synchronously by the
+		// metadata provider, leaving the persisted entity unchanged.
+		searchIndex.setDefiningSQL("SELECT studyName, \"tag\" FROM " + table.getId());
+		final SearchIndex toUpdate = searchIndex;
+	
+		// call under test
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntity(adminUserId, toUpdate, false, null);
+		}).getMessage();
+	
+		assertTrue(errorMessage.contains("Unknown column"),
+				"expected error message to mention 'Unknown column', got: " + errorMessage);
+		assertTrue(errorMessage.contains("tag"),
+				"expected error message to mention 'tag', got: " + errorMessage);
+	
+		// Reload and confirm the failed PUT rolled back.
+		SearchIndex reloaded = entityService.getEntity(adminUserId, entityId, SearchIndex.class);
+		assertEquals(beforeEtag, reloaded.getEtag());
+		assertEquals(beforeSql, reloaded.getDefiningSQL());
 	}
 	
 	@Test

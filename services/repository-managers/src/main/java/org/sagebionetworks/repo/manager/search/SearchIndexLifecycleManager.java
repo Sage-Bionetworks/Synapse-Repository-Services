@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.List;
+
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -43,4 +46,12 @@ public interface SearchIndexLifecycleManager {
 	 * @param entityId The SearchIndex entity ID
 	 */
 	void handleDelete(String entityId) throws RecoverableMessageException;
+
+	/**
+	 * Resolve every SELECT-list column in {@code definingSql} — including literals
+	 * and aliases not on the source schema — to a persisted {@link
+	 * org.sagebionetworks.repo.model.table.ColumnModel} and bind them to the
+	 * SearchIndex. Returns the bound column ids in SELECT-list order.
+	 */
+	List<String> registerSchema(IdAndVersion searchIndexId, String definingSql);
 }

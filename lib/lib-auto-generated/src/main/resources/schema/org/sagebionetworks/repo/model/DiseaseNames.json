@@ -5,79 +5,79 @@
     "enum": [
         {
             "name": "Alzheimers",
-            "description": "TODO: Auto-generated description"
+            "description": "Alzheimer's disease."
         },
         {
             "name": "Asthma",
-            "description": "TODO: Auto-generated description"
+            "description": "Asthma."
         },
         {
             "name": "Autism",
-            "description": "TODO: Auto-generated description"
+            "description": "Autism spectrum disorder."
         },
         {
             "name": "Cancer",
-            "description": "TODO: Auto-generated description"
+            "description": "Cancer."
         },
         {
             "name": "CVD",
-            "description": "TODO: Auto-generated description"
+            "description": "Cardiovascular disease."
         },
         {
             "name": "Diabetes",
-            "description": "TODO: Auto-generated description"
+            "description": "Diabetes."
         },
         {
             "name": "Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "A general disease category."
         },
         {
             "name": "Drug_Response",
-            "description": "TODO: Auto-generated description"
+            "description": "Drug response phenotype."
         },
         {
             "name": "Healthy",
-            "description": "TODO: Auto-generated description"
+            "description": "Healthy control."
         },
         {
             "name": "Infectious_Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "Infectious disease."
         },
         {
             "name": "Inflammatory_Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "Inflammatory disease."
         },
         {
             "name": "Metabolic_Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "Metabolic disease."
         },
         {
             "name": "Multiple",
-            "description": "TODO: Auto-generated description"
+            "description": "Multiple diseases or conditions."
         },
         {
             "name": "Multiple_Sclerosis",
-            "description": "TODO: Auto-generated description"
+            "description": "Multiple sclerosis."
         },
         {
             "name": "Neurological_Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "Neurological disease."
         },
         {
             "name": "Respiratory_Disease",
-            "description": "TODO: Auto-generated description"
+            "description": "Respiratory disease."
         },
         {
             "name": "Sarcopenia",
-            "description": "TODO: Auto-generated description"
+            "description": "Sarcopenia."
         },
         {
             "name": "Schizophrenia",
-            "description": "TODO: Auto-generated description"
+            "description": "Schizophrenia."
         },
         {
             "name": "TBD",
-            "description": "TODO: Auto-generated description"
+            "description": "To be determined."
         }
     ]
 }

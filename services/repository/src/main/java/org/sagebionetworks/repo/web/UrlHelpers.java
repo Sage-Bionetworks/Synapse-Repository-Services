@@ -605,6 +605,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+ACCESS_REQUIREMENT_ID;
 	public static final String ENTITY_LOCK_ACCESS_REQURIEMENT = ENTITY_ID+"/lockAccessRequirement";	
 	public static final String ACCESS_REQUIREMENT_ACL = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/acl";
+	public static final String ACCESS_REQUIREMENT_PERMISSIONS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/permissions";
 	public static final String ACCESS_REQUIREMENT_SEARCH = ACCESS_REQUIREMENT + "/search";
 
 	public static final String ACCESS_REQUIREMENT_CONVERSION = ACCESS_REQUIREMENT+"/conversion";
@@ -1114,6 +1115,8 @@ public class UrlHelpers {
 	public static final String THREAD = "/thread";
 	public static final String THREAD_ID = "/{threadId}";
 	public static final String THREAD_THREAD_ID = THREAD+THREAD_ID;
+	public static final String SUBMISSION_ID_PATH = "/{submissionId}";
+	public static final String THREAD_SUBMISSION_SUBMISSION_ID = THREAD + "/submission" + SUBMISSION_ID_PATH;
 	public static final String THREAD_THREAD_ID_RESTORE = THREAD+THREAD_ID+"/restore";
 	public static final String PIN = "/pin";
 	public static final String UNPIN = "/unpin";
@@ -1192,6 +1195,7 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_SUBMISSION_OPEN_SUBMISSIONS = DATA_ACCESS_SUBMISSION+"/openSubmissions";
 	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
 	public static final String DATA_ACCESS_SUBMISSION_SEARCH = DATA_ACCESS_SUBMISSION + "/search";
+	public static final String DATA_ACCESS_SUBMISSION_THREAD = DATA_ACCESS_SUBMISSION + THREAD + THREAD_ID;
 	
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";

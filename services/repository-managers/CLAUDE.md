@@ -171,6 +171,21 @@ public void ensureOrganizationExists(String name) { ... }
   ```
 - **Pagination tests**: Always verify `NextPageToken` behavior — test that the response includes the correct next page token, not just the results list.
 
+## Defining-SQL Entities
+
+Several entity types are defined by a `definingSql` query against a Synapse table or view: `MaterializedView`, `VirtualTable`, `SearchIndex`.
+The select-list columns — including computed expressions and literals — become the entity's schema and downstream artifact (materialized rows, an OpenSearch index, etc.).
+
+These entity types share a common pattern. Follow it whenever introducing a new defining-SQL entity rather than re-translating the SQL on every read:
+
+- **Pre-parse and bind the schema in a metadata provider.** On `entityCreated` / `entityUpdated`, parse `definingSql` via `QueryTranslator`, run each ColumnModel from `getSchemaOfSelect` through `ColumnModelManager.createColumnModel` (hash-deduplicates against existing persisted rows), and call `columnModelManager.bindColumnsToVersionOfObject(ids, entityId)`. Reference: `MaterializedViewManagerImpl.bindSchemaToView`, `SearchIndexLifecycleManagerImpl.registerSchema`. Literals (`'tag' as tag_alias`) and aliases that don't appear on the source schema (`concat(a, b) as new_alias`) get a real `ColumnModel` id and become first-class columns of the entity.
+- **Read the bound schema, don't re-translate.** Build and query paths both load the schema with `tableManagerSupport.getTableSchema(entityId)`. Schema state flows through entity create/update only — never per-request — so a runtime read does not pay the cost of `QueryTranslator.build`.
+- **Aliases that collide with a source column name** (`concat(name, 'x') as name`) reuse the source column's `ColumnModel` id, because `getSchemaOfDerivedColumn` clones the source's properties and `createColumnModel` hashes to the same row. This preserves any settings (e.g., analyzer overrides) registered against the source column.
+- **Inner column references must still resolve.** Aliasing only frees up the *output* name, not the inputs. `concat(unknown_col, 'x') as foo` fails because `unknown_col` isn't on the source schema.
+- **Constants must use single quotes** — `'foo' as foo`. Double-quoted strings (`"foo"`) are SQL identifiers (column refs) and fail validation if the identifier doesn't exist on the source schema.
+
+Failing the parse synchronously in the metadata provider means malformed `definingSql` is rejected with `IllegalArgumentException` (HTTP 400) at create/update time, instead of silently FAILED'ing during the async build.
+
 ## Curation Grid (Curator)
 
 A spreadsheet-style collaborative editing feature that allows data curators to annotate files (FileEntity annotations) and manage record-based metadata (RecordSet entities). Unlike the standard Controller → Manager → DAO pattern, the grid uses a **CRDT (Conflict-free Replicated Data Type)** architecture based on the [JSON-Joy](https://jsonjoy.com/) specification, enabling real-time multi-user and AI-assisted editing.

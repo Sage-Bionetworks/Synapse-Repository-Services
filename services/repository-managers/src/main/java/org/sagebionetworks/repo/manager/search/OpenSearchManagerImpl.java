@@ -90,6 +90,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String SUB_FIELD_SEARCHABLE = "searchable";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	// AOSS reports a concurrent index-delete attempt with a reason text containing
+	// "concurrent deletes". Package-visible so callers can recognize and translate
+	// it into a recoverable SQS retry.
+	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
 	private static final String ANALYZER_PREFIX = "synapse_analyzer_";
 	private static final String SYNONYM_FILTER_NAME = "synapse_synonyms";
 	private static final String VALIDATION_INDEX_PREFIX = "validation-temp-";
@@ -101,6 +105,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	// ~18s, enough to ride out propagation without leaving billed zombie indices.
 	private static final int CLEANUP_MAX_RETRIES = 15;
 	private static final long CLEANUP_INITIAL_BACKOFF_MS = 250L;
+
+	/** True when the OpenSearch error is AOSS's "concurrent deletes" rejection. */
+	static boolean isConcurrentDeleteError(OpenSearchException e) {
+		String reason = e.error() == null ? null : e.error().reason();
+		return reason != null && reason.contains(CONCURRENT_DELETES_MARKER);
+	}
 
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
@@ -150,7 +160,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if ("resource_already_exists_exception".equals(e.error().type())) {
 				return Optional.empty();
 			}
-			throw new RuntimeException("Failed to create search index: " + indexName, e);
+			throw new RuntimeException("Failed to create search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to create search index: " + indexName, e);
 		}
@@ -234,9 +245,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		try {
 			openSearchClient.indices().delete(req -> req.index(indexName));
 		} catch (OpenSearchException e) {
-			if (!INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-				throw new RuntimeException("Failed to delete search index: " + indexName, e);
+			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+				return;
 			}
+			// Concurrent deletes: rethrow the OpenSearchException (a RuntimeException)
+			// unwrapped so callers can recognize this case via isConcurrentDeleteError
+			// and translate to a recoverable SQS retry.
+			if (isConcurrentDeleteError(e)) {
+				throw e;
+			}
+			throw new RuntimeException("Failed to delete search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to delete search index: " + indexName, e);
 		}
@@ -266,29 +285,57 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			}
 
 			return (long) response.items().size();
-		} catch (OpenSearchException | IOException e) {
+		} catch (OpenSearchException e) {
+			throw new RuntimeException("Failed to bulk index to search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
+		} catch (IOException e) {
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}
 
 	/**
 	 * AOSS often returns a generic {@code reason} ("Internal error occurred while processing
-	 * request") on the outer error, with the actual cause buried in the nested {@code caused_by}
-	 * chain. Walk the chain so the surfaced message is diagnosable.
+	 * request") on the outer error, with the actual cause buried in {@code caused_by},
+	 * {@code root_cause[]}, {@code metadata}, or {@code stack_trace}. Surface all of them so
+	 * the failure is diagnosable.
 	 */
 	static String describeError(ErrorCause error) {
+		if (error == null) {
+			return "?";
+		}
 		StringBuilder sb = new StringBuilder();
-		ErrorCause current = error;
+		appendErrorCauseDetail(sb, error);
+		ErrorCause current = error.causedBy();
 		while (current != null) {
-			if (sb.length() > 0) {
-				sb.append(" caused by ");
-			}
-			sb.append(current.type() == null ? "?" : current.type())
-					.append(": ")
-					.append(current.reason() == null ? "?" : current.reason());
+			sb.append(" caused by ");
+			appendErrorCauseDetail(sb, current);
 			current = current.causedBy();
 		}
 		return sb.toString();
+	}
+
+	private static void appendErrorCauseDetail(StringBuilder sb, ErrorCause c) {
+		sb.append(c.type() == null ? "?" : c.type())
+				.append(": ")
+				.append(c.reason() == null ? "?" : c.reason());
+		if (!c.rootCause().isEmpty()) {
+			sb.append(" [rootCause=");
+			boolean first = true;
+			for (ErrorCause rc : c.rootCause()) {
+				if (!first) sb.append(", ");
+				sb.append(rc.type() == null ? "?" : rc.type())
+						.append(": ")
+						.append(rc.reason() == null ? "?" : rc.reason());
+				first = false;
+			}
+			sb.append("]");
+		}
+		if (!c.metadata().isEmpty()) {
+			sb.append(" [metadata=").append(c.metadata()).append("]");
+		}
+		if (c.stackTrace() != null) {
+			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
+		}
 	}
 
 	@Override
@@ -449,7 +496,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
-			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
+			throw new RuntimeException("Failed to execute search on search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
 		}

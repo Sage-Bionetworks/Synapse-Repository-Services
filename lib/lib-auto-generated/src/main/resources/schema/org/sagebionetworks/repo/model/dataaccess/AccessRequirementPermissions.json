@@ -1,0 +1,9 @@
+{
+	"description": "The permissions a user has on an access requirement.",
+	"properties": {
+		"canReviewSubmissions": {
+			"type": "boolean",
+			"description": "Can the user review submissions for this access requirement."
+		}
+	}
+}

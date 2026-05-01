@@ -4,15 +4,15 @@
     "enum": [
         {
             "name": "OPEN",
-            "description": "TODO: Auto-generated description"
+            "description": "No restrictions; the object is openly accessible."
         },
         {
             "name": "RESTRICTED_BY_TERMS_OF_USE",
-            "description": "TODO: Auto-generated description"
+            "description": "Access is restricted by terms of use or data use agreement."
         },
         {
             "name": "CONTROLLED_BY_ACT",
-            "description": "TODO: Auto-generated description"
+            "description": "Access is controlled by the Synapse Access and Compliance Team (ACT)."
         }
     ]
 }

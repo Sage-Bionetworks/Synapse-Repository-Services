@@ -5,19 +5,19 @@
     "enum": [
         {
             "name": "FORUM",
-            "description": "TODO: Auto-generated description"
+            "description": "A discussion forum that users can subscribe to for updates."
         },
         {
             "name": "THREAD",
-            "description": "TODO: Auto-generated description"
+            "description": "A discussion thread within a forum that users can subscribe to for updates."
         },
         {
             "name": "DATA_ACCESS_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "A submission for requesting access to data, which users can subscribe to for status updates."
         },
         {
             "name": "DATA_ACCESS_SUBMISSION_STATUS",
-            "description": "TODO: Auto-generated description"
+            "description": "The status of a data access submission, which users can subscribe to for notifications about changes."
         }
     ]
 }

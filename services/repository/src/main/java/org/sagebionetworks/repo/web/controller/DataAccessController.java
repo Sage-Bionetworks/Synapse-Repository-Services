@@ -398,4 +398,20 @@ public class DataAccessController {
 		return serviceProvider.getDataAccessService().searchUserSubmissions(userId, submissionSearchRequest);
 	}
 
+	/**
+	 * Get the data access submission associated with a given discussion thread.
+	 *
+	 * @param userId   - The ID of the user who is making the request.
+	 * @param threadId - The ID of the thread.
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_SUBMISSION_THREAD, method = RequestMethod.GET)
+	public @ResponseBody Submission getSubmissionForThread(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String threadId) throws NotFoundException {
+		return serviceProvider.getDataAccessService().getSubmissionForThread(userId, threadId);
+	}
+
 }

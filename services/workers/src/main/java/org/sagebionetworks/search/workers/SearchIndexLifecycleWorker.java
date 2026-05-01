@@ -71,6 +71,8 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 					break;
 			}
 		} catch (RecoverableMessageException e) {
+			// Recoverable paths fire frequently under normal operation — log message
+			// only, not the stack trace, to avoid log spam.
 			LOG.warn("Recoverable exception for entity {}: {}", entityId, e.getMessage());
 			throw e;
 		} catch (TableUnavailableException | LockUnavilableException e) {
@@ -84,7 +86,8 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 			throw new RecoverableMessageException(e);
 		} catch (NotFoundException e) {
 			searchIndexLifecycleManager.handleDelete(entityId);
-		} catch (Exception e) {
+		} catch (Throwable e) {
+			// Unexpected — keep full stack trace; this is the path that surfaces real bugs.
 			LOG.error("Failed to process lifecycle message for entity: " + entityId, e);
 		}
 	}

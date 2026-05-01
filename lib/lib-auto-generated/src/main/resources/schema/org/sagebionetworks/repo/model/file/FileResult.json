@@ -19,16 +19,16 @@
         },
         "failureCode": {
             "type": "string",
-            "description": "Failure code for a files that cannot be downloaded.",
+            "description": "Failure code for files that cannot be downloaded.",
             "name": "FileResultFailureCode",
             "enum": [
                 {
                     "name": "NOT_FOUND",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The requested file could not be found."
                 },
                 {
                     "name": "UNAUTHORIZED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The user does not have permission to download the file."
                 }
             ]
         }

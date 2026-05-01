@@ -8,23 +8,23 @@
             "enum": [
                 {
                     "name": "requested",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data acquisition has been requested and is awaiting review."
                 },
                 {
                     "name": "approved",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data acquisition request has been approved."
                 },
                 {
                     "name": "denied",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data acquisition request has been denied."
                 },
                 {
                     "name": "pending",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data acquisition request is pending and awaiting further action."
                 },
                 {
                     "name": "acquired",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The data has been successfully acquired."
                 }
             ]
         },

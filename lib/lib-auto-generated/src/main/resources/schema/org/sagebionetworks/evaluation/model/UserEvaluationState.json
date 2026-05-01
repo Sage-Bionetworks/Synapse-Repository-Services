@@ -5,15 +5,15 @@
     "enum": [
         {
             "name": "EVAL_REGISTRATION_UNAVAILABLE",
-            "description": "TODO: Auto-generated description"
+            "description": "The evaluation is not open for registration, so the user cannot register."
         },
         {
             "name": "EVAL_OPEN_USER_REGISTERED",
-            "description": "TODO: Auto-generated description"
+            "description": "The evaluation is open and the user is registered to participate."
         },
         {
             "name": "EVAL_OPEN_USER_NOT_REGISTERED",
-            "description": "TODO: Auto-generated description"
+            "description": "The evaluation is open but the user is not registered to participate."
         }
     ]
 }

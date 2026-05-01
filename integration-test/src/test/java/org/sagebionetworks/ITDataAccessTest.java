@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSortField;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -1187,7 +1188,7 @@ public class ITDataAccessTest {
 		assertNotNull(thread.getForumId());
 		assertEquals(forum.getId(), thread.getForumId());
 
-		//create a reply
+		//call under test. Create a reply
 		CreateDiscussionReply replyToCreate = new CreateDiscussionReply();
 		replyToCreate.setThreadId(thread.getId());
 		String message = "This is test message";
@@ -1197,5 +1198,21 @@ public class ITDataAccessTest {
 		assertEquals(thread.getId(), replyBundle.getThreadId());
 		assertEquals(managedAR.getId().toString(), replyBundle.getObjectId());
 		assertEquals(ForumObjectType.ACCESS_REQUIREMENT, replyBundle.getObjectType());
+
+		//call under test. Get thread for submission
+		DiscussionThreadBundle threadForSubmission = adminSynapse.getThreadForSubmission(submissionId);
+		assertNotNull(threadForSubmission);
+		assertEquals(thread.getId(), threadForSubmission.getId());
+		assertEquals("submissionId:" + submissionId, threadForSubmission.getTitle());
+
+		//call under test. Get submission for thread
+		org.sagebionetworks.repo.model.dataaccess.Submission submissionForThread = adminSynapse.getSubmissionForThread(thread.getId());
+		assertNotNull(submissionForThread);
+		assertEquals(submissionId, submissionForThread.getId());
+
+		//call under test. Get permission on AR
+		AccessRequirementPermissions permissions = adminSynapse.getAccessRequirementPermissions(managedAR.getId().toString());
+		assertNotNull(permissions);
+		assertTrue(permissions.getCanReviewSubmissions());
 	}
 }

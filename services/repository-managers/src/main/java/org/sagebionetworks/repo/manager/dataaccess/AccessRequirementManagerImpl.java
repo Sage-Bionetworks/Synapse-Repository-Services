@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
@@ -688,5 +689,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 					.setObjectVersion(versionNumber)
 		);
 	}
-	
+
+	@Override
+	public AccessRequirementPermissions getPermissions(UserInfo user, String requirementId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(requirementId, "requirementId");
+		return new AccessRequirementPermissions()
+				.setCanReviewSubmissions(daAuthManager.canReviewAccessRequirementSubmissions(user, requirementId).isAuthorized());
+
+	}
+
 }

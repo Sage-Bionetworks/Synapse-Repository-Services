@@ -4,19 +4,19 @@
     "enum": [
         {
             "name": "SUBMITTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been submitted and is awaiting review."
         },
         {
             "name": "APPROVED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been reviewed and approved."
         },
         {
             "name": "REJECTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been reviewed and rejected."
         },
         {
             "name": "CANCELLED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been cancelled and will not be processed."
         }
     ]
 }

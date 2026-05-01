@@ -19,7 +19,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_LIMIT;
 import static org.sagebionetworks.repo.manager.dataaccess.AccessRequirementManagerImpl.DEFAULT_OFFSET;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_REALM_ID;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 
 import java.util.ArrayList;
@@ -51,9 +50,7 @@ import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.UserInfoTestHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
@@ -77,6 +74,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
@@ -2110,4 +2108,21 @@ public class AccessRequirementManagerImplUnitTest {
 		verifyZeroInteractions(mockTransactionalMessenger);
 	}
 
+	@Test
+	public void testGetPermissionsWithReviewAccess() {
+		when(mockDaAuthManager.canReviewAccessRequirementSubmissions(userInfo, "123"))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		AccessRequirementPermissions result = arm.getPermissions(userInfo, "123");
+		assertTrue(result.getCanReviewSubmissions());
+	}
+
+	@Test
+	public void testGetPermissionsWithoutReviewAccess() {
+		when(mockDaAuthManager.canReviewAccessRequirementSubmissions(userInfo, "123"))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+		// call under test
+		AccessRequirementPermissions result = arm.getPermissions(userInfo, "123");
+		assertFalse(result.getCanReviewSubmissions());
+	}
 }

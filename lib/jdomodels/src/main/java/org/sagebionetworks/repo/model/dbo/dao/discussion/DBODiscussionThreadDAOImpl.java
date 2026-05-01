@@ -91,7 +91,7 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 			String objectType = rs.getString(COL_FORUM_OBJECT_TYPE);
 			dto.setObjectId(objectId);
 			dto.setObjectType(ForumObjectType.valueOf(objectType));
-			if ("ENTITY".equals(objectType)) {
+			if (ForumObjectType.ENTITY == ForumObjectType.valueOf(objectType)) {
 				dto.setProjectId(KeyFactory.keyToString(Long.valueOf(objectId)));
 			}
 			Blob titleBlob = rs.getBlob(COL_DISCUSSION_THREAD_TITLE);

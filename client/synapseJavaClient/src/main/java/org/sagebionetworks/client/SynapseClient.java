@@ -124,6 +124,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRespo
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -2958,6 +2959,21 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	DiscussionThreadBundle getThread(String threadId) throws SynapseException;
+
+	/**
+	 * Get the discussion thread for a given submission.
+	 */
+	DiscussionThreadBundle getThreadForSubmission(String submissionId) throws SynapseException;
+
+	/**
+	 * Get the submission associated with a given thread.
+	 */
+	org.sagebionetworks.repo.model.dataaccess.Submission getSubmissionForThread(String threadId) throws SynapseException;
+
+	/**
+	 * Get the caller's permissions for a given access requirement.
+	 */
+	AccessRequirementPermissions getAccessRequirementPermissions(String requirementId) throws SynapseException;
 
 	/**
 	 * Get threads for a given forum

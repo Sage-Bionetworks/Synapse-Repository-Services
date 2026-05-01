@@ -4,11 +4,11 @@
     "enum": [
         {
             "name": "USER",
-            "description": "TODO: Auto-generated description"
+            "description": "An individual user account."
         },
         {
             "name": "TEAM",
-            "description": "TODO: Auto-generated description"
+            "description": "A group of users organized as a team."
         }
     ]
 }

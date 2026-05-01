@@ -7,6 +7,7 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
@@ -149,5 +150,14 @@ public interface AccessRequirementManager {
 	 * @param newArIds  The list of dynamic AR ID for this subject. An empty list will clear all dynamically bound ARs for this subject.
 	 */
 	void setDynamicallyBoundAccessRequirementsForSubject(RestrictableObjectDescriptor subject, Set<Long> newArIds);
+
+	/**
+	 * Get the caller's permissions for the given access requirement.
+	 *
+	 * @param user
+	 * @param requirementId
+	 * @return
+	 */
+	AccessRequirementPermissions getPermissions(UserInfo user, String requirementId);
 
 }

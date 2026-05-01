@@ -167,4 +167,13 @@ public interface DiscussionThreadManager {
 	 * @return
 	 */
 	public PaginatedIds getModerators(UserInfo user, String forumId, Long limit, Long offset);
+
+	/**
+	 * Get the discussion thread for a given submission.
+	 *
+	 * @param user
+	 * @param submissionId
+	 * @return
+	 */
+	DiscussionThreadBundle getThreadForSubmission(UserInfo user, String submissionId);
 }

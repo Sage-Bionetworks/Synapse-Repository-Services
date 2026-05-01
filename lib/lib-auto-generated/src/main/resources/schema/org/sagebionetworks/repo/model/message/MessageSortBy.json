@@ -6,11 +6,11 @@
     "enum": [
         {
             "name": "SEND_DATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort messages by the date they were sent."
         },
         {
             "name": "SUBJECT",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort messages alphabetically by their subject."
         }
     ]
 }

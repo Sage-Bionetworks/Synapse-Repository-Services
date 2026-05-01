@@ -17,11 +17,11 @@
             "enum": [
                 {
                     "name": "ADD_SUCCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The part was added successfully to the multi-part upload or copy."
                 },
                 {
                     "name": "ADD_FAILED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The part failed to be added to the multi-part upload or copy."
                 }
             ]
         },

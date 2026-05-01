@@ -17,11 +17,11 @@
             "enum": [
                 {
                     "name": "NOT_FOUND",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The original FileHandle could not be found."
                 },
                 {
                     "name": "UNAUTHORIZED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The user does not have permission to copy the FileHandle."
                 }
             ]
         }

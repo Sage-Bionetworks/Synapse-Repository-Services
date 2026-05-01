@@ -57,6 +57,8 @@ public interface DataAccessService {
 
 	Submission getSubmission(Long userId, String submissionId);
 
+	Submission getSubmissionForThread(Long userId, String threadId);
+
 	AccessApproval getUserAccessApproval(Long userId, String submissionId);
 
 	UserSubmissionSearchResponse searchUserSubmissions(Long userId, UserSubmissionSearchRequest request);

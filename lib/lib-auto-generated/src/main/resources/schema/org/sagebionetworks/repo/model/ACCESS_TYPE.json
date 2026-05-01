@@ -5,27 +5,27 @@
     "enum": [
         {
             "name": "CREATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to create a new entity or resource."
         },
         {
             "name": "READ",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to read or view the entity or resource."
         },
         {
             "name": "UPDATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to modify or update the entity or resource."
         },
         {
             "name": "DELETE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to delete the entity or resource."
         },
         {
             "name": "CHANGE_PERMISSIONS",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to change access permissions for the entity or resource."
         },
         {
             "name": "DOWNLOAD",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to download files or data from the entity or resource."
         },
         {
             "name": "UPLOAD",
@@ -33,39 +33,39 @@
         },
         {
             "name": "PARTICIPATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to participate in activities related to the entity, such as discussions or challenges."
         },
         {
             "name": "SUBMIT",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to submit content or data to the entity or resource."
         },
         {
             "name": "READ_PRIVATE_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to read private submissions associated with the entity."
         },
         {
             "name": "UPDATE_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to update or modify a submission."
         },
         {
             "name": "DELETE_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to delete a submission."
         },
         {
             "name": "TEAM_MEMBERSHIP_UPDATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to update team membership, such as adding or removing members."
         },
         {
             "name": "SEND_MESSAGE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to send messages related to the entity or resource."
         },
         {
             "name": "CHANGE_SETTINGS",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to change settings or configuration for the entity or resource."
         },
         {
             "name": "MODERATE",
-            "description": "TODO: Auto-generated description"
+            "description": "Permission to moderate content or activity related to the entity or resource."
         },
         {
         	"name": "REVIEW_SUBMISSIONS",

@@ -578,4 +578,20 @@ public class DiscussionController {
 			@RequestBody DiscussionSearchRequest request) {
 		return serviceProvider.getDiscussionService().search(userId, forumId, request);
 	}
+
+	/**
+	 * This API is used to get the discussion thread associated with a given submission.
+	 *
+	 * @param userId - The ID of the user who is making the request.
+	 * @param submissionId - The ID of the submission.
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.THREAD_SUBMISSION_SUBMISSION_ID, method = RequestMethod.GET)
+	public @ResponseBody DiscussionThreadBundle getThreadForSubmission(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String submissionId) {
+		return serviceProvider.getDiscussionService().getThreadForSubmission(userId, submissionId);
+	}
 }

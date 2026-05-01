@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -118,6 +119,12 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Override
 	public AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) {
 		return accessRequirementManager.searchAccessRequirements(request);
+	}
+
+	@Override
+	public AccessRequirementPermissions getPermissions(Long userId, String requirementId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.getPermissions(userInfo, requirementId);
 	}
 
 }

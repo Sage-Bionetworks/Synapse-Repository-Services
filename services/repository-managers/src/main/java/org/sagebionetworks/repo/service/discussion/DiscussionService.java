@@ -271,4 +271,13 @@ public interface DiscussionService {
 	 * @return
 	 */
 	DiscussionSearchResponse search(Long userId, String forumId, DiscussionSearchRequest request);
+
+	/**
+	 * Get the discussion thread for a given submission.
+	 *
+	 * @param userId
+	 * @param submissionId
+	 * @return
+	 */
+	DiscussionThreadBundle getThreadForSubmission(Long userId, String submissionId);
 }

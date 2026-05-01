@@ -213,4 +213,10 @@ public class DiscussionServiceImpl implements DiscussionService{
 		UserInfo user = userManager.getUserInfo(userId);
 		return searchManager.search(user, Long.valueOf(forumId), request);
 	}
+
+	@Override
+	public DiscussionThreadBundle getThreadForSubmission(Long userId, String submissionId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return threadManager.getThreadForSubmission(user, submissionId);
+	}
 }

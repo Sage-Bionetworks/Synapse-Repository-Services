@@ -5,15 +5,15 @@
     "enum": [
         {
             "name": "LITERAL",
-            "description": "TODO: Auto-generated description"
+            "description": "A facet representing exact, discrete values (e.g., categories or keywords)."
         },
         {
             "name": "DATE",
-            "description": "TODO: Auto-generated description"
+            "description": "A facet representing date or time values."
         },
         {
             "name": "CONTINUOUS",
-            "description": "TODO: Auto-generated description"
+            "description": "A facet representing a continuous numeric range."
         }
     ]
 }

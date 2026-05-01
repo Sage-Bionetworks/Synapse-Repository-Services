@@ -5,15 +5,15 @@
     "enum": [
         {
             "name": "USERS_ONLY",
-            "description": "TODO: Auto-generated description"
+            "description": "Filter to include only user principals."
         },
         {
             "name": "TEAMS_ONLY",
-            "description": "TODO: Auto-generated description"
+            "description": "Filter to include only team principals."
         },
         {
             "name": "ALL",
-            "description": "TODO: Auto-generated description"
+            "description": "Include both users and teams in the results."
         }
     ]
 }

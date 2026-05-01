@@ -128,7 +128,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 				user, searchIndex.getSearchConfigurationId(), searchIndex.getParentId());
 		SearchConfiguration config = configOpt.orElse(null);
 
-		QueryMetadata metadata = buildQueryMetadata(definingSQL, sourceEntityId);
+		QueryMetadata metadata = buildQueryMetadata(IdAndVersion.parse(searchIndexId));
 		List<ColumnModel> columns = metadata.getColumns();
 
 		// Build name↔ID translation maps
@@ -244,36 +244,16 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	}
 
 	/**
-	 * Builds the {@link ColumnModel} list for analyzer routing and the parallel
-	 * {@link SelectColumn} list for the response — from a single
-	 * {@link QueryTranslator}, so we pay the translator cost once per query.
+	 * Loads the bound {@link ColumnModel} list for the SearchIndex and the parallel
+	 * {@link SelectColumn} list used by response serialization.
 	 */
-	QueryMetadata buildQueryMetadata(String definingSQL, IdAndVersion sourceEntityId) {
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceEntityId);
-		QueryTranslator translator = QueryTranslator.builder()
-				.sql(definingSQL)
-				.schemaProvider(tableManagerSupport)
-				.sqlContext(SqlContext.query)
-				.indexDescription(indexDescription)
-				.build();
-		List<ColumnModel> schemaOfSelect = translator.getSchemaOfSelect();
-		List<SelectColumn> selectColumns = translator.getSelectColumns();
-		copyMissingIdsFromSelectColumns(schemaOfSelect, selectColumns);
-		return new QueryMetadata(schemaOfSelect, selectColumns);
-	}
-
-	/**
-	 * {@link QueryTranslator#getSchemaOfSelect()} returns {@link ColumnModel} instances
-	 * without IDs populated; the parallel {@link SelectColumn} list from the same
-	 * translator carries the original column IDs. Copy each ID across when the
-	 * schema entry is missing one.
-	 */
-	void copyMissingIdsFromSelectColumns(List<ColumnModel> schemaOfSelect, List<SelectColumn> selectColumns) {
-		for (int i = 0; i < schemaOfSelect.size() && i < selectColumns.size(); i++) {
-			if (schemaOfSelect.get(i).getId() == null && selectColumns.get(i).getId() != null) {
-				schemaOfSelect.get(i).setId(selectColumns.get(i).getId());
-			}
+	QueryMetadata buildQueryMetadata(IdAndVersion searchIndexIdAndVersion) {
+		List<ColumnModel> columns = tableManagerSupport.getTableSchema(searchIndexIdAndVersion);
+		if (columns == null || columns.isEmpty()) {
+			throw new IllegalStateException("SearchIndex " + searchIndexIdAndVersion
+					+ " has no bound schema — update the entity to re-register.");
 		}
+		return new QueryMetadata(columns, TableModelUtils.getSelectColumns(columns));
 	}
 
 	Map<String, TextAnalyzer> collectAndLoadAnalyzers(SearchConfiguration config,

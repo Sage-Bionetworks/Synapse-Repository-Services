@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.message.MessageToSend;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -476,6 +477,16 @@ public class SubmissionManagerImpl implements SubmissionManager{
 
 		return submission;
 	}
+
+	@Override
+	public Submission getSubmissionForThread(UserInfo user, String threadId) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(threadId, "threadId");
+		String submissionId = threadDao.getSubmissionIdForThread(threadId).orElseThrow(() ->
+				new NotFoundException("Submission for thread '" + threadId + "' does not exist"));
+		return getSubmission(user, submissionId);
+	}
+
 
 	@Override
 	public AccessApproval getUserAccessApproval(UserInfo userInfo, String submissionId) {

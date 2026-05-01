@@ -110,6 +110,15 @@ public interface SubmissionManager {
 	Submission getSubmission(UserInfo userInfo, String submissionId);
 
 	/**
+	 * Fetch a submission by threadId, if the user is not part of ACT they must be validated and assigned as reviewers of the AR submissions in order to fetch the submission.
+	 *
+	 * @param user
+	 * @param threadId
+	 * @return
+	 */
+	Submission getSubmissionForThread(UserInfo user, String threadId);
+
+	/**
 	 * Fetch their own access approval information specific to a submission, as long as the user is an accessor in the submission.
 	 *
 	 * @param userInfo

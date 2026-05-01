@@ -245,6 +245,7 @@ public class TextAnalyzerDaoImpl implements TextAnalyzerDao {
 				+ " VALUES (?, UUID(), ?, ?, ?, ?, ?, NOW(3), ?, NOW(3))"
 				+ " ON DUPLICATE KEY UPDATE"
 				+ " ETAG = UUID(), NAME = VALUES(NAME), DESCRIPTION = VALUES(DESCRIPTION),"
+				+ " ORGANIZATION_NAME = VALUES(ORGANIZATION_NAME),"
 				+ " SETTINGS = VALUES(SETTINGS), MODIFIED_BY = VALUES(MODIFIED_BY), MODIFIED_ON = NOW(3)",
 				id,
 				analyzer.getName(),

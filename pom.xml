@@ -818,6 +818,11 @@
 			    <artifactId>semver4j</artifactId>
 			    <version>5.4.0</version>
 			</dependency>
+			<dependency>
+				<groupId>com.mysql</groupId>
+				<artifactId>mysql-connector-j</artifactId>
+				<version>${mysql.mysql-connector-java.version}</version>
+			</dependency>
 		</dependencies>
 
 	</dependencyManagement>
@@ -1096,7 +1101,7 @@
 		<jackson.version>2.20.0</jackson.version>
 		<xstream.version>1.4.17</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
-		<mysql.mysql-connector-java.version>8.0.33</mysql.mysql-connector-java.version>
+		<mysql.mysql-connector-java.version>8.4.0</mysql.mysql-connector-java.version>
 		<org.aspectj.aspectjlib.version>1.6.2</org.aspectj.aspectjlib.version>
 		<org.aspectj.version>1.8.11</org.aspectj.version>
 		<schema-to-pojo.version>0.6.12</schema-to-pojo.version>

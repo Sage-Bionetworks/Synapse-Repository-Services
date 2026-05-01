@@ -143,6 +143,12 @@ public class DataAccessServiceImpl implements DataAccessService {
 	}
 
 	@Override
+	public Submission getSubmissionForThread(Long userId, String threadId) {
+		UserInfo user = userManager.getUserInfo(userId);
+		return dataAccessSubmissionManager.getSubmissionForThread(user, threadId);
+	}
+
+	@Override
 	public AccessApproval getUserAccessApproval(Long userId, String submissionId) {
 		UserInfo user = userManager.getUserInfo(userId);
 		return dataAccessSubmissionManager.getUserAccessApproval(user, submissionId);

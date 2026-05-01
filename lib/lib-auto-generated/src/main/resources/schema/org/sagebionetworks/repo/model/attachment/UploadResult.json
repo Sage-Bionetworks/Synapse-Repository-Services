@@ -13,11 +13,11 @@
             "enum": [
                 {
                     "name": "FAILED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The upload operation failed."
                 },
                 {
                     "name": "SUCCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The upload operation was successful."
                 }
             ]
         }

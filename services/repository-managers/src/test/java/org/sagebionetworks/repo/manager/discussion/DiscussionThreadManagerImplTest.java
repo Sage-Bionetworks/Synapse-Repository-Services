@@ -34,7 +34,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.reflection.model.PaginatedResults;
-import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionAndDiscussionAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -1011,5 +1010,39 @@ public class DiscussionThreadManagerImplTest {
 		assertEquals((Long) 3L, actual.getTotalNumberOfResults());
 		assertTrue(individuals.containsAll(actual.getResults()));
 		assertTrue(actual.getResults().containsAll(individuals));
+	}
+
+	// getThreadForSubmission tests
+
+	@Test
+	public void testGetThreadForSubmissionAuthorized() {
+		String submissionId = "999";
+		when(mockThreadDao.getThreadForSubmission(submissionId)).thenReturn(Optional.of(dto));
+		when(mockSubscriptionAndDiscussionAuthorizationManager.canAccessObjectType(userInfo, ForumObjectType.ENTITY, dto.getObjectId(), ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.authorized());
+		// call under test
+		assertEquals(dto, threadManager.getThreadForSubmission(userInfo, submissionId));
+	}
+
+	@Test
+	public void testGetThreadForSubmissionUnauthorized() {
+		String submissionId = "999";
+		when(mockThreadDao.getThreadForSubmission(submissionId)).thenReturn(Optional.of(dto));
+		when(mockSubscriptionAndDiscussionAuthorizationManager.canAccessObjectType(userInfo, ForumObjectType.ENTITY, dto.getObjectId(), ACCESS_TYPE.READ))
+				.thenReturn(AuthorizationStatus.accessDenied("no access"));
+		// call under test
+		assertThrows(UnauthorizedException.class, () -> {
+			threadManager.getThreadForSubmission(userInfo, submissionId);
+		});
+	}
+
+	@Test
+	public void testGetThreadForSubmissionNotFound() {
+		String submissionId = "999";
+		when(mockThreadDao.getThreadForSubmission(submissionId)).thenReturn(Optional.empty());
+		// call under test
+		assertThrows(NotFoundException.class, () -> {
+			threadManager.getThreadForSubmission(userInfo, submissionId);
+		});
 	}
 }

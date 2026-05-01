@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.service.ServiceProvider;
@@ -354,5 +355,21 @@ public class AccessRequirementController {
 	public @ResponseBody AccessRequirementSearchResponse searchAccessRequirements(
 			@RequestBody AccessRequirementSearchRequest request) {
 		return serviceProvider.getAccessRequirementService().searchAccessRequirements(request);
+	}
+
+	/**
+	 * Get the user's permissions for the given access requirement.
+	 *
+	 * @param userId  - The ID of the user who is making the request.
+	 * @param requirementId - The ID of the access requirement.
+	 * @return
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_PERMISSIONS, method = RequestMethod.GET)
+	public @ResponseBody AccessRequirementPermissions getAccessRequirementPermissions(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId) {
+		return serviceProvider.getAccessRequirementService().getPermissions(userId, requirementId);
 	}
 }

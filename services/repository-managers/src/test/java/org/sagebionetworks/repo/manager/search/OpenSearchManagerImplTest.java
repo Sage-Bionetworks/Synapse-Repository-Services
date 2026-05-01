@@ -6,12 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -26,13 +30,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.ErrorCause;
+import org.opensearch.client.opensearch._types.ErrorResponse;
 import org.opensearch.client.opensearch._types.FieldSort;
+import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
 import org.opensearch.client.opensearch.core.search.HighlightField;
+import org.opensearch.client.opensearch.indices.CreateIndexRequest;
+import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.sagebionetworks.repo.model.search.FacetRequest;
 import org.sagebionetworks.repo.model.search.FacetSortField;
 import org.sagebionetworks.repo.model.search.SearchQueryType;
@@ -62,6 +71,8 @@ public class OpenSearchManagerImplTest {
 
 	@Mock
 	private OpenSearchClient openSearchClient;
+	@Mock
+	private OpenSearchIndicesClient indicesClient;
 
 	@InjectMocks
 	private OpenSearchManagerImpl manager;
@@ -841,6 +852,80 @@ public class OpenSearchManagerImplTest {
 				"?: Internal error occurred while processing request"
 						+ " caused by illegal_state_exception: Position increment must be non-negative",
 				desc);
+	}
+
+	@Test
+	public void testDescribeErrorWithNullReturnsPlaceholder() {
+		// call under test
+		assertEquals("?", OpenSearchManagerImpl.describeError(null));
+	}
+
+	@Test
+	public void testDescribeErrorWithRootCause() {
+		// AOSS sometimes leaves the outer reason generic and puts the real diagnostic in
+		// root_cause[]. Surface it so the failure is debuggable.
+		ErrorCause rootCause = ErrorCause.of(b -> b
+				.type("illegal_argument_exception")
+				.reason("analyzer [synapse_analyzer_1] not found"));
+		ErrorCause outer = ErrorCause.of(b -> b
+				.type("?")
+				.reason("Internal error occurred while processing request")
+				.rootCause(rootCause));
+
+		// call under test
+		String desc = OpenSearchManagerImpl.describeError(outer);
+
+		assertEquals(
+				"?: Internal error occurred while processing request"
+						+ " [rootCause=illegal_argument_exception: analyzer [synapse_analyzer_1] not found]",
+				desc);
+	}
+
+	@Test
+	public void testCreateIndexWithOpenSearchException() throws IOException {
+		String indexName = "search-index-syn1";
+		ErrorCause inner = ErrorCause.of(b -> b
+				.type("illegal_argument_exception")
+				.reason("For input string: \"abc\""));
+		ErrorCause outer = ErrorCause.of(b -> b
+				.type("mapper_parsing_exception")
+				.reason("failed to parse field [col_123] of type [long]")
+				.causedBy(inner));
+		OpenSearchException openSearchException = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(outer).status(400)));
+
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
+				.thenThrow(openSearchException);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.createIndex(indexName, Collections.emptyList(), null,
+						Collections.emptyList(), Collections.emptyList(), Collections.emptyMap()));
+
+		assertEquals(openSearchException, ex.getCause());
+		assertEquals("Failed to create search index: " + indexName
+				+ " (" + OpenSearchManagerImpl.describeError(outer) + ")",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testCreateIndexWithResourceAlreadyExists() throws IOException {
+		String indexName = "search-index-syn1";
+		OpenSearchException openSearchException = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(ErrorCause.of(b -> b
+						.type("resource_already_exists_exception")
+						.reason("index already exists"))).status(400)));
+
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
+				.thenThrow(openSearchException);
+
+		// call under test
+		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyList(), Collections.emptyMap());
+
+		assertEquals(Optional.empty(), result);
 	}
 
 }

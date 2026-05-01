@@ -392,4 +392,15 @@ public class DiscussionThreadManagerImpl implements DiscussionThreadManager {
 		results.setTotalNumberOfResults(groupMembersDao.getIndividualCount(principalIds));
 		return results;
 	}
+
+	@Override
+	public DiscussionThreadBundle getThreadForSubmission(UserInfo user, String submissionId) {
+		ValidateArgument.required(submissionId, "submissionId");
+		UserInfo.validateUserInfo(user);
+		DiscussionThreadBundle thread = threadDao.getThreadForSubmission(submissionId)
+				.orElseThrow(() -> new NotFoundException("Thread for submission '" + submissionId + "' does not exist"));
+		subscriptionAndDiscussionAuthorizationManager.canAccessObjectType(user, thread.getObjectType(), thread.getObjectId(), ACCESS_TYPE.READ)
+				.checkAuthorizationOrElseThrow();
+		return thread;
+	}
 }

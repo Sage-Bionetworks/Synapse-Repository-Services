@@ -2,27 +2,37 @@ package org.sagebionetworks.repo.service.metadata;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 
+@ExtendWith(MockitoExtension.class)
 public class SearchIndexMetadataProviderTest {
+
+	@Mock
+	private SearchIndexLifecycleManager lifecycleManager;
 
 	private SearchIndexMetadataProvider provider;
 
 	@BeforeEach
 	public void setUp() {
-		provider = new SearchIndexMetadataProvider();
+		provider = new SearchIndexMetadataProvider(lifecycleManager);
 	}
 
 	@Test
@@ -166,5 +176,37 @@ public class SearchIndexMetadataProviderTest {
 	public void testValidateDefiningSqlWithWhereClause() {
 		// call under test
 		provider.validateDefiningSql("SELECT studyName FROM syn123 WHERE status = 'Active'");
+	}
+
+	@Test
+	public void testEntityCreatedDelegatesToRegisterSchema() {
+		UserInfo admin = new UserInfo(true);
+		admin.setId(1L);
+		SearchIndex entity = new SearchIndex();
+		entity.setId("syn456");
+		entity.setDefiningSQL("SELECT studyName FROM syn123");
+
+		// call under test
+		provider.entityCreated(admin, entity);
+
+		verify(lifecycleManager).registerSchema(
+				IdAndVersion.parse("syn456"),
+				"SELECT studyName FROM syn123");
+	}
+
+	@Test
+	public void testEntityUpdatedDelegatesToRegisterSchema() {
+		UserInfo admin = new UserInfo(true);
+		admin.setId(1L);
+		SearchIndex entity = new SearchIndex();
+		entity.setId("syn456");
+		entity.setDefiningSQL("SELECT studyName, 'tag' as tag FROM syn123");
+
+		// call under test
+		provider.entityUpdated(admin, entity, false);
+
+		verify(lifecycleManager).registerSchema(
+				IdAndVersion.parse("syn456"),
+				"SELECT studyName, 'tag' as tag FROM syn123");
 	}
 }

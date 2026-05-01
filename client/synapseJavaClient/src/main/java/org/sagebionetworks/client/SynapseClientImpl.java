@@ -153,6 +153,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRespo
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
@@ -280,7 +281,6 @@ import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
 import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
-import org.sagebionetworks.repo.model.grid.query.QueryRequest;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -5223,6 +5223,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(threadId, "threadId");
 		String url = THREAD+"/"+threadId;
 		return getJSONEntity(getRepoEndpoint(), url, DiscussionThreadBundle.class);
+	}
+
+	@Override
+	public DiscussionThreadBundle getThreadForSubmission(String submissionId) throws SynapseException {
+		ValidateArgument.required(submissionId, "submissionId");
+		return getJSONEntity(getRepoEndpoint(), THREAD+"/submission/"+submissionId, DiscussionThreadBundle.class);
+	}
+
+	@Override
+	public org.sagebionetworks.repo.model.dataaccess.Submission getSubmissionForThread(String threadId) throws SynapseException {
+		ValidateArgument.required(threadId, "threadId");
+		return getJSONEntity(getRepoEndpoint(), "/dataAccessSubmission/thread/"+threadId, org.sagebionetworks.repo.model.dataaccess.Submission.class);
+	}
+
+	@Override
+	public AccessRequirementPermissions getAccessRequirementPermissions(String requirementId) throws SynapseException {
+		ValidateArgument.required(requirementId, "requirementId");
+		return getJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT+"/"+requirementId+"/permissions", AccessRequirementPermissions.class);
 	}
 
 	@Override
