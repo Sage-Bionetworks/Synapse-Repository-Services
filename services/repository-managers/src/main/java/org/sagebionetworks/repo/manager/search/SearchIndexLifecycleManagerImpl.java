@@ -73,22 +73,27 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private static final long MAX_ROWS = 500_000L;
 	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
 
-	/**
+    /**
 	 * Convert a raw String row value (as delivered by the table query stream) into the Java
-	 * type expected by the column's OpenSearch mapping. Bare-string columns (text / keyword /
-	 * link) pass through as {@code String}; everything else is parsed via Jackson's untyped
-	 * {@code readValue}, which yields the natural Java equivalent of the JSON token —
-	 * {@code Integer}/{@code Long}, {@code Double}, {@code Boolean}, {@code List}, or
-	 * {@code Map} — each of which the OpenSearch client serializes as the right JSON type.
-	 * Returning the raw String for non-string columns causes AOSS to reject the doc.
+	 * type expected by the column's OpenSearch mapping. List columns are parsed as JSON
+	 * arrays. Bare-string columns (text / keyword / link) pass through as {@code String};
+	 * everything else is parsed via Jackson's untyped {@code readValue}, which yields the
+	 * natural Java equivalent of the JSON token — {@code Integer}/{@code Long},
+	 * {@code Double}, {@code Boolean}, {@code List}, or {@code Map} — each of which the
+	 * OpenSearch client serializes as the right JSON type. Returning the raw String for
+	 * non-string columns causes AOSS to reject the doc.
 	 */
 	static Object convertForDocument(String value, ColumnType type) {
 		if (value == null) {
 			return null;
 		}
-		if (ColumnTypeToOpenSearchMapping.isTextType(type)
+		// List types must be checked before the bare-string short-circuit: STRING_LIST maps
+		// to TEXT and ENTITYID_LIST/USERID_LIST map to KEYWORD, so isTextType/isKeywordType
+		// would otherwise pass the raw JSON-array string straight through.
+		if (!ColumnTypeToOpenSearchMapping.isListType(type)
+				&& (ColumnTypeToOpenSearchMapping.isTextType(type)
 				|| ColumnTypeToOpenSearchMapping.isKeywordType(type)
-				|| ColumnTypeToOpenSearchMapping.isLinkType(type)) {
+				|| ColumnTypeToOpenSearchMapping.isLinkType(type))) {
 			return value;
 		}
 		try {
