@@ -23,10 +23,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
+import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchQuery;
+import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryType;
-import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzerSettings;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -328,14 +329,12 @@ public class OpenSearchManagerImplAutoWiredTest {
 				"Every Synapse ColumnType must be represented in this round-trip test");
 
 		List<ColumnModel> columns = new ArrayList<>();
-		Map<String, ColumnType> typeByColumnId = new LinkedHashMap<>();
 		int nextId = 1;
 		for (ColumnType type : casesByType.keySet()) {
 			String columnId = Integer.toString(nextId++);
 			columns.add(new ColumnModel().setId(columnId)
 					.setName("c_" + type.name().toLowerCase())
 					.setColumnType(type));
-			typeByColumnId.put(columnId, type);
 		}
 
 		openSearchManager.createIndex(indexName, columns, null,
@@ -373,8 +372,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		Map<String, String> idToName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName));
 		Map<String, String> returnedByName = new HashMap<>();
-		for (org.sagebionetworks.repo.model.search.SearchFieldValue fv :
-				results.getHits().get(0).getFields()) {
+		for (SearchFieldValue fv : results.getHits().get(0).getFields()) {
 			returnedByName.put(fv.getName(), fv.getValue());
 		}
 

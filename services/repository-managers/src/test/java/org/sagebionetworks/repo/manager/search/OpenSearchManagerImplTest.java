@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -860,18 +861,16 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testDescribeErrorIncludesRootCauseAndMetadata() {
+	public void testDescribeErrorWithRootCause() {
 		// AOSS sometimes leaves the outer reason generic and puts the real diagnostic in
-		// root_cause[] and metadata. Surface them so the failure is debuggable.
-		org.opensearch.client.opensearch._types.ErrorCause rootCause =
-				org.opensearch.client.opensearch._types.ErrorCause.of(b -> b
-						.type("illegal_argument_exception")
-						.reason("analyzer [synapse_analyzer_1] not found"));
-		org.opensearch.client.opensearch._types.ErrorCause outer =
-				org.opensearch.client.opensearch._types.ErrorCause.of(b -> b
-						.type("?")
-						.reason("Internal error occurred while processing request")
-						.rootCause(rootCause));
+		// root_cause[]. Surface it so the failure is debuggable.
+		ErrorCause rootCause = ErrorCause.of(b -> b
+				.type("illegal_argument_exception")
+				.reason("analyzer [synapse_analyzer_1] not found"));
+		ErrorCause outer = ErrorCause.of(b -> b
+				.type("?")
+				.reason("Internal error occurred while processing request")
+				.rootCause(rootCause));
 
 		// call under test
 		String desc = OpenSearchManagerImpl.describeError(outer);
@@ -883,7 +882,7 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testCreateIndexWithOpenSearchExceptionIncludesCauseChain() throws IOException {
+	public void testCreateIndexWithOpenSearchException() throws IOException {
 		String indexName = "search-index-syn1";
 		ErrorCause inner = ErrorCause.of(b -> b
 				.type("illegal_argument_exception")
@@ -905,17 +904,13 @@ public class OpenSearchManagerImplTest {
 						Collections.emptyList(), Collections.emptyList(), Collections.emptyMap()));
 
 		assertEquals(openSearchException, ex.getCause());
-		String message = ex.getMessage();
-		assertTrue(message.contains(indexName), message);
-		assertTrue(message.contains("mapper_parsing_exception"), message);
-		assertTrue(message.contains("failed to parse field [col_123] of type [long]"), message);
-		assertTrue(message.contains("caused by"), message);
-		assertTrue(message.contains("illegal_argument_exception"), message);
-		assertTrue(message.contains("For input string: \"abc\""), message);
+		assertEquals("Failed to create search index: " + indexName
+				+ " (" + OpenSearchManagerImpl.describeError(outer) + ")",
+				ex.getMessage());
 	}
 
 	@Test
-	public void testCreateIndexWithResourceAlreadyExistsReturnsEmpty() throws IOException {
+	public void testCreateIndexWithResourceAlreadyExists() throws IOException {
 		String indexName = "search-index-syn1";
 		OpenSearchException openSearchException = new OpenSearchException(
 				ErrorResponse.of(er -> er.error(ErrorCause.of(b -> b
@@ -927,10 +922,10 @@ public class OpenSearchManagerImplTest {
 				.thenThrow(openSearchException);
 
 		// call under test
-		java.util.Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
+		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
 				Collections.emptyList(), Collections.emptyList(), Collections.emptyMap());
 
-		assertTrue(result.isEmpty());
+		assertEquals(Optional.empty(), result);
 	}
 
 }

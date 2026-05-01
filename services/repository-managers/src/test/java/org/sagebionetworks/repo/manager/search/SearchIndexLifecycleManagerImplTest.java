@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.opensearch._types.ErrorCause;
+import org.opensearch.client.opensearch._types.ErrorResponse;
+import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -32,15 +36,14 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
@@ -50,6 +53,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.util.progress.ProgressCallback;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
 public class SearchIndexLifecycleManagerImplTest {
@@ -239,13 +243,11 @@ public class SearchIndexLifecycleManagerImplTest {
 		searchIndex.setDefiningSQL(DEFINING_SQL);
 		searchIndex.setParentId("syn100");
 
-		org.opensearch.client.opensearch._types.ErrorCause cause =
-				org.opensearch.client.opensearch._types.ErrorCause.of(b -> b
-						.type("status_exception")
-						.reason("Deletion failed for indices [search-index-syn456] due to concurrent deletes, please try again"));
-		org.opensearch.client.opensearch._types.OpenSearchException concurrentDelete =
-				new org.opensearch.client.opensearch._types.OpenSearchException(
-						org.opensearch.client.opensearch._types.ErrorResponse.of(er -> er.error(cause).status(400)));
+		ErrorCause cause = ErrorCause.of(b -> b
+				.type("status_exception")
+				.reason("Deletion failed for indices [search-index-syn456] due to concurrent deletes, please try again"));
+		OpenSearchException concurrentDelete = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(cause).status(400)));
 
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(userManager.getUserInfo(USER_ID)).thenReturn(triggering);
@@ -257,13 +259,12 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(searchConfigurationResolver.resolve(any(), any(), any())).thenReturn(Optional.empty());
 		when(tableQueryManager.querySinglePage(any(), any(), any(), any()))
 				.thenReturn(new QueryResultBundle().setQueryCount(0L));
-		org.mockito.Mockito.doThrow(concurrentDelete)
+		doThrow(concurrentDelete)
 				.when(openSearchManager).deleteIndex("search-index-" + ENTITY_ID);
 
 		// call under test
-		org.sagebionetworks.workers.util.aws.message.RecoverableMessageException thrown =
-				assertThrows(org.sagebionetworks.workers.util.aws.message.RecoverableMessageException.class,
-						() -> manager.handleCreate(progressCallback, ENTITY_ID, USER_ID));
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class,
+				() -> manager.handleCreate(progressCallback, ENTITY_ID, USER_ID));
 
 		assertSame(concurrentDelete, thrown.getCause());
 		// The state row was set CREATING upfront, but no FAILED was recorded — this
