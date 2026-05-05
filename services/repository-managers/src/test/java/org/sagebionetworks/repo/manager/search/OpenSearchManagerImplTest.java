@@ -819,6 +819,84 @@ public class OpenSearchManagerImplTest {
 	// convertHighlights above covers the only branch with non-trivial logic that isn't
 	// exclusively OpenSearch-client plumbing.
 
+	// convertFieldValue stringifies a single AOSS _source value for SearchFieldValue.value.
+	// Lists and maps (the *_LIST and JSON column types) must be written as canonical JSON so
+	// clients can parse them back; scalars must use String.valueOf so a raw String column is
+	// not double-quoted. PLFM-9625 was the latter branch silently using Java's List.toString
+	// (`[a, b]`) instead of JSON.
+
+	@Test
+	public void testConvertFieldValueWithNull() {
+		// call under test
+		assertNull(OpenSearchManagerImpl.convertFieldValue(null));
+	}
+
+	@Test
+	public void testConvertFieldValueWithString() {
+		// call under test
+		assertEquals("alpha", OpenSearchManagerImpl.convertFieldValue("alpha"));
+	}
+
+	@Test
+	public void testConvertFieldValueWithInteger() {
+		// call under test
+		assertEquals("123", OpenSearchManagerImpl.convertFieldValue(123));
+	}
+
+	@Test
+	public void testConvertFieldValueWithLong() {
+		// call under test
+		assertEquals("1609459200000", OpenSearchManagerImpl.convertFieldValue(1609459200000L));
+	}
+
+	@Test
+	public void testConvertFieldValueWithDouble() {
+		// call under test
+		assertEquals("1.5", OpenSearchManagerImpl.convertFieldValue(1.5));
+	}
+
+	@Test
+	public void testConvertFieldValueWithBoolean() {
+		// call under test
+		assertEquals("true", OpenSearchManagerImpl.convertFieldValue(Boolean.TRUE));
+	}
+
+	@Test
+	public void testConvertFieldValueWithListOfStrings() {
+		// PLFM-9625: List values must round-trip as canonical JSON, not Java List.toString().
+		// call under test
+		assertEquals("[\"alpha\",\"beta\"]",
+				OpenSearchManagerImpl.convertFieldValue(List.of("alpha", "beta")));
+	}
+
+	@Test
+	public void testConvertFieldValueWithListOfStringsContainingComma() {
+		// The ticket's motivating case: a list element contains a comma, so the buggy
+		// `[alpha, b,c]` form would be unparseable. JSON quoting must preserve element boundaries.
+		// call under test
+		assertEquals("[\"alpha\",\"b,c\"]",
+				OpenSearchManagerImpl.convertFieldValue(List.of("alpha", "b,c")));
+	}
+
+	@Test
+	public void testConvertFieldValueWithListOfIntegers() {
+		// call under test
+		assertEquals("[1,2,3]",
+				OpenSearchManagerImpl.convertFieldValue(List.of(1, 2, 3)));
+	}
+
+	@Test
+	public void testConvertFieldValueWithMap() {
+		// JSON column type: AOSS returns a Map; must be re-serialized as canonical JSON.
+		// LinkedHashMap pins key order so the asserted JSON is deterministic.
+		java.util.LinkedHashMap<String, Object> map = new java.util.LinkedHashMap<>();
+		map.put("a", 1);
+		map.put("b", "x");
+
+		// call under test
+		assertEquals("{\"a\":1,\"b\":\"x\"}", OpenSearchManagerImpl.convertFieldValue(map));
+	}
+
 	@Test
 	public void testDescribeErrorWithSingleCause() {
 		org.opensearch.client.opensearch._types.ErrorCause cause =

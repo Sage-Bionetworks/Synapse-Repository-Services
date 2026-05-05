@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +11,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import jakarta.json.stream.JsonParser;
 
@@ -810,7 +814,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					.map(e -> {
 						SearchFieldValue fv = new SearchFieldValue();
 						fv.setName(idToName.getOrDefault(e.getKey(), e.getKey()));
-						fv.setValue(e.getValue() != null ? String.valueOf(e.getValue()) : null);
+						fv.setValue(convertFieldValue(e.getValue()));
 						return fv;
 					})
 					.collect(Collectors.toList());
@@ -822,6 +826,26 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 
 		return searchHit;
+	}
+
+	/**
+	 * Stringify a value from an AOSS hit's {@code _source} for {@link SearchFieldValue#setValue(String)}.
+	 * Lists and maps (i.e. {@code *_LIST} and {@code JSON} columns) are written as canonical JSON
+	 * so clients can parse them back; scalars use {@link String#valueOf(Object)} so a raw {@code String}
+	 * column is not double-quoted in the response. Mirrors the pattern at {@code SQLUtils#bindListColumns}
+	 * (lib-table-cluster) which serializes typed Java lists for the table index DB the same way.
+	 */
+	static String convertFieldValue(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Collection) {
+			return new JSONArray((Collection<?>) value).toString();
+		}
+		if (value instanceof Map) {
+			return new JSONObject((Map<?, ?>) value).toString();
+		}
+		return String.valueOf(value);
 	}
 
 	List<SearchFieldValue> convertHighlights(Map<String, List<String>> highlightMap,
