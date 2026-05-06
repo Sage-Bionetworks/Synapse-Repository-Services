@@ -313,6 +313,30 @@ public class OpenSearchManagerImplAutoWiredTest {
 		assertEquals(3L, indexed);
 	}
 
+	@Test
+	public void testBulkIndexWithBootstrappedScientificAnalyzer() {
+		Map<String, TextAnalyzer> analyzers = new HashMap<>();
+		analyzers.put("org.sagebionetworks-SCIENTIFIC", bootstrappedScientificAnalyzer());
+
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("geneName").setColumnType(ColumnType.STRING));
+
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), Collections.emptyList(), analyzers);
+
+		List<BulkOperation> operations = List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "BRCA1")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "1", "BRCA2")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "1", "TP53"))
+		);
+
+		// call under test — all 3 docs must be accepted. Pre-fix this returned 3 per-item
+		// errors with "Internal error occurred while processing request".
+		long indexed = openSearchManager.bulkIndex(indexName, operations);
+
+		assertEquals(3L, indexed);
+	}
+
 	/**
 	 * Round-trips one row through every Synapse {@link ColumnType} simultaneously: each fixture
 	 * pairs the raw String value (the form delivered by {@code tableQueryManager.runQueryAsStream})
@@ -418,6 +442,32 @@ public class OpenSearchManagerImplAutoWiredTest {
 			this.expected = expected;
 			this.expectedReturned = expectedReturned;
 		}
+	}
+
+	/**
+	 * Mirrors {@code TextAnalyzerBootstrapper.buildScientificSettings()}. Kept inline (matching
+	 * the autocomplete helpers below) so this test exercises the exact production config without
+	 * requiring the bootstrapper to expose its internals.
+	 */
+	private static TextAnalyzer bootstrappedScientificAnalyzer() {
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+		settings.setTokenFilters("{"
+				+ "\"sci_word_delimiter\":{\"type\":\"word_delimiter\",\"preserve_original\":true,"
+				+ "\"split_on_case_change\":true,\"split_on_numerics\":true,"
+				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
+				+ "\"stem_english_possessive\":true},"
+				+ "\"english_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"},"
+				+ "\"english_stemmer\":{\"type\":\"stemmer\",\"language\":\"english\"}"
+				+ "}");
+		settings.setFilterOrder(Arrays.asList(
+				"sci_word_delimiter", "lowercase", "english_stop", "english_stemmer"));
+		settings.setSynonymAware(true);
+
+		TextAnalyzer analyzer = new TextAnalyzer();
+		analyzer.setId(Long.toString(TextAnalyzerBootstrapper.SCIENTIFIC_ID));
+		analyzer.setSettings(settings);
+		return analyzer;
 	}
 
 	private static TextAnalyzer autocompleteIndexAnalyzer() {

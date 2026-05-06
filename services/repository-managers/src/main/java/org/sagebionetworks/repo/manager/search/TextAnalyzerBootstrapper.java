@@ -98,7 +98,7 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
 		settings.setTokenFilters("{"
-				+ "\"sci_word_delimiter\":{\"type\":\"word_delimiter_graph\",\"preserve_original\":true,"
+				+ "\"sci_word_delimiter\":{\"type\":\"word_delimiter\",\"preserve_original\":true,"
 				+ "\"split_on_case_change\":true,\"split_on_numerics\":true,"
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":true},"
@@ -115,7 +115,7 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
 		settings.setTokenFilters("{"
-				+ "\"std_word_delimiter\":{\"type\":\"word_delimiter_graph\",\"preserve_original\":true,"
+				+ "\"std_word_delimiter\":{\"type\":\"word_delimiter\",\"preserve_original\":true,"
 				+ "\"split_on_case_change\":true,\"split_on_numerics\":true,"
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":true}"
@@ -129,7 +129,7 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("whitespace");
 		settings.setTokenFilters("{"
-				+ "\"id_word_delimiter\":{\"type\":\"word_delimiter_graph\",\"preserve_original\":true,"
+				+ "\"id_word_delimiter\":{\"type\":\"word_delimiter\",\"preserve_original\":true,"
 				+ "\"split_on_case_change\":true,\"split_on_numerics\":true,"
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":false}"
