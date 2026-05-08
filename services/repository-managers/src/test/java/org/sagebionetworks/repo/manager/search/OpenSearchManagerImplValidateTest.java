@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -191,5 +193,42 @@ public class OpenSearchManagerImplValidateTest {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
 			() -> manager.validateAnalyzerSettings(null));
+	}
+
+	@Test
+	public void testValidateRetriesOnIndexNotFoundThenSucceeds() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ErrorResponse indexNotFound = ErrorResponse.of(e -> e
+			.error(err -> err.type("index_not_found_exception").reason("no such index"))
+			.status(404));
+		when(indicesClient.analyze(any(AnalyzeRequest.class)))
+			.thenThrow(new OpenSearchException(indexNotFound))
+			.thenReturn(analyzeResponse);
+
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+
+		// call under test — first attempt throws index_not_found, second succeeds
+		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
+		verify(indicesClient, times(2)).analyze(any(AnalyzeRequest.class));
+	}
+
+	@Test
+	public void testValidateThrowsIllegalStateWhenIndexNotFoundExhaustsRetries() throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ErrorResponse indexNotFound = ErrorResponse.of(e -> e
+			.error(err -> err.type("index_not_found_exception").reason("no such index"))
+			.status(404));
+		when(indicesClient.analyze(any(AnalyzeRequest.class)))
+			.thenThrow(new OpenSearchException(indexNotFound));
+
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+
+		// call under test — all retries exhausted, must surface as IllegalStateException
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+			() -> manager.validateAnalyzerSettings(settings));
+		assertTrue(ex.getMessage().contains("temporarily unavailable"));
+		verify(indicesClient, times(OpenSearchManagerImpl.ANALYZE_RETRY_MAX)).analyze(any(AnalyzeRequest.class));
 	}
 }

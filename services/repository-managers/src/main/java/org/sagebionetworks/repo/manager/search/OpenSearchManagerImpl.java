@@ -79,6 +79,8 @@ import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzerSettings;
 import org.sagebionetworks.repo.model.search.KeyRange;
 import org.sagebionetworks.repo.model.search.KeyValues;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
@@ -109,6 +111,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String SUB_FIELD_SEARCHABLE = "searchable";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	static final int ANALYZE_RETRY_MAX = 5;
+	static final long ANALYZE_RETRY_INITIAL_MS = 500L;
 	// AOSS reports a concurrent index-delete attempt with a reason text containing
 	// "concurrent deletes". Package-visible so callers can recognize and translate
 	// it into a recoverable SQS retry.
@@ -1201,22 +1205,38 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		List<CharFilter> charFilters = buildCharFilters(settings);
 
 		try {
-			openSearchClient.indices().analyze(req -> {
-				req.tokenizer(tokenizer);
-				req.text("The quick brown fox jumps over the lazy dog");
-				if (!tokenFilters.isEmpty()) {
-					req.filter(tokenFilters);
+			TimeUtils.waitForExponentialMaxRetry(ANALYZE_RETRY_MAX, ANALYZE_RETRY_INITIAL_MS, () -> {
+				try {
+					openSearchClient.indices().analyze(req -> {
+						req.tokenizer(tokenizer);
+						req.text("The quick brown fox jumps over the lazy dog");
+						if (!tokenFilters.isEmpty()) {
+							req.filter(tokenFilters);
+						}
+						if (!charFilters.isEmpty()) {
+							req.charFilter(charFilters);
+						}
+						return req;
+					});
+				} catch (OpenSearchException e) {
+					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error() != null ? e.error().type() : null)) {
+						throw new RetryException(e);
+					}
+					throw new IllegalArgumentException(
+						"Invalid analyzer configuration: " + describeError(e.error())
+						+ ". Check your tokenizer, token filters, and character filters.", e);
+				} catch (IOException e) {
+					throw new IllegalStateException(
+						"Unable to validate analyzer settings: the search service is temporarily unavailable. Please try again later.", e);
 				}
-				if (!charFilters.isEmpty()) {
-					req.charFilter(charFilters);
-				}
-				return req;
+				return null;
 			});
-		} catch (OpenSearchException e) {
-			throw new IllegalArgumentException(
-				"Invalid analyzer configuration: " + describeError(e.error())
-				+ ". Check your tokenizer, token filters, and character filters.", e);
-		} catch (IOException e) {
+		} catch (RetryException e) {
+			throw new IllegalStateException(
+				"Unable to validate analyzer settings: the search service is temporarily unavailable. Please try again later.", e.getCause());
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new IllegalStateException(
 				"Unable to validate analyzer settings: the search service is temporarily unavailable. Please try again later.", e);
 		}
