@@ -45,7 +45,9 @@ public class PublishToS3 {
 		// Create an S3 Connection
 		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
 		// Create the bucket if it does not exist
-		Bucket bucket = s3Client.createBucket(bucketName);
+		if (! s3Client.doesBucketExist(bucketName)) {
+			s3Client.createBucket(bucketName);
+		}
 		// Set the bucket to be a static website
 		s3Client.setBucketWebsiteConfiguration(bucketName, new BucketWebsiteConfiguration("index.html"));
 		// Make the bucket public
