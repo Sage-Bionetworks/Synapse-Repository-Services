@@ -4,6 +4,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.agent.worker.AgentChatWorker;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.doi.worker.DoiWorker;
 import org.sagebionetworks.download.worker.AddToDownloadListStatsWorker;
@@ -60,15 +61,17 @@ public class AsyncJobWorkersConfig {
 	private UserManager userManager;
 	private CountingSemaphore countingSemaphore;
 	private StackStatusGate stackStatusGate;
+	private WorkerLogger workerLogger;
 
 	public AsyncJobWorkersConfig(AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, AsynchJobStatusManager jobStatusManager,
-			UserManager userManager, CountingSemaphore countingSemaphore, StackStatusGate stackStatusGate) {
+			UserManager userManager, CountingSemaphore countingSemaphore, StackStatusGate stackStatusGate, WorkerLogger workerLogger) {
 		this.amazonSQSClient = amazonSQSClient;
 		this.stackConfig = stackConfig;
 		this.jobStatusManager = jobStatusManager;
 		this.userManager = userManager;
 		this.countingSemaphore = countingSemaphore;
 		this.stackStatusGate = stackStatusGate;
+		this.workerLogger = workerLogger;
 	}
 
 	@Bean
@@ -87,6 +90,7 @@ public class AsyncJobWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2187)
@@ -110,6 +114,7 @@ public class AsyncJobWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2180)
@@ -590,6 +595,7 @@ public class AsyncJobWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2187)
@@ -613,6 +619,7 @@ public class AsyncJobWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(987)
@@ -771,6 +778,7 @@ public class AsyncJobWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(2039)

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -32,6 +33,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack.StackState;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.util.progress.ProgressListener;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
@@ -42,6 +44,8 @@ public class ConcurrentWorkerStackTest {
 	private ConcurrentManager mockManager;
 	@Mock
 	private MessageDrivenRunner mockWorker;
+	@Mock
+	private WorkerLogger mockWorkerLogger;
 	@Mock
 	private ProgressListener mockProgressListenerOne;
 	@Mock
@@ -84,7 +88,8 @@ public class ConcurrentWorkerStackTest {
 		return ConcurrentWorkerStack.builder().withSingleton(mockManager).withCanRunInReadOnly(canRunInReadOnly)
 				.withSemaphoreLockKey(semaphoreLockKey).withSemaphoreMaxLockCount(semaphoreMaxLockCount)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(semaphoreLockAndMessageVisibilityTimeoutSec)
-				.withMaxThreadsPerMachine(maxThreadsPerMachine).withWorker(mockWorker).withQueueName(queueName).build();
+				.withMaxThreadsPerMachine(maxThreadsPerMachine).withWorker(mockWorker).withQueueName(queueName)
+				.withWorkerLogger(mockWorkerLogger).build();
 	}
 
 	@Test
@@ -106,6 +111,16 @@ public class ConcurrentWorkerStackTest {
 			createStack();
 		}).getMessage();
 		assertEquals("worker is required.", message);
+	}
+
+	@Test
+	public void testBuildWithNullWorkerLogger() {
+		mockWorkerLogger = null;
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			createStack();
+		}).getMessage();
+		assertEquals("workerLogger is required.", message);
 	}
 	
 	@Test
@@ -465,10 +480,13 @@ public class ConcurrentWorkerStackTest {
 		verify(mockProgressListenerTwo, never()).progressMade();
 		verify(mockProgressListenerThree, never()).progressMade();
 		verify(mockManager, times(3)).getCurrentTimeMS();
+		verify(mockWorkerLogger, never()).logCount(any(), Mockito.anyDouble(), any());
 		assertEquals(10_002L, stack.getNextRefreshTimeMS());
 
-		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager);
+		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager, mockWorkerLogger);
 		when(mockManager.getCurrentTimeMS()).thenReturn(10_002L, 10_003L);
+
+		Map<String, String> expectedDims = Map.of(WorkerLogger.DIMENSION_WORKER_NAME, semaphoreLockKey);
 
 		// call under test
 		stack.refreshLocksIfNeeded();
@@ -476,6 +494,8 @@ public class ConcurrentWorkerStackTest {
 		verify(mockProgressListenerTwo).progressMade();
 		verify(mockProgressListenerThree).progressMade();
 		verify(mockManager, times(2)).getCurrentTimeMS();
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_CONCURRENT_WORKER_COUNT, 2.0, expectedDims);
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_WORKER_LOCK_HELD, 1.0, expectedDims);
 		assertEquals(20_003L, stack.getNextRefreshTimeMS());
 
 		reset(mockProgressListenerOne, mockProgressListenerTwo, mockProgressListenerThree, mockManager);
@@ -499,6 +519,37 @@ public class ConcurrentWorkerStackTest {
 		verify(mockProgressListenerThree).progressMade();
 		verify(mockManager, times(2)).getCurrentTimeMS();
 		assertEquals(30_009L, stack.getNextRefreshTimeMS());
+	}
+
+	@Test
+	public void testEmitConcurrencyMetricsWithEmptyRunningJobs() {
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		ConcurrentWorkerStack stack = createStack();
+		stack.resetAllState();
+		Map<String, String> expectedDims = Map.of(WorkerLogger.DIMENSION_WORKER_NAME, semaphoreLockKey);
+
+		// call under test
+		stack.emitConcurrencyMetrics();
+
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_CONCURRENT_WORKER_COUNT, 0.0, expectedDims);
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_WORKER_LOCK_HELD, 1.0, expectedDims);
+	}
+
+	@Test
+	public void testEmitConcurrencyMetricsWithRunningJobs() {
+		when(mockManager.getSqsQueueUrl(any())).thenReturn(queueUrl);
+		ConcurrentWorkerStack stack = createStack();
+		stack.resetAllState();
+		stack.getRunningJobs().add(new WorkerJob(futureOne, mockProgressListenerOne));
+		stack.getRunningJobs().add(new WorkerJob(futureTwo, mockProgressListenerTwo));
+		stack.getRunningJobs().add(new WorkerJob(futureThree, mockProgressListenerThree));
+		Map<String, String> expectedDims = Map.of(WorkerLogger.DIMENSION_WORKER_NAME, semaphoreLockKey);
+
+		// call under test
+		stack.emitConcurrencyMetrics();
+
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_CONCURRENT_WORKER_COUNT, 3.0, expectedDims);
+		verify(mockWorkerLogger).logCount(WorkerLogger.METRIC_NAME_WORKER_LOCK_HELD, 1.0, expectedDims);
 	}
 
 	@Test

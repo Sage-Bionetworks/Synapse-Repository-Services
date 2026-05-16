@@ -87,6 +87,16 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		}
 		consumer.addProfileData(profileData);
 	}
+
+	@Override
+	public void logCount(String metricName, double value, Map<String, String> dimensions) {
+		if (!shouldProfile) {
+			return;
+		}
+		ValidateArgument.required(metricName, "metricName");
+		ProfileData data = buildProfileData(new Date(), metricName, StandardUnit.Count, value, dimensions);
+		consumer.addProfileData(data);
+	}
 	
 	/**
 	 * Makes transfer object and returns it.

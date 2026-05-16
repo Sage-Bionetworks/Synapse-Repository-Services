@@ -18,7 +18,10 @@ public interface WorkerLogger {
 	String DIMENSION_OBJECT_TYPE = "objectType";
 	String DIMENSION_STACK_TRACE = "stackTrace";
 	String DIMENSION_WORKER_CLASS = "workerClass";
+	String DIMENSION_WORKER_NAME = "workerName";
 	String METRIC_NAME_WORKER_TIME = "workerTime";
+	String METRIC_NAME_CONCURRENT_WORKER_COUNT = "ConcurrentWorkerCount";
+	String METRIC_NAME_WORKER_LOCK_HELD = "WorkerLockHeld";
 
 	/**
 	 * Log a change message driven worker event. The given class name (Class.getName) will be used as
@@ -70,8 +73,19 @@ public interface WorkerLogger {
 
 	/**
 	 * Log a custom metric
-	 * 
+	 *
 	 * @param pd
 	 */
 	void logCustomMetric(ProfileData pd);
+
+	/**
+	 * Publish a Count gauge in the worker namespace (stack-instance enriched).
+	 * Use this for instantaneous gauges like "ConcurrentWorkerCount" where
+	 * SUM aggregations across the fleet are meaningful.
+	 *
+	 * @param metricName the metric name
+	 * @param value the gauge value
+	 * @param dimensions optional dimensions (e.g. workerName)
+	 */
+	void logCount(String metricName, double value, Map<String, String> dimensions);
 }
