@@ -48,7 +48,7 @@ public class AsynchJobUtils {
 					// here
 				}
 				if (exception != null) {
-					throw exception;
+					throw new AsynchJobFailedException(jobStatus, exception);
 				}
 			}
 			throw new AsynchJobFailedException(jobStatus);
