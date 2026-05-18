@@ -55,7 +55,7 @@
 				},
 				{
 					"name": "MEDIUMTEXT",
-					"description": "The MEDIUMTEXT data type represents a string that is between 1 and 2,000 characters without the need to specify a maximum size.  For smaller strings where the maximum size is known consider using the STRING column type.  For larger strings, consider using the LARGETEXT or FILEHANDLEID column types. Each MEDIUMTEXT column counts as 421 bytes towards the total width of a table."
+					"description": "The MEDIUMTEXT data type represents a string that is between 1 and 100,000 characters without the need to specify a maximum size.  For smaller strings where the maximum size is known consider using the STRING column type.  For larger strings, consider using the LARGETEXT or FILEHANDLEID column types. Up to 152 MEDIUMTEXT columns are supported per table. Each MEDIUMTEXT column counts as 421 bytes towards the total width of a table."
 				},
 				{
 					"name": "LARGETEXT",

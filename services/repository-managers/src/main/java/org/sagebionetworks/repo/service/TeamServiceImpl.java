@@ -277,10 +277,10 @@ public class TeamServiceImpl implements TeamService {
 
 	@Override
 	public void setPermissions(Long userId, String teamId,
-			String principalId, boolean isAdmin) throws DatastoreException,
+			String principalId, boolean isTeamManager) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		teamManager.setPermissions(userInfo, teamId, principalId, isAdmin);
+		teamManager.setPermissions(userInfo, teamId, principalId, isTeamManager);
 	}
 
 	@Override

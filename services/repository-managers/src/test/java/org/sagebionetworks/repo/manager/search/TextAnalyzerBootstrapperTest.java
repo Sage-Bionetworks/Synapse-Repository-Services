@@ -75,7 +75,7 @@ public class TextAnalyzerBootstrapperTest {
 	}
 
 	@Test
-	public void testScientificAnalyzerHasWordDelimiterGraph() {
+	public void testScientificAnalyzerUsesWordDelimiterGraph() {
 		setupOrgMock();
 
 		verify(textAnalyzerDao).createOrUpdateSystemAnalyzerForBootstrapOnly(eq(TextAnalyzerBootstrapper.SCIENTIFIC_ID), analyzerCaptor.capture(), eq(TEST_ORG_NAME), any(Long.class));
@@ -84,12 +84,17 @@ public class TextAnalyzerBootstrapperTest {
 		assertEquals("standard", settings.getTokenizer());
 		assertWordDelimiterGraphFilter(settings.getTokenFilters(), "sci_word_delimiter");
 		assertEquals(Arrays.asList("sci_word_delimiter", "lowercase", "english_stop", "english_stemmer"),
-				settings.getFilterOrder());
+				settings.getIndexFilterOrder());
+		// Search-time chain: lowercase first so synonym rule LHS and query tokens reach
+		// the synonym filter in the same case; word_delimiter_graph downstream of
+		// synapse_synonyms so the synonym rule parser doesn't see positionLength>1 tokens.
+		assertEquals(Arrays.asList("lowercase", "synapse_synonyms", "sci_word_delimiter", "english_stop", "english_stemmer"),
+				settings.getSearchFilterOrder());
 		assertTrue(settings.getSynonymAware());
 	}
 
 	@Test
-	public void testStandardAnalyzerHasWordDelimiterGraph() {
+	public void testStandardAnalyzerUsesWordDelimiterGraph() {
 		setupOrgMock();
 
 		verify(textAnalyzerDao).createOrUpdateSystemAnalyzerForBootstrapOnly(eq(TextAnalyzerBootstrapper.STANDARD_ID), analyzerCaptor.capture(), eq(TEST_ORG_NAME), any(Long.class));
@@ -97,12 +102,14 @@ public class TextAnalyzerBootstrapperTest {
 
 		assertEquals("standard", settings.getTokenizer());
 		assertWordDelimiterGraphFilter(settings.getTokenFilters(), "std_word_delimiter");
-		assertEquals(Arrays.asList("std_word_delimiter", "lowercase"), settings.getFilterOrder());
+		assertEquals(Arrays.asList("std_word_delimiter", "lowercase"), settings.getIndexFilterOrder());
+		assertEquals(Arrays.asList("lowercase", "synapse_synonyms", "std_word_delimiter"),
+				settings.getSearchFilterOrder());
 		assertTrue(settings.getSynonymAware());
 	}
 
 	@Test
-	public void testIdentifierAnalyzerHasWordDelimiterGraph() {
+	public void testIdentifierAnalyzerUsesWordDelimiterGraph() {
 		setupOrgMock();
 
 		verify(textAnalyzerDao).createOrUpdateSystemAnalyzerForBootstrapOnly(eq(TextAnalyzerBootstrapper.IDENTIFIER_ID), analyzerCaptor.capture(), eq(TEST_ORG_NAME), any(Long.class));
@@ -110,7 +117,9 @@ public class TextAnalyzerBootstrapperTest {
 
 		assertEquals("whitespace", settings.getTokenizer());
 		assertWordDelimiterGraphFilter(settings.getTokenFilters(), "id_word_delimiter");
-		assertEquals(Arrays.asList("id_word_delimiter", "lowercase"), settings.getFilterOrder());
+		assertEquals(Arrays.asList("id_word_delimiter", "lowercase"), settings.getIndexFilterOrder());
+		assertEquals(Arrays.asList("lowercase", "synapse_synonyms", "id_word_delimiter"),
+				settings.getSearchFilterOrder());
 		assertTrue(settings.getSynonymAware());
 	}
 
@@ -125,7 +134,7 @@ public class TextAnalyzerBootstrapperTest {
 		// Index-time analyzer ending in edge_ngram requires legacy word_delimiter (non-graph),
 		// otherwise multi-position graph tokens break edge_ngram and AOSS rejects every document.
 		assertWordDelimiterFilter(settings.getTokenFilters(), "ac_word_delimiter");
-		List<String> filterOrder = settings.getFilterOrder();
+		List<String> filterOrder = settings.getIndexFilterOrder();
 		assertEquals("ac_word_delimiter", filterOrder.get(0));
 		assertEquals("lowercase", filterOrder.get(1));
 		assertEquals("edge_ngram_filter", filterOrder.get(2));
@@ -140,7 +149,9 @@ public class TextAnalyzerBootstrapperTest {
 
 		assertEquals("standard", settings.getTokenizer());
 		assertWordDelimiterGraphFilter(settings.getTokenFilters(), "acs_word_delimiter");
-		assertEquals(Arrays.asList("acs_word_delimiter", "lowercase"), settings.getFilterOrder());
+		assertEquals(Arrays.asList("acs_word_delimiter", "lowercase"), settings.getIndexFilterOrder());
+		assertEquals(Arrays.asList("lowercase", "synapse_synonyms", "acs_word_delimiter"),
+				settings.getSearchFilterOrder());
 		assertTrue(settings.getSynonymAware());
 	}
 
@@ -160,7 +171,7 @@ public class TextAnalyzerBootstrapperTest {
 		for (Long id : idsWithWordDelimiter) {
 			verify(textAnalyzerDao).createOrUpdateSystemAnalyzerForBootstrapOnly(eq(id), analyzerCaptor.capture(), eq(TEST_ORG_NAME), any(Long.class));
 			TextAnalyzerSettings settings = analyzerCaptor.getValue().getSettings();
-			List<String> order = settings.getFilterOrder();
+			List<String> order = settings.getIndexFilterOrder();
 			int wdIdx = -1;
 			int lcIdx = -1;
 			for (int i = 0; i < order.size(); i++) {

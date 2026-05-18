@@ -4,11 +4,11 @@
     "enum": [
         {
             "name": "LAST_ACTIVITY",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort projects by the date of last activity."
         },
         {
             "name": "PROJECT_NAME",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort projects by project name."
         }
     ]
 }

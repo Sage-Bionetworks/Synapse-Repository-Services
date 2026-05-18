@@ -49,8 +49,8 @@ public class ThreadMessageBuilderFactory implements MessageBuilderFactory {
 		ForumObjectType objectType = threadBundle.getObjectType();
 
         if (Objects.requireNonNull(objectType) == ForumObjectType.ENTITY) {
-			String synId = KeyFactory.stringToKey(threadBundle.getObjectId()).toString();
-            String projectName = nodeDao.getNodeName(synId);
+			String synId = KeyFactory.keyToString(Long.parseLong(threadBundle.getObjectId()));
+            String projectName = nodeDao.getNodeName(threadBundle.getObjectId());
             String actor = principalAliasDAO.getUserName(userId);
             String markdown = uploadDao.getMessage(threadBundle.getMessageKey());
             Topic broadcastTopic = new Topic();

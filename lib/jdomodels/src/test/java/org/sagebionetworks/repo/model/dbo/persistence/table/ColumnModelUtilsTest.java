@@ -304,7 +304,7 @@ public class ColumnModelUtilsTest {
 		expected.setColumnType(ColumnType.STRING_LIST);
 		expected.setDefaultValue("[\"str\"]");
 		expected.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE-1);
-		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		expected.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
 		// input
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING_LIST);
@@ -323,7 +323,7 @@ public class ColumnModelUtilsTest {
 		expected.setId(null);
 		expected.setName("name");
 		expected.setColumnType(ColumnType.INTEGER_LIST);
-		expected.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+		expected.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
 		// input
 		original = new ColumnModel();
 		original.setName("name");
@@ -332,6 +332,22 @@ public class ColumnModelUtilsTest {
 		assertNotNull(normlaized);
 		assertNotSame(normlaized, original, "A new object should have been created");
 		assertEquals(expected, normlaized);
+	}
+
+	@Test
+	public void testNormalizedStringColumnWithMaxListLengthAlreadySet(){
+		// A previously-normalized STRING column already has maximumListLength set to DEFAULT_LIST_LENGTH.
+		// Calling createNormalizedClone() again must not throw "Not a list type: STRING".
+		original = new ColumnModel();
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setMaximumSize(ColumnConstants.DEFAULT_STRING_SIZE);
+		original.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
+
+		// call under test
+		ColumnModel normalized = ColumnModelUtils.createNormalizedClone(original, StackConfigurationSingleton.singleton().getTableMaxEnumValues());
+
+		assertNotNull(normalized);
 	}
 
 	@Test
@@ -840,20 +856,23 @@ public class ColumnModelUtilsTest {
 
 		ColumnModelUtils.validateListLengthForClone(columnModel);
 
-		assertEquals(ColumnConstants.MAX_ALLOWED_LIST_LENGTH, columnModel.getMaximumListLength());
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
 	}
 
 
 	@Test
 	public void testValidateListLengthForCloneWithMaxLengthAboveAllowedMax(){
+		// STRING_LIST with default maximumSize (1000) has a budget of 100,000/1000 = 100 max elements
 		ColumnModel columnModel = new ColumnModel();
-		columnModel.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH+1);
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(null);
+		columnModel.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH + 1);
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () ->
 			ColumnModelUtils.validateListLengthForClone(columnModel)
 		).getMessage();
 
-		assertEquals("ColumnModel.maximumListLength for a LIST column cannot exceed: 100", errorMessage);
+		assertEquals("ColumnModel.maximumListLength for a STRING_LIST column cannot exceed: 100", errorMessage);
 	}
 
 
@@ -872,14 +891,201 @@ public class ColumnModelUtilsTest {
 	@Test
 	public void testValidateListLengthForCloneNothingHappens(){
 		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
 		columnModel.setMaximumListLength(45L);
 
+		// call under test
 		ColumnModelUtils.validateListLengthForClone(columnModel);
 
 		ColumnModel expected = new ColumnModel();
+		expected.setColumnType(ColumnType.INTEGER_LIST);
 		expected.setMaximumListLength(45L);
 
 		// nothing was changed
 		assertEquals(expected, columnModel);
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNonListColumnType(){
+		// Non-list column types can have maximumListLength set (e.g. during normalization)
+		// without triggering the budget check — the budget check only applies to list types.
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING);
+		columnModel.setMaximumListLength(45L);
+
+		// call under test - must not throw "Not a list type"
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		ColumnModel expected = new ColumnModel();
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumListLength(45L);
+
+		assertEquals(expected, columnModel);
+	}
+
+	// --- null maximumListLength defaults (regression: must stay at MAX_ALLOWED_LIST_LENGTH=100) ---
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForStringListNullSize() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(null);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForIntegerList() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForDateList() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.DATE_LIST);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForUserIdList() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.USERID_LIST);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForBooleanList() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN_LIST);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithNullMaxLengthForEntityIdList() {
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.ENTITYID_LIST);
+		columnModel.setMaximumListLength(null);
+
+		// call under test
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, columnModel.getMaximumListLength());
+	}
+
+	// --- explicit maximumListLength within the new budget (above old limit of 100, now allowed) ---
+
+	@Test
+	public void testValidateListLengthForCloneWithIntegerListAboveOldLimit() {
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / ColumnConstants.MAX_INTEGER_CHARACTERS_AS_STRING;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
+		columnModel.setMaximumListLength(maxAllowed);
+
+		// call under test - maxAllowed elements is within budget
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(maxAllowed, (long) columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithBooleanListAboveOldLimit() {
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / ColumnConstants.MAX_BOOLEAN_CHARACTERS_AS_STRING;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN_LIST);
+		columnModel.setMaximumListLength(maxAllowed);
+
+		// call under test - maxAllowed elements is within budget
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(maxAllowed, (long) columnModel.getMaximumListLength());
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithStringListCustomSizeAboveOldLimit() {
+		long maximumSize = 100L;
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / maximumSize;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(maximumSize);
+		columnModel.setMaximumListLength(maxAllowed);
+
+		// call under test - maxAllowed elements × 100 chars = 100,000 (within budget)
+		ColumnModelUtils.validateListLengthForClone(columnModel);
+
+		assertEquals(maxAllowed, (long) columnModel.getMaximumListLength());
+	}
+
+	// --- explicit maximumListLength exceeding the new budget (must be rejected) ---
+
+	@Test
+	public void testValidateListLengthForCloneWithIntegerListExceedingBudget() {
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / ColumnConstants.MAX_INTEGER_CHARACTERS_AS_STRING;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.INTEGER_LIST);
+		columnModel.setMaximumListLength(maxAllowed + 1);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				ColumnModelUtils.validateListLengthForClone(columnModel)
+		).getMessage();
+
+		assertEquals("ColumnModel.maximumListLength for a INTEGER_LIST column cannot exceed: " + maxAllowed, message);
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithBooleanListExceedingBudget() {
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / ColumnConstants.MAX_BOOLEAN_CHARACTERS_AS_STRING;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.BOOLEAN_LIST);
+		columnModel.setMaximumListLength(maxAllowed + 1);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				ColumnModelUtils.validateListLengthForClone(columnModel)
+		).getMessage();
+
+		assertEquals("ColumnModel.maximumListLength for a BOOLEAN_LIST column cannot exceed: " + maxAllowed, message);
+	}
+
+	@Test
+	public void testValidateListLengthForCloneWithStringListDefaultSizeExceedingBudget() {
+		long maxAllowed = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / ColumnConstants.MAX_ALLOWED_STRING_SIZE;
+		ColumnModel columnModel = new ColumnModel();
+		columnModel.setColumnType(ColumnType.STRING_LIST);
+		columnModel.setMaximumSize(null);
+		columnModel.setMaximumListLength(maxAllowed + 1);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () ->
+				ColumnModelUtils.validateListLengthForClone(columnModel)
+		).getMessage();
+
+		assertEquals("ColumnModel.maximumListLength for a STRING_LIST column cannot exceed: " + maxAllowed, message);
 	}
 }

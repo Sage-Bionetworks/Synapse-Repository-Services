@@ -9,15 +9,15 @@
             "enum": [
                 {
                     "name": "READ_WRITE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The stack is fully operational and supports both read and write operations."
                 },
                 {
                     "name": "READ_ONLY",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The stack is in read-only mode; write operations are disabled."
                 },
                 {
                     "name": "DOWN",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The stack is down and not available for use."
                 }
             ]
         },

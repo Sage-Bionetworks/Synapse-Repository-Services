@@ -231,13 +231,8 @@ public class TeamManagerImpl implements TeamManager {
 		acl.getResourceAccess().add(ra);
 	}
 	
-	public static void removeFromACL(AccessControlList acl, String principalId) {
-		Set<ResourceAccess> origRA = acl.getResourceAccess();
-		Set<ResourceAccess> newRA = new HashSet<ResourceAccess>();
-		for (ResourceAccess ra: origRA) {
-			if (!principalId.equals(ra.getPrincipalId().toString())) newRA.add(ra);
-		}
-		acl.setResourceAccess(newRA);
+	public static boolean removeFromACL(AccessControlList acl, String principalId) {
+		return acl.getResourceAccess().removeIf(ra -> principalId.equals(ra.getPrincipalId().toString()));
 	}
 
 	// returns true iff the the ACL has an entry for a Team admin
@@ -728,13 +723,17 @@ public class TeamManagerImpl implements TeamManager {
 			if (currentMembers.size() == 1) throw new UnauthorizedException("Cannot remove the last member of a Team.");
 			// remove from ACL
 			AccessControlList acl = aclManager.getAcl(teamId, ObjectType.TEAM).orElseThrow(() -> new NotFoundException("ACL not found for team " + teamId));
-			removeFromACL(acl, principalId);
+			boolean removed = removeFromACL(acl, principalId);
 			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) {
 				throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 			}
 			groupMembersDAO.removeMembers(teamId, Collections.singletonList(principalId));
-			Team team = get(teamId);
-			aclManager.update(userInfo, acl, ObjectType.TEAM, getTeamOwner(team));
+			if (removed) {
+				// Bypass aclManager.update because validateACLContent enforces "caller must retain ACL edit
+				// permission" — that's an ACL-edit invariant, not a team-leave invariant. We need to remove user from ACL here.
+				// Authorization for removal is handled above by canRemoveTeamMember and the team-admin invariant by aclHasTeamAdmin.
+				aclDAO.update(acl, ObjectType.TEAM);
+			}
 		}
 	}
 
@@ -811,21 +810,25 @@ public class TeamManagerImpl implements TeamManager {
 	@Override
 	@WriteTransaction
 	public void setPermissions(UserInfo userInfo, String teamId,
-			String principalId, boolean isAdmin) throws DatastoreException,
+			String principalId, boolean isTeamManager) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
 		AccessControlList acl = aclManager.getAcl(teamId, ObjectType.TEAM).orElseThrow(() -> new NotFoundException("ACL not found for team " +	teamId));
 		// first, remove the principal's entries from the ACL
-		removeFromACL(acl, principalId);
-		// now, if isAdmin is false, the team membership is enough to give the user basic permissions
-		if (isAdmin) {
-			// if isAdmin is true, then we add the specified admin permissions
+		boolean removed = removeFromACL(acl, principalId);
+		// now, if isTeamManager is false, the team membership is enough to give the user basic permissions
+		if (isTeamManager) {
+			// if isTeamManager is true, then we add the specified admin permissions
 			addToACL(acl, principalId, ModelConstants.TEAM_ADMIN_PERMISSIONS);
 		}
 		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException(MSG_TEAM_MUST_HAVE_AT_LEAST_ONE_TEAM_MANAGER);
 		// finally, update the ACL
-		Team team = get(teamId);
-		aclManager.update(userInfo, acl, ObjectType.TEAM, getTeamOwner(team));
+		if (removed || isTeamManager) {
+			// Bypass aclManager.update because validateACLContent enforces "caller must retain ACL edit
+			// permission" — that's an ACL-edit invariant, not a team-leave invariant. We need to remove or add user to ACL here.
+			// Authorization is handled above by canAccess and also guarantee that there is at least one Team Manager.
+			aclDAO.update(acl, ObjectType.TEAM);
+		}
 	}
 
 	private Long getTeamOwner(Team team) {

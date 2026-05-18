@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -11,68 +12,79 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import jakarta.json.stream.JsonParser;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.opensearch.client.json.JsonData;
 import org.opensearch.client.json.JsonpDeserializer;
 import org.opensearch.client.json.JsonpMapper;
+import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.ErrorCause;
+import org.opensearch.client.opensearch._types.FieldSort;
+import org.opensearch.client.opensearch._types.FieldValue;
+import org.opensearch.client.opensearch._types.OpenSearchException;
+import org.opensearch.client.opensearch._types.ShardSearchFailure;
+import org.opensearch.client.opensearch._types.ShardStatistics;
+import org.opensearch.client.opensearch._types.SortOptions;
+import org.opensearch.client.opensearch._types.SortOrder;
+import org.opensearch.client.opensearch._types.aggregations.Aggregate;
+import org.opensearch.client.opensearch._types.aggregations.Aggregation;
 import org.opensearch.client.opensearch._types.analysis.CharFilter;
 import org.opensearch.client.opensearch._types.analysis.CharFilterDefinition;
 import org.opensearch.client.opensearch._types.analysis.TokenFilter;
 import org.opensearch.client.opensearch._types.analysis.TokenFilterDefinition;
 import org.opensearch.client.opensearch._types.analysis.Tokenizer;
 import org.opensearch.client.opensearch._types.analysis.TokenizerDefinition;
-import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch._types.ErrorCause;
-import org.opensearch.client.opensearch._types.FieldSort;
-import org.opensearch.client.opensearch._types.FieldValue;
-import org.opensearch.client.opensearch._types.OpenSearchException;
-import org.opensearch.client.opensearch._types.SortOptions;
-import org.opensearch.client.opensearch._types.SortOrder;
-import org.opensearch.client.opensearch._types.aggregations.Aggregate;
-import org.opensearch.client.opensearch._types.aggregations.Aggregation;
-import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.mapping.DynamicMapping;
 import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.TextQueryType;
+import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
+import org.opensearch.client.opensearch.core.DeleteRequest;
+import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
+import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.model.search.FacetRequest;
+import org.sagebionetworks.repo.model.search.FacetSortField;
+import org.sagebionetworks.repo.model.search.KeyRange;
+import org.sagebionetworks.repo.model.search.KeyValues;
+import org.sagebionetworks.repo.model.search.SearchFieldValue;
+import org.sagebionetworks.repo.model.search.SearchHit;
+import org.sagebionetworks.repo.model.search.SearchQuery;
+import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.SearchQueryType;
+import org.sagebionetworks.repo.model.search.SortDirection;
+import org.sagebionetworks.repo.model.search.SortField;
+import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.SynonymRule;
+import org.sagebionetworks.repo.model.search.table.SynonymRuleType;
+import org.sagebionetworks.repo.model.search.table.SynonymSet;
+import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
+import org.sagebionetworks.repo.model.search.table.TextAnalyzerSettings;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
-import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
-import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
-import org.sagebionetworks.repo.model.search.FacetRequest;
-import org.sagebionetworks.repo.model.search.FacetSortField;
-import org.sagebionetworks.repo.model.search.SearchFieldValue;
-import org.sagebionetworks.repo.model.search.SearchHit;
-import org.sagebionetworks.repo.model.search.SearchQuery;
-import org.sagebionetworks.repo.model.search.SearchQueryType;
-import org.sagebionetworks.repo.model.search.SearchQueryResults;
-import org.sagebionetworks.repo.model.search.SortDirection;
-import org.sagebionetworks.repo.model.search.SortField;
-import org.sagebionetworks.repo.model.search.table.SynonymRule;
-import org.sagebionetworks.repo.model.search.table.SynonymRuleType;
-import org.sagebionetworks.repo.model.search.SearchQueryPart;
-import org.sagebionetworks.repo.model.search.table.SynonymSet;
-import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
-import org.sagebionetworks.repo.model.search.table.TextAnalyzerSettings;
-import org.sagebionetworks.repo.model.search.KeyRange;
-import org.sagebionetworks.repo.model.search.KeyValues;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
-
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
+
+import jakarta.json.stream.JsonParser;
 
 /**
  * Implementation of {@link OpenSearchManager} that wraps the OpenSearch Java client
@@ -81,13 +93,51 @@ import org.springframework.stereotype.Service;
 @Service
 public class OpenSearchManagerImpl implements OpenSearchManager {
 
+	private static final Logger LOG = LogManager.getLogger(OpenSearchManagerImpl.class);
+
+	private static final int HTTP_TOO_MANY_REQUESTS = 429;
+	private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+	private static final int HTTP_MAX_SERVER_ERROR = 599;
+
+	// Per-item bulk-failure descriptors are logged in full, but the first N are also
+	// embedded in the thrown RuntimeException message so the reason reaches the user
+	// via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS.
+	static final int MAX_FAILURE_SAMPLES = 5;
+	static final int MAX_BULK_ERROR_MESSAGE_CHARS = 2500;
+	static final String TRUNCATION_MARKER = "...[truncated]";
+
+	// Intra-batch retry for transient AOSS rejections (429 / 5xx on a subset of items).
+	// Resubmit only the incomplete subset with exponential backoff so the batch can drain
+	// instead of bouncing the whole change message back to SQS on every partial failure.
+	// Non-final so unit tests can lower the values and avoid real-wall-clock sleeps.
+	static int BULK_INDEX_MAX_RETRIES = 10;
+	static long BULK_INDEX_INITIAL_BACKOFF_MS = 10000L;
+
+	// Readiness probe for a freshly-created index. AOSS acknowledges createIndex and is
+	// queryable before shards are ready to accept writes, so the only reliable probe is
+	// an actual write. Same budget as the bulk-index retry for consistency.
+	static int INDEX_WRITABLE_MAX_RETRIES = 10;
+	static long INDEX_WRITABLE_INITIAL_BACKOFF_MS = 10000L;
+	static final String READINESS_PROBE_DOC_ID = "__readiness_probe__";
+
 	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String SUB_FIELD_SEARCHABLE = "searchable";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
+	// AOSS reports a concurrent index-delete attempt with a reason text containing
+	// "concurrent deletes". Package-visible so callers can recognize and translate
+	// it into a recoverable SQS retry.
+	static final String CONCURRENT_DELETES_MARKER = "concurrent deletes";
 	private static final String ANALYZER_PREFIX = "synapse_analyzer_";
 	private static final String SYNONYM_FILTER_NAME = "synapse_synonyms";
+	static final String SEARCH_ANALYZER_SUFFIX = "_search";
+
+	/** True when the OpenSearch error is AOSS's "concurrent deletes" rejection. */
+	static boolean isConcurrentDeleteError(OpenSearchException e) {
+		String reason = e.error() == null ? null : e.error().reason();
+		return reason != null && reason.contains(CONCURRENT_DELETES_MARKER);
+	}
 
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
@@ -120,7 +170,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 						return a;
 					}))
 					.mappings(m -> {
-						buildMappings(m, columns, defaultAnalyzer, overrideMap, analyzers);
+						buildMappings(m, columns, defaultAnalyzer, overrideMap, analyzers, hasSynonyms);
 						return m;
 					})
 			);
@@ -137,7 +187,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if ("resource_already_exists_exception".equals(e.error().type())) {
 				return Optional.empty();
 			}
-			throw new RuntimeException("Failed to create search index: " + indexName, e);
+			throw new RuntimeException("Failed to create search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to create search index: " + indexName, e);
 		}
@@ -147,7 +198,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			Map<String, TextAnalyzer> analyzers, boolean hasSynonyms, List<String> synonymRules) {
 		if (hasSynonyms) {
 			a.filter(SYNONYM_FILTER_NAME, f -> f.definition(d -> d
-					.synonym(syn -> syn.synonyms(synonymRules))));
+					.synonymGraph(syn -> syn.synonyms(synonymRules))));
 		}
 		for (Map.Entry<String, TextAnalyzer> entry : analyzers.entrySet()) {
 			registerAnalyzer(a, entry.getValue(), hasSynonyms);
@@ -171,25 +222,40 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			tokenizer = customTokenizerName;
 		}
 
-		List<String> filters = new ArrayList<>();
-		if (settings.getFilterOrder() != null) {
-			filters.addAll(settings.getFilterOrder());
-		}
-		if (Boolean.TRUE.equals(settings.getSynonymAware()) && hasSynonyms) {
-			filters.add(SYNONYM_FILTER_NAME);
-		}
-
 		String analyzerName = ANALYZER_PREFIX + analyzer.getId();
-		final String finalTokenizer = tokenizer;
-		final List<String> finalFilters = filters;
+		List<String> indexFilters = settings.getIndexFilterOrder() != null ? settings.getIndexFilterOrder() : Collections.emptyList();
+		registerCustomAnalyzer(a, analyzerName, tokenizer, indexFilters, settings.getCharFilterOrder());
 
-		a.analyzer(analyzerName, an -> an.custom(c -> {
-			c.tokenizer(finalTokenizer);
-			if (!finalFilters.isEmpty()) {
-				c.filter(finalFilters);
+		if (shouldRegisterSearchVariant(settings, hasSynonyms)) {
+			registerCustomAnalyzer(a, analyzerName + SEARCH_ANALYZER_SUFFIX, tokenizer,
+					settings.getSearchFilterOrder(), settings.getCharFilterOrder());
+		}
+	}
+
+	/**
+	 * A {@code _search} analyzer variant is registered when the analyzer is asymmetric —
+	 * i.e., it provides a {@code searchFilterOrder} distinct from {@code indexFilterOrder}.
+	 * One special case: if the search chain references {@code synapse_synonyms} but the
+	 * SearchIndex has no synonyms configured, the synonym filter is not registered in the
+	 * index settings; we skip the variant and the analyzer behaves symmetrically.
+	 */
+	private static boolean shouldRegisterSearchVariant(TextAnalyzerSettings settings, boolean hasSynonyms) {
+		List<String> search = settings.getSearchFilterOrder();
+		if (search == null || search.isEmpty()) {
+			return false;
+		}
+		return hasSynonyms || !search.contains(SYNONYM_FILTER_NAME);
+	}
+
+	private void registerCustomAnalyzer(IndexSettingsAnalysis.Builder a, String name,
+			String tokenizer, List<String> filters, List<String> charFilters) {
+		a.analyzer(name, an -> an.custom(c -> {
+			c.tokenizer(tokenizer);
+			if (!filters.isEmpty()) {
+				c.filter(filters);
 			}
-			if (settings.getCharFilterOrder() != null && !settings.getCharFilterOrder().isEmpty()) {
-				c.charFilter(settings.getCharFilterOrder());
+			if (charFilters != null && !charFilters.isEmpty()) {
+				c.charFilter(charFilters);
 			}
 			return c;
 		}));
@@ -197,7 +263,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	private void buildMappings(org.opensearch.client.opensearch._types.mapping.TypeMapping.Builder m,
 			List<ColumnModel> columns, String defaultAnalyzer,
-			Map<String, ColumnAnalyzerOverrideEntry> overrideMap, Map<String, TextAnalyzer> analyzers) {
+			Map<String, ColumnAnalyzerOverrideEntry> overrideMap, Map<String, TextAnalyzer> analyzers,
+			boolean hasSynonyms) {
 		m.properties(SYSTEM_FIELD_ROW_ID, p -> p.long_(l -> l));
 		m.properties(SYSTEM_FIELD_ROW_VERSION, p -> p.long_(l -> l));
 
@@ -212,7 +279,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			ValidateArgument.required(effectiveAnalyzer, "analyzer '" + effectiveAnalyzerName + "' for column " + columnId);
 			ColumnAnalyzerOverrideEntry entry = overrideMap.get(columnId);
 
-			m.properties(columnId, buildProperty(columnType, effectiveAnalyzer, entry, analyzers));
+			m.properties(columnId, buildProperty(columnType, effectiveAnalyzer, entry, analyzers, hasSynonyms));
 		}
 	}
 
@@ -221,11 +288,69 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		try {
 			openSearchClient.indices().delete(req -> req.index(indexName));
 		} catch (OpenSearchException e) {
-			if (!INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-				throw new RuntimeException("Failed to delete search index: " + indexName, e);
+			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+				return;
 			}
+			// Concurrent deletes: rethrow the OpenSearchException (a RuntimeException)
+			// unwrapped so callers can recognize this case via isConcurrentDeleteError
+			// and translate to a recoverable SQS retry.
+			if (isConcurrentDeleteError(e)) {
+				throw e;
+			}
+			throw new RuntimeException("Failed to delete search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to delete search index: " + indexName, e);
+		}
+	}
+
+	@Override
+	public void waitForIndexWritable(String indexName) throws RecoverableMessageException {
+		// Fixed sentinel id so repeated probe writes on the same index overwrite the same
+		// document rather than accumulating copies — one delete at the end is sufficient.
+		Map<String, Object> sentinel = new HashMap<>();
+		sentinel.put(SYSTEM_FIELD_ROW_ID, -1L);
+		sentinel.put(SYSTEM_FIELD_ROW_VERSION, -1L);
+		final int[] attempt = {0};
+		try {
+			TimeUtils.waitForExponentialMaxRetry(INDEX_WRITABLE_MAX_RETRIES, INDEX_WRITABLE_INITIAL_BACKOFF_MS,
+					() -> {
+						attempt[0]++;
+						try {
+							openSearchClient.index(IndexRequest.of(r -> r
+									.index(indexName)
+									.id(READINESS_PROBE_DOC_ID)
+									.document(sentinel)));
+							return Boolean.TRUE;
+						} catch (OpenSearchException e) {
+							LOG.warn("Index {} not yet writable (attempt {}/{}): {}",
+									indexName, attempt[0], INDEX_WRITABLE_MAX_RETRIES, describeError(e.error()));
+							throw new RetryException(e);
+						} catch (IOException e) {
+							LOG.warn("Index {} not yet writable (attempt {}/{}): {}",
+									indexName, attempt[0], INDEX_WRITABLE_MAX_RETRIES, e.getMessage());
+							throw new RetryException(e);
+						}
+					});
+		} catch (RetryException e) {
+			LOG.error("Index {} did not accept writes after {} attempts", indexName, INDEX_WRITABLE_MAX_RETRIES);
+			throw new RecoverableMessageException(
+					"AOSS index " + indexName + " did not accept writes within the retry budget",
+					e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed readiness probe for search index: " + indexName, e);
+		}
+		// Remove the sentinel so real indexing never observes it. Cleanup failures are
+		// non-fatal: the sentinel's _row_id = -1 cannot collide with real row ids.
+		try {
+			openSearchClient.delete(DeleteRequest.of(r -> r
+					.index(indexName)
+					.id(READINESS_PROBE_DOC_ID)));
+		} catch (OpenSearchException | IOException e) {
+			LOG.warn("Failed to delete readiness probe document from index {}: {}",
+					indexName, e.getMessage());
 		}
 	}
 
@@ -234,46 +359,259 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		if (operations.isEmpty()) {
 			return 0L;
 		}
+		final int totalOps = operations.size();
+		// Ops still needing to be submitted. Attempt 1 sends the whole list as one bulk request;
+		// later attempts iterate this list and send each op as its own single-op bulk request
+		// so a single slow shard can't reject the whole batch.
+		final List<BulkOperation> incomplete = new ArrayList<>(operations);
+		// Most recent classification's retryable items — used for final ERROR-per-item diagnostics
+		// when retries are exhausted.
+		final List<BulkResponseItem> lastRetryable = new ArrayList<>();
+		final int[] attempt = {0};
 
 		try {
-			BulkResponse response = openSearchClient.bulk(req -> req.operations(operations));
-
-			List<String> errors = new ArrayList<>();
-			for (var item : response.items()) {
-				if (item.error() != null) {
-					errors.add("doc " + item.id() + ": " + describeError(item.error()));
-				}
+			TimeUtils.waitForExponentialMaxRetry(BULK_INDEX_MAX_RETRIES, BULK_INDEX_INITIAL_BACKOFF_MS, () -> {
+				attempt[0]++;
+				runAttempt(indexName, totalOps, attempt[0], incomplete, lastRetryable);
+				return Boolean.TRUE;
+			});
+			return totalOps;
+		} catch (RetryException e) {
+			for (BulkResponseItem item : lastRetryable) {
+				LOG.error("Bulk index item failed in {}: {}", indexName, describeBulkItemFailure(item));
 			}
-
-			if (!errors.isEmpty()) {
-				throw new RuntimeException(String.format(
-						"Bulk index to %s failed: %d document(s) rejected out of %d. First errors: %s",
-						indexName, errors.size(), operations.size(),
-						errors.subList(0, Math.min(errors.size(), 5))));
-			}
-
-			return (long) response.items().size();
-		} catch (OpenSearchException | IOException e) {
+			throw new RecoverableMessageException(String.format(
+					"Bulk index to %s failed after %d attempts: %d document(s) still retryable out of %d",
+					indexName, BULK_INDEX_MAX_RETRIES, incomplete.size(), totalOps),
+					e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to bulk index to search index: " + indexName, e);
 		}
 	}
 
 	/**
+	 * Runs one retry iteration. Attempt 1 submits {@code incomplete} as a single bulk request;
+	 * later attempts submit each op in {@code incomplete} as its own single-op bulk request.
+	 * Mutates {@code incomplete} and {@code lastRetryable} in place to reflect the set of ops
+	 * still incomplete after this attempt. Returns normally when everything has been indexed, throws
+	 * {@link RuntimeException} on any permanent failure, or throws {@link RetryException} so
+	 * {@link TimeUtils#waitForExponentialMaxRetry} backs off and invokes us again.
+	 */
+	private void runAttempt(String indexName, int totalOps, int attempt,
+			List<BulkOperation> incomplete, List<BulkResponseItem> lastRetryable) throws RetryException {
+		List<BulkResponseItem> items;
+		List<BulkOperation> opsSubmitted;
+		if (attempt == 1) {
+			BulkResponse response = executeBulk(indexName, incomplete);
+			if (!response.errors()) {
+				incomplete.clear();
+				lastRetryable.clear();
+				return;
+			}
+			items = response.items();
+			opsSubmitted = new ArrayList<>(incomplete);
+			incomplete.clear();
+		} else {
+			// Per-op: remove each op from `incomplete` only AFTER executeBulk returns. If
+			// executeBulk throws an envelope RetryException mid-iteration, the current op + any
+			// not-yet-iterated ops remain in `incomplete` so the next attempt resubmits them
+			// without reprocessing the ops that already landed.
+			items = new ArrayList<>(incomplete.size());
+			opsSubmitted = new ArrayList<>(incomplete.size());
+			while (!incomplete.isEmpty()) {
+				BulkOperation op = incomplete.get(0);
+				BulkResponse single = executeBulk(indexName, Collections.singletonList(op));
+				items.addAll(single.items());
+				opsSubmitted.add(op);
+				incomplete.remove(0);
+			}
+		}
+
+		BulkItemClassification c = classifyItems(indexName, items, opsSubmitted);
+		if (c.hasPermanentFailures()) {
+			throw new RuntimeException(buildPermanentFailureMessage(
+					attemptFailureSummary(indexName, totalOps, c), c.permanentSamples));
+		}
+		incomplete.addAll(c.nextRemaining);
+		lastRetryable.clear();
+		lastRetryable.addAll(c.retryableItems);
+		if (incomplete.isEmpty()) {
+			return;
+		}
+		LOG.warn("Bulk index attempt {}/{} for {}: {} retryable of {}; backing off",
+				attempt, BULK_INDEX_MAX_RETRIES, indexName, c.retryableItems.size(), opsSubmitted.size());
+		throw new RetryException(attemptFailureSummary(indexName, totalOps, c));
+	}
+
+	/**
+	 * Partitions bulk response items into (ok, retryable, permanent), emits an ERROR log per
+	 * permanent failure, and captures up to {@link #MAX_FAILURE_SAMPLES} descriptors for the
+	 * exception message. The returned classification is the input to the caller's retry decision.
+	 * {@code items} and {@code ops} must be the same length and aligned by index.
+	 */
+	private BulkItemClassification classifyItems(String indexName, List<BulkResponseItem> items,
+			List<BulkOperation> ops) {
+		BulkItemClassification c = new BulkItemClassification();
+		for (int i = 0; i < items.size(); i++) {
+			BulkResponseItem item = items.get(i);
+			if (item.error() == null) {
+				continue;
+			}
+			if (isRetryableItemStatus(item.status())) {
+				c.retryableItems.add(item);
+				c.nextRemaining.add(ops.get(i));
+			} else {
+				c.permanentFailures++;
+				String descriptor = describeBulkItemFailure(item);
+				LOG.error("Bulk index item failed in {}: {}", indexName, descriptor);
+				if (c.permanentSamples.size() < MAX_FAILURE_SAMPLES) {
+					c.permanentSamples.add(descriptor);
+				}
+			}
+		}
+		return c;
+	}
+
+	private static String attemptFailureSummary(String indexName, int totalOps, BulkItemClassification c) {
+		int totalFailures = c.retryableItems.size() + c.permanentFailures;
+		return String.format(
+				"Bulk index to %s failed: %d document(s) rejected out of %d (%d retryable, %d permanent)",
+				indexName, totalFailures, totalOps, c.retryableItems.size(), c.permanentFailures);
+	}
+
+	/**
+	 * Executes a single bulk request. Envelope-level 429/5xx and IOExceptions are translated to
+	 * {@link RetryException} so the outer retry loop backs off; envelope-level 4xx becomes a
+	 * permanent {@link RuntimeException}.
+	 */
+	private BulkResponse executeBulk(String indexName, List<BulkOperation> ops) throws RetryException {
+		// Snapshot the list so the BulkRequest isn't mutated when retry state is advanced in place
+		// between attempts.
+		List<BulkOperation> snapshot = new ArrayList<>(ops);
+		try {
+			return openSearchClient.bulk(BulkRequest.of(req -> req.operations(snapshot)));
+		} catch (OpenSearchException e) {
+			String detail = "Failed to bulk index to search index: " + indexName
+					+ " (" + describeError(e.error()) + ")";
+			if (isRetryableItemStatus(e.status())) {
+				throw new RetryException(detail, e);
+			}
+			throw new RuntimeException(detail, e);
+		} catch (IOException e) {
+			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
+		}
+	}
+
+	/** Output of {@link #classifyItems} — used by both the batch and per-document paths. */
+	private static final class BulkItemClassification {
+		final List<BulkOperation> nextRemaining = new ArrayList<>();
+		final List<BulkResponseItem> retryableItems = new ArrayList<>();
+		final List<String> permanentSamples = new ArrayList<>();
+		int permanentFailures;
+
+		boolean hasPermanentFailures() {
+			return permanentFailures > 0;
+		}
+	}
+
+	static boolean isRetryableItemStatus(int status) {
+		return status == HTTP_TOO_MANY_REQUESTS
+				|| (status >= HTTP_INTERNAL_SERVER_ERROR && status <= HTTP_MAX_SERVER_ERROR);
+	}
+
+	/**
+	 * Appends up to {@link #MAX_FAILURE_SAMPLES} per-item descriptors to the summary so the
+	 * reason reaches the user via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)). The whole
+	 * message is hard-capped at {@link #MAX_BULK_ERROR_MESSAGE_CHARS} by substring truncation
+	 * to stay safely inside that column width.
+	 */
+	static String buildPermanentFailureMessage(String summary, List<String> permanentSamples) {
+		if (permanentSamples.isEmpty()) {
+			return summary;
+		}
+		StringBuilder sb = new StringBuilder(summary).append(". Sample failures:");
+		for (String sample : permanentSamples) {
+			sb.append("\n - ").append(sample);
+		}
+		if (sb.length() > MAX_BULK_ERROR_MESSAGE_CHARS) {
+			return sb.substring(0, MAX_BULK_ERROR_MESSAGE_CHARS - TRUNCATION_MARKER.length())
+					+ TRUNCATION_MARKER;
+		}
+		return sb.toString();
+	}
+
+	/**
 	 * AOSS often returns a generic {@code reason} ("Internal error occurred while processing
-	 * request") on the outer error, with the actual cause buried in the nested {@code caused_by}
-	 * chain. Walk the chain so the surfaced message is diagnosable.
+	 * request") on the outer error, with the actual cause buried in {@code caused_by},
+	 * {@code root_cause[]}, {@code metadata}, or {@code stack_trace}. Surface all of them so
+	 * the failure is diagnosable.
 	 */
 	static String describeError(ErrorCause error) {
+		if (error == null) {
+			return "?";
+		}
 		StringBuilder sb = new StringBuilder();
-		ErrorCause current = error;
+		appendErrorCauseDetail(sb, error);
+		ErrorCause current = error.causedBy();
 		while (current != null) {
-			if (sb.length() > 0) {
-				sb.append(" caused by ");
-			}
-			sb.append(current.type() == null ? "?" : current.type())
-					.append(": ")
-					.append(current.reason() == null ? "?" : current.reason());
+			sb.append(" caused by ");
+			appendErrorCauseDetail(sb, current);
 			current = current.causedBy();
+		}
+		return sb.toString();
+	}
+
+	private static void appendErrorCauseDetail(StringBuilder sb, ErrorCause c) {
+		sb.append(c.type() == null ? "?" : c.type())
+				.append(": ")
+				.append(c.reason() == null ? "?" : c.reason());
+		if (!c.rootCause().isEmpty()) {
+			sb.append(" [rootCause=");
+			boolean first = true;
+			for (ErrorCause rc : c.rootCause()) {
+				if (!first) sb.append(", ");
+				sb.append(rc.type() == null ? "?" : rc.type())
+						.append(": ")
+						.append(rc.reason() == null ? "?" : rc.reason());
+				first = false;
+			}
+			sb.append("]");
+		}
+		if (!c.metadata().isEmpty()) {
+			sb.append(" [metadata=").append(c.metadata()).append("]");
+		}
+		if (c.stackTrace() != null) {
+			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
+		}
+	}
+
+	/**
+	 * Format a single failed {@link BulkResponseItem}.
+	 * AOSS often returns a generic {@code error.reason} on each item while leaving the real
+	 * cause in {@code shards.failures[]} and {@code status}. Surface both so callers (and the
+	 * persisted {@code SEARCH_INDEX_STATUS.errorMessage}) see the whole story.
+	 */
+	static String describeBulkItemFailure(
+			BulkResponseItem item) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("doc ").append(item.id())
+				.append(" [status=").append(item.status()).append("]: ")
+				.append(describeError(item.error()));
+		ShardStatistics shards = item.shards();
+		if (shards != null && !shards.failures().isEmpty()) {
+			sb.append(" [shardFailures=");
+			boolean first = true;
+			for (ShardSearchFailure sf : shards.failures()) {
+				if (!first) sb.append(", ");
+				sb.append("shard=").append(sf.shard());
+				if (sf.index() != null) sb.append(" index=").append(sf.index());
+				if (sf.node() != null) sb.append(" node=").append(sf.node());
+				sb.append(" reason=").append(describeError(sf.reason()));
+				first = false;
+			}
+			sb.append("]");
 		}
 		return sb.toString();
 	}
@@ -393,7 +731,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	@SuppressWarnings("rawtypes")
-	private SearchQueryResults callSearchApi(String indexName, BoolQuery.Builder boolBuilder,
+	SearchQueryResults callSearchApi(String indexName, BoolQuery.Builder boolBuilder,
 			int offset, int limit, Map<String, Aggregation> aggregations,
 			Map<String, HighlightField> highlightFields, List<String> returnFields,
 			List<SortOptions> sortOptions, Map<String, String> idToName,
@@ -407,8 +745,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				req.from(offset);
 				// size=0 when hits aren't requested — saves source fetch + transport cost
 				req.size(returnHits ? limit : 0);
-				// Disable total-hit tracking when the caller doesn't need the count
-				if (!returnTotalHits) {
+				if (returnTotalHits) {
+					// Use a count value instead of enabled(true) — the boolean form caps at 10k
+					req.trackTotalHits(t -> t.count(Integer.MAX_VALUE));
+				} else {
 					req.trackTotalHits(t -> t.enabled(false));
 				}
 
@@ -436,7 +776,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
 			}
-			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
+			throw new RuntimeException("Failed to execute search on search index: " + indexName
+					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
 		}
@@ -762,7 +1103,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					.map(e -> {
 						SearchFieldValue fv = new SearchFieldValue();
 						fv.setName(idToName.getOrDefault(e.getKey(), e.getKey()));
-						fv.setValue(e.getValue() != null ? String.valueOf(e.getValue()) : null);
+						fv.setValue(convertFieldValue(e.getValue()));
 						return fv;
 					})
 					.collect(Collectors.toList());
@@ -774,6 +1115,26 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 
 		return searchHit;
+	}
+
+	/**
+	 * Stringify a value from an AOSS hit's {@code _source} for {@link SearchFieldValue#setValue(String)}.
+	 * Lists and maps (i.e. {@code *_LIST} and {@code JSON} columns) are written as canonical JSON
+	 * so clients can parse them back; scalars use {@link String#valueOf(Object)} so a raw {@code String}
+	 * column is not double-quoted in the response. Mirrors the pattern at {@code SQLUtils#bindListColumns}
+	 * (lib-table-cluster) which serializes typed Java lists for the table index DB the same way.
+	 */
+	static String convertFieldValue(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Collection) {
+			return new JSONArray((Collection<?>) value).toString();
+		}
+		if (value instanceof Map) {
+			return new JSONObject((Map<?, ?>) value).toString();
+		}
+		return String.valueOf(value);
 	}
 
 	List<SearchFieldValue> convertHighlights(Map<String, List<String>> highlightMap,
@@ -841,17 +1202,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 */
 	private Property buildProperty(ColumnType columnType,
 			TextAnalyzer effectiveAnalyzer, ColumnAnalyzerOverrideEntry entry,
-			Map<String, TextAnalyzer> analyzers) {
+			Map<String, TextAnalyzer> analyzers, boolean hasSynonyms) {
 
 		if (ColumnTypeToOpenSearchMapping.isTextType(columnType)) {
-			return buildTextProperty(columnType, effectiveAnalyzer, entry, analyzers);
+			return buildTextProperty(columnType, effectiveAnalyzer, entry, analyzers, hasSynonyms);
 		}
 
 		if (ColumnTypeToOpenSearchMapping.isLinkType(columnType)) {
 			if (isKeywordAnalyzer(effectiveAnalyzer)) {
 				return buildKeywordWithSearchableProperty(analyzers);
 			}
-			return buildTextProperty(columnType, effectiveAnalyzer, entry, analyzers);
+			return buildTextProperty(columnType, effectiveAnalyzer, entry, analyzers, hasSynonyms);
 		}
 
 		if (ColumnTypeToOpenSearchMapping.isKeywordType(columnType)) {
@@ -882,12 +1243,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	private Property buildTextProperty(ColumnType columnType,
 			TextAnalyzer effectiveAnalyzer, ColumnAnalyzerOverrideEntry entry,
-			Map<String, TextAnalyzer> analyzers) {
+			Map<String, TextAnalyzer> analyzers, boolean hasSynonyms) {
 		Integer ignoreAbove = ColumnTypeToOpenSearchMapping.getIgnoreAbove(columnType);
 		int ia = ignoreAbove != null ? ignoreAbove : 1000;
 
 		String indexAnalyzerName = resolveIndexAnalyzerName(effectiveAnalyzer, entry, analyzers);
-		String searchAnalyzerName = resolveSearchAnalyzerName(indexAnalyzerName, entry, analyzers);
+		String searchAnalyzerName = resolveSearchAnalyzerName(
+				indexAnalyzerName, effectiveAnalyzer, entry, analyzers, hasSynonyms);
 		final int finalIa = ia;
 
 		return Property.of(p -> p.text(t -> {
@@ -908,12 +1270,24 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return analyzerToOpenSearchName(effectiveAnalyzer);
 	}
 
-	String resolveSearchAnalyzerName(String indexAnalyzerName,
-			ColumnAnalyzerOverrideEntry entry, Map<String, TextAnalyzer> analyzers) {
+	String resolveSearchAnalyzerName(String indexAnalyzerName, TextAnalyzer effectiveAnalyzer,
+			ColumnAnalyzerOverrideEntry entry, Map<String, TextAnalyzer> analyzers, boolean hasSynonyms) {
+		TextAnalyzer chosen = effectiveAnalyzer;
+		String chosenName = indexAnalyzerName;
 		if (entry != null && entry.getSearchAnalyzer() != null) {
-			return analyzerToOpenSearchName(analyzers.get(entry.getSearchAnalyzer()));
+			chosen = analyzers.get(entry.getSearchAnalyzer());
+			chosenName = analyzerToOpenSearchName(chosen);
+		} else if (entry != null && entry.getIndexAnalyzer() != null) {
+			chosen = analyzers.get(entry.getIndexAnalyzer());
 		}
-		return indexAnalyzerName;
+		// Mirror registerAnalyzer's decision: pick the _search variant exactly when one
+		// was registered. Otherwise the analyzer is symmetric and OpenSearch reuses the
+		// index-time analyzer.
+		if (chosen != null && chosen.getSettings() != null
+				&& shouldRegisterSearchVariant(chosen.getSettings(), hasSynonyms)) {
+			return chosenName + SEARCH_ANALYZER_SUFFIX;
+		}
+		return chosenName;
 	}
 
 	private Property buildKeywordWithSearchableProperty(Map<String, TextAnalyzer> analyzers) {
@@ -965,29 +1339,54 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return map;
 	}
 
+	/**
+	 * Flattens user-authored {@link SynonymSet}s into the OpenSearch synonym filter's wire
+	 * format. Each rule is emitted twice: once with the user's original casing, once
+	 * lowercased (skipped if the rule is already all-lowercase). This means a query in any
+	 * casing — {@code BRCA1}, {@code brca1}, {@code Brca1} — triggers expansion regardless
+	 * of where {@code lowercase} sits in the analyzer's search-time chain. Users author
+	 * rules in natural casing without learning the chain's casing rules.
+	 *
+	 * <p>Duplicates collapse via {@link java.util.LinkedHashSet}, so a rule whose terms
+	 * are already lowercase doesn't produce two identical lines.
+	 */
 	List<String> buildSynonymRules(List<SynonymSet> synonymSets) {
 		if (synonymSets == null || synonymSets.isEmpty()) {
 			return Collections.emptyList();
 		}
-		List<String> rules = new ArrayList<>();
+		java.util.LinkedHashSet<String> rules = new java.util.LinkedHashSet<>();
 		for (SynonymSet ss : synonymSets) {
 			if (ss.getRules() == null) {
 				continue;
 			}
 			for (SynonymRule rule : ss.getRules()) {
-				if (rule.getTerms() == null || rule.getTerms().size() < 2) {
+				if (rule.getTerms() == null || rule.getTerms().size() < 2 || rule.getRuleType() == null) {
 					continue;
 				}
-				if (rule.getRuleType() == SynonymRuleType.EQUIVALENT) {
-					rules.add(String.join(", ", rule.getTerms()));
-				} else if (rule.getRuleType() == SynonymRuleType.EXPLICIT) {
-					String source = rule.getTerms().get(0);
-					List<String> targets = rule.getTerms().subList(1, rule.getTerms().size());
-					rules.add(source + " => " + String.join(", ", targets));
+				addRuleVariant(rules, rule.getRuleType(), rule.getTerms());
+				List<String> lowered = lowercaseAll(rule.getTerms());
+				if (!lowered.equals(rule.getTerms())) {
+					addRuleVariant(rules, rule.getRuleType(), lowered);
 				}
 			}
 		}
-		return rules;
+		return new ArrayList<>(rules);
+	}
+
+	private static void addRuleVariant(java.util.LinkedHashSet<String> rules, SynonymRuleType type, List<String> terms) {
+		if (type == SynonymRuleType.EQUIVALENT) {
+			rules.add(String.join(", ", terms));
+		} else if (type == SynonymRuleType.EXPLICIT) {
+			rules.add(terms.get(0) + " => " + String.join(", ", terms.subList(1, terms.size())));
+		}
+	}
+
+	private static List<String> lowercaseAll(List<String> terms) {
+		List<String> result = new ArrayList<>(terms.size());
+		for (String term : terms) {
+			result.add(term == null ? null : term.toLowerCase(java.util.Locale.ROOT));
+		}
+		return result;
 	}
 
 	private String analyzerToOpenSearchName(TextAnalyzer analyzer) {
@@ -1027,6 +1426,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	public void validateAnalyzerSettings(TextAnalyzerSettings settings) {
 		ValidateArgument.required(settings, "settings");
 
+		if (Boolean.TRUE.equals(settings.getSynonymAware())) {
+			List<String> searchOrder = settings.getSearchFilterOrder();
+			if (searchOrder == null || searchOrder.isEmpty() || !searchOrder.contains(SYNONYM_FILTER_NAME)) {
+				throw new IllegalArgumentException("synonymAware analyzers must declare 'searchFilterOrder' and include '"
+						+ SYNONYM_FILTER_NAME + "' in it. Place '" + SYNONYM_FILTER_NAME
+						+ "' upstream of any 'word_delimiter'/'word_delimiter_graph' filters, and downstream of 'lowercase' for case-insensitive matching.");
+			}
+		}
+
 		Tokenizer tokenizer = buildTokenizer(settings);
 		List<TokenFilter> tokenFilters = buildTokenFilters(settings);
 		List<CharFilter> charFilters = buildCharFilters(settings);
@@ -1045,7 +1453,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			});
 		} catch (OpenSearchException e) {
 			throw new IllegalArgumentException(
-				"Invalid analyzer configuration: " + e.error().reason()
+				"Invalid analyzer configuration: " + describeError(e.error())
 				+ ". Check your tokenizer, token filters, and character filters.", e);
 		} catch (IOException e) {
 			throw new IllegalStateException(
@@ -1077,10 +1485,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 
 		List<TokenFilter> tokenFilters = new ArrayList<>();
-		if (settings.getFilterOrder() == null) {
+		if (settings.getIndexFilterOrder() == null) {
 			return tokenFilters;
 		}
-		for (String filterName : settings.getFilterOrder()) {
+		for (String filterName : settings.getIndexFilterOrder()) {
 			TokenFilterDefinition def = tokenFilterDefs.get(filterName);
 			if (def != null) {
 				tokenFilters.add(TokenFilter.of(f -> f.definition(def)));

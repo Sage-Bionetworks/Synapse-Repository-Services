@@ -13,15 +13,15 @@
         },
         {
             "name": "SFTP",
-            "description": "TODO: Auto-generated description"
+            "description": "An upload using the Secure File Transfer Protocol (SFTP)."
         },
         {
             "name": "HTTPS",
-            "description": "TODO: Auto-generated description"
+            "description": "An upload using the HTTPS protocol."
         },
         {
             "name": "PROXYLOCAL",
-            "description": "TODO: Auto-generated description"
+            "description": "An upload using a local proxy service."
         },
         {
             "name": "NONE",

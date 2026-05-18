@@ -251,12 +251,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </tr>
  * <tr>
  * <td>Maximum number of values associated with a single key in Annotations</td>
- * <td>100</td>
+ * <td>1,000</td>
  * </tr>
  * <tr>
- * <td>Maximum total character count for all values associated with a single key
- * in Annotations when the AnnotationValueType is STRING</td>
- * <td>500</td>
+ * <td>Maximum size of a single STRING value in Annotations</td>
+ * <td>1,000 characters</td>
+ * </tr>
+ * <tr>
+ * <td>Maximum total character count for all STRING values associated with a single key in Annotations</td>
+ * <td>100,000 characters</td>
  * </tr>
  * <tr>
  * <td>Maximum hierarchical depth of an Entity</td>
@@ -1677,7 +1680,7 @@ public class EntityController {
 	/**
 	 * Gets the temporary S3 credentials from STS for the given entity. These
 	 * credentials are only good for the bucket and base key specified by the
-	 * returned credentials and expire 12 hours after this API is called.
+	 * returned credentials and expire 1 hour after this API is called.
 	 *
 	 * <p>
 	 * The specified entity must be a folder with an STS-enabled storage location.

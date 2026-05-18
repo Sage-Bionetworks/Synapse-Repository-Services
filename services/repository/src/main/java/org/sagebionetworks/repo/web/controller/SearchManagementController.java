@@ -215,7 +215,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <tr>
  * <td>MEDIUMTEXT</td>
  * <td>text + keyword sub-field</td>
- * <td>2,000 characters</td>
+ * <td>100,000 characters</td>
  * <td>SCIENTIFIC</td>
  * </tr>
  * <tr>
@@ -764,13 +764,49 @@ public class SearchManagementController {
 	 * Start an asynchronous search query job against a
 	 * <a href="${org.sagebionetworks.repo.model.search.table.SearchIndex}">SearchIndex</a>.
 	 * <p>
+	 * The request wraps a
+	 * <a href="${org.sagebionetworks.repo.model.search.SearchQuery}">SearchQuery</a>
+	 * — see that schema for the full set of available knobs. Highlights:
+	 * </p>
+	 * <ul>
+	 *   <li><b>queryType</b> — the full-text query model. See
+	 *       <a href="${org.sagebionetworks.repo.model.search.SearchQueryType}">SearchQueryType</a>
+	 *       for the per-type explanation of scoring, accepted parameters, and when to use each.
+	 *       Default is <code>SIMPLE_QUERY_STRING</code>. An empty or null <code>queryText</code>
+	 *       automatically selects <code>MATCH_ALL</code>.</li>
+	 *   <li><b>queryFields</b> — restrict the search to specific columns, with optional per-field
+	 *       boost using <code>column^N</code> syntax (e.g. <code>"title^3"</code>). Empty means
+	 *       all indexed fields.</li>
+	 *   <li><b>Filters</b> — <code>termsFilters</code>, <code>rangeFilters</code>,
+	 *       <code>existsFilters</code>, and <code>notExistsFilters</code> narrow the result set.
+	 *       All filters run in non-scoring context (yes/no matching, cacheable) — they do not
+	 *       contribute to relevance.</li>
+	 *   <li><b>Facets</b> — <code>facetRequests</code> produce bucket aggregations per column.
+	 *       Sort by <code>COUNT</code> or <code>KEY</code> in either direction; cap each facet
+	 *       with <code>maxValueCount</code>.</li>
+	 *   <li><b>Response tuning</b> — <code>returnFields</code>, <code>sort</code> (including the
+	 *       special <code>_score</code> pseudo-column), <code>offset</code>,
+	 *       <code>limit</code> (capped at 100), and <code>highlight</code>.</li>
+	 * </ul>
+	 * <p>
+	 * Results are returned as a
+	 * <a href="${org.sagebionetworks.repo.model.search.SearchQueryResults}">SearchQueryResults</a>.
 	 * Use <a href="${GET.search.query.async.get.asyncToken}">GET /search/query/async/get/{asyncToken}</a>
-	 * to poll for results.
+	 * to poll for results — while the job is running the GET returns HTTP 202 with a
+	 * <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}">AsynchronousJobStatus</a>.
+	 * </p>
+	 * <p>
+	 * The caller must have <code>READ</code> access to the source table or view that backs the
+	 * SearchIndex. Row-level access is enforced automatically: rows the caller cannot read are
+	 * filtered out of the results before they leave the server.
 	 * </p>
 	 *
 	 * @param userId The ID of the authenticated user.
-	 * @param request The search query request including the searchIndexId and query parameters.
-	 * @return An async job token to poll for results.
+	 * @param request The search query request including the <code>searchIndexId</code> and the
+	 *                embedded <code>SearchQuery</code>.
+	 * @return An async job token. Poll
+	 *         <a href="${GET.search.query.async.get.asyncToken}">GET /search/query/async/get/{asyncToken}</a>
+	 *         for the final results.
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.CREATED)
@@ -811,13 +847,22 @@ public class SearchManagementController {
 	 * Perform a synchronous autocomplete search query against a
 	 * <a href="${org.sagebionetworks.repo.model.search.table.SearchIndex}">SearchIndex</a>.
 	 * <p>
-	 * This endpoint uses a PREFIX query type and caps results at 8. It is intended for
-	 * typeahead / autocomplete UI patterns where low latency and small result sets are preferred.
+	 * This endpoint is purpose-built for type-ahead input: it overrides any supplied
+	 * <code>queryType</code> with <code>PREFIX</code> (see
+	 * <a href="${org.sagebionetworks.repo.model.search.SearchQueryType}">SearchQueryType</a>
+	 * for the full description) and caps <code>limit</code> at 8 to keep responses small
+	 * and latency low. Caller-supplied <code>facetRequests</code> and
+	 * <code>highlight</code> are ignored — autocomplete returns matching hits only.
+	 * </p>
+	 * <p>
+	 * For anything that needs scored relevance, faceting, or result counts, use the async
+	 * <a href="${POST.search.query.async.start}">POST /search/query/async/start</a> endpoint
+	 * instead.
 	 * </p>
 	 *
 	 * @param userId The ID of the authenticated user.
-	 * @param request The search query request including the searchIndexId.
-	 * @return The autocomplete results.
+	 * @param request The search query request including the <code>searchIndexId</code>.
+	 * @return The autocomplete results (up to 8 hits).
 	 */
 	@RequiredScope({ view })
 	@ResponseStatus(HttpStatus.OK)

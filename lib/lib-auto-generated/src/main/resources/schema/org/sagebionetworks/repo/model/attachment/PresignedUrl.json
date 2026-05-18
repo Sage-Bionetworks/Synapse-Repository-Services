@@ -17,11 +17,11 @@
             "enum": [
                 {
                     "name": "DOES_NOT_EXIST",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The requested URL does not exist."
                 },
                 {
                     "name": "READ_FOR_DOWNLOAD",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The URL is ready and can be used for downloading."
                 }
             ]
         }

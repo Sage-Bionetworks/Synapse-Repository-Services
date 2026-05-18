@@ -1340,6 +1340,11 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_USER_TOKEN = ADMIN_USER + ID + "/token";
 	
+	/**
+	 * Admin endpoint to remove 2FA from a user, used to recover an account when the user has lost their authenticator and password.
+	 */
+	public static final String ADMIN_USER_2FA = ADMIN_USER + ID + "/2fa";
+	
 	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
 	
 	public static final String REALM = "/realm";

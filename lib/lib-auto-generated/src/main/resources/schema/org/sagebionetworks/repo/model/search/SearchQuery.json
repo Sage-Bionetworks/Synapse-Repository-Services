@@ -1,85 +1,85 @@
 {
-	"description": "A structured search query against an OpenSearch index. Composed into request objects (e.g., SearchIndexQuery) that wrap it with context such as which index to target.",
+	"description": "A structured search query against a Synapse SearchIndex, composed of a main full-text query, zero or more structured filters, optional facet aggregations, and response-shaping options (sort, highlight, pagination). Most callers will set at least queryText (or leave it empty for a catalog-style MATCH_ALL browse) and possibly queryType + queryFields. Filters, facets, sort, and returnFields are independent layers — any combination is valid. Filters run in non-scoring context: they narrow the result set without influencing relevance.",
 	"properties": {
 		"queryType": {
-			"description": "Full-text query type. Default: SIMPLE_QUERY_STRING.",
+			"description": "The full-text query model applied to queryText. Default: SIMPLE_QUERY_STRING (safe for untrusted user input). See SearchQueryType for a per-value explanation of scoring model, accepted parameters, and when to use each. When queryText is null or empty, queryType is automatically coerced to MATCH_ALL regardless of this setting.",
 			"$ref": "org.sagebionetworks.repo.model.search.SearchQueryType"
 		},
 		"queryText": {
 			"type": "string",
-			"description": "The search text. Null or empty matches all documents."
+			"description": "The text to search for. Interpretation depends on queryType: SIMPLE_QUERY_STRING parses operators like +, -, |, \"...\", ~, *, (); MATCH / MULTI_MATCH analyze it into tokens and run each against the indexed tokens; MATCH_PHRASE treats it as an ordered phrase; PREFIX treats the final token as a prefix; WILDCARD treats * and ? as glob wildcards. Null or empty triggers MATCH_ALL."
 		},
 		"queryFields": {
 			"type": "array",
-			"description": "Column names with optional boost (e.g., 'studyName^3'). Empty means all indexed fields.",
+			"description": "Columns to search, with optional per-field boost using 'field^N' syntax (e.g. 'title^3' weighs title matches three times as much as unboosted fields). Empty or null means all indexed fields. Required for MATCH, MATCH_PHRASE, and WILDCARD (single field); optional for MULTI_MATCH and PREFIX (multi-field); ignored by SIMPLE_QUERY_STRING when empty (searches every indexed field).",
 			"items": {
 				"type": "string"
 			}
 		},
 		"termsFilters": {
 			"type": "array",
-			"description": "Multi-value filters (IN clause).",
+			"description": "Multi-value IN-clause filters. Each entry restricts a column to a specified set of values; set 'not: true' on an entry to express NOT IN. Runs in non-scoring context against the column's keyword sub-field, so filter values must match stored tokens exactly (case-sensitive for text columns analyzed with lowercase filters — compare your values to what the analyzer produced).",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.KeyValues"
 			}
 		},
 		"rangeFilters": {
 			"type": "array",
-			"description": "Range filters with min and max.",
+			"description": "Inclusive range filters on numeric or date columns. Each entry restricts a column to min <= value <= max; either bound may be omitted for open-ended ranges. Values are strings and are parsed per the column type (integer, double, date). Runs in non-scoring context.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.KeyRange"
 			}
 		},
 		"existsFilters": {
 			"type": "array",
-			"description": "Columns that must have a non-null value.",
+			"description": "Column names that must have a non-null value in the matched documents. Useful for narrowing to rows that have been fully annotated. Runs in non-scoring context.",
 			"items": {
 				"type": "string"
 			}
 		},
 		"notExistsFilters": {
 			"type": "array",
-			"description": "Columns that must be null or missing.",
+			"description": "Column names that must be null or missing in the matched documents. Inverse of existsFilters; useful for surfacing under-annotated rows. Runs in non-scoring context.",
 			"items": {
 				"type": "string"
 			}
 		},
 		"fuzziness": {
 			"type": "string",
-			"description": "Typo tolerance: 'AUTO', '0', '1', or '2'."
+			"description": "Typo tolerance expressed as a Levenshtein edit distance. Accepted values: 'AUTO' (recommended — 0 edits for tokens <=2 chars, 1 edit for 3-5 chars, 2 edits for >=6 chars), '0' (disabled, exact), '1', '2'. Only meaningful for queryType=MATCH or MULTI_MATCH — OpenSearch silently ignores fuzziness on other query types. See SearchQueryType for the right alternative per type (e.g. per-term '~' syntax in queryText for SIMPLE_QUERY_STRING, or an edge-ngram analyzer for PREFIX autocomplete)."
 		},
 		"facetRequests": {
 			"type": "array",
-			"description": "Columns to aggregate as facets.",
+			"description": "Columns to aggregate as facet buckets alongside the primary hit results. Each entry produces one terms aggregation; use maxValueCount to cap the bucket count, and sortField/sortDirection to order buckets by count or by key. Returned in SearchQueryResults.facets only when the caller opts into the FACETS response part.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.FacetRequest"
 			}
 		},
 		"returnFields": {
 			"type": "array",
-			"description": "Columns to include in results. Empty means all columns.",
+			"description": "Columns to include in each hit's field list. Empty or null returns every indexed column on the matched documents. Narrowing this to the columns the caller actually displays reduces response size and transport cost, especially for wide SearchIndexes.",
 			"items": {
 				"type": "string"
 			}
 		},
 		"sort": {
 			"type": "array",
-			"description": "Sort order. Default: relevance descending.",
+			"description": "Result ordering. Each entry specifies a column name (or the special '_score' pseudo-column, which sorts by relevance) and an ASC/DESC direction. When omitted, results are sorted by relevance descending (_score DESC). Sort columns must be stored as keyword or numeric sub-fields — for text columns this is handled automatically by routing through the keyword sub-field.",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.SortField"
 			}
 		},
 		"highlight": {
 			"type": "boolean",
-			"description": "Whether to return highlighted snippets. Default: false."
+			"description": "When true, each hit's field list includes HTML-tagged excerpts showing where the query matched. Uses OpenSearch's default highlighter with <em> tags around matched terms. Default: false. Ignored by autocomplete endpoint."
 		},
 		"offset": {
 			"type": "integer",
-			"description": "Zero-based pagination offset. Default: 0."
+			"description": "Zero-based pagination offset into the hit list. Default: 0. For deep pagination (offset > ~10,000), prefer reshaping the query with filters and sort to narrow the result set rather than scrolling."
 		},
 		"limit": {
 			"type": "integer",
-			"description": "Results per page. Default: 25. Max: 100."
+			"description": "Maximum number of hits to return per page. Default: 25. Maximum: 100 (larger values are silently capped). Set to 0 in combination with FACETS-only response parts to retrieve only aggregate counts."
 		}
 	}
 }

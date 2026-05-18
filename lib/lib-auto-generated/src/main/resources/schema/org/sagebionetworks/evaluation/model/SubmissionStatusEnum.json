@@ -5,39 +5,39 @@
     "enum": [
         {
             "name": "OPEN",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission is open and available for evaluation."
         },
         {
             "name": "CLOSED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been closed and is no longer available for evaluation."
         },
         {
             "name": "SCORED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been evaluated and assigned a score."
         },
         {
             "name": "INVALID",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission is invalid due to errors or not meeting requirements."
         },
         {
             "name": "VALIDATED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has passed validation checks."
         },
         {
             "name": "EVALUATION_IN_PROGRESS",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission is currently being evaluated."
         },
         {
             "name": "RECEIVED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been received and is awaiting further processing."
         },
         {
             "name": "REJECTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been reviewed and rejected."
         },
         {
             "name": "ACCEPTED",
-            "description": "TODO: Auto-generated description"
+            "description": "The submission has been reviewed and accepted."
         }
     ]
 }

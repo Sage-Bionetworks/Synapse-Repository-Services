@@ -67,12 +67,21 @@ public class ColumnConstants {
 	public static final int MAX_INTEGER_CHARACTERS_AS_STRING = Long.toString(Long.MIN_VALUE).length();
 	/**
 	 * The maximum number of characters of a double when represented as a string.
-	 * 
+	 *
 	 * This is derived from the buffer size of BinaryToASCIIBuffer of FloatingDecimal$BinaryToASCIIBuffer.class,
 	 * which is used to construct a String when Double.toString() is called
 	 */
 	public static final int MAX_DOUBLE_CHARACTERS_AS_STRING = 26;
-	
+	/**
+	 * The maximum number of characters of a boolean when represented as a string.
+	 */
+	public static final int MAX_BOOLEAN_CHARACTERS_AS_STRING = "FALSE".length();
+	/**
+	 * The maximum number of characters of an entity ID when represented as a string (syn<id>[.<version>]).
+	 */
+	public static final int MAX_ENTITY_ID_CHARACTERS_AS_STRING = "syn".length() + MAX_INTEGER_CHARACTERS_AS_STRING
+			+ ".".length() + MAX_INTEGER_CHARACTERS_AS_STRING;
+
 	/**
 	 * The maximum available memory to each machine in bytes.
 	 * Currently 3 GB.
@@ -120,8 +129,10 @@ public class ColumnConstants {
 	
 	/**
 	 * The maximum number of characters allowed for a MEDIUMTEXT value.
+	 * Derived from the same 100,000-character budget used for list columns, ensuring 152 MEDIUMTEXT
+	 * columns fit within the server memory budget (152 * 100,000 * 4 bytes = ~58 MB < 2% of 3 GB).
 	 */
-	public static final long MAX_MEDIUM_TEXT_CHARACTERS = 2000;
+	public static final long MAX_MEDIUM_TEXT_CHARACTERS = 100_000L;
 	
 	/**
 	 * The maximum number of characters allowed for a JSON value. Treat it as a large text.
@@ -181,9 +192,28 @@ public class ColumnConstants {
 	public static final Long DEFAULT_STRING_SIZE = 50L;
 
 	/**
-	 * The maximum number of elements allowed for list column types.
+	 * The maximum number of bytes a single list (JSON) column contributes to the MySQL inline row
+	 * size estimate. MySQL stores JSON columns out-of-row, so only a small reference is counted
+	 * inline. Derived as floor(MY_SQL_MAX_BYTES_PER_ROW / MY_SQL_MAX_COLUMNS_PER_TABLE), ensuring
+	 * 152 list columns fit on a single table within the 64K row limit.
 	 */
-	public static final Long MAX_ALLOWED_LIST_LENGTH = 100L;
+	public static final int MAX_BYTES_PER_LIST_COLUMN_ESTIMATE =
+			MY_SQL_MAX_BYTES_PER_ROW / MY_SQL_MAX_COLUMNS_PER_TABLE;  // 64000 / 152 = 421
+
+	/**
+	 * The default number of elements for list column types when maximumListLength is not specified.
+	 */
+	public static final Long DEFAULT_LIST_LENGTH = 100L;
+
+	/**
+	 * The maximum total number of characters across all elements in a list column, excluding JSON
+	 * control characters such as '[', ']', ',', and '"'. The per-column maximum list length is
+	 * derived as: floor(MAX_ALLOWED_LIST_TOTAL_CHARACTERS / max_chars_per_element).
+	 *
+	 * Derived from: floor(MAX_MEMORY_PER_ROW_BYTES / MY_SQL_MAX_COLUMNS_PER_TABLE / MAX_BYTES_PER_CHAR_MEMORY)
+	 * = floor(64,424,509 / 152 / 4) = 105,961, rounded down to 100,000 for a clean limit.
+	 */
+	public static final long MAX_ALLOWED_LIST_TOTAL_CHARACTERS = 100_000L;
 
 	/**
 	 * Size of a 64 bit reference in bytes.

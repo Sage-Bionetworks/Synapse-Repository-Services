@@ -4,31 +4,31 @@
     "enum": [
         {
             "name": "project",
-            "description": "TODO: Auto-generated description"
+            "description": "A project entity, used to organize and manage related data, code, and resources."
         },
         {
             "name": "folder",
-            "description": "TODO: Auto-generated description"
+            "description": "A folder entity, used to group and organize entities within a project."
         },
         {
             "name": "file",
-            "description": "TODO: Auto-generated description"
+            "description": "A file entity, representing a file stored in Synapse."
         },
         {
             "name": "table",
-            "description": "TODO: Auto-generated description"
+            "description": "A table entity, representing tabular data in Synapse."
         },
         {
             "name": "link",
-            "description": "TODO: Auto-generated description"
+            "description": "A link entity, used to reference another entity in Synapse."
         },
         {
             "name": "entityview",
-            "description": "TODO: Auto-generated description"
+            "description": "An entity view, providing a filtered or customized view of entities."
         },
         {
             "name": "dockerrepo",
-            "description": "TODO: Auto-generated description"
+            "description": "A Docker repository entity, used to store Docker images."
         },
         {
             "name": "submissionview",

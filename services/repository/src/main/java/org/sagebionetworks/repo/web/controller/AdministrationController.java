@@ -460,4 +460,21 @@ public class AdministrationController {
 		return serviceProvider.getAdministrationService().backfillGridSessionChanges(userId);
 	}
 
+	/**
+	 * Removes 2FA from the target user, used to recover an account when the user has lost both
+	 * their authenticator and their password and the self-service email reset flow is unusable.
+	 * The administrator must verify the user's identity out-of-band before invoking. Idempotent.
+	 *
+	 * @param userId Must be an administrator.
+	 * @param id The id of the user whose 2FA should be removed.
+	 */
+	@RequiredScope({modify})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.ADMIN_USER_2FA, method = RequestMethod.DELETE)
+	public void disable2FaForUser(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable("id") Long id) {
+		serviceProvider.getAdministrationService().disable2FaForUser(userId, id);
+	}
+
 }

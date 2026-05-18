@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,10 +58,9 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	private StackConfiguration config;
 	private Clock clock;
 	private NotificationManager notificationManager;
-	
-	
+	private UserManager userManager;
 
-	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, PrincipalAliasDAO aliasDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, NotificationManager notificationManager) {
+	public TwoFactorAuthManagerImpl(TotpManager totpManager, OtpSecretDao otpDao, AuthenticationDAO authDao, PrincipalAliasDAO aliasDao, TokenGenerator tokenGenerator, StackConfiguration config, Clock clock, NotificationManager notificationManager, UserManager userManager) {
 		this.totpMananger = totpManager;
 		this.otpDao = otpDao;
 		this.authDao = authDao;
@@ -69,6 +69,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		this.config = config;
 		this.clock = clock;
 		this.notificationManager = notificationManager;
+		this.userManager = userManager;
 	}
 
 	@Override
@@ -152,6 +153,21 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		authDao.setTwoFactorAuthState(user.getId(), false);
 		
 		send2FaStateChangeNotification(user, TwoFactorState.DISABLED);
+	}
+
+	@Override
+	@WriteTransaction
+	public void disable2FaForUser(Long targetUserId) {
+		ValidateArgument.required(targetUserId, "targetUserId");
+
+		boolean wasEnabled = otpDao.hasActiveSecret(targetUserId);
+
+		otpDao.deleteSecrets(targetUserId);
+		authDao.setTwoFactorAuthState(targetUserId, false);
+
+		if (wasEnabled) {
+			send2FaStateChangeNotification(userManager.getUserInfo(targetUserId), TwoFactorState.DISABLED);
+		}
 	}
 	
 	@Override

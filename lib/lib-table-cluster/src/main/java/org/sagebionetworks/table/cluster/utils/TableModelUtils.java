@@ -765,7 +765,8 @@ public class TableModelUtils {
 				size += 64;
 			}else {
 				// we don't know the max size, now what?
-				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE, ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+				size += calculateMaxSizeForType(scm.getColumnType(), ColumnConstants.MAX_ALLOWED_STRING_SIZE,
+						null);
 			}
 		}
 		return size;
@@ -791,7 +792,7 @@ public class TableModelUtils {
 				// Since the size is unknown, the max allowed size is used.
 				size += calculateMaxSizeForType(scm.getColumnType(),
 						ColumnConstants.MAX_ALLOWED_STRING_SIZE,
-						ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+						null);
 			}
 		}
 		return size;
@@ -799,7 +800,7 @@ public class TableModelUtils {
 
 	/**
 	 * Calculate the maximum size in bytes that a column of this type can be when represented as a string.
-	 * 
+	 *
 	 * @param cm
 	 * @return
 	 */
@@ -834,34 +835,15 @@ public class TableModelUtils {
 			case USERID:
 				return ColumnConstants.MAX_USER_ID_BYTES_AS_STRING;
 			case STRING_LIST:
-				if (maxSize == null) {
-					throw new IllegalArgumentException("maxSize cannot be null for String List types");
-				}
-				if(maxListLength == null){
-					throw new IllegalArgumentException("maxListLength cannot be null for List types");
-				}
-
-				return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize * maxListLength);
 			case INTEGER_LIST:
 			case DATE_LIST:
 			case USERID_LIST:
-				if(maxListLength == null){
-					throw new IllegalArgumentException("maxListLength cannot be null for List types");
-				}
-				return (int) (ColumnConstants.MAX_INTEGER_BYTES_AS_STRING * maxListLength);
 			case BOOLEAN_LIST:
-				if(maxListLength == null){
-					throw new IllegalArgumentException("maxListLength cannot be null for List types");
-				}
-				return (int) (ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING * maxListLength);
 			case ENTITYID_LIST:
-				if(maxListLength == null){
-					throw new IllegalArgumentException("maxListLength cannot be null for List types");
-				}
-				return (int) (ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING * maxListLength);
+				return ColumnTypeListMappings.forListType(type).calculateMaxSize(maxSize, maxListLength);
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
-		}
+	}
 	
 	/**
 	 * Calculate the amount of memory needed load the given row.

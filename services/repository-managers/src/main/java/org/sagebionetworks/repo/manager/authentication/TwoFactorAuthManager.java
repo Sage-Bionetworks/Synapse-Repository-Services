@@ -37,6 +37,13 @@ public interface TwoFactorAuthManager {
 	 * @param user
 	 */
 	void disable2Fa(UserInfo user);
+
+	/**
+	 * Admin operation: clears 2FA for the target user without their authentication. Idempotent — safe to call when 2FA is not enabled. Sends a notification only if 2FA was actually enabled.
+	 *
+	 * @param targetUserId The user whose 2FA should be removed
+	 */
+	void disable2FaForUser(Long targetUserId);
 	
 	/**
 	 * Validates the given totp code for the user

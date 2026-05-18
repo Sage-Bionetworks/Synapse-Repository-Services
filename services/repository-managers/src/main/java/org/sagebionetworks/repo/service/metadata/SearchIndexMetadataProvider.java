@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.service.metadata;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -27,7 +29,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class SearchIndexMetadataProvider implements
 		EntityValidator<SearchIndex>,
+		TypeSpecificCreateProvider<SearchIndex>,
+		TypeSpecificUpdateProvider<SearchIndex>,
 		TypeSpecificDefiningSqlProvider<SearchIndex> {
+
+	private final SearchIndexLifecycleManager lifecycleManager;
+
+	@Autowired
+	public SearchIndexMetadataProvider(SearchIndexLifecycleManager lifecycleManager) {
+		this.lifecycleManager = lifecycleManager;
+	}
 
 	@Override
 	public void validateEntity(SearchIndex entity, EntityEvent event)
@@ -40,6 +51,16 @@ public class SearchIndexMetadataProvider implements
 		}
 		// Validate the definingSQL on both CREATE and UPDATE
 		validateDefiningSql(entity.getDefiningSQL());
+	}
+
+	@Override
+	public void entityCreated(UserInfo userInfo, SearchIndex entity) {
+		lifecycleManager.registerSchema(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+	}
+
+	@Override
+	public void entityUpdated(UserInfo userInfo, SearchIndex entity, boolean wasNewVersionCreated) {
+		lifecycleManager.registerSchema(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override

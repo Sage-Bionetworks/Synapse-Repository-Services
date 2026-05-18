@@ -134,6 +134,13 @@ public interface SynapseAdminClient extends SynapseClient {
 	public void deleteUser(Long id) throws SynapseException;
 
 	/**
+	 * Removes 2FA from the target user. Used to recover an account when the user has lost both
+	 * their authenticator and their password. The administrator must verify the user's identity
+	 * out-of-band before invoking. Idempotent.
+	 */
+	public void disable2FaForUser(Long targetUserId) throws SynapseException;
+
+	/**
 	 * Clears the specified dynamo table.
 	 */
 	public void clearDynamoTable(String tableName, String hashKeyName,

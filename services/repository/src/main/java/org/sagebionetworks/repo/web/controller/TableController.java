@@ -200,14 +200,25 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <td></td>
  * </tr>
  * <tr>
- * <td>Entity View only: The maximum total character length for a STRING or STRING_LIST <a href="${org.sagebionetworks.repo.model.table.ColumnType}" >ColumnType</a></td>
- * <td>500 characters</td>
- * <td>Entity Views ONLY! This follows limitations placed on Annotations. For the type STRING_LIST, the total character count is the cumulative length of all string contained in the list.</td>
+ * <td>Maximum number of characters for a MEDIUMTEXT column value</td>
+ * <td>100,000 characters</td>
+ * <td>152 MEDIUMTEXT columns fit within MySQL's 64 KB inline row limit (stored off-page) and the
+ * 2% server memory budget (152 * 100,000 chars * 4 bytes = ~58 MB).</td>
+ * </tr>
+ * <tr>
+ * <td>Entity View only: The maximum size of a single string annotation value</td>
+ * <td>1,000 characters</td>
+ * <td>Entity Views ONLY! This follows limitations placed on Annotations. Applies to both STRING and STRING_LIST column types.</td>
+ * </tr>
+ * <tr>
+ * <td>Entity View only: The maximum total character count for all string values in a single STRING_LIST annotation</td>
+ * <td>100,000 characters</td>
+ * <td>Entity Views ONLY! This is the cumulative character length of all strings in the list.</td>
  * </tr>
  * <tr>
  * <td>Entity View only: The maximum list length for "_LIST" suffixed <a href="${org.sagebionetworks.repo.model.table.ColumnType}" >ColumnType</a></td>
- * <td>100 values</td>
- * <td>Entity Views ONLY! This follows limitations placed on Annotations.</td>
+ * <td>1,000 values</td>
+ * <td>Entity Views ONLY! This follows limitations placed on Annotations. The effective maximum for STRING_LIST is further constrained by the 100,000-character total budget.</td>
  * </tr>
  * </table>
  * 

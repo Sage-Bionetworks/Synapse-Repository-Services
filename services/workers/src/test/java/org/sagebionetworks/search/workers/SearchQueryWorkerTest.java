@@ -99,12 +99,12 @@ public class SearchQueryWorkerTest {
 
 	@Test
 	public void testRunWithFailedIndexStatus() throws Exception {
+		// checkIndexStatus throws IllegalArgumentException for FAILED state
 		when(mockSearchIndexQueryManager.search(user, request))
-			.thenThrow(new IllegalStateException("Search index build failed. Delete or update the SearchIndex to trigger a rebuild."));
+			.thenThrow(new IllegalArgumentException("Search index build failed: some error. Delete or update the SearchIndex to trigger a rebuild."));
 
-		// "build failed" does NOT contain "still building", so it should NOT be wrapped
-		// as RecoverableMessageException -- it should propagate as-is
-		IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+		// Call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			worker.run(jobId, user, request, mockJobCallback);
 		});
 		assertTrue(ex.getMessage().contains("build failed"));
@@ -113,10 +113,10 @@ public class SearchQueryWorkerTest {
 	@Test
 	public void testRunWithDeletingIndexStatus() throws Exception {
 		when(mockSearchIndexQueryManager.search(user, request))
-			.thenThrow(new IllegalStateException("Search index is being deleted."));
+			.thenThrow(new IllegalArgumentException("Search index is being deleted."));
 
 		// Call under test
-		IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
 			worker.run(jobId, user, request, mockJobCallback);
 		});
 		assertTrue(ex.getMessage().contains("being deleted"));

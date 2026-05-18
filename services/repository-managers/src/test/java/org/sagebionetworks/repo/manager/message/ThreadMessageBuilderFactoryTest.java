@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -79,6 +80,7 @@ public class ThreadMessageBuilderFactoryTest {
 		ChangeType type = ChangeType.CREATE;
 		BroadcastMessageBuilder bulider = factory.createMessageBuilder(objectId, type, actorUserId);
 		assertNotNull(bulider);
+		assertEquals("syn" + threadBundle.getObjectId(), ((DiscussionBroadcastMessageBuilder) bulider).projectId);
 		verify(mockNodeDao).getNodeName("444");
 		verify(mockUploadDao).getMessage(key);
 	}

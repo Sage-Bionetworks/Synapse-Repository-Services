@@ -6,6 +6,7 @@ import java.util.Date;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.RealmManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -102,6 +103,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 	@Autowired
 	private GridManager gridManager;
+
+	@Autowired
+	private TwoFactorAuthManager twoFactorAuthManager;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
@@ -290,6 +294,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void resetUserStatusToEnabled(Long userId, Long targetUserId) {
 		UserInfo userInfo = adminCheck(userId);
 		userStatusManager.resetUserStatusToEnabled(targetUserId);
+	}
+
+	@Override
+	public void disable2FaForUser(Long userId, Long targetUserId) {
+		ValidateArgument.required(targetUserId, "targetUserId");
+		adminCheck(userId);
+		twoFactorAuthManager.disable2FaForUser(targetUserId);
 	}
 
 	@Override

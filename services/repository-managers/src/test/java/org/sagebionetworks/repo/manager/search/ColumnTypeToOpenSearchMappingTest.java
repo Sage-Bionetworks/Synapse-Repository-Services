@@ -65,7 +65,7 @@ public class ColumnTypeToOpenSearchMappingTest {
 	@Test
 	public void testIgnoreAboveValues() {
 		assertEquals(Integer.valueOf(1000), ColumnTypeToOpenSearchMapping.getIgnoreAbove(ColumnType.STRING));
-		assertEquals(Integer.valueOf(2000), ColumnTypeToOpenSearchMapping.getIgnoreAbove(ColumnType.MEDIUMTEXT));
+		assertEquals(Integer.valueOf(100000), ColumnTypeToOpenSearchMapping.getIgnoreAbove(ColumnType.MEDIUMTEXT));
 		assertEquals(Integer.valueOf(8192), ColumnTypeToOpenSearchMapping.getIgnoreAbove(ColumnType.LARGETEXT));
 		assertEquals(Integer.valueOf(256), ColumnTypeToOpenSearchMapping.getIgnoreAbove(ColumnType.ENTITYID));
 	}
@@ -80,7 +80,7 @@ public class ColumnTypeToOpenSearchMappingTest {
 		return Stream.of(
 			Arguments.of(ColumnType.STRING, 1000),
 			Arguments.of(ColumnType.STRING_LIST, 1000),
-			Arguments.of(ColumnType.MEDIUMTEXT, 2000),
+			Arguments.of(ColumnType.MEDIUMTEXT, 100000),
 			Arguments.of(ColumnType.LARGETEXT, 8192),
 			Arguments.of(ColumnType.ENTITYID, 256),
 			Arguments.of(ColumnType.USERID, 256),

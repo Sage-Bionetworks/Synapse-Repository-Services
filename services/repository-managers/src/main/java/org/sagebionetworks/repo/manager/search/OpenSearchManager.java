@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzerSettings;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
  * Manager interface for OpenSearch Serverless (AOSS) operations.
@@ -38,6 +39,11 @@ public interface OpenSearchManager {
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.
+	 * If AOSS rejects the delete because another delete is already in progress
+	 * for the same index, the underlying {@link org.opensearch.client.opensearch._types.OpenSearchException}
+	 * is re-thrown unwrapped so the caller can recognize the concurrent-delete case
+	 * and translate it into a recoverable SQS retry — by the time the retry runs,
+	 * the winning delete has finished and this call becomes a no-op.
 	 *
 	 * @param indexName The OpenSearch index name
 	 */
@@ -51,6 +57,19 @@ public interface OpenSearchManager {
 	 * @return The number of documents successfully indexed
 	 */
 	long bulkIndex(String indexName, List<BulkOperation> operations);
+
+	/**
+	 * Block until {@code indexName} accepts writes. AOSS acknowledges {@code createIndex}
+	 * and the index is queryable before the shards are actually ready to accept documents,
+	 * so a query-based readiness check is not reliable — the only reliable probe is a real
+	 * write. Writes a sentinel document with {@code _row_id = -1} and, on success, deletes
+	 * it before returning.
+	 *
+	 * @param indexName The OpenSearch index name
+	 * @throws RecoverableMessageException when the probe does not succeed within the retry
+	 *         budget, so the SearchIndex lifecycle message goes back on SQS for a later attempt
+	 */
+	void waitForIndexWritable(String indexName) throws RecoverableMessageException;
 
 	/**
 	 * Execute a search query against the OpenSearch index. The {@code options} set controls

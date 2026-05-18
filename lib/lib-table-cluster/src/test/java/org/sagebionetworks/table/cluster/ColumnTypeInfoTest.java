@@ -366,7 +366,7 @@ public class ColumnTypeInfoTest {
 		Long inputSize = null;
 		String defaultValue = "bar";
 		String sql = ColumnTypeInfo.MEDIUMTEXT.toSql(inputSize, defaultValue, useDepricatedUtf8ThreeBytes);
-		assertEquals("TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'bar' COMMENT 'MEDIUMTEXT'", sql);
+		assertEquals("MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'bar' COMMENT 'MEDIUMTEXT'", sql);
 	}
 	
 	@Test

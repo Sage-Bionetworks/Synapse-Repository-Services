@@ -9,17 +9,29 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.model.SqlContext;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -41,6 +53,9 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
+import org.sagebionetworks.workers.util.semaphore.WriteLock;
+import org.sagebionetworks.workers.util.semaphore.WriteLockRequest;
+import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphore;
 import org.springframework.stereotype.Service;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -56,9 +71,42 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	private static final Logger LOG = LogManager.getLogger(SearchIndexLifecycleManagerImpl.class);
 	private static final String INDEX_PREFIX = "search-index-";
+	private static final String LOCK_KEY_PREFIX = "search-index-build:";
 	private static final int MAX_ERROR_MESSAGE_LENGTH = 3000;
 	private static final int BATCH_SIZE = 1000;
 	private static final long MAX_ROWS = 500_000L;
+	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
+
+    /**
+	 * Convert a raw String row value (as delivered by the table query stream) into the Java
+	 * type expected by the column's OpenSearch mapping. List columns are parsed as JSON
+	 * arrays. Bare-string columns (text / keyword / link) pass through as {@code String};
+	 * everything else is parsed via Jackson's untyped {@code readValue}, which yields the
+	 * natural Java equivalent of the JSON token — {@code Integer}/{@code Long},
+	 * {@code Double}, {@code Boolean}, {@code List}, or {@code Map} — each of which the
+	 * OpenSearch client serializes as the right JSON type. Returning the raw String for
+	 * non-string columns causes AOSS to reject the doc.
+	 */
+	static Object convertForDocument(String value, ColumnType type) {
+		if (value == null) {
+			return null;
+		}
+		// List types must be checked before the bare-string short-circuit: STRING_LIST maps
+		// to TEXT and ENTITYID_LIST/USERID_LIST map to KEYWORD, so isTextType/isKeywordType
+		// would otherwise pass the raw JSON-array string straight through.
+		if (!ColumnTypeToOpenSearchMapping.isListType(type)
+				&& (ColumnTypeToOpenSearchMapping.isTextType(type)
+				|| ColumnTypeToOpenSearchMapping.isKeywordType(type)
+				|| ColumnTypeToOpenSearchMapping.isLinkType(type))) {
+			return value;
+		}
+		try {
+			return SEARCH_DOC_MAPPER.readValue(value, Object.class);
+		} catch (IOException e) {
+			throw new IllegalArgumentException(
+					"Failed to convert column value for type " + type + ": " + value, e);
+		}
+	}
 
 	private final ConnectionFactory connectionFactory;
 	private final OpenSearchManager openSearchManager;
@@ -69,6 +117,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final SynonymSetDao synonymSetDao;
 	private final ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
 	private final TextAnalyzerDao textAnalyzerDao;
+	private final TableManagerSupport tableManagerSupport;
+	private final ColumnModelManager columnModelManager;
+	private final WriteReadSemaphore writeReadSemaphore;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
@@ -76,7 +127,10 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			TableQueryManager tableQueryManager, UserManager userManager,
 			EntityManager entityManager,
 			SynonymSetDao synonymSetDao, ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao,
-			TextAnalyzerDao textAnalyzerDao) {
+			TextAnalyzerDao textAnalyzerDao,
+			TableManagerSupport tableManagerSupport,
+			ColumnModelManager columnModelManager,
+			WriteReadSemaphore writeReadSemaphore) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
@@ -86,26 +140,62 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.synonymSetDao = synonymSetDao;
 		this.columnAnalyzerOverrideDao = columnAnalyzerOverrideDao;
 		this.textAnalyzerDao = textAnalyzerDao;
+		this.tableManagerSupport = tableManagerSupport;
+		this.columnModelManager = columnModelManager;
+		this.writeReadSemaphore = writeReadSemaphore;
 	}
 
 	@Override
-	public void handleCreate(ProgressCallback progressCallback, String entityId, Long userId)
-			throws RecoverableMessageException, TableUnavailableException, TableFailedException, LockUnavilableException {
-		buildIndex(progressCallback, entityId, userId, true);
+	@WriteTransaction
+	public List<String> registerSchema(IdAndVersion searchIndexId, String definingSql) {
+		ValidateArgument.required(searchIndexId, "searchIndexId");
+		ValidateArgument.requiredNotBlank(definingSql, "definingSql");
+		IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSql).get(0);
+		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceId);
+		// SqlContext.query: TableIndexDescription rejects `build`; only Views/MVs accept it.
+		QueryTranslator sqlQuery = QueryTranslator.builder()
+				.sql(definingSql)
+				.schemaProvider(tableManagerSupport)
+				.sqlContext(SqlContext.query)
+				.indexDescription(indexDescription)
+				.build();
+		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
+				.map(c -> columnModelManager.createColumnModel(c).getId())
+				.collect(Collectors.toList());
+		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
+		return schemaIds;
 	}
 
 	@Override
-	public void handleUpdate(ProgressCallback progressCallback, String entityId, Long userId)
-			throws RecoverableMessageException, TableUnavailableException, TableFailedException, LockUnavilableException {
-		// In the MVP updates are unconditionally replacing the index on all changes regardless of what the change is.
-		buildIndex(progressCallback, entityId, userId, true);
+	public void handleCreate(ProgressCallback progressCallback, String entityId, Long userId) throws Exception {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(userId, "userId");
+		try (WriteLock lock = writeReadSemaphore.getWriteLock(
+				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.buildIndex", LOCK_KEY_PREFIX + entityId))) {
+			buildIndex(progressCallback, entityId, userId, true);
+		} catch (LockUnavilableException e) {
+			throw new RecoverableMessageException(
+					"Search index " + entityId + " is already being built by another worker", e);
+		}
+	}
+
+	@Override
+	public void handleUpdate(ProgressCallback progressCallback, String entityId, Long userId) throws Exception {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(userId, "userId");
+		try (WriteLock lock = writeReadSemaphore.getWriteLock(
+				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.buildIndex", LOCK_KEY_PREFIX + entityId))) {
+			// In the MVP updates are unconditionally replacing the index on all changes regardless of what the change is.
+			buildIndex(progressCallback, entityId, userId, true);
+		} catch (LockUnavilableException e) {
+			throw new RecoverableMessageException(
+					"Search index " + entityId + " is already being built by another worker", e);
+		}
 	}
 
 	private void buildIndex(ProgressCallback progressCallback, String entityId, Long userId,
 			boolean deleteExistingFirst)
-			throws RecoverableMessageException, TableUnavailableException, TableFailedException, LockUnavilableException {
-		ValidateArgument.required(entityId, "entityId");
-		ValidateArgument.required(userId, "userId");
+			throws Exception {
 		SearchIndexStatusDao statusDao = connectionFactory.getSearchIndexStatusDao();
 		try {
 			UserInfo user = userManager.getUserInfo(userId);
@@ -123,6 +213,15 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 			List<ColumnAnalyzerOverride> overrides = loadColumnAnalyzerOverrides(config);
 			List<SynonymSet> synonymSets = loadSynonymSets(config);
+
+			// Bound schema is stored in SELECT-list order, lining up positionally with
+			// the row values streamed by `runQueryAsStream` below.
+			List<ColumnModel> selectedColumns = tableManagerSupport.getTableSchema(IdAndVersion.parse(entityId));
+			if (selectedColumns == null || selectedColumns.isEmpty()) {
+				throw new IllegalStateException("SearchIndex " + entityId
+						+ " has no bound schema — update the entity to re-register.");
+			}
+			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
 
 			// Build the index as the anonymous user. This enforces Sage governance:
 			// only tables marked DataType.OPEN_DATA with PUBLIC read access can be
@@ -146,33 +245,25 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 								+ " rows. Row count: " + rowCount);
 			}
 
+			Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
+					config, overrides, selectedColumns);
+			String indexName = getIndexName(entityId);
+			String defaultAnalyzer = config != null ? config.getDefaultAnalyzer() : null;
+			if (deleteExistingFirst) {
+				openSearchManager.deleteIndex(indexName);
+			}
+			openSearchManager.createIndex(indexName, selectedColumns, defaultAnalyzer,
+					synonymSets, overrides, analyzers);
+
+			// AOSS acknowledges createIndex and returns an already-queryable index before its
+			// shards are actually ready to accept writes. Block until a real sentinel write
+			// succeeds so the bulk stream below does not race against index_not_found_exception.
+			openSearchManager.waitForIndexWritable(indexName);
+
 			tableQueryManager.runQueryAsStream(progressCallback, anonymousUser, query,
-					(QueryTranslations translations) -> {
-						List<ColumnModel> selectedColumns = translations.getMainQuery()
-								.getTranslator().getSchemaOfSelect();
-						List<SelectColumn> selectColumns = translations.getMainQuery()
-								.getTranslator().getSelectColumns();
-
-						for (int i = 0; i < selectedColumns.size() && i < selectColumns.size(); i++) {
-							if (selectedColumns.get(i).getId() == null && selectColumns.get(i).getId() != null) {
-								selectedColumns.get(i).setId(selectColumns.get(i).getId());
-							}
-						}
-
-						Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
-								config, overrides, selectedColumns);
-
-						String indexName = getIndexName(entityId);
-						String defaultAnalyzer = config != null ? config.getDefaultAnalyzer() : null;
-						if (deleteExistingFirst) {
-							openSearchManager.deleteIndex(indexName);
-						}
-						openSearchManager.createIndex(indexName,
-								selectedColumns, defaultAnalyzer,
-								synonymSets, overrides, analyzers);
-						return new SearchIndexRowHandler(indexName, selectColumns,
-								openSearchManager);
-					}, ACCESS_TYPE.READ);
+					(QueryTranslations translations) -> new SearchIndexRowHandler(
+							indexName, selectColumns, openSearchManager),
+					ACCESS_TYPE.READ);
 
 			statusDao.createOrUpdate(new SearchIndexStatus()
 					.setSearchIndexId(entityId)
@@ -184,6 +275,25 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// failure is not in the search index's configuration.
 			throw e;
 		} catch (Throwable e) {
+			// Another worker is currently deleting this same AOSS index. Translate
+			// to a recoverable SQS retry: by the time the retry runs, the winning
+			// delete has finished and our deleteIndex on retry no-ops via
+			// index_not_found. Don't record FAILED — this is transient.
+			if (e instanceof OpenSearchException
+					&& OpenSearchManagerImpl.isConcurrentDeleteError((OpenSearchException) e)) {
+				throw new RecoverableMessageException(
+						"Concurrent delete in progress while building search index for entity "
+								+ entityId, e);
+			}
+			// Defensive: a LockUnavilableException wrapped inside another exception is
+			// still a transient writer-contention signal, not a build defect. Surface
+			// the original so the worker re-queues the message instead of marking the
+			// SearchIndex permanently FAILED.
+			if (e.getCause() instanceof LockUnavilableException) {
+				LockUnavilableException lockEx = (LockUnavilableException) e.getCause();
+				LOG.warn("Lock unavailable for entity {}, retrying: {}", entityId, lockEx.getMessage());
+				throw lockEx;
+			}
 			LOG.error("Failed to build search index for entity: " + entityId, e);
 			String errorMessage = e.getMessage();
 			if (errorMessage != null && errorMessage.length() > MAX_ERROR_MESSAGE_LENGTH) {
@@ -204,26 +314,26 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	}
 
 	@Override
-	public void handleDelete(String entityId) throws RecoverableMessageException {
+	public void handleDelete(ProgressCallback progressCallback, String entityId) throws Exception {
 		ValidateArgument.required(entityId, "entityId");
 		Long searchIndexId = KeyFactory.stringToKey(entityId);
-		SearchIndexStatusDao statusDao = connectionFactory.getSearchIndexStatusDao();
-
-		Optional<SearchIndexState> stateOpt = statusDao.getState(searchIndexId);
-		if (stateOpt.isEmpty()) {
-			// No status row — already cleaned up, nothing to do
-			return;
-		}
-		if (stateOpt.get() == SearchIndexState.CREATING) {
-			// Cannot interrupt an in-flight build — retry the delete later.
+		try (WriteLock lock = writeReadSemaphore.getWriteLock(
+				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.handleDelete", LOCK_KEY_PREFIX + entityId))) {
+			SearchIndexStatusDao statusDao = connectionFactory.getSearchIndexStatusDao();
+			Optional<SearchIndexState> stateOpt = statusDao.getState(searchIndexId);
+			if (stateOpt.isEmpty()) {
+				// No status row — already cleaned up, nothing to do
+				return;
+			}
+			try {
+				openSearchManager.deleteIndex(getIndexName(entityId));
+				statusDao.delete(searchIndexId);
+			} catch (Throwable e) {
+				LOG.error("Failed to delete search index for entity: " + entityId, e);
+			}
+		} catch (LockUnavilableException e) {
 			throw new RecoverableMessageException(
-					"Search index " + entityId + " is still building. Will retry delete later.");
-		}
-		try {
-			openSearchManager.deleteIndex(getIndexName(entityId));
-			statusDao.delete(searchIndexId);
-		} catch (Throwable e) {
-			LOG.error("Failed to delete search index for entity: " + entityId, e);
+					"Search index " + entityId + " is locked by another worker", e);
 		}
 	}
 
@@ -306,7 +416,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			for (int i = 0; i < columns.size() && i < values.size(); i++) {
 				String value = values.get(i);
 				if (value != null) {
-					doc.put(columns.get(i).getId(), value);
+					SelectColumn column = columns.get(i);
+					doc.put(column.getId(), convertForDocument(value, column.getColumnType()));
 				}
 			}
 			String docId = String.valueOf(row.getRowId());

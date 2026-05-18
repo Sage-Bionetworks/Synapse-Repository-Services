@@ -300,17 +300,24 @@ public class ColumnModelUtils {
 		validateFacetSortConfig(sub);
 	}
 
-	static void validateListLengthForClone(ColumnModel clone){
-		if(clone.getMaximumListLength() == null){
-			// Use the default value
-			clone.setMaximumListLength(ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
-		}else if(clone.getMaximumListLength() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
-			// The max is beyond the allowed size
-			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column cannot exceed: "+ColumnConstants.MAX_ALLOWED_LIST_LENGTH);
+	static void validateListLengthForClone(ColumnModel clone) {
+		if (clone.getMaximumListLength() == null) {
+			clone.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH);
 		} else if (clone.getMaximumListLength() < 2) {
-			// The max is beyond the allowed size
 			throw new IllegalArgumentException("ColumnModel.maximumListLength for a LIST column must be at least 2");
+		} else if (ColumnTypeListMappings.isList(clone.getColumnType())) {
+			long maxCharsPerElement = getMaxCharsPerListElement(clone);
+			long maxAllowedLength = ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS / maxCharsPerElement;
+			if (clone.getMaximumListLength() > maxAllowedLength) {
+				throw new IllegalArgumentException("ColumnModel.maximumListLength for a " + clone.getColumnType()
+						+ " column cannot exceed: " + maxAllowedLength);
+			}
 		}
+	}
+
+	static long getMaxCharsPerListElement(ColumnModel column) {
+		return ColumnTypeListMappings.forListType(column.getColumnType())
+				.getEffectiveMaxCharsPerItem(column.getMaximumSize());
 	}
 
 	

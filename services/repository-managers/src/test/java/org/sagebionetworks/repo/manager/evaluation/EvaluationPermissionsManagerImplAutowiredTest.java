@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.evaluation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -18,6 +19,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -662,27 +665,22 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		}
 	}
 	
-	@Test
-	public void testAnonymousInACL() throws Exception {
+	@ParameterizedTest
+	@EnumSource(ACCESS_TYPE.class)
+	public void testAnonymousInACL(ACCESS_TYPE accessType) throws Exception {
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.anonymousUserCanBeGrantedRead";
 		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
 		String evalName = nodeName;
 		String evalId = createEval(evalName, nodeId, adminUserInfo);
 
-		// add READ privilege to ACL for anonymous
 		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		ra.setAccessType(Collections.singleton(ACCESS_TYPE.READ_PRIVATE_SUBMISSION));
-		Set<ResourceAccess> raSet = Collections.singleton(ra);
-		acl.setResourceAccess(raSet);
-		try {
-			// Call under test
-			evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
-			fail("Expected InvalidModelException");
-		} catch (InvalidModelException e) {
-			// as expected
-		}
+		ra.setAccessType(Collections.singleton(accessType));
+		acl.setResourceAccess(Collections.singleton(ra));
+
+		// call under test
+		assertThrows(InvalidModelException.class, () -> evaluationPermissionsManager.updateAcl(adminUserInfo, acl));
 	}
 	
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {

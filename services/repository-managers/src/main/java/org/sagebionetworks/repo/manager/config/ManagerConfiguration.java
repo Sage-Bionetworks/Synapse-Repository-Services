@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.manager.file.scanner.BasicFileHandleAssoc
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
@@ -21,11 +22,16 @@ import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import jakarta.json.stream.JsonParser;
+
 import org.apache.velocity.app.VelocityEngine;
 import org.apache.velocity.runtime.RuntimeConstants;
 import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.apache.velocity.runtime.resource.loader.FileResourceLoader;
+import org.opensearch.client.json.JsonpDeserializer;
+import org.opensearch.client.json.JsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
+import org.opensearch.client.opensearch._types.analysis.TokenFilterDefinition;
 import org.opensearch.client.transport.aws.AwsSdk2Transport;
 import org.opensearch.client.transport.aws.AwsSdk2TransportOptions;
 import org.sagebionetworks.StackConfiguration;
@@ -390,9 +396,42 @@ public class ManagerConfiguration {
 		CollectionDetail collection = openSearchServerlessClient.batchGetCollection(req -> req.names(collectionName))
 				.collectionDetails().stream().findFirst().orElseThrow();
 
-		return new OpenSearchClient(new AwsSdk2Transport(httpClient,
+		OpenSearchClient client = new OpenSearchClient(new AwsSdk2Transport(httpClient,
 				collection.collectionEndpoint().replace("https://", ""), "aoss", Region.US_EAST_1,
 				AwsSdk2TransportOptions.builder().setCredentials(credentialProvider).build()));
+
+		warmAnalysisDeserializers(client);
+
+		return client;
+	}
+
+	/**
+	 * Workaround for OpenSearch SDK 3.7.0 lazy initialization race condition.
+	 * Warms up the analysis deserializers by deserializing sample token filter definitions.
+	 * This ensures all deserializer classes are loaded in the current thread before concurrent
+	 * traffic hits the SDK.
+	 */
+	private static void warmAnalysisDeserializers(OpenSearchClient client) {
+		try {
+			JsonpMapper mapper = client._transport().jsonpMapper();
+			JsonpDeserializer<Map<String, TokenFilterDefinition>> mapDeserializer = JsonpDeserializer
+					.stringMapDeserializer(TokenFilterDefinition._DESERIALIZER);
+			try (JsonParser parser = mapper.jsonProvider().createParser(new StringReader(
+					"{\"w\":{\"type\":\"word_delimiter_graph\",\"preserve_original\":true,"
+							+ "\"split_on_case_change\":true,\"split_on_numerics\":true,"
+							+ "\"catenate_words\":true,\"catenate_numbers\":false,"
+							+ "\"stem_english_possessive\":true},"
+							+ "\"v\":{\"type\":\"word_delimiter\",\"preserve_original\":true},"
+							+ "\"s\":{\"type\":\"stop\",\"stopwords\":\"_english_\"},"
+							+ "\"m\":{\"type\":\"stemmer\",\"language\":\"english\"},"
+							+ "\"e\":{\"type\":\"edge_ngram\",\"min_gram\":2,\"max_gram\":20}}"))) {
+				mapDeserializer.deserialize(parser, mapper);
+			}
+		} catch (RuntimeException ignored) {
+			// Best-effort: in unit tests the OpenSearchClient is a mock without a transport.
+			// The race only matters when real concurrent traffic hits the SDK, which never
+			// happens in mock-based tests, so silent fall-through is safe here.
+		}
 	}
 
 	@Bean

@@ -17,9 +17,8 @@
 		<artifactId>csv-utilities</artifactId>
 	</dependency>
 	<dependency>
-		<groupId>mysql</groupId>
-		<artifactId>mysql-connector-java</artifactId>
-		<version>${mysql.mysql-connector-java.version}</version>
+		<groupId>com.mysql</groupId>
+		<artifactId>mysql-connector-j</artifactId>
 		<scope>runtime</scope>
 	</dependency>
 	<dependency>

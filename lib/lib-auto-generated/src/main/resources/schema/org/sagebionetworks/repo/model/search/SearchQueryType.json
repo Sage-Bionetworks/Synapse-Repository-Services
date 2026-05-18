@@ -1,34 +1,34 @@
 {
-	"description": "The type of full-text query to execute against a search index.",
+	"description": "The type of full-text query to execute against a search index. Each type has a distinct analyzer behavior, scoring model, and accepted parameters — pick the one whose semantics match the caller's intent rather than the one that happens to return results. Fuzziness compatibility is documented per type; passing fuzziness with an incompatible type is rejected with HTTP 400.",
 	"type": "string",
 	"enum": [
 		{
 			"name": "SIMPLE_QUERY_STRING",
-			"description": "Default. Supports +, -, |, quotes, ~, *, () operators. Best for user-facing search boxes."
+			"description": "Default. Parses queryText using a user-facing mini-syntax that tolerates malformed input instead of failing: '+' (AND), '|' (OR), '-' (negate), '\"...\"' (phrase), '*' (prefix), '(...)' (grouping), '~N' (per-term fuzziness or phrase slop). Intended for free-form search boxes where users type whatever they want. What you get: safe parsing (bad syntax degrades to token search, never a 400), per-term fuzzy via '~', and automatic analyzer application to every token. Do not set the top-level 'fuzziness' parameter — it is not applied to this type (use '~' inside queryText instead). Avoid when you need precise control over operator semantics; use MATCH or MULTI_MATCH then."
 		},
 		{
 			"name": "MATCH",
-			"description": "Standard full-text match. Best for programmatic queries."
+			"description": "Single-field full-text match. Analyzes queryText with the field's configured analyzer, then ORs the resulting tokens (default). What you get: the canonical full-text search primitive, with full support for the top-level 'fuzziness' parameter (AUTO / 0 / 1 / 2). Use when you're searching one specific column and want predictable scoring. Requires 'queryFields' with exactly one field. Not for phrase matching (use MATCH_PHRASE) and not for cross-field search (use MULTI_MATCH)."
 		},
 		{
 			"name": "MULTI_MATCH",
-			"description": "Matches across multiple fields with configurable boost."
+			"description": "Full-text match across multiple fields simultaneously, with per-field boost via 'field^N' syntax in queryFields. Analyzes queryText once, then runs the analyzed tokens against every listed field and combines scores. What you get: cross-field search with boost control and top-level 'fuzziness'. Use when you want one query to hit title, description, tags, etc. with different weights. This is the workhorse for most user-facing search boxes once you need boost control."
 		},
 		{
 			"name": "MATCH_PHRASE",
-			"description": "Exact phrase matching. Terms must appear in order and adjacent."
+			"description": "Exact phrase match on a single field. Analyzes queryText, then requires the resulting tokens to appear in the document in the same order and adjacent. What you get: phrase semantics — '\"machine learning\"' only matches docs containing those two words next to each other, never 'learning about machines'. Use for quoted-phrase search and for strict multi-word matches. Does NOT accept 'fuzziness' (phrase queries cannot be fuzzy at the character level). Requires 'queryFields' with exactly one field."
 		},
 		{
 			"name": "PREFIX",
-			"description": "Prefix matching for autocomplete and type-ahead."
+			"description": "Type-ahead / autocomplete query across multiple fields. Internally mapped to multi_match with 'bool_prefix' scoring: every analyzed token in queryText becomes a term match EXCEPT the final token, which becomes a prefix match. What you get: responsive autocomplete — typing 'mach lear' matches documents containing 'machine learning' without waiting for the user to finish typing. Use for search-as-you-type inputs. Does NOT accept 'fuzziness' (that would multiply candidate expansions past practical limits); if you need typo tolerance in autocomplete, configure an edge-ngram analyzer on the indexed field via ColumnAnalyzerOverride. Fields are optional (defaults to all indexed fields)."
 		},
 		{
 			"name": "WILDCARD",
-			"description": "Supports * and ? wildcards. Use sparingly."
+			"description": "Pattern match on a single field using '*' (zero or more chars) and '?' (exactly one char). Does NOT analyze queryText — the pattern is matched against the stored keyword tokens as-is. What you get: direct control over the matched string, independent of tokenization. Use for structured ID/code columns where the user knows the shape ('GSE*', 'chr?:*-*'). Requires 'queryFields' with exactly one field. Does NOT accept 'fuzziness' (use '?' in queryText for single-char tolerance) and is case-sensitive by default. Avoid leading wildcards on large indices — they force a full scan."
 		},
 		{
 			"name": "MATCH_ALL",
-			"description": "Returns all documents. Used automatically when queryText is null or empty."
+			"description": "Returns every document in the index, subject to any filters. Auto-selected when queryText is null or empty, regardless of the caller's declared queryType — so an empty search box naturally returns the full catalog. What you get: browse-mode behavior with filters/facets/sort applied to the entire index. Use explicitly when you want paginated full-index results (e.g., building a catalog view with no text query). Does NOT accept 'fuzziness' (nothing to be fuzzy against). All documents receive a constant score of 1.0; use an explicit 'sort' when you want ordering other than relevance."
 		}
 	]
 }

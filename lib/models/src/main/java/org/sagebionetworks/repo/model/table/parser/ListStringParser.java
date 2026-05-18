@@ -42,17 +42,18 @@ public class ListStringParser extends AbstractValueParser{
 			if(parsed.length() == 0){
 				return null;
 			}
-			if(parsed.length() > ColumnConstants.MAX_ALLOWED_LIST_LENGTH){
-				throw new IllegalArgumentException("value can not exceed " + ColumnConstants.MAX_ALLOWED_LIST_LENGTH + " elements in list: " + value);
-			}
+			long totalChars = 0;
 			for(int i = 0; i < parsed.length(); i++){
 				if(parsed.isNull(i)){
 					throw new IllegalArgumentException("null value is not allowed");
 				}
-
 				String element = parsed.getString(i);
+				totalChars += element.length();
+				if(totalChars > ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS){
+					throw new IllegalArgumentException("The total size of a list value cannot exceed "
+							+ ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS + " characters");
+				}
 				Object parsedObject = parserFunction.apply(element);
-
 				parsed.put(i, parsedObject);
 			}
 			return parsed.toString();

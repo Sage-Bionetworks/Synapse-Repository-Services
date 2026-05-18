@@ -24,7 +24,7 @@
         },
         {
             "name": "EVALUATION",
-            "description": "TODO: Auto-generated description"
+            "description": "An evaluation object, such as a challenge or competition."
         },
         {
             "name": "EVALUATION_ROUND",
@@ -32,71 +32,71 @@
         },
         {
             "name": "SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "A submission to an evaluation."
         },
         {
             "name": "EVALUATION_SUBMISSIONS",
-            "description": "TODO: Auto-generated description"
+            "description": "A collection of submissions for an evaluation."
         },
         {
             "name": "FILE",
-            "description": "TODO: Auto-generated description"
+            "description": "A file object, representing a file stored in Synapse."
         },
         {
             "name": "MESSAGE",
-            "description": "TODO: Auto-generated description"
+            "description": "A message object, such as a notification or communication."
         },
         {
             "name": "WIKI",
-            "description": "TODO: Auto-generated description"
+            "description": "A wiki page or documentation object."
         },
         {
             "name": "FAVORITE",
-            "description": "TODO: Auto-generated description"
+            "description": "A user's favorite entity or object."
         },
         {
             "name": "ACCESS_REQUIREMENT",
-            "description": "TODO: Auto-generated description"
+            "description": "An access requirement, such as terms of use or data use agreement."
         },
         {
             "name": "ACCESS_APPROVAL",
-            "description": "TODO: Auto-generated description"
+            "description": "An approval for an access requirement."
         },
         {
             "name": "TEAM",
-            "description": "TODO: Auto-generated description"
+            "description": "A team object, representing a group of users."
         },
         {
             "name": "TABLE",
-            "description": "TODO: Auto-generated description"
+            "description": "A table object, representing tabular data."
         },
         {
             "name": "ACCESS_CONTROL_LIST",
-            "description": "TODO: Auto-generated description"
+            "description": "An access control list (ACL) for managing permissions."
         },
         {
             "name": "PROJECT_SETTING",
-            "description": "TODO: Auto-generated description"
+            "description": "A project setting or configuration object."
         },
         {
             "name": "VERIFICATION_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "A submission for user or team verification."
         },
         {
             "name": "CERTIFIED_USER_PASSING_RECORD",
-            "description": "TODO: Auto-generated description"
+            "description": "A record of a user passing the certified user test."
         },
         {
             "name": "FORUM",
-            "description": "TODO: Auto-generated description"
+            "description": "A discussion forum object."
         },
         {
             "name": "THREAD",
-            "description": "TODO: Auto-generated description"
+            "description": "A discussion thread in a forum."
         },
         {
             "name": "REPLY",
-            "description": "TODO: Auto-generated description"
+            "description": "A reply to a thread in a forum."
         },
         {
             "name": "FORM_GROUP",
@@ -112,7 +112,7 @@
         },
         {
             "name": "ENTITY_VIEW",
-            "description": "TODO: Auto-generated description"
+            "description": "A view of entities, such as a file or project view."
         },
         {
             "name": "USER_PROFILE",
@@ -120,15 +120,15 @@
         },
         {
             "name": "DATA_ACCESS_REQUEST",
-            "description": "TODO: Auto-generated description"
+            "description": "A request for access to data."
         },
         {
             "name": "DATA_ACCESS_SUBMISSION",
-            "description": "TODO: Auto-generated description"
+            "description": "A submission for a data access request."
         },
         {
             "name": "DATA_ACCESS_SUBMISSION_STATUS",
-            "description": "TODO: Auto-generated description"
+            "description": "The status of a data access submission."
         },
         {
             "name": "MEMBERSHIP_INVITATION",

@@ -194,6 +194,14 @@ public interface AdministrationService {
 	void resetUserStatusToEnabled(Long userId, Long targetUserId);
 
 	/**
+	 * Admin operation: removes 2FA from the target user. Used to recover an account when the user has lost both their authenticator and their password (so the email-driven self-service reset flow is unusable). The administrator must verify the user's identity out-of-band before invoking. Idempotent.
+	 *
+	 * @param userId The administrator caller
+	 * @param targetUserId The user whose 2FA should be removed
+	 */
+	void disable2FaForUser(Long userId, Long targetUserId);
+
+	/**
 	 * Backfill CHANGES entries for all existing grid sessions so they will be
 	 * re-indexed after migration.
 	 *

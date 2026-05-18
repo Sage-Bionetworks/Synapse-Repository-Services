@@ -72,7 +72,7 @@ public class OpenSearchManagerImplValidateTest {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
 		settings.setTokenFilters("{\"my_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"}}");
-		settings.setFilterOrder(Arrays.asList("my_stop", "lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("my_stop", "lowercase"));
 
 		// call under test
 		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
@@ -85,7 +85,7 @@ public class OpenSearchManagerImplValidateTest {
 
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizerConfig("{\"type\":\"edge_ngram\",\"min_gram\":2,\"max_gram\":20,\"token_chars\":[\"letter\",\"digit\"]}");
-		settings.setFilterOrder(Arrays.asList("lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("lowercase"));
 
 		// call under test
 		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
@@ -154,7 +154,7 @@ public class OpenSearchManagerImplValidateTest {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
 		settings.setTokenFilters("not valid json");
-		settings.setFilterOrder(Arrays.asList("my_filter"));
+		settings.setIndexFilterOrder(Arrays.asList("my_filter"));
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -191,5 +191,49 @@ public class OpenSearchManagerImplValidateTest {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
 			() -> manager.validateAnalyzerSettings(null));
+	}
+
+	@Test
+	public void testValidateThrowsWhenSynonymAwareWithoutSearchFilterOrder() {
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+		settings.setIndexFilterOrder(Arrays.asList("std_word_delimiter", "lowercase"));
+		settings.setSynonymAware(true);
+
+		// call under test — synonymAware=true without searchFilterOrder is rejected before
+		// reaching the AOSS analyze probe.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.validateAnalyzerSettings(settings));
+		assertTrue(ex.getMessage().contains("synapse_synonyms"));
+	}
+
+	@Test
+	public void testValidateThrowsWhenSynonymAwareSearchFilterOrderMissingSynonymsToken() {
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+		settings.setIndexFilterOrder(Arrays.asList("std_word_delimiter", "lowercase"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "std_word_delimiter"));
+		settings.setSynonymAware(true);
+
+		// call under test — searchFilterOrder must explicitly include synapse_synonyms.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.validateAnalyzerSettings(settings));
+		assertTrue(ex.getMessage().contains("synapse_synonyms"));
+	}
+
+	@Test
+	public void testValidateAcceptsSynonymAwareWithProperSearchFilterOrder() throws IOException {
+		setupAnalyzeSuccess();
+		setupJsonpMapper();
+
+		TextAnalyzerSettings settings = new TextAnalyzerSettings();
+		settings.setTokenizer("standard");
+		settings.setTokenFilters("{\"std_word_delimiter\":{\"type\":\"word_delimiter_graph\",\"preserve_original\":true}}");
+		settings.setIndexFilterOrder(Arrays.asList("std_word_delimiter", "lowercase"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "synapse_synonyms", "std_word_delimiter"));
+		settings.setSynonymAware(true);
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAnalyzerSettings(settings));
 	}
 }

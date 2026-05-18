@@ -270,6 +270,13 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 
 	@Override
+	public void disable2FaForUser(Long targetUserId) throws SynapseException {
+		ValidateArgument.required(targetUserId, "targetUserId");
+		String url = ADMIN_USER + "/" + targetUserId + "/2fa";
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
 	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException {
 		String url = ADMIN + "/entity/" + tableId + "/table/rebuild";
 		getStringDirect(getRepoEndpoint(), url);

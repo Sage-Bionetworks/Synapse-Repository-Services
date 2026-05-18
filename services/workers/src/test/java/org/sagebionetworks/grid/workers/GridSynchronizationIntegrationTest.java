@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 import org.java_websocket.WebSocket;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -298,6 +300,125 @@ public class GridSynchronizationIntegrationTest {
 				new JSONObject().put(c1Name, "four").put(c2Name, 444L).put(c3Name, "4.4").put(c4Name, "newlyAdded"));
 
 	}
+	
+	@Test
+	public void testSynchronizeEntityViewWithMaxStrings() throws Exception {
+		Project project = entityService.createEntity(admin.getId(), new Project().setName("test2k"), null);
+		Folder folder = entityService.createEntity(admin.getId(),
+				new Folder().setName("folder").setParentId(project.getId()), null);
+		ExternalFileHandle fh = fileHandleManager.createExternalFileHandle(admin, new ExternalFileHandle()
+				.setContentType("text/plain").setFileName("foo.bar").setExternalURL("https://something.org"));
+
+		List<FileEntity> files = createFiles(1, folder.getId(), fh.getId());
+
+		String colName = "largeString";
+		String initialValue = "a".repeat(1000);
+		String updatedValue = "b".repeat(1000);
+
+		String listName = "aLargeList";
+		int listSize = 5;
+		int itemStringSize = 1000; // each item at MAX_ALLOWED_STRING_SIZE; total 5,000 chars << 32KB WebSocket frame limit
+		String initialListElement = "y".repeat(itemStringSize);
+		String updatedListElement = "z".repeat(itemStringSize);
+		JSONArray initialListValue = new JSONArray(Collections.nCopies(listSize, initialListElement));
+		JSONArray updatedListValue = new JSONArray(Collections.nCopies(listSize, updatedListElement));
+
+		setFileJSON(files.get(0).getId(), new JSONObject().put(colName, initialValue).put(listName, initialListValue));
+		waitForFilesToReplicat(files);
+
+		List<ColumnModel> schema = columnModelManager.createColumnModels(admin,
+				List.of(new ColumnModel().setColumnType(ColumnType.STRING).setMaximumSize(1000L).setName(colName),
+						new ColumnModel().setColumnType(ColumnType.STRING_LIST).setMaximumListLength((long) listSize)
+								.setMaximumSize((long) itemStringSize).setName(listName)));
+
+		EntityView view = entityService.createEntity(admin.getId(),
+				new EntityView().setScopeIds(List.of(project.getId())).setViewTypeMask(0x01L)
+						.setParentId(project.getId())
+						.setColumnIds(schema.stream().map(ColumnModel::getId).collect(Collectors.toList())),
+				null);
+		String sql = "select * from " + view.getId();
+		asynchronousJobWorkerHelper.assertQueryResult(admin, sql, (QueryResultBundle result) -> {
+			assertEquals(1L, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+
+		GridSession session = asynchronousJobWorkerHelper
+				.assertJobResponse(admin, new CreateGridRequest().setOwnerPrincipalId(admin.getId().toString())
+						.setInitialQuery(new Query().setSql(sql)), (CreateGridResponse response) -> {
+							assertNotNull(response);
+							assertNotNull(response.getGridSession());
+						}, MAX_WAIT_MS)
+				.getResponse().getGridSession();
+		assertNotNull(session);
+
+		GridConnectionInfo internalCon = asynchronousJobWorkerHelper.getInternalGridConnection(session.getSessionId(),
+				MAX_WAIT_MS);
+
+		GridReplica userReplica = gridManager
+				.createReplica(admin, new CreateReplicaRequest().setGridSessionId(session.getSessionId())).getReplica();
+
+		String url = gridService
+				.createPresignedUrl(admin.getId(), new CreateGridPresignedUrlRequest()
+						.setGridSessionId(session.getSessionId()).setReplicaId(userReplica.getReplicaId()))
+				.getPresignedUrl();
+		BlockingQueue<String> incomingMessages = new LinkedBlockingQueue<>();
+		WebSocket websocket = asynchronousJobWorkerHelper.createConnection(url, incomingMessages);
+
+		// wait for the 2000-char initial value to appear in the grid
+		List<RowView> fetchedRows = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			Optional<GridHeader> header = gridViewManager.readHeader(session.getSessionId(),
+					internalCon.getReplicaId());
+			if (header.isEmpty()) {
+				return Pair.create(false, null);
+			}
+			List<RowView> rows = gridViewManager.querySinglePage(header.get(), 100L, 0L);
+			if (rows.size() != 1) {
+				return Pair.create(false, null);
+			}
+			String rowString = rows.get(0).getRowObject().getData().getRowJsonDocument().toString();
+			boolean match = rowString.contains(initialValue) && rowString.contains(initialListElement);
+			return Pair.create(match, rows);
+		});
+
+		// update the grid cell with a 2000-char value
+		Patch patch = new Patch()
+				.setPatchId(new LogicalTimestamp().setReplicaId(userReplica.getReplicaId()).setSequenceNumber(101L));
+		patch.addNewOperation(
+				Operations.insertVector().setVectorId(fetchedRows.get(0).getRowObject().getData().getVectorId())
+						.setMap(Map.of(0,
+								patch.addNewOperation(
+										Operations.newConstant().setValue(new ConValue(ConType.STRING, updatedValue))),
+								1, patch.addNewOperation(Operations.newConstant()
+										.setValue(new ConValue(ConType.JSON_ARRAY, updatedListValue))))));
+		JsonRxMessage message = new JsonRxMessage(JsonRxMessageType.RequestData).setId(102).setMethod("patch")
+				.setBody(PatchCompactSerializable.serialize(patch));
+		websocket.send(message.toJson());
+		asynchronousJobWorkerHelper.waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == message.getId().get(),
+				incomingMessages);
+
+		// verify updated value is present in grid
+		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			Optional<GridHeader> header = gridViewManager.readHeader(session.getSessionId(),
+					internalCon.getReplicaId());
+			if (header.isEmpty()) {
+				return Pair.create(false, null);
+			}
+			List<RowView> rows = gridViewManager.querySinglePage(header.get(), 100L, 0L);
+			if (rows.size() != 1) {
+				return Pair.create(false, null);
+			}
+			String rowString = rows.get(0).getRowObject().getData().getRowJsonDocument().toString();
+			boolean match = rowString.contains(updatedValue) && rowString.contains(updatedListElement);
+			return Pair.create(match, null);
+		});
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()), (r) -> {
+				}, MAX_WAIT_MS);
+
+		verifyExpectedAnnotations(files.get(0).getId(),
+				new JSONObject().put(colName, updatedValue).put(listName, updatedListValue));
+	}
 
 	void verifyExpectedAnnotations(String fileId, JSONObject expected) {
 		boolean includeDerived = false;
@@ -308,7 +429,13 @@ public class GridSynchronizationIntegrationTest {
 		Iterator<String> it = expected.keys();
 		while (it.hasNext()) {
 			String key = it.next();
-			assertEquals(expected.get(key), fetched.get(key));
+			Object expectedValue = expected.get(key);
+			Object fetchedValue = fetched.get(key);
+			if (expectedValue instanceof JSONArray) {
+				assertEquals(((JSONArray) expectedValue).toList(), ((JSONArray) fetchedValue).toList());
+			} else {
+				assertEquals(expectedValue, fetchedValue);
+			}
 		}
 	}
 

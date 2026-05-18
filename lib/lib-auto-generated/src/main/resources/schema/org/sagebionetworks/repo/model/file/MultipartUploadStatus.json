@@ -31,11 +31,11 @@
             "enum": [
                 {
                     "name": "UPLOADING",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The multi-part upload is in progress and not all parts have been uploaded yet."
                 },
                 {
                     "name": "COMPLETED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "All parts have been uploaded and the multi-part upload is complete."
                 }
             ]
         },

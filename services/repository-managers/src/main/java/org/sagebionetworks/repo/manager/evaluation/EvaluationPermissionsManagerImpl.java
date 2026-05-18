@@ -250,25 +250,14 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	/*
-	 * Ensures that public/anonymous users are not given more permissions than they should be allowed to have on an evaluation
+	 * Enforces the evaluation-specific permission limit for the authenticated-users group (READ only).
+	 * Anonymous and the public group are rejected/restricted globally by
+	 * PermissionsManagerUtils.validateACLContent (via aclManager.update), so they are intentionally
+	 * not checked here.
 	 */
 	private static void validateUserGroupPermissions(Set<ResourceAccess> resourceAccess, UserInfo userInfo) {
 		for (ResourceAccess ra : resourceAccess) {
-			if (ra.getPrincipalId().equals(userInfo.getRealmPublicUsersId())) {
-				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_PUBLIC_MAXIMUM_ACCESS_PERMISSIONS)) {
-					throw new InvalidModelException("Public users may only have read access on an evaluation.");
-				}
-			} else if (ra.getPrincipalId().equals(userInfo.getRealmAnonymousUserId())) {
-				// Note, we need to check all anonymous users (from all realms) are rejected
-				// however anonymous users from other realms will be addressed by the constraint
-				// that all ACL entries must be from the same realm
-				// (Ditto for authenticted users and the public group.)
-				//
-				// PLFM-9438 TODO Anonymous should not be in an ACL AT ALL
-				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_ANONYMOUS_MAXIMUM_ACCESS_PERMISSIONS)) {
-					throw new InvalidModelException("Anonymous users may only have read access on an evaluation.");
-				}
-			} else if (ra.getPrincipalId().equals(userInfo.getRealmAuthenticatedUsersId())) {
+			if (ra.getPrincipalId().equals(userInfo.getRealmAuthenticatedUsersId())) {
 				if (!CollectionUtils.isSubCollection(ra.getAccessType(), ModelConstants.EVALUATION_AUTH_USER_MAXIMUM_ACCESS_PERMISSIONS)) {
 					throw new InvalidModelException("Only read access on an evaluation can be granted to all authenticated Synapse users.");
 				}

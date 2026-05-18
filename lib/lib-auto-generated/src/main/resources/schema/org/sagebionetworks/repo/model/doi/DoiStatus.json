@@ -4,19 +4,19 @@
     "enum": [
         {
             "name": "IN_PROCESS",
-            "description": "TODO: Auto-generated description"
+            "description": "The DOI creation process is currently in progress."
         },
         {
             "name": "CREATED",
-            "description": "TODO: Auto-generated description"
+            "description": "The DOI has been created but is not yet ready for use."
         },
         {
             "name": "READY",
-            "description": "TODO: Auto-generated description"
+            "description": "The DOI has been created and is ready for use."
         },
         {
             "name": "ERROR",
-            "description": "TODO: Auto-generated description"
+            "description": "An error occurred during the DOI creation process."
         }
     ]
 }

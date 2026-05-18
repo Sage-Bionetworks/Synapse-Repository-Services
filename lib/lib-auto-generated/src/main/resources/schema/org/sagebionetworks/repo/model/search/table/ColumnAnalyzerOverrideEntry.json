@@ -11,7 +11,7 @@
 		},
 		"searchAnalyzer": {
 			"type": "string",
-			"description": "The qualified name ('{organizationName}-{name}') of the TextAnalyzer to use when searching this column."
+			"description": "The qualified name ('{organizationName}-{name}') of the TextAnalyzer to use when searching this column. Most asymmetric analysis should be expressed by setting 'searchFilterOrder' on the analyzer itself; reach for this field only when search needs a *different analyzer record* than indexing (for example, when reusing a single search-time analyzer across columns indexed with different analyzers). Synonym handling does NOT require setting this — when the chosen analyzer has 'synonymAware=true', the synonym-enabled search variant is selected automatically."
 		}
 	}
 }

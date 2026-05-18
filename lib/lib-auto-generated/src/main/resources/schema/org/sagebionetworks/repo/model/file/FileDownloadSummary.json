@@ -24,11 +24,11 @@
             "enum": [
                 {
                     "name": "SUCCESS",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The file was successfully included in the download."
                 },
                 {
                     "name": "FAILURE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The file could not be included in the download due to an error."
                 }
             ]
         },
@@ -43,23 +43,23 @@
             "enum": [
                 {
                     "name": "NOT_FOUND",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The requested file could not be found."
                 },
                 {
                     "name": "UNAUTHORIZED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The user does not have permission to download the file."
                 },
                 {
                     "name": "DUPLICATE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The file is a duplicate and was not included in the download."
                 },
                 {
                     "name": "EXCEEDS_SIZE_LIMIT",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The file exceeds the allowed size limit for downloads."
                 },
                 {
                     "name": "UNKNOWN_ERROR",
-                    "description": "TODO: Auto-generated description"
+                    "description": "An unknown error occurred while processing the file download."
                 }
             ]
         }

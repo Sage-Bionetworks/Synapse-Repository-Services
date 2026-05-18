@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicatedEvent;
 import org.sagebionetworks.repo.model.table.ReplicationType;
@@ -47,7 +48,7 @@ public class ReplicationManagerImpl implements ReplicationManager {
 	
 	private final Logger log;
 
-	public static final int MAX_ANNOTATION_CHARS = 500;
+	public static final int MAX_ANNOTATION_CHARS = ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue();
 	
 	public static final int MAX_MESSAGE_PAGE_SIZE = 1000;
 	

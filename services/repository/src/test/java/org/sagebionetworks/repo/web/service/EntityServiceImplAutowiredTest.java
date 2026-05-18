@@ -12,9 +12,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +36,9 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.annotation.v2.Annotations;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
+import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityRef;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -45,6 +51,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -911,6 +918,83 @@ public class EntityServiceImplAutowiredTest  {
 	}
 	
 	@Test
+	public void testSearchIndexCreateWithUnknownColumn() {
+		ColumnModel studyName = new ColumnModel();
+		studyName.setName("studyName");
+		studyName.setColumnType(ColumnType.STRING);
+		studyName.setMaximumSize(100L);
+		studyName = columnModelManager.createColumnModel(adminUserInfo, studyName);
+	
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SearchIndexSourceTable");
+		table.setColumnIds(Lists.newArrayList(studyName.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
+	
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(project.getId());
+		searchIndex.setName("BadCreateSearchIndex");
+		// Bare double-quoted strings parse as SQL identifiers; an unknown identifier
+		// must be rejected synchronously by the metadata provider on create.
+		searchIndex.setDefiningSQL("SELECT studyName, \"tag\" FROM " + table.getId());
+	
+		// call under test
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.createEntity(adminUserId, searchIndex, null);
+		}).getMessage();
+	
+		assertTrue(errorMessage.contains("Unknown column"),
+				"expected error message to mention 'Unknown column', got: " + errorMessage);
+		assertTrue(errorMessage.contains("tag"),
+				"expected error message to mention 'tag', got: " + errorMessage);
+	}
+	
+	@Test
+	public void testSearchIndexUpdateWithUnknownColumn() {
+		ColumnModel studyName = new ColumnModel();
+		studyName.setName("studyName");
+		studyName.setColumnType(ColumnType.STRING);
+		studyName.setMaximumSize(100L);
+		studyName = columnModelManager.createColumnModel(adminUserInfo, studyName);
+	
+		TableEntity table = new TableEntity();
+		table.setParentId(project.getId());
+		table.setName("SearchIndexSourceTable");
+		table.setColumnIds(Lists.newArrayList(studyName.getId()));
+		table = entityService.createEntity(adminUserId, table, null);
+	
+		SearchIndex searchIndex = new SearchIndex();
+		searchIndex.setParentId(project.getId());
+		searchIndex.setName("UpdateRejectSearchIndex");
+		searchIndex.setDefiningSQL("SELECT studyName FROM " + table.getId());
+		searchIndex = entityService.createEntity(adminUserId, searchIndex, null);
+	
+		final String entityId = searchIndex.getId();
+		final String beforeEtag = searchIndex.getEtag();
+		final String beforeSql = searchIndex.getDefiningSQL();
+	
+		// Update with an unknown identifier — must be rejected synchronously by the
+		// metadata provider, leaving the persisted entity unchanged.
+		searchIndex.setDefiningSQL("SELECT studyName, \"tag\" FROM " + table.getId());
+		final SearchIndex toUpdate = searchIndex;
+	
+		// call under test
+		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntity(adminUserId, toUpdate, false, null);
+		}).getMessage();
+	
+		assertTrue(errorMessage.contains("Unknown column"),
+				"expected error message to mention 'Unknown column', got: " + errorMessage);
+		assertTrue(errorMessage.contains("tag"),
+				"expected error message to mention 'tag', got: " + errorMessage);
+	
+		// Reload and confirm the failed PUT rolled back.
+		SearchIndex reloaded = entityService.getEntity(adminUserId, entityId, SearchIndex.class);
+		assertEquals(beforeEtag, reloaded.getEtag());
+		assertEquals(beforeSql, reloaded.getDefiningSQL());
+	}
+	
+	@Test
 	public void testRecordSetCrud() {
 		List<String> upsertKey = List.of("a", "b", "c");
 		CsvTableDescriptor csvDescriptor = new CsvTableDescriptor()
@@ -969,5 +1053,73 @@ public class EntityServiceImplAutowiredTest  {
 		assertThrows(NotFoundException.class, ()->{
 			entityService.getEntity(adminUserId, recordsetId);
 		});
+	}
+
+	@Test
+	public void testUpdateEntityAnnotationsWithTooManyKeys() {
+		Annotations current = entityService.getEntityAnnotations(adminUserId, project.getId());
+
+		Map<String, AnnotationsValue> annotationMap = new HashMap<>();
+		for (int i = 0; i < 101; i++) {
+			annotationMap.put("key" + i, new AnnotationsValue()
+				.setType(AnnotationsValueType.STRING)
+				.setValue(Collections.singletonList("v")));
+		}
+		Annotations toUpdate = new Annotations()
+			.setId(project.getId())
+			.setEtag(current.getEtag())
+			.setAnnotations(annotationMap);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntityAnnotations(adminUserId, project.getId(), toUpdate);
+		}).getMessage();
+		assertEquals("Exceeded maximum number of annotation keys: 100", message);
+	}
+
+	@Test
+	public void testUpdateEntityAnnotationsWithTooManyValuesPerKey() {
+		Annotations current = entityService.getEntityAnnotations(adminUserId, project.getId());
+
+		List<String> values = new ArrayList<>();
+		for (int i = 0; i < 1001; i++) {
+			values.add("v");
+		}
+		Map<String, AnnotationsValue> annotationMap = new HashMap<>();
+		annotationMap.put("myKey", new AnnotationsValue()
+			.setType(AnnotationsValueType.STRING)
+			.setValue(values));
+		Annotations toUpdate = new Annotations()
+			.setId(project.getId())
+			.setEtag(current.getEtag())
+			.setAnnotations(annotationMap);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntityAnnotations(adminUserId, project.getId(), toUpdate);
+		}).getMessage();
+		assertEquals("key=myKey has exceeded the maximum number of values allowed: 1000", message);
+	}
+
+	@Test
+	public void testUpdateEntityAnnotationsWithStringValuesTooLong() {
+		Annotations current = entityService.getEntityAnnotations(adminUserId, project.getId());
+
+		// one character over the per-value limit of 1000
+		String longValue = "a".repeat(1001);
+		Map<String, AnnotationsValue> annotationMap = new HashMap<>();
+		annotationMap.put("myKey", new AnnotationsValue()
+			.setType(AnnotationsValueType.STRING)
+			.setValue(Collections.singletonList(longValue)));
+		Annotations toUpdate = new Annotations()
+			.setId(project.getId())
+			.setEtag(current.getEtag())
+			.setAnnotations(annotationMap);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			entityService.updateEntityAnnotations(adminUserId, project.getId(), toUpdate);
+		}).getMessage();
+		assertEquals("A single string annotation value cannot exceed 1000 characters.", message);
 	}
 }

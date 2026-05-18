@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -356,7 +357,11 @@ public class GridManagerImpl implements GridManager {
 	@Override
 	public boolean savePatch(EventContext context, LogicalTimestamp patchId, String body) {
 		ValidateArgument.required(context, "context");
+		ValidateArgument.required(patchId, "patchId");
 		GridConnectionInfo thisCon = getConnectionInfo(context.getConnectionId());
+		if (!Objects.equals(patchId.getReplicaId(), thisCon.getReplicaId())) {
+			throw new UnauthorizedException("Patch replicaId does not match the connection replicaId.");
+		}
 		return savePatch(thisCon.getSessionId(), patchId, body);
 	}
 

@@ -155,7 +155,8 @@ public class TextAnalyzerDaoImplAutowiredTest {
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
 		settings.setSynonymAware(true);
-		settings.setFilterOrder(Arrays.asList("lowercase", "english_stop", "english_stemmer"));
+		settings.setIndexFilterOrder(Arrays.asList("lowercase", "english_stop", "english_stemmer"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "synapse_synonyms", "english_stop"));
 		settings.setTokenFilters("{\"english_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"},"
 				+ "\"english_stemmer\":{\"type\":\"stemmer\",\"language\":\"english\"}}");
 
@@ -167,13 +168,7 @@ public class TextAnalyzerDaoImplAutowiredTest {
 		TextAnalyzer created = textAnalyzerDao.create(analyzer, adminUserId);
 		TextAnalyzer fetched = textAnalyzerDao.get(Long.parseLong(created.getId())).get();
 
-		TextAnalyzerSettings fetchedSettings = fetched.getSettings();
-		assertEquals("standard", fetchedSettings.getTokenizer());
-		assertTrue(fetchedSettings.getSynonymAware());
-		assertEquals(Arrays.asList("lowercase", "english_stop", "english_stemmer"), fetchedSettings.getFilterOrder());
-		assertNotNull(fetchedSettings.getTokenFilters());
-		assertTrue(fetchedSettings.getTokenFilters().contains("english_stop"));
-		assertTrue(fetchedSettings.getTokenFilters().contains("english_stemmer"));
+		assertEquals(settings, fetched.getSettings());
 	}
 
 	private TextAnalyzer newAnalyzer(String name, String description) {
@@ -183,7 +178,7 @@ public class TextAnalyzerDaoImplAutowiredTest {
 		analyzer.setOrganizationName(organizationName);
 		TextAnalyzerSettings settings = new TextAnalyzerSettings();
 		settings.setTokenizer("standard");
-		settings.setFilterOrder(Arrays.asList("lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("lowercase"));
 		analyzer.setSettings(settings);
 		return analyzer;
 	}

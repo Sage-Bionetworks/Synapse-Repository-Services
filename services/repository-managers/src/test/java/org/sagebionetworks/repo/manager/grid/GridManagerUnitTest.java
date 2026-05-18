@@ -43,9 +43,19 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.agent.handler.grid.SetValueProcessorFactory;
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
+import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
 import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.manager.table.RowHandlerProvider;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
@@ -66,44 +76,33 @@ import org.sagebionetworks.repo.model.grid.EventContext;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.EventType;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
+import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
-import org.sagebionetworks.repo.model.grid.GridSession;
-import org.sagebionetworks.repo.model.grid.GridSnapshot;
-import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
 import org.sagebionetworks.repo.model.grid.GridReplicaType;
+import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSnapshot;
+import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
+import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
+import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
-import org.sagebionetworks.repo.manager.agent.handler.grid.SetValueProcessorFactory;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.GridHeader;
-import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
-import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
-import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
-import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
-import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
-import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
-import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
-import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
+import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
-import org.sagebionetworks.repo.model.grid.query.RowSelectionFilter;
+import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.query.QueryRequest;
+import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.grid.update.GridUpdateRequest;
 import org.sagebionetworks.repo.model.grid.update.LiteralSetValue;
 import org.sagebionetworks.repo.model.grid.update.Update;
 import org.sagebionetworks.repo.model.grid.update.UpdateBatch;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
-import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.grid.query.QueryRequest;
-import org.sagebionetworks.repo.model.grid.query.result.QueryResult;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -112,6 +111,7 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
+
 import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -879,7 +879,7 @@ public class GridManagerUnitTest {
 
 	@Test
 	public void testSavePatch() {
-		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)).when(gridManager)
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
 		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(true);
@@ -922,7 +922,7 @@ public class GridManagerUnitTest {
 
 	@Test
 	public void testSavePatchWithNotNew() {
-		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)).when(gridManager)
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId).setReplicaId(replicaId)).when(gridManager)
 				.getConnectionInfo(connectionId);
 		when(mockS3Client.putObject(putCaptor.capture(), bodyCaptor.capture())).thenReturn(null);
 		when(mockGridDao.savePatch(any(), any(), any(), anyLong())).thenReturn(false);
@@ -948,6 +948,19 @@ public class GridManagerUnitTest {
 			gridManager.savePatch(eventContext, patchId, patchBody.toString());
 		}).getMessage();
 		assertEquals("context is required.", message);
+	}
+
+	@Test
+	public void testSavePatchWithMismatchedReplicaId() {
+		doReturn(new GridConnectionInfo().setSessionId(gridSessionId).setConnectionId(connectionId)
+				.setReplicaId(replicaId + 1)).when(gridManager).getConnectionInfo(connectionId);
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			gridManager.savePatch(eventContext, patchId, patchBody.toString());
+		}).getMessage();
+		assertEquals("Patch replicaId does not match the connection replicaId.", message);
+		verifyZeroInteractions(mockS3Client);
+		verifyZeroInteractions(mockGridDao);
 	}
 
 	@Test

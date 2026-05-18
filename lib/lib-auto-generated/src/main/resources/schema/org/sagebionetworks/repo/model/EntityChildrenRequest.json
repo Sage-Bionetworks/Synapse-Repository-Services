@@ -44,11 +44,11 @@
 			"enum": [
 				{
 					"name": "ASC",
-					"description": "TODO: Auto-generated description"
+					"description": "Sort results in ascending order."
 				},
 				{
 					"name": "DESC",
-					"description": "TODO: Auto-generated description"
+					"description": "Sort results in descending order."
 				}
 			]
 		},

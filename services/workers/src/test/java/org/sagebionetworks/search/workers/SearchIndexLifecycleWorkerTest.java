@@ -7,8 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,7 +69,7 @@ public class SearchIndexLifecycleWorkerTest {
 		msg.setChangeType(ChangeType.CREATE);
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(msg));
+		worker.run(progressCallback, msg);
 
 		verifyZeroInteractions(nodeDao);
 		verifyZeroInteractions(searchIndexLifecycleManager);
@@ -82,7 +80,7 @@ public class SearchIndexLifecycleWorkerTest {
 		when(nodeDao.getNodeTypeById(ENTITY_ID)).thenReturn(EntityType.file);
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE));
 
 		verifyZeroInteractions(searchIndexLifecycleManager);
 	}
@@ -92,11 +90,11 @@ public class SearchIndexLifecycleWorkerTest {
 		when(nodeDao.getNodeTypeById(ENTITY_ID)).thenReturn(EntityType.searchindex);
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE));
 
 		verify(searchIndexLifecycleManager).handleCreate(progressCallback, ENTITY_ID, USER_ID);
 		verify(searchIndexLifecycleManager, never()).handleUpdate(progressCallback, ENTITY_ID, USER_ID);
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 
 	@Test
@@ -104,11 +102,11 @@ public class SearchIndexLifecycleWorkerTest {
 		when(nodeDao.getNodeTypeById(ENTITY_ID)).thenReturn(EntityType.searchindex);
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.UPDATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.UPDATE));
 
 		verify(searchIndexLifecycleManager).handleUpdate(progressCallback, ENTITY_ID, USER_ID);
 		verify(searchIndexLifecycleManager, never()).handleCreate(progressCallback, ENTITY_ID, USER_ID);
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 
 	@Test
@@ -116,9 +114,9 @@ public class SearchIndexLifecycleWorkerTest {
 		when(nodeDao.getNodeTypeById(ENTITY_ID)).thenReturn(EntityType.searchindex);
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.DELETE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.DELETE));
 
-		verify(searchIndexLifecycleManager).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager).handleDelete(progressCallback, ENTITY_ID);
 		verify(searchIndexLifecycleManager, never()).handleCreate(progressCallback, ENTITY_ID, USER_ID);
 		verify(searchIndexLifecycleManager, never()).handleUpdate(progressCallback, ENTITY_ID, USER_ID);
 	}
@@ -128,9 +126,9 @@ public class SearchIndexLifecycleWorkerTest {
 		when(nodeDao.getNodeTypeById(ENTITY_ID)).thenThrow(new NotFoundException("not found"));
 
 		// call under test
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.UPDATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.UPDATE));
 
-		verify(searchIndexLifecycleManager).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager).handleDelete(progressCallback, ENTITY_ID);
 		verify(searchIndexLifecycleManager, never()).handleCreate(progressCallback, ENTITY_ID, USER_ID);
 		verify(searchIndexLifecycleManager, never()).handleUpdate(progressCallback, ENTITY_ID, USER_ID);
 	}
@@ -143,9 +141,9 @@ public class SearchIndexLifecycleWorkerTest {
 
 		// call under test
 		assertThrows(RecoverableMessageException.class, () ->
-				worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE))));
+				worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE)));
 
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 
 	@Test
@@ -156,9 +154,9 @@ public class SearchIndexLifecycleWorkerTest {
 
 		// call under test
 		assertThrows(RecoverableMessageException.class, () ->
-				worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE))));
+				worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE)));
 
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 
 	@Test
@@ -169,7 +167,7 @@ public class SearchIndexLifecycleWorkerTest {
 
 		// call under test
 		assertThrows(RecoverableMessageException.class, () ->
-				worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE))));
+				worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE)));
 	}
 
 	@Test
@@ -179,9 +177,9 @@ public class SearchIndexLifecycleWorkerTest {
 				.when(searchIndexLifecycleManager).handleCreate(progressCallback, ENTITY_ID, USER_ID);
 
 		// call under test — the manager records FAILED; worker logs and moves on.
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE));
 
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 
 	@ParameterizedTest
@@ -204,7 +202,7 @@ public class SearchIndexLifecycleWorkerTest {
 
 		// call under test
 		assertThrows(RecoverableMessageException.class, () ->
-				worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE))));
+				worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE)));
 	}
 
 	@Test
@@ -214,8 +212,8 @@ public class SearchIndexLifecycleWorkerTest {
 				.when(searchIndexLifecycleManager).handleCreate(progressCallback, ENTITY_ID, USER_ID);
 
 		// call under test — unknown runtime exceptions are logged and swallowed.
-		worker.run(progressCallback, Collections.singletonList(entityMessage(ENTITY_ID, ChangeType.CREATE)));
+		worker.run(progressCallback, entityMessage(ENTITY_ID, ChangeType.CREATE));
 
-		verify(searchIndexLifecycleManager, never()).handleDelete(ENTITY_ID);
+		verify(searchIndexLifecycleManager, never()).handleDelete(progressCallback, ENTITY_ID);
 	}
 }

@@ -105,8 +105,14 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 				+ "\"english_stop\":{\"type\":\"stop\",\"stopwords\":\"_english_\"},"
 				+ "\"english_stemmer\":{\"type\":\"stemmer\",\"language\":\"english\"}"
 				+ "}");
-		settings.setFilterOrder(Arrays.asList(
+		settings.setIndexFilterOrder(Arrays.asList(
 				"sci_word_delimiter", "lowercase", "english_stop", "english_stemmer"));
+		// At search time we run lowercase first (so synonym rule LHS and query tokens reach
+		// the filter in the same case), then synapse_synonyms, then sci_word_delimiter.
+		// word_delimiter_graph must be DOWNSTREAM of synapse_synonyms because the synonym
+		// filter's rule parser rejects upstream filters with positionLength > 1.
+		settings.setSearchFilterOrder(Arrays.asList(
+				"lowercase", "synapse_synonyms", "sci_word_delimiter", "english_stop", "english_stemmer"));
 		settings.setSynonymAware(true);
 		return settings;
 	}
@@ -120,7 +126,8 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":true}"
 				+ "}");
-		settings.setFilterOrder(Arrays.asList("std_word_delimiter", "lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("std_word_delimiter", "lowercase"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "synapse_synonyms", "std_word_delimiter"));
 		settings.setSynonymAware(true);
 		return settings;
 	}
@@ -134,7 +141,8 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":false}"
 				+ "}");
-		settings.setFilterOrder(Arrays.asList("id_word_delimiter", "lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("id_word_delimiter", "lowercase"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "synapse_synonyms", "id_word_delimiter"));
 		settings.setSynonymAware(true);
 		return settings;
 	}
@@ -161,7 +169,7 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 				+ "\"stem_english_possessive\":true},"
 				+ "\"edge_ngram_filter\":{\"type\":\"edge_ngram\",\"min_gram\":2,\"max_gram\":20}"
 				+ "}");
-		settings.setFilterOrder(Arrays.asList("ac_word_delimiter", "lowercase", "edge_ngram_filter"));
+		settings.setIndexFilterOrder(Arrays.asList("ac_word_delimiter", "lowercase", "edge_ngram_filter"));
 		settings.setSynonymAware(false);
 		return settings;
 	}
@@ -175,7 +183,8 @@ public class TextAnalyzerBootstrapper implements TextAnalyzerBootstrap {
 				+ "\"catenate_words\":true,\"catenate_numbers\":false,"
 				+ "\"stem_english_possessive\":true}"
 				+ "}");
-		settings.setFilterOrder(Arrays.asList("acs_word_delimiter", "lowercase"));
+		settings.setIndexFilterOrder(Arrays.asList("acs_word_delimiter", "lowercase"));
+		settings.setSearchFilterOrder(Arrays.asList("lowercase", "synapse_synonyms", "acs_word_delimiter"));
 		settings.setSynonymAware(true);
 		return settings;
 	}

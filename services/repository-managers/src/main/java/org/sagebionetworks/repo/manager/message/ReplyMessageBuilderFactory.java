@@ -69,8 +69,8 @@ public class ReplyMessageBuilderFactory implements MessageBuilderFactory {
 
 		switch (objectType) {
 			case ENTITY:
-				contextId = KeyFactory.stringToKey(threadBundle.getObjectId()).toString();
-				contextName = nodeDao.getNodeName(contextId);
+				contextId = KeyFactory.keyToString(Long.parseLong(threadBundle.getObjectId()));
+				contextName = nodeDao.getNodeName(threadBundle.getObjectId());
 				template = REPLY_TEMPLATE;
 				break;
 			case ACCESS_REQUIREMENT:

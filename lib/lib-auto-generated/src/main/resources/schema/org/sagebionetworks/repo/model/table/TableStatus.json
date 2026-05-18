@@ -9,15 +9,15 @@
             "enum": [
                 {
                     "name": "AVAILABLE",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The table is available for queries and updates."
                 },
                 {
                     "name": "PROCESSING",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The table is currently being processed or updated."
                 },
                 {
                     "name": "PROCESSING_FAILED",
-                    "description": "TODO: Auto-generated description"
+                    "description": "The table processing or update has failed."
                 }
             ]
         },

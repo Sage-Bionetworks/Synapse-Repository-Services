@@ -37,6 +37,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -87,6 +88,9 @@ public class TwoFactorAuthManagerImplUnitTest {
 	@Mock
 	private NotificationManager mockNotificationManager;
 	
+	@Mock
+	private UserManager mockUserManager;
+
 	@InjectMocks
 	@Spy
 	private TwoFactorAuthManagerImpl manager;
@@ -425,7 +429,56 @@ public class TwoFactorAuthManagerImplUnitTest {
 		verifyZeroInteractions(mockAuthDao);
 		verifyNoMoreInteractions(mockOtpSecretDao);
 	}
-	
+
+	@Test
+	public void testDisable2FaForUserWhen2FaEnabled() {
+		Long targetUserId = 456L;
+		UserInfo targetUser = new UserInfo(false, targetUserId);
+		when(mockOtpSecretDao.hasActiveSecret(targetUserId)).thenReturn(true);
+		when(mockUserManager.getUserInfo(targetUserId)).thenReturn(targetUser);
+		doNothing().when(manager).send2FaStateChangeNotification(any(), any());
+
+		// Call under test
+		manager.disable2FaForUser(targetUserId);
+
+		verify(mockOtpSecretDao).hasActiveSecret(targetUserId);
+		verify(mockOtpSecretDao).deleteSecrets(targetUserId);
+		verify(mockAuthDao).setTwoFactorAuthState(targetUserId, false);
+		verify(mockUserManager).getUserInfo(targetUserId);
+		verify(manager).send2FaStateChangeNotification(targetUser, TwoFactorState.DISABLED);
+	}
+
+	@Test
+	public void testDisable2FaForUserWhen2FaNotEnabled() {
+		Long targetUserId = 456L;
+		when(mockOtpSecretDao.hasActiveSecret(targetUserId)).thenReturn(false);
+
+		// Call under test
+		manager.disable2FaForUser(targetUserId);
+
+		verify(mockOtpSecretDao).hasActiveSecret(targetUserId);
+		verify(mockOtpSecretDao).deleteSecrets(targetUserId);
+		verify(mockAuthDao).setTwoFactorAuthState(targetUserId, false);
+		verify(manager, never()).send2FaStateChangeNotification(any(), any());
+		verifyZeroInteractions(mockUserManager);
+		verifyZeroInteractions(mockNotificationManager);
+	}
+
+	@Test
+	public void testDisable2FaForUserWithNullId() {
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			manager.disable2FaForUser(null);
+		}).getMessage();
+
+		assertEquals("targetUserId is required.", result);
+
+		verifyZeroInteractions(mockOtpSecretDao);
+		verifyZeroInteractions(mockAuthDao);
+		verifyZeroInteractions(mockUserManager);
+		verifyZeroInteractions(mockNotificationManager);
+	}
+
 	@Test
 	public void testAssertValidUser() {
 		// Call under test

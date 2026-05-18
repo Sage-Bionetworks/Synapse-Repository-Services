@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
 import java.util.StringJoiner;
 
 import org.junit.jupiter.api.Test;
@@ -26,16 +27,18 @@ class ListStringParserTest {
 
 	@Test
 	public void testApplyFunctionOnParsedJsonElements_listTooLong(){
-		StringJoiner joiner = new StringJoiner(",", "[", "]");
-		for(int i = 0; i < ColumnConstants.MAX_ALLOWED_LIST_LENGTH + 1; i++){
-			joiner.add("str" + i);
-		}
+		char[] chars = new char[(int) ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS + 1];
+		Arrays.fill(chars, 'a');
+		String bigElement = new String(chars);
+		String value = "[\"" + bigElement + "\"]";
 
-		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->{
-			listStringParser.applyFunctionOnParsedJsonElements(joiner.toString(), this::testFunction);
-		});
+		// call under test
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+			listStringParser.applyFunctionOnParsedJsonElements(value, this::testFunction)
+		);
 
-		assertTrue(exception.getMessage().contains("value can not exceed 100 elements in list: "));
+		assertEquals("The total size of a list value cannot exceed "
+				+ ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS + " characters", exception.getMessage());
 	}
 
 	@Test

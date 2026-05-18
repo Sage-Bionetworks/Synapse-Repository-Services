@@ -12,7 +12,7 @@ import org.sagebionetworks.aws.AwsClientFactory;
 import org.sagebionetworks.aws.SynapseS3Client;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.Bucket;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.BucketWebsiteConfiguration;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
@@ -44,8 +44,15 @@ public class PublishToS3 {
 		
 		// Create an S3 Connection
 		SynapseS3Client s3Client = AwsClientFactory.createAmazonS3Client();
-		// Create the bucket if it does not exist
-		Bucket bucket = s3Client.createBucket(bucketName);
+		// Create the bucket if it does not exist.
+		// Tolerate BucketAlreadyOwnedByYou (409) — the bucket already exists in this account, which is the expected state for repeated publishes.
+		try {
+			s3Client.createBucket(bucketName);
+		} catch (AmazonS3Exception e) {
+			if (!"BucketAlreadyOwnedByYou".equals(e.getErrorCode())) {
+				throw e;
+			}
+		}
 		// Set the bucket to be a static website
 		s3Client.setBucketWebsiteConfiguration(bucketName, new BucketWebsiteConfiguration("index.html"));
 		// Make the bucket public

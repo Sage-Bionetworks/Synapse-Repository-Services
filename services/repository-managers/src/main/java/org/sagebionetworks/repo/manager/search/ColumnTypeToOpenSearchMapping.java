@@ -24,26 +24,26 @@ import org.sagebionetworks.repo.model.table.ColumnType;
  */
 public enum ColumnTypeToOpenSearchMapping {
 
-	STRING       (ColumnType.STRING,        OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()),
-	STRING_LIST  (ColumnType.STRING_LIST,   OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()),
-	MEDIUMTEXT   (ColumnType.MEDIUMTEXT,    OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", (int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS),
-	LARGETEXT    (ColumnType.LARGETEXT,     OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", 8192),
-	LINK         (ColumnType.LINK,          OpenSearchFieldCategory.LINK,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue()),
-	INTEGER      (ColumnType.INTEGER,       OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	INTEGER_LIST (ColumnType.INTEGER_LIST,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	DATE         (ColumnType.DATE,          OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	DATE_LIST    (ColumnType.DATE_LIST,     OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	FILEHANDLEID (ColumnType.FILEHANDLEID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	SUBMISSIONID (ColumnType.SUBMISSIONID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	EVALUATIONID (ColumnType.EVALUATIONID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	ENTITYID     (ColumnType.ENTITYID,      OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256),
-	USERID       (ColumnType.USERID,        OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256),
-	ENTITYID_LIST(ColumnType.ENTITYID_LIST, OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256),
-	USERID_LIST  (ColumnType.USERID_LIST,   OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256),
-	DOUBLE       (ColumnType.DOUBLE,        OpenSearchFieldCategory.DOUBLE, TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null),
-	BOOLEAN      (ColumnType.BOOLEAN,       OpenSearchFieldCategory.BOOLEAN, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    null),
-	BOOLEAN_LIST (ColumnType.BOOLEAN_LIST,  OpenSearchFieldCategory.BOOLEAN, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    null),
-	JSON         (ColumnType.JSON,          OpenSearchFieldCategory.JSON,   TextAnalyzerBootstrapper.STANDARD_ID,   "org.sagebionetworks-STANDARD",   null);
+	STRING       (ColumnType.STRING,        OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue(), false),
+	STRING_LIST  (ColumnType.STRING_LIST,   OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue(), true),
+	MEDIUMTEXT   (ColumnType.MEDIUMTEXT,    OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", (int) ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS, false),
+	LARGETEXT    (ColumnType.LARGETEXT,     OpenSearchFieldCategory.TEXT,    TextAnalyzerBootstrapper.SCIENTIFIC_ID, "org.sagebionetworks-SCIENTIFIC", 8192, false),
+	LINK         (ColumnType.LINK,          OpenSearchFieldCategory.LINK,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    ColumnConstants.MAX_ALLOWED_STRING_SIZE.intValue(), false),
+	INTEGER      (ColumnType.INTEGER,       OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	INTEGER_LIST (ColumnType.INTEGER_LIST,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, true),
+	DATE         (ColumnType.DATE,          OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	DATE_LIST    (ColumnType.DATE_LIST,     OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, true),
+	FILEHANDLEID (ColumnType.FILEHANDLEID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	SUBMISSIONID (ColumnType.SUBMISSIONID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	EVALUATIONID (ColumnType.EVALUATIONID,  OpenSearchFieldCategory.LONG,   TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	ENTITYID     (ColumnType.ENTITYID,      OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256, false),
+	USERID       (ColumnType.USERID,        OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256, false),
+	ENTITYID_LIST(ColumnType.ENTITYID_LIST, OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256, true),
+	USERID_LIST  (ColumnType.USERID_LIST,   OpenSearchFieldCategory.KEYWORD, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    256, true),
+	DOUBLE       (ColumnType.DOUBLE,        OpenSearchFieldCategory.DOUBLE, TextAnalyzerBootstrapper.KEYWORD_ID,    "org.sagebionetworks-KEYWORD",    null, false),
+	BOOLEAN      (ColumnType.BOOLEAN,       OpenSearchFieldCategory.BOOLEAN, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    null, false),
+	BOOLEAN_LIST (ColumnType.BOOLEAN_LIST,  OpenSearchFieldCategory.BOOLEAN, TextAnalyzerBootstrapper.KEYWORD_ID,   "org.sagebionetworks-KEYWORD",    null, true),
+	JSON         (ColumnType.JSON,          OpenSearchFieldCategory.JSON,   TextAnalyzerBootstrapper.STANDARD_ID,   "org.sagebionetworks-STANDARD",   null, false);
 
 	/**
 	 * The categories of OpenSearch field types used in search index mappings.
@@ -57,14 +57,17 @@ public enum ColumnTypeToOpenSearchMapping {
 	private final Long defaultAnalyzerId;
 	private final String defaultAnalyzerQualifiedName;
 	private final Integer ignoreAbove;
+	private final boolean isList;
 
 	ColumnTypeToOpenSearchMapping(ColumnType columnType, OpenSearchFieldCategory fieldCategory,
-			Long defaultAnalyzerId, String defaultAnalyzerQualifiedName, Integer ignoreAbove) {
+			Long defaultAnalyzerId, String defaultAnalyzerQualifiedName, Integer ignoreAbove,
+			boolean isList) {
 		this.columnType = columnType;
 		this.fieldCategory = fieldCategory;
 		this.defaultAnalyzerId = defaultAnalyzerId;
 		this.defaultAnalyzerQualifiedName = defaultAnalyzerQualifiedName;
 		this.ignoreAbove = ignoreAbove;
+		this.isList = isList;
 	}
 
 	/**
@@ -123,6 +126,10 @@ public enum ColumnTypeToOpenSearchMapping {
 
 	public static boolean isBooleanType(ColumnType columnType) {
 		return getInfoForType(columnType).fieldCategory == OpenSearchFieldCategory.BOOLEAN;
+	}
+
+	public static boolean isListType(ColumnType columnType) {
+		return getInfoForType(columnType).isList;
 	}
 
 	public static boolean isJsonType(ColumnType columnType) {

@@ -45,10 +45,15 @@ public class SearchQueryWorker implements AsyncJobRunner<SearchIndexQuery, Searc
 			return searchIndexQueryManager.search(user, request);
 		} catch (IllegalStateException e) {
 			if (e.getMessage() != null && e.getMessage().contains("still building")) {
+				LOG.info("SearchIndex {} still building for job {} — will retry", request.getSearchIndexId(), jobId);
 				throw new RecoverableMessageException(e.getMessage());
 			}
 			LOG.error("Failed to execute search query for job " + jobId
 					+ " on searchIndex " + request.getSearchIndexId(), e);
+			throw e;
+		} catch (IllegalArgumentException e) {
+			// Index in FAILED or DELETING state — terminal, propagate so AsyncJobRunnerAdapter records FAILED
+			LOG.warn("Search index {} is in a terminal state for job {}: {}", request.getSearchIndexId(), jobId, e.getMessage());
 			throw e;
 		}
 	}

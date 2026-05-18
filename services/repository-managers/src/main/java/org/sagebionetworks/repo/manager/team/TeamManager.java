@@ -228,12 +228,12 @@ public interface TeamManager {
 	 * @param userInfo
 	 * @param teamId
 	 * @param principalId
-	 * @param isAdmin
+	 * @param isTeamManager
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void setPermissions(UserInfo userInfo, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	void setPermissions(UserInfo userInfo, String teamId, String principalId, boolean isTeamManager) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

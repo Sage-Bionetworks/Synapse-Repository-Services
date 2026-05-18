@@ -5,15 +5,15 @@
     "enum": [
         {
             "name": "Identified",
-            "description": "TODO: Auto-generated description"
+            "description": "The dataset has been identified but not yet contributed."
         },
         {
             "name": "Contributed",
-            "description": "TODO: Auto-generated description"
+            "description": "The dataset has been contributed and is available for curation."
         },
         {
             "name": "Curated",
-            "description": "TODO: Auto-generated description"
+            "description": "The dataset has been curated and is ready for use."
         }
     ]
 }

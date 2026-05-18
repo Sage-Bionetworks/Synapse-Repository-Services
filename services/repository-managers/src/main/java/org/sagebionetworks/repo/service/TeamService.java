@@ -179,12 +179,12 @@ public interface TeamService {
 	 * @param userId
 	 * @param teamId
 	 * @param principalId
-	 * @param isAdmin
+	 * @param isTeamManager
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void setPermissions(Long userId, String teamId, String principalId, boolean isAdmin) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void setPermissions(Long userId, String teamId, String principalId, boolean isTeamManager) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * 

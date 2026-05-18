@@ -27,7 +27,12 @@ import java.util.stream.Collectors;
 public class AnnotationsV2Utils {
 
 	static final int MAX_ANNOTATION_KEYS = 100;
-	static final int MAX_VALUES_PER_KEY = 100;
+	// Limits the number of values per annotation key to a number that is safe to render in the UI.
+	// The binding size constraint is the total character budget enforced by StringValueListValidator
+	// (ColumnConstants.MAX_ALLOWED_LIST_TOTAL_CHARACTERS = 100,000 chars). At max string size
+	// (ColumnConstants.MAX_ALLOWED_STRING_SIZE = 1,000 chars per value), this limit yields exactly
+	// 1,000 values. A smaller per-value size allows more values up to this cap.
+	static final int MAX_VALUES_PER_KEY = 1000;
 	
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern

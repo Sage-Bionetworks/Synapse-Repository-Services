@@ -3,11 +3,11 @@
     "enum": [
         {
             "name": "CREATED_ON",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort Docker commits by the date they were created."
         },
         {
             "name": "TAG",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort Docker commits by their tag value."
         }
     ]
 }

@@ -1,10 +1,8 @@
 package org.sagebionetworks.search.workers;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.asynchronous.workers.changes.BatchChangeMessageDrivenRunner;
+import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageDrivenRunner;
 import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManager;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -23,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.sagebionetworks.database.semaphore.LockReleaseFailedException;
 
 @Service
-public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunner {
+public class SearchIndexLifecycleWorker implements ChangeMessageDrivenRunner {
 
 	private static final Logger LOG = LogManager.getLogger(SearchIndexLifecycleWorker.class);
 
@@ -37,14 +35,12 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 	}
 
 	@Override
-	public void run(ProgressCallback progressCallback, List<ChangeMessage> messages)
+	public void run(ProgressCallback progressCallback, ChangeMessage message)
 			throws RecoverableMessageException, Exception {
-		for (ChangeMessage message : messages) {
-			if (message.getObjectType() != ObjectType.ENTITY) {
-				continue;
-			}
-			processMessage(progressCallback, message);
+		if (message.getObjectType() != ObjectType.ENTITY) {
+			return;
 		}
+		processMessage(progressCallback, message);
 	}
 
 	private void processMessage(ProgressCallback progressCallback, ChangeMessage message)
@@ -65,12 +61,14 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 							progressCallback, entityId, message.getUserId());
 					break;
 				case DELETE:
-					searchIndexLifecycleManager.handleDelete(entityId);
+					searchIndexLifecycleManager.handleDelete(progressCallback, entityId);
 					break;
 				default:
 					break;
 			}
 		} catch (RecoverableMessageException e) {
+			// Recoverable paths fire frequently under normal operation — log message
+			// only, not the stack trace, to avoid log spam.
 			LOG.warn("Recoverable exception for entity {}: {}", entityId, e.getMessage());
 			throw e;
 		} catch (TableUnavailableException | LockUnavilableException e) {
@@ -83,8 +81,16 @@ public class SearchIndexLifecycleWorker implements BatchChangeMessageDrivenRunne
 			LOG.warn("Transient lock exception for entity {}, retrying: {}", entityId, e.getMessage());
 			throw new RecoverableMessageException(e);
 		} catch (NotFoundException e) {
-			searchIndexLifecycleManager.handleDelete(entityId);
-		} catch (Exception e) {
+			try {
+				searchIndexLifecycleManager.handleDelete(progressCallback, entityId);
+			} catch (RecoverableMessageException rme) {
+				LOG.warn("Recoverable exception for entity {}: {}", entityId, rme.getMessage());
+				throw rme;
+			} catch (Exception deleteEx) {
+				LOG.error("Failed to process lifecycle message for entity: " + entityId, deleteEx);
+			}
+		} catch (Throwable e) {
+			// Unexpected — keep full stack trace; this is the path that surfaces real bugs.
 			LOG.error("Failed to process lifecycle message for entity: " + entityId, e);
 		}
 	}

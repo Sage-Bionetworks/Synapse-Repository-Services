@@ -66,15 +66,15 @@
             "enum": [
                 {
                     "name": "CAT",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A cat."
                 },
                 {
                     "name": "DOG",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A dog."
                 },
                 {
                     "name": "FISH",
-                    "description": "TODO: Auto-generated description"
+                    "description": "A fish."
                 }
             ],
             "description": "The property is constrained by an enumeration",

@@ -229,7 +229,7 @@ public class DatabaseColumnInfoTest {
 		info.setColumnType(columnType);
 		info.setType(ColumnTypeInfo.getInfoForType(columnType).getMySqlType());
 		
-		if (ColumnType.JSON == columnType || ColumnType.LARGETEXT == columnType || ColumnTypeListMappings.isList(columnType)) {
+		if (ColumnType.JSON == columnType || ColumnType.LARGETEXT == columnType || ColumnType.MEDIUMTEXT == columnType || ColumnTypeListMappings.isList(columnType)) {
 			assertFalse(info.isCreateIndex());
 		} else {
 			assertTrue(info.isCreateIndex());			

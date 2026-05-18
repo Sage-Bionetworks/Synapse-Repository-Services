@@ -6,7 +6,7 @@
 			"$ref": "org.sagebionetworks.repo.model.search.table.SynonymRuleType"
 		},
 		"terms": {
-			"description": "The list of synonym terms. Minimum 2. For EQUIVALENT: all terms are interchangeable. For EXPLICIT: first term expands to the rest.",
+			"description": "The list of synonym terms. Minimum 2. For EQUIVALENT: all terms are interchangeable. For EXPLICIT: first term expands to the rest. Authoring is case-insensitive — a rule authored as 'BRCA1, breast cancer 1' triggers expansion for any casing of the query (BRCA1, brca1, Brca1), because the system registers both the user-authored form and a lowercased copy with the synonym filter.",
 			"type": "array",
 			"items": {
 				"type": "string"

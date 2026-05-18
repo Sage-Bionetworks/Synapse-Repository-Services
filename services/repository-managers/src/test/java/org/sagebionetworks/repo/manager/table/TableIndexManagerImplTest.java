@@ -2751,7 +2751,7 @@ public class TableIndexManagerImplTest {
 			manager.validateSchemaChangeToMediumText(tableId, columnChanges);
 		}).getMessage();
 		
-		assertEquals("Cannot change column \"oldColumn\" to MEDIUMTEXT: The data at row 456 exceeds the MEDIUMTEXT limit of 2000 characters.", result);
+		assertEquals("Cannot change column \"oldColumn\" to MEDIUMTEXT: The data at row 456 exceeds the MEDIUMTEXT limit of " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + " characters.", result);
 		
 		verify(mockIndexDao).tempTableColumnExceedsCharacterLimit(tableId, "1", ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS);
 	}

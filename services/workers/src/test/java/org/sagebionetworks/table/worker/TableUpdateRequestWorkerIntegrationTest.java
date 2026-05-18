@@ -1104,7 +1104,7 @@ public class TableUpdateRequestWorkerIntegrationTest {
 			startAndWaitForJob(adminUserInfo, changeColumnRequest, (TableUpdateTransactionResponse response) -> {});
 		}).getMessage();
 		
-		assertEquals("Cannot change column \"column\" to MEDIUMTEXT: The data at row " + exceedingRowId + " exceeds the MEDIUMTEXT limit of 2000 characters.", result);
+		assertEquals("Cannot change column \"column\" to MEDIUMTEXT: The data at row " + exceedingRowId + " exceeds the MEDIUMTEXT limit of " + ColumnConstants.MAX_MEDIUM_TEXT_CHARACTERS + " characters.", result);
 	}
 	
 	/**

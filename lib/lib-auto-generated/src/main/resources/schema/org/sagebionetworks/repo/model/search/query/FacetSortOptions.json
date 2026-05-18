@@ -5,19 +5,19 @@
     "enum": [
         {
             "name": "ALPHA",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort facet values alphabetically (A-Z)."
         },
         {
             "name": "COUNT",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort facet values by the number of results in each value, descending."
         },
         {
             "name": "MAX",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort facet values by the maximum value in each group, descending."
         },
         {
             "name": "SUM",
-            "description": "TODO: Auto-generated description"
+            "description": "Sort facet values by the sum of values in each group, descending."
         }
     ]
 }
