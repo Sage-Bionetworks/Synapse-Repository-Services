@@ -25,5 +25,23 @@
 		<property name="repeatInterval" value="10" />
 	</bean>
 
+	<!-- Per-JVM heartbeat: sums to the live container count for the workers WAR. -->
+	<bean id="workerContainerHeartbeat" class="org.sagebionetworks.worker.WorkerContainerHeartbeat">
+		<constructor-arg ref="workerLogger" />
+	</bean>
+
+	<bean id="workerContainerHeartbeatTrigger"
+		class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+		<property name="jobDetail">
+			<bean
+				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="workerContainerHeartbeat" />
+				<property name="targetMethod" value="onTimerFired" />
+				<property name="concurrent" value="false" />
+			</bean>
+		</property>
+		<property name="startDelay" value="1000" />
+		<property name="repeatInterval" value="60000" />
+	</bean>
 
 </beans>

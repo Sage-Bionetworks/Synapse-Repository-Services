@@ -22,6 +22,7 @@ public interface WorkerLogger {
 	String METRIC_NAME_WORKER_TIME = "workerTime";
 	String METRIC_NAME_CONCURRENT_WORKER_COUNT = "ConcurrentWorkerCount";
 	String METRIC_NAME_WORKER_LOCK_HELD = "WorkerLockHeld";
+	String METRIC_NAME_WORKER_CONTAINER_COUNT = "WorkerContainerCount";
 
 	/**
 	 * Log a change message driven worker event. The given class name (Class.getName) will be used as

@@ -116,6 +116,7 @@
 		<ref bean="jobIntervalProcessorTrigger" />
 		<ref bean="idGeneratorCleanuSynchTrigger" />
 		<ref bean="memoryLoggerTrigger" />
+		<ref bean="workerContainerHeartbeatTrigger" />
 		<ref bean="semaphoreGarbageCollectionTrigger" />
 		<ref bean="athenaPartitionScannerTrigger" />
 		<ref bean="statisticsMonthlyStatusWatcherWorkerTrigger" /> 
