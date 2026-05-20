@@ -9,6 +9,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.changes.ChangeMessageBatchProcessor;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileHandleStreamWorker;
 import org.sagebionetworks.grid.workers.GridSessionIndexWorker;
@@ -44,12 +45,14 @@ public class ChangeMessageWorkersConfig {
 	private AmazonSQSClient amazonSQSClient;
 	private StackConfiguration stackConfig;
 	private CountingSemaphore countingSemaphore;
-	
-	public ChangeMessageWorkersConfig(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, CountingSemaphore countingSemaphore) {
+	private WorkerLogger workerLogger;
+
+	public ChangeMessageWorkersConfig(ConcurrentManager concurrentStackManager, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, CountingSemaphore countingSemaphore, WorkerLogger workerLogger) {
 		this.concurrentStackManager = concurrentStackManager;
 		this.amazonSQSClient = amazonSQSClient;
 		this.stackConfig = stackConfig;
 		this.countingSemaphore = countingSemaphore;
+		this.workerLogger = workerLogger;
 	}
 
 	@Bean
@@ -68,6 +71,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(553)
@@ -91,6 +95,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2034)
@@ -114,6 +119,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(1797)
@@ -137,6 +143,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(750)
@@ -160,6 +167,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(750)
@@ -212,6 +220,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(1979)
@@ -236,6 +245,7 @@ public class ChangeMessageWorkersConfig {
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(2010)
@@ -259,6 +269,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(true)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2000)
@@ -282,6 +293,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(1532)
@@ -305,6 +317,7 @@ public class ChangeMessageWorkersConfig {
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)
 				.withWorker(worker)
+				.withWorkerLogger(workerLogger)
 				.build()
 			)
 			.withRepeatInterval(2053)

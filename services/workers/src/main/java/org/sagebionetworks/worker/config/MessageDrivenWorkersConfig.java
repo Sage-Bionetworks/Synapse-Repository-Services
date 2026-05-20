@@ -3,6 +3,7 @@ package org.sagebionetworks.worker.config;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentManager;
 import org.sagebionetworks.asynchronous.workers.concurrent.ConcurrentWorkerStack;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.file.worker.FileEventRecordWorker;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanRangeWorker;
@@ -39,20 +40,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class MessageDrivenWorkersConfig {
 	
 	private ConcurrentManager concurrentStackManager;
-	private StackStatusGate stackStatusGate; 
+	private StackStatusGate stackStatusGate;
 	private AmazonSQSClient amazonSQSClient;
 	private StackConfiguration stackConfig;
 	private CountingSemaphore countingSemaphore;
 	private ObjectMapper objectMapper;
+	private WorkerLogger workerLogger;
 
 	public MessageDrivenWorkersConfig(ConcurrentManager concurrentStackManager, StackStatusGate stackStatusGate, AmazonSQSClient amazonSQSClient, StackConfiguration stackConfig, CountingSemaphore countingSemaphore,
-			ObjectMapper objectMapper) {
+			ObjectMapper objectMapper, WorkerLogger workerLogger) {
 		this.concurrentStackManager = concurrentStackManager;
 		this.stackStatusGate = stackStatusGate;
 		this.amazonSQSClient = amazonSQSClient;
 		this.stackConfig = stackConfig;
 		this.countingSemaphore = countingSemaphore;
 		this.objectMapper = objectMapper;
+		this.workerLogger = workerLogger;
 	}
 
 	@Bean
@@ -71,6 +74,7 @@ public class MessageDrivenWorkersConfig {
 			.withCanRunInReadOnly(true)
 			.withQueueName(queueName)
 			.withWorker(worker)
+			.withWorkerLogger(workerLogger)
 			.build()
 		)
 		.withRepeatInterval(934)
@@ -166,6 +170,7 @@ public class MessageDrivenWorkersConfig {
 			.withCanRunInReadOnly(true)
 			.withQueueName(queueName)
 			.withWorker(worker)
+			.withWorkerLogger(workerLogger)
 			.build()
 		)
 		.withRepeatInterval(937)
@@ -189,6 +194,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(934)
@@ -212,6 +218,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(true)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(934)
@@ -234,6 +241,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(webhookMessageWorker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(2064)
@@ -257,6 +265,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(2064)
@@ -280,6 +289,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(2564)
@@ -302,6 +312,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(gridMessageBroker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(989)
@@ -324,6 +335,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(981)
@@ -346,6 +358,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(971)
@@ -368,6 +381,7 @@ public class MessageDrivenWorkersConfig {
 						.withCanRunInReadOnly(false)
 						.withQueueName(queueName)
 						.withWorker(worker)
+						.withWorkerLogger(workerLogger)
 						.build()
 				)
 				.withRepeatInterval(971)

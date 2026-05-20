@@ -3,11 +3,13 @@ package org.sagebionetworks.asynchronous.workers.concurrent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.MessageDrivenRunner;
 
@@ -57,6 +59,7 @@ public class ConcurrentWorkerStack implements Runnable {
 	private final int semaphoreLockAndMessageVisibilityTimeoutSec;
 	private final int maxThreadsPerMachine;
 	private final MessageDrivenRunner worker;
+	private final WorkerLogger workerLogger;
 
 	// derived parameters
 	private final int lockRefreshFrequencyMS;
@@ -81,6 +84,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		semaphoreLockAndMessageVisibilityTimeoutSec = -1;
 		maxThreadsPerMachine = -1;
 		worker = null;
+		workerLogger = null;
 		lockRefreshFrequencyMS = -1;
 		queueUrl = null;
 		waitTimeMs = MIN_WAIT_TIME;
@@ -89,7 +93,7 @@ public class ConcurrentWorkerStack implements Runnable {
 
 	private ConcurrentWorkerStack(ConcurrentManager manager, Boolean canRunInReadOnly, String semaphoreLockKey,
 			Integer semaphoreMaxLockCount, Integer semaphoreLockAndMessageVisibilityTimeoutSec,
-			Integer maxThreadsPerMachine, MessageDrivenRunner worker, String queueName) {
+			Integer maxThreadsPerMachine, MessageDrivenRunner worker, String queueName, WorkerLogger workerLogger) {
 		super();
 		ValidateArgument.required(manager, "manager");
 		ValidateArgument.required(semaphoreLockKey, "semaphoreLockKey");
@@ -104,6 +108,7 @@ public class ConcurrentWorkerStack implements Runnable {
 				"maxThreadsPerMachine must be greater than or equal to 1.");
 		ValidateArgument.required(worker, "worker");
 		ValidateArgument.required(queueName, "queueName");
+		ValidateArgument.required(workerLogger, "workerLogger");
 
 		this.manager = manager;
 		this.canRunInReadOnly = Boolean.TRUE.equals(canRunInReadOnly);
@@ -112,6 +117,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		this.semaphoreLockAndMessageVisibilityTimeoutSec = semaphoreLockAndMessageVisibilityTimeoutSec;
 		this.maxThreadsPerMachine = maxThreadsPerMachine;
 		this.worker = worker;
+		this.workerLogger = workerLogger;
 		this.lockRefreshFrequencyMS = (semaphoreLockAndMessageVisibilityTimeoutSec * 1000) / 3;
 		this.queueUrl = manager.getSqsQueueUrl(queueName);
 		this.isFifo = queueName.toLowerCase().endsWith("fifo");
@@ -283,8 +289,30 @@ public class ConcurrentWorkerStack implements Runnable {
 			runningJobs.forEach(job -> {
 				job.getListener().progressMade();
 			});
+			emitConcurrencyMetrics();
 			resetNextRefreshTimeMS();
 		}
+	}
+
+	/**
+	 * Publish two CloudWatch gauges on every refresh tick (only while this JVM
+	 * holds the semaphore lock and is running the infinite loop):
+	 * <ul>
+	 *   <li>{@link WorkerLogger#METRIC_NAME_CONCURRENT_WORKER_COUNT} =
+	 *       {@code runningJobs.size()} — per-JVM concurrency. Sum across the
+	 *       fleet reveals total cluster-wide concurrent runners.</li>
+	 *   <li>{@link WorkerLogger#METRIC_NAME_WORKER_LOCK_HELD} = 1 — emitted
+	 *       once per JVM that holds the lock. Sum across the fleet reveals
+	 *       how many JVMs currently hold the semaphore for this worker, which
+	 *       must be {@code <= semaphoreMaxLockCount}.</li>
+	 * </ul>
+	 * Both metrics carry the {@link WorkerLogger#DIMENSION_WORKER_NAME}
+	 * dimension set to {@code semaphoreLockKey}.
+	 */
+	void emitConcurrencyMetrics() {
+		Map<String, String> dims = Map.of(WorkerLogger.DIMENSION_WORKER_NAME, semaphoreLockKey);
+		workerLogger.logCount(WorkerLogger.METRIC_NAME_CONCURRENT_WORKER_COUNT, runningJobs.size(), dims);
+		workerLogger.logCount(WorkerLogger.METRIC_NAME_WORKER_LOCK_HELD, 1.0, dims);
 	}
 	
 	ConcurrentProgressCallback getLockCallback() {
@@ -338,6 +366,7 @@ public class ConcurrentWorkerStack implements Runnable {
 		private Integer maxThreadsPerMachine;
 		private String queueName;
 		private MessageDrivenRunner worker;
+		private WorkerLogger workerLogger;
 
 		/**
 		 * Wrapper of all of the stack's dependencies. Note: {@link ConcurrentManager}
@@ -437,9 +466,23 @@ public class ConcurrentWorkerStack implements Runnable {
 			return this;
 		}
 
+		/**
+		 * The {@link WorkerLogger} used to publish per-stack concurrency gauges
+		 * ({@link WorkerLogger#METRIC_NAME_CONCURRENT_WORKER_COUNT} and
+		 * {@link WorkerLogger#METRIC_NAME_WORKER_LOCK_HELD}) on each lock-refresh tick.
+		 * Required.
+		 *
+		 * @param workerLogger
+		 * @return
+		 */
+		public Builder withWorkerLogger(WorkerLogger workerLogger) {
+			this.workerLogger = workerLogger;
+			return this;
+		}
+
 		public ConcurrentWorkerStack build() {
 			return new ConcurrentWorkerStack(singleton, canRunInReadOnly, semaphoreLockKey, semaphoreMaxLockCount,
-					semaphoreLockAndMessageVisibilityTimeoutSec, maxThreadsPerMachine, worker, queueName);
+					semaphoreLockAndMessageVisibilityTimeoutSec, maxThreadsPerMachine, worker, queueName, workerLogger);
 		}
 	}
 
