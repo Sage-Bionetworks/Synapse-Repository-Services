@@ -125,7 +125,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		// call under test
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 
 		assertTrue(appliedConfig.isPresent());
 		assertTrue(appliedConfig.get().length() > 0);
@@ -136,7 +136,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// call under test
@@ -157,12 +157,12 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// call under test — resource_already_exists returns empty Optional
 		Optional<String> result = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 
 		assertTrue(result.isEmpty());
 	}
@@ -182,7 +182,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new ColumnModel().setId("2").setName("count").setColumnType(ColumnType.INTEGER)
 		);
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -244,7 +244,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, customQname,
-				Collections.emptyList(), analyzers);
+				Collections.emptyList(), analyzers, null);
 		assertTrue(appliedConfig.isPresent());
 		// The applied config must register the namespaced filter from the custom analyzer.
 		String aossKey = OpenSearchManagerImpl.toAossKey(customQname);
@@ -293,7 +293,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns,
-				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers);
+				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers, null);
 		assertTrue(appliedConfig.isPresent());
 		openSearchManager.waitForIndexWritable(indexName);
 
@@ -357,7 +357,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		openSearchManager.createIndex(indexName, columns, null,
-				List.of(overrideContainer), analyzers);
+				List.of(overrideContainer), analyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -390,7 +390,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("name").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -517,7 +517,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(entry));
 
 		openSearchManager.createIndex(indexName, columns, null,
-				List.of(override), analyzers);
+				List.of(override), analyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -557,7 +557,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// call under test — createIndex must succeed. Pre-fix this threw
 		// "Token filter [std_word_delimiter] cannot be used to parse synonyms".
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers);
+				overrides, analyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Index one doc per synonym term so each query can match via synonym expansion at
@@ -614,7 +614,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", analyzerKey));
 
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers);
+				overrides, analyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -667,7 +667,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", "org.sagebionetworks-STANDARD"));
 
 		openSearchManager.createIndex(indexName, columns, "org.sagebionetworks-STANDARD",
-				overrides, analyzers);
+				overrides, analyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Each doc contains only the abbreviation — a query for the long form (or a
@@ -759,7 +759,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		}
 
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers);
+				Collections.emptyList(), defaultAnalyzers, null);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		Map<String, Object> doc = new HashMap<>();

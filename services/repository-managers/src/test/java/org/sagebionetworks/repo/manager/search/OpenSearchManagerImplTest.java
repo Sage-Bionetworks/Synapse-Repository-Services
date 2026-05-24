@@ -92,6 +92,8 @@ import org.sagebionetworks.repo.model.search.SortDirection;
 import org.sagebionetworks.repo.model.search.SortField;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
+import org.sagebionetworks.repo.model.search.table.SemanticEnrichmentLanguageMode;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
@@ -117,6 +119,10 @@ public class OpenSearchManagerImplTest {
 	private OpenSearchClient openSearchClient;
 	@Mock
 	private OpenSearchIndicesClient indicesClient;
+	@Mock
+	private org.opensearch.client.opensearch.generic.OpenSearchGenericClient genericClient;
+	@Mock
+	private org.opensearch.client.opensearch.generic.Response genericResponse;
 
 	@InjectMocks
 	private OpenSearchManagerImpl manager;
@@ -1032,7 +1038,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers);
+				Collections.emptyList(), resolvedAnalyzers, null);
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -1096,7 +1102,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers);
+				Collections.singletonList(override), resolvedAnalyzers, null);
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -1145,7 +1151,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers);
+				Collections.singletonList(override), resolvedAnalyzers, null);
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -1175,7 +1181,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap()));
+						Collections.emptyList(), Collections.emptyMap(), null));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1197,9 +1203,137 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap());
+				Collections.emptyList(), Collections.emptyMap(), null);
 
 		assertEquals(Optional.empty(), result);
+	}
+
+	@Test
+	public void testCreateIndexWithColumnSemanticEnrichment() throws IOException {
+		// columnSemanticEnrichment opts a text column in to AOSS Automatic Semantic
+		// Enrichment. The opensearch-java 3.7.0 typed Property model has no slot for the
+		// semantic_enrichment block, so the manager serializes the typed body, splices the
+		// block on, and sends it through the generic client. Verify the body sent over the
+		// wire contains both the typed analyzer-binding bits (untouched) and the
+		// semantic_enrichment block on the opted-in column only.
+		String indexName = "search-index-syn1";
+		String qname = "org.sagebionetworks-SCIENTIFIC";
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap(qname,
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\"}}}"));
+
+		ColumnModel enrichedColumn = new ColumnModel().setId("100").setName("abstract")
+				.setColumnType(ColumnType.LARGETEXT);
+		ColumnModel plainColumn = new ColumnModel().setId("200").setName("doi")
+				.setColumnType(ColumnType.STRING);
+		List<ColumnModel> columns = List.of(enrichedColumn, plainColumn);
+
+		ColumnSemanticEnrichmentEntry enrichmentEntry = new ColumnSemanticEnrichmentEntry()
+				.setColumnName("abstract")
+				.setLanguageMode(SemanticEnrichmentLanguageMode.MULTI_LINGUAL);
+
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		ArgumentCaptor<org.opensearch.client.opensearch.generic.Request> reqCaptor =
+				ArgumentCaptor.forClass(org.opensearch.client.opensearch.generic.Request.class);
+		when(genericClient.execute(reqCaptor.capture())).thenReturn(genericResponse);
+
+		// call under test
+		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
+				Collections.emptyList(), resolvedAnalyzers,
+				Collections.singletonList(enrichmentEntry));
+
+		assertTrue(appliedJson.isPresent());
+		org.opensearch.client.opensearch.generic.Request sentReq = reqCaptor.getValue();
+		assertEquals("/" + indexName, sentReq.getEndpoint());
+		assertEquals("PUT", sentReq.getMethod());
+		String sentBody = sentReq.getBody().orElseThrow().bodyAsString();
+		com.fasterxml.jackson.databind.JsonNode applied =
+				new com.fasterxml.jackson.databind.ObjectMapper().readTree(sentBody);
+
+		// The enriched column ("abstract", column id 100) must carry the semantic_enrichment
+		// block with the AOSS literal "MULTI-LINGUAL" (note the hyphen — not the Java enum
+		// name MULTI_LINGUAL). The non-enriched column ("doi", id 200) must not.
+		com.fasterxml.jackson.databind.JsonNode properties = applied.path("mappings").path("properties");
+		com.fasterxml.jackson.databind.JsonNode enrichedProperty = properties.path("100");
+		com.fasterxml.jackson.databind.JsonNode semanticBlock = enrichedProperty.path("semantic_enrichment");
+		assertEquals("ENABLED", semanticBlock.path("status").asText());
+		assertEquals("MULTI-LINGUAL", semanticBlock.path("language_options").asText());
+		assertTrue(properties.path("200").path("semantic_enrichment").isMissingNode(),
+				"Non-enriched column must not carry a semantic_enrichment block");
+
+		// The existing typed mapping bits still apply — the enriched column kept its text
+		// type and the index-wide analyzer settings landed in the patched body.
+		assertEquals("text", enrichedProperty.path("type").asText());
+		assertTrue(sentBody.contains("\"default\""),
+				"Reserved analyzer.default must survive into the patched body: " + sentBody);
+	}
+
+	@Test
+	public void testCreateIndexWithSemanticEnrichmentDefaultsToEnglish() throws IOException {
+		// languageMode is optional on a ColumnSemanticEnrichmentEntry — when omitted the
+		// manager must default to AOSS' "english" literal rather than passing null. English
+		// mode is the documented latency-optimized path.
+		String indexName = "search-index-syn1";
+		String qname = "org.sagebionetworks-SCIENTIFIC";
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap(qname,
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\"}}}"));
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("100").setName("body").setColumnType(ColumnType.LARGETEXT));
+		ColumnSemanticEnrichmentEntry entry = new ColumnSemanticEnrichmentEntry()
+				.setColumnName("body");
+		// no languageMode set — must default to english
+
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		ArgumentCaptor<org.opensearch.client.opensearch.generic.Request> reqCaptor =
+				ArgumentCaptor.forClass(org.opensearch.client.opensearch.generic.Request.class);
+		when(genericClient.execute(reqCaptor.capture())).thenReturn(genericResponse);
+
+		// call under test
+		manager.createIndex(indexName, columns, qname,
+				Collections.emptyList(), resolvedAnalyzers, Collections.singletonList(entry));
+
+		String sentBody = reqCaptor.getValue().getBody().orElseThrow().bodyAsString();
+		com.fasterxml.jackson.databind.JsonNode applied =
+				new com.fasterxml.jackson.databind.ObjectMapper().readTree(sentBody);
+		assertEquals("english",
+				applied.path("mappings").path("properties").path("100")
+						.path("semantic_enrichment").path("language_options").asText());
+	}
+
+	@Test
+	public void testCreateIndexSkipsSemanticEnrichmentForMissingOrIneligibleColumn() throws IOException {
+		// AOSS restricts Automatic Semantic Enrichment to top-level text fields. Entries
+		// naming an unknown column or a non-text column must be silently dropped (matching
+		// the ColumnAnalyzerOverride posture) so a single SearchConfiguration can be reused
+		// across SearchIndexes that don't share the exact same schema.
+		String indexName = "search-index-syn1";
+		String qname = "org.sagebionetworks-KEYWORD";
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap(qname,
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\"}}}"));
+		ColumnModel intColumn = new ColumnModel().setId("100").setName("year")
+				.setColumnType(ColumnType.INTEGER);
+		List<ColumnModel> columns = List.of(intColumn);
+
+		List<ColumnSemanticEnrichmentEntry> enrichment = List.of(
+				new ColumnSemanticEnrichmentEntry().setColumnName("year")
+						.setLanguageMode(SemanticEnrichmentLanguageMode.ENGLISH),
+				new ColumnSemanticEnrichmentEntry().setColumnName("not_on_schema")
+						.setLanguageMode(SemanticEnrichmentLanguageMode.ENGLISH));
+
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(any(CreateIndexRequest.class))).thenReturn(
+				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
+				Collections.emptyList(), resolvedAnalyzers, enrichment);
+
+		// Both entries dropped: no semantic_enrichment anywhere in the applied request.
+		assertTrue(appliedJson.isPresent());
+		assertFalse(appliedJson.get().contains("semantic_enrichment"),
+				"Ineligible enrichment entries must be silently dropped: " + appliedJson.get());
 	}
 
 	private static BulkResponseItem okItem(String id) {

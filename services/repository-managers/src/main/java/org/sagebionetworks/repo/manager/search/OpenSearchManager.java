@@ -9,6 +9,7 @@ import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
@@ -43,12 +44,23 @@ public interface OpenSearchManager {
 	 *                                 {@link SearchAnalyzerJsonUtil#resolveRefs}. Each value is the
 	 *                                 {@code settings.analysis} block for one TextAnalyzer with all
 	 *                                 {@code $ref} entries already substituted.
+	 * @param columnSemanticEnrichment The list of columns opted in to AOSS Automatic Semantic
+	 *                                 Enrichment, taken directly from the SearchConfiguration's
+	 *                                 {@code columnSemanticEnrichment} field (may be {@code null}
+	 *                                 or empty). Entries whose {@code columnName} is not on the
+	 *                                 bound schema, or is not a top-level text-typed column
+	 *                                 (STRING / MEDIUMTEXT / LARGETEXT / LINK), are silently
+	 *                                 skipped at this layer — mirroring how
+	 *                                 {@code columnAnalyzerOverrides} treats missing columns and
+	 *                                 keeping the per-AOSS-doc restriction on top-level text
+	 *                                 fields in one place.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers);
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment);
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.
