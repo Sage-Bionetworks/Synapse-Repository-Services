@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
@@ -248,6 +249,26 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 			if (!missing.isEmpty()) {
 				throw new IllegalArgumentException("The following column analyzer override name(s) do not exist: " + missing);
 			}
+		}
+		validateSemanticEnrichmentEntries(config);
+	}
+
+	/**
+	 * Sanity-check {@code columnSemanticEnrichment}: every entry must name a column.
+	 * The languageMode defaults to ENGLISH when omitted (resolved at index-build time).
+	 * Whether the named column actually exists on the target SearchIndex is a build-time
+	 * check, not a create / update check — a SearchConfiguration is reusable across many
+	 * SearchIndexes that may not share the same schema, mirroring how
+	 * {@code columnAnalyzerOverrides} treats missing columns.
+	 */
+	private static void validateSemanticEnrichmentEntries(SearchConfiguration config) {
+		if (config.getColumnSemanticEnrichment() == null) {
+			return;
+		}
+		for (ColumnSemanticEnrichmentEntry entry : config.getColumnSemanticEnrichment()) {
+			ValidateArgument.required(entry, "columnSemanticEnrichment entry");
+			ValidateArgument.requiredNotBlank(entry.getColumnName(),
+				"columnSemanticEnrichment[].columnName");
 		}
 	}
 
