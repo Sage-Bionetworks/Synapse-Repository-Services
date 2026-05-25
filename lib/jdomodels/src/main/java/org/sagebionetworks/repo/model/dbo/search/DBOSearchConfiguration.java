@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.search;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_ANALYZER;
@@ -38,6 +39,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 			new FieldColumn("description", COL_SEARCH_CONFIG_DESCRIPTION),
 			new FieldColumn("defaultAnalyzer", COL_SEARCH_CONFIG_DEFAULT_ANALYZER),
 			new FieldColumn("columnAnalyzerOverridesJson", COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES),
+			new FieldColumn("columnSemanticEnrichmentJson", COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT),
 			new FieldColumn("createdBy", COL_SEARCH_CONFIG_CREATED_BY),
 			new FieldColumn("createdOn", COL_SEARCH_CONFIG_CREATED_ON),
 			new FieldColumn("modifiedBy", COL_SEARCH_CONFIG_MODIFIED_BY),
@@ -51,6 +53,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 	private String description;
 	private String defaultAnalyzer;
 	private String columnAnalyzerOverridesJson;
+	private String columnSemanticEnrichmentJson;
 	private Long createdBy;
 	private Timestamp createdOn;
 	private Long modifiedBy;
@@ -73,6 +76,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 			dbo.setDescription(rs.getString(COL_SEARCH_CONFIG_DESCRIPTION));
 			dbo.setDefaultAnalyzer(rs.getString(COL_SEARCH_CONFIG_DEFAULT_ANALYZER));
 			dbo.setColumnAnalyzerOverridesJson(rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES));
+			dbo.setColumnSemanticEnrichmentJson(rs.getString(COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT));
 			dbo.setCreatedBy(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY));
 			dbo.setCreatedOn(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON));
 			dbo.setModifiedBy(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY));
@@ -231,6 +235,15 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 		return this;
 	}
 
+	public String getColumnSemanticEnrichmentJson() {
+		return columnSemanticEnrichmentJson;
+	}
+
+	public DBOSearchConfiguration setColumnSemanticEnrichmentJson(String columnSemanticEnrichmentJson) {
+		this.columnSemanticEnrichmentJson = columnSemanticEnrichmentJson;
+		return this;
+	}
+
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -270,7 +283,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 	@Override
 	public int hashCode() {
 		return Objects.hash(id, etag, organizationName, name, description,
-				defaultAnalyzer, columnAnalyzerOverridesJson,
+				defaultAnalyzer, columnAnalyzerOverridesJson, columnSemanticEnrichmentJson,
 				createdBy, createdOn, modifiedBy, modifiedOn);
 	}
 
@@ -290,6 +303,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 				&& Objects.equals(description, other.description)
 				&& Objects.equals(defaultAnalyzer, other.defaultAnalyzer)
 				&& Objects.equals(columnAnalyzerOverridesJson, other.columnAnalyzerOverridesJson)
+				&& Objects.equals(columnSemanticEnrichmentJson, other.columnSemanticEnrichmentJson)
 				&& Objects.equals(createdBy, other.createdBy)
 				&& Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(modifiedBy, other.modifiedBy)
@@ -302,6 +316,7 @@ public class DBOSearchConfiguration implements MigratableDatabaseObject<DBOSearc
 				+ ", name=" + name + ", description=" + description
 				+ ", defaultAnalyzer=" + defaultAnalyzer
 				+ ", columnAnalyzerOverridesJson=" + columnAnalyzerOverridesJson
+				+ ", columnSemanticEnrichmentJson=" + columnSemanticEnrichmentJson
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn + "]";
 	}

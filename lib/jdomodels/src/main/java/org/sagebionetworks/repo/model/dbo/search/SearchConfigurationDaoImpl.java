@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SCOB_OBJ
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SCOB_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SCOB_SEARCH_CONFIG_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_ANALYZER;
@@ -42,6 +43,7 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 
 	private static final String DEFAULT_ANALYZER_FIELD = "SearchConfiguration.defaultAnalyzer";
 	private static final String OVERRIDES_FIELD = "SearchConfiguration.columnAnalyzerOverrides";
+	private static final String SEMANTIC_ENRICHMENT_FIELD = "SearchConfiguration.columnSemanticEnrichment";
 
 	private static final RowMapper<SearchConfiguration> ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		SearchConfiguration config = new SearchConfiguration();
@@ -54,6 +56,8 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 				rs.getString(COL_SEARCH_CONFIG_DEFAULT_ANALYZER), DEFAULT_ANALYZER_FIELD));
 		config.setColumnAnalyzerOverrides(OpaqueJsonColumnCodecUtil.deserializeList(
 				rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES), OVERRIDES_FIELD));
+		config.setColumnSemanticEnrichment(OpaqueJsonColumnCodecUtil.deserializeList(
+				rs.getString(COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT), SEMANTIC_ENRICHMENT_FIELD));
 		config.setCreatedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY)));
 		config.setCreatedOn(new Date(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON).getTime()));
 		config.setModifiedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY)));
@@ -93,15 +97,16 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO SEARCH_CONFIGURATION (ID, ETAG, ORGANIZATION_NAME, NAME, DESCRIPTION,"
-					+ " DEFAULT_ANALYZER, COLUMN_ANALYZER_OVERRIDES,"
+					+ " DEFAULT_ANALYZER, COLUMN_ANALYZER_OVERRIDES, COLUMN_SEMANTIC_ENRICHMENT,"
 					+ " CREATED_BY, CREATED_ON, MODIFIED_BY, MODIFIED_ON)"
-					+ " VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, NOW(3), ?, NOW(3))",
+					+ " VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, NOW(3), ?, NOW(3))",
 					id,
 					config.getOrganizationName(),
 					config.getName(),
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
+					OpaqueJsonColumnCodecUtil.serialize(config.getColumnSemanticEnrichment(), SEMANTIC_ENRICHMENT_FIELD),
 					createdBy,
 					createdBy
 			);
@@ -145,11 +150,13 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 					"UPDATE SEARCH_CONFIGURATION SET ETAG = UUID(), NAME = ?, DESCRIPTION = ?,"
 					+ " DEFAULT_ANALYZER = ?,"
 					+ " COLUMN_ANALYZER_OVERRIDES = ?,"
+					+ " COLUMN_SEMANTIC_ENRICHMENT = ?,"
 					+ " MODIFIED_BY = ?, MODIFIED_ON = NOW(3) WHERE ID = ?",
 					config.getName(),
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
+					OpaqueJsonColumnCodecUtil.serialize(config.getColumnSemanticEnrichment(), SEMANTIC_ENRICHMENT_FIELD),
 					modifiedBy,
 					id
 			);

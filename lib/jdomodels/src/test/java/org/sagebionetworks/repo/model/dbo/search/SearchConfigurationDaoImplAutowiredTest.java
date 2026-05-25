@@ -306,6 +306,46 @@ public class SearchConfigurationDaoImplAutowiredTest {
 	}
 
 	@Test
+	public void testCRUDWithColumnSemanticEnrichment() {
+		// columnSemanticEnrichment entries are opaque {columnName, languageMode} objects
+		// persisted in their own JSON column. Verify they round-trip on create and get, and
+		// survive an update — this column was added after the analyzer columns and must not be
+		// silently dropped.
+		JSONObject enrichAbstract = new JSONObject()
+				.put("columnName", "abstract")
+				.put("languageMode", "MULTI_LINGUAL");
+		JSONObject enrichTitle = new JSONObject()
+				.put("columnName", "title")
+				.put("languageMode", "ENGLISH");
+
+		SearchConfiguration toCreate = newConfig(org1Name,
+				"semantic_enrichment_" + UUID.randomUUID().toString().replace("-", ""),
+				"semantic enrichment config")
+				.setColumnSemanticEnrichment(Arrays.asList(enrichAbstract, enrichTitle));
+
+		// call under test
+		SearchConfiguration created = searchConfigurationDao.create(adminUserId, toCreate);
+
+		assertNotNull(created.getId());
+		assertEquals(2, created.getColumnSemanticEnrichment().size());
+		assertJsonEquals(enrichAbstract, created.getColumnSemanticEnrichment().get(0));
+		assertJsonEquals(enrichTitle, created.getColumnSemanticEnrichment().get(1));
+
+		// call under test — get round-trip
+		Optional<SearchConfiguration> fetched = searchConfigurationDao.get(created.getId());
+		assertTrue(fetched.isPresent());
+		assertEquals(2, fetched.get().getColumnSemanticEnrichment().size());
+		assertJsonEquals(enrichAbstract, fetched.get().getColumnSemanticEnrichment().get(0));
+
+		// call under test — update replaces the list
+		SearchConfiguration toUpdate = fetched.get()
+				.setColumnSemanticEnrichment(Collections.singletonList(enrichTitle));
+		SearchConfiguration updated = searchConfigurationDao.update(adminUserId, toUpdate);
+		assertEquals(1, updated.getColumnSemanticEnrichment().size());
+		assertJsonEquals(enrichTitle, updated.getColumnSemanticEnrichment().get(0));
+	}
+
+	@Test
 	public void testDeleteDoesNotCascadeToReferencedResources() {
 		// SynonymSets are referenced from TextAnalyzers (not SearchConfigurations) under the
 		// new shape; SearchConfiguration delete should leave them alone regardless.

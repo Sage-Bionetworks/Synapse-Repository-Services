@@ -265,7 +265,11 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 		if (config.getColumnSemanticEnrichment() == null) {
 			return;
 		}
-		for (ColumnSemanticEnrichmentEntry entry : config.getColumnSemanticEnrichment()) {
+		for (Object raw : config.getColumnSemanticEnrichment()) {
+			// Entries are opaque on the wire (same $ref-less object shape as the persisted
+			// column); round-trip through the typed POJO so a malformed entry is rejected at
+			// create / update time rather than at index-build time.
+			ColumnSemanticEnrichmentEntry entry = SearchOpaqueJsonUtil.toInline(raw, ColumnSemanticEnrichmentEntry.class);
 			ValidateArgument.required(entry, "columnSemanticEnrichment entry");
 			ValidateArgument.requiredNotBlank(entry.getColumnName(),
 				"columnSemanticEnrichment[].columnName");
