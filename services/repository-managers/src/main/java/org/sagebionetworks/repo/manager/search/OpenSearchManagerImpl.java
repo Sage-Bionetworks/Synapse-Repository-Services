@@ -248,36 +248,27 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					})
 			);
 
-			if (enrichmentByColumnId.isEmpty()) {
-				// No semantic enrichment — typed path as today.
-				CreateIndexResponse response = openSearchClient.indices().create(typedRequest);
-				if (!Boolean.TRUE.equals(response.acknowledged())) {
-					throw new IllegalStateException(
-							"Search index " + indexName + " creation was not acknowledged.");
-				}
-				return Optional.of(typedRequest.toJsonString());
-			}
-
-			// Enrichment present. The opensearch-java 3.7.0 typed Property model has no slot
-			// for the AOSS-specific semantic_enrichment block, and any round-trip through
-			// TextProperty would silently drop it. So: serialize the typed request body to
-			// JSON, splice the semantic_enrichment block onto each opted-in column's property,
-			// then send the patched body straight to AOSS via the generic client — bypassing
-			// the typed POJOs on the wire while keeping every other field exactly as the
-			// typed builder produced it.
-			String patchedBody = patchSemanticEnrichment(typedRequest.toJsonString(),
+			// The opensearch-java 3.7.0 typed Property model has no slot for the AOSS-specific
+			// semantic_enrichment block, and any round-trip through TextProperty would silently
+			// drop it. So: serialize the typed request body to JSON, splice the
+			// semantic_enrichment block onto each opted-in column's property (no-op when the
+			// caller didn't opt anything in), then send via the generic client — bypassing the
+			// typed POJOs on the wire while keeping every other field exactly as the typed
+			// builder produced it. Always going through generic() removes the dual-path branch.
+			String body = patchSemanticEnrichment(typedRequest.toJsonString(),
 					enrichmentByColumnId);
 			org.opensearch.client.opensearch.generic.Response genericResponse =
 					openSearchClient.generic().execute(
 							org.opensearch.client.opensearch.generic.Requests.builder()
 									.endpoint("/" + indexName)
 									.method("PUT")
-									.json(patchedBody)
+									.json(body)
 									.build());
 			int status = genericResponse.getStatus();
 			if (status == 400) {
-				// AOSS surfaces resource_already_exists as a 400 with this error type — match
-				// the typed-path behavior of treating an idempotent re-create as "no-op".
+				// AOSS surfaces resource_already_exists as a 400 with this error type — treat
+				// an idempotent re-create as "no-op" the same way the typed indices().create()
+				// path used to via OpenSearchException.
 				String bodyText = genericResponse.getBody().map(b -> b.bodyAsString()).orElse("");
 				if (bodyText.contains("resource_already_exists_exception")) {
 					return Optional.empty();
@@ -290,7 +281,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				throw new RuntimeException("Failed to create search index: " + indexName
 						+ " (HTTP " + status + ": " + bodyText + ")");
 			}
-			return Optional.of(patchedBody);
+			return Optional.of(body);
 		} catch (OpenSearchException e) {
 			if ("resource_already_exists_exception".equals(e.error().type())) {
 				return Optional.empty();

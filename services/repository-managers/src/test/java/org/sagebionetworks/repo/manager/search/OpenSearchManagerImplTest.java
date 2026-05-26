@@ -1029,12 +1029,11 @@ public class OpenSearchManagerImplTest {
 		List<ColumnModel> columns = Collections.singletonList(
 				new ColumnModel().setId("100").setName("title").setColumnType(ColumnType.STRING));
 
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		org.opensearch.client.opensearch.indices.CreateIndexResponse okResponse =
-				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
-						.acknowledged(true).shardsAcknowledged(true).index(indexName));
-		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
-		when(indicesClient.create(requestCaptor.capture())).thenReturn(okResponse);
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		ArgumentCaptor<org.opensearch.client.opensearch.generic.Request> reqCaptor =
+				ArgumentCaptor.forClass(org.opensearch.client.opensearch.generic.Request.class);
+		when(genericClient.execute(reqCaptor.capture())).thenReturn(genericResponse);
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
@@ -1055,8 +1054,9 @@ public class OpenSearchManagerImplTest {
 		assertTrue(applied.contains("\"100\""),
 				"Field mapping for the STRING column must be registered under its id: " + applied);
 
-		// And the captured request must target the right index name.
-		assertEquals(indexName, requestCaptor.getValue().index());
+		// And the captured request must target the right endpoint and method.
+		assertEquals("/" + indexName, reqCaptor.getValue().getEndpoint());
+		assertEquals("PUT", reqCaptor.getValue().getMethod());
 	}
 
 	@Test
@@ -1094,11 +1094,10 @@ public class OpenSearchManagerImplTest {
 		override.setOverrides(Collections.singletonList(entry));
 
 
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		org.opensearch.client.opensearch.indices.CreateIndexResponse okResponse =
-				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
-						.acknowledged(true).shardsAcknowledged(true).index(indexName));
-		when(indicesClient.create(any(CreateIndexRequest.class))).thenReturn(okResponse);
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		when(genericClient.execute(any(org.opensearch.client.opensearch.generic.Request.class)))
+				.thenReturn(genericResponse);
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
@@ -1143,11 +1142,10 @@ public class OpenSearchManagerImplTest {
 		override.setOverrides(Collections.singletonList(entry));
 
 
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		org.opensearch.client.opensearch.indices.CreateIndexResponse okResponse =
-				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
-						.acknowledged(true).shardsAcknowledged(true).index(indexName));
-		when(indicesClient.create(any(CreateIndexRequest.class))).thenReturn(okResponse);
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		when(genericClient.execute(any(org.opensearch.client.opensearch.generic.Request.class)))
+				.thenReturn(genericResponse);
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
@@ -1162,44 +1160,45 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testCreateIndexWithOpenSearchException() throws IOException {
+	public void testCreateIndexWithMappingFailure() throws IOException {
+		// AOSS-side rejections come back as non-2xx responses on the generic client. A
+		// mapper_parsing_exception is surfaced as HTTP 400 with the typed error body — the
+		// manager must wrap that into a clear RuntimeException carrying the body text so the
+		// caller (and SearchIndexStatus.errorMessage) can see why the build failed.
 		String indexName = "search-index-syn1";
-		ErrorCause inner = ErrorCause.of(b -> b
-				.type("illegal_argument_exception")
-				.reason("For input string: \"abc\""));
-		ErrorCause outer = ErrorCause.of(b -> b
-				.type("mapper_parsing_exception")
-				.reason("failed to parse field [col_123] of type [long]")
-				.causedBy(inner));
-		OpenSearchException openSearchException = new OpenSearchException(
-				ErrorResponse.of(er -> er.error(outer).status(400)));
-
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
-				.thenThrow(openSearchException);
+		String errorBody = "{\"error\":{\"type\":\"mapper_parsing_exception\","
+				+ "\"reason\":\"failed to parse field [col_123] of type [long]\"}}";
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(400);
+		when(genericResponse.getBody()).thenReturn(Optional.of(
+				org.opensearch.client.opensearch.generic.Bodies.json(errorBody)));
+		when(genericClient.execute(any(org.opensearch.client.opensearch.generic.Request.class)))
+				.thenReturn(genericResponse);
 
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
 						Collections.emptyList(), Collections.emptyMap(), null));
 
-		assertEquals(openSearchException, ex.getCause());
-		assertEquals("Failed to create search index: " + indexName
-				+ " (" + OpenSearchManagerImpl.describeError(outer) + ")",
-				ex.getMessage());
+		assertTrue(ex.getMessage().contains("Failed to create search index: " + indexName));
+		assertTrue(ex.getMessage().contains("HTTP 400"));
+		assertTrue(ex.getMessage().contains("mapper_parsing_exception"),
+				"error body should be reported in the wrapped message: " + ex.getMessage());
 	}
 
 	@Test
 	public void testCreateIndexWithResourceAlreadyExists() throws IOException {
+		// AOSS surfaces resource_already_exists as HTTP 400 with that error type in the body —
+		// the manager treats this as an idempotent no-op rather than a failure.
 		String indexName = "search-index-syn1";
-		OpenSearchException openSearchException = new OpenSearchException(
-				ErrorResponse.of(er -> er.error(ErrorCause.of(b -> b
-						.type("resource_already_exists_exception")
-						.reason("index already exists"))).status(400)));
-
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
-				.thenThrow(openSearchException);
+		String errorBody = "{\"error\":{\"type\":\"resource_already_exists_exception\","
+				+ "\"reason\":\"index already exists\"}}";
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(400);
+		when(genericResponse.getBody()).thenReturn(Optional.of(
+				org.opensearch.client.opensearch.generic.Bodies.json(errorBody)));
+		when(genericClient.execute(any(org.opensearch.client.opensearch.generic.Request.class)))
+				.thenReturn(genericResponse);
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
@@ -1321,10 +1320,10 @@ public class OpenSearchManagerImplTest {
 				new ColumnSemanticEnrichmentEntry().setColumnName("not_on_schema")
 						.setLanguageMode(SemanticEnrichmentLanguageMode.ENGLISH));
 
-		when(openSearchClient.indices()).thenReturn(indicesClient);
-		when(indicesClient.create(any(CreateIndexRequest.class))).thenReturn(
-				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
-						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+		when(openSearchClient.generic()).thenReturn(genericClient);
+		when(genericResponse.getStatus()).thenReturn(200);
+		when(genericClient.execute(any(org.opensearch.client.opensearch.generic.Request.class)))
+				.thenReturn(genericResponse);
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
