@@ -109,6 +109,32 @@ final class OpaqueJsonColumnCodecUtil {
 	}
 
 	/**
+	 * Variant of {@link #deserializeList(String, String)} that yields a typed list of
+	 * Jackson-bound POJOs rather than raw {@link JSONObject} elements. Used when the column
+	 * is bound on the schema as a typed array ({@code items: { "$ref": "..." }}) and the
+	 * generated POJO declares a {@code List<T>} setter; reading back the column has to
+	 * produce {@code T} instances directly because the schema-to-pojo writer's typed-array
+	 * setter rejects raw {@code Object} elements.
+	 *
+	 * <p>Returns {@code null} when {@code json} is {@code null}.</p>
+	 *
+	 * @param json             the stored JSON column value
+	 * @param elementType      the Jackson-bindable POJO class for each element
+	 * @param fieldDescription human-readable field name used in error messages
+	 */
+	static <T> List<T> deserializeList(String json, Class<T> elementType, String fieldDescription) {
+		if (json == null) {
+			return null;
+		}
+		try {
+			return MAPPER.readerForListOf(elementType).readValue(json);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Failed to deserialize " + fieldDescription
+					+ " JSON as List<" + elementType.getSimpleName() + ">", e);
+		}
+	}
+
+	/**
 	 * Render a caller-supplied opaque-JSON value to its canonical JSON-string form for
 	 * persistence. Returns {@code null} when {@code value} is {@code null}.
 	 *

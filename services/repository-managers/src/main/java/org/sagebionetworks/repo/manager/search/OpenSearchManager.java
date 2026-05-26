@@ -9,6 +9,7 @@ import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
@@ -59,7 +60,7 @@ public interface OpenSearchManager {
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			List<?> columnSemanticEnrichment);
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment);
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.

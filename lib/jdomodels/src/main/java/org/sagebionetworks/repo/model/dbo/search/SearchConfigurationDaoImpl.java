@@ -27,6 +27,7 @@ import java.util.Optional;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -57,7 +58,8 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 		config.setColumnAnalyzerOverrides(OpaqueJsonColumnCodecUtil.deserializeList(
 				rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES), OVERRIDES_FIELD));
 		config.setColumnSemanticEnrichment(OpaqueJsonColumnCodecUtil.deserializeList(
-				rs.getString(COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT), SEMANTIC_ENRICHMENT_FIELD));
+				rs.getString(COL_SEARCH_CONFIG_COL_SEMANTIC_ENRICHMENT),
+				ColumnSemanticEnrichmentEntry.class, SEMANTIC_ENRICHMENT_FIELD));
 		config.setCreatedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY)));
 		config.setCreatedOn(new Date(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON).getTime()));
 		config.setModifiedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY)));

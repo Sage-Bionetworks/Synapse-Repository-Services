@@ -25,7 +25,9 @@ import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
+import org.sagebionetworks.repo.model.search.table.SemanticEnrichmentLanguageMode;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
@@ -307,16 +309,16 @@ public class SearchConfigurationDaoImplAutowiredTest {
 
 	@Test
 	public void testCRUDWithColumnSemanticEnrichment() {
-		// columnSemanticEnrichment entries are opaque {columnName, languageMode} objects
+		// columnSemanticEnrichment entries are typed {columnName, languageMode} POJOs
 		// persisted in their own JSON column. Verify they round-trip on create and get, and
-		// survive an update — this column was added after the analyzer columns and must not be
-		// silently dropped.
-		JSONObject enrichAbstract = new JSONObject()
-				.put("columnName", "abstract")
-				.put("languageMode", "MULTI_LINGUAL");
-		JSONObject enrichTitle = new JSONObject()
-				.put("columnName", "title")
-				.put("languageMode", "ENGLISH");
+		// survive an update — this column was added after the analyzer columns and must not
+		// be silently dropped.
+		ColumnSemanticEnrichmentEntry enrichAbstract = new ColumnSemanticEnrichmentEntry()
+				.setColumnName("abstract")
+				.setLanguageMode(SemanticEnrichmentLanguageMode.MULTI_LINGUAL);
+		ColumnSemanticEnrichmentEntry enrichTitle = new ColumnSemanticEnrichmentEntry()
+				.setColumnName("title")
+				.setLanguageMode(SemanticEnrichmentLanguageMode.ENGLISH);
 
 		SearchConfiguration toCreate = newConfig(org1Name,
 				"semantic_enrichment_" + UUID.randomUUID().toString().replace("-", ""),
@@ -327,22 +329,19 @@ public class SearchConfigurationDaoImplAutowiredTest {
 		SearchConfiguration created = searchConfigurationDao.create(adminUserId, toCreate);
 
 		assertNotNull(created.getId());
-		assertEquals(2, created.getColumnSemanticEnrichment().size());
-		assertJsonEquals(enrichAbstract, created.getColumnSemanticEnrichment().get(0));
-		assertJsonEquals(enrichTitle, created.getColumnSemanticEnrichment().get(1));
+		assertEquals(Arrays.asList(enrichAbstract, enrichTitle), created.getColumnSemanticEnrichment());
 
 		// call under test — get round-trip
 		Optional<SearchConfiguration> fetched = searchConfigurationDao.get(created.getId());
 		assertTrue(fetched.isPresent());
-		assertEquals(2, fetched.get().getColumnSemanticEnrichment().size());
-		assertJsonEquals(enrichAbstract, fetched.get().getColumnSemanticEnrichment().get(0));
+		assertEquals(Arrays.asList(enrichAbstract, enrichTitle),
+				fetched.get().getColumnSemanticEnrichment());
 
 		// call under test — update replaces the list
 		SearchConfiguration toUpdate = fetched.get()
 				.setColumnSemanticEnrichment(Collections.singletonList(enrichTitle));
 		SearchConfiguration updated = searchConfigurationDao.update(adminUserId, toUpdate);
-		assertEquals(1, updated.getColumnSemanticEnrichment().size());
-		assertJsonEquals(enrichTitle, updated.getColumnSemanticEnrichment().get(0));
+		assertEquals(Collections.singletonList(enrichTitle), updated.getColumnSemanticEnrichment());
 	}
 
 	@Test

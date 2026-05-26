@@ -220,7 +220,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			List<?> columnSemanticEnrichment) {
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
 
 		Map<String, String> nameToId = columns.stream()
@@ -310,17 +310,14 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * restriction for Automatic Semantic Enrichment.
 	 */
 	private static Map<String, String> resolveSemanticEnrichmentByColumnId(
-			List<?> columnSemanticEnrichment, List<ColumnModel> columns) {
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment, List<ColumnModel> columns) {
 		if (columnSemanticEnrichment == null || columnSemanticEnrichment.isEmpty()) {
 			return Collections.emptyMap();
 		}
 		Map<String, ColumnModel> byName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, c -> c, (a, b) -> a));
 		Map<String, String> result = new LinkedHashMap<>();
-		for (Object raw : columnSemanticEnrichment) {
-			// Entries are opaque on the wire / in storage (same shape as columnAnalyzerOverrides);
-			// parse each into the typed ColumnSemanticEnrichmentEntry here.
-			ColumnSemanticEnrichmentEntry entry = SearchOpaqueJsonUtil.toInline(raw, ColumnSemanticEnrichmentEntry.class);
+		for (ColumnSemanticEnrichmentEntry entry : columnSemanticEnrichment) {
 			if (entry == null || entry.getColumnName() == null) {
 				continue;
 			}
