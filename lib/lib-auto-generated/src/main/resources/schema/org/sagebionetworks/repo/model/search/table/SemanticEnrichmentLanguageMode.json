@@ -1,0 +1,14 @@
+{
+	"description": "Selects the language mode for an AOSS Automatic Semantic Enrichment field. The mode maps onto the AOSS-documented <code>language_options</code> parameter and determines the latency / coverage tradeoff: English mode is optimized for English text and per the AWS docs delivers lower P90 search latency than lexical-only search; multilingual mode covers 15 languages (Arabic, Bengali, Chinese, English, Finnish, French, Hindi, Indonesian, Japanese, Korean, Persian, Russian, Spanish, Swahili, Telugu) but with a higher P90 latency penalty. Choose multilingual only when the indexed column actually mixes languages.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "ENGLISH",
+			"description": "English-only enrichment. Maps to AOSS <code>language_options: \"english\"</code>. Recommended for columns whose contents are predominantly English; lower per-query latency than multilingual mode. Per the AWS docs, the sparse model processes the first 8,192 tokens of each document in this mode."
+		},
+		{
+			"name": "MULTI_LINGUAL",
+			"description": "Multilingual enrichment across the 15 languages AOSS supports. Maps to AOSS <code>language_options: \"MULTI-LINGUAL\"</code>. Use when the column may contain non-English text (cross-language matching, mixed-language corpora). Per the AWS docs, the sparse model processes the first 512 tokens of each document in this mode and adds latency relative to English mode."
+		}
+	]
+}

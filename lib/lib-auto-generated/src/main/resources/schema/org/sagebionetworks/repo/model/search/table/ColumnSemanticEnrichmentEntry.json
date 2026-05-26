@@ -1,0 +1,13 @@
+{
+	"description": "<p>Opts one text-bearing column on a SearchIndex in to AOSS Automatic Semantic Enrichment. At index-build time the matching column's field mapping is emitted with a <code>semantic_enrichment</code> block (<code>status: ENABLED</code>, <code>language_options</code> derived from <code>languageMode</code>); AOSS then auto-attaches its managed sparse model to the ingest path and rewrites <code>match</code> queries (standalone or inside <code>bool</code> / <code>boosting</code> / <code>constant_score</code> / <code>dis_max</code> / <code>function_score</code> / <code>hybrid</code> compound queries) against this field into neural sparse queries. <code>multi_match</code> queries are not rewritten by AOSS.</p><p><b>Per-column opt-in is the only path to semantic enrichment</b> &mdash; there is no SearchConfiguration-level default for the same reason there is no default analyzer: AOSS meters indexing-inference TPS against the collection (soft cap of 100 TPS per the AWS docs) and bills OpenSearch Compute Units (OCUs) for the sparse-model work, so vectorizing every text column by default would inflate spend on every indexed row.</p><p><b>Which columns are eligible:</b> top-level text-typed Synapse columns (STRING, MEDIUMTEXT, LARGETEXT, LINK). The AWS docs limit AOSS Automatic Semantic Enrichment to top-level <code>text</code> fields, so STRING_LIST / nested-style columns are silently skipped at index-build time with a warning in <code>SearchIndexStatus.errorMessage</code>, mirroring how ColumnAnalyzerOverrideEntry handles missing columns.</p><p><b>Example:</b></p><pre><code>{ \"columnName\": \"abstract\", \"languageMode\": \"MULTI_LINGUAL\" }</code></pre>",
+	"properties": {
+		"columnName": {
+			"type": "string",
+			"description": "The name of the column to enrich. Must match a top-level text-typed column in the SearchIndex's resolved schema. Silently skipped at index-build time if the column is not present or is not text-typed &mdash; a single SearchConfiguration can therefore apply to several SearchIndexes that share some column names."
+		},
+		"languageMode": {
+			"$ref": "org.sagebionetworks.repo.model.search.table.SemanticEnrichmentLanguageMode",
+			"description": "The language mode AOSS should use for this column. Defaults to ENGLISH if omitted."
+		}
+	}
+}
