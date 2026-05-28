@@ -1,0 +1,179 @@
+---
+#
+# Triggers the AWS CodePipeline (Synapse-Build-<user>) for fork PRs and upstream
+# pushes. Uses pull_request_target so we get id-token: write and access to
+# upstream secrets/OIDC, which pull_request from a fork cannot grant.
+#
+# SECURITY MODEL — read before editing:
+# - This workflow runs the version of the file from the BASE branch (develop).
+#   Modifications in a PR DO NOT take effect until merged. That's why this
+#   trigger is safe with secrets.
+# - We deliberately DO NOT run actions/checkout against the PR head, and we DO
+#   NOT execute any code from the PR (no scripts, no Maven, no pre-commit).
+#   Static analysis lives in build_and_test.yml under `pull_request`, where it
+#   has no secrets.
+# - The PR's code is fetched and built INSIDE AWS CodeBuild, which runs as its
+#   own service role. The PR cannot exfiltrate the GitHub OIDC token from this
+#   workflow because it never executes here.
+# - Recommended GitHub setting: Settings -> Actions -> General -> Fork pull
+#   request workflows from outside collaborators -> "Require approval for
+#   first-time contributors". Defense-in-depth.
+#
+# These parameters can be overridden with repo' action variables:
+# - USER, STACK_BUILDER_REPO_OWNER, STACK_BUILDER_BRANCH, FULL_BUILD, EXTRA_ARGS
+#
+name: aws-pipeline
+
+on:
+  pull_request_target:
+    branches: ['**']
+  push:
+    branches: [develop, 'release-*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture_credentials:
+    permissions:
+      contents: read
+      id-token: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine Pipeline Parameters
+        id: pipeline-params
+        run: |
+          # The pipeline sources from upstream (Sage-Bionetworks) via CodeConnections,
+          # so the relevant ref is whatever GitHub exposes on upstream:
+          #   - pull_request_target events: refs/pull/<n>/head with HEAD SHA at github.event.pull_request.head.sha
+          #   - push events: the upstream branch (develop or release-*)
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            SYNAPSE_BRANCH=refs/pull/${{ github.event.pull_request.number }}/head
+            SYNAPSE_SHA=${{ github.event.pull_request.head.sha }}
+            DEFAULT_USER=${{ github.event.pull_request.user.login }}
+          else
+            SYNAPSE_BRANCH=${GITHUB_REF#refs/heads/}
+            SYNAPSE_SHA=${{ github.sha }}
+            DEFAULT_USER=$GITHUB_REPOSITORY_OWNER
+          fi
+          echo "SYNAPSE_SHA=$SYNAPSE_SHA" >> $GITHUB_OUTPUT
+          # get the 'user' parameter, either from the repo' env or derived from the PR/push author
+          if [ ${{ vars.USER }} ]; then
+            USER=${{ vars.USER }}
+          else
+            USER=$(echo "${DEFAULT_USER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
+          fi
+          echo "USER=$USER" >> $GITHUB_OUTPUT
+          # get repo' and branch specifying the version of the stack builder to use
+          if [ ${{ vars.STACK_BUILDER_REPO_OWNER }} ]; then
+            STACK_BUILDER_REPO_OWNER=${{ vars.STACK_BUILDER_REPO_OWNER }}
+          else
+            STACK_BUILDER_REPO_OWNER=Sage-Bionetworks
+          fi
+          if [ ${{ vars.STACK_BUILDER_BRANCH }} ]; then
+            STACK_BUILDER_BRANCH=${{ vars.STACK_BUILDER_BRANCH }}
+          else
+            STACK_BUILDER_BRANCH=develop
+          fi
+          FULL_BUILD=${{ vars.FULL_BUILD }}
+          EXTRA_ARGS=${{ vars.EXTRA_ARGS }}
+          # publish build artifacts only for upstream pushes to develop/release-*
+          if [[ "${{ github.event_name }}" == "push" && "$GITHUB_REPOSITORY_OWNER" == "Sage-Bionetworks" ]]; then
+            if [[ $SYNAPSE_BRANCH == "develop" ]]; then
+              ARTIFACT_VERSION=$(date +%Y-%m-%d_%H-%M)"_"${SYNAPSE_SHA:0:7}
+            elif [[ $SYNAPSE_BRANCH =~ "release-" ]]; then
+              # release-* tag resolution requires a checkout. We deliberately
+              # skip checking out PR-head code under pull_request_target; this
+              # branch only fires on `push` to upstream so a checkout here is safe.
+              git init -q && git remote add origin https://github.com/${{ github.repository }}.git
+              git fetch --tags --depth=1 origin "+refs/tags/*:refs/tags/*"
+              ARTIFACT_VERSION=$(git describe --tags ${SYNAPSE_SHA} 2>/dev/null || echo "")
+            fi
+          fi
+          if [[ $ARTIFACT_VERSION ]]; then
+            echo "ARTIFACT_VERSION=$ARTIFACT_VERSION" >> $GITHUB_OUTPUT
+          fi
+          # Note: CodeConnectionsArn is intentionally not in this list. The CFN template
+          # defaults it to the upstream connection ARN (it is non-sensitive and account-scoped).
+          PIPELINE_PARAMETERS=\
+          "SynapseBranch=$SYNAPSE_BRANCH,\
+          SynapseRepoOwner=Sage-Bionetworks,\
+          BuildParamUser=$USER,\
+          StackBuilderBranch=$STACK_BUILDER_BRANCH,\
+          StackBuilderRepoOwner=$STACK_BUILDER_REPO_OWNER,\
+          FullBuild=$FULL_BUILD,\
+          MavenExtraArgs=$EXTRA_ARGS,\
+          ArtifactVersion=$ARTIFACT_VERSION"
+          echo "PIPELINE_PARAMETERS=$PIPELINE_PARAMETERS" >> $GITHUB_OUTPUT
+
+      - id: display-artifact-version
+        name: Display Artifact Version
+        run: |
+          if [[ "${{ steps.pipeline-params.outputs.ARTIFACT_VERSION }}" ]]; then
+            echo "Build will publish artifacts with version" ${{ steps.pipeline-params.outputs.ARTIFACT_VERSION }}
+          else
+            echo "Artifacts will not be published for this build"
+          fi
+
+      - id: oidc
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::449435941126:role/sagebase-github-oidc-sage-bionetworks-synapse-build
+          aws-region: us-east-1
+          # eight hours
+          role-duration-seconds: 28800
+
+      - name: Capture Session Credentials
+        run: |
+          # CodeBuild creates an STS session of one hour duration and there is no way to override.
+          # The Synapse build needs a longer-lived session, so we stash the OIDC-issued credentials
+          # in Secrets Manager for the buildspec to consume (configuration/build/buildspec.yml).
+          SECRET_NAME="/build/session-token/${{ steps.pipeline-params.outputs.USER }}"
+          SECRET_VALUE='{"AwsAccessKeyId":"${{ env.AWS_ACCESS_KEY_ID }}", "AwsSecretAccessKey":"${{ env.AWS_SECRET_ACCESS_KEY }}", "AwsSessionToken":"${{ env.AWS_SESSION_TOKEN }}"}'
+          if aws secretsmanager put-secret-value \
+              --secret-id "$SECRET_NAME" \
+              --secret-string "$SECRET_VALUE" \
+              2>/dev/null; then
+              echo "Secret updated successfully"
+          else
+              echo "Secret doesn't exist, creating new secret..."
+              if aws secretsmanager create-secret \
+                  --name "$SECRET_NAME" \
+                  --secret-string "$SECRET_VALUE" \
+                  --description "Build credentials for ${{ steps.pipeline-params.outputs.USER }}"; then
+                  echo "Secret created successfully"
+              else
+                  echo "Failed to create secret"
+                  exit 1
+              fi
+          fi
+
+    outputs:
+      USER: ${{ steps.pipeline-params.outputs.USER }}
+      PIPELINE_PARAMETERS: ${{ steps.pipeline-params.outputs.PIPELINE_PARAMETERS }}
+      SYNAPSE_SHA: ${{ steps.pipeline-params.outputs.SYNAPSE_SHA }}
+
+  invoke_workflow:
+    needs: capture_credentials
+    uses: Sage-Bionetworks/Synapse-Code-Pipeline/.github/workflows/execute_code_pipeline.yml@main
+    with:
+      CODE_PIPELINE_CF_TEMPLATE: configuration/build/codepipeline_cf_template.yaml
+      PIPELINE_NAME: Synapse-Build-${{ needs.capture_credentials.outputs.USER }}
+      CODE_PIPELINE_SOURCE_REVISIONS: "actionName=CheckoutSynapseRepo,revisionType=COMMIT_ID,revisionValue=${{ needs.capture_credentials.outputs.SYNAPSE_SHA }}"
+      PIPELINE_PARAMETERS: ${{ needs.capture_credentials.outputs.PIPELINE_PARAMETERS }}
+      ROLE_TO_ASSUME: arn:aws:iam::449435941126:role/sagebase-github-oidc-sage-bionetworks-synapse-build
+      STATUS_REPO_OWNER: Sage-Bionetworks
+      STATUS_REPOSITORY: Synapse-Repository-Services
+    secrets: inherit
+    permissions:
+      id-token: write
+      contents: read
+      deployments: write
+      security-events: write
+      statuses: write
+      actions: write
+      checks: write
+...
