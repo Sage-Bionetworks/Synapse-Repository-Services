@@ -238,6 +238,16 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
     }
 
     @Override
+    @MandatoryWriteTransaction
+    public void clearActiveSessionId(Long taskId) {
+        jdbcTemplate.update(
+                "UPDATE CURATION_TASK"
+                        + " SET EXECUTION_DETAILS = JSON_REMOVE(EXECUTION_DETAILS, '$.activeSessionId')"
+                        + " WHERE ID = ? AND EXECUTION_DETAILS IS NOT NULL",
+                taskId);
+    }
+
+    @Override
     public List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
             List<TaskState> stateFilter, long limit, long offset) {
         ValidateArgument.requiredNotEmpty(projectIds, "projectIds");

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.curation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.dbo.curation.CurationTaskDao;
+import org.sagebionetworks.repo.model.grid.AuthorizationMode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -79,6 +81,12 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         }
 
         authorizationManager.canAccess(userInfo, existing.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
+
+        AuthorizationMode oldMode = getSuggestedAuthorizationMode(existing.getTaskProperties());
+        AuthorizationMode newMode = getSuggestedAuthorizationMode(toUpdate.getTaskProperties());
+        if (!Objects.equals(oldMode, newMode)) {
+            curationTaskDao.clearActiveSessionId(toUpdate.getTaskId());
+        }
 
         return curationTaskDao.updateCurationTask(userInfo.getId(), toUpdate);
     }
@@ -182,6 +190,18 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
                 || user.getGroups().contains(assigneeId);
     }
 
+    /**
+     * Returns the suggestedAuthorizationMode from the given task properties, or null if not set or not applicable.
+     */
+    private static AuthorizationMode getSuggestedAuthorizationMode(org.sagebionetworks.repo.model.curation.CurationTaskProperties properties) {
+        if (properties instanceof FileBasedMetadataTaskProperties) {
+            return ((FileBasedMetadataTaskProperties) properties).getSuggestedAuthorizationMode();
+        } else if (properties instanceof RecordBasedMetadataTaskProperties) {
+            return ((RecordBasedMetadataTaskProperties) properties).getSuggestedAuthorizationMode();
+        }
+        return null;
+    }
+
     private void validateCurationTask(UserInfo userInfo, CurationTask task) {
         ValidateArgument.required(task, "MetadataTask");
         ValidateArgument.required(task.getProjectId(), "projectId");
@@ -202,6 +222,11 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         } else if (task.getTaskProperties() instanceof RecordBasedMetadataTaskProperties) {
             RecordBasedMetadataTaskProperties recordBasedMetadataTaskProperties = (RecordBasedMetadataTaskProperties) task.getTaskProperties();
             ValidateArgument.required(recordBasedMetadataTaskProperties.getRecordSetId(), "recordSetId");
+
+            ValidateArgument.requirement(
+                    recordBasedMetadataTaskProperties.getSuggestedAuthorizationMode() == null
+                            || AuthorizationMode.SOURCE_BENEFACTOR.equals(recordBasedMetadataTaskProperties.getSuggestedAuthorizationMode()),
+                    "The suggestedAuthorizationMode for a RecordBasedMetadataTask must be SOURCE_BENEFACTOR.");
 
             EntityType typeOfSpecifiedRecordSet = entityManager.getEntityType(userInfo, recordBasedMetadataTaskProperties.getRecordSetId());
             ValidateArgument.requirement(EntityType.recordset.equals(typeOfSpecifiedRecordSet), "The recordSetId must be a RecordSet.");

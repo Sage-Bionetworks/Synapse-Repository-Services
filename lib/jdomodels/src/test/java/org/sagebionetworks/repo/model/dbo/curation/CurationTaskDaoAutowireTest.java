@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,11 +36,14 @@ import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.curation.execution.GridExecutionDetails;
 import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
+import org.sagebionetworks.repo.model.grid.AuthorizationMode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.Transactional;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = {"classpath:jdomodels-test-context.xml"})
@@ -214,6 +218,92 @@ class CurationTaskDaoAutowireTest {
         // Delete
         dao.deleteCurationTask(created.getTaskId());
         assertTrue(dao.getCurationTask(created.getTaskId()).isEmpty());
+    }
+
+    @Test
+    public void testCRUDWithSuggestedAuthorizationModeFileBasedTask() {
+        FileBasedMetadataTaskProperties propsWithMode = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+
+        CurationTask toCreate = new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(propsWithMode);
+
+        // Create
+        CurationTask created = dao.createCurationTask(userId, toCreate);
+        assertEquals(propsWithMode, created.getTaskProperties());
+
+        // Read — verify round-trip
+        CurationTask fetched = dao.getCurationTask(created.getTaskId()).get();
+        assertTrue(fetched.getTaskProperties() instanceof FileBasedMetadataTaskProperties);
+        assertEquals(AuthorizationMode.SOURCE_BENEFACTOR,
+                ((FileBasedMetadataTaskProperties) fetched.getTaskProperties()).getSuggestedAuthorizationMode());
+
+        // Update — change to SESSION_OWNER
+        FileBasedMetadataTaskProperties updatedProps = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SESSION_OWNER);
+        fetched.setTaskProperties(updatedProps);
+
+        // call under test
+        dao.updateCurationTask(modifiedByUserId, fetched);
+        CurationTask afterUpdate = dao.getCurationTask(created.getTaskId()).get();
+
+        assertEquals(AuthorizationMode.SESSION_OWNER,
+                ((FileBasedMetadataTaskProperties) afterUpdate.getTaskProperties()).getSuggestedAuthorizationMode());
+
+        // Update — clear the mode (back to legacy/null)
+        FileBasedMetadataTaskProperties clearedProps = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId);
+        afterUpdate.setTaskProperties(clearedProps);
+
+        // call under test
+        dao.updateCurationTask(modifiedByUserId, afterUpdate);
+        CurationTask afterClear = dao.getCurationTask(created.getTaskId()).get();
+
+        assertNull(((FileBasedMetadataTaskProperties) afterClear.getTaskProperties()).getSuggestedAuthorizationMode());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testCRUDWithSuggestedAuthorizationModeRecordBasedTask() {
+        RecordBasedMetadataTaskProperties propsWithMode = new RecordBasedMetadataTaskProperties()
+                .setRecordSetId(recordSetId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+
+        CurationTask toCreate = new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("rnaseq")
+                .setTaskProperties(propsWithMode);
+
+        // Create
+        CurationTask created = dao.createCurationTask(userId, toCreate);
+        assertEquals(propsWithMode, created.getTaskProperties());
+
+        // Read — verify round-trip
+        CurationTask fetched = dao.getCurationTask(created.getTaskId()).get();
+        assertTrue(fetched.getTaskProperties() instanceof RecordBasedMetadataTaskProperties);
+        assertEquals(AuthorizationMode.SOURCE_BENEFACTOR,
+                ((RecordBasedMetadataTaskProperties) fetched.getTaskProperties()).getSuggestedAuthorizationMode());
+
+        // Update — clear the mode (back to legacy/null)
+        RecordBasedMetadataTaskProperties clearedProps = new RecordBasedMetadataTaskProperties()
+                .setRecordSetId(recordSetId);
+        fetched.setTaskProperties(clearedProps);
+
+        // call under test
+        dao.updateCurationTask(modifiedByUserId, fetched);
+        CurationTask afterClear = dao.getCurationTask(created.getTaskId()).get();
+
+        assertNull(((RecordBasedMetadataTaskProperties) afterClear.getTaskProperties()).getSuggestedAuthorizationMode());
+
+        dao.deleteCurationTask(created.getTaskId());
     }
 
     @Test
@@ -433,6 +523,54 @@ class CurationTaskDaoAutowireTest {
         assertEquals("session-123", ((GridExecutionDetails) updated.getExecutionDetails()).getActiveSessionId());
 
         dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Transactional("txManager")
+    @Test
+    public void testClearActiveSessionIdWithLinkedSession() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        // Link a session via task status update
+        TaskStatus initialStatus = dao.getTaskStatus(created.getTaskId());
+        dao.updateTaskStatus(userId, created.getTaskId(), new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag(initialStatus.getEtag())
+                .setExecutionDetails(new GridExecutionDetails().setActiveSessionId("session-to-clear")));
+
+        // call under test
+        dao.clearActiveSessionId(created.getTaskId());
+
+        TaskStatus afterClear = dao.getTaskStatus(created.getTaskId());
+        assertNotNull(afterClear.getExecutionDetails());
+        assertTrue(afterClear.getExecutionDetails() instanceof GridExecutionDetails);
+        assertNull(((GridExecutionDetails) afterClear.getExecutionDetails()).getActiveSessionId());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Transactional("txManager")
+    @Test
+    public void testClearActiveSessionIdWithNoExecutionDetails() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        // call under test — no execution details set; should be a no-op
+        dao.clearActiveSessionId(created.getTaskId());
+
+        TaskStatus afterClear = dao.getTaskStatus(created.getTaskId());
+        assertNull(afterClear.getExecutionDetails());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testClearActiveSessionIdFailsNotInWriteTransaction() {
+        assertThrows(IllegalTransactionStateException.class, () -> dao.clearActiveSessionId(123L));
     }
 
     @Test

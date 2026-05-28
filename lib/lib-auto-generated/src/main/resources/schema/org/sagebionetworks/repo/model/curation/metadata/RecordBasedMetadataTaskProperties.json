@@ -9,6 +9,10 @@
     "recordSetId": {
       "type": "string",
       "description": "The synId of the RecordSet that will contain all record-based metadata for a specific type.  This RecordSet will be used to start new grid sessions for both 'upsert' and record-based curation for this type."
+    },
+    "suggestedAuthorizationMode": {
+      "$ref": "org.sagebionetworks.repo.model.grid.AuthorizationMode",
+      "description": "Optional. Must be SOURCE_BENEFACTOR if set. Indicates that a linked grid session should be created for this task. Record-based tasks always use SOURCE_BENEFACTOR authorization because access is determined solely by EDIT permission on the RecordSet. If omitted, the client should follow legacy behavior: find or create a personal, unlinked grid session. When this field changes, the server will automatically clear any existing activeSessionId from the task status."
     }
   }
 }

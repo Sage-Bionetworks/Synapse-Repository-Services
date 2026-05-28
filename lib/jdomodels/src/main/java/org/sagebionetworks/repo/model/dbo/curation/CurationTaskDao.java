@@ -24,6 +24,12 @@ public interface CurationTaskDao {
 
     TaskStatus updateTaskStatus(Long userId, Long taskId, TaskStatus statusUpdate);
 
+    /**
+     * Clears the activeSessionId from the execution details of the given task, if execution details exist.
+     * Must be called within an existing write transaction.
+     */
+    void clearActiveSessionId(Long taskId);
+
     List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
             List<TaskState> stateFilter, long limit, long offset);
 

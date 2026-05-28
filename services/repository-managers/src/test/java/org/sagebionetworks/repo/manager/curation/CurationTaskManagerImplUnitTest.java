@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -49,6 +50,7 @@ import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskPro
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.dbo.curation.CurationTaskDao;
 import org.sagebionetworks.repo.model.dbo.curation.CurationTaskPropertiesType;
+import org.sagebionetworks.repo.model.grid.AuthorizationMode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -171,6 +173,114 @@ public class CurationTaskManagerImplUnitTest {
         // Call under test
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> curationTaskManager.updateCurationTask(userInfo, toUpdate));
         assertTrue(ex.getMessage().contains("The project for a MetadataTask cannot be changed"));
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithSuggestedAuthorizationModeChangeClearsActiveSession() {
+        // Existing task has no suggestedAuthorizationMode (null = legacy)
+        CurationTask existing = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId);
+
+        // Updated task opts in with SOURCE_BENEFACTOR
+        FileBasedMetadataTaskProperties newProps = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+        CurationTask toUpdate = new CurationTask()
+                .setTaskId(taskId)
+                .setProjectId(projectId)
+                .setDataType("fastq")
+                .setTaskProperties(newProps);
+
+        CurationTask updated = new CurationTask().setTaskId(taskId);
+
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(mockAuthorizationStatus);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockCurationTaskDao.updateCurationTask(eq(userId), eq(toUpdate))).thenReturn(updated);
+
+        // Call under test
+        curationTaskManager.updateCurationTask(userInfo, toUpdate);
+
+        verify(mockCurationTaskDao).clearActiveSessionId(taskId);
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithSuggestedAuthorizationModeUnchangedDoesNotClearSession() {
+        // Both existing and updated have the same mode
+        FileBasedMetadataTaskProperties props = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+        CurationTask existing = new CurationTask().setTaskId(taskId).setProjectId(projectId).setDataType("fastq").setTaskProperties(props);
+
+        FileBasedMetadataTaskProperties sameProps = new FileBasedMetadataTaskProperties()
+                .setFileViewId(fileViewId)
+                .setUploadFolderId(uploadFolderId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+        CurationTask toUpdate = new CurationTask().setTaskId(taskId).setProjectId(projectId).setDataType("fastq").setTaskProperties(sameProps);
+
+        CurationTask updated = new CurationTask().setTaskId(taskId);
+
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(mockAuthorizationStatus);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockCurationTaskDao.updateCurationTask(eq(userId), eq(toUpdate))).thenReturn(updated);
+
+        // Call under test
+        curationTaskManager.updateCurationTask(userInfo, toUpdate);
+
+        verify(mockCurationTaskDao, never()).clearActiveSessionId(any());
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithRecordBasedInvalidSuggestedAuthorizationMode() {
+        // SESSION_OWNER is not valid for record-based tasks
+        RecordBasedMetadataTaskProperties props = new RecordBasedMetadataTaskProperties()
+                .setRecordSetId(recordSetId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SESSION_OWNER);
+        CurationTask toUpdate = new CurationTask()
+                .setTaskId(taskId)
+                .setProjectId(projectId)
+                .setDataType("fastq")
+                .setTaskProperties(props);
+
+        // Call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.updateCurationTask(userInfo, toUpdate));
+        assertTrue(ex.getMessage().contains("SOURCE_BENEFACTOR"));
+
+        verifyZeroInteractions(mockCurationTaskDao);
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithRecordBasedSourceBenefactorModeSucceeds() {
+        RecordBasedMetadataTaskProperties existingProps = new RecordBasedMetadataTaskProperties()
+                .setRecordSetId(recordSetId);
+        CurationTask existing = new CurationTask().setTaskId(taskId).setProjectId(projectId).setDataType("fastq").setTaskProperties(existingProps);
+
+        RecordBasedMetadataTaskProperties newProps = new RecordBasedMetadataTaskProperties()
+                .setRecordSetId(recordSetId)
+                .setSuggestedAuthorizationMode(AuthorizationMode.SOURCE_BENEFACTOR);
+        CurationTask toUpdate = new CurationTask().setTaskId(taskId).setProjectId(projectId).setDataType("fastq").setTaskProperties(newProps);
+
+        CurationTask updated = new CurationTask().setTaskId(taskId);
+
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(mockAuthorizationStatus);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(recordSetId))).thenReturn(EntityType.recordset);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockCurationTaskDao.updateCurationTask(eq(userId), eq(toUpdate))).thenReturn(updated);
+
+        // Call under test
+        CurationTask result = curationTaskManager.updateCurationTask(userInfo, toUpdate);
+
+        assertSame(updated, result);
+        // mode changed (null -> SOURCE_BENEFACTOR), so active session should be cleared
+        verify(mockCurationTaskDao).clearActiveSessionId(taskId);
     }
 
     @Test

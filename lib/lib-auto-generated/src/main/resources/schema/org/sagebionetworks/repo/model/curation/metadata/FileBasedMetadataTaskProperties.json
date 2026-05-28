@@ -13,6 +13,10 @@
     "fileViewId": {
       "type": "string",
       "description": "The synId of the FileView that shows all data of this type.  This FileView will be used to start new grid sessions for file annotation curation."
+    },
+    "suggestedAuthorizationMode": {
+      "$ref": "org.sagebionetworks.repo.model.grid.AuthorizationMode",
+      "description": "Optional. The authorization mode a client should use when creating a linked grid session for this task. If omitted, the client should follow legacy behavior: find or create a personal, unlinked grid session. When this field changes, the server will automatically clear any existing activeSessionId from the task status."
     }
   }
 }
