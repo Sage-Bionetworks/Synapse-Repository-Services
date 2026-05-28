@@ -570,7 +570,7 @@ class CurationTaskDaoAutowireTest {
 
     @Test
     public void testClearActiveSessionIdFailsNotInWriteTransaction() {
-        assertThrows(IllegalTransactionStateException.class, () -> dao.clearActiveSessionId(123L));
+        assertThrows(IllegalTransactionStateException.class, () -> dao.clearActiveSessionId(1234L));
     }
 
     @Test
