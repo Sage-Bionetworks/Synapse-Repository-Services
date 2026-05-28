@@ -87,9 +87,7 @@ Parameters:
   CodeConnectionsArn:
     Type: String
     Description: ARN of the AWS CodeConnections GitHub connection used by the source actions. The ARN is not sensitive; it is an opaque AWS identifier and grants nothing without IAM permissions.
-    # TODO: replace placeholder with the real ARN after creating the GitHub
-    # connection (see PR description for setup steps).
-    Default: arn:aws:codeconnections:us-east-1:449435941126:connection/REPLACE-ME
+    Default: arn:aws:codeconnections:us-east-1:449435941126:connection/0d3d9ad4-5dfd-4294-80a5-20774dda8409
     AllowedPattern: "arn:aws:codeconnections:.+"
     ConstraintDescription: Must be a CodeConnections ARN.
 Outputs:
