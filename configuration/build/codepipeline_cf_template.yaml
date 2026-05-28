@@ -84,6 +84,14 @@ Parameters:
     Default: sg-0818ba0f1872103d4
     AllowedPattern: ".+"
     ConstraintDescription: Parameter cannot be empty.
+  CodeConnectionsArn:
+    Type: String
+    Description: ARN of the AWS CodeConnections GitHub connection used by the source actions. The ARN is not sensitive; it is an opaque AWS identifier and grants nothing without IAM permissions.
+    # TODO: replace placeholder with the real ARN after creating the GitHub
+    # connection (see PR description for setup steps).
+    Default: arn:aws:codeconnections:us-east-1:449435941126:connection/REPLACE-ME
+    AllowedPattern: "arn:aws:codeconnections:.+"
+    ConstraintDescription: Must be a CodeConnections ARN.
 Outputs:
   PipelineName:
     Value: !Ref CodePipeline
@@ -122,6 +130,12 @@ Resources:
                   - codebuild:BatchGetBuilds
                   - codebuild:StartBuild
                 Resource: !GetAtt CodeBuildProject.Arn
+              # Permission to use the CodeConnections GitHub connection from the source actions
+              - Effect: Allow
+                Action:
+                  - codestar-connections:UseConnection
+                  - codeconnections:UseConnection
+                Resource: !Ref CodeConnectionsArn
   CodeBuildServiceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -164,32 +178,35 @@ Resources:
             - Name: CheckoutStackBuilderRepo
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
+                Owner: AWS
+                Provider: CodeStarSourceConnection
                 Version: 1
               OutputArtifacts:
                 - Name: StackBuilderRepoSource
               Configuration:
-                Owner: !Ref StackBuilderRepoOwner
-                Repo: !Ref StackBuilderRepository
-                Branch: !Ref StackBuilderBranch
-                OAuthToken: !Ref GitHubToken
-                PollForSourceChanges: false # instead we will trigger from GitHub workflow
+                ConnectionArn: !Ref CodeConnectionsArn
+                FullRepositoryId: !Sub "${StackBuilderRepoOwner}/${StackBuilderRepository}"
+                BranchName: !Ref StackBuilderBranch
+                # Pipeline is started explicitly by the GitHub workflow via start-pipeline-execution.
+                # Leaving this true would let the connection auto-fire on every push the App sees.
+                DetectChanges: false
             - Name: CheckoutSynapseRepo
               Namespace: CheckoutSynapseRepo
               ActionTypeId:
                 Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
+                Owner: AWS
+                Provider: CodeStarSourceConnection
                 Version: 1
               OutputArtifacts:
                 - Name: SynapseRepoSource
               Configuration:
-                Owner: !Ref SynapseRepoOwner
-                Repo: !Ref SynapseRepository
-                Branch: !Ref SynapseBranch
-                OAuthToken: !Ref GitHubToken
-                PollForSourceChanges: false # instead we will trigger from GitHub workflow
+                ConnectionArn: !Ref CodeConnectionsArn
+                FullRepositoryId: !Sub "${SynapseRepoOwner}/${SynapseRepository}"
+                BranchName: !Ref SynapseBranch
+                # Pipeline is started explicitly by the GitHub workflow via start-pipeline-execution
+                # with --source-revisions revisionValue=<sha>. For fork PRs the SHA is reachable on
+                # upstream via refs/pull/N/head; for upstream pushes it lives on the named branch.
+                DetectChanges: false
         - Name: RunStackBuilder
           Actions:
             - Name: RunStackBuilder

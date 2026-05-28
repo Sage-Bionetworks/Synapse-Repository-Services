@@ -18,6 +18,8 @@
 name: main
 
 on:
+  pull_request:
+    branches: ['**']
   push:
     branches: ['*']
 
@@ -42,19 +44,48 @@ jobs:
       - name: Static Analysis
         uses: pre-commit/action@v3.0.0
 
+      # On fork pushes the AWS pipeline cannot run from the fork (CodeConnections is installed
+      # on upstream only). If there's no upstream PR for this commit, fail-fast with a clear
+      # message; if there is, skip the rest of this job and let the pull_request event do the work.
+      - name: Check upstream PR for fork push
+        id: fork-pr-check
+        if: github.event_name == 'push' && github.repository_owner != 'Sage-Bionetworks'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_COUNT=$(gh api "repos/Sage-Bionetworks/Synapse-Repository-Services/commits/${{ github.sha }}/pulls" --jq 'length' || echo 0)
+          if [[ "$PR_COUNT" == "0" ]]; then
+            echo "::error::This commit is on a fork branch with no open upstream PR. Open a (draft) PR against Sage-Bionetworks/Synapse-Repository-Services to run AWS CI."
+            exit 1
+          fi
+          echo "Fork push has $PR_COUNT associated upstream PR(s); the pull_request event will run AWS CI."
+          echo "skip_aws_run=true" >> $GITHUB_OUTPUT
+
       - name: Determine Pipeline Parameters
+        if: steps.fork-pr-check.outputs.skip_aws_run != 'true'
         id: pipeline-params
         run: |
-          # get the 'user' parameter, either from the repo' env or repo' owner if not set
+          # The pipeline now sources from upstream (Sage-Bionetworks) via CodeConnections,
+          # so the relevant ref is whatever GitHub exposes on upstream:
+          #   - pull_request events: refs/pull/<n>/head, with HEAD SHA at github.event.pull_request.head.sha
+          #   - push events: the upstream branch (develop or release-*)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            SYNAPSE_BRANCH=refs/pull/${{ github.event.pull_request.number }}/head
+            SYNAPSE_SHA=${{ github.event.pull_request.head.sha }}
+            DEFAULT_USER=${{ github.event.pull_request.user.login }}
+          else
+            SYNAPSE_BRANCH=${GITHUB_REF#refs/heads/}
+            SYNAPSE_SHA=${{ github.sha }}
+            DEFAULT_USER=$GITHUB_REPOSITORY_OWNER
+          fi
+          echo "SYNAPSE_SHA=$SYNAPSE_SHA" >> $GITHUB_OUTPUT
+          # get the 'user' parameter, either from the repo' env or derived from the PR/push author
           if [ ${{ vars.USER }} ]; then
             USER=${{ vars.USER }}
           else
-            alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
-            USER=$alpha_only_trunc_repo_name
+            USER=$(echo "${DEFAULT_USER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
           fi
           echo "USER=$USER" >> $GITHUB_OUTPUT
-          # capture the current branch as an environment variable
-          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           # get repo' and branch specifying the version of the stack builder to use
           if [ ${{ vars.STACK_BUILDER_REPO_OWNER }} ]; then
             STACK_BUILDER_REPO_OWNER=${{ vars.STACK_BUILDER_REPO_OWNER }}
@@ -68,12 +99,11 @@ jobs:
           fi
           FULL_BUILD=${{ vars.FULL_BUILD }}
           EXTRA_ARGS=${{ vars.EXTRA_ARGS }}
-          # for builds in Sage-Bionetworks repo', publish build artifacts
-          if [[ $GITHUB_REPOSITORY_OWNER == "Sage-Bionetworks" ]]; then
-            if [[ $BRANCH == "develop" ]]; then
-              GIT_COMMIT=${{ github.sha }}
-              ARTIFACT_VERSION=$(date +%Y-%m-%d_%H-%M)"_"${GIT_COMMIT:0:7}
-            elif [[ $BRANCH =~ "release-" ]]; then
+          # publish build artifacts only for upstream pushes to develop/release-*
+          if [[ "${{ github.event_name }}" == "push" && "$GITHUB_REPOSITORY_OWNER" == "Sage-Bionetworks" ]]; then
+            if [[ $SYNAPSE_BRANCH == "develop" ]]; then
+              ARTIFACT_VERSION=$(date +%Y-%m-%d_%H-%M)"_"${SYNAPSE_SHA:0:7}
+            elif [[ $SYNAPSE_BRANCH =~ "release-" ]]; then
               git fetch --tags
               ARTIFACT_VERSION=$(git describe --tags)
             fi
@@ -81,9 +111,11 @@ jobs:
           if [[ $ARTIFACT_VERSION ]]; then
             echo "ARTIFACT_VERSION=$ARTIFACT_VERSION" >> $GITHUB_OUTPUT
           fi
+          # Note: CodeConnectionsArn is intentionally not in this list. The CFN template
+          # defaults it to the upstream connection ARN (it is non-sensitive and account-scoped).
           PIPELINE_PARAMETERS=\
-          "SynapseBranch=$BRANCH,\
-          SynapseRepoOwner=${{ github.repository_owner }},\
+          "SynapseBranch=$SYNAPSE_BRANCH,\
+          SynapseRepoOwner=Sage-Bionetworks,\
           BuildParamUser=$USER,\
           StackBuilderBranch=$STACK_BUILDER_BRANCH,\
           StackBuilderRepoOwner=$STACK_BUILDER_REPO_OWNER,\
@@ -94,6 +126,7 @@ jobs:
 
       - id: display-artifact-version
         name: Display Artifact Version
+        if: steps.fork-pr-check.outputs.skip_aws_run != 'true'
         run: |
           if [[ "${{ steps.pipeline-params.outputs.ARTIFACT_VERSION }}" ]]; then
             echo "Build will publish artifacts with version" ${{ steps.pipeline-params.outputs.ARTIFACT_VERSION }}
@@ -102,6 +135,7 @@ jobs:
           fi
 
       - id: oidc
+        if: steps.fork-pr-check.outputs.skip_aws_run != 'true'
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::449435941126:role/sagebase-github-oidc-sage-bionetworks-synapse-build
@@ -110,6 +144,7 @@ jobs:
           role-duration-seconds: 28800
 
       - name: Capture Session Credentials
+        if: steps.fork-pr-check.outputs.skip_aws_run != 'true'
         run: |
           # We will capture the long-lived session token to use for the build
           # Note: We cannot pass the credentials as inputs to code pipeline
@@ -138,14 +173,17 @@ jobs:
     outputs:
       USER: ${{ steps.pipeline-params.outputs.USER }}
       PIPELINE_PARAMETERS: ${{ steps.pipeline-params.outputs.PIPELINE_PARAMETERS }}
+      SYNAPSE_SHA: ${{ steps.pipeline-params.outputs.SYNAPSE_SHA }}
+      SKIP_AWS_RUN: ${{ steps.fork-pr-check.outputs.skip_aws_run }}
 
   invoke_workflow:
     needs: build_and_test
+    if: needs.build_and_test.outputs.SKIP_AWS_RUN != 'true'
     uses: Sage-Bionetworks/Synapse-Code-Pipeline/.github/workflows/execute_code_pipeline.yml@main
     with:
       CODE_PIPELINE_CF_TEMPLATE: configuration/build/codepipeline_cf_template.yaml
       PIPELINE_NAME: Synapse-Build-${{ needs.build_and_test.outputs.USER }}
-      CODE_PIPELINE_SOURCE_REVISIONS: "actionName=CheckoutSynapseRepo,revisionType=COMMIT_ID,revisionValue=${{ github.sha }}"
+      CODE_PIPELINE_SOURCE_REVISIONS: "actionName=CheckoutSynapseRepo,revisionType=COMMIT_ID,revisionValue=${{ needs.build_and_test.outputs.SYNAPSE_SHA }}"
       PIPELINE_PARAMETERS: ${{ needs.build_and_test.outputs.PIPELINE_PARAMETERS }}
       ROLE_TO_ASSUME: arn:aws:iam::449435941126:role/sagebase-github-oidc-sage-bionetworks-synapse-build
       STATUS_REPO_OWNER: Sage-Bionetworks
