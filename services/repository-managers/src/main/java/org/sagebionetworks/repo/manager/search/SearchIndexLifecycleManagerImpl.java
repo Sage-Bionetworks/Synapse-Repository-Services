@@ -291,7 +291,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			}
 			openSearchManager.createIndex(indexName, selectedColumns,
 					defaultAnalyzer,
-					overrides, resolvedAnalyzers);
+					overrides, resolvedAnalyzers,
+					config != null ? config.getColumnSemanticEnrichment() : null);
 
 			// AOSS acknowledges createIndex and returns an already-queryable index before its
 			// shards are actually ready to accept writes. Block until a real sentinel write

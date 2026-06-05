@@ -315,7 +315,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(SearchIndexState.CREATING, captor.getValue().getState());
 		// The pre-build deleteIndex was attempted (it threw); createIndex / row stream never ran.
 		verify(openSearchManager).deleteIndex("search-index-" + ENTITY_ID);
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any());
 		verify(tableQueryManager, never()).runQueryAsStream(any(), any(), any(), any(), any());
 	}
 
@@ -460,7 +460,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		verify(statusDao, never()).createOrUpdate(any());
 		verify(openSearchManager, never()).deleteIndex(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -545,7 +545,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(openSearchManager, tableQueryManager);
 		order.verify(openSearchManager).deleteIndex("search-index-" + ENTITY_ID);
 		order.verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID),
-				any(), any(), any(), any());
+				any(), any(), any(), any(), any());
 		order.verify(openSearchManager).waitForIndexWritable("search-index-" + ENTITY_ID);
 		order.verify(tableQueryManager).runQueryAsStream(eq(progressCallback), any(UserInfo.class),
 				any(), any(), any());
@@ -1119,7 +1119,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		manager.handleCreate(progressCallback, ENTITY_ID, USER_ID);
 
-		verify(openSearchManager).createIndex(any(), any(), any(), any(), any());
+		verify(openSearchManager).createIndex(any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -1140,7 +1140,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		manager.handleCreate(progressCallback, ENTITY_ID, USER_ID);
 
-		verify(openSearchManager).createIndex(any(), any(), eq(defaultQname), any(), any());
+		verify(openSearchManager).createIndex(any(), any(), eq(defaultQname), any(), any(), any());
 	}
 
 	@Test

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,6 +67,8 @@ import org.sagebionetworks.repo.model.search.SortDirection;
 import org.sagebionetworks.repo.model.search.SortField;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
+import org.sagebionetworks.repo.model.search.table.ColumnSemanticEnrichmentEntry;
+import org.sagebionetworks.repo.model.search.table.SemanticEnrichmentLanguageMode;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -81,7 +84,9 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Wraps the OpenSearch Java client for all AOSS index lifecycle (create / delete /
@@ -214,15 +219,23 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	public Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers) {
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
 
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
 		Map<String, ColumnAnalyzerOverrideEntry> overrideMap = buildOverrideMap(columnAnalyzerOverrides, nameToId);
+		// columnId -> AOSS language_options string. Entries on the request whose columnName
+		// isn't on the bound schema, or isn't a top-level text type per the AOSS docs, are
+		// silently dropped here so the typed-mapping path stays simple downstream.
+		Map<String, String> enrichmentByColumnId = resolveSemanticEnrichmentByColumnId(
+				columnSemanticEnrichment, columns);
 
 		try {
-			CreateIndexRequest request = CreateIndexRequest.of(req -> req
+			// Build the typed request as today — this preserves all of the existing analyzer
+			// binding, keyword sub-field, ignore_above, and namespace logic.
+			CreateIndexRequest typedRequest = CreateIndexRequest.of(req -> req
 					.index(indexName)
 					.settings(s -> s.analysis(a -> {
 						buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
@@ -235,14 +248,40 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					})
 			);
 
-			String appliedConfigJson = request.toJsonString();
-			CreateIndexResponse response = openSearchClient.indices().create(request);
-
-			if (!Boolean.TRUE.equals(response.acknowledged())) {
-				throw new IllegalStateException("Search index " + indexName + " creation was not acknowledged.");
+			// The opensearch-java 3.7.0 typed Property model has no slot for the AOSS-specific
+			// semantic_enrichment block, and any round-trip through TextProperty would silently
+			// drop it. So: serialize the typed request body to JSON, splice the
+			// semantic_enrichment block onto each opted-in column's property (no-op when the
+			// caller didn't opt anything in), then send via the generic client — bypassing the
+			// typed POJOs on the wire while keeping every other field exactly as the typed
+			// builder produced it. Always going through generic() removes the dual-path branch.
+			String body = patchSemanticEnrichment(typedRequest.toJsonString(),
+					enrichmentByColumnId);
+			org.opensearch.client.opensearch.generic.Response genericResponse =
+					openSearchClient.generic().execute(
+							org.opensearch.client.opensearch.generic.Requests.builder()
+									.endpoint("/" + indexName)
+									.method("PUT")
+									.json(body)
+									.build());
+			int status = genericResponse.getStatus();
+			if (status == 400) {
+				// AOSS surfaces resource_already_exists as a 400 with this error type — treat
+				// an idempotent re-create as "no-op" the same way the typed indices().create()
+				// path used to via OpenSearchException.
+				String bodyText = genericResponse.getBody().map(b -> b.bodyAsString()).orElse("");
+				if (bodyText.contains("resource_already_exists_exception")) {
+					return Optional.empty();
+				}
+				throw new RuntimeException("Failed to create search index: " + indexName
+						+ " (HTTP 400: " + bodyText + ")");
 			}
-
-			return Optional.of(appliedConfigJson);
+			if (status < 200 || status >= 300) {
+				String bodyText = genericResponse.getBody().map(b -> b.bodyAsString()).orElse("");
+				throw new RuntimeException("Failed to create search index: " + indexName
+						+ " (HTTP " + status + ": " + bodyText + ")");
+			}
+			return Optional.of(body);
 		} catch (OpenSearchException e) {
 			if ("resource_already_exists_exception".equals(e.error().type())) {
 				return Optional.empty();
@@ -251,6 +290,109 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to create search index: " + indexName, e);
+		}
+	}
+
+	/**
+	 * Walk {@code columnSemanticEnrichment} and produce a {@code columnId -> AOSS language_options}
+	 * map. An entry is dropped (silently — same posture as ColumnAnalyzerOverride for missing
+	 * columns) when its named column is absent from the bound schema or is not a top-level
+	 * text-typed column. The eligible types match the AOSS docs' "top-level text fields"
+	 * restriction for Automatic Semantic Enrichment.
+	 */
+	private static Map<String, String> resolveSemanticEnrichmentByColumnId(
+			List<ColumnSemanticEnrichmentEntry> columnSemanticEnrichment, List<ColumnModel> columns) {
+		if (columnSemanticEnrichment == null || columnSemanticEnrichment.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		Map<String, ColumnModel> byName = columns.stream()
+				.collect(Collectors.toMap(ColumnModel::getName, c -> c, (a, b) -> a));
+		Map<String, String> result = new LinkedHashMap<>();
+		for (ColumnSemanticEnrichmentEntry entry : columnSemanticEnrichment) {
+			if (entry == null || entry.getColumnName() == null) {
+				continue;
+			}
+			ColumnModel column = byName.get(entry.getColumnName());
+			if (column == null || !isSemanticEnrichmentEligible(column.getColumnType())) {
+				continue;
+			}
+			result.put(column.getId(), toAossLanguageOption(entry.getLanguageMode()));
+		}
+		return result;
+	}
+
+	private static boolean isSemanticEnrichmentEligible(ColumnType columnType) {
+		if (columnType == null) {
+			return false;
+		}
+		// AOSS: semantic_enrichment is supported only on top-level text fields. STRING_LIST
+		// is a Synapse list type that maps to an array property; nested-style columns are
+		// also excluded. Keep this list narrow — adding a new type here should be paired
+		// with a check against the AOSS docs.
+		switch (columnType) {
+			case STRING:
+			case MEDIUMTEXT:
+			case LARGETEXT:
+			case LINK:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	private static String toAossLanguageOption(SemanticEnrichmentLanguageMode mode) {
+		// AOSS expects the literal strings "english" or "MULTI-LINGUAL" per the
+		// language_options docs. Default to english when unset to match the typical
+		// English-corpus path and lower latency profile.
+		if (mode == null || mode == SemanticEnrichmentLanguageMode.ENGLISH) {
+			return "english";
+		}
+		return "MULTI-LINGUAL";
+	}
+
+	/**
+	 * Take the JSON body produced by a typed {@link CreateIndexRequest#toJsonString()},
+	 * splice an AOSS {@code semantic_enrichment} block onto each opted-in column's property
+	 * entry under {@code mappings.properties.{columnId}}, and return the resulting JSON. The
+	 * caller sends this directly to AOSS via the generic client — going through the typed
+	 * {@link TextProperty} model would drop the field, since the typed POJOs have no slot
+	 * for unknown / vendor-specific extensions.
+	 */
+	private static String patchSemanticEnrichment(String typedRequestBody,
+			Map<String, String> enrichmentByColumnId) {
+		ObjectMapper jackson = new ObjectMapper();
+		ObjectNode root;
+		try {
+			root = (ObjectNode) jackson.readTree(typedRequestBody);
+		} catch (IOException e) {
+			throw new IllegalStateException("Failed to re-parse typed create-index body for semantic_enrichment patch", e);
+		}
+		JsonNode propertiesNode = root.path("mappings").path("properties");
+		if (!(propertiesNode instanceof ObjectNode)) {
+			// Typed body always emits "mappings.properties" when the mapping has any columns —
+			// defensive check only.
+			throw new IllegalStateException(
+					"Typed create-index body had no mappings.properties object — cannot apply semantic_enrichment");
+		}
+		ObjectNode properties = (ObjectNode) propertiesNode;
+		for (Map.Entry<String, String> entry : enrichmentByColumnId.entrySet()) {
+			String columnId = entry.getKey();
+			String languageOption = entry.getValue();
+			JsonNode propertyNode = properties.get(columnId);
+			if (!(propertyNode instanceof ObjectNode)) {
+				// The typed mapping should always include every bound column; skip rather than
+				// throw so the build is resilient to a column rename racing the build.
+				continue;
+			}
+			ObjectNode semanticBlock = jackson.createObjectNode();
+			semanticBlock.put("status", "ENABLED");
+			semanticBlock.put("language_options", languageOption);
+			((ObjectNode) propertyNode).set("semantic_enrichment", semanticBlock);
+		}
+		try {
+			return jackson.writeValueAsString(root);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Failed to serialize patched create-index body", e);
 		}
 	}
 
