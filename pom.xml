@@ -1095,7 +1095,7 @@
 		<!-- Upgraded to Spring 6.1.x and Java 21 LTS for Spring AI Bedrock AgentCore support.
 			 Spring 6 requires Java 17+ and jakarta.* namespace (migrated from javax.*).
 		-->
-		<org.springframework.version>6.1.10</org.springframework.version>
+		<org.springframework.version>6.2.18</org.springframework.version>
 		<jackson.version>2.20.0</jackson.version>
 		<xstream.version>1.4.21</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
