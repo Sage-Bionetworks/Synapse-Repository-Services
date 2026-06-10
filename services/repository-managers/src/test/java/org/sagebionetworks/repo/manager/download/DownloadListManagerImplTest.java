@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -1128,8 +1129,8 @@ public class DownloadListManagerImplTest {
 		String parentId = "syn123";
 		boolean recursive = false;
 		long limit = 100L;
-		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("123"),
-				new EntityRef().setEntityId("234"));
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("123").setVersionNumber(1L),
+				new EntityRef().setEntityId("234").setVersionNumber(2L));
 		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
 		when(mockNodeDao.getNodeItems(any())).thenReturn(items);
 		when(mockDownloadListDao.addDatasetEntityRefFilesToDownloadList(any(), any(), anyLong()))
@@ -1143,6 +1144,47 @@ public class DownloadListManagerImplTest {
 		verify(mockNodeDao).getNodeItems(123L);
 		verify(mockDownloadListDao).addDatasetEntityRefFilesToDownloadList(userOne.getId(), items, limit);
 		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
+	}
+
+	@Test
+	public void testAddToDownloadListWithDatasetCollectionAsParentIdWithNullItemVersion() {
+		Long count = 2L;
+		String parentId = "syn123";
+		boolean recursive = false;
+		long limit = 100L;
+		// An item with a null version number always references the latest version of the dataset (PLFM-8384).
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn456"),
+				new EntityRef().setEntityId("syn789").setVersionNumber(2L));
+		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
+		when(mockNodeDao.getNodeItems(any())).thenReturn(items);
+		Reference currentVersion = new Reference();
+		currentVersion.setTargetId("syn456");
+		currentVersion.setTargetVersionNumber(8L);
+		when(mockNodeDao.getCurrentRevisionNumbers(List.of("syn456"))).thenReturn(List.of(currentVersion));
+		when(mockDownloadListDao.addDatasetEntityRefFilesToDownloadList(any(), any(), anyLong()))
+				.thenReturn(count);
+		when(mockEntityAuthorizationManager.hasAccess(any(), any(), any()))
+				.thenReturn(AuthorizationStatus.authorized());
+		// Call under test
+		AddToDownloadListResponse response = manager.addToDownloadList(userOne, parentId, true, recursive, limit);
+		AddToDownloadListResponse expected = new AddToDownloadListResponse().setNumberOfFilesAdded(count);
+		assertEquals(expected, response);
+		verify(mockNodeDao).getNodeItems(123L);
+		List<EntityRef> resolvedItems = Arrays.asList(new EntityRef().setEntityId("syn456").setVersionNumber(8L),
+				new EntityRef().setEntityId("syn789").setVersionNumber(2L));
+		verify(mockDownloadListDao).addDatasetEntityRefFilesToDownloadList(userOne.getId(), resolvedItems, limit);
+		verify(mockEntityAuthorizationManager).hasAccess(userOne, parentId, ACCESS_TYPE.READ);
+	}
+
+	@Test
+	public void testResolveLatestVersionsWithDeletedDataset() {
+		// Items referencing datasets that no longer exist are excluded rather than failing the request.
+		List<EntityRef> items = Arrays.asList(new EntityRef().setEntityId("syn456"),
+				new EntityRef().setEntityId("syn789").setVersionNumber(2L));
+		when(mockNodeDao.getCurrentRevisionNumbers(List.of("syn456"))).thenReturn(Collections.emptyList());
+		// Call under test
+		List<EntityRef> resolved = manager.resolveLatestVersions(items);
+		assertEquals(List.of(new EntityRef().setEntityId("syn789").setVersionNumber(2L)), resolved);
 	}
 
 	@Test
@@ -2725,12 +2767,12 @@ public class DownloadListManagerImplTest {
 		
 		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
-		
+
 		List<EntityRef> items = List.of(
-			new EntityRef().setEntityId("123"),
-			new EntityRef().setEntityId("234")
+			new EntityRef().setEntityId("123").setVersionNumber(1L),
+			new EntityRef().setEntityId("234").setVersionNumber(2L)
 		);
-		
+
 		when(mockNodeDao.getNodeItems(123L)).thenReturn(items);
 		
 		// Call under test
@@ -2758,8 +2800,8 @@ public class DownloadListManagerImplTest {
 		when(mockEntityAuthorizationManager.hasAccess(userOne, parentId, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
 		when(mockNodeDao.getNodeTypeById(parentId)).thenReturn(EntityType.datasetcollection);
 		
-		List<EntityRef> items = IntStream.range(0, 1000).boxed().map(i -> 
-			new EntityRef().setEntityId("syn" + i)
+		List<EntityRef> items = IntStream.range(0, 1000).boxed().map(i ->
+			new EntityRef().setEntityId("syn" + i).setVersionNumber(1L)
 		).collect(Collectors.toList());
 		
 		when(mockNodeDao.getNodeItems(123L)).thenReturn(items);
