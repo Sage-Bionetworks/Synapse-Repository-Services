@@ -226,7 +226,6 @@ public class GridIndexManagerAutowiredTest {
     @Test
     @Disabled("This is a manual benchmark, not a unit test")
     public void benchmarkApplyAndExportSnapshot(@TempDir Path tempDir) throws Exception {
-        boolean repeatableRead = false;
         int maxRuns = 2;
         gridIndexDao.truncateAll();
 
@@ -259,8 +258,8 @@ public class GridIndexManagerAutowiredTest {
                     long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNano);
                     assertNotNull(exportedClock);
                     long fileSize = Files.exists(exportedFile) ? Files.size(exportedFile) : 0L;
-                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, rows={}, cols={}, repeatable_read={}",
-                            durationMs, exportedFile.toAbsolutePath(), fileSize, nRows, nCols, repeatableRead);
+                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, rows={}, cols={}",
+                            durationMs, exportedFile.toAbsolutePath(), fileSize, nRows, nCols);
                 }
 
                 gridIndexDao.truncateAll();
