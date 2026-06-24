@@ -28,6 +28,7 @@ import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
 import org.opensearch.client.opensearch._types.query_dsl.PrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch._types.query_dsl.QueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.SimpleQueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
@@ -139,7 +140,7 @@ final class SearchDslValidator {
 			Query.Kind.MatchPhrasePrefix, Query.Kind.MatchBoolPrefix,
 			Query.Kind.Term, Query.Kind.Terms, Query.Kind.Range, Query.Kind.Exists,
 			Query.Kind.Prefix, Query.Kind.Wildcard, Query.Kind.Fuzzy,
-			Query.Kind.SimpleQueryString, Query.Kind.MatchAll,
+			Query.Kind.SimpleQueryString, Query.Kind.QueryString, Query.Kind.MatchAll,
 			// compound
 			Query.Kind.Bool, Query.Kind.DisMax, Query.Kind.ConstantScore, Query.Kind.Boosting);
 
@@ -292,6 +293,13 @@ final class SearchDslValidator {
 			requireScalarArray(simpleQueryString.get("fields"), "simple_query_string.fields");
 			requireScalar(simpleQueryString.get("minimum_should_match"),
 					"simple_query_string.minimum_should_match");
+		}
+		JsonNode queryString = clause.get("query_string");
+		if (queryString != null && queryString.isObject()) {
+			requireScalarArray(queryString.get("fields"), "query_string.fields");
+			requireScalar(queryString.get("minimum_should_match"),
+					"query_string.minimum_should_match");
+			requireScalar(queryString.get("fuzziness"), "query_string.fuzziness");
 		}
 
 		// Compound clauses: validate the opaque slot then recurse into nested query clauses.
@@ -717,6 +725,9 @@ final class SearchDslValidator {
 		case SimpleQueryString:
 			validateSimpleQueryString(query.simpleQueryString());
 			break;
+		case QueryString:
+			validateQueryString(query.queryString());
+			break;
 		case Fuzzy:
 			validateFuzzyMaxExpansions(query.fuzzy());
 			break;
@@ -844,6 +855,31 @@ final class SearchDslValidator {
 				if (first == '*' || first == '?') {
 					throw new IllegalArgumentException(
 							"leading wildcard is not allowed in 'simple_query_string.query' "
+									+ "with analyze_wildcard=true (forces a full index scan)");
+				}
+			}
+		}
+	}
+
+	/**
+	 * {@code query_string}: cap {@code fields} length, reject a leading wildcard in {@code query}
+	 * when {@code analyze_wildcard} is true (otherwise the leading wildcard wouldn't actually be
+	 * evaluated as one). The Lucene expression inside {@code query} is otherwise passed through
+	 * &mdash; AOSS request timeouts bound the worst case. Mirrors {@link #validateSimpleQueryString}.
+	 */
+	static void validateQueryString(QueryStringQuery qs) {
+		List<String> fields = qs.fields();
+		if (fields.size() > MAX_VALUES_PER_CLAUSE) {
+			throw new IllegalArgumentException("query_string.fields has " + fields.size()
+					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
+		}
+		if (Boolean.TRUE.equals(qs.analyzeWildcard())) {
+			String pattern = qs.query();
+			if (!pattern.isEmpty()) {
+				char first = pattern.charAt(0);
+				if (first == '*' || first == '?') {
+					throw new IllegalArgumentException(
+							"leading wildcard is not allowed in 'query_string.query' "
 									+ "with analyze_wildcard=true (forces a full index scan)");
 				}
 			}

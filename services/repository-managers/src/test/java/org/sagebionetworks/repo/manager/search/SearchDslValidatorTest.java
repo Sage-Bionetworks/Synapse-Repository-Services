@@ -239,6 +239,34 @@ public class SearchDslValidatorTest {
 		SearchDslValidator.validateQuery(q, false);
 	}
 
+	@Test
+	public void testValidateQueryWithQueryStringFieldsAtCap() {
+		List<String> fields = new ArrayList<>();
+		for (int i = 0; i <= SearchDslValidator.MAX_VALUES_PER_CLAUSE; i++) {
+			fields.add("f" + i);
+		}
+		Query q = Query.of(b -> b.queryString(s -> s.query("x").fields(fields)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("query_string.fields"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringLeadingWildcardAndAnalyzeWildcard() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("*foo").analyzeWildcard(true)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("leading wildcard"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringLeadingWildcardWithoutAnalyze() {
+		// Without analyze_wildcard the leading wildcard is just literal text, not expanded.
+		Query q = Query.of(b -> b.queryString(s -> s.query("*foo")));
+		// call under test — must not throw
+		SearchDslValidator.validateQuery(q, false);
+	}
+
 	// -----------------------------------------------------------------------------
 	// Autocomplete top-level narrowing
 	// -----------------------------------------------------------------------------
@@ -733,6 +761,7 @@ public class SearchDslValidatorTest {
 		leaves.add(Query.of(b -> b.wildcard(w -> w.field("f").value("x"))));
 		leaves.add(Query.of(b -> b.fuzzy(f -> f.field("f").value(FieldValue.of("x")))));
 		leaves.add(Query.of(b -> b.simpleQueryString(s -> s.query("x"))));
+		leaves.add(Query.of(b -> b.queryString(s -> s.query("x"))));
 		leaves.add(Query.of(b -> b.matchAll(m -> m)));
 
 		// Compounds wrap a different leaf each so all four compound branches run.
@@ -1373,6 +1402,15 @@ public class SearchDslValidatorTest {
 				() -> validateQueryLeafShapes(
 						"{\"simple_query_string\":{\"query\":\"x\",\"fields\":[{\"bad\":1}]}}"));
 		assertTrue(ex.getMessage().contains("simple_query_string.fields[0]"));
+	}
+
+	@Test
+	public void testValidateQueryLeafShapesWithQueryStringFieldsObjectRejected() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> validateQueryLeafShapes(
+						"{\"query_string\":{\"query\":\"x\",\"fields\":[{\"bad\":1}]}}"));
+		assertTrue(ex.getMessage().contains("query_string.fields[0]"));
 	}
 
 	@Test

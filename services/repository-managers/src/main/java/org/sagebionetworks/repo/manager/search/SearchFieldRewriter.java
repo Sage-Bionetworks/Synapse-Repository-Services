@@ -193,6 +193,7 @@ final class SearchFieldRewriter {
 			Map.entry("match_bool_prefix", RoutingMode.BARE),
 			Map.entry("multi_match", RoutingMode.BARE),
 			Map.entry("simple_query_string", RoutingMode.BARE),
+			Map.entry("query_string", RoutingMode.BARE),
 			Map.entry("exists", RoutingMode.BARE),
 			// term-family + range / prefix / wildcard / fuzzy / match_phrase_prefix —
 			// need the raw keyword sub-field on text columns.
@@ -245,11 +246,13 @@ final class SearchFieldRewriter {
 	 * via {@code ctx}, applying clause-kind-specific {@code .keyword} routing for text-typed
 	 * columns. Mutates {@code node} in place.
 	 *
-	 * <p>Three reference shapes are recognized:</p>
+	 * <p>Four reference shapes are recognized:</p>
 	 * <ul>
 	 *   <li>A {@code "field"} string property (long-form leaf queries, aggregations,
 	 *       exists).</li>
-	 *   <li>A {@code "fields"} string-array property (multi_match, simple_query_string).</li>
+	 *   <li>A {@code "default_field"} string property (query_string).</li>
+	 *   <li>A {@code "fields"} string-array property (multi_match, simple_query_string,
+	 *       query_string).</li>
 	 *   <li>The single key of the inner object of a shorthand leaf query
 	 *       (e.g. {@code {"match": {"<column>": "value"}}}).</li>
 	 * </ul>
@@ -287,6 +290,9 @@ final class SearchFieldRewriter {
 				JsonNode value = entry.getValue();
 				if ("field".equals(key) && value.isTextual()) {
 					obj.set("field", new TextNode(rewriteFieldRef(value.asText(), ctx, mode)));
+				} else if ("default_field".equals(key) && value.isTextual()) {
+					// query_string's single fallback column reference — rewritten like "field".
+					obj.set("default_field", new TextNode(rewriteFieldRef(value.asText(), ctx, mode)));
 				} else if ("fields".equals(key) && value.isArray()) {
 					ArrayNode array = (ArrayNode) value;
 					for (int i = 0; i < array.size(); i++) {

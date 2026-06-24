@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.search.dsl.MatchPhraseFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.MultiMatchQuery;
 import org.sagebionetworks.repo.model.search.dsl.PrefixFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.Query;
+import org.sagebionetworks.repo.model.search.dsl.QueryStringQuery;
 import org.sagebionetworks.repo.model.search.dsl.RangeFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.Rescore;
 import org.sagebionetworks.repo.model.search.dsl.RescoreQuery;
@@ -1207,6 +1208,9 @@ public class OpenSearchManagerImplAutoWiredTest {
 		queries.put(Kind.SimpleQueryString,
 				() -> queryBody(new Query().setSimple_query_string(
 						new SimpleQueryStringQuery().setQuery("amyloid"))));
+		queries.put(Kind.QueryString,
+				() -> queryBody(new Query().setQuery_string(
+						new QueryStringQuery().setQuery("amyloid"))));
 		queries.put(Kind.MatchAll,
 				() -> matchAllBody());
 		queries.put(Kind.Bool,
