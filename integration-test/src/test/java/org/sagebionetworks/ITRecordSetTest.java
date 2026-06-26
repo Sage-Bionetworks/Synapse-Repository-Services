@@ -71,9 +71,6 @@ public class ITRecordSetTest {
 
 		csvFileHandle = synapse.multipartUpload(csvFile, null, false, true);
 
-		// A unique organization name per run so the test user always owns it (and thus has CREATE
-		// permission to register schemas under it), independent of prior runs. Each dot-separated
-		// segment must start with a letter, so the random suffix is prefixed with one.
 		organizationName = "it.recordset.s" + UUID.randomUUID().toString().replace("-", "");
 	}
 	
