@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import java.io.IOException;
-
-import org.sagebionetworks.repo.manager.grid.synch.GridReadSnapshotTransaction;
+import org.sagebionetworks.repo.manager.grid.synch.GridRepeatableReadTransaction;
 import org.sagebionetworks.repo.manager.grid.synch.io.CopyRowSnapshot;
+import org.sagebionetworks.util.FileProvider;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,6 +15,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class GridCopySnapshotProvider {
 
+	private final FileProvider fileProvider;
+
+	public GridCopySnapshotProvider(FileProvider fileProvider) {
+		this.fileProvider = fileProvider;
+	}
+
 	/**
 	 * Capture all the copy handler's rows into a re-readable disk snapshot. The
 	 * read runs at REPEATABLE_READ so every page sees the same MVCC view.
@@ -23,8 +28,8 @@ public class GridCopySnapshotProvider {
 	 * @param copyHandler the live copy handler
 	 * @return a disk-backed snapshot (caller must {@link CopyRowSnapshot#close()} it)
 	 */
-	@GridReadSnapshotTransaction
-	public CopyRowSnapshot capture(CopyHandler copyHandler) throws IOException {
-		return CopyRowSnapshot.capture(copyHandler.getRows());
+	@GridRepeatableReadTransaction
+	public CopyRowSnapshot capture(CopyHandler copyHandler) {
+		return CopyRowSnapshot.capture(copyHandler.getRows(), fileProvider);
 	}
 }

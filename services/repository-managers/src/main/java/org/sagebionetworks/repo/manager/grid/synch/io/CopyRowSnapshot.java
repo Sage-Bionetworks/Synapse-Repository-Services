@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.manager.grid.synch.io;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -22,6 +19,7 @@ import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItem;
 import org.sagebionetworks.repo.manager.grid.synch.row.RowCopyItemImpl;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.util.FileProvider;
 
 /**
  * A disk-backed, re-readable snapshot of a grid replica's copy rows
@@ -39,29 +37,36 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 public class CopyRowSnapshot implements AutoCloseable {
 
 	private final File tempFile;
+	private final FileProvider fileProvider;
 
-	private CopyRowSnapshot(File tempFile) {
+	private CopyRowSnapshot(File tempFile, FileProvider fileProvider) {
 		this.tempFile = tempFile;
+		this.fileProvider = fileProvider;
 	}
 
 	/**
 	 * Materialize the given rows to a new temp file snapshot.
 	 *
-	 * @param rows the live copy rows to capture (consumed fully)
+	 * @param rows         the live copy rows to capture (consumed fully)
+	 * @param fileProvider abstracts temp file/stream creation for testability
 	 * @return a re-readable disk snapshot
 	 */
-	public static CopyRowSnapshot capture(Iterator<RowCopyItem> rows) throws IOException {
-		File tempFile = File.createTempFile("grid_copy_snapshot", ".bin");
-		try (DataOutputStream out = new DataOutputStream(
-				new BufferedOutputStream(new FileOutputStream(tempFile)))) {
-			while (rows.hasNext()) {
-				write(out, rows.next());
+	public static CopyRowSnapshot capture(Iterator<RowCopyItem> rows, FileProvider fileProvider) {
+		File tempFile = null;
+		try {
+			tempFile = fileProvider.createTempFile("grid_copy_snapshot", ".bin");
+			try (DataOutputStream out = new DataOutputStream(fileProvider.createFileOutputStream(tempFile))) {
+				while (rows.hasNext()) {
+					write(out, rows.next());
+				}
 			}
+			return new CopyRowSnapshot(tempFile, fileProvider);
 		} catch (IOException | RuntimeException e) {
-			tempFile.delete();
-			throw e;
+			if (tempFile != null && tempFile.exists()) {
+				tempFile.delete();
+			}
+			throw new RuntimeException(e);
 		}
-		return new CopyRowSnapshot(tempFile);
 	}
 
 	/**
@@ -69,7 +74,7 @@ public class CopyRowSnapshot implements AutoCloseable {
 	 */
 	public Iterator<RowCopyItem> read() {
 		try {
-			DataInputStream in = new DataInputStream(new BufferedInputStream(new FileInputStream(tempFile)));
+			DataInputStream in = new DataInputStream(new BufferedInputStream(fileProvider.createFileInputStream(tempFile)));
 			return new SnapshotIterator(in);
 		} catch (IOException e) {
 			throw new UncheckedIOException(e);

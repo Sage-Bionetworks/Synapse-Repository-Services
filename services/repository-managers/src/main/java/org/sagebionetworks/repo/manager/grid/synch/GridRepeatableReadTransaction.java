@@ -11,11 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * A read-only grid transaction at {@link Isolation#REPEATABLE_READ} on the
- * {@code gridTransactionManager}. Used to capture a consistent point-in-time
- * snapshot of a grid replica's rows: InnoDB MVCC gives the whole scan a single
- * read view, so the snapshot is isolated from commits made by the patch-builder
- * (the run's own enqueued patches) and by concurrent replicas while the snapshot
- * is being read.
+ * {@code gridTransactionManager}.
  *
  * <p>
  * Inner per-page read queries (annotated {@code @GridTransaction(readOnly=true)}
@@ -31,5 +27,5 @@ import org.springframework.transaction.annotation.Transactional;
 	readOnly = true,
 	rollbackFor = Throwable.class
 )
-public @interface GridReadSnapshotTransaction {
+public @interface GridRepeatableReadTransaction {
 }

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import java.io.IOException;
-
 import org.sagebionetworks.repo.model.grid.GridSession;
 
 /**
@@ -25,7 +23,6 @@ public interface CopyHandlerProvider {
 	 * @param session the grid session containing connection information and user
 	 *                context for accessing the copy
 	 * @return a CopyHandler instance ready for synchronization
-	 * @throws IOException if the row snapshot cannot be captured
 	 */
-	CopyHandler createCopyHandler(GridSession session) throws IOException;
+	CopyHandler createCopyHandler(GridSession session);
 }

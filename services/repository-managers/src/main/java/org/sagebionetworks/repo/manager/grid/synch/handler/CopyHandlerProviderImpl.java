@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.grid.synch.handler;
 
-import java.io.IOException;
-
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
@@ -37,7 +35,7 @@ public class CopyHandlerProviderImpl implements CopyHandlerProvider {
 	 * enqueued writes.
 	 */
 	@Override
-	public CopyHandler createCopyHandler(GridSession session) throws IOException {
+	public CopyHandler createCopyHandler(GridSession session) {
 		CopyHandlerImpl liveHandler = new CopyHandlerImpl(gridReplicaViewManager, gridReplicaSupport, gridIndexDao,
 				gridManager, session);
 		CopyRowSnapshot snapshot = copySnapshotProvider.capture(liveHandler);
