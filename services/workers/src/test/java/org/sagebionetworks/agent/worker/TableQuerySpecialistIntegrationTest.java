@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySpecialist;
 import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySpecialistFactory;
@@ -64,10 +63,7 @@ public class TableQuerySpecialistIntegrationTest {
 
 	@Autowired
 	private TableTransactionManager transactionManager;
-
-	@Autowired
-	private SemaphoreManager semaphoreManager;
-
+	
 	@Autowired
 	private AsynchronousJobWorkerHelper asyncHelper;
 
@@ -78,7 +74,6 @@ public class TableQuerySpecialistIntegrationTest {
 
 	@BeforeEach
 	public void setup() throws Exception {
-		semaphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		Project project = new Project();

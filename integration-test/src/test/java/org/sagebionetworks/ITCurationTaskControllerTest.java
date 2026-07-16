@@ -9,7 +9,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -161,6 +165,7 @@ public class ITCurationTaskControllerTest {
             assertNull(status.getExecutionDetails());
             assertNull(status.getLastUpdatedBy());
             assertNull(status.getLastUpdatedOn());
+            assertNull(status.getDueDate());
         } finally {
             synapse.deleteMetadataTask(task.getTaskId());
         }
@@ -195,10 +200,14 @@ public class ITCurationTaskControllerTest {
             assertEquals(TaskState.NOT_STARTED, bundle.getStatus().getState());
             assertEquals(task.getEtag(), bundle.getStatus().getEtag());
 
+            // Set due date to 2 days in the future
+            Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+
             // Update status to IN_PROGRESS
             TaskStatus statusUpdate = new TaskStatus()
                     .setState(TaskState.IN_PROGRESS)
-                    .setEtag(task.getEtag());
+                    .setEtag(task.getEtag())
+                    .setDueDate(dueDate);
 
             TaskStatus updatedStatus = synapse.updateTaskStatus(task.getTaskId(), statusUpdate);
 
@@ -207,6 +216,7 @@ public class ITCurationTaskControllerTest {
             assertNotEquals(task.getEtag(), updatedStatus.getEtag());
             assertNotNull(updatedStatus.getLastUpdatedBy());
             assertNotNull(updatedStatus.getLastUpdatedOn());
+            assertEquals(dueDate, updatedStatus.getDueDate());
 
             String inProgressEtag = updatedStatus.getEtag();
 

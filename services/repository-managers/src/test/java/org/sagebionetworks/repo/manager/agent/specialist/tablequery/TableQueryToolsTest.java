@@ -3,12 +3,16 @@ package org.sagebionetworks.repo.manager.agent.specialist.tablequery;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 
@@ -18,15 +22,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.TableDescription;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -34,8 +42,9 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.progress.ProgressCallback;
-import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.CodeExecutionResult;
 import org.springframework.ai.chat.model.ToolContext;
 
@@ -49,7 +58,10 @@ public class TableQueryToolsTest {
 	private TableManagerSupport mockTableManagerSupport;
 
 	@Mock
-	private AgentCoreCodeInterpreterClient mockCodeInterpreterClient;
+	private EntityManager mockEntityManager;
+
+	@Mock
+	private CodeInterpreterFileManager mockCodeInterpreterFileManager;
 
 	private TableQueryTools tools;
 	private UserInfo userInfo;
@@ -58,14 +70,14 @@ public class TableQueryToolsTest {
 
 	@BeforeEach
 	public void setup() {
-		tools = new TableQueryTools(mockTableQueryManager, mockTableManagerSupport, mockCodeInterpreterClient);
+		tools = new TableQueryTools(mockTableQueryManager, mockTableManagerSupport, mockEntityManager, mockCodeInterpreterFileManager);
 		userInfo = new UserInfo(false, 101L);
 		toolContext = new ToolContext(Map.of("userInfo", userInfo));
 		toolContextWithSession = new ToolContext(Map.of("userInfo", userInfo, "sessionId", "session-123"));
 	}
 
 	@Test
-	public void testDescribeTableWithValidId() {
+	public void testDescribeTableWithValidId() throws Exception {
 		IdAndVersion idAndVersion = IdAndVersion.parse("syn123");
 		ColumnModel col1 = new ColumnModel();
 		col1.setName("name");
@@ -74,6 +86,11 @@ public class TableQueryToolsTest {
 		col2.setName("age");
 		col2.setColumnType(ColumnType.INTEGER);
 
+		TableEntity tableEntity = new TableEntity();
+		tableEntity.setId("syn123");
+		tableEntity.setName("MyTable");
+
+		when(mockEntityManager.getEntity(userInfo, "syn123")).thenReturn(tableEntity);
 		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(TableType.entityview);
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(List.of(col1, col2));
 
@@ -82,13 +99,40 @@ public class TableQueryToolsTest {
 
 		assertNotNull(response.getResponseBody());
 		assertNull(response.getErrorMessage());
-		assertEquals("syn123", response.getResponseBody().getTableId());
 		assertEquals("entityview", response.getResponseBody().getTableType());
+		assertEquals(tableEntity, response.getResponseBody().getEntity());
 		assertEquals(2, response.getResponseBody().getColumnModels().size());
 		assertEquals("name", response.getResponseBody().getColumnModels().get(0).getName());
 		assertEquals(ColumnType.STRING, response.getResponseBody().getColumnModels().get(0).getColumnType());
 		assertEquals("age", response.getResponseBody().getColumnModels().get(1).getName());
 		assertEquals(ColumnType.INTEGER, response.getResponseBody().getColumnModels().get(1).getColumnType());
+		verify(mockEntityManager).getEntity(userInfo, "syn123");
+	}
+
+	@Test
+	public void testDescribeTableWithVersion() throws Exception {
+		IdAndVersion idAndVersion = IdAndVersion.parse("syn456.3");
+		ColumnModel col = new ColumnModel();
+		col.setName("score");
+		col.setColumnType(ColumnType.DOUBLE);
+
+		TableEntity tableEntity = new TableEntity();
+		tableEntity.setId("syn456");
+		tableEntity.setName("VersionedTable");
+
+		when(mockEntityManager.getEntityForVersion(userInfo, "syn456", 3L, Entity.class)).thenReturn(tableEntity);
+		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(TableType.table);
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(List.of(col));
+
+		// call under test
+		ToolResponse<TableDescription> response = tools.describeTable("syn456.3", toolContext);
+
+		assertNotNull(response.getResponseBody());
+		assertNull(response.getErrorMessage());
+		assertEquals("table", response.getResponseBody().getTableType());
+		assertEquals(tableEntity, response.getResponseBody().getEntity());
+		assertEquals(1, response.getResponseBody().getColumnModels().size());
+		verify(mockEntityManager).getEntityForVersion(userInfo, "syn456", 3L, Entity.class);
 	}
 
 	@Test
@@ -98,6 +142,7 @@ public class TableQueryToolsTest {
 
 		assertNull(response.getResponseBody());
 		assertNotNull(response.getErrorMessage());
+		verifyNoInteractions(mockEntityManager);
 		verifyNoInteractions(mockTableManagerSupport);
 	}
 
@@ -110,6 +155,7 @@ public class TableQueryToolsTest {
 
 		assertNull(response.getResponseBody());
 		assertEquals("No user context available", response.getErrorMessage());
+		verifyNoInteractions(mockEntityManager);
 		verifyNoInteractions(mockTableManagerSupport);
 	}
 
@@ -206,13 +252,30 @@ public class TableQueryToolsTest {
 	}
 
 	@Test
-	public void testWriteQueryToSessionWithResults() throws Exception {
+	public void testWriteQueryToSessionWithCsvContent() throws Exception {
+		doAnswer(invocation -> {
+			CSVWriterStream writer = invocation.getArgument(3);
+			writer.writeNext(new String[]{"name", "age"});
+			writer.writeNext(new String[]{"Alice", "30"});
+			writer.writeNext(new String[]{"Bob", "25"});
+			return null;
+		}).when(mockTableQueryManager).runQueryDownloadAsCSV(any(ProgressCallback.class), eq(userInfo),
+				any(DownloadFromTableRequest.class), any(CSVWriterStream.class));
+
+		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
 		CodeExecutionResult successResult = new CodeExecutionResult("done", false, List.of());
-		when(mockCodeInterpreterClient.executeCode(eq("session-123"), eq("python"), any(String.class)))
-				.thenReturn(successResult);
+		when(mockCodeInterpreterFileManager.pushLocalFileToSession(eq("session-123"), fileCaptor.capture(), eq("text/csv"), eq("query_specialist/out.csv")))
+				.thenAnswer(invocation -> {
+					File capturedFile = fileCaptor.getValue();
+					String content = Files.readString(capturedFile.toPath());
+					assertTrue(content.contains("name,age"));
+					assertTrue(content.contains("Alice,30"));
+					assertTrue(content.contains("Bob,25"));
+					return successResult;
+				});
 
 		QueryResultBundle metadata = new QueryResultBundle();
-		metadata.setQueryCount(50L);
+		metadata.setQueryCount(3L);
 		when(mockTableQueryManager.querySinglePage(any(ProgressCallback.class), eq(userInfo), any(Query.class), any(QueryOptions.class)))
 				.thenReturn(metadata);
 
@@ -222,7 +285,42 @@ public class TableQueryToolsTest {
 
 		assertNotNull(response.getResponseBody());
 		assertNull(response.getErrorMessage());
-		assertEquals(50L, response.getResponseBody().getQueryCount());
+		assertEquals(3L, response.getResponseBody().getQueryCount());
+	}
+
+	@Test
+	public void testWriteQueryToSessionWithCsvFieldEscaping() throws Exception {
+		doAnswer(invocation -> {
+			CSVWriterStream writer = invocation.getArgument(3);
+			writer.writeNext(new String[]{"name", "description"});
+			writer.writeNext(new String[]{"test", "has,comma"});
+			writer.writeNext(new String[]{"other", "has\"quote"});
+			return null;
+		}).when(mockTableQueryManager).runQueryDownloadAsCSV(any(ProgressCallback.class), eq(userInfo),
+				any(DownloadFromTableRequest.class), any(CSVWriterStream.class));
+
+		ArgumentCaptor<File> fileCaptor = ArgumentCaptor.forClass(File.class);
+		CodeExecutionResult successResult = new CodeExecutionResult("done", false, List.of());
+		when(mockCodeInterpreterFileManager.pushLocalFileToSession(eq("session-123"), fileCaptor.capture(), eq("text/csv"), eq("out.csv")))
+				.thenAnswer(invocation -> {
+					File capturedFile = fileCaptor.getValue();
+					String content = Files.readString(capturedFile.toPath());
+					assertTrue(content.contains("\"has,comma\""));
+					assertTrue(content.contains("\"has\"\"quote\""));
+					return successResult;
+				});
+
+		QueryResultBundle metadata = new QueryResultBundle();
+		metadata.setQueryCount(2L);
+		when(mockTableQueryManager.querySinglePage(any(ProgressCallback.class), eq(userInfo), any(Query.class), any(QueryOptions.class)))
+				.thenReturn(metadata);
+
+		// call under test
+		ToolResponse<QueryResultBundle> response = tools.writeQueryToSession(
+				"SELECT * FROM syn123", "out.csv", toolContextWithSession);
+
+		assertNotNull(response.getResponseBody());
+		assertNull(response.getErrorMessage());
 	}
 
 	@Test
@@ -235,7 +333,7 @@ public class TableQueryToolsTest {
 
 		assertNull(response.getResponseBody());
 		assertEquals("No user context available", response.getErrorMessage());
-		verifyNoInteractions(mockCodeInterpreterClient);
+		verifyNoInteractions(mockCodeInterpreterFileManager);
 	}
 
 	@Test
@@ -246,22 +344,21 @@ public class TableQueryToolsTest {
 
 		assertNull(response.getResponseBody());
 		assertEquals("No code interpreter session ID available", response.getErrorMessage());
-		verifyNoInteractions(mockCodeInterpreterClient);
+		verifyNoInteractions(mockCodeInterpreterFileManager);
 	}
 
 	@Test
-	public void testWriteQueryToSessionWithWriteError() throws Exception {
-		CodeExecutionResult ensureDirResult = new CodeExecutionResult("", false, List.of());
+	public void testWriteQueryToSessionWithPushError() throws Exception {
 		CodeExecutionResult writeErrorResult = new CodeExecutionResult("Permission denied", true, List.of());
-		when(mockCodeInterpreterClient.executeCode(eq("session-123"), eq("python"), any(String.class)))
-				.thenReturn(ensureDirResult, writeErrorResult);
+		when(mockCodeInterpreterFileManager.pushLocalFileToSession(eq("session-123"), any(File.class), eq("text/csv"), eq("query_specialist/out.csv")))
+				.thenReturn(writeErrorResult);
 
 		// call under test
 		ToolResponse<QueryResultBundle> response = tools.writeQueryToSession(
 				"SELECT * FROM syn123", "query_specialist/out.csv", toolContextWithSession);
 
 		assertNull(response.getResponseBody());
-		assertNotNull(response.getErrorMessage());
+		assertTrue(response.getErrorMessage().contains("Permission denied"));
 	}
 
 	@Test
@@ -273,10 +370,4 @@ public class TableQueryToolsTest {
 		assertEquals("\"has\nnewline\"", TableQueryTools.escapeCsvField("has\nnewline"));
 	}
 
-	@Test
-	public void testEscapePythonTripleQuote() {
-		assertEquals("no quotes", TableQueryTools.escapePythonTripleQuote("no quotes"));
-		assertEquals("has\\'\\'\\' quotes", TableQueryTools.escapePythonTripleQuote("has''' quotes"));
-		assertEquals("back\\\\slash", TableQueryTools.escapePythonTripleQuote("back\\slash"));
-	}
 }

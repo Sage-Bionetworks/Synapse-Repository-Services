@@ -3,13 +3,10 @@ package org.sagebionetworks.repo.manager.agent;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import java.net.URL;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -37,11 +34,6 @@ import org.springframework.ai.chat.model.ToolContext;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class CodeInterpreterToolsTest {
@@ -51,9 +43,9 @@ public class CodeInterpreterToolsTest {
 	@Mock
 	private S3Client s3Client;
 	@Mock
-	private S3Presigner s3Presigner;
-	@Mock
 	private AgentCoreCodeInterpreterClient codeInterpreterClient;
+	@Mock
+	private CodeInterpreterFileManager codeInterpreterFileManager;
 	@Mock
 	private StackConfiguration stackConfig;
 	@Mock
@@ -63,10 +55,6 @@ public class CodeInterpreterToolsTest {
 	@Mock
 	private StorageLocationDAO storageLocationDAO;
 	@Mock
-	private PresignedGetObjectRequest presignedGetObjectRequest;
-	@Mock
-	private PresignedPutObjectRequest presignedPutObjectRequest;
-	@Mock
 	private CodeExecutionResult codeExecutionResult;
 
 	private CodeInterpreterTools tools;
@@ -74,10 +62,9 @@ public class CodeInterpreterToolsTest {
 
 	@BeforeEach
 	public void before() {
-		when(stackConfig.getStack()).thenReturn("dev");
 		when(stackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
-		tools = new CodeInterpreterTools(fileHandleManager, s3Client, s3Presigner, codeInterpreterClient, stackConfig,
-				fileHandleDao, idGenerator, storageLocationDAO);
+		tools = new CodeInterpreterTools(fileHandleManager, s3Client, codeInterpreterClient, codeInterpreterFileManager,
+				stackConfig, fileHandleDao, idGenerator, storageLocationDAO);
 		userInfo = new UserInfo(false);
 		userInfo.setId(123L);
 	}
@@ -95,26 +82,15 @@ public class CodeInterpreterToolsTest {
 		s3Handle.setFileName("data.csv");
 
 		when(fileHandleManager.getRawFileHandle(userInfo, fileHandleId)).thenReturn(s3Handle);
-		when(s3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(CopyObjectResponse.builder().build());
-		when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedGetObjectRequest);
-		when(presignedGetObjectRequest.url()).thenReturn(new URL("https://staging-bucket.s3.amazonaws.com/path/to/data.csv?presigned=true"));
-		when(codeInterpreterClient.executeCode(anyString(), anyString(), anyString())).thenReturn(codeExecutionResult);
+		when(codeInterpreterFileManager.pushS3FileToSession(sessionId, "source-bucket", "path/to/data.csv", "data.csv"))
+				.thenReturn(codeExecutionResult);
 		when(codeExecutionResult.isError()).thenReturn(false);
 
 		// call under test
 		String result = tools.addFileToSession(fileHandleId, toolContext);
 
 		assertEquals("File 'data.csv' is now available at './data.csv'", result);
-
-		ArgumentCaptor<CopyObjectRequest> copyCaptor = ArgumentCaptor.forClass(CopyObjectRequest.class);
-		verify(s3Client).copyObject(copyCaptor.capture());
-		CopyObjectRequest copyRequest = copyCaptor.getValue();
-		assertEquals("source-bucket", copyRequest.sourceBucket());
-		assertEquals("path/to/data.csv", copyRequest.sourceKey());
-		assertEquals("dev.code-interpreter.staging.sagebase.org", copyRequest.destinationBucket());
-		assertEquals("path/to/data.csv", copyRequest.destinationKey());
-
-		verify(codeInterpreterClient).executeCode(eq(sessionId), eq("python"), anyString());
+		verify(codeInterpreterFileManager).pushS3FileToSession(sessionId, "source-bucket", "path/to/data.csv", "data.csv");
 	}
 
 	@Test
@@ -134,7 +110,7 @@ public class CodeInterpreterToolsTest {
 		}
 
 		verifyNoInteractions(s3Client);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
@@ -153,7 +129,7 @@ public class CodeInterpreterToolsTest {
 
 		assertEquals("Error: File handle '456' is not an S3-backed file", result);
 		verifyNoInteractions(s3Client);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
@@ -167,7 +143,7 @@ public class CodeInterpreterToolsTest {
 		assertEquals("Error: No code interpreter session ID available", result);
 		verifyNoInteractions(fileHandleManager);
 		verifyNoInteractions(s3Client);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
@@ -181,7 +157,7 @@ public class CodeInterpreterToolsTest {
 		assertEquals("Error: No user context available", result);
 		verifyNoInteractions(fileHandleManager);
 		verifyNoInteractions(s3Client);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
@@ -197,10 +173,8 @@ public class CodeInterpreterToolsTest {
 		s3Handle.setFileName("data.csv");
 
 		when(fileHandleManager.getRawFileHandle(userInfo, fileHandleId)).thenReturn(s3Handle);
-		when(s3Client.copyObject(any(CopyObjectRequest.class))).thenReturn(CopyObjectResponse.builder().build());
-		when(s3Presigner.presignGetObject(any(GetObjectPresignRequest.class))).thenReturn(presignedGetObjectRequest);
-		when(presignedGetObjectRequest.url()).thenReturn(new URL("https://example.com/presigned"));
-		when(codeInterpreterClient.executeCode(anyString(), anyString(), anyString())).thenReturn(codeExecutionResult);
+		when(codeInterpreterFileManager.pushS3FileToSession(sessionId, "source-bucket", "path/to/data.csv", "data.csv"))
+				.thenReturn(codeExecutionResult);
 		when(codeExecutionResult.isError()).thenReturn(true);
 		when(codeExecutionResult.textOutput()).thenReturn("Connection timed out");
 
@@ -218,11 +192,11 @@ public class CodeInterpreterToolsTest {
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(Map.of("userInfo", userInfo, "sessionId", sessionId));
 
-		when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPutObjectRequest);
-		when(presignedPutObjectRequest.url()).thenReturn(new URL("https://staging-bucket.s3.amazonaws.com/123/uuid/analysis_result.csv?presigned=true"));
-		when(codeInterpreterClient.executeCode(anyString(), anyString(), anyString())).thenReturn(codeExecutionResult);
-		when(codeExecutionResult.isError()).thenReturn(false);
-		when(codeExecutionResult.textOutput()).thenReturn("abc123def456abc123def456abc12345:1024\n");
+		CodeInterpreterFileManager.PullResult pullResult = new CodeInterpreterFileManager.PullResult(
+				"dev.code-interpreter.staging.sagebase.org", "123/some-uuid/analysis_result.csv",
+				"abc123def456abc123def456abc12345", 1024L);
+		when(codeInterpreterFileManager.pullFileFromSession(sessionId, filePath, contentType, "123"))
+				.thenReturn(pullResult);
 
 		StorageLocationSetting storageLocation = new S3StorageLocationSetting();
 		when(storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID)).thenReturn(storageLocation);
@@ -238,7 +212,11 @@ public class CodeInterpreterToolsTest {
 
 		assertEquals("789", result);
 
-		verify(codeInterpreterClient).executeCode(eq(sessionId), eq("python"), anyString());
+		ArgumentCaptor<CopyObjectRequest> copyCaptor = ArgumentCaptor.forClass(CopyObjectRequest.class);
+		verify(s3Client).copyObject(copyCaptor.capture());
+		assertEquals("dev.code-interpreter.staging.sagebase.org", copyCaptor.getValue().sourceBucket());
+		assertEquals("123/some-uuid/analysis_result.csv", copyCaptor.getValue().sourceKey());
+		assertEquals("devdata.sagebase.org", copyCaptor.getValue().destinationBucket());
 
 		ArgumentCaptor<S3FileHandle> handleCaptor = ArgumentCaptor.forClass(S3FileHandle.class);
 		verify(fileHandleDao).createFile(handleCaptor.capture());
@@ -259,11 +237,11 @@ public class CodeInterpreterToolsTest {
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(Map.of("userInfo", userInfo, "sessionId", sessionId));
 
-		when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPutObjectRequest);
-		when(presignedPutObjectRequest.url()).thenReturn(new URL("https://staging-bucket.s3.amazonaws.com/key?presigned=true"));
-		when(codeInterpreterClient.executeCode(anyString(), anyString(), anyString())).thenReturn(codeExecutionResult);
-		when(codeExecutionResult.isError()).thenReturn(false);
-		when(codeExecutionResult.textOutput()).thenReturn("aabbccdd11223344aabbccdd11223344:512\n");
+		CodeInterpreterFileManager.PullResult pullResult = new CodeInterpreterFileManager.PullResult(
+				"dev.code-interpreter.staging.sagebase.org", "123/some-uuid/report.json",
+				"aabbccdd11223344aabbccdd11223344", 512L);
+		when(codeInterpreterFileManager.pullFileFromSession(sessionId, filePath, contentType, "123"))
+				.thenReturn(pullResult);
 
 		StorageLocationSetting storageLocation = new S3StorageLocationSetting();
 		when(storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID)).thenReturn(storageLocation);
@@ -294,8 +272,7 @@ public class CodeInterpreterToolsTest {
 		String result = tools.getFileFromSession(filePath, contentType, toolContext);
 
 		assertEquals("Error: No user context available", result);
-		verifyNoInteractions(s3Presigner);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
@@ -308,28 +285,26 @@ public class CodeInterpreterToolsTest {
 		String result = tools.getFileFromSession(filePath, contentType, toolContext);
 
 		assertEquals("Error: No code interpreter session ID available", result);
-		verifyNoInteractions(s3Presigner);
-		verifyNoInteractions(codeInterpreterClient);
+		verifyNoInteractions(codeInterpreterFileManager);
 	}
 
 	@Test
-	public void testGetFileFromSessionWithUploadError() throws Exception {
+	public void testGetFileFromSessionWithPullError() {
 		String filePath = "result.csv";
 		String contentType = "text/csv";
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(Map.of("userInfo", userInfo, "sessionId", sessionId));
 
-		when(s3Presigner.presignPutObject(any(PutObjectPresignRequest.class))).thenReturn(presignedPutObjectRequest);
-		when(presignedPutObjectRequest.url()).thenReturn(new URL("https://example.com/put"));
-		when(codeInterpreterClient.executeCode(anyString(), anyString(), anyString())).thenReturn(codeExecutionResult);
-		when(codeExecutionResult.isError()).thenReturn(true);
-		when(codeExecutionResult.textOutput()).thenReturn("FileNotFoundError: result.csv");
+		when(codeInterpreterFileManager.pullFileFromSession(sessionId, filePath, contentType, "123"))
+				.thenThrow(new RuntimeException("Error uploading file from session: FileNotFoundError: result.csv"));
 
 		// call under test
-		String result = tools.getFileFromSession(filePath, contentType, toolContext);
+		try {
+			tools.getFileFromSession(filePath, contentType, toolContext);
+		} catch (RuntimeException e) {
+			assertTrue(e.getMessage().contains("FileNotFoundError"));
+		}
 
-		assertTrue(result.contains("Error uploading file from session"));
-		assertTrue(result.contains("FileNotFoundError"));
 		verifyNoInteractions(fileHandleDao);
 	}
 

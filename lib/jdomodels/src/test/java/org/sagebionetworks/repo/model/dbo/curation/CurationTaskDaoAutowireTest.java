@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -373,6 +376,7 @@ class CurationTaskDaoAutowireTest {
         assertNull(status.getExecutionDetails());
         assertNull(status.getLastUpdatedBy());
         assertNull(status.getLastUpdatedOn());
+        assertNull(status.getDueDate());
 
         dao.deleteCurationTask(created.getTaskId());
     }
@@ -406,6 +410,86 @@ class CurationTaskDaoAutowireTest {
         assertEquals(userId.toString(), updated.getLastUpdatedBy());
         assertNotNull(updated.getLastUpdatedOn());
         assertNull(updated.getExecutionDetails());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @ParameterizedTest
+    @EnumSource(TaskState.class)
+    public void testUpdateTaskStatusWithEachState(TaskState state) {
+        // Every value of the TaskState model must be persistable. This guards against the STATE column
+        // ENUM in the DDL drifting out of sync with the TaskState enum (e.g. missing EXECUTING/IN_REVIEW).
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        TaskStatus initialStatus = dao.getTaskStatus(created.getTaskId());
+
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(state)
+                .setEtag(initialStatus.getEtag());
+
+        // call under test
+        TaskStatus updated = dao.updateTaskStatus(userId, created.getTaskId(), statusUpdate);
+
+        assertEquals(state, updated.getState());
+        // Verify it round-trips from the database rather than just echoing the input.
+        assertEquals(state, dao.getTaskStatus(created.getTaskId()).getState());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskStatusWithDueDate() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+        TaskStatus statusUpdate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag(dao.getTaskStatus(created.getTaskId()).getEtag())
+                .setDueDate(dueDate);
+
+        // call under test
+        TaskStatus updated = dao.updateTaskStatus(userId, created.getTaskId(), statusUpdate);
+
+        assertEquals(dueDate, updated.getDueDate());
+        assertEquals(dueDate, dao.getTaskStatus(created.getTaskId()).getDueDate());
+
+        dao.deleteCurationTask(created.getTaskId());
+    }
+
+    @Test
+    public void testClearDueDate() {
+        CurationTask created = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        // Set a due date
+        Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+        TaskStatus withDueDate = new TaskStatus()
+                .setState(TaskState.IN_PROGRESS)
+                .setEtag(dao.getTaskStatus(created.getTaskId()).getEtag())
+                .setDueDate(dueDate);
+
+        TaskStatus withDueDateResult = dao.updateTaskStatus(userId, created.getTaskId(), withDueDate);
+        assertEquals(dueDate, withDueDateResult.getDueDate());
+
+        // Now clear it by omitting dueDate from the update
+        TaskStatus clearUpdate = new TaskStatus()
+                .setState(TaskState.COMPLETED)
+                .setEtag(dao.getTaskStatus(created.getTaskId()).getEtag());
+        // Note: dueDate is NOT set in clearUpdate, so it will be cleared
+
+        // call under test
+        TaskStatus result = dao.updateTaskStatus(userId, created.getTaskId(), clearUpdate);
+
+        assertNull(result.getDueDate());
+        assertNull(dao.getTaskStatus(created.getTaskId()).getDueDate());
 
         dao.deleteCurationTask(created.getTaskId());
     }

@@ -1,4 +1,9 @@
+import os
 import urllib.request
+file_name = '${fileName}'
+parent_dir = os.path.dirname(file_name)
+if parent_dir:
+    os.makedirs(parent_dir, exist_ok=True)
 url = """${presignedUrl}"""
-urllib.request.urlretrieve(url, '${fileName}')
+urllib.request.urlretrieve(url, file_name)
 print('File downloaded successfully')

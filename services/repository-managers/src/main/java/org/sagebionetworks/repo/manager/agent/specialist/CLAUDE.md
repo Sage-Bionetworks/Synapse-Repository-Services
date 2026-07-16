@@ -56,6 +56,10 @@ public ToolResponse<QueryResultBundle> queryTable(...) {
 
 `ToolResponse` itself implements `JSONEntity` and serializes as either `{"responseBody": <T as JSON>}` on success or `{"errorMessage": "..."}` on failure. This allows tools to return meaningful error messages without throwing exceptions that disrupt the agent loop.
 
+### Authorization
+
+All tool methods must verify the user has access before returning data. Internal utilities like `TableManagerSupport.getTableSchema()` do NOT check authorization — they are designed for system-internal use. Agent tools must call an authorization-checked method (e.g., `EntityManager.getEntity(userInfo, id)`) before returning any entity metadata. An agent must never leak information the user cannot access directly via the REST API.
+
 ## Factory Pattern
 
 Specialists are created via a `@Service` factory. The specialist instance itself is NOT a Spring bean — it holds per-conversation state (ChatMemory):

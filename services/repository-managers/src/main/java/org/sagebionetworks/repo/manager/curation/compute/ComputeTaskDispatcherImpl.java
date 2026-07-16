@@ -7,12 +7,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
@@ -29,15 +27,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class ComputeTaskDispatcherImpl implements ComputeTaskDispatcher {
 
+	private static final Logger LOG = LogManager.getLogger(ComputeTaskDispatcherImpl.class);
+
 	private final CurationTaskDao curationTaskDao;
-	private final AuthorizationManager authorizationManager;
+	private final CurationTaskManager curationTaskManager;
 	private final Map<Class<? extends ExecutableTaskExecutionDetails>, ComputeTaskSubWorker<?>> subWorkerMap;
 
 	@Autowired
-	public ComputeTaskDispatcherImpl(CurationTaskDao curationTaskDao, AuthorizationManager authorizationManager,
+	public ComputeTaskDispatcherImpl(CurationTaskDao curationTaskDao, CurationTaskManager curationTaskManager,
 			@Autowired(required = false) List<ComputeTaskSubWorker<?>> subWorkers) {
 		this.curationTaskDao = curationTaskDao;
-		this.authorizationManager = authorizationManager;
+		this.curationTaskManager = curationTaskManager;
 		this.subWorkerMap = subWorkers == null ? Collections.emptyMap()
 				: subWorkers.stream().collect(
 						Collectors.toMap(ComputeTaskSubWorker::getExecutionDetailsType, Function.identity()));
@@ -54,7 +54,7 @@ public class ComputeTaskDispatcherImpl implements ComputeTaskDispatcher {
 		CurationTask task = curationTaskDao.getCurationTask(taskId)
 				.orElseThrow(() -> new NotFoundException("CurationTask not found: " + taskId));
 
-		validateExecutionAuthorization(user, task);
+		curationTaskManager.validateUpdateTaskStatus(user, task);
 
 		TaskStatus currentStatus = curationTaskDao.getTaskStatus(taskId);
 
@@ -91,29 +91,6 @@ public class ComputeTaskDispatcherImpl implements ComputeTaskDispatcher {
 			transitionToNotStartedOnError(user, taskId, e);
 			throw e;
 		}
-	}
-
-	private void validateExecutionAuthorization(UserInfo user, CurationTask task) {
-		boolean isAssignee = task.getAssigneePrincipalId() != null
-				&& isAuthorizedAssignee(user, Long.parseLong(task.getAssigneePrincipalId()));
-
-		if (isAssignee) {
-			return;
-		}
-
-		boolean hasUpdateAccess = authorizationManager
-				.canAccess(user, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
-				.isAuthorized();
-
-		if (!hasUpdateAccess) {
-			throw new UnauthorizedException(
-					"You must be an assignee of the task or have UPDATE access on the project to execute it.");
-		}
-	}
-
-	private boolean isAuthorizedAssignee(UserInfo user, Long assigneeId) {
-		return AuthorizationUtils.isUserCreatorOrAdmin(user, assigneeId.toString())
-				|| user.getGroups().contains(assigneeId);
 	}
 
 	private void transitionToExecuting(UserInfo user, Long taskId, String jobId, TaskStatus currentStatus) {
@@ -155,7 +132,7 @@ public class ComputeTaskDispatcherImpl implements ComputeTaskDispatcher {
 
 			curationTaskDao.updateTaskStatus(user.getId(), taskId, freshStatus);
 		} catch (Exception updateException) {
-			// Best effort — if the status update fails, we still re-throw the original exception
+			LOG.error("Failed to transition task {} back to NOT_STARTED after error", taskId, updateException);
 		}
 	}
 }

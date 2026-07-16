@@ -10,8 +10,14 @@ import org.springframework.ai.bedrock.converse.BedrockProxyChatModel;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.util.json.JsonParser;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+
+import jakarta.annotation.PostConstruct;
 
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -28,6 +34,34 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
  */
 @Configuration
 public class SpringAiConfiguration {
+
+	/**
+	 * Spring AI parses LLM tool-call argument JSON through two separate shared, strict ObjectMappers,
+	 * both of which reject literal control characters (e.g. a raw newline, code 10) inside JSON string
+	 * values. Bedrock/Claude routinely emit multi-line text as a tool argument (for example the
+	 * {@code script} passed to runPython, or a multi-line SQL query delegated to a specialist) with
+	 * unescaped newlines, which would otherwise fail with "Illegal unquoted character (CTRL-CHAR, code 10)".
+	 * <p>
+	 * The two mappers are:
+	 * <ul>
+	 * <li>{@link JsonParser#getObjectMapper()} — used by {@code MethodToolCallback.extractToolArguments}
+	 * when a tool is invoked (parsing the arguments into method parameters).</li>
+	 * <li>{@link ModelOptionsUtils#OBJECT_MAPPER} — used by {@code BedrockProxyChatModel.createRequest}
+	 * (via {@code ModelOptionsUtils.jsonToMap}) when a prior assistant tool-call's stored arguments are
+	 * re-serialized into the next Bedrock request on a subsequent turn.</li>
+	 * </ul>
+	 * Enabling {@link JsonReadFeature#ALLOW_UNESCAPED_CONTROL_CHARS} on both mappers' factories makes
+	 * tool-argument parsing tolerant of these characters everywhere. This is strictly more lenient: it
+	 * never rejects valid JSON, it only additionally accepts input the strict parser refused. Applied
+	 * once at startup so any code that resolves this @Configuration gets the behavior.
+	 */
+	@PostConstruct
+	public void configureToolArgumentJsonParsing() {
+		JsonParser.getObjectMapper().getFactory()
+				.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
+		ModelOptionsUtils.OBJECT_MAPPER.getFactory()
+				.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
+	}
 
 	@Bean
 	public ChatModel bedrockChatModel(AwsCredentialsProvider credentialProvider, StackConfiguration stackConfig) {

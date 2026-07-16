@@ -1,0 +1,17 @@
+{
+    "description": "Status of a signature within a DUC",
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "name of the signer"
+        },
+        "userId": {
+            "type": "string",
+            "description": "Synapse user id of the signer, if any"
+        },
+        "status": {
+            "$ref": "org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum",
+            "description": "status of the signer"
+        }
+    }
+}

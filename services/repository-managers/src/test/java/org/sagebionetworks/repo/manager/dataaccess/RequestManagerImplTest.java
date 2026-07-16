@@ -24,7 +24,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeStatusResult;
+import org.sagebionetworks.repo.manager.file.FileHandleAuthorizationManager;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -51,6 +57,10 @@ public class RequestManagerImplTest {
 	private RequestDAO mockRequestDao;
 	@Mock
 	private SubmissionDAO mockSubmissionDao;
+	@Mock
+	private FileHandleAuthorizationManager mockFileHandleAuthorizationManager;
+	@Mock
+	private DocuSignClient mockDocuSignClient;
 	@Mock
 	private UserInfo mockUser;
 	@Mock
@@ -407,11 +417,12 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdate() {
-		
+
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
-		
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
@@ -497,6 +508,7 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
 		Request toUpdate = createNewRequest();
 		toUpdate.setDucFileHandleId("777");
@@ -558,5 +570,85 @@ public class RequestManagerImplTest {
 
 		// call under test — null emails should be allowed
 		manager.validateRequest(toValidate);
+	}
+
+	@Test
+	public void testCreateWithUnauthorizedDucFileHandle() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-duc"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toCreate = createNewRequest();
+		toCreate.setId(null);
+		toCreate.setDucFileHandleId("fh-duc");
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.createOrUpdate(mockUser, toCreate));
+
+		assertEquals("Not the owner", ex.getMessage());
+	}
+
+	@Test
+	public void testUpdateWithUnauthorizedIrbFileHandle() {
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(mockUser, "fh-irb"))
+				.thenReturn(AuthorizationStatus.accessDenied("Not the owner"));
+		Request toUpdate = createNewRequest();
+		toUpdate.setIrbFileHandleId("fh-irb");
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Not the owner", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithCompletedEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId("env-1");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.completed);
+		when(mockDocuSignClient.getEnvelopeStatus("env-1"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		// call under test — should not throw
+		manager.validateEnvelopeCompletion(request);
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithIncompleteEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId("env-1");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.sent);
+		when(mockDocuSignClient.getEnvelopeStatus("env-1"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.validateEnvelopeCompletion(request));
+
+		assertEquals("Cannot set ducFileHandleId: the eDUC envelope has not been completed.", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithNoDucFileHandle() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId(null);
+		request.setEDucSignatureEnvelopeId("env-1");
+
+		// call under test — should not throw, no ducFileHandleId means nothing to validate
+		manager.validateEnvelopeCompletion(request);
+	}
+
+	@Test
+	public void testValidateEnvelopeCompletionWithNoEnvelope() {
+		Request request = createNewRequest();
+		request.setDucFileHandleId("fh-duc");
+		request.setEDucSignatureEnvelopeId(null);
+
+		// call under test — should not throw, traditional (non-eDUC) flow
+		manager.validateEnvelopeCompletion(request);
 	}
 }

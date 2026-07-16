@@ -1,15 +1,8 @@
 package org.sagebionetworks.repo.manager.agent;
 
-import java.io.StringWriter;
-import java.time.Duration;
 import java.util.Date;
 import java.util.UUID;
 
-import org.apache.velocity.Template;
-import org.apache.velocity.VelocityContext;
-import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -28,45 +21,33 @@ import org.springframework.stereotype.Service;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 @Service
 public class CodeInterpreterTools {
 
-	static final String DOWNLOAD_TEMPLATE = "code-templates/code-interpreter-download.py.vtp";
-	static final String UPLOAD_TEMPLATE = "code-templates/code-interpreter-upload.py.vtp";
 	static final int MAX_RESPONSE_CHARS = 10_000;
 
 	private final FileHandleManager fileHandleManager;
 	private final S3Client s3Client;
-	private final S3Presigner s3Presigner;
 	private final AgentCoreCodeInterpreterClient codeInterpreterClient;
+	private final CodeInterpreterFileManager codeInterpreterFileManager;
 	private final FileHandleDao fileHandleDao;
 	private final IdGenerator idGenerator;
 	private final StorageLocationDAO storageLocationDAO;
-	private final String stagingBucket;
 	private final String synapseBucket;
-	private final VelocityEngine velocityEngine;
 
-	public CodeInterpreterTools(FileHandleManager fileHandleManager, S3Client s3Client, S3Presigner s3Presigner,
-			AgentCoreCodeInterpreterClient codeInterpreterClient, StackConfiguration stackConfig,
-			FileHandleDao fileHandleDao, IdGenerator idGenerator, StorageLocationDAO storageLocationDAO) {
+	public CodeInterpreterTools(FileHandleManager fileHandleManager, S3Client s3Client,
+			AgentCoreCodeInterpreterClient codeInterpreterClient, CodeInterpreterFileManager codeInterpreterFileManager,
+			StackConfiguration stackConfig, FileHandleDao fileHandleDao, IdGenerator idGenerator,
+			StorageLocationDAO storageLocationDAO) {
 		this.fileHandleManager = fileHandleManager;
 		this.s3Client = s3Client;
-		this.s3Presigner = s3Presigner;
 		this.codeInterpreterClient = codeInterpreterClient;
+		this.codeInterpreterFileManager = codeInterpreterFileManager;
 		this.fileHandleDao = fileHandleDao;
 		this.idGenerator = idGenerator;
 		this.storageLocationDAO = storageLocationDAO;
-		this.stagingBucket = stackConfig.getStack() + ".code-interpreter.staging.sagebase.org";
 		this.synapseBucket = stackConfig.getS3Bucket();
-		this.velocityEngine = new VelocityEngine();
-		this.velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		this.velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		this.velocityEngine.setProperty("runtime.references.strict", true);
 	}
 
 	@Tool(description = "Add a file to the current code interpreter session by its file handle ID. "
@@ -86,27 +67,10 @@ public class CodeInterpreterTools {
 			return "Error: File handle '" + fileHandleId + "' is not an S3-backed file";
 		}
 		S3FileHandle s3Handle = (S3FileHandle) fileHandle;
-
-		s3Client.copyObject(CopyObjectRequest.builder()
-				.sourceBucket(s3Handle.getBucketName())
-				.sourceKey(s3Handle.getKey())
-				.destinationBucket(stagingBucket)
-				.destinationKey(s3Handle.getKey())
-				.build());
-
-		String presignedUrl = s3Presigner.presignGetObject(GetObjectPresignRequest.builder()
-				.getObjectRequest(r -> r.bucket(stagingBucket).key(s3Handle.getKey()))
-				.signatureDuration(Duration.ofMinutes(15))
-				.build()).url().toString();
-
 		String fileName = s3Handle.getFileName();
 
-		VelocityContext context = new VelocityContext();
-		context.put("presignedUrl", presignedUrl);
-		context.put("fileName", fileName);
-		String downloadCode = renderTemplate(DOWNLOAD_TEMPLATE, context);
-
-		CodeExecutionResult result = codeInterpreterClient.executeCode(sessionId, "python", downloadCode);
+		CodeExecutionResult result = codeInterpreterFileManager.pushS3FileToSession(
+				sessionId, s3Handle.getBucketName(), s3Handle.getKey(), fileName);
 		if (result.isError()) {
 			return truncateOutput("Error downloading file to session: " + result.textOutput());
 		}
@@ -127,39 +91,16 @@ public class CodeInterpreterTools {
 
 		String userId = userInfo.getId().toString();
 		String fileName = filePath.contains("/") ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath;
-		String stagingKey = userId + "/" + UUID.randomUUID() + "/" + fileName;
 
-		PresignedPutObjectRequest presignedPut = s3Presigner.presignPutObject(PutObjectPresignRequest.builder()
-				.putObjectRequest(r -> r.bucket(stagingBucket).key(stagingKey).contentType(contentType))
-				.signatureDuration(Duration.ofMinutes(15))
-				.build());
-		String putUrl = presignedPut.url().toString();
-
-		VelocityContext context = new VelocityContext();
-		context.put("filePath", filePath);
-		context.put("presignedUrl", putUrl);
-		context.put("contentType", contentType);
-		String uploadCode = renderTemplate(UPLOAD_TEMPLATE, context);
-
-		CodeExecutionResult uploadResult = codeInterpreterClient.executeCode(sessionId, "python", uploadCode);
-		if (uploadResult.isError()) {
-			return truncateOutput("Error uploading file from session: " + uploadResult.textOutput());
-		}
-
-		String output = uploadResult.textOutput().trim();
-		String[] parts = output.split(":");
-		if (parts.length != 2) {
-			return "Error: Unexpected output from upload script: " + output;
-		}
-		String md5 = parts[0];
-		long contentSize = Long.parseLong(parts[1]);
+		CodeInterpreterFileManager.PullResult pullResult = codeInterpreterFileManager.pullFileFromSession(
+				sessionId, filePath, contentType, userId);
 
 		String synapseKey = MultipartUtils.createNewKey(userId, fileName,
 				storageLocationDAO.get(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID));
 
 		s3Client.copyObject(CopyObjectRequest.builder()
-				.sourceBucket(stagingBucket)
-				.sourceKey(stagingKey)
+				.sourceBucket(pullResult.bucket())
+				.sourceKey(pullResult.key())
 				.destinationBucket(synapseBucket)
 				.destinationKey(synapseKey)
 				.build());
@@ -168,9 +109,9 @@ public class CodeInterpreterTools {
 		handle.setStorageLocationId(StorageLocationDAO.DEFAULT_STORAGE_LOCATION_ID);
 		handle.setBucketName(synapseBucket);
 		handle.setKey(synapseKey);
-		handle.setContentMd5(md5);
+		handle.setContentMd5(pullResult.md5());
 		handle.setContentType(contentType);
-		handle.setContentSize(contentSize);
+		handle.setContentSize(pullResult.contentSize());
 		handle.setFileName(fileName);
 		handle.setCreatedBy(userId);
 		handle.setCreatedOn(new Date());
@@ -204,12 +145,5 @@ public class CodeInterpreterTools {
 			return output;
 		}
 		return output.substring(0, MAX_RESPONSE_CHARS) + "\n... [truncated at " + MAX_RESPONSE_CHARS + " chars]";
-	}
-
-	private String renderTemplate(String templateName, VelocityContext context) {
-		Template template = velocityEngine.getTemplate(templateName);
-		StringWriter writer = new StringWriter();
-		template.merge(context, writer);
-		return writer.toString();
 	}
 }

@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.agent.specialist.tablequery;
 
-import java.io.IOException;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.specialist.JSONEntityResultConverter;
 import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.TableDescription;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -19,7 +23,6 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressListener;
-import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.CodeExecutionResult;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -30,7 +33,6 @@ import org.springframework.stereotype.Service;
 public class TableQueryTools {
 
 	static final long MAX_QUERY_LIMIT = 100L;
-	static final long MAX_CSV_BYTES = 5 * 1024 * 1024;
 
 	private static final ProgressCallback NO_OP_PROGRESS = new ProgressCallback() {
 		@Override
@@ -47,13 +49,15 @@ public class TableQueryTools {
 
 	private final TableQueryManager tableQueryManager;
 	private final TableManagerSupport tableManagerSupport;
-	private final AgentCoreCodeInterpreterClient codeInterpreterClient;
+	private final EntityManager entityManager;
+	private final CodeInterpreterFileManager codeInterpreterFileManager;
 
 	public TableQueryTools(TableQueryManager tableQueryManager, TableManagerSupport tableManagerSupport,
-			AgentCoreCodeInterpreterClient codeInterpreterClient) {
+			EntityManager entityManager, CodeInterpreterFileManager codeInterpreterFileManager) {
 		this.tableQueryManager = tableQueryManager;
 		this.tableManagerSupport = tableManagerSupport;
-		this.codeInterpreterClient = codeInterpreterClient;
+		this.entityManager = entityManager;
+		this.codeInterpreterFileManager = codeInterpreterFileManager;
 	}
 
 	@Tool(description = "Get metadata about a Synapse table or view including its type and full column schema.",
@@ -67,12 +71,19 @@ public class TableQueryTools {
 		}
 		try {
 			IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
+			String entityId = "syn" + idAndVersion.getId();
+			Entity entity;
+			if (idAndVersion.getVersion().isPresent()) {
+				entity = entityManager.getEntityForVersion(userInfo, entityId, idAndVersion.getVersion().get(), Entity.class);
+			} else {
+				entity = entityManager.getEntity(userInfo, entityId);
+			}
 			TableType tableType = tableManagerSupport.getTableType(idAndVersion);
 			List<ColumnModel> columns = tableManagerSupport.getTableSchema(idAndVersion);
 
 			TableDescription description = new TableDescription()
-					.setTableId(idAndVersion.toString())
 					.setTableType(tableType.name())
+					.setEntity(entity)
 					.setColumnModels(columns);
 
 			return new ToolResponse<>(description);
@@ -130,46 +141,34 @@ public class TableQueryTools {
 		if (sessionId == null) {
 			return new ToolResponse<>("No code interpreter session ID available");
 		}
+		File tempFile = null;
 		try {
 			DownloadFromTableRequest request = new DownloadFromTableRequest();
 			request.setSql(sql);
 			request.setWriteHeader(true);
 			request.setIncludeRowIdAndRowVersion(false);
 
-			StringBuilder csvContent = new StringBuilder();
-			int[] rowCount = {0};
+			tempFile = File.createTempFile("query_", ".csv");
+			FileWriter fileWriter = new FileWriter(tempFile);
 
 			CSVWriterStream csvWriter = nextLine -> {
-				if (csvContent.length() > MAX_CSV_BYTES) {
-					throw new IOException("CSV content exceeds maximum size of 5MB");
-				}
 				for (int i = 0; i < nextLine.length; i++) {
 					if (i > 0) {
-						csvContent.append(",");
+						fileWriter.write(",");
 					}
-					csvContent.append(escapeCsvField(nextLine[i]));
+					fileWriter.write(escapeCsvField(nextLine[i]));
 				}
-				csvContent.append("\n");
-				rowCount[0]++;
+				fileWriter.write("\n");
 			};
 
 			tableQueryManager.runQueryDownloadAsCSV(NO_OP_PROGRESS, userInfo, request, csvWriter);
+			fileWriter.close();
 
-			String ensureDirScript = String.format(
-					"import os\nos.makedirs(os.path.dirname('%s'), exist_ok=True) if os.path.dirname('%s') else None",
-					filePath, filePath);
-			codeInterpreterClient.executeCode(sessionId, "python", ensureDirScript);
-
-			String writeScript = String.format(
-					"with open('%s', 'w', encoding='utf-8') as f:\n    f.write('''%s''')\nprint('done')",
-					filePath, escapePythonTripleQuote(csvContent.toString()));
-			CodeExecutionResult writeResult = codeInterpreterClient.executeCode(sessionId, "python", writeScript);
-
-			if (writeResult.isError()) {
-				return new ToolResponse<>("Error writing file to session: " + writeResult.textOutput());
+			CodeExecutionResult pushResult = codeInterpreterFileManager.pushLocalFileToSession(sessionId, tempFile, "text/csv", filePath);
+			if (pushResult.isError()) {
+				return new ToolResponse<>("Error writing file to session: " + pushResult.textOutput());
 			}
 
-			// Run a count query to include metadata about the written file
 			Query countQuery = new Query();
 			countQuery.setSql(sql);
 			countQuery.setLimit(1L);
@@ -183,13 +182,12 @@ public class TableQueryTools {
 
 			QueryResultBundle metadata = tableQueryManager.querySinglePage(NO_OP_PROGRESS, userInfo, countQuery, countOptions);
 			return new ToolResponse<>(metadata);
-		} catch (IOException e) {
-			if (e.getMessage() != null && e.getMessage().contains("exceeds maximum size")) {
-				return new ToolResponse<>("Query results exceed 5MB. Add a WHERE clause or LIMIT to reduce the result set.");
-			}
-			return new ToolResponse<>("Error writing query to session: " + e.getMessage());
 		} catch (Exception e) {
 			return new ToolResponse<>("Error writing query to session: " + e.getMessage());
+		} finally {
+			if (tempFile != null) {
+				tempFile.delete();
+			}
 		}
 	}
 
@@ -211,7 +209,4 @@ public class TableQueryTools {
 		return field;
 	}
 
-	static String escapePythonTripleQuote(String content) {
-		return content.replace("\\", "\\\\").replace("'''", "\\'\\'\\'");
-	}
 }

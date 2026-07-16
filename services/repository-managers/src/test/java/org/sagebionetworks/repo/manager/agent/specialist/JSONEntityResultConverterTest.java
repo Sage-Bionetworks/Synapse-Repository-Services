@@ -39,14 +39,12 @@ public class JSONEntityResultConverterTest {
 		col.setColumnType(ColumnType.INTEGER);
 
 		TableDescription description = new TableDescription()
-				.setTableId("syn123")
 				.setTableType("entityview")
 				.setColumnModels(List.of(col));
 
 		// call under test
 		String json = converter.convert(description, TableDescription.class);
 
-		assertTrue(json.contains("\"tableId\":\"syn123\""));
 		assertTrue(json.contains("\"tableType\":\"entityview\""));
 		assertTrue(json.contains("\"columnModels\""));
 		assertTrue(json.contains("\"name\":\"age\""));
@@ -56,7 +54,6 @@ public class JSONEntityResultConverterTest {
 	@Test
 	public void testConvertWithToolResponse() {
 		TableDescription description = new TableDescription()
-				.setTableId("syn456")
 				.setTableType("table");
 
 		ToolResponse<TableDescription> response = new ToolResponse<>(description);
@@ -65,7 +62,7 @@ public class JSONEntityResultConverterTest {
 		String json = converter.convert(response, ToolResponse.class);
 
 		assertTrue(json.contains("\"responseBody\""));
-		assertTrue(json.contains("\"tableId\":\"syn456\""));
+		assertTrue(json.contains("\"tableType\":\"table\""));
 	}
 
 	@Test

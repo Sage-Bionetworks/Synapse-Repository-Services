@@ -23,12 +23,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
+import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
@@ -48,7 +46,7 @@ public class ComputeTaskDispatcherImplTest {
 	private CurationTaskDao mockCurationTaskDao;
 
 	@Mock
-	private AuthorizationManager mockAuthorizationManager;
+	private CurationTaskManager mockCurationTaskManager;
 
 	@Mock
 	private ComputeTaskSubWorker<SampleSheetGenerationExecutionDetails> mockSubWorker;
@@ -70,7 +68,7 @@ public class ComputeTaskDispatcherImplTest {
 		userInfo.setGroups(new HashSet<>(Set.of(userId)));
 
 		when(mockSubWorker.getExecutionDetailsType()).thenReturn(SampleSheetGenerationExecutionDetails.class);
-		dispatcher = new ComputeTaskDispatcherImpl(mockCurationTaskDao, mockAuthorizationManager, List.of(mockSubWorker));
+		dispatcher = new ComputeTaskDispatcherImpl(mockCurationTaskDao, mockCurationTaskManager, List.of(mockSubWorker));
 	}
 
 	@Test
@@ -110,99 +108,14 @@ public class ComputeTaskDispatcherImplTest {
 		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(taskId);
 		CurationTask task = new CurationTask().setProjectId(projectId).setAssigneePrincipalId("999");
 		when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(task));
-		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationStatus.accessDenied("no access"));
+		Mockito.doThrow(new UnauthorizedException("no access"))
+				.when(mockCurationTaskManager).validateUpdateTaskStatus(userInfo, task);
 
 		// call under test
 		assertThrows(UnauthorizedException.class,
 				() -> dispatcher.dispatch(jobId, userInfo, request, mockCallback));
 
 		verify(mockCurationTaskDao, never()).updateTaskStatus(any(), any(), any());
-	}
-
-	@Test
-	public void testDispatchWithAssigneeIsUser() throws Exception {
-		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(taskId);
-		CurationTask task = new CurationTask().setProjectId(projectId)
-				.setAssigneePrincipalId(userId.toString());
-
-		SampleSheetGenerationExecutionDetails details = new SampleSheetGenerationExecutionDetails();
-		details.setInputFileViewId("syn456");
-		TaskStatus status = new TaskStatus().setState(TaskState.NOT_STARTED).setExecutionDetails(details).setEtag("etag1");
-		TaskStatus freshStatus = new TaskStatus().setState(TaskState.EXECUTING).setExecutionDetails(details).setEtag("etag2");
-
-		when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(task));
-		when(mockCurationTaskDao.getTaskStatus(taskId)).thenReturn(status, freshStatus);
-		when(mockCurationTaskDao.updateTaskStatus(eq(userId), eq(taskId), any())).thenReturn(status, freshStatus);
-
-		SampleSheetGenerationExecutionDetails resultDetails = new SampleSheetGenerationExecutionDetails();
-		resultDetails.setInputFileViewId("syn456");
-		resultDetails.setOutputRecordSetId("syn789");
-		when(mockSubWorker.execute(eq(userInfo), eq(task), any(), eq(mockCallback))).thenReturn(resultDetails);
-
-		// call under test
-		ComputeTaskExecutionResponse response = dispatcher.dispatch(jobId, userInfo, request, mockCallback);
-
-		assertEquals(taskId, response.getTaskId());
-		assertEquals(resultDetails, response.getExecutionDetails());
-
-		// Should not check project access since assignee matched
-		verify(mockAuthorizationManager, never()).canAccess(any(), any(), any(), any());
-	}
-
-	@Test
-	public void testDispatchWithAssigneeIsTeamMember() throws Exception {
-		Long teamId = 555L;
-		userInfo.setGroups(new HashSet<>(Set.of(userId, teamId)));
-
-		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(taskId);
-		CurationTask task = new CurationTask().setProjectId(projectId)
-				.setAssigneePrincipalId(teamId.toString());
-
-		SampleSheetGenerationExecutionDetails details = new SampleSheetGenerationExecutionDetails();
-		TaskStatus status = new TaskStatus().setState(TaskState.NOT_STARTED).setExecutionDetails(details).setEtag("etag1");
-		TaskStatus freshStatus = new TaskStatus().setState(TaskState.EXECUTING).setExecutionDetails(details).setEtag("etag2");
-
-		when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(task));
-		when(mockCurationTaskDao.getTaskStatus(taskId)).thenReturn(status, freshStatus);
-		when(mockCurationTaskDao.updateTaskStatus(eq(userId), eq(taskId), any())).thenReturn(status, freshStatus);
-
-		SampleSheetGenerationExecutionDetails resultDetails = new SampleSheetGenerationExecutionDetails();
-		when(mockSubWorker.execute(eq(userInfo), eq(task), any(), eq(mockCallback))).thenReturn(resultDetails);
-
-		// call under test
-		ComputeTaskExecutionResponse response = dispatcher.dispatch(jobId, userInfo, request, mockCallback);
-
-		assertEquals(taskId, response.getTaskId());
-
-		// Should not check project access since team membership matched
-		verify(mockAuthorizationManager, never()).canAccess(any(), any(), any(), any());
-	}
-
-	@Test
-	public void testDispatchWithProjectUpdateAccess() throws Exception {
-		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(taskId);
-		CurationTask task = new CurationTask().setProjectId(projectId)
-				.setAssigneePrincipalId("999");
-
-		SampleSheetGenerationExecutionDetails details = new SampleSheetGenerationExecutionDetails();
-		TaskStatus status = new TaskStatus().setState(TaskState.NOT_STARTED).setExecutionDetails(details).setEtag("etag1");
-		TaskStatus freshStatus = new TaskStatus().setState(TaskState.EXECUTING).setExecutionDetails(details).setEtag("etag2");
-
-		when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(task));
-		when(mockAuthorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE))
-				.thenReturn(AuthorizationStatus.authorized());
-		when(mockCurationTaskDao.getTaskStatus(taskId)).thenReturn(status, freshStatus);
-		when(mockCurationTaskDao.updateTaskStatus(eq(userId), eq(taskId), any())).thenReturn(status, freshStatus);
-
-		SampleSheetGenerationExecutionDetails resultDetails = new SampleSheetGenerationExecutionDetails();
-		when(mockSubWorker.execute(eq(userInfo), eq(task), any(), eq(mockCallback))).thenReturn(resultDetails);
-
-		// call under test
-		ComputeTaskExecutionResponse response = dispatcher.dispatch(jobId, userInfo, request, mockCallback);
-
-		assertEquals(taskId, response.getTaskId());
-		verify(mockAuthorizationManager).canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 	}
 
 	@ParameterizedTest
@@ -242,7 +155,7 @@ public class ComputeTaskDispatcherImplTest {
 
 	@Test
 	public void testDispatchWithNoSubWorkerRegistered() {
-		dispatcher = new ComputeTaskDispatcherImpl(mockCurationTaskDao, mockAuthorizationManager, Collections.emptyList());
+		dispatcher = new ComputeTaskDispatcherImpl(mockCurationTaskDao, mockCurationTaskManager, Collections.emptyList());
 
 		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(taskId);
 		CurationTask task = new CurationTask().setProjectId(projectId).setAssigneePrincipalId(userId.toString());

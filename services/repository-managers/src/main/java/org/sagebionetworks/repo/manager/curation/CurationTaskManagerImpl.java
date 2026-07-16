@@ -165,14 +165,9 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
     }
 
 	@Override
-    @WriteTransaction
-    public TaskStatus updateTaskStatus(UserInfo userInfo, Long taskId, TaskStatus statusUpdate) {
-        ValidateArgument.required(statusUpdate, "statusUpdate");
-        ValidateArgument.required(statusUpdate.getState(), "state");
-        ValidateArgument.required(statusUpdate.getEtag(), "etag");
-
-        CurationTask task = curationTaskDao.getCurationTask(taskId)
-                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+    public void validateUpdateTaskStatus(UserInfo userInfo, CurationTask task) {
+        ValidateArgument.required(userInfo, "userInfo");
+        ValidateArgument.required(task, "task");
 
         boolean hasUpdateAccess = authorizationManager
                 .canAccess(userInfo, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
@@ -184,6 +179,19 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         if (!hasUpdateAccess && !isAssignee) {
             throw new UnauthorizedException("You must have UPDATE access on the project or be an assignee of the task.");
         }
+    }
+
+	@Override
+    @WriteTransaction
+    public TaskStatus updateTaskStatus(UserInfo userInfo, Long taskId, TaskStatus statusUpdate) {
+        ValidateArgument.required(statusUpdate, "statusUpdate");
+        ValidateArgument.required(statusUpdate.getState(), "state");
+        ValidateArgument.required(statusUpdate.getEtag(), "etag");
+
+        CurationTask task = curationTaskDao.getCurationTask(taskId)
+                .orElseThrow(() -> new NotFoundException("Task not found: " + taskId));
+
+        validateUpdateTaskStatus(userInfo, task);
 
         return curationTaskDao.updateTaskStatus(userInfo.getId(), taskId, statusUpdate);
     }
