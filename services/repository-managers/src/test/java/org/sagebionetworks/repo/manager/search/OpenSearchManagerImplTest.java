@@ -141,6 +141,7 @@ public class OpenSearchManagerImplTest {
 	private long originalBulkInitialBackoffMs;
 	private long originalProbeInitialBackoffMs;
 	private long originalSentinelCleanupInitialBackoffMs;
+	private long originalCreateIndexInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -152,6 +153,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.INDEX_WRITABLE_INITIAL_BACKOFF_MS = 1L;
 		originalSentinelCleanupInitialBackoffMs = OpenSearchManagerImpl.SENTINEL_CLEANUP_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.SENTINEL_CLEANUP_INITIAL_BACKOFF_MS = 1L;
+		originalCreateIndexInitialBackoffMs = OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -159,6 +162,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.BULK_INDEX_INITIAL_BACKOFF_MS = originalBulkInitialBackoffMs;
 		OpenSearchManagerImpl.INDEX_WRITABLE_INITIAL_BACKOFF_MS = originalProbeInitialBackoffMs;
 		OpenSearchManagerImpl.SENTINEL_CLEANUP_INITIAL_BACKOFF_MS = originalSentinelCleanupInitialBackoffMs;
+		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 	}
 
 	/**
@@ -1016,6 +1020,23 @@ public class OpenSearchManagerImplTest {
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
+	}
+
+	@Test
+	public void testCreateIndexWithTransientIOExceptionRetriesThenSucceeds() throws IOException {
+		String indexName = "search-index-syn1";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
+				.thenThrow(new IOException("read timed out"))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(
+						r -> r.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+
+		assertTrue(result.isPresent());
+		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
 	}
 
 	@Test
