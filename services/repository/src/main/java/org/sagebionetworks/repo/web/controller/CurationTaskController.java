@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.service.CurationTaskService;
@@ -135,6 +136,47 @@ public class CurationTaskController {
             @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
             @PathVariable Long taskId) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException {
         service.deleteCurationTask(userId, taskId);
+    }
+
+    /**
+     * Atomically create a CurationTask together with its initial TaskStatus in a single call. All task
+     * and status fields are validated before anything is persisted, so an invalid field (e.g. a
+     * malformed due date) rejects the whole request and no partial task is created. The caller must
+     * have CREATE access on the task's project.
+     *
+     * @param userId
+     * @param taskBundle the task and status to create
+     * @return the created task and status
+     */
+    @RequiredScope({view, modify})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_BUNDLE, method = RequestMethod.POST)
+    public @ResponseBody
+    TaskBundle createTaskBundle(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @RequestBody TaskBundle taskBundle) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
+        return service.createTaskBundle(userId, taskBundle);
+    }
+
+    /**
+     * Atomically update a CurationTask together with its TaskStatus in a single call, guarded by a
+     * single etag. All task and status fields are validated before anything is persisted. The caller
+     * must have UPDATE access on the task's project.
+     *
+     * @param userId
+     * @param taskId the ID of the CurationTask to update
+     * @param taskBundle the task and status to update
+     * @return the updated task and status
+     */
+    @RequiredScope({view, modify})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_ID_BUNDLE, method = RequestMethod.PUT)
+    public @ResponseBody
+    TaskBundle updateTaskBundle(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @PathVariable Long taskId,
+            @RequestBody TaskBundle taskBundle) throws DatastoreException, UnauthorizedException, NotFoundException, InvalidModelException, IOException {
+        return service.updateTaskBundle(userId, taskId, taskBundle);
     }
 
 

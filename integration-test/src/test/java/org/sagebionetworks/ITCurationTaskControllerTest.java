@@ -236,6 +236,49 @@ public class ITCurationTaskControllerTest {
     }
 
     @Test
+    public void testCreateAndUpdateTaskBundle() throws SynapseException {
+        CurationTask task = new CurationTask()
+                .setProjectId(project.getId())
+                .setDataType("fastq: file-based")
+                .setInstructions("upload files")
+                .setTaskProperties(
+                        new FileBasedMetadataTaskProperties()
+                                .setFileViewId(view.getId())
+                                .setUploadFolderId(folder.getId())
+                );
+
+        Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+        TaskBundle toCreate = new TaskBundle()
+                .setTask(task)
+                .setStatus(new TaskStatus().setState(TaskState.IN_PROGRESS).setDueDate(dueDate));
+
+        // call under test - create bundle
+        TaskBundle created = synapse.createTaskBundle(toCreate);
+
+        try {
+            assertNotNull(created.getTask().getTaskId());
+            assertEquals(TaskState.IN_PROGRESS, created.getStatus().getState());
+            assertEquals(dueDate, created.getStatus().getDueDate());
+            assertNotNull(created.getStatus().getLastUpdatedBy());
+            assertEquals(created.getTask().getEtag(), created.getStatus().getEtag());
+
+            // call under test - update bundle
+            TaskBundle toUpdate = new TaskBundle()
+                    .setTask(created.getTask().setInstructions("updated instructions"))
+                    .setStatus(created.getStatus().setState(TaskState.COMPLETED));
+
+            TaskBundle updated = synapse.updateTaskBundle(created.getTask().getTaskId(), toUpdate);
+
+            assertEquals("updated instructions", updated.getTask().getInstructions());
+            assertEquals(TaskState.COMPLETED, updated.getStatus().getState());
+            assertNotEquals(created.getTask().getEtag(), updated.getTask().getEtag());
+            assertEquals(updated.getTask().getEtag(), updated.getStatus().getEtag());
+        } finally {
+            synapse.deleteMetadataTask(created.getTask().getTaskId());
+        }
+    }
+
+    @Test
     public void testListCurationTasksWithFilters() throws SynapseException {
         CurationTask fbTask = new CurationTask()
                 .setProjectId(project.getId())

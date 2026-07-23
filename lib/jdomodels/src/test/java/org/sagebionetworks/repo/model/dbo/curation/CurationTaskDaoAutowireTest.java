@@ -781,6 +781,195 @@ class CurationTaskDaoAutowireTest {
         dao.deleteCurationTask(created2.getTaskId());
     }
 
+    @Test
+    public void testCreateTaskBundle() {
+        Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+        TaskBundle toCreate = new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setInstructions("these are the instructions")
+                        .setAssigneePrincipalId(userId.toString())
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus()
+                        .setState(TaskState.IN_PROGRESS)
+                        .setDueDate(dueDate));
+
+        // call under test
+        TaskBundle created = dao.createTaskBundle(userId, toCreate);
+
+        assertNotNull(created.getTask().getTaskId());
+        assertEquals(project1.getId(), created.getTask().getProjectId());
+        assertEquals("fastq", created.getTask().getDataType());
+        assertEquals(userId.toString(), created.getTask().getCreatedBy());
+        assertNotNull(created.getTask().getEtag());
+        // status written from the bundle and stamped by the creator
+        assertEquals(TaskState.IN_PROGRESS, created.getStatus().getState());
+        assertEquals(dueDate, created.getStatus().getDueDate());
+        assertEquals(userId.toString(), created.getStatus().getLastUpdatedBy());
+        assertNotNull(created.getStatus().getLastUpdatedOn());
+        // task and status share one etag
+        assertEquals(created.getTask().getEtag(), created.getStatus().getEtag());
+
+        // verify it round-trips from the database rather than just echoing the input
+        assertEquals(created.getTask(), dao.getCurationTask(created.getTask().getTaskId()).get());
+        assertEquals(created.getStatus(), dao.getTaskStatus(created.getTask().getTaskId()));
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testCreateTaskBundleIgnoresExecutionDetails() {
+        TaskBundle toCreate = new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus()
+                        .setState(TaskState.IN_PROGRESS)
+                        .setExecutionDetails(new GridExecutionDetails().setActiveSessionId("session-should-be-ignored")));
+
+        // call under test
+        TaskBundle created = dao.createTaskBundle(userId, toCreate);
+
+        // executionDetails supplied on input must not be persisted (machine-owned)
+        assertNull(created.getStatus().getExecutionDetails());
+        assertNull(dao.getTaskStatus(created.getTask().getTaskId()).getExecutionDetails());
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testCreateTaskBundleDuplicateDataType() {
+        TaskBundle first = new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus().setState(TaskState.NOT_STARTED));
+
+        TaskBundle duplicate = new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)))
+                .setStatus(new TaskStatus().setState(TaskState.NOT_STARTED));
+
+        TaskBundle created = dao.createTaskBundle(userId, first);
+
+        // call under test
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> dao.createTaskBundle(userId, duplicate));
+        assertTrue(e.getMessage().contains("A curation task with the specified data type already exists in this project."));
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskBundle() {
+        TaskBundle created = dao.createTaskBundle(userId, new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setInstructions("original instructions")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus().setState(TaskState.NOT_STARTED)));
+
+        Date dueDate = new Date(Instant.now().plus(5, ChronoUnit.DAYS).toEpochMilli());
+        TaskBundle toUpdate = new TaskBundle()
+                .setTask(created.getTask()
+                        .setInstructions("updated instructions")
+                        .setAssigneePrincipalId(modifiedByUserId.toString()))
+                .setStatus(created.getStatus()
+                        .setState(TaskState.IN_PROGRESS)
+                        .setDueDate(dueDate));
+
+        // call under test
+        TaskBundle updated = dao.updateTaskBundle(modifiedByUserId, toUpdate);
+
+        // both task and status data changed, not just the etag
+        assertEquals("updated instructions", updated.getTask().getInstructions());
+        assertEquals(modifiedByUserId.toString(), updated.getTask().getAssigneePrincipalId());
+        assertEquals(modifiedByUserId.toString(), updated.getTask().getModifiedBy());
+        assertEquals(TaskState.IN_PROGRESS, updated.getStatus().getState());
+        assertEquals(dueDate, updated.getStatus().getDueDate());
+        assertEquals(modifiedByUserId.toString(), updated.getStatus().getLastUpdatedBy());
+        assertNotEquals(created.getTask().getEtag(), updated.getTask().getEtag());
+        assertEquals(updated.getTask().getEtag(), updated.getStatus().getEtag());
+
+        // verify round-trip
+        assertEquals(updated.getTask(), dao.getCurationTask(created.getTask().getTaskId()).get());
+        assertEquals(updated.getStatus(), dao.getTaskStatus(created.getTask().getTaskId()));
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskBundlePreservesExecutionDetails() {
+        TaskBundle created = dao.createTaskBundle(userId, new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus().setState(TaskState.NOT_STARTED)));
+
+        // Simulate the compute pipeline writing machine-owned execution details.
+        TaskStatus withExecution = dao.updateTaskStatus(userId, created.getTask().getTaskId(),
+                new TaskStatus().setState(TaskState.EXECUTING).setEtag(created.getTask().getEtag())
+                        .setExecutionDetails(new GridExecutionDetails().setActiveSessionId("live-session")));
+        assertNotNull(withExecution.getExecutionDetails());
+
+        // A user-driven bundle update supplies a bogus executionDetails and changes other fields.
+        TaskBundle toUpdate = new TaskBundle()
+                .setTask(dao.getCurationTask(created.getTask().getTaskId()).get().setInstructions("edited"))
+                .setStatus(withExecution
+                        .setState(TaskState.IN_REVIEW)
+                        .setExecutionDetails(new GridExecutionDetails().setActiveSessionId("client-supplied-should-be-ignored")));
+
+        // call under test
+        TaskBundle updated = dao.updateTaskBundle(userId, toUpdate);
+
+        // The existing machine-owned execution details survive; the client value is ignored.
+        assertNotNull(updated.getStatus().getExecutionDetails());
+        assertTrue(updated.getStatus().getExecutionDetails() instanceof GridExecutionDetails);
+        assertEquals("live-session",
+                ((GridExecutionDetails) updated.getStatus().getExecutionDetails()).getActiveSessionId());
+        // Other fields still updated.
+        assertEquals("edited", updated.getTask().getInstructions());
+        assertEquals(TaskState.IN_REVIEW, updated.getStatus().getState());
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskBundleConflicting() {
+        TaskBundle created = dao.createTaskBundle(userId, new TaskBundle()
+                .setTask(new CurationTask()
+                        .setProjectId(project1.getId())
+                        .setDataType("fastq")
+                        .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)))
+                .setStatus(new TaskStatus().setState(TaskState.NOT_STARTED)));
+
+        TaskBundle toUpdate = new TaskBundle()
+                .setTask(created.getTask().setEtag(created.getTask().getEtag() + "xxx"))
+                .setStatus(created.getStatus());
+
+        // call under test
+        assertThrows(ConflictingUpdateException.class, () -> dao.updateTaskBundle(userId, toUpdate));
+
+        dao.deleteCurationTask(created.getTask().getTaskId());
+    }
+
+    @Test
+    public void testUpdateTaskBundleNotFound() {
+        TaskBundle toUpdate = new TaskBundle()
+                .setTask(new CurationTask().setTaskId(9999999L).setEtag("0"))
+                .setStatus(new TaskStatus().setState(TaskState.IN_PROGRESS));
+
+        // call under test
+        assertThrows(NotFoundException.class, () -> dao.updateTaskBundle(userId, toUpdate));
+    }
+
     private CurationTaskProperties createTaskProperties(CurationTaskPropertiesType taskType) {
         switch (taskType) {
             case FILE_BASED:

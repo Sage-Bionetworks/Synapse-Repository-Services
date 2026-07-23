@@ -118,6 +118,7 @@ import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dataaccess.AccessApprovalNotificationRequest;
@@ -4757,6 +4758,10 @@ public interface SynapseClient extends BaseClient {
     TaskStatus getTaskStatus(Long taskId) throws SynapseException;
 
     TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException;
+
+    TaskBundle createTaskBundle(TaskBundle request) throws SynapseException;
+
+    TaskBundle updateTaskBundle(Long taskId, TaskBundle request) throws SynapseException;
 
     String startComputeTaskExecution(Long taskId) throws SynapseException;
 

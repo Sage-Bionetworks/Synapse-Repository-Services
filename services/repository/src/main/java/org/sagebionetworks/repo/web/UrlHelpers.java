@@ -1322,6 +1322,8 @@ public class UrlHelpers {
     // Endpoint for curation tasks
     public static final String CURATION_TASK = "/curation/task";
     public static final String CURATION_TASK_ID = CURATION_TASK + "/{taskId}";
+    public static final String CURATION_TASK_BUNDLE = CURATION_TASK + "/bundle";
+    public static final String CURATION_TASK_ID_BUNDLE = CURATION_TASK_ID + "/bundle";
     public static final String CURATION_TASK_LIST = CURATION_TASK + LIST;
     public static final String CURATION_TASK_STATUS = CURATION_TASK_ID + "/status";
     public static final String CURATION_TASK_EXECUTE = CURATION_TASK_ID + "/execute";

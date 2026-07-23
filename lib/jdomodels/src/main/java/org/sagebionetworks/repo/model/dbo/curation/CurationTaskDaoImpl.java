@@ -143,6 +143,111 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
 
     @Override
     @WriteTransaction
+    public TaskBundle createTaskBundle(Long userId, TaskBundle toCreate) {
+        String sql = "INSERT INTO " + TABLE_CURATION_TASK + " ("
+                + COL_CURATION_TASK_ID + ", "
+                + COL_CURATION_TASK_CREATED_BY + ", "
+                + COL_CURATION_TASK_MODIFIED_BY + ", "
+                + COL_CURATION_TASK_DATA_TYPE + ", "
+                + COL_CURATION_TASK_PROJECT_ID + ", "
+                + COL_CURATION_TASK_INSTRUCTIONS + ", "
+                + COL_CURATION_TASK_TASK_PROPERTIES + ", "
+                + COL_CURATION_TASK_ASSIGNEE + ", "
+                + COL_CURATION_TASK_STATE + ", "
+                + COL_CURATION_TASK_DUE_DATE + ", "
+                + COL_CURATION_TASK_STATE_UPDATED_BY + ", "
+                + COL_CURATION_TASK_STATE_UPDATED_ON + ", "
+                + COL_CURATION_TASK_CREATED_ON + ", "
+                + COL_CURATION_TASK_MODIFIED_ON + ", "
+                + COL_CURATION_TASK_ETAG
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(), NOW(), UUID())";
+
+        Long id = idGenerator.generateNewId(IdType.CURATION_TASK_ID);
+
+        DBOCurationTask dbo = mapToDbo(toCreate.getTask());
+        TaskStatus status = toCreate.getStatus();
+
+        Timestamp dueDate = status.getDueDate() != null ? new Timestamp(status.getDueDate().getTime()) : null;
+
+        try {
+            jdbcTemplate.update(sql,
+                    id,
+                    userId,
+                    userId,
+                    dbo.getDataType(),
+                    dbo.getProjectId(),
+                    dbo.getInstructions(),
+                    dbo.getTaskPropertiesJson(),
+                    dbo.getAssigneeId(),
+                    status.getState().name(),
+                    dueDate,
+                    userId
+            );
+        } catch (DuplicateKeyException e) {
+            handleUniquenessConstraintViolation(e);
+        }
+
+        return getTaskBundle(id);
+    }
+
+    @Override
+    @WriteTransaction
+    public TaskBundle updateTaskBundle(Long userId, TaskBundle toUpdate) {
+        Long taskId = toUpdate.getTask().getTaskId();
+        String currentEtag = getEtagForCurationTaskForUpdate(taskId);
+
+        if (!currentEtag.equals(toUpdate.getTask().getEtag())) {
+            throw new ConflictingUpdateException("The curation task was updated since you last fetched it, please fetch it again and reapply your changes.");
+        }
+
+        DBOCurationTask dbo = mapToDbo(toUpdate.getTask());
+        TaskStatus status = toUpdate.getStatus();
+
+        Timestamp dueDate = status.getDueDate() != null ? new Timestamp(status.getDueDate().getTime()) : null;
+
+        // EXECUTION_DETAILS is deliberately omitted: it is machine-owned (written by the compute
+        // pipeline) and must be preserved across a user-driven bundle update, not overwritten.
+        String sql = "UPDATE " + TABLE_CURATION_TASK + " SET "
+                + COL_CURATION_TASK_ETAG + " = UUID(), "
+                + COL_CURATION_TASK_MODIFIED_BY + " = ?, "
+                + COL_CURATION_TASK_MODIFIED_ON + " = ?, "
+                + COL_CURATION_TASK_DATA_TYPE + " = ?, "
+                + COL_CURATION_TASK_INSTRUCTIONS + " = ?, "
+                + COL_CURATION_TASK_TASK_PROPERTIES + " = ?, "
+                + COL_CURATION_TASK_ASSIGNEE + " = ?, "
+                + COL_CURATION_TASK_STATE + " = ?, "
+                + COL_CURATION_TASK_DUE_DATE + " = ?, "
+                + COL_CURATION_TASK_STATE_UPDATED_BY + " = ?, "
+                + COL_CURATION_TASK_STATE_UPDATED_ON + " = NOW(3) "
+                + "WHERE " + COL_CURATION_TASK_ID + " = ? ";
+
+        try {
+            jdbcTemplate.update(sql,
+                    userId,
+                    Timestamp.from(Instant.now()),
+                    dbo.getDataType(),
+                    dbo.getInstructions(),
+                    dbo.getTaskPropertiesJson(),
+                    dbo.getAssigneeId(),
+                    status.getState().name(),
+                    dueDate,
+                    userId,
+                    taskId);
+        } catch (DuplicateKeyException e) {
+            handleUniquenessConstraintViolation(e);
+        }
+
+        return getTaskBundle(taskId);
+    }
+
+    private TaskBundle getTaskBundle(Long taskId) {
+        return new TaskBundle()
+                .setTask(getCurationTask(taskId).orElseThrow(() -> new IllegalStateException("The curation task bundle was not persisted.")))
+                .setStatus(getTaskStatus(taskId));
+    }
+
+    @Override
+    @WriteTransaction
     public CurationTask updateCurationTask(Long userId, CurationTask toUpdate) {
         String currentEtag = getEtagForCurationTaskForUpdate(toUpdate.getTaskId());
 

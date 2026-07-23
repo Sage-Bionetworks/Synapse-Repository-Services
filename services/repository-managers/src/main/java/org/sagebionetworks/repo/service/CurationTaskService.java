@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.service;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -22,4 +23,8 @@ public interface CurationTaskService {
     TaskStatus getTaskStatus(Long userId, Long taskId);
 
     TaskStatus updateTaskStatus(Long userId, Long taskId, TaskStatus statusUpdate);
+
+    TaskBundle createTaskBundle(Long userId, TaskBundle toCreate);
+
+    TaskBundle updateTaskBundle(Long userId, Long taskId, TaskBundle toUpdate) throws NotFoundException;
 }

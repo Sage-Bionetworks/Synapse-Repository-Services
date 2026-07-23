@@ -14,6 +14,28 @@ public interface CurationTaskDao {
 
     CurationTask updateCurationTask(Long userId, CurationTask toUpdate);
 
+    /**
+     * Atomically creates a curation task and its initial status in a single row. The status columns
+     * (state, dueDate) are written from the bundle's status; the creator stamps the status audit
+     * fields. Any executionDetails supplied on the status are ignored (machine-owned).
+     *
+     * @param userId the principal creating the task
+     * @param toCreate the task and status to create; both are written to the same new row
+     * @return the created task and status
+     */
+    TaskBundle createTaskBundle(Long userId, TaskBundle toCreate);
+
+    /**
+     * Atomically updates a curation task and its status in a single row, guarded by a single etag.
+     * The etag is read from the bundle's task; any executionDetails supplied on the status are
+     * ignored (machine-owned).
+     *
+     * @param userId the principal updating the task
+     * @param toUpdate the task and status to update; both are written to the same existing row
+     * @return the updated task and status
+     */
+    TaskBundle updateTaskBundle(Long userId, TaskBundle toUpdate);
+
     Optional<CurationTask> getCurationTask(Long taskId);
 
     void deleteCurationTask(Long taskId);

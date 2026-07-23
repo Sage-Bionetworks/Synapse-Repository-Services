@@ -671,6 +671,189 @@ public class CurationTaskManagerImplUnitTest {
     }
 
     @Test
+    public void testCreateTaskBundleWithSuccess() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED);
+        TaskStatus status = new TaskStatus().setState(TaskState.IN_PROGRESS);
+        TaskBundle toCreate = new TaskBundle().setTask(task).setStatus(status);
+        TaskBundle createdByDao = new TaskBundle().setTask(new CurationTask().setTaskId(999L)).setStatus(status);
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(mockAuthorizationStatus);
+        when(mockCurationTaskDao.createTaskBundle(eq(userId), eq(toCreate))).thenReturn(createdByDao);
+
+        // call under test
+        TaskBundle result = curationTaskManager.createTaskBundle(userInfo, toCreate);
+
+        assertSame(createdByDao, result);
+    }
+
+    @Test
+    public void testCreateTaskBundleDefaultsStateWhenNull() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED);
+        // No state supplied on create — it should default to NOT_STARTED.
+        TaskStatus status = new TaskStatus();
+        TaskBundle toCreate = new TaskBundle().setTask(task).setStatus(status);
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(mockAuthorizationStatus);
+        when(mockCurationTaskDao.createTaskBundle(eq(userId), eq(toCreate))).thenReturn(toCreate);
+
+        // call under test
+        curationTaskManager.createTaskBundle(userInfo, toCreate);
+
+        assertEquals(TaskState.NOT_STARTED, toCreate.getStatus().getState());
+    }
+
+    @Test
+    public void testCreateTaskBundleIgnoresExecutionDetails() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED);
+        TaskStatus status = new TaskStatus().setState(TaskState.IN_PROGRESS)
+                .setExecutionDetails(new org.sagebionetworks.repo.model.curation.execution.GridExecutionDetails().setActiveSessionId("s1"));
+        TaskBundle toCreate = new TaskBundle().setTask(task).setStatus(status);
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(mockAuthorizationStatus);
+        when(mockCurationTaskDao.createTaskBundle(eq(userId), eq(toCreate))).thenReturn(toCreate);
+
+        // call under test
+        curationTaskManager.createTaskBundle(userInfo, toCreate);
+
+        // machine-owned field must be cleared before persistence
+        assertEquals(null, toCreate.getStatus().getExecutionDetails());
+    }
+
+    @Test
+    public void testCreateTaskBundleFailsValidationBeforeWrite() {
+        // An invalid task field (missing dataType) must reject the whole request before any row is written.
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setDataType(null);
+        TaskBundle toCreate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(TaskState.NOT_STARTED));
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.createTaskBundle(userInfo, toCreate));
+        assertTrue(ex.getMessage().contains("dataType"));
+
+        // nothing persisted — this is the atomicity guarantee
+        verify(mockCurationTaskDao, never()).createTaskBundle(any(), any());
+    }
+
+    @Test
+    public void testCreateTaskBundleUnauthorized() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED);
+        TaskBundle toCreate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(TaskState.NOT_STARTED));
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE)))
+                .thenReturn(AuthorizationStatus.accessDenied("no create access"));
+
+        // call under test
+        assertThrows(UnauthorizedException.class, () -> curationTaskManager.createTaskBundle(userInfo, toCreate));
+
+        verify(mockCurationTaskDao, never()).createTaskBundle(any(), any());
+    }
+
+    @Test
+    public void testUpdateTaskBundleWithSuccess() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId).setEtag("etag-1");
+        TaskStatus status = new TaskStatus().setState(TaskState.IN_PROGRESS);
+        TaskBundle toUpdate = new TaskBundle().setTask(task).setStatus(status);
+        CurationTask existing = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId);
+        TaskBundle updatedByDao = new TaskBundle().setTask(task).setStatus(status);
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(mockAuthorizationStatus);
+        when(mockCurationTaskDao.updateTaskBundle(eq(userId), eq(toUpdate))).thenReturn(updatedByDao);
+        doReturn(false).when(curationTaskManager).hasAuthorizationModeChanged(any(), any());
+
+        // call under test
+        TaskBundle result = curationTaskManager.updateTaskBundle(userInfo, toUpdate);
+
+        assertSame(updatedByDao, result);
+    }
+
+    @Test
+    public void testUpdateTaskBundleRequiresState() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId).setEtag("etag-1");
+        // state is required on update
+        TaskBundle toUpdate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(null));
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.updateTaskBundle(userInfo, toUpdate));
+        assertTrue(ex.getMessage().contains("state"));
+
+        verify(mockCurationTaskDao, never()).updateTaskBundle(any(), any());
+    }
+
+    @Test
+    public void testUpdateTaskBundleFailsWithMissingTaskId() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(null);
+        TaskBundle toUpdate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(TaskState.IN_PROGRESS));
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.updateTaskBundle(userInfo, toUpdate));
+        assertTrue(ex.getMessage().contains("taskId"));
+
+        verify(mockCurationTaskDao, never()).updateTaskBundle(any(), any());
+    }
+
+    @Test
+    public void testUpdateTaskBundleFailsWithProjectIdChange() {
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId).setProjectId("syn77777");
+        TaskBundle toUpdate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(TaskState.IN_PROGRESS));
+        CurationTask existing = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId).setProjectId("syn88888");
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq("syn88888"), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.updateTaskBundle(userInfo, toUpdate));
+        assertTrue(ex.getMessage().contains("The project for a MetadataTask cannot be changed"));
+
+        verify(mockCurationTaskDao, never()).updateTaskBundle(any(), any());
+    }
+
+    @Test
+    public void testUpdateTaskBundleUnauthorizedUsesStrictGate() {
+        // An assignee-only caller (no UPDATE access on the project) must be rejected by the strict gate,
+        // unlike the status-only endpoint which allows assignees.
+        CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId)
+                .setAssigneePrincipalId(userId.toString());
+        TaskBundle toUpdate = new TaskBundle().setTask(task).setStatus(new TaskStatus().setState(TaskState.IN_PROGRESS));
+        CurationTask existing = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskId(taskId)
+                .setAssigneePrincipalId(userId.toString());
+
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.getCurationTask(taskId)).thenReturn(Optional.of(existing));
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(mockAuthorizationStatus);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+                .thenReturn(AuthorizationStatus.accessDenied("no update access"));
+
+        // call under test
+        assertThrows(UnauthorizedException.class, () -> curationTaskManager.updateTaskBundle(userInfo, toUpdate));
+
+        verify(mockCurationTaskDao, never()).updateTaskBundle(any(), any());
+    }
+
+    @Test
     public void testCreateCurationTaskFailsWithMissingProjectId() {
         CurationTask task = createCurationTask().setProjectId(null);
 

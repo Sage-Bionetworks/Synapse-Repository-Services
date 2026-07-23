@@ -6,8 +6,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
+import org.sagebionetworks.repo.model.curation.TaskBundle;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -66,5 +68,25 @@ public class CurationTaskServiceImpl implements CurationTaskService {
     public TaskStatus updateTaskStatus(Long userId, Long taskId, TaskStatus statusUpdate) {
         UserInfo userInfo = userManager.getUserInfo(userId);
         return curationTaskManager.updateTaskStatus(userInfo, taskId, statusUpdate);
+    }
+
+    @Override
+    public TaskBundle createTaskBundle(Long userId, TaskBundle toCreate) {
+        UserInfo userInfo = userManager.getUserInfo(userId);
+        return curationTaskManager.createTaskBundle(userInfo, toCreate);
+    }
+
+    @Override
+    public TaskBundle updateTaskBundle(Long userId, Long taskId, TaskBundle toUpdate) throws NotFoundException {
+        ValidateArgument.required(toUpdate, "taskBundle");
+        ValidateArgument.required(toUpdate.getTask(), "task");
+        // The URL taskId is authoritative; reject a body that disagrees rather than silently trusting one.
+        if (toUpdate.getTask().getTaskId() != null && !toUpdate.getTask().getTaskId().equals(taskId)) {
+            throw new IllegalArgumentException("The taskId in the URL does not match the taskId in the request body.");
+        }
+        toUpdate.getTask().setTaskId(taskId);
+
+        UserInfo userInfo = userManager.getUserInfo(userId);
+        return curationTaskManager.updateTaskBundle(userInfo, toUpdate);
     }
 }

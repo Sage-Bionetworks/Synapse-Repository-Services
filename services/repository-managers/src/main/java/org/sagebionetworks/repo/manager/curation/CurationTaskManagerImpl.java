@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
 import org.sagebionetworks.repo.model.curation.TaskBundle;
+import org.sagebionetworks.repo.model.curation.TaskState;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
 import org.sagebionetworks.repo.model.curation.execution.RecordSetGenerationExecutionProperties;
 import org.sagebionetworks.repo.model.curation.execution.SampleSheetGenerationExecutionProperties;
@@ -80,18 +81,7 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
 
         CurationTask existing = getCurationTask(userInfo, toUpdate.getTaskId());
 
-        if (!existing.getProjectId().equals(toUpdate.getProjectId())) {
-            throw new IllegalArgumentException("The project for a MetadataTask cannot be changed.");
-        }
-
-        authorizationManager.canAccess(userInfo, existing.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).checkAuthorizationOrElseThrow();
-
-        AuthorizationMode oldMode = getSuggestedAuthorizationMode(existing.getTaskProperties());
-        AuthorizationMode newMode = getSuggestedAuthorizationMode(toUpdate.getTaskProperties());
-
-        if (hasAuthorizationModeChanged(oldMode, newMode)) {
-            curationTaskDao.clearActiveSessionId(toUpdate.getTaskId());
-        }
+        authorizeAndPrepareTaskUpdate(userInfo, existing, toUpdate);
 
         return curationTaskDao.updateCurationTask(userInfo.getId(), toUpdate);
     }
@@ -198,6 +188,50 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         return curationTaskDao.updateTaskStatus(userInfo.getId(), taskId, statusUpdate);
     }
 
+    @Override
+    @WriteTransaction
+    public TaskBundle createTaskBundle(UserInfo userInfo, TaskBundle toCreate) {
+        ValidateArgument.required(toCreate, "taskBundle");
+        ValidateArgument.required(toCreate.getStatus(), "status");
+        CurationTask task = toCreate.getTask();
+
+        validateCurationTask(userInfo, task);
+
+        // On create the lifecycle state is optional; default to NOT_STARTED to match the create-screen
+        // UX where the user sets assignee/dueDate but not the lifecycle state.
+        TaskStatus status = toCreate.getStatus();
+        if (status.getState() == null) {
+            status.setState(TaskState.NOT_STARTED);
+        }
+        // executionDetails is machine-owned; never persist a client-supplied value.
+        status.setExecutionDetails(null);
+
+        authorizationManager.canAccess(userInfo, task.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE)
+                .checkAuthorizationOrElseThrow();
+
+        return curationTaskDao.createTaskBundle(userInfo.getId(), toCreate);
+    }
+
+    @Override
+    @WriteTransaction
+    public TaskBundle updateTaskBundle(UserInfo userInfo, TaskBundle toUpdate) {
+        ValidateArgument.required(toUpdate, "taskBundle");
+        ValidateArgument.required(toUpdate.getStatus(), "status");
+        CurationTask task = toUpdate.getTask();
+
+        validateCurationTask(userInfo, task);
+        ValidateArgument.required(task.getTaskId(), "taskId");
+
+        TaskStatus status = toUpdate.getStatus();
+        ValidateArgument.required(status.getState(), "state");
+
+        CurationTask existing = getCurationTask(userInfo, task.getTaskId());
+
+        authorizeAndPrepareTaskUpdate(userInfo, existing, task);
+
+        return curationTaskDao.updateTaskBundle(userInfo.getId(), toUpdate);
+    }
+
     private boolean isAuthorizedAssignee(UserInfo user, Long assigneeId) {
         return AuthorizationUtils.isUserCreatorOrAdmin(user, assigneeId.toString())
                 || user.getGroups().contains(assigneeId);
@@ -208,6 +242,31 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
      */
     boolean hasAuthorizationModeChanged(AuthorizationMode oldMode, AuthorizationMode newMode) {
         return !Objects.equals(oldMode, newMode);
+    }
+
+    /**
+     * Enforces the shared preconditions for updating a curation task and applies the resulting side
+     * effect. The task's project cannot change, the caller must have UPDATE access on the project, and
+     * a change to the suggestedAuthorizationMode invalidates any active grid session.
+     *
+     * @param userInfo the caller
+     * @param existing the currently persisted task
+     * @param toUpdate the task carrying the requested changes
+     */
+    private void authorizeAndPrepareTaskUpdate(UserInfo userInfo, CurationTask existing, CurationTask toUpdate) {
+        if (!existing.getProjectId().equals(toUpdate.getProjectId())) {
+            throw new IllegalArgumentException("The project for a MetadataTask cannot be changed.");
+        }
+
+        authorizationManager.canAccess(userInfo, existing.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
+                .checkAuthorizationOrElseThrow();
+
+        AuthorizationMode oldMode = getSuggestedAuthorizationMode(existing.getTaskProperties());
+        AuthorizationMode newMode = getSuggestedAuthorizationMode(toUpdate.getTaskProperties());
+
+        if (hasAuthorizationModeChanged(oldMode, newMode)) {
+            curationTaskDao.clearActiveSessionId(toUpdate.getTaskId());
+        }
     }
 
     /**
