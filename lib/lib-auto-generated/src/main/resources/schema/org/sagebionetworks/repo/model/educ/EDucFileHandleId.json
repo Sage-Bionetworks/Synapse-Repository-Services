@@ -1,0 +1,9 @@
+{
+    "description": "File handle for eDUC",
+    "properties": {
+        "fileHandleId": {
+            "description": "The ID of the file handle for the eDUC",
+            "type": "string"
+        }
+    }
+}

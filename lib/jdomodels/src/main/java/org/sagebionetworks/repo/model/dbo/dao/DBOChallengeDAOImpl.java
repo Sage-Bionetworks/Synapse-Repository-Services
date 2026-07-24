@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -48,19 +47,22 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOChallengeDAOImpl implements ChallengeDAO {
 
 	public static final String CHALLENGE_DOES_NOT_EXIST = "Challenge: '%s' does not exist";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+
+	public DBOChallengeDAOImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+	}
 
 	private static TableMapping<DBOChallenge> DBO_CHALLENGE_TABLE_MAPPING =
 			(new DBOChallenge()).getTableMapping();

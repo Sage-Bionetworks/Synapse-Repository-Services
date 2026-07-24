@@ -168,6 +168,26 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	void updateSessionBenefactorIds(String sessionId, Set<Long> benefactorIds);
 
 	/**
+	 * Update the baseline source version (sourceEntityVersionNumber) recorded on a
+	 * grid session. This is the source revision the grid was last synchronized to,
+	 * used for deletion detection on subsequent synchronizations.
+	 *
+	 * @param sessionId     the grid session id
+	 * @param sourceVersion the source revision the grid is now synchronized to
+	 */
+	void updateSourceEntityVersion(String sessionId, Long sourceVersion);
+
+	/**
+	 * Update the bound JSON schema $id recorded on a grid session. Used during
+	 * synchronization when the source's bound schema changes, so that subsequent
+	 * row validation runs against the new schema.
+	 *
+	 * @param sessionId the grid session id
+	 * @param schemaId  the new bound JSON schema $id
+	 */
+	void updateSessionSchemaId(String sessionId, String schemaId);
+
+	/**
 	 * Checks all active WebSocket connections for the given session and removes any
 	 * belonging to users who no longer pass the session's authorization check.
 	 * Non-user connections (INTERNAL, VALIDATION, USER_SUPPORT) are always skipped.

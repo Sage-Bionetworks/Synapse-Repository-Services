@@ -66,7 +66,7 @@ import org.sagebionetworks.repo.util.MessageTestUtil;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.SerializationUtils;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 import com.google.common.collect.ImmutableList;
 
 import jakarta.mail.Session;
@@ -291,9 +291,9 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+		assertEquals("Foo FOO <foo@synapse.org>", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -319,9 +319,9 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+		assertEquals("Foo FOO <foo@synapse.org>", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
 		String body = MessageTestUtil.getBodyFromRawMessage(ser, "text/html");
 		assertTrue(body.indexOf(messageBody)>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
@@ -349,10 +349,10 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
-		String body = new String(ser.getRawMessage().getData().array());
+		assertEquals("Foo FOO <foo@synapse.org>", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
+		String body = new String(ser.rawMessage().data().asByteArray());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
@@ -391,11 +391,11 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+		assertEquals("noreply@synapse.org", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.contains("Please follow the link below to set your password."));
 	}
@@ -434,11 +434,11 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL_ALIAS, ser.getDestinations().get(0));
+		assertEquals("noreply@synapse.org", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL_ALIAS, ser.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.contains("Please follow the link below to set your password."));
 	}
@@ -527,11 +527,11 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
+		assertEquals("noreply@synapse.org", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.contains("Your password for your Synapse account has been changed."));
 	}
@@ -564,11 +564,11 @@ public class MessageManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("noreply@synapse.org", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(CREATOR_EMAIL, ser.getDestinations().get(0));
+		assertEquals("noreply@synapse.org", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(CREATOR_EMAIL, ser.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(ser.getRawMessage().getData().array()));
+				new ByteArrayInputStream(ser.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertTrue(body.indexOf("The following errors were experienced while delivering message")>=0);
 		assertTrue(body.indexOf(mtu.getSubject())>=0);
@@ -709,10 +709,10 @@ public class MessageManagerImplUnitTest {
 
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
-		String body = new String(ser.getRawMessage().getData().array());
+		assertEquals("Foo FOO <foo@synapse.org>", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
+		String body = new String(ser.rawMessage().data().asByteArray());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);
@@ -775,10 +775,10 @@ public class MessageManagerImplUnitTest {
 
 		verify(sesClient).sendRawEmail(argument.capture());
 		SendRawEmailRequest ser = argument.getValue();
-		assertEquals("Foo FOO <foo@synapse.org>", ser.getSource());
-		assertEquals(1, ser.getDestinations().size());
-		assertEquals(RECIPIENT_EMAIL, ser.getDestinations().get(0));
-		String body = new String(ser.getRawMessage().getData().array());
+		assertEquals("Foo FOO <foo@synapse.org>", ser.source());
+		assertEquals(1, ser.destinations().size());
+		assertEquals(RECIPIENT_EMAIL, ser.destinations().get(0));
+		String body = new String(ser.rawMessage().data().asByteArray());
 		assertTrue(body.indexOf("message body")>=0);
 		assertFalse(body.indexOf(UNSUBSCRIBE_ENDPOINT)>=0);
 		assertTrue(body.indexOf(PROFILE_SETTING_ENDPOINT)>=0);

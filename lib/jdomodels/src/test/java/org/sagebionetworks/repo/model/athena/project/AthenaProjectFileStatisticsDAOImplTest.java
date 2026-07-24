@@ -26,9 +26,9 @@ import org.sagebionetworks.repo.model.statistics.FileEvent;
 import org.sagebionetworks.repo.model.statistics.project.StatisticsMonthlyProjectFiles;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.glue.model.Database;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.Row;
+import software.amazon.awssdk.services.glue.model.Database;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaProjectFileStatisticsDAOImplTest {
@@ -88,7 +88,7 @@ public class AthenaProjectFileStatisticsDAOImplTest {
 		String filesCount = "10000";
 		String usersCount = "100";
 
-		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		Row row = Row.builder().data(datum(projectId), datum(filesCount), datum(usersCount)).build();
 
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
 
@@ -114,7 +114,7 @@ public class AthenaProjectFileStatisticsDAOImplTest {
 		String filesCount = "10000";
 		String usersCount = "100";
 
-		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		Row row = Row.builder().data(datum(projectId), datum(filesCount), datum(usersCount)).build();
 
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
 
@@ -136,7 +136,7 @@ public class AthenaProjectFileStatisticsDAOImplTest {
 		String filesCount = null;
 		String usersCount = null;
 
-		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		Row row = Row.builder().data(datum(projectId), datum(filesCount), datum(usersCount)).build();
 
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
 
@@ -158,7 +158,7 @@ public class AthenaProjectFileStatisticsDAOImplTest {
 		String filesCount = "10000";
 		String usersCount = "100";
 
-		Row row = new Row().withData(datum(projectId), datum(filesCount), datum(usersCount));
+		Row row = Row.builder().data(datum(projectId), datum(filesCount), datum(usersCount)).build();
 
 		RowMapper<StatisticsMonthlyProjectFiles> mapper = dao.getMapper(eventType, month);
 
@@ -199,7 +199,7 @@ public class AthenaProjectFileStatisticsDAOImplTest {
 	}
 
 	private Datum datum(String value) {
-		return new Datum().withVarCharValue(value);
+		return Datum.builder().varCharValue(value).build();
 	}
 
 	@SuppressWarnings("unchecked")

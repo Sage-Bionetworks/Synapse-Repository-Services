@@ -29,8 +29,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
@@ -103,6 +106,9 @@ public class EntityServiceImplAutowiredTest  {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private SynapseS3Client s3Client;
+	
 	private Project project;
 	private List<String> toDelete;
 	private HttpServletRequest mockRequest;
@@ -132,9 +138,14 @@ public class EntityServiceImplAutowiredTest  {
 		toDelete.add(project.getId());
 		
 		// Create some file handles
+		String s3Bucket = StackConfigurationSingleton.singleton().getS3Bucket();
+		// fileHandle1 and fileHandle2 are used by the RecordSet test, which streams and parses
+		// the data file from S3 to infer the schema. Back them with real S3 objects.
+		String csvContent = "a,b,c\n1,2,3";
+
 		fileHandle1 = new S3FileHandle();
-		fileHandle1.setBucketName("bucket");
-		fileHandle1.setKey("key");
+		fileHandle1.setBucketName(s3Bucket);
+		fileHandle1.setKey(UUID.randomUUID() + ".csv");
 		fileHandle1.setCreatedBy(adminUserInfo.getId().toString());
 		fileHandle1.setCreatedOn(new Date());
 		fileHandle1.setContentSize(123l);
@@ -144,10 +155,11 @@ public class EntityServiceImplAutowiredTest  {
 		fileHandle1.setContentMd5("md5");
 		fileHandle1.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle1.setEtag(UUID.randomUUID().toString());
+		S3TestUtils.createObjectFromString(fileHandle1.getBucketName(), fileHandle1.getKey(), csvContent, s3Client);
 		
 		fileHandle2 = new S3FileHandle();
-		fileHandle2.setBucketName("bucket");
-		fileHandle2.setKey("key2");
+		fileHandle2.setBucketName(s3Bucket);
+		fileHandle2.setKey(UUID.randomUUID() + ".csv");
 		fileHandle2.setCreatedBy(adminUserInfo.getId().toString());
 		fileHandle2.setCreatedOn(new Date());
 		fileHandle2.setContentSize(123l);
@@ -157,6 +169,7 @@ public class EntityServiceImplAutowiredTest  {
 		fileHandle2.setContentMd5("md52");
 		fileHandle2.setId(idGenerator.generateNewId(IdType.FILE_IDS).toString());
 		fileHandle2.setEtag(UUID.randomUUID().toString());
+		S3TestUtils.createObjectFromString(fileHandle2.getBucketName(), fileHandle2.getKey(), csvContent, s3Client);
 		
 		fileHandle3 = new S3FileHandle();
 		fileHandle3.setBucketName("bucket");
@@ -192,6 +205,7 @@ public class EntityServiceImplAutowiredTest  {
 			}
 		}
 		fileHandleDao.truncateTable();
+		S3TestUtils.doDeleteAfter(s3Client);
 	}
 	
 	/**

@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.dbo.principal.PrincipalOidcBinding;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -115,8 +116,13 @@ public interface UserManager {
 	void clearOidcBindings(Long userId);
 
 	/**
+	 * Returns the list of identity providers linked to the given user's account.
+	 */
+	List<IdentityProvider> getIdentityProviders(UserInfo userInfo);
+
+	/**
 	 * Clear all user
 	 */
 	void truncateAll();
-	
+
 }

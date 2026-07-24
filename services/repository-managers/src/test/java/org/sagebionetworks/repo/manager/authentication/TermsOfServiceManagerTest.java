@@ -77,17 +77,7 @@ public class TermsOfServiceManagerTest {
 		adminUser = new UserInfo(true, 1L);
 	}
 	
-	@Test
-	public void testInitialize() {
-		TermsOfServiceManager managerSpy = Mockito.spy(manager);
-		
-		doReturn(new Semver("1.0.0")).when(managerSpy).refreshLatestVersion();
-		
-		// Call under test
-		managerSpy.initialize();
-	}
-	
-	@Test
+@Test
 	public void testGetTermsOfUseInfo() {
 		
 		when(mockAuthDao.getCurrentTermsOfServiceRequirements()).thenReturn(mockRequirements);

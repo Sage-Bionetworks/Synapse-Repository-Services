@@ -42,7 +42,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -50,13 +49,14 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
+import org.springframework.stereotype.Repository;
 
 /**
  * The implementation of the change DBOChangeDAO
  * @author John
  *
  */
+@Repository
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	private static final String BIND_TYPE = "bType";
@@ -126,21 +126,21 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	private static final String SQL_SENT_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_SENT_MESSAGES_CHANGE_NUM+" FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_OBJECT_ID+" = ? AND "+COL_SENT_MESSAGES_OBJECT_TYPE+" = ? FOR UPDATE";
 	private static final String SQL_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ? FOR UPDATE";
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+	private final IdGenerator idGenerator;
+	private final Clock clock;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-		
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	Clock clock;
-	
+	public DBOChangeDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate, IdGenerator idGenerator, Clock clock) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+		this.idGenerator = idGenerator;
+		this.clock = clock;
+	}
+
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 	
 	@WriteTransaction

@@ -10,16 +10,19 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODockerManagedRepository
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DockerNodeDaoImpl implements DockerNodeDao {
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	public DockerNodeDaoImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+	}
 	
 	private static final String REPOSITORY_ID_SQL = 
 			"SELECT "+COL_DOCKER_REPOSITORY_OWNER_ID+" FROM "+TABLE_DOCKER_REPOSITORY_NAME+

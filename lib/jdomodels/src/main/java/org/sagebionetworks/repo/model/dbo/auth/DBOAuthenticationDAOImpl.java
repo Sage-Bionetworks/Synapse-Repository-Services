@@ -60,24 +60,30 @@ import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+import jakarta.annotation.PostConstruct;
+
+@Repository
 public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private DBOBasicDao basicDAO;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+
+	private final JdbcTemplate jdbcTemplate;
+	private final UserGroupDAO userGroupDAO;
+	private final DBOBasicDao basicDAO;
+	private final IdGenerator idGenerator;
+	private final List<BootstrapPrincipal> bootstrapPrincipals;
+
+	public DBOAuthenticationDAOImpl(JdbcTemplate jdbcTemplate, UserGroupDAO userGroupDAO, DBOBasicDao basicDAO,
+			IdGenerator idGenerator, List<BootstrapPrincipal> bootstrapPrincipals) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.userGroupDAO = userGroupDAO;
+		this.basicDAO = basicDAO;
+		this.idGenerator = idGenerator;
+		this.bootstrapPrincipals = bootstrapPrincipals;
+	}
 	
 	public static final String SELECT_AUTHENTICATED_ON_FOR_PRINCIPAL_ID = 
 			"SELECT "+COL_AUTHENTICATED_ON_AUTHENTICATED_ON+
@@ -344,10 +350,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 	
 	@Override
+	@PostConstruct
 	@WriteTransaction
 	public void bootstrap() throws NotFoundException {
-		if(this.userGroupDAO.getBootstrapPrincipals() == null) throw new IllegalStateException("bootstrapPrincipals must be initialized");
-		for (BootstrapPrincipal abs : this.userGroupDAO.getBootstrapPrincipals()) {
+		if(this.bootstrapPrincipals == null) throw new IllegalStateException("bootstrapPrincipals must be initialized");
+		for (BootstrapPrincipal abs : this.bootstrapPrincipals) {
 			if (abs instanceof BootstrapGroup) {
 				continue;
 			}

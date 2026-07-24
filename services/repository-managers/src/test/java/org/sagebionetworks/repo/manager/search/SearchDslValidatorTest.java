@@ -5,6 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -13,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch._types.FieldSort;
 import org.opensearch.client.opensearch._types.FieldValue;
@@ -295,6 +302,14 @@ public class SearchDslValidatorTest {
 		aggs.put("a_extended_stats", Aggregation.of(b -> b.extendedStats(m -> m.field("f"))));
 		aggs.put("a_value_count", Aggregation.of(b -> b.valueCount(m -> m.field("f"))));
 		aggs.put("a_cardinality", Aggregation.of(b -> b.cardinality(m -> m.field("f"))));
+		aggs.put("a_filter", Aggregation.of(b -> b
+				.filter(f -> f.term(t -> t.field("f").value(FieldValue.of("x"))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+		aggs.put("a_filters", Aggregation.of(b -> b
+				.filters(fs -> fs.filters(bk -> bk.keyed(Map.of(
+						"hits", Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x")))),
+						"misses", Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("y"))))))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
 		// call under test
 		SearchDslValidator.validateAggregations(aggs);
 
@@ -402,6 +417,125 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> SearchDslValidator.validateAggregations(aggs));
 		assertTrue(ex.getMessage().contains("nested too deeply"));
+	}
+
+	@Test
+	public void testValidateAggregationsWithFilterValid() {
+		// A well-formed single-bucket filter aggregation (a valid query body + a child agg) passes,
+		// and the filter body is routed through walkQuery — the same path a top-level query takes.
+		Query filterBody = Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x"))));
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filter(filterBody)
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+
+		try (MockedStatic<SearchDslValidator> mocked =
+				mockStatic(SearchDslValidator.class, CALLS_REAL_METHODS)) {
+			// call under test
+			SearchDslValidator.validateAggregations(aggs);
+			// The filter body reaches the shared query-validation path exactly once.
+			mocked.verify(() -> SearchDslValidator.walkQuery(eq(filterBody), anyInt(), any()), times(1));
+		}
+	}
+
+	@Test
+	public void testValidateAggregationsWithFilterCrossIndexTermsLookupRejected() {
+		// A cross-index terms lookup smuggled inside a filter body is rejected exactly as it is at
+		// the top level.
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filter(f -> f.terms(t -> t.field("foo").terms(TermsQueryField.of(qf -> qf
+						.lookup(TermsLookup.of(l -> l.index("other-index").id("1").path("p")))))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertTrue(ex.getMessage().contains("terms lookup form"));
+	}
+
+	@Test
+	public void testValidateAggregationsWithFilterExcessiveClauseCount() {
+		// A filter body's clauses count against the shared QUERY_MAX_CLAUSES budget, so it cannot
+		// smuggle an unbounded number of clauses past the cap.
+		List<Query> many = new ArrayList<>();
+		for (int i = 0; i < SearchDslValidator.QUERY_MAX_CLAUSES + 2; i++) {
+			many.add(Query.of(b -> b.matchAll(m -> m)));
+		}
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filter(f -> f.bool(bb -> bb.must(many)))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertTrue(ex.getMessage().contains("too many clauses"));
+	}
+
+	@Test
+	public void testValidateAggregationsWithFiltersKeyedValid() {
+		// A well-formed keyed filters aggregation passes, and every named bucket query is routed
+		// through walkQuery.
+		Query hits = Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x"))));
+		Query misses = Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("y"))));
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filters(fs -> fs.filters(bk -> bk.keyed(Map.of("hits", hits, "misses", misses))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+
+		try (MockedStatic<SearchDslValidator> mocked =
+				mockStatic(SearchDslValidator.class, CALLS_REAL_METHODS)) {
+			// call under test
+			SearchDslValidator.validateAggregations(aggs);
+			mocked.verify(() -> SearchDslValidator.walkQuery(eq(hits), anyInt(), any()), times(1));
+			mocked.verify(() -> SearchDslValidator.walkQuery(eq(misses), anyInt(), any()), times(1));
+		}
+	}
+
+	@Test
+	public void testValidateAggregationsWithFiltersArrayValid() {
+		// The array (non-keyed) form is also accepted, and each query is routed through walkQuery.
+		Query first = Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x"))));
+		Query second = Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("y"))));
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filters(fs -> fs.filters(bk -> bk.array(List.of(first, second))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+
+		try (MockedStatic<SearchDslValidator> mocked =
+				mockStatic(SearchDslValidator.class, CALLS_REAL_METHODS)) {
+			// call under test
+			SearchDslValidator.validateAggregations(aggs);
+			mocked.verify(() -> SearchDslValidator.walkQuery(eq(first), anyInt(), any()), times(1));
+			mocked.verify(() -> SearchDslValidator.walkQuery(eq(second), anyInt(), any()), times(1));
+		}
+	}
+
+	@Test
+	public void testValidateAggregationsWithFiltersKeyedCrossIndexTermsLookupRejected() {
+		// Each named query in a keyed filters bucket is validated identically to the top-level query.
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filters(fs -> fs.filters(bk -> bk.keyed(Map.of(
+						"ok", Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x")))),
+						"bad", Query.of(q -> q.terms(t -> t.field("foo").terms(TermsQueryField.of(qf -> qf
+								.lookup(TermsLookup.of(l -> l.index("other-index").id("1").path("p")))))))))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertTrue(ex.getMessage().contains("terms lookup form"));
+	}
+
+	@Test
+	public void testValidateAggregationsWithFiltersArrayCrossIndexTermsLookupRejected() {
+		// The array (non-keyed) form is validated the same way as the keyed form.
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b
+				.filters(fs -> fs.filters(bk -> bk.array(List.of(
+						Query.of(q -> q.term(t -> t.field("f").value(FieldValue.of("x")))),
+						Query.of(q -> q.terms(t -> t.field("foo").terms(TermsQueryField.of(qf -> qf
+								.lookup(TermsLookup.of(l -> l.index("other-index").id("1").path("p")))))))))))
+				.aggregations("by_value", c -> c.terms(t -> t.field("f")))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertTrue(ex.getMessage().contains("terms lookup form"));
 	}
 
 	// -----------------------------------------------------------------------------
@@ -1379,6 +1513,42 @@ public class SearchDslValidatorTest {
 								+ "\"aggregations\":{\"inner\":{\"histogram\":{\"field\":\"age\","
 								+ "\"extended_bounds\":{\"min\":{\"bad\":1},\"max\":10}}}}}}"));
 		assertTrue(ex.getMessage().contains("histogram.extended_bounds.min"));
+	}
+
+	@Test
+	public void testValidateAggregationLeafShapesWithFilterObjectQueryValueRejected() throws Exception {
+		// A filter body is a query subtree, so its opaque leaf slots pass the same shape gate as the
+		// top-level query — an object where a scalar is required is rejected.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> validateAggregationLeafShapes(
+						"{\"a\":{\"filter\":{\"term\":{\"status\":{\"value\":{\"bad\":1}}}},"
+								+ "\"aggregations\":{\"inner\":{\"terms\":{\"field\":\"f\"}}}}}"));
+		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+	}
+
+	@Test
+	public void testValidateAggregationLeafShapesWithFiltersKeyedObjectQueryValueRejected() throws Exception {
+		// Each named query in a keyed filters bucket passes through the query leaf-shape gate.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> validateAggregationLeafShapes(
+						"{\"a\":{\"filters\":{\"filters\":{"
+								+ "\"ok\":{\"term\":{\"status\":{\"value\":\"y\"}}},"
+								+ "\"bad\":{\"term\":{\"status\":{\"value\":{\"nested\":1}}}}}}}}"));
+		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+	}
+
+	@Test
+	public void testValidateAggregationLeafShapesWithFiltersArrayObjectQueryValueRejected() throws Exception {
+		// The array (non-keyed) filters form is gated the same way.
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> validateAggregationLeafShapes(
+						"{\"a\":{\"filters\":{\"filters\":["
+								+ "{\"term\":{\"status\":{\"value\":\"y\"}}},"
+								+ "{\"term\":{\"status\":{\"value\":{\"nested\":1}}}}]}}}"));
+		assertTrue(ex.getMessage().contains("term['status'].'value'"));
 	}
 
 	// -----------------------------------------------------------------------------

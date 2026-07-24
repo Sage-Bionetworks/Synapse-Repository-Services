@@ -324,6 +324,58 @@ public class ControllerModelsToOpenApiModelTranslatorTest {
 	}
 	
 	@Test
+	public void testGetEndpointInfoWithDeprecatedMethod() {
+		String methodName = "METHOD_NAME";
+		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
+		List<ParameterModel> parameters = new ArrayList<>();
+		ResponseModel responses = new ResponseModel();
+		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
+		MethodModel method = new MethodModel().withName(methodName).withParameters(parameters)
+				.withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(false)
+				.withDeprecated(true);
+
+		List<ParameterInfo> expectedParameters = new ArrayList<>();
+		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
+		doReturn(expectedParameters).when(translator).getParameters(any(List.class));
+		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
+
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags)
+				.withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
+				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones)
+				.withSecurityRequirements(null).withDeprecated(true);
+
+		// call under test.
+		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
+	}
+
+	@Test
+	public void testGetEndpointInfoWithNonDeprecatedMethod() {
+		String methodName = "METHOD_NAME";
+		String displayName = "DISPLAY_NAME";
+		String fullPath = "/test/path";
+		List<ParameterModel> parameters = new ArrayList<>();
+		ResponseModel responses = new ResponseModel();
+		List<String> tags = new ArrayList<>(Arrays.asList(displayName));
+		MethodModel method = new MethodModel().withName(methodName).withParameters(parameters)
+				.withResponse(responses).withOperation(Operation.get).withAuthenticationRequired(false)
+				.withDeprecated(false);
+
+		List<ParameterInfo> expectedParameters = new ArrayList<>();
+		Map<String, ResponseInfo> respones = new LinkedHashMap<>();
+		doReturn(expectedParameters).when(translator).getParameters(any(List.class));
+		doReturn(respones).when(translator).getResponses(any(ResponseModel.class));
+
+		EndpointInfo expectedEndpointInfo = new EndpointInfo().withTags(tags)
+				.withOperationId(String.format("%s-%s", Operation.get.name(), fullPath))
+				.withParameters(expectedParameters).withRequestBody(null).withResponses(respones)
+				.withSecurityRequirements(null).withDeprecated(null);
+
+		// call under test.
+		assertEquals(expectedEndpointInfo, translator.getEndpointInfo(method, displayName, fullPath));
+	}
+
+	@Test
 	public void testGetEndpointInfoWithNullRequestBodyModel() {
 		String methodName = "METHOD_NAME";
 		String displayName = "DISPLAY_NAME";

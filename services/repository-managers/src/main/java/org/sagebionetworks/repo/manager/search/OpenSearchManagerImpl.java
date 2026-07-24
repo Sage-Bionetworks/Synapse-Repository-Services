@@ -28,10 +28,9 @@ import org.opensearch.client.opensearch._types.analysis.TokenFilter;
 import org.opensearch.client.opensearch._types.analysis.Tokenizer;
 import org.opensearch.client.opensearch._types.mapping.DynamicMapping;
 import org.opensearch.client.opensearch._types.mapping.Property;
+import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
-import org.opensearch.client.opensearch.core.CountRequest;
-import org.opensearch.client.opensearch.core.CountResponse;
 import org.opensearch.client.opensearch.core.DeleteRequest;
 import org.opensearch.client.opensearch.core.IndexRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
@@ -41,6 +40,7 @@ import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.indices.AnalyzeRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
+import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
@@ -57,6 +57,7 @@ import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 /**
@@ -75,6 +76,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final Logger LOG = LogManager.getLogger(OpenSearchManagerImpl.class);
 
 	private static final int HTTP_TOO_MANY_REQUESTS = 429;
+	// AOSS returns 402 with service_quota_exceeded_exception ("maximum OCU capacity reached")
+	// when the collection hits its OCU ceiling — a transient, auto-scaling condition, so retryable.
+	private static final int HTTP_PAYMENT_REQUIRED = 402;
 	private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 	private static final int HTTP_MAX_SERVER_ERROR = 599;
 
@@ -105,12 +109,20 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int VALIDATE_MAX_RETRIES = 10;
 	static long VALIDATE_INITIAL_BACKOFF_MS = 1000L;
 
-	// Convergence probe for a freshly-finished bulk index. AOSS acknowledges bulk writes
-	// before the documents are visible to _search or _count, so we poll _count until the
-	// index reports the expected number of documents. Same budget as the writability probe
-	// for consistency. Non-final so unit tests can lower the values and avoid real sleeps.
-	static int COUNT_PROBE_MAX_RETRIES = 10;
-	static long COUNT_PROBE_INITIAL_BACKOFF_MS = 10000L;
+	// Retry budget for the createIndex transport call. A create-index request against the
+	// managed domain can hit a transient read timeout or other IOException before the domain
+	// acknowledges; absorb those before failing the build so a single network blip doesn't
+	// turn into a hard failure. OpenSearchException (including resource_already_exists) is
+	// permanent and not retried.
+	static int CREATE_INDEX_MAX_RETRIES = 3;
+	static long CREATE_INDEX_INITIAL_BACKOFF_MS = 1000L;
+
+	// Retry budget for the getAliasTarget transport call. Resolving the alias is the first
+	// transport call on the build path and can hit the same transient read timeout / IOException
+	// as createIndex; a single blip here otherwise marks the SearchIndex terminally FAILED.
+	// A missing alias (404) is a normal first-build condition and returned as empty, not retried.
+	static int GET_ALIAS_MAX_RETRIES = 3;
+	static long GET_ALIAS_INITIAL_BACKOFF_MS = 1000L;
 
 	// Cleanup retry for the readiness-probe sentinel. AOSS doesn't honor refresh=wait_for,
 	// so a single delete that fails on a transient network blip would orphan the sentinel
@@ -125,6 +137,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
+	// Prefix of the per-dependency row-level access-control fields (_benefactor_0, _benefactor_1,
+	// ...) written into each document's _source at build time. They drive the query-time benefactor
+	// terms filter but are not part of the entity schema, so they are stripped from returned hits.
+	private static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
 	// Reason-text fragment AOSS includes when a concurrent index-delete is in flight;
@@ -178,50 +194,65 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	private final OpenSearchClient openSearchClient;
 
-	public OpenSearchManagerImpl(OpenSearchClient openSearchClient) {
-		this.openSearchClient = openSearchClient;
+	public OpenSearchManagerImpl(@Qualifier("searchIndexManagedClient") OpenSearchClient searchIndexManagedClient) {
+		this.openSearchClient = searchIndexManagedClient;
 	}
 
 	@Override
 	public Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers) {
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			int benefactorCount, int numberOfShards, int numberOfReplicas) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
 
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
 		Map<String, ColumnAnalyzerOverrideEntry> overrideMap = buildOverrideMap(columnAnalyzerOverrides, nameToId);
 
-		try {
-			CreateIndexRequest request = CreateIndexRequest.of(req -> req
-					.index(indexName)
-					.settings(s -> s.analysis(a -> {
+		CreateIndexRequest request = CreateIndexRequest.of(req -> req
+				.index(indexName)
+				.settings(s -> s
+					.numberOfShards(numberOfShards)
+					.numberOfReplicas(numberOfReplicas)
+					.analysis(a -> {
 						buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
 						return a;
 					}))
-					.mappings(m -> {
-						buildMappings(m, columns, defaultAnalyzer,
-								overrideMap, resolvedAnalyzers);
-						return m;
-					})
-			);
+				.mappings(m -> {
+					buildMappings(m, columns, defaultAnalyzer,
+							overrideMap, resolvedAnalyzers, benefactorCount);
+					return m;
+				})
+		);
 
-			String appliedConfigJson = request.toJsonString();
-			CreateIndexResponse response = openSearchClient.indices().create(request);
+		String appliedConfigJson = request.toJsonString();
 
-			if (!response.acknowledged()) {
-				throw new IllegalStateException("Search index " + indexName + " creation was not acknowledged.");
-			}
-
-			return Optional.of(appliedConfigJson);
-		} catch (OpenSearchException e) {
-			if ("resource_already_exists_exception".equals(e.error().type())) {
-				return Optional.empty();
-			}
-			throw new RuntimeException("Failed to create search index: " + indexName
-					+ " (" + describeError(e.error()) + ")", e);
-		} catch (IOException e) {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(CREATE_INDEX_MAX_RETRIES,
+					CREATE_INDEX_INITIAL_BACKOFF_MS, () -> {
+				try {
+					CreateIndexResponse response = openSearchClient.indices().create(request);
+					if (!response.acknowledged()) {
+						throw new IllegalStateException(
+								"Search index " + indexName + " creation was not acknowledged.");
+					}
+					return Optional.of(appliedConfigJson);
+				} catch (OpenSearchException e) {
+					if ("resource_already_exists_exception".equals(e.error().type())) {
+						return Optional.<String>empty();
+					}
+					throw new RuntimeException("Failed to create search index: " + indexName
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to create search index: " + indexName, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to create search index: " + indexName, e);
 		}
 	}
@@ -408,10 +439,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private void buildMappings(org.opensearch.client.opensearch._types.mapping.TypeMapping.Builder m,
 			List<ColumnModel> columns, String defaultAnalyzerQname,
 			Map<String, ColumnAnalyzerOverrideEntry> overrideMap,
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers) {
+			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
+			int benefactorCount) {
 		Set<String> registeredAnalyzerQnames = resolvedAnalyzers.keySet();
 		m.properties(SYSTEM_FIELD_ROW_ID, p -> p.long_(l -> l));
 		m.properties(SYSTEM_FIELD_ROW_VERSION, p -> p.long_(l -> l));
+
+		// Row-level access-control fields: one per source dependency, non-analyzed long
+		// so the query-time benefactor terms filter can match them exactly.
+		for (int i = 0; i < benefactorCount; i++) {
+			m.properties(BENEFACTOR_FIELD_PREFIX + i, p -> p.long_(l -> l));
+		}
 
 		for (ColumnModel column : columns) {
 			String columnId = column.getId();
@@ -469,6 +507,65 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to delete search index: " + indexName, e);
+		}
+	}
+
+	@Override
+	public Optional<String> getAliasTarget(String aliasName) {
+		ValidateArgument.required(aliasName, "aliasName");
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(GET_ALIAS_MAX_RETRIES,
+					GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+				try {
+					GetAliasResponse response = openSearchClient.indices().getAlias(req -> req.name(aliasName));
+					// The response maps each concrete index carrying the alias to its alias definitions;
+					// the key set is therefore the set of physical indices the alias resolves to.
+					Set<String> targets = response.result().keySet();
+					if (targets.isEmpty()) {
+						return Optional.<String>empty();
+					}
+					if (targets.size() > 1) {
+						throw new IllegalStateException("Alias " + aliasName
+								+ " resolves to multiple indices " + targets + "; expected exactly one.");
+					}
+					return Optional.of(targets.iterator().next());
+				} catch (OpenSearchException e) {
+					// A missing alias is reported as a 404; treat it as "no live index yet" (first build).
+					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
+						return Optional.<String>empty();
+					}
+					throw new RuntimeException("Failed to resolve alias: " + aliasName
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to resolve alias: " + aliasName, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to resolve alias: " + aliasName, e);
+		}
+	}
+
+	@Override
+	public void swapAlias(String aliasName, String newPhysicalIndex, Optional<String> oldPhysicalIndex) {
+		ValidateArgument.required(aliasName, "aliasName");
+		ValidateArgument.required(newPhysicalIndex, "newPhysicalIndex");
+		ValidateArgument.required(oldPhysicalIndex, "oldPhysicalIndex");
+		try {
+			openSearchClient.indices().updateAliases(req -> {
+				oldPhysicalIndex.ifPresent(old -> req.actions(a -> a
+						.remove(r -> r.index(old).alias(aliasName))));
+				req.actions(a -> a.add(add -> add.index(newPhysicalIndex).alias(aliasName)));
+				return req;
+			});
+		} catch (OpenSearchException e) {
+			throw new RuntimeException("Failed to swap alias " + aliasName + " to " + newPhysicalIndex
+					+ " (" + describeError(e.error()) + ")", e);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to swap alias " + aliasName + " to " + newPhysicalIndex, e);
 		}
 	}
 
@@ -540,55 +637,6 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (Exception e) {
 			LOG.warn("Failed to delete readiness probe document from index {} after {} attempts: {}",
 					indexName, SENTINEL_CLEANUP_MAX_RETRIES, e.getMessage());
-		}
-	}
-
-	@Override
-	public void waitForDocumentCount(String indexName, long expectedCount) throws RecoverableMessageException {
-		// Empty indexes report zero immediately; skip the round-trip.
-		if (expectedCount <= 0L) {
-			return;
-		}
-		final int[] attempt = {0};
-		final long[] lastObserved = {-1L};
-		try {
-			TimeUtils.waitForExponentialMaxRetry(COUNT_PROBE_MAX_RETRIES, COUNT_PROBE_INITIAL_BACKOFF_MS,
-					() -> {
-						attempt[0]++;
-						try {
-							CountResponse response = openSearchClient.count(CountRequest.of(r -> r
-									.index(indexName)));
-							long actual = response.count();
-							lastObserved[0] = actual;
-							// >= rather than == so a leftover readiness-probe sentinel cannot
-							// permanently strand convergence one short.
-							if (actual >= expectedCount) {
-								return Boolean.TRUE;
-							}
-							LOG.warn("Index {} not yet converged (attempt {}/{}): {} of {} documents visible",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, actual, expectedCount);
-							throw new RetryException("count " + actual + " of " + expectedCount);
-						} catch (OpenSearchException e) {
-							LOG.warn("Index {} count probe failed (attempt {}/{}): {}",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, describeError(e.error()));
-							throw new RetryException(e);
-						} catch (IOException e) {
-							LOG.warn("Index {} count probe failed (attempt {}/{}): {}",
-									indexName, attempt[0], COUNT_PROBE_MAX_RETRIES, e.getMessage());
-							throw new RetryException(e);
-						}
-					});
-		} catch (RetryException e) {
-			LOG.error("Index {} did not converge to expected count after {} attempts ({} of {})",
-					indexName, COUNT_PROBE_MAX_RETRIES, lastObserved[0], expectedCount);
-			throw new RecoverableMessageException(
-					"AOSS index " + indexName + " did not converge to expected count ("
-							+ lastObserved[0] + " of " + expectedCount + ") within the retry budget",
-					e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed convergence probe for search index: " + indexName, e);
 		}
 	}
 
@@ -737,11 +785,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (OpenSearchException e) {
 			String detail = "Failed to bulk index to search index: " + indexName
 					+ " (" + describeError(e.error()) + ")";
+			String type = e.error() == null ? null : e.error().type();
 			// status() == 0 indicates the transport never produced an HTTP response (e.g.
 			// the AWS SDK 2 transport surfaced a connection-level failure as
 			// OpenSearchException rather than IOException). Treat the same as a 5xx —
-			// transient, retryable.
-			if (e.status() == 0 || isRetryableItemStatus(e.status())) {
+			// transient, retryable. index_not_found_exception is AOSS's eventual-consistency
+			// window: createIndex is acknowledged and the alias is queryable before its
+			// backing shards resolve on every node, so a bulk write immediately after can
+			// see a 404. Treat it as transient and retryable, consistent with
+			// waitForIndexWritable.
+			if (e.status() == 0 || isRetryableItemStatus(e.status())
+					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
 				throw new RetryException(detail, e);
 			}
 			throw new RuntimeException(detail, e);
@@ -764,6 +818,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	static boolean isRetryableItemStatus(int status) {
 		return status == HTTP_TOO_MANY_REQUESTS
+				|| status == HTTP_PAYMENT_REQUIRED
 				|| (status >= HTTP_INTERNAL_SERVER_ERROR && status <= HTTP_MAX_SERVER_ERROR);
 	}
 
@@ -986,17 +1041,19 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	@Override
 	public SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options) {
-		return executeSearch(indexName, body, columns, options, DEFAULT_LIMIT, MAX_LIMIT, false);
+			Set<SearchQueryPart> options,
+			List<Query> accessFilters) {
+		return executeSearch(indexName, body, columns, options, DEFAULT_LIMIT, MAX_LIMIT, false, accessFilters);
 	}
 
 	@Override
 	public SearchQueryResults autocomplete(String indexName, SearchAutocompleteBody body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options) {
+			Set<SearchQueryPart> options,
+			List<Query> accessFilters) {
 		// Autocomplete does not accept a caller-supplied size; force the server cap as both
 		// default and ceiling.
 		return executeSearch(indexName, body, columns, options,
-				AUTOCOMPLETE_MAX_LIMIT, AUTOCOMPLETE_MAX_LIMIT, true);
+				AUTOCOMPLETE_MAX_LIMIT, AUTOCOMPLETE_MAX_LIMIT, true, accessFilters);
 	}
 
 	// ---- Private helpers ----
@@ -1027,7 +1084,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	@SuppressWarnings("rawtypes")
 	SearchQueryResults executeSearch(String indexName, Object body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options, int defaultSize, int maxSize, boolean autocomplete) {
+			Set<SearchQueryPart> options, int defaultSize, int maxSize, boolean autocomplete,
+			List<Query> accessFilters) {
 		Map<String, String> idToName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName, (a2, b) -> a2));
 		SearchFieldRewriter.RoutingContext ctx = routingContextFor(columns);
@@ -1043,9 +1101,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				req.cancelAfterTimeInterval(t -> t.time("60s"));
 				effectiveFrom[0] = autocomplete
 						? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
-								body, ctx, req, options, defaultSize)
+								body, ctx, req, options, defaultSize, accessFilters)
 						: SearchOpaqueJsonUtil.applyBodyToRequest(
-								body, ctx, req, options, defaultSize, maxSize);
+								body, ctx, req, options, defaultSize, maxSize, accessFilters);
 				return req;
 			}, Map.class);
 			return convertResponse(response, indexName, effectiveFrom[0], idToName, options);
@@ -1110,8 +1168,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			searchHit.setRowId(toLong(source.get(SYSTEM_FIELD_ROW_ID)));
 			searchHit.setRowVersion(toLong(source.get(SYSTEM_FIELD_ROW_VERSION)));
 
+			// _row_id / _row_version are surfaced via dedicated SearchHit fields above, and the
+			// _benefactor_N fields are internal row-level access-control values (not part of the
+			// entity schema) — exclude all of them so they are never leaked back to the caller.
 			List<SearchFieldValue> fields = source.entrySet().stream()
-					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey()) && !SYSTEM_FIELD_ROW_VERSION.equals(e.getKey()))
+					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey())
+							&& !SYSTEM_FIELD_ROW_VERSION.equals(e.getKey())
+							&& !e.getKey().startsWith(BENEFACTOR_FIELD_PREFIX))
 					.map(e -> {
 						SearchFieldValue fv = new SearchFieldValue();
 						fv.setName(idToName.getOrDefault(e.getKey(), e.getKey()));

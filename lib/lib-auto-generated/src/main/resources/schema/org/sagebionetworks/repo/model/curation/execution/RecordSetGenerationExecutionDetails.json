@@ -1,0 +1,9 @@
+{
+  "description": "Execution details for RecordSet generation via a multi-agent system. The concrete type routes execution to the RecordSet generation sub-worker; the input parameters are carried by the task's RecordSetGenerationExecutionProperties.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.execution.ExecutableTaskExecutionDetails"
+    }
+  ],
+  "properties": {}
+}

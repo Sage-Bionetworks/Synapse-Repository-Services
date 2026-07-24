@@ -101,6 +101,7 @@ public class UserProfileController {
 	 * <li> Is Verified  = 0x10 </li>
 	 * <li> Is ACT Member = 0x20 </li>
 	 * <li> Is AR Reviewer = 0x40 </li>
+	 * <li> Identity Providers = 0x80 </li>
 	 * </ul>
 	 * </p>
 	 *
@@ -149,6 +150,7 @@ public class UserProfileController {
 	 * <li> Is Verified  = 0x10 </li>
 	 * <li> Is ACT Member = 0x20 </li>
 	 * <li> Is AR Reviewer = 0x40 </li>
+	 * <li> Identity Providers = 0x80 </li>
 	 * </ul>
 	 * </p>
 	 *

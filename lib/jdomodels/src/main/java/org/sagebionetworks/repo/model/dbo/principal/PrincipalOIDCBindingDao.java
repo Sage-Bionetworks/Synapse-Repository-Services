@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -15,7 +16,9 @@ public interface PrincipalOIDCBindingDao {
 	void deleteBinding(Long bindingId);
 	
 	void clearBindings(Long principalId);
-	
+
+	List<OAuthProvider> getLinkedProviders(Long principalId);
+
 	void truncateAll();
 
 

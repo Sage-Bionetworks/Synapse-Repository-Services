@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.grid.AuthorizationMode;
 public class CreateGridSession {
 	private Long userId;
 	private String sourceId;
+	private Long sourceVersion;
 	private String schemaId;
 	private Long owner;
 	private AuthorizationMode authorizationMode;
@@ -26,6 +27,15 @@ public class CreateGridSession {
 
 	public CreateGridSession setSourceId(String sourceId) {
 		this.sourceId = sourceId;
+		return this;
+	}
+
+	public Long getSourceVersion() {
+		return sourceVersion;
+	}
+
+	public CreateGridSession setSourceVersion(Long sourceVersion) {
+		this.sourceVersion = sourceVersion;
 		return this;
 	}
 
@@ -64,7 +74,7 @@ public class CreateGridSession {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(authorizationMode, owner, schemaId, sourceId, userId);
+		return Objects.hash(authorizationMode, owner, schemaId, sourceId, sourceVersion, userId);
 	}
 
 	@Override
@@ -78,13 +88,13 @@ public class CreateGridSession {
 		CreateGridSession other = (CreateGridSession) obj;
 		return Objects.equals(authorizationMode, other.authorizationMode) && Objects.equals(owner, other.owner)
 				&& Objects.equals(schemaId, other.schemaId) && Objects.equals(sourceId, other.sourceId)
-				&& Objects.equals(userId, other.userId);
+				&& Objects.equals(sourceVersion, other.sourceVersion) && Objects.equals(userId, other.userId);
 	}
 
 	@Override
 	public String toString() {
-		return "CreateGridSession [userId=" + userId + ", sourceId=" + sourceId + ", schemaId=" + schemaId + ", owner="
-				+ owner + ", authorizationMode=" + authorizationMode + "]";
+		return "CreateGridSession [userId=" + userId + ", sourceId=" + sourceId + ", sourceVersion=" + sourceVersion
+				+ ", schemaId=" + schemaId + ", owner=" + owner + ", authorizationMode=" + authorizationMode + "]";
 	}
 
 }

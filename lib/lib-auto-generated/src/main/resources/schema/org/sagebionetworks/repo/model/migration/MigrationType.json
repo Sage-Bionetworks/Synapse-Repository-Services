@@ -551,6 +551,14 @@
 			"description": "Table that binds a search configuration to an entity in the hierarchy"
 		},
 		{
+			"name": "EDUC_QUOTA",
+			"description": "Table that tracks eDUC envelope routing quotas"
+		},
+		{
+			"name": "DATA_ACCESS_REQUEST_USER",
+			"description": "Users associated with a data access request (creator, PI, collaborators)"
+		},
+		{
 			"name": "CHANGE",
 			"description": "A record of a change event in the system, used for migration tracking."
 		}

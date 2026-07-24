@@ -287,11 +287,30 @@ public class IT990AuthenticationController {
 			// OK
 		}
 	}
-	
+
+	/**
+	 * Since a browser is needed to get a real authentication code, we are just testing
+	 * that everything is wired up correctly.
+	 * @throws SynapseException
+	 */
+	@Test
+	public void testBindOIDCIdentity() throws SynapseException {
+		try {
+			OAuthValidationRequest request = new OAuthValidationRequest();
+			request.setProvider(OAuthProvider.GOOGLE_OAUTH_2_0);
+			request.setRedirectUrl("https://www.synapse.org");
+			request.setAuthenticationCode("test auth code");
+			synapseClient.bindOIDCIdentity(request);
+			fail();
+		} catch (SynapseForbiddenException e) {
+			// OK
+		}
+	}
+
 	/**
 	 * Since a browser is need to get a real authentication code, we are just testing
 	 * that everything is wires up correctly.
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	@Test
 	public void testUnbindExternalId() throws SynapseException {

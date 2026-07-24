@@ -89,7 +89,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class SubmissionDAOImpl implements SubmissionDAO {
 
 	public static final String SUBMISSION_DOES_NOT_EXIST = "Submission '%s' does not exist";
@@ -97,17 +99,18 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public static final String GET_ID_AND_CHECKSUM_FOR_CHILDREN = DDLUtilsImpl
 			.loadSQLFromClasspath("sql/evaluation/GetIdAndChecksumParentId.sql");
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final IdGenerator idGenerator;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-
-	@Autowired
-	private IdGenerator idGenerator;
+	public SubmissionDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate,
+			NamedParameterJdbcTemplate namedJdbcTemplate, IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;

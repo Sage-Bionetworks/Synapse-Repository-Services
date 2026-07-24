@@ -370,6 +370,43 @@ public interface StackConfiguration {
 	public String getDoiPrefix();
 
 	/**
+	 * Whether the DocuSign integration (used to support electronic Data Use
+	 * Certificates) is enabled.
+	 */
+	public boolean getDocuSignEnabled();
+
+	/**
+	 * DocuSign integration key (a.k.a. OAuth client ID) used to sign JWT
+	 * assertions when requesting an access token.
+	 */
+	public String getDocuSignIntegrationKey();
+
+	/**
+	 * GUID of the DocuSign user to impersonate via the JWT Bearer Grant.
+	 */
+	public String getDocuSignUserId();
+
+	/**
+	 * DocuSign account ID against which template/envelope APIs are invoked.
+	 */
+	public String getDocuSignAccountId();
+
+	/**
+	 * RSA private key (PEM) used to sign DocuSign JWT assertions.
+	 */
+	public String getDocuSignPrivateKey();
+
+	/**
+	 * Base path for the DocuSign REST API (e.g. https://demo.docusign.net/restapi).
+	 */
+	public String getDocuSignBasePath();
+
+	/**
+	 * Hostname for the DocuSign OAuth token endpoint (e.g. account-d.docusign.com).
+	 */
+	public String getDocuSignOAuthBasePath();
+
+	/**
 	 * The maximum size of a backup batch.
 	 * 
 	 * @return
@@ -504,7 +541,7 @@ public interface StackConfiguration {
 	public String getOAuth2ArcusBioClientSecret();
 	
 	/**
-	 * URL for the OIDC server discovery/configuration JSON document
+	 * URL for the OIDC server discovery/configuration JSON document for Arcus Bio
 	 * @return
 	 */
 	public String getOAuth2ArcusBioDiscoveryDocument();
@@ -522,10 +559,28 @@ public interface StackConfiguration {
 	public String getOAuth2SageBioClientSecret();
 	
 	/**
-	 * URL for the OIDC server discovery/configuration JSON document
+	 * URL for the OIDC server discovery/configuration JSON document for Sage Bionetworks
 	 * @return
 	 */
 	public String getOAuth2SageBioDiscoveryDocument();
+
+	/**
+	 * OIDC Client ID for NIH RAS Identity Provider
+	 * @return
+	 */
+	public String getOAuth2NIHRASClientId();
+
+	/**
+	 * OIDC Client Secret for NIH RAS Identity Provider
+	 * @return
+	 */
+	public String getOAuth2NIHRASClientSecret();
+	
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document for NIH RAS
+	 * @return
+	 */
+	public String getOAuth2NIHRASDiscoveryDocument();
 
 	/**
 	 * 
@@ -785,7 +840,7 @@ public interface StackConfiguration {
 	public String getFileServiceEndpoint();
 
 	/**
-	 * 
+	 *
 	 * @return search service endpoint
 	 */
 	public String getSearchServiceEndpoint();
@@ -896,7 +951,7 @@ public interface StackConfiguration {
 	/**
 	 * @return The ID of the key pair for the CloudFront distribution in front of the Synapse data S3 bucket
 	 */
-	String getCloudFrontKeyPairId();
+	String getCloudFrontKeyId();
 
 	/**
 	 * @return The domain name for the CloudFront distribution in front of the Synapse data S3 bucket
@@ -915,4 +970,24 @@ public interface StackConfiguration {
 	 * @return The default project storage limit for the synapse bucket
 	 */
 	Long getDefaultProjectStorageLimit();
+
+	/**
+	 * @return The AWS region for Bedrock Converse API calls.
+	 */
+	String getBedrockConverseRegion();
+	
+	/**
+	 * @return The Claude Haiku model ID.
+	 */
+	String getModelIdClaudeHaiku();
+
+	/**
+	 * @return The Claude Sonnet model ID.
+	 */
+	String getModelIdClaudeSonnet();
+
+	/**
+	 * @return The Claude Opus model ID.
+	 */
+	String getModelIdClaudeOpus();
 }

@@ -62,6 +62,22 @@
 		"concreteType":{
 			"type":"string",
 			"description":"Indicates which implementation of RequestInterface this object represents."
+		},
+		"institution": {
+			"type": "string",
+			"description": "The name of the institution where the collaborators work."
+		},
+		"principalInvestigator": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.PrincipalInvestigator",
+			"description": "Information about the research project's principal investigator."
+		},
+		"signingOfficial": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.SigningOfficial",
+			"description": "Information about the institution's signing official."
+		},
+		"eDucSignatureEnvelopeId": {
+			"type": "string",
+			"description": "The envelope ID for the routed eDUC signature document."
 		}
 	}
 }

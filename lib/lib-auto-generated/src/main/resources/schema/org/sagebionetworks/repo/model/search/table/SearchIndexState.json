@@ -13,6 +13,10 @@
 		{
 			"name": "FAILED",
 			"description": "Last build failed. Queries will fail with an error. Delete or update the SearchIndex to trigger a rebuild."
+		},
+		{
+			"name": "WAITING_FOR_SOURCE",
+			"description": "Source table not yet available; the index build is deferred until the source emits a TABLE_STATUS_EVENT(AVAILABLE), at which point the index is rebuilt. Non-terminal."
 		}
 	]
 }

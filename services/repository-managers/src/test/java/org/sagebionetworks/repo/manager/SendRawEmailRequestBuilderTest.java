@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.message.multipart.Attachment;
 import org.sagebionetworks.repo.model.message.multipart.MessageBody;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
@@ -59,11 +59,11 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertEquals("Foo Bar <foobar@synapse.org>", request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
@@ -104,12 +104,12 @@ public class SendRawEmailRequestBuilderTest {
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
 		String from = EmailUtils.DEFAULT_EMAIL_ADDRESS_LOCAL_PART+config.getNotificationEmailSuffix();
-		assertFalse(request.getSource().equals("Foo Bar <foobar@synapse.org>"));
-		assertEquals(from, request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertFalse(request.source().equals("Foo Bar <foobar@synapse.org>"));
+		assertEquals(from, request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals(from, mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
@@ -153,7 +153,7 @@ public class SendRawEmailRequestBuilderTest {
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 
 		MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
 		BodyPart bodyPart = content.getBodyPart(0);
@@ -242,11 +242,11 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertEquals("Foo Bar <foobar@synapse.org>", request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
@@ -284,11 +284,11 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertEquals("Foo Bar <foobar@synapse.org>", request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
@@ -325,11 +325,11 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertEquals("Foo Bar <foobar@synapse.org>", request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());
@@ -367,11 +367,11 @@ public class SendRawEmailRequestBuilderTest {
 				.withCc("Cc <cc@foo.bar>")
 				.withBcc("Bcc <bcc@foo.bar>")
 				.build();
-		assertEquals("Foo Bar <foobar@synapse.org>", request.getSource());
-		assertEquals(1, request.getDestinations().size());
-		assertEquals("foo@bar.com", request.getDestinations().get(0));
+		assertEquals("Foo Bar <foobar@synapse.org>", request.source());
+		assertEquals(1, request.destinations().size());
+		assertEquals("foo@bar.com", request.destinations().get(0));
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(request.getRawMessage().getData().array()));
+				new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 		assertEquals(1, mimeMessage.getFrom().length);
 		assertEquals("Foo Bar <foobar@synapse.org>", mimeMessage.getFrom()[0].toString());
 		assertEquals("subject", mimeMessage.getSubject());

@@ -1,0 +1,13 @@
+{
+    "description": "Result of validating a DocuSign template for use with Synapse eDUC",
+    "properties": {
+        "isValid": {
+            "type": "boolean",
+            "description": "True if the template meets all requirements for use with Synapse"
+        },
+        "reason": {
+            "type": "string",
+            "description": "If the template is not valid, an explanation of what is missing or incorrect"
+        }
+    }
+}

@@ -1,0 +1,22 @@
+{
+  "description": "The input parameters for a RecordSet generation task. These configure the folder of source FileEntities, the transformation instructions, and the destination RecordSet for the generated CSV.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.curation.CurationTaskProperties"
+    }
+  ],
+  "properties": {
+    "folderId": {
+      "type": "string",
+      "description": "The Synapse ID of the Folder whose direct-child FileEntities provide the source files to be transformed. The contents of every direct-child FileEntity are read into the processing session, subject to these limits: the Folder may contain at most 20 direct-child FileEntities; the task fails if this count is exceeded. Each source file must be one that can be read into the session: the user running the task must be able to download it, its type must be one of PDF, CSV, TXT, or JSON, and it must be no larger than 100 MB. A file that does not meet these per-file limits cannot be added to the session, and the task fails if such a file is required for the transformation."
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Free-text instructions from the data manager describing how the input files should be transformed to produce the output CSV. These are treated as data-transformation guidance only, never as commands that can change the output target or access other resources."
+    },
+    "destinationTaskId": {
+      "type": "integer",
+      "description": "The ID of the record-based CurationTask whose RecordSet will receive the generated CSV as a new version. The JSON Schema bound to that RecordSet defines the format of the generated output CSV."
+    }
+  }
+}

@@ -89,11 +89,45 @@ public class EndpointInfoTest {
 		info.writeToJSONObject(writeTo);
 		Mockito.verify(writeTo, Mockito.times(0)).put(eq("tags"), any(JSONArrayAdapter.class));
 		Mockito.verify(writeTo, Mockito.times(0)).put(eq("operationId"), any(String.class));
+		Mockito.verify(writeTo, Mockito.times(0)).put(eq("deprecated"), any(Boolean.class));
 		Mockito.verify(writeTo, Mockito.times(0)).put(eq("parameters"), any(JSONArrayAdapter.class));
 		Mockito.verify(writeTo, Mockito.times(0)).put(eq("requestBody"), any(JSONObjectAdapter.class));
 		Mockito.verify(info).populateResponses(any());
 		Mockito.verify(writeTo).put("responses", adapter);
 	}
+
+	@Test
+	public void testWriteToJSONObjectWithDeprecatedTrue() throws JSONObjectAdapterException {
+		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
+		responses.put("RESPONSE", new ResponseInfo());
+		EndpointInfo info = Mockito.spy(new EndpointInfo().withResponses(responses).withDeprecated(true));
+		Mockito.doReturn(responses).when(info).getResponses();
+		Mockito.doNothing().when(info).populateResponses(any());
+
+		JSONObjectAdapter writeTo = Mockito.mock(JSONObjectAdapter.class);
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl();
+		Mockito.doReturn(adapter).when(writeTo).createNew();
+		// call under test
+		info.writeToJSONObject(writeTo);
+		Mockito.verify(writeTo).put("deprecated", true);
+	}
+
+	@Test
+	public void testWriteToJSONObjectWithDeprecatedFalse() throws JSONObjectAdapterException {
+		Map<String, ResponseInfo> responses = new LinkedHashMap<>();
+		responses.put("RESPONSE", new ResponseInfo());
+		EndpointInfo info = Mockito.spy(new EndpointInfo().withResponses(responses).withDeprecated(false));
+		Mockito.doReturn(responses).when(info).getResponses();
+		Mockito.doNothing().when(info).populateResponses(any());
+
+		JSONObjectAdapter writeTo = Mockito.mock(JSONObjectAdapter.class);
+		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl();
+		Mockito.doReturn(adapter).when(writeTo).createNew();
+		// call under test
+		info.writeToJSONObject(writeTo);
+		Mockito.verify(writeTo, Mockito.times(0)).put(eq("deprecated"), any(Boolean.class));
+	}
+
 
 	@Test
 	public void testWriteToJSONObjectWithEmptyResponses() {

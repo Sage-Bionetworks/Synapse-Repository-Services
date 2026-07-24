@@ -1,105 +1,93 @@
 package org.sagebionetworks.repo.manager.grid.synch.core;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Component;
 
 /**
- * Implements bidirectional synchronization logic between a copy (CRDT replica)
- * and a source of truth. The synchronization process compares items in both
- * directions and resolves conflicts by merging changes together.
+ * Classifies items between a copy (CRDT replica) and a source of truth into a set
+ * of terminal outcomes, and reports each to a {@link SyncOutcomeHandler}.
  */
 @Component
 public class SynchronizationLogic {
 
 	/**
-	 * Synchronizes items between a copy and a source. The synchronization process
-	 * works in two phases:
-	 * 
+	 * Classifies every item across a copy and a source into one of six terminal
+	 * outcomes and reports each to the given {@link SyncOutcomeHandler}. This engine
+	 * is a pure classifier: it never mutates the copy or the source itself. Every
+	 * change — pushing to the source, pulling into the copy, dropping an item, or
+	 * resolving a conflict — is performed by the handler, which also owns the policy
+	 * for the situations the engine cannot resolve alone (e.g. whether the source
+	 * can accept a user addition).
+	 *
 	 * <p>
 	 * Phase 1: Process all items in the copy
 	 * <ul>
-	 * <li>For each item in the copy, consume the matching item from the source (if
+	 * <li>excluded from matching (never looked up against the source) →
+	 * {@code onCopyOnlyItemAddedByUser}</li>
+	 * <li>For each matchable item in the copy, consume the matching item from the source (if
 	 * it exists)</li>
-	 * <li>If matching source item exists:
-	 * <ul>
-	 * <li>If items match → no action needed</li>
-	 * <li>If items don't match → merge changes together using the merge
-	 * strategy</li>
+	 * <li>present in the source and equal → {@code onCopyAndSourceMatch}</li>
+	 * <li>present in the source but not equal → {@code onCopyAndSourceConflict}</li>
+	 * <li>copy-only and changed by the user → {@code onCopyOnlyItemAddedByUser}</li>
+	 * <li>copy-only and not changed by the user → {@code onCopyOnlyItemDeletedFromSource}</li>
 	 * </ul>
-	 * </li>
-	 * <li>If no matching source item exists:
-	 * <ul>
-	 * <li>If changed by user → add to source (push user's addition)</li>
-	 * <li>If not changed by user → remove from copy (item was deleted from
-	 * source)</li>
-	 * </ul>
-	 * </li>
-	 * </ul>
-	 * 
+	 *
 	 * <p>
-	 * Phase 2: Process remaining items in the source
+	 * Phase 2 (each remaining source item):
 	 * <ul>
-	 * <li>After consuming all matching items, remaining items in source are items
-	 * that don't exist in the copy</li>
-	 * <li>For each remaining source item:
-	 * <ul>
-	 * <li>If deleted by user in copy → remove from source (push user's
-	 * deletion)</li>
-	 * <li>If not deleted by user → add to copy (item was added to source)</li>
+	 * <li>deleted by the user → {@code onSourceOnlyItemDeletedByUserFromCopy}</li>
+	 * <li>otherwise → {@code onSourceOnlyItemAddedSinceLastSync}</li>
 	 * </ul>
-	 * </li>
-	 * </ul>
-	 * 
-	 * @param <C>    the type of items in the copy
-	 * @param <S>    the type of items in the source
-	 * @param copy   the copy to synchronize
-	 * @param source the source of truth to synchronize with
-	 * @param merge  the merge strategy to apply when items don't match
+	 *
+	 * @param <C>       the type of items in the copy
+	 * @param <S>       the type of items in the source
+	 * @param copyItems the items currently in the copy (Phase 1 input)
+	 * @param source    the read-only source of truth
+	 * @param rules     the keying/matching/user-intent rules
+	 * @param handler   notified of the terminal outcome of every item
 	 */
-	public <C extends CopyItem, S extends SourceItem> void synchronize(Copy<C, S> copy, Source<C, S> source,
-			Merge<C, S> merge) {
-		ValidateArgument.required(copy, "copy");
+	public <C extends CopyItem, S extends SourceItem> void synchronize(Stream<C> copyItems, SourceReader<S> source,
+			SyncRules<C, S> rules, SyncOutcomeHandler<C, S> handler) {
+		ValidateArgument.required(copyItems, "copyItems");
 		ValidateArgument.required(source, "source");
-		ValidateArgument.required(merge, "merge");
+		ValidateArgument.required(rules, "rules");
+		ValidateArgument.required(handler, "handler");
 
 		// Phase 1: Process all items in the copy
-		copy.streamItems().forEach(copyItem -> {
-			String key = source.getKey(copyItem);
+		copyItems.forEach(copyItem -> {
+			String key = rules.getKey(copyItem);
 			ValidateArgument.required(key, "key");
+			if (rules.isExcludedFromMatching(copyItem, key)) {
+				handler.onNewCopyItem(copyItem, key);
+				// Excluded items are never looked up against the source
+				return;
+			}
 			Optional<S> sourceValue = source.consume(key);
 			if (sourceValue.isPresent()) {
 				// Item exists in both copy and source
 				S sourceItem = sourceValue.get();
-				if (!source.matches(copyItem, sourceItem)) {
-					// Items don't match - merge them together
-					merge.merge(key, copyItem, sourceItem);
-				}
-				// If items match, no action needed
-			} else {
-				// Item exists only in copy
-				if (copyItem.wasChangedByUser() && source.isItemAdditionSupported()) {
-					// User added item - push to source
-					source.addItem(copyItem);
+				if (rules.matches(copyItem, sourceItem)) {
+					handler.onCopyAndSourceMatch(copyItem, sourceItem);
 				} else {
-					// Item was removed from source - remove from copy
-					copy.removeItem(copyItem);
+					handler.onCopyAndSourceConflict(copyItem, sourceItem);
 				}
+			} else if (copyItem.wasChangedByUser()) {
+				handler.onNewCopyItem(copyItem, key);
+			} else {
+				handler.onDeletedFromSource(copyItem);
 			}
 		});
 
 		// Phase 2: Process remaining items in source (items not in copy)
 		source.streamRemaining().forEach(sourceItem -> {
-			if (copy.wasDeletedByUser(sourceItem.getKey()) && source.isItemRemovalSupported()) {
-				// User deleted item from copy - remove from source
-				source.removeItem(sourceItem);
+			if (rules.wasDeletedByUser(sourceItem)) {
+				handler.onDeletedFromCopy(sourceItem);
 			} else {
-				// Item was added to source, or source does not support removal - pull to copy
-				copy.addItem(sourceItem);
+				handler.onNewSourceItem(sourceItem);
 			}
 		});
-
 	}
-
 }

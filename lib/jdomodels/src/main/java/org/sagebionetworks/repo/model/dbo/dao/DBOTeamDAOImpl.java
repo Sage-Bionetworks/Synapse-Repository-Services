@@ -56,30 +56,29 @@ import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
-/**
- * @author brucehoff
- *
- */
+@Repository
 public class DBOTeamDAOImpl implements TeamDAO {
 
 	public static final String TEAM_ID_DOES_NOT_EXIST = "Team id: '%s' does not exist";
-	@Autowired
-	private DBOBasicDao basicDao;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final TransactionalMessenger transactionalMessenger;
+
+	public DBOTeamDAOImpl(DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate, TransactionalMessenger transactionalMessenger) {
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.transactionalMessenger = transactionalMessenger;
+	}
 
 	private static final RowMapper<DBOTeam> TEAM_ROW_MAPPER = (new DBOTeam()).getTableMapping();
 

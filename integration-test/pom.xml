@@ -115,9 +115,14 @@
 							<org.sagebionetworks.google.cloud.key>${org.sagebionetworks.google.cloud.key}</org.sagebionetworks.google.cloud.key>
 							<org.sagebionetworks.sts.iam.arn>${org.sagebionetworks.sts.iam.arn}</org.sagebionetworks.sts.iam.arn>
 							<org.sagebionetworks.sts.duration.seconds>${org.sagebionetworks.sts.duration.seconds}</org.sagebionetworks.sts.duration.seconds>
-							<org.sagebionetworks.cloudfront.keypair>${org.sagebionetworks.cloudfront.keypair}</org.sagebionetworks.cloudfront.keypair>
+							<org.sagebionetworks.cloudfront.private.key.id>${org.sagebionetworks.cloudfront.private.key.id}</org.sagebionetworks.cloudfront.private.key.id>
 							<org.sagebionetworks.cloudfront.domainname>${org.sagebionetworks.cloudfront.domainname}</org.sagebionetworks.cloudfront.domainname>
 							<org.sagebionetworks.cloudfront.private.key.secret>${org.sagebionetworks.cloudfront.private.key.secret}</org.sagebionetworks.cloudfront.private.key.secret>
+							<org.sagebionetworks.docusign.enabled>${org.sagebionetworks.docusign.enabled}</org.sagebionetworks.docusign.enabled>
+							<org.sagebionetworks.docusign.private.key>${org.sagebionetworks.docusign.private.key}</org.sagebionetworks.docusign.private.key>
+							<org.sagebionetworks.docusign.account.id>${org.sagebionetworks.docusign.account.id}</org.sagebionetworks.docusign.account.id>
+							<org.sagebionetworks.docusign.user.id>${org.sagebionetworks.docusign.user.id}</org.sagebionetworks.docusign.user.id>
+							<org.sagebionetworks.docusign.integration.key>${org.sagebionetworks.docusign.integration.key}</org.sagebionetworks.docusign.integration.key>
 						</systemProperties>
 					</container>
 					<configuration>
@@ -130,7 +135,7 @@
 								-Xms1024m
 								<!--This paramter is need to get XStream to work on Java 17+ and can be removed when we remove XStream -->
 								--add-opens java.base/java.util=ALL-UNNAMED
-							</cargo.jvmargs>							
+							</cargo.jvmargs>
 						</properties>
 					</configuration>
 					<deployables>

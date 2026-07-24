@@ -28,22 +28,24 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOChallengeTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOChallengeTeamDAOImpl implements ChallengeTeamDAO {
 	public static final String CHALLENGE_TEAM_DOES_NOT_EXIST = "Challenge team: '%s' does not exist";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+
+	public DBOChallengeTeamDAOImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+	}
 
 	private static final String CHALLENGE_SQL_CORE = 
 		" FROM "+TABLE_CHALLENGE_TEAM+" WHERE "+

@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
-import org.sagebionetworks.repo.model.schema.SubSchemaIterable;
+import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.schema.FORMAT;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 @Service
 public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 
-	public static final int DEFINITIONS_STRING_LENGTH = "#/definitions/".length();
 	private static final String ID = "id";
 	private static final String ETAG = "etag";
 	public static final String CONCRETE_TYPE = "concreteType";
@@ -456,51 +455,41 @@ public class AnnotationsTranslatorImpl implements AnnotationsTranslator {
 	}
 	
 	/**
-	 * Given a complex schema, return a map that identifies each property as a single value (true),
-	 * or multi-value (false).
+	 * Given a complex schema, return a map that identifies each top-level property
+	 * as a single value ({@link SchemaDataType#SINGLE}), multi-value
+	 * ({@link SchemaDataType#ARRAY}), or of unknown type
+	 * ({@link SchemaDataType#NOT_DEFINED}). The set of top-level properties is
+	 * gathered by {@link JsonSchemaProperties#collectTopLevelProperties(JsonSchema)},
+	 * which walks the schema's combination keywords and resolves {@code $ref}s.
+	 *
 	 * @param schema
 	 * @return
 	 */
 	Map<String, SchemaDataType> buildJsonSchemaIsSingleMap(JsonSchema schema) {
 		Map<String, SchemaDataType> result = new HashMap<>();
-		// definitions for $refs will always be at the root.
-		Map<String, JsonSchema> definitions = schema.getDefinitions() != null ? schema.getDefinitions()
-				: new HashMap<>();
-		for (JsonSchema subSchema : SubSchemaIterable.depthFirstIterable(schema)) {
-			Map<String, JsonSchema> properties = subSchema.getProperties();
-			if (properties != null) {
-				for (String key : properties.keySet()) {
-					JsonSchema typeSchema = properties.get(key);
-					if (typeSchema != null) {
-						if (typeSchema.get$ref() != null) {
-							// replace the $ref with its definition.
-							typeSchema = definitions.get(getRelative$Ref(typeSchema.get$ref()));
-						}
-						if(typeSchema == null){
-							result.put(key, SchemaDataType.NOT_DEFINED);
-						}else if(Type.array.equals(typeSchema.getType())){
-							result.put(key, SchemaDataType.ARRAY);
-						}else{
-							result.put(key, SchemaDataType.SINGLE);
-						}
-					}
-				}
-			}
+		for (Entry<String, JsonSchema> entry : JsonSchemaProperties.collectTopLevelProperties(schema).entrySet()) {
+			result.put(entry.getKey(), toSchemaDataType(entry.getValue()));
 		}
 		return result;
 	}
 	
 	/**
-	 * Given a full $ref path return the relative
-	 * @param $ref
-	 * @return
+	 * Classify a resolved property schema. A null property or one that is still an
+	 * unresolved {@code $ref} has no determinable type
+	 * ({@link SchemaDataType#NOT_DEFINED}); an {@code array} is multi-value; anything
+	 * else is a single value.
+	 *
+	 * @param property the resolved property schema
+	 * @return the schema data type
 	 */
-	String getRelative$Ref(String $ref) {
-		if($ref.length() < DEFINITIONS_STRING_LENGTH) {
-			return $ref;
-		}else {
-			return $ref.substring(DEFINITIONS_STRING_LENGTH);
+	static SchemaDataType toSchemaDataType(JsonSchema property) {
+		if (property == null || property.get$ref() != null) {
+			return SchemaDataType.NOT_DEFINED;
 		}
+		if (Type.array.equals(property.getType())) {
+			return SchemaDataType.ARRAY;
+		}
+		return SchemaDataType.SINGLE;
 	}
 
 	Object stringToObject(AnnotationsValueType type, String value) {

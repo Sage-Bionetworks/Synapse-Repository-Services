@@ -305,6 +305,15 @@ final class SearchFieldRewriter {
 					// A highlight_query body is a full Query subtree — switch surfaces so the
 					// query allowlist + auto-routing applies inside.
 					walk(value, ctx, Surface.QUERY, RoutingMode.BARE);
+				} else if (surface == Surface.AGGREGATIONS && "filter".equals(key) && value.isObject()) {
+					walk(value, ctx, Surface.QUERY, RoutingMode.BARE);
+				} else if (surface == Surface.AGGREGATIONS && "filters".equals(key) && value.isObject()) {
+					JsonNode inner = value.get("filters");
+					if (inner != null) {
+						for (JsonNode query : inner) {
+							walk(query, ctx, Surface.QUERY, RoutingMode.BARE);
+						}
+					}
 				} else {
 					RoutingMode childMode = kindMap.getOrDefault(key, RoutingMode.BARE);
 					if (SHORTHAND_FIELD_KEYED_KINDS.contains(key) && value.isObject()) {

@@ -2,11 +2,11 @@ package org.sagebionetworks.kinesis;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
-import com.amazonaws.services.kinesisfirehose.model.Record;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.firehose.model.Record;
 
 /**
  * An iterator over {@link AwsKinesisLogRecord} that will produce aggregated {@link AwsKinesisRecord} containing as 
@@ -100,10 +100,7 @@ public class AwsKinesisRecordIterator implements Iterator<AwsKinesisRecord> {
 			}
 			
 			byte[] data = byteArrayOutputStream.toByteArray();
-			
-			ByteBuffer buffer = ByteBuffer.wrap(data);
-			
-			return new AwsKinesisRecord(new Record().withData(buffer), data.length);
+			return new AwsKinesisRecord(Record.builder().data(SdkBytes.fromByteArray(data)).build(), data.length);
 		}
 
 	}

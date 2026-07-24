@@ -27,10 +27,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -63,13 +65,15 @@ public class SearchConfigurationManagerImplTest {
 	private TextAnalyzerDao textAnalyzerDao;
 	@Mock
 	private NodeDAO nodeDAO;
+	@Mock
+	private EntityAuthorizationManager entityAuthorizationManager;
 
 	private SearchConfigurationManagerImpl manager;
 
 	@BeforeEach
 	void setUp() {
 		manager = new SearchConfigurationManagerImpl(searchConfigurationDao, aclDao, organizationDao,
-				columnAnalyzerOverrideDao, textAnalyzerDao, nodeDAO);
+				columnAnalyzerOverrideDao, textAnalyzerDao, nodeDAO, entityAuthorizationManager);
 	}
 
 	// --- Sage employee / admin authorization ---
@@ -339,8 +343,9 @@ public class SearchConfigurationManagerImplTest {
 		request.setEntityId("syn123");
 		request.setSearchConfigurationId("456");
 
-		when(aclDao.canAccess(any(UserInfo.class), eq("123"), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
 			.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.project);
 		when(searchConfigurationDao.get("456")).thenReturn(Optional.of(new SearchConfiguration()));
 		SearchConfigBinding expectedBinding = new SearchConfigBinding();
 		expectedBinding.setBindId("1");
@@ -410,8 +415,9 @@ public class SearchConfigurationManagerImplTest {
 		request.setEntityId("syn123");
 		request.setSearchConfigurationId("999");
 
-		when(aclDao.canAccess(any(UserInfo.class), eq("123"), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
 			.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.folder);
 		when(searchConfigurationDao.get("999")).thenReturn(Optional.empty());
 
 		// call under test
@@ -421,12 +427,33 @@ public class SearchConfigurationManagerImplTest {
 	}
 
 	@Test
+	public void testBindSearchConfigToEntityWithNonProjectOrFolderEntity() {
+		// A search configuration can only be bound to a Project or Folder.
+		UserInfo user = new UserInfo(false);
+		user.setId(1L);
+		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+
+		BindSearchConfigToEntityRequest request = new BindSearchConfigToEntityRequest();
+		request.setEntityId("syn123");
+		request.setSearchConfigurationId("456");
+
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
+			.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.searchindex);
+
+		// call under test
+		String message = assertThrows(IllegalArgumentException.class, () -> manager.bindSearchConfigToEntity(user, request)).getMessage();
+		assertEquals("A search configuration can only be bound to a Project or Folder.", message);
+		verify(searchConfigurationDao, never()).bindSearchConfigToObject(anyLong(), anyLong(), anyString(), anyLong());
+	}
+
+	@Test
 	public void testClearSearchConfigBindingWithValidEntity() {
 		UserInfo user = new UserInfo(false);
 		user.setId(1L);
 		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 
-		when(aclDao.canAccess(any(UserInfo.class), eq("123"), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
 			.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
@@ -658,15 +685,16 @@ public class SearchConfigurationManagerImplTest {
 	}
 
 	@Test
-	public void testBindSearchConfigToEntityWithSageNonAdminChecksAcl() {
-		// Sage employee but not admin: ACL check must run against ENTITY/UPDATE.
+	public void testBindSearchConfigToEntityWithSageNonAdminChecksEntityAuthorization() {
+		// Sage employee but not admin: UPDATE check must resolve the benefactor via EntityAuthorizationManager.
 		UserInfo user = new UserInfo(false);
 		user.setId(1L);
 		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 		BindSearchConfigToEntityRequest req = new BindSearchConfigToEntityRequest()
 				.setEntityId("syn123").setSearchConfigurationId("42");
-		when(aclDao.canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.project);
 		when(searchConfigurationDao.get("42")).thenReturn(Optional.of(new SearchConfiguration().setId("42")));
 		when(searchConfigurationDao.getSearchConfigBindingForObject(123L, "entity"))
 				.thenReturn(Optional.of(new SearchConfigBinding()));
@@ -674,8 +702,50 @@ public class SearchConfigurationManagerImplTest {
 		// call under test
 		manager.bindSearchConfigToEntity(user, req);
 
-		verify(aclDao).canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE));
+		verify(entityAuthorizationManager).hasAccess(user, "syn123", ACCESS_TYPE.UPDATE);
 		verify(searchConfigurationDao).bindSearchConfigToObject(42L, 123L, "entity", 1L);
+	}
+
+	@Test
+	public void testBindSearchConfigToEntityWithBenefactorInheritedAccess() {
+		// PLFM-9754: a caller authorized only via the benefactor (no local ACL on the entity) must be able
+		// to bind. The UPDATE check must go through EntityAuthorizationManager (which resolves the benefactor)
+		// and never read the entity's own ACL via aclDao.
+		UserInfo user = new UserInfo(false);
+		user.setId(1L);
+		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		BindSearchConfigToEntityRequest req = new BindSearchConfigToEntityRequest()
+				.setEntityId("syn123").setSearchConfigurationId("42");
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.folder);
+		when(searchConfigurationDao.get("42")).thenReturn(Optional.of(new SearchConfiguration().setId("42")));
+		when(searchConfigurationDao.getSearchConfigBindingForObject(123L, "entity"))
+				.thenReturn(Optional.of(new SearchConfigBinding()));
+
+		// call under test
+		manager.bindSearchConfigToEntity(user, req);
+
+		verify(searchConfigurationDao).bindSearchConfigToObject(42L, 123L, "entity", 1L);
+		// The entity's own ACL must not be consulted directly.
+		verify(aclDao, never()).canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), any(ACCESS_TYPE.class));
+	}
+
+	@Test
+	public void testBindSearchConfigToEntityWithUnauthorized() {
+		// Sage employee but lacks UPDATE on the entity (or its benefactor) → denied, no write.
+		UserInfo user = new UserInfo(false);
+		user.setId(1L);
+		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		BindSearchConfigToEntityRequest req = new BindSearchConfigToEntityRequest()
+				.setEntityId("syn123").setSearchConfigurationId("42");
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+
+		// call under test
+		assertThrows(UnauthorizedException.class, () -> manager.bindSearchConfigToEntity(user, req));
+
+		verify(searchConfigurationDao, never()).bindSearchConfigToObject(anyLong(), anyLong(), anyString(), anyLong());
 	}
 
 	@Test
@@ -691,27 +761,44 @@ public class SearchConfigurationManagerImplTest {
 	}
 
 	@Test
-	public void testClearSearchConfigBindingWithSageNonAdminChecksAcl() {
+	public void testClearSearchConfigBindingWithSageNonAdminChecksEntityAuthorization() {
 		UserInfo user = new UserInfo(false);
 		user.setId(1L);
 		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
-		when(aclDao.canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE)))
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
 				.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
 		manager.clearSearchConfigBinding(user, "syn123");
 
-		verify(aclDao).canAccess(any(UserInfo.class), anyString(), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE));
+		verify(entityAuthorizationManager).hasAccess(user, "syn123", ACCESS_TYPE.UPDATE);
 		verify(searchConfigurationDao).clearSearchConfigBinding(123L, "entity");
 	}
 
 	@Test
-	public void testBindSearchConfigToEntityAsAdminSkipsAcl() {
-		// admin → !user.isAdmin() == false → ACL check skipped (covers L137 admin half).
+	public void testClearSearchConfigBindingWithUnauthorized() {
+		UserInfo user = new UserInfo(false);
+		user.setId(1L);
+		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		when(entityAuthorizationManager.hasAccess(user, "syn123", ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.accessDenied("no"));
+
+		// call under test
+		assertThrows(UnauthorizedException.class, () -> manager.clearSearchConfigBinding(user, "syn123"));
+
+		verify(searchConfigurationDao, never()).clearSearchConfigBinding(anyLong(), anyString());
+	}
+
+	@Test
+	public void testBindSearchConfigToEntityAsAdmin() {
+		// admin → EntityAuthorizationManager grants UPDATE; ORGANIZATION aclDao is untouched here.
 		UserInfo admin = new UserInfo(true);
 		admin.setId(2L);
 		BindSearchConfigToEntityRequest req = new BindSearchConfigToEntityRequest()
 				.setEntityId("syn123").setSearchConfigurationId("42");
+		when(entityAuthorizationManager.hasAccess(admin, "syn123", ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(nodeDAO.getNodeTypeById("syn123")).thenReturn(EntityType.project);
 		when(searchConfigurationDao.get("42")).thenReturn(Optional.of(new SearchConfiguration().setId("42")));
 		when(searchConfigurationDao.getSearchConfigBindingForObject(123L, "entity"))
 				.thenReturn(Optional.of(new SearchConfigBinding()));
@@ -724,10 +811,12 @@ public class SearchConfigurationManagerImplTest {
 	}
 
 	@Test
-	public void testClearSearchConfigBindingAsAdminSkipsAcl() {
-		// admin → !user.isAdmin() == false → ACL check skipped (covers L178 admin half).
+	public void testClearSearchConfigBindingAsAdmin() {
+		// admin → EntityAuthorizationManager grants UPDATE; ORGANIZATION aclDao is untouched here.
 		UserInfo admin = new UserInfo(true);
 		admin.setId(2L);
+		when(entityAuthorizationManager.hasAccess(admin, "syn123", ACCESS_TYPE.UPDATE))
+				.thenReturn(AuthorizationStatus.authorized());
 
 		// call under test
 		manager.clearSearchConfigBinding(admin, "syn123");

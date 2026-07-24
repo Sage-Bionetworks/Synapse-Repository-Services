@@ -26,7 +26,6 @@ import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
-import org.opensearch.client.opensearch._types.query_dsl.BoolQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.search.FieldCollapse;
@@ -233,19 +232,24 @@ public final class SearchOpaqueJsonUtil {
 	 * source / search_after are skipped. {@link SearchQueryPart#TOTAL_HITS} drives the
 	 * {@code track_total_hits} count variant.</p>
 	 *
+	 * <p>Each query in {@code accessFilters} is AND-ed (as a {@code bool.filter} clause) with
+	 * the caller's query, so a document must satisfy both the query and every filter. A
+	 * benefactor-less source passes an empty list, applying no access filter.</p>
+	 *
 	 * @param opaque       the caller's body, in any of the shapes {@link #parse(Object)} accepts
 	 * @param ctx          the column-name &rarr; column-id routing context for the target index
 	 * @param req          the target {@link SearchRequest.Builder} (mutated in place)
 	 * @param options      the response-parts the caller asked for
 	 * @param defaultSize  default {@code size} when the body omits it
 	 * @param maxSize      upper bound on {@code size}; larger values clamp
+	 * @param accessFilters server-side access-control filters to AND with the query; must not be null
 	 * @return             the effective {@code from} written to {@code req} (echoed back to
 	 *                     the caller as {@code SearchQueryResults.offset})
 	 */
 	static int applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
 			SearchRequest.Builder req, Set<SearchQueryPart> options,
-			int defaultSize, int maxSize) {
-		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, maxSize, false);
+			int defaultSize, int maxSize, List<Query> accessFilters) {
+		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, maxSize, false, accessFilters);
 	}
 
 	/**
@@ -255,22 +259,29 @@ public final class SearchOpaqueJsonUtil {
 	 */
 	static int applyAutocompleteBodyToRequest(Object opaque,
 			SearchFieldRewriter.RoutingContext ctx, SearchRequest.Builder req,
-			Set<SearchQueryPart> options, int defaultSize) {
-		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, defaultSize, true);
+			Set<SearchQueryPart> options, int defaultSize, List<Query> accessFilters) {
+		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, defaultSize, true, accessFilters);
 	}
 
 	private static int applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
 			SearchRequest.Builder req, Set<SearchQueryPart> options,
-			int defaultSize, int maxSize, boolean autocomplete) {
+			int defaultSize, int maxSize, boolean autocomplete, List<Query> accessFilters) {
 		// The body is the generated SearchQuery / SearchAutocompleteBody POJO, so any key outside the
 		// schema was already rejected with HTTP 400 at the request boundary, and each surface with an
 		// opaque slot is forbidden-key scanned individually as it is parsed below.
 		JsonNode body = parse(opaque);
 
 		Query query = parseRequiredQuery(body, ctx, autocomplete);
-		// Wrap the caller's allowlist-validated query in a server-controlled bool.must so
-		// future server-side filter clauses can layer on without re-architecting.
-		req.query(q -> q.bool(new BoolQuery.Builder().must(query).build()));
+		// Wrap the caller's allowlist-validated query in a server-controlled bool: the caller's
+		// query goes in must, and every server-side access-control filter goes in filter (AND
+		// semantics) so a document must satisfy the query and every benefactor filter.
+		req.query(q -> q.bool(b -> {
+			b.must(query);
+			if (accessFilters != null && !accessFilters.isEmpty()) {
+				b.filter(accessFilters);
+			}
+			return b;
+		}));
 
 		if (!autocomplete) {
 			JsonNode postFilter = body.get("post_filter");

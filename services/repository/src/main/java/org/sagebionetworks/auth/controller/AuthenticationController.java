@@ -342,6 +342,28 @@ public class AuthenticationController {
 	}
 	
 	/**
+	 * After a user has been authenticated at an OAuth provider's web page, the
+	 * provider will redirect the browser to the provided redirectUrl. The
+	 * provider will add a query parameter to the redirectUrl called "code" that
+	 * represents the authorization code for the user. This method will use the
+	 * authorization code to fetch the provider's ID for the user.  The provider's
+	 * ID will then be bound to the user's account.
+	 * 
+	 * @param request
+	 * @param userId
+	 * @return
+	 * @throws Exception
+	 */
+	@RequiredScope({})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_IDENTITY, method = RequestMethod.POST)
+	public void bindOIDCIdentityToAccount(@RequestBody OAuthValidationRequest request,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
+			throws Exception {
+		authenticationService.bindOIDCIdentity(userId, request);
+	}
+	
+	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the
 	 * provider will redirect the browser to the provided redirectUrl. The
 	 * provider will add a query parameter to the redirectUrl called "code" that

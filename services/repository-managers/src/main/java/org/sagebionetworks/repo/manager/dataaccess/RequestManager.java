@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.dataaccess;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestList;
+import org.sagebionetworks.repo.model.dataaccess.AccessRequestListRequest;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -44,6 +46,8 @@ public interface RequestManager {
 	 * @return
 	 */
 	public RequestInterface getRequestForSubmission(String requestId);
+
+	public AccessRequestList listUserRequests(UserInfo userInfo, AccessRequestListRequest request);
 
 	public void truncateAll();
 }

@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.model.search.dsl.TermFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.TermsAggregation;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.util.TimeUtils;
 
 /**
  * Integration tests for the SearchIndex query path.
@@ -420,8 +421,13 @@ public class ITSearchQueryTest {
 						.setQuery(new Query().setMatch_bool_prefix(
 								Map.of("geneName", new MatchBoolPrefixFieldOptions().setQuery("BRC")))));
 
-		// call under test
-		SearchQueryResults autocompleteResults = synapse.searchAutocomplete(autocompleteRequest);
+		// call under test — AOSS is eventually consistent per query type and per replica, so
+		// the match_all wait above does not guarantee this match_bool_prefix autocomplete sees
+		// every document yet. Poll the autocomplete itself until both BRCA hits surface.
+		SearchQueryResults autocompleteResults = waitForQuery(
+			() -> synapse.searchAutocomplete(autocompleteRequest),
+			r -> r.getHits() != null && r.getHits().size() >= 2,
+			"at least 2 autocomplete hits for 'BRC' (BRCA1, BRCA2)");
 		assertNotNull(autocompleteResults);
 		assertNotNull(autocompleteResults.getHits());
 		assertTrue(autocompleteResults.getHits().size() >= 2,
@@ -451,6 +457,44 @@ public class ITSearchQueryTest {
 		String message = assertThrows(SynapseBadRequestException.class,
 				() -> synapse.startSearchIndexQuery(request)).getMessage();
 		assertEquals("JSON Element in Entity is Unsupported: notPartOfSpecification", message);
+	}
+
+	/**
+	 * A search/autocomplete call against the live cluster that may throw {@link SynapseException}.
+	 */
+	@FunctionalInterface
+	private interface QueryCall {
+		SearchQueryResults call() throws SynapseException;
+	}
+
+	/**
+	 * Poll a synchronous search/autocomplete call until {@code condition} holds, then return the
+	 * matching result. AOSS is eventually consistent per query type and per replica, so a freshly
+	 * built index that already answers a {@code match_all} probe may transiently under-return for a
+	 * different query shape (autocomplete, match, post_filter). Tests asserting on a specific
+	 * synchronous query must poll that exact query rather than trusting a prior wait. Mirrors the
+	 * {@code waitForSearch}/{@code waitForSearchHits} helpers in {@code OpenSearchManagerImplAutoWiredTest}.
+	 *
+	 * @param queryCall   the call under test
+	 * @param condition   the readiness predicate on the result (e.g. expected hit count reached)
+	 * @param description what is being waited for, used in the timeout message
+	 * @return the result that satisfied {@code condition}
+	 */
+	private SearchQueryResults waitForQuery(QueryCall queryCall,
+			java.util.function.Predicate<SearchQueryResults> condition, String description) {
+		SearchQueryResults[] holder = { null };
+		boolean ready = TimeUtils.waitForExponential(MAX_QUERY_TIMEOUT_MS, 1000L, null, (v) -> {
+			try {
+				SearchQueryResults r = queryCall.call();
+				holder[0] = r;
+				return r != null && condition.test(r);
+			} catch (SynapseException e) {
+				// index_not_found / still-propagating — keep polling
+				return false;
+			}
+		});
+		assertTrue(ready, "Timed out waiting for " + description);
+		return holder[0];
 	}
 
 	private void grantPublicRead(String entityId) throws SynapseException {

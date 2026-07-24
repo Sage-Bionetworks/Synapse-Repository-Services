@@ -193,7 +193,7 @@ A spreadsheet-style collaborative editing feature that allows data curators to a
 ### Hub-and-Replica Architecture
 
 - **Grid Session**: Created via async job (`POST /grid/session/async/start`). Represents a collaborative editing session backed by a CRDT document.
-- **Replicas**: Each connected client (or AI agent) gets a unique replica with a numeric `replicaId`. Single writer per replica, multiple readers allowed.
+- **Replicas**: Each connected client (or AI agent) gets a unique replica with a numeric `replicaId`. Single writer per replica, multiple readers allowed. `GridReplicaConnectionManager` creates replicas and publishes their lifecycle events.
 - **Hub**: A cluster of workers that receives patches from all replicas via an **SQS queue**, persists them, and broadcasts `"new-patch"` notifications to all connected replicas.
 
 ### WebSocket Protocol
@@ -215,6 +215,23 @@ The grid document uses JSON-Joy CRDT node types:
 ### Database Representation
 
 Grid patches are stored relationally in `lib-grid-db` tables — the full CRDT document is **never loaded into memory**. A SQL template (`services/repository-managers/src/main/resources/grid/grid-index-view-template.sql`) joins patch tables to produce a paginated tabular view, enabling efficient reads over large datasets.
+
+### Grid Synchronization
+
+A grid session is created *from* a source entity and can be re-synchronized with it later (`POST` a `SynchronizeGridRequest` async job, package `org.sagebionetworks.repo.manager.grid.synch`). `SyncType.PULL` only updates the grid from the source; `SyncType.PULL_PUSH` also writes the merged result back to the source afterward.
+
+- **`SourceHandler` / `SourceWriter`** (`grid.synch.handler`) bridge the generic sync engine to a concrete source type. One pair of implementations exists per source: `EntityViewSourceHandler`/`Writer` and `RecordSetSourceHandler`/`RecordSetSourceWriter`. A `SourceHandler` reports keying/matchability/deletion rules to the engine; the paired `SourceWriter` performs the (optional) push.
+- **Two-phase merge**: Phase 1 reconciles schema (source columns vs. grid columns) and matches rows by a source-supplied key; Phase 2 streams the merged row set, applying CRDT patches to the grid and reporting each final row to the `SourceWriter` for an optional push.
+
+The two source types differ enough to warrant a side-by-side comparison:
+
+| Aspect                | EntityView                                                                                                                           | RecordSet                                                                                                                                                                                                                                                                            |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Supported `SyncType`s | `PULL_PUSH` only                                                                                                                     | `PULL` and `PULL_PUSH`                                                                                                                                                                                                                                                               |
+| Row identity          | The ID of the entity the row represents                                                                                              | The entity's `upsertKey` columns, deterministically encoded by `UpsertKeyEncoder`                                                                                                                                                                                                    |
+| Mutation on push      | **In place** — cell changes write directly to entity annotations                                                                     | **Never in place** — a `PULL_PUSH` push builds a brand-new artifact (data CSV + validation summary, via `RecordSetArtifactBuilder`) and creates a new RecordSet revision                                                                                                             |
+| Deletion detection    | Immediate — every read is against live annotations, so a row/column simply absent from the current read is absent, no history needed | Baseline-relative — each revision's CSV is immutable, so a row/column is only inferred "deleted by the user" by diffing the *synced baseline* (`sourceEntityVersionNumber` recorded on the session) against the latest revision. A null baseline (first sync) never infers deletions |
+| Unmatchable rows      | None — every row is intrinsically keyed by entity ID                                                                                 | Rows with an incomplete `upsertKey` get a synthetic UUID key so they're never matched — always copied through as-is instead of merged                                                                                                                                                |
 
 ### AI Agent Integration
 

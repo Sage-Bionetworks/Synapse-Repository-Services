@@ -18,6 +18,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+
 @ExtendWith(MockitoExtension.class)
 public class FolderMetadataProviderTest {
 	private static final String FOLDER_ID = "syn123";
@@ -40,9 +42,7 @@ public class FolderMetadataProviderTest {
 
 	@BeforeEach
 	public void beforeEach() {
-		event = new EntityEvent();
-		event.setType(EventType.UPDATE);
-		event.setUserInfo(USER_INFO);
+		event = new EntityEvent(EventType.UPDATE, Collections.emptyList(), USER_INFO);
 
 		newFolder = new Folder();
 		newFolder.setId(FOLDER_ID);
@@ -55,7 +55,7 @@ public class FolderMetadataProviderTest {
 
 	@Test
 	public void create() {
-		event.setType(EventType.CREATE);
+		event = new EntityEvent(EventType.CREATE, Collections.emptyList(), USER_INFO);
 		// Method under test - Does not call StsManager.
 		provider.validateEntity(newFolder, event);
 		verifyNoMoreInteractions(mockStsManager);

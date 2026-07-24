@@ -611,6 +611,41 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return configuration.getProperty("org.sagebionetworks.doi.datacite.api.endpoint");
 	}
 
+	@Override
+	public boolean getDocuSignEnabled() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.docusign.enabled"));
+	}
+
+	@Override
+	public String getDocuSignIntegrationKey() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docusign.integration.key");
+	}
+
+	@Override
+	public String getDocuSignUserId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docusign.user.id");
+	}
+
+	@Override
+	public String getDocuSignAccountId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docusign.account.id");
+	}
+
+	@Override
+	public String getDocuSignPrivateKey() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.docusign.private.key");
+	}
+
+	@Override
+	public String getDocuSignBasePath() {
+		return configuration.getProperty("org.sagebionetworks.docusign.api.base.path");
+	}
+
+	@Override
+	public String getDocuSignOAuthBasePath() {
+		return configuration.getProperty("org.sagebionetworks.docusign.oauth.base.path");
+	}
+
 	/**
 	 * The maximum size of a backup batch.
 	 * 
@@ -827,6 +862,33 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public String getOAuth2SageBioDiscoveryDocument() {
 		return configuration.getProperty("org.sagebionetworks.oauth2.sagebio.discoveryDocument");
+	}
+	
+	/**
+	 * OIDC Client ID for NIH RAS Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASClientId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.ras.client.id");
+	}
+
+	/**
+	 * OIDC Client Secret for Sage Bio Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASClientSecret() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.ras.client.secret");
+	}
+
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASDiscoveryDocument() {
+		return configuration.getProperty("org.sagebionetworks.oauth2.nih.ras.discoveryDocument");
 	}
 	
 	/**
@@ -1316,8 +1378,8 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 
 	@Override
-	public String getCloudFrontKeyPairId() {
-		return configuration.getProperty("org.sagebionetworks.cloudfront.keypair");
+	public String getCloudFrontKeyId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.cloudfront.private.key.id");
 	}
 
 	@Override
@@ -1338,5 +1400,25 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public Long getDefaultProjectStorageLimit() {
 		return Long.valueOf(configuration.getProperty("org.sagebionetworks.project.storage.default.limit"));
+	}
+
+	@Override
+	public String getModelIdClaudeHaiku() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.haiku");
+	}
+
+	@Override
+	public String getModelIdClaudeSonnet() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.sonnet");
+	}
+
+	@Override
+	public String getModelIdClaudeOpus() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.opus");
+	}
+
+	@Override
+	public String getBedrockConverseRegion() {
+		return configuration.getProperty("org.sagebionetworks.bedrock.converse.region");
 	}
 }

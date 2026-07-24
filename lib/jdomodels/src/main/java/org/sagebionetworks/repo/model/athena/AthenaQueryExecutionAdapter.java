@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.athena;
 
 import java.util.Objects;
 
-import com.amazonaws.services.athena.model.QueryExecution;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
 
 /**
  * Adapter from AWS {@link QueryExecution} to our {@link AthenaQueryExecution}
@@ -20,22 +20,22 @@ public class AthenaQueryExecutionAdapter implements AthenaQueryExecution {
 
 	@Override
 	public String getQueryExecutionId() {
-		return queryExecution.getQueryExecutionId();
+		return queryExecution.queryExecutionId();
 	}
 
 	@Override
 	public AthenaQueryStatistics getStatistics() {
-		return new AthenaQueryStatisticsAdapter(queryExecution.getStatistics());
+		return new AthenaQueryStatisticsAdapter(queryExecution.statistics());
 	}
 
 	@Override
 	public AthenaQueryExecutionState getState() {
-		return AthenaQueryExecutionState.valueOf(queryExecution.getStatus().getState());
+		return AthenaQueryExecutionState.valueOf(queryExecution.status().state().toString());
 	}
 
 	@Override
 	public String getStateChangeReason() {
-		return queryExecution.getStatus().getStateChangeReason();
+		return queryExecution.status().stateChangeReason();
 	}
 
 	@Override

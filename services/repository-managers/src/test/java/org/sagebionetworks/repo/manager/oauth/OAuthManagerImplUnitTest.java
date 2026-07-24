@@ -1,16 +1,19 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
@@ -18,21 +21,28 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 
 @ExtendWith(MockitoExtension.class)
 public class OAuthManagerImplUnitTest {
-	
-	@Mock
-	private Map<OAuthProvider, OAuthProviderBinding> mockProviderMap;
-	@InjectMocks
-	private OAuthManagerImpl oauthManager;
-	
+
 	@Mock
 	private OAuthProviderBinding mockProvider;
-	
+
+	private OAuthManagerImpl oauthManager;
+
 	private OAuthProvider PROVIDER_ENUM = OAuthProvider.ORCID;
-	
 
 	@BeforeEach
 	public void before() throws Exception {
-		when(mockProviderMap.get(any())).thenReturn(mockProvider);
+		Map<OAuthProvider, OAuthProviderBinding> providerMap = Arrays.stream(OAuthProvider.values())
+				.collect(Collectors.toMap(p -> p, p -> mockProvider));
+		oauthManager = new OAuthManagerImpl(providerMap);
+	}
+
+	@Test
+	public void testConstructorWithMissingProvider() {
+		Map<OAuthProvider, OAuthProviderBinding> incompleteMap = new HashMap<>();
+		incompleteMap.put(OAuthProvider.GOOGLE_OAUTH_2_0, mockProvider);
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> new OAuthManagerImpl(incompleteMap));
 	}
 
 	@Test
@@ -43,7 +53,6 @@ public class OAuthManagerImplUnitTest {
 		assertEquals(expected, oauthManager.getAuthorizationUrl(PROVIDER_ENUM, redirUrl, null));
 	}
 
-	
 	@Test
 	public void testGetAuthorizationUrlWithState() {
 		String redirUrl = "redirectUrl";
@@ -54,7 +63,6 @@ public class OAuthManagerImplUnitTest {
 		assertEquals(expected, oauthManager.getAuthorizationUrl(PROVIDER_ENUM, redirUrl, state));
 	}
 
-	
 	@Test
 	public void testValidateUserWithProvider() {
 		String authCode = "xxx";
@@ -65,7 +73,6 @@ public class OAuthManagerImplUnitTest {
 		assertEquals(expected, oauthManager.validateUserWithProvider(PROVIDER_ENUM, authCode, redirUrl));
 	}
 
-	
 	@Test
 	public void testRetrieveProvidersId() {
 		String authCode = "xxx";

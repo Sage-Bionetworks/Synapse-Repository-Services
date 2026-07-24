@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.Context
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.select.SelectItemElement;
+import org.sagebionetworks.repo.manager.grid.util.GridJsonUtils;
 import org.sagebionetworks.repo.model.grid.CrdtId;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
@@ -91,12 +92,12 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 						.setData(new RowData()
 								.setVectorId(readNullableTimestamp(rs, "VEC_REP", "VEC_SEQ"))
 								.setNodes(rowDataConNodes)
-								.setRowJsonDocument(gridRowToJsonObject(orderedSelectColumnName, rowDataConNodes))));
+								.setRowJsonDocument(GridJsonUtils.gridRowToJsonObject(orderedSelectColumnName, rowDataConNodes))));
 	};
 
 	private static final Function<List<String>, RowMapper<RowView>> createRowViewAggregationMapper = (List<String> columnNames) -> (ResultSet rs, int rowNum) -> {
 		JSONArray rawValues = new JSONArray(rs.getString("SELECTED_VALS"));
-		return new RowView().setRowObject(new RowObject().setData(new RowData().setRowJsonDocument(gridRowToJsonObject(columnNames, rawValues))));
+		return new RowView().setRowObject(new RowObject().setData(new RowData().setRowJsonDocument(GridJsonUtils.gridRowToJsonObject(columnNames, rawValues))));
 	};
 
 	/**
@@ -330,40 +331,4 @@ public class GridReplicaViewManagerImpl implements GridReplicaViewManager {
 				.setAllValidationMessages(r.getAllValidationMessages()).setIsValid(r.getIsValid());
 	}
 
-	/**
-	 * Transforms a list of ordered column names and a list of CRDT ConstantNode values into a JSON object
-	 */
-	public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, List<ConstantNode> rowDataConstantNodes) {
-		ValidateArgument.required(orderedColumnNames, "orderedColumnNames");
-		ValidateArgument.required(rowDataConstantNodes, "rowDataConstantNodes");
-
-		if (rowDataConstantNodes.isEmpty()) {
-			return new JSONObject();
-		}
-
-		JSONObject json = new JSONObject();
-		for (int i = 0; i < orderedColumnNames.size() && i < rowDataConstantNodes.size(); i++) {
-			String col = orderedColumnNames.get(i);
-			if (rowDataConstantNodes.get(i) == null || rowDataConstantNodes.get(i).getConValue() == null || rowDataConstantNodes.get(i).getConValue().isUndefined()) {
-				// The JSON Joy CRDT spec allows 'undefined' values; omit these from the JSON object
-				continue;
-			}
-			json.put(col, rowDataConstantNodes.get(i).getConValue().getValue());
-		}
-		return json;
-	}
-
-	/**
-	 * Transforms a list of ordered column names and a list of raw JSON values into a JSON object
-	 */
-	public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, JSONArray values) {
-		ValidateArgument.required(orderedColumnNames, "orderedColumnNames");
-		ValidateArgument.required(values, "values");
-
-		JSONObject json = new JSONObject();
-		for (int i = 0; i < orderedColumnNames.size() && i < values.length(); i++) {
-			json.put(orderedColumnNames.get(i), values.get(i));
-		}
-		return json;
-	}
 }

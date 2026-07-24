@@ -112,11 +112,25 @@ public interface TableIndexDAO {
 
 	/**
 	 * Get the row count for this table.
-	 * 
+	 *
 	 * @param tableId
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
 	Long getRowCountForTable(IdAndVersion tableId);
+
+	/**
+	 * Get the on-disk byte size of this table's main index table ({@code T<id>}). List
+	 * column data is included as JSON columns on that table. Used to size the number of
+	 * shards for a derived OpenSearch index. The value is the InnoDB
+	 * {@code DATA_LENGTH + INDEX_LENGTH} reported by {@code information_schema.TABLES},
+	 * which is approximate and may lag recent writes — acceptable because callers bucket
+	 * the result into multi-GiB shards.
+	 *
+	 * @param tableId
+	 * @return The total byte size of the table, or null if the table does not exist (no
+	 *         matching rows in {@code information_schema}).
+	 */
+	Long getDataSizeBytesForTable(IdAndVersion tableId);
 
 	/**
 	 * Get the max complete version we currently have for this table.

@@ -823,6 +823,59 @@ public class SearchFieldRewriterTest {
 		assertEquals("title", dsl.get("by_title").get("terms").get("field").asText());
 	}
 
+	@Test
+	public void testRewriteRequestFieldsWithFilterAggDescendsAsQuerySurface() throws IOException {
+		// A filter aggregation's body is a Query subtree; the walker must switch to the query surface
+		// so a term on a text column auto-routes to .keyword (the agg surface would route differently
+		// and the column-name key must still resolve to its id).
+		JsonNode dsl = parse("{\"by_status\":{"
+				+ "\"filter\":{\"term\":{\"title\":\"abc\"}},"
+				+ "\"aggregations\":{\"avg_count\":{\"avg\":{\"field\":\"count\"}}}"
+				+ "}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, ROUTING, Surface.AGGREGATIONS);
+
+		// The filter body's term on text routes to .keyword and the column name maps to its id.
+		assertEquals("abc",
+				dsl.get("by_status").get("filter").get("term").get("100.keyword").asText());
+		// The sibling sub-aggregation still routes on the aggregations surface (numeric → bare).
+		assertEquals("102",
+				dsl.get("by_status").get("aggregations").get("avg_count").get("avg").get("field").asText());
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithFiltersKeyedDescendsAsQuerySurface() throws IOException {
+		// Each named query in a keyed filters bucket is a Query subtree routed on the query surface.
+		JsonNode dsl = parse("{\"by_status\":{\"filters\":{\"filters\":{"
+				+ "\"hits\":{\"term\":{\"title\":\"a\"}},"
+				+ "\"misses\":{\"term\":{\"name\":\"b\"}}"
+				+ "}}}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, ROUTING, Surface.AGGREGATIONS);
+
+		JsonNode buckets = dsl.get("by_status").get("filters").get("filters");
+		assertEquals("a", buckets.get("hits").get("term").get("100.keyword").asText());
+		assertEquals("b", buckets.get("misses").get("term").get("101.keyword").asText());
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithFiltersArrayDescendsAsQuerySurface() throws IOException {
+		// The array (non-keyed) filters form descends into each query the same way.
+		JsonNode dsl = parse("{\"by_status\":{\"filters\":{\"filters\":["
+				+ "{\"term\":{\"title\":\"a\"}},"
+				+ "{\"term\":{\"name\":\"b\"}}"
+				+ "]}}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, ROUTING, Surface.AGGREGATIONS);
+
+		JsonNode buckets = dsl.get("by_status").get("filters").get("filters");
+		assertEquals("a", buckets.get(0).get("term").get("100.keyword").asText());
+		assertEquals("b", buckets.get(1).get("term").get("101.keyword").asText());
+	}
+
 	// -----------------------------------------------------------------------------
 	// Surface enum coverage guard
 	// -----------------------------------------------------------------------------

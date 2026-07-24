@@ -27,6 +27,7 @@ public class RequestUtils {
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setEtag(dto.getEtag());
+		dbo.setEDucEnvelopeId(dto.getEDucSignatureEnvelopeId());
 		copyToSerializedField(dto, dbo);
 	}
 

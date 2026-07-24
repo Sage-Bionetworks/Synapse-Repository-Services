@@ -1,0 +1,9 @@
+{
+	"description": "A request to list eDUC templates.",
+	"properties": {
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of results."
+		}
+	}
+}

@@ -10,15 +10,19 @@ env:
     org_sagebionetworks_cloudfront_domainname: data.dev.sagebase.org
     org_sagebionetworks_sts_duration_seconds: 900
   secrets-manager:
-    org_sagebionetworks_stackEncryptionKey: /build/stack/encryption/key
-    rds_password: build.rds.password
-    # misnomer: "keypair" on the next line is actually just the key id
-    org_sagebionetworks_cloudfront_keypair: org.sagebionetworks.cloudfront.private.key.id
-    org_sagebionetworks_cloudfront_private_key_secret: build.org.sagebionetworks.cloudfront.private.key.secret
-    org_sagebionetworks_google_cloud_key: /build/google/cloud/key
+    rds_password: dev.org.sagebionetworks.repository.database.password
+    # misnomer: "keypair" on the next line is actually just the key id. Also, it's not clear if it's used in production.
+    org_sagebionetworks_cloudfront_private_key_id: dev.org.sagebionetworks.cloudfront.private.key.id
+    org_sagebionetworks_cloudfront_private_key_secret: dev.org.sagebionetworks.cloudfront.private.key.secret
+    org_sagebionetworks_google_cloud_key: dev.org.sagebionetworks.google.cloud.key
+    org_sagebionetworks_datacite_username: dev.org.sagebionetworks.doi.datacite.username
+    org_sagebionetworks_datacite_password: dev.org.sagebionetworks.doi.datacite.password
+    org_sagebionetworks_docusign_private_key: dev.org.sagebionetworks.docusign.private.key
+    org_sagebionetworks_docusign_account_id: dev.org.sagebionetworks.docusign.account.id
+    org_sagebionetworks_docusign_user_id: dev.org.sagebionetworks.docusign.user.id
+    org_sagebionetworks_docusign_integration_key: dev.org.sagebionetworks.docusign.integration.key
     STS_CREDENTIALS: /build/session-token/${user}
     ARTIFACTORY_CREDS: /build/artifactory
-    DATACITE_CREDS: /build/datacite
 phases:
   install:
     runtime-versions:
@@ -59,15 +63,21 @@ phases:
         export org_sagebionetworks_datacite_enabled=true
         export org_sagebionetworks_doi_prefix=10.33627
         export org_sagebionetworks_doi_datacite_api_endpoint=mds.test.datacite.org
-        export org_sagebionetworks_datacite_username=$(echo $DATACITE_CREDS | jq -r '.datacite_username')
-        export org_sagebionetworks_datacite_password=$(echo $DATACITE_CREDS | jq -r '.datacite_password')
         export org_sagebionetworks_sts_iam_arn=$(aws --region us-east-1 cloudformation describe-stacks --stack-name dev-${user}-shared-resources --query 'Stacks[0].Outputs[?OutputKey==`TempCredentialsServiceRoleArn`].OutputValue' --output text)
         export org_sagebionetworks_search_enabled=true
         export org_sagebionetworks_google_cloud_enabled=true
+        export org_sagebionetworks_docusign_enabled=true
       else
         export org_sagebionetworks_search_enabled=false
         export org_sagebionetworks_google_cloud_enabled=false
         unset org_sagebionetworks_google_cloud_key
+        unset org_sagebionetworks_datacite_username
+        unset org_sagebionetworks_datacite_password
+        export org_sagebionetworks_docusign_enabled=false
+        unset org_sagebionetworks_docusign_private_key
+        unset org_sagebionetworks_docusign_account_id
+        unset org_sagebionetworks_docusign_user_id
+        unset org_sagebionetworks_docusign_integration_key
       fi
 
       ./docker_build.sh

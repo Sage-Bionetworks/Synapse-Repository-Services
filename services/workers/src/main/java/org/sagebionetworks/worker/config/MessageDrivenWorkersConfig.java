@@ -14,7 +14,7 @@ import org.sagebionetworks.grid.workers.GridReplicaWorker;
 import org.sagebionetworks.limits.workers.ProjectStorageDataRefreshWorker;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.ses.workers.SESNotificationWorker;
-import org.sagebionetworks.table.worker.MaterializedViewSourceUpdateWorker;
+import org.sagebionetworks.table.worker.DefiningSqlSourceUpdateWorker;
 import org.sagebionetworks.table.worker.ReplicatedToViewWorker;
 import org.sagebionetworks.table.worker.TableSnapshotWorker;
 import org.sagebionetworks.table.worker.UpdateQueryCacheWorker;
@@ -56,14 +56,14 @@ public class MessageDrivenWorkersConfig {
 	}
 
 	@Bean
-	public SimpleTriggerFactoryBean materializedViewSourceUpdateWorkerTrigger(MaterializedViewSourceUpdateWorker materializedViewSourceUpdateWorker) {
-		
-		String queueName = stackConfig.getQueueName("MATERIALIZED_VIEW_SOURCE_UPDATE");
-		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(materializedViewSourceUpdateWorker);
-		
+	public SimpleTriggerFactoryBean definingSqlSourceUpdateWorkerTrigger(DefiningSqlSourceUpdateWorker definingSqlSourceUpdateWorker) {
+
+		String queueName = stackConfig.getQueueName("DEFINING_SQL_SOURCE_UPDATE");
+		MessageDrivenRunner worker = new JsonEntityDrivenRunnerAdapter<>(definingSqlSourceUpdateWorker);
+
 		return new WorkerTriggerBuilder()
 			.withStack(ConcurrentWorkerStack.builder()
-			.withSemaphoreLockKey("materializedViewSourceUpdateWorker")
+			.withSemaphoreLockKey("definingSqlSourceUpdateWorker")
 			.withSemaphoreMaxLockCount(10)
 			.withSemaphoreLockAndMessageVisibilityTimeoutSec(30)
 			.withMaxThreadsPerMachine(2)
@@ -374,5 +374,5 @@ public class MessageDrivenWorkersConfig {
 				.withStartDelay(3063)
 				.build();
 	}
-	
+
 }

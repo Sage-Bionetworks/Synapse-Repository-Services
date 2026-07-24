@@ -1108,7 +1108,7 @@ public class SearchOpaqueJsonUtilTest {
 		SearchRequest.Builder req =
 				new SearchRequest.Builder().index("test-index");
 		SearchOpaqueJsonUtil.applyBodyToRequest(json, nameOnly(Function.identity()), req, options,
-				APPLY_DEFAULT_SIZE, APPLY_MAX_SIZE);
+				APPLY_DEFAULT_SIZE, APPLY_MAX_SIZE, Collections.emptyList());
 		return req.build();
 	}
 
@@ -1117,7 +1117,7 @@ public class SearchOpaqueJsonUtilTest {
 		SearchRequest.Builder req =
 				new SearchRequest.Builder().index("test-index");
 		SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(json, nameOnly(Function.identity()), req,
-				options, APPLY_DEFAULT_SIZE);
+				options, APPLY_DEFAULT_SIZE, Collections.emptyList());
 		return req.build();
 	}
 

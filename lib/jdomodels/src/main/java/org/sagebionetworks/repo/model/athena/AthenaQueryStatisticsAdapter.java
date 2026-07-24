@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.athena;
 
 import java.util.Objects;
 
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
+import software.amazon.awssdk.services.athena.model.QueryExecutionStatistics;
 
 /**
  * Adapter from the AWS {@link QueryExecutionStatistics} to our {@link AthenaQueryStatistics} interface
@@ -20,12 +20,12 @@ public class AthenaQueryStatisticsAdapter implements AthenaQueryStatistics {
 
 	@Override
 	public Long getDataScanned() {
-		return queryStatistics.getDataScannedInBytes();
+		return queryStatistics.dataScannedInBytes();
 	}
 
 	@Override
 	public Long getExecutionTime() {
-		return queryStatistics.getEngineExecutionTimeInMillis();
+		return queryStatistics.engineExecutionTimeInMillis();
 	}
 
 	@Override

@@ -747,7 +747,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -773,7 +773,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -792,7 +792,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -818,7 +818,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -836,7 +836,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -862,7 +862,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -880,7 +880,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -906,7 +906,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}
@@ -923,7 +923,7 @@ public class FileHandleManagerImplTest {
 		when(mockFileHandleDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		when(mockStackConfig.getCloudFrontPrivateKey()).thenReturn(FAKE_PRIVATE_KEY_VALUE);
-		when(mockStackConfig.getCloudFrontKeyPairId()).thenReturn("K123456");
+		when(mockStackConfig.getCloudFrontKeyId()).thenReturn("K123456");
 		when(mockStackConfig.getCloudFrontDomainName()).thenReturn("data.dev.sagebase.org");
 
 		when(mockFeatureManager.isFeatureEnabled((any()))).thenReturn(true);
@@ -948,7 +948,7 @@ public class FileHandleManagerImplTest {
 		verify(mockFileHandleDao).get("123");
 		verify(mockStackConfig).getS3Bucket();
 		verify(mockStackConfig).getCloudFrontPrivateKey();
-		verify(mockStackConfig).getCloudFrontKeyPairId();
+		verify(mockStackConfig).getCloudFrontKeyId();
 		verify(mockStackConfig).getCloudFrontDomainName();
 		verify(mockFeatureManager).isFeatureEnabled(Feature.DATA_DOWNLOAD_THROUGH_CLOUDFRONT);
 	}

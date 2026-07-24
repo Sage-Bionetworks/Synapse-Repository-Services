@@ -21,8 +21,11 @@ import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.StackConfigurationSingleton;
+import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -106,6 +109,9 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 	@Autowired
 	private ColumnModelManager columnModelManager;
 
+	@Autowired
+	private SynapseS3Client s3Client;
+
 	private Long userId;
 	private UserInfo testUser;
 	private Team testTeam;
@@ -116,7 +122,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 
 
 	@BeforeEach
-	public void before() throws DatastoreException, NotFoundException {
+	public void before() throws Exception {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 		
@@ -141,8 +147,10 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		}
 		assertNotNull(testTeam);
 		handleOne = TestUtils.createS3FileHandle(testUser.getId().toString(), idGenerator.generateNewId(IdType.FILE_IDS).toString());
+		handleOne.setBucketName(StackConfigurationSingleton.singleton().getS3Bucket());
 		handleOne.setKey("EntityControllerTest.mainFileKey");
 		handleOne = (S3FileHandle) fileMetadataDao.createFile(handleOne);
+		S3TestUtils.createObjectFromString(handleOne.getBucketName(), handleOne.getKey(), "a,b,c\n1,2,3", s3Client);
 		// create a column model
 		columnModelOne = new ColumnModel();
 		columnModelOne.setName("one");
@@ -169,6 +177,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());
 		}
+		S3TestUtils.doDeleteAfter(s3Client);
 		if (testTeam != null) {
 			teamManager.delete(testUser, testTeam.getId());
 		}

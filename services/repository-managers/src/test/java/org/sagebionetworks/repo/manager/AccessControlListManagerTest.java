@@ -216,10 +216,10 @@ public class AccessControlListManagerTest {
 	@Test
 	public void testCanAccess(){
 		String objectId = "123";
-		when(aclDao.canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		AuthorizationStatus canAccess = aclManager.canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		when(aclDao.canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
+		AuthorizationStatus canAccess = aclManager.canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ);
 		assertNotNull(canAccess);
-		verify(aclDao, times(1)).canAccess(userInfo, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(aclDao, times(1)).canAccess(userInfo, objectId, ObjectType.EVALUATION, ACCESS_TYPE.READ);
 	}
 
 	@Test

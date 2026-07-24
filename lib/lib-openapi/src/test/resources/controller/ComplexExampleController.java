@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.rest.doc.IncludeInOpenApiDoc;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -499,4 +500,13 @@ public class ComplexExampleController {
 	@RequestMapping(value = "/complex-pet/noauthorization", method = RequestMethod.GET)
 	public void getNoAuthorization() {
 	}
+
+	/**
+	 * Example of a deprecated endpoint that is still included in the OpenAPI translation because
+	 * of the {@link IncludeInOpenApiDoc} marker annotation.
+	 */
+	@Deprecated
+	@IncludeInOpenApiDoc
+	@RequestMapping(value = "/complex-pet/deprecated-included", method = RequestMethod.GET)
+	public void getDeprecatedButIncluded() {}
 }

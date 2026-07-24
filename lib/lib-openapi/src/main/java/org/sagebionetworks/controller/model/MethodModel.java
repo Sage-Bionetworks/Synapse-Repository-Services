@@ -17,6 +17,7 @@ public class MethodModel {
 	private RequestBodyModel requestBody;
 	private ResponseModel response;
 	private Boolean authenticationRequired;
+	private Boolean deprecated;
 	
 	public String getPath() {
 		return path;
@@ -90,9 +91,19 @@ public class MethodModel {
 		return this;
 	}
 
+	public Boolean getDeprecated() {
+		return deprecated;
+	}
+
+	public MethodModel withDeprecated(Boolean deprecated) {
+		this.deprecated = deprecated;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, operation, parameters, path, requestBody, response, authenticationRequired);
+		return Objects.hash(name, operation, parameters, path, requestBody, response, authenticationRequired,
+				deprecated);
 	}
 	
 	@Override
@@ -107,12 +118,14 @@ public class MethodModel {
 		return Objects.equals(name, other.name) && operation == other.operation
 				&& Objects.equals(parameters, other.parameters) && Objects.equals(path, other.path)
 				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(response, other.response)
-				&& Objects.equals(authenticationRequired, other.authenticationRequired);
+				&& Objects.equals(authenticationRequired, other.authenticationRequired)
+				&& Objects.equals(deprecated, other.deprecated);
 	}
 
 	@Override
 	public String toString() {
 		return "MethodModel [path=" + path + ", name=" + name + ", operation=" + operation + ", parameters="
-				+ parameters + ", requestBody=" + requestBody + ", response=" + response + ", authenticationRequired=" + authenticationRequired + "]";
+				+ parameters + ", requestBody=" + requestBody + ", response=" + response + ", authenticationRequired="
+				+ authenticationRequired + ", deprecated=" + deprecated + "]";
 	}
 }

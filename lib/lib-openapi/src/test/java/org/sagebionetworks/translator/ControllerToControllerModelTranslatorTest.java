@@ -163,7 +163,7 @@ public class ControllerToControllerModelTranslatorTest {
 		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withDescription(METHOD_BEHAVIOR_COMMENT)
 				.withName(METHOD_NAME).withOperation(Operation.get).withParameters(getExpectedParameters())
 				.withRequestBody(getExpectedRequestBody()).withResponse(getExpectedResponseModel())
-				.withAuthenticationRequired(false);
+				.withAuthenticationRequired(false).withDeprecated(false);
 		expectedMethods.add(expectedMethod);
 		return expectedMethods;
 	}
@@ -624,7 +624,8 @@ public class ControllerToControllerModelTranslatorTest {
 		List<MethodModel> expectedMethods = new ArrayList<>();
 		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withName(METHOD_NAME)
 				.withOperation(Operation.get).withParameters(getExpectedParameters())
-				.withResponse(getExpectedResponseModel()).withAuthenticationRequired(false);
+				.withResponse(getExpectedResponseModel()).withAuthenticationRequired(false)
+				.withDeprecated(false);
 		expectedMethods.add(expectedMethod);
 
 		Reporter reporter = mock(Reporter.class);
@@ -678,7 +679,7 @@ public class ControllerToControllerModelTranslatorTest {
 
 		verify(docTrees).getDocCommentTree(method);
 		verify(method).getKind();
-		verify(method).getAnnotationMirrors();
+		verify(method, times(2)).getAnnotationMirrors();
 		verify(method).getSimpleName();
 	}
 
@@ -691,6 +692,8 @@ public class ControllerToControllerModelTranslatorTest {
 		when(mockName.toString()).thenReturn(METHOD_NAME);
 		enclosedElements.add(mockMethod);
 		when(mockMethod.getAnnotation(any())).thenReturn((Annotation) () -> Deprecated.class);
+		// no @IncludeInOpenApiDoc marker present, so the deprecated method must still be excluded.
+		when(mockMethod.getAnnotationMirrors()).thenReturn(new ArrayList<>());
 		Map<String, ObjectSchema> schemaMap = new HashMap<>();
 		doNothing().when(mockReporter).print(any(), any());
 
@@ -702,6 +705,76 @@ public class ControllerToControllerModelTranslatorTest {
 		verify(mockMethod).getKind();
 		verify(mockMethod).getSimpleName();
 		verify(mockMethod).getModifiers();
+		verify(mockMethod).getAnnotationMirrors();
+	}
+
+	@Test
+	public void testGetMethodsWithDeprecatedAnnotationAndIncludeMarker() {
+		DocTrees docTrees = mock(DocTrees.class);
+		DocCommentTree mockDocCommentTree = mock(DocCommentTree.class);
+		when(docTrees.getDocCommentTree(any(Element.class))).thenReturn(mockDocCommentTree);
+		List<DocTree> blockTags = new ArrayList<>();
+		List<DocTree> fullBody = new ArrayList<>();
+		doReturn(blockTags).when(mockDocCommentTree).getBlockTags();
+		doReturn(fullBody).when(mockDocCommentTree).getFullBody();
+
+		List<Element> enclosedElements = new ArrayList<>();
+		ExecutableElement method = mock(ExecutableElement.class);
+		AnnotationMirror includeMarkerAnnotation = mock(AnnotationMirror.class);
+		List<AnnotationMirror> annoMirrors = new ArrayList<>(Arrays.asList(includeMarkerAnnotation));
+		doReturn(annoMirrors).when(method).getAnnotationMirrors();
+		doReturn("IncludeInOpenApiDoc").when(translator).getSimpleAnnotationName(includeMarkerAnnotation);
+		when(method.getAnnotation(any())).thenReturn((Annotation) () -> Deprecated.class);
+		List<VariableElement> parameters = new ArrayList<>();
+		doReturn(parameters).when(method).getParameters();
+		Name methodName = mock(Name.class);
+		when(method.getSimpleName()).thenReturn(methodName);
+		when(methodName.toString()).thenReturn(METHOD_NAME);
+		when(method.getKind()).thenReturn(ElementKind.METHOD);
+		when(method.getModifiers()).thenReturn(new HashSet<>(Arrays.asList(Modifier.PUBLIC)));
+		enclosedElements.add(method);
+
+		// Mock translator method calls
+		Map<String, String> parameterToDescription = new HashMap<>();
+		parameterToDescription.put(PARAM_1_NAME, PARAM_1_DESCRIPTION);
+		doReturn(parameterToDescription).when(translator).getParameterToDescription(any(List.class));
+
+		Map<Class, Object> annotationToModel = new HashMap<>();
+		RequestMappingModel requestMapping = new RequestMappingModel().withOperation(Operation.get)
+				.withPath(METHOD_PATH);
+		annotationToModel.put(RequestMapping.class, requestMapping);
+		ResponseStatusModel responseStatus = new ResponseStatusModel().withStatusCode(HttpStatus.OK.value());
+		annotationToModel.put(ResponseStatus.class, responseStatus);
+		doReturn(annotationToModel).when(translator).getAnnotationToModel(any(List.class));
+
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+
+		RequestBodyModel requestBody = new RequestBodyModel().withDescription(PARAM_1_DESCRIPTION).withRequired(true)
+				.withId(MOCK_CLASS_NAME);
+		doReturn(Optional.of(requestBody)).when(translator).getRequestBody(any(List.class), any(Map.class),
+				any(Map.class));
+
+		doReturn(Optional.of(METHOD_BEHAVIOR_COMMENT)).when(translator).getBehaviorComment(any(List.class));
+		doReturn(METHOD_PATH).when(translator).getMethodPath(any(RequestMappingModel.class));
+		doReturn(getExpectedParameters()).when(translator).getParameters(any(List.class), any(Map.class),
+				any(Map.class));
+		doReturn(getExpectedResponseModel()).when(translator).getResponseModel(any(ExecutableElement.class),
+				any(List.class), any(Map.class), any(Map.class));
+
+		Reporter reporter = mock(Reporter.class);
+		doNothing().when(reporter).print(any(), any());
+
+		List<MethodModel> expectedMethods = new ArrayList<>();
+		MethodModel expectedMethod = new MethodModel().withPath(METHOD_PATH).withDescription(METHOD_BEHAVIOR_COMMENT)
+				.withName(METHOD_NAME).withOperation(Operation.get).withParameters(getExpectedParameters())
+				.withRequestBody(requestBody).withResponse(getExpectedResponseModel())
+				.withAuthenticationRequired(false).withDeprecated(true);
+		expectedMethods.add(expectedMethod);
+
+		// call under test
+		List<MethodModel> actualMethods = translator.getMethods(enclosedElements, docTrees, schemaMap, reporter);
+		assertEquals(expectedMethods, actualMethods);
+		assertTrue(actualMethods.get(0).getDeprecated());
 	}
 
 	@Test

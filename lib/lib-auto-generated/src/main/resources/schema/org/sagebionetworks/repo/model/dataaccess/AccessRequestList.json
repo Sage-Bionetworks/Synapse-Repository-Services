@@ -1,0 +1,15 @@
+{
+    "description": "List of data access requests",
+    "properties": {
+        "results": {
+            "type": "array",
+            "items": {
+                "$ref": "org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary"
+            }
+        },
+        "nextPageToken": {
+            "type": "string",
+            "description": "The token to get the next page of results."
+        }
+    }
+}

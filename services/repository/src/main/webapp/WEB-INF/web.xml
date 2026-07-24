@@ -22,6 +22,17 @@
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
 
+	<!-- This filter normalizes URLs by removing trailing slashes via 308 redirect.
+	     Must be first in the chain to ensure all subsequent filters work with normalized URLs. -->
+	<filter>
+		<filter-name>trailingSlashRedirectFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.TrailingSlashRedirectFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>trailingSlashRedirectFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
 	<!-- This is the filter to redirect http:// to https:// -->
 	<filter>
 		<filter-name>httpToHttpsFilter</filter-name>
@@ -123,6 +134,7 @@
 		<url-pattern>/auth/v1/sessionAccessToken</url-pattern>
 		<url-pattern>/auth/v1/user/*</url-pattern>
 		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
+		<url-pattern>/auth/v1/oauth2/identity</url-pattern>
 		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
 		<url-pattern>/auth/v1/authenticatedOn</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>

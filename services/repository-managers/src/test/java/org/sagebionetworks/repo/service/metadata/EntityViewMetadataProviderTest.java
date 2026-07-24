@@ -22,8 +22,6 @@ import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.service.metadata.EntityEvent;
-import org.sagebionetworks.repo.service.metadata.EntityViewMetadataProvider;
 
 import com.google.common.collect.Lists;
 

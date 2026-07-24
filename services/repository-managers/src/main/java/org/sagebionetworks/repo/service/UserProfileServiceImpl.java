@@ -325,6 +325,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private static int IS_VERIFIED_MASK = 0x10;
 	private static int IS_ACT_MEMBER_MASK = 0x20;
 	private static int IS_AR_REVIEWER_MASK = 0x40;
+	private static int IDENTITY_PROVIDERS_MASK = 0x80;
 	
 	private UserBundle getUserBundleWithAllPrivateFields(Long profileId, int mask) {
 		UserBundle result = new UserBundle();
@@ -354,6 +355,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		if ((mask&IS_AR_REVIEWER_MASK)!=0) {
 			result.setIsARReviewer(dataAcccessAuthManager.isAccessRequirementReviewer(userInfo));
+		}
+		if ((mask&IDENTITY_PROVIDERS_MASK)!=0) {
+			result.setIdentityProviders(userManager.getIdentityProviders(userInfo));
 		}
 		return result;
 		

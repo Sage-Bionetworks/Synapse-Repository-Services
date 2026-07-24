@@ -369,7 +369,7 @@ public class AdministrationController {
 	}
 	
 	/**
-	 * Obtains an access token for the provided target user, if the target user is supplied a token for the administrator is returned
+	 * Obtains an access token for the provided target user.
 	 * 
 	 * @param userId
 	 * @return

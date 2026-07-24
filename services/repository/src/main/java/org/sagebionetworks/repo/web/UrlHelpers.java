@@ -1180,6 +1180,11 @@ public class UrlHelpers {
 			ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID +"/dataAccessRequestForUpdate";
 
 	public static final String DATA_ACCESS_REQUEST_ID_SUBMISSION = DATA_ACCESS_REQUEST+"/{requestId}/submission";
+	public static final String DATA_ACCESS_REQUEST_LIST = DATA_ACCESS_REQUEST + "/list";
+	public static final String DATA_ACCESS_REQUEST_ID_PREVIEW = DATA_ACCESS_REQUEST + "/{requestId}/preview";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE = DATA_ACCESS_REQUEST + "/{requestId}/signature";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_STATUS = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/status";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_FILE_HANDLE = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/filehandleId";
 	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
 	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
 	public static final String USER_ACCESS_APPROVAL_FOR_SUBMISSION = DATA_ACCESS_SUBMISSION_ID + "/userAccessApproval";
@@ -1196,7 +1201,11 @@ public class UrlHelpers {
 	public static final String ACCESS_APPROVAL_BATCH = ACCESS_APPROVAL+"/batch";
 	public static final String DATA_ACCESS_SUBMISSION_SEARCH = DATA_ACCESS_SUBMISSION + "/search";
 	public static final String DATA_ACCESS_SUBMISSION_THREAD = DATA_ACCESS_SUBMISSION + THREAD + THREAD_ID;
-	
+
+	// Electronic Data Use Certificate (eDUC) services
+	public static final String EDUC_TEMPLATE = "/eDuc/template";
+	public static final String EDUC_TEMPLATE_VALIDATE = "/eDuc/template/{templateId}/validation";
+
 	// Statistics Services
 	public static final String STATISTICS = "/statistics";
 
@@ -1237,6 +1246,7 @@ public class UrlHelpers {
 	public static final String AUTH_OAUTH_2_SESSION = AUTH_OAUTH_2+"/session";
 	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
+	public static final String AUTH_OAUTH_2_IDENTITY = AUTH_OAUTH_2+"/identity";
 	public static final String AUTH_OAUTH_2_ACCOUNT = AUTH_OAUTH_2+"/account";
 	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String WELL_KNOWN = "/.well-known";
@@ -1317,7 +1327,10 @@ public class UrlHelpers {
     public static final String CURATION_TASK_ID = CURATION_TASK + "/{taskId}";
     public static final String CURATION_TASK_LIST = CURATION_TASK + LIST;
     public static final String CURATION_TASK_STATUS = CURATION_TASK_ID + "/status";
-	
+    public static final String CURATION_TASK_EXECUTE = CURATION_TASK_ID + "/execute";
+    public static final String CURATION_TASK_EXECUTE_ASYNC_START = CURATION_TASK_EXECUTE + ASYNC_START_REQUEST;
+    public static final String CURATION_TASK_EXECUTE_ASYNC_GET = CURATION_TASK_EXECUTE + ASYNC_GET_REQUEST;
+
 	/**
 	 * API for creating integration test users
 	 */

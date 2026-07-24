@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.manager.search.SearchConstants;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 
@@ -52,7 +53,7 @@ public class SearchManagerImpl implements SearchManager {
     private SearchDocumentDriver searchDocumentDriver;
 
     public SearchManagerImpl(LoggerProvider logProvider, ChangeMessageToOpenSearchDocumentTranslator translator,
-                             OpenSearchIndexInitializer openSearchIndexInitializer, OpenSearchClient synSearchOssClient,
+                             OpenSearchIndexInitializer openSearchIndexInitializer, @Qualifier("synSearchOssClient") OpenSearchClient synSearchOssClient,
                              SearchDocumentDriver searchDocumentDriver) {
         this.log = logProvider.getLogger(SearchManagerImpl.class.getName());
         this.translator = translator;

@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.athena;
 
-import com.amazonaws.services.athena.model.Row;
+import software.amazon.awssdk.services.athena.model.Row;
 
 /**
  * Mapper for an Athena {@link Row} to perform translation while querying

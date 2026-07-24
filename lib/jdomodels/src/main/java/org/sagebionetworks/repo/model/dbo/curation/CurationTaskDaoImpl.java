@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DUE_DATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ID;
@@ -84,12 +85,14 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 : null;
         Long stateUpdatedBy = rs.getObject(COL_CURATION_TASK_STATE_UPDATED_BY, Long.class);
         Timestamp stateUpdatedOn = rs.getTimestamp(COL_CURATION_TASK_STATE_UPDATED_ON);
+        Timestamp dueDate = rs.getTimestamp(COL_CURATION_TASK_DUE_DATE);
         return new TaskStatus()
                 .setTaskId(rs.getLong(COL_CURATION_TASK_ID))
                 .setState(TaskState.valueOf(rs.getString(COL_CURATION_TASK_STATE)))
                 .setExecutionDetails(executionDetails)
                 .setLastUpdatedBy(stateUpdatedBy != null ? stateUpdatedBy.toString() : null)
                 .setLastUpdatedOn(stateUpdatedOn != null ? new Date(stateUpdatedOn.getTime()) : null)
+                .setDueDate(dueDate != null ? new Date(dueDate.getTime()) : null)
                 .setEtag(rs.getString(COL_CURATION_TASK_ETAG));
     };
 
@@ -203,7 +206,7 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
     public TaskStatus getTaskStatus(Long taskId) {
         try {
             return jdbcTemplate.queryForObject(
-                    "SELECT ID, STATE, EXECUTION_DETAILS, STATE_UPDATED_BY, STATE_UPDATED_ON, ETAG"
+                    "SELECT ID, STATE, EXECUTION_DETAILS, STATE_UPDATED_BY, STATE_UPDATED_ON, DUE_DATE, ETAG"
                             + " FROM CURATION_TASK WHERE ID = ?",
                     TASK_STATUS_ROW_MAPPER, taskId);
         } catch (EmptyResultDataAccessException e) {
@@ -225,12 +228,17 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 ? JDOSecondaryPropertyUtils.createJSONFromObject(statusUpdate.getExecutionDetails())
                 : null;
 
+        Timestamp dueDate = statusUpdate.getDueDate() != null
+                ? new Timestamp(statusUpdate.getDueDate().getTime())
+                : null;
+
         jdbcTemplate.update(
-                "UPDATE CURATION_TASK SET STATE = ?, EXECUTION_DETAILS = ?,"
+                "UPDATE CURATION_TASK SET STATE = ?, EXECUTION_DETAILS = ?, DUE_DATE = ?,"
                         + " STATE_UPDATED_BY = ?, STATE_UPDATED_ON = NOW(3), ETAG = UUID()"
                         + " WHERE ID = ?",
                 statusUpdate.getState().name(),
                 executionDetailsJson,
+                dueDate,
                 userId,
                 taskId);
 
@@ -249,7 +257,7 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
 
     @Override
     public List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
-            List<TaskState> stateFilter, long limit, long offset) {
+            List<TaskState> stateFilter, List<Long> taskIds, long limit, long offset) {
         ValidateArgument.requiredNotEmpty(projectIds, "projectIds");
 
         StringBuilder sql = new StringBuilder("SELECT * FROM CURATION_TASK WHERE PROJECT_ID IN (:projectIds)");
@@ -265,6 +273,11 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
             List<String> stateNames = stateFilter.stream().map(TaskState::name).collect(Collectors.toList());
             sql.append(" AND STATE IN (:stateFilter)");
             params.addValue("stateFilter", stateNames);
+        }
+
+        if (taskIds != null && !taskIds.isEmpty()) {
+            sql.append(" AND " + COL_CURATION_TASK_ID + " IN (:taskIds)");
+            params.addValue("taskIds", taskIds);
         }
 
         sql.append(" ORDER BY ID LIMIT :limit OFFSET :offset");

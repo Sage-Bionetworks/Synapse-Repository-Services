@@ -88,6 +88,5 @@ public class RepoWebConfiguration implements WebMvcConfigurer {
 	private ContentNegotiationStrategy exceptionContentNegotiationStrategy() {
 		return new ExceptionContentNegotiationStrategy(exceptionSerializer.getSupportedMediaTypes());
 	}
-	
-	
+
 }

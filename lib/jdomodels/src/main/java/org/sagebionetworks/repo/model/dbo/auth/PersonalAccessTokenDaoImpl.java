@@ -29,11 +29,12 @@ import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 
 	private static final String PARAM_TOKEN_ID = "id";
@@ -76,18 +77,20 @@ public class PersonalAccessTokenDaoImpl implements PersonalAccessTokenDao {
 				+ " LIMIT 18446744073709551615 OFFSET :" + PARAM_MAX_NUM_TOKENS //Limit is still required even if you just want offset: https://stackoverflow.com/questions/255517/mysql-offset-infinite-rows
 			+ ") tt ON t." + COL_PERSONAL_ACCESS_TOKEN_ID + " = tt." + COL_PERSONAL_ACCESS_TOKEN_ID;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
 	private static final TableMapping<DBOPersonalAccessToken> PERSONAL_ACCESS_TOKEN_TABLE_MAPPING = (new DBOPersonalAccessToken()).getTableMapping();
 	// We serialize explicitly chosen fields, not the entire DTO, so no need to omit fields in the builder
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder().allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"}).build();
+
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
+	public PersonalAccessTokenDaoImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
+	}
 
 	public static DBOPersonalAccessToken personalAccessTokenDtoToDbo(AccessTokenRecord dto) {
 		DBOPersonalAccessToken dbo = new DBOPersonalAccessToken();

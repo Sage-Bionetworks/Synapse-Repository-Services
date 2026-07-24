@@ -41,16 +41,11 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
-/**
- * Basic implementation for a job status CRUD.
- * 
- * @author jmhill
- *
- */
+@Repository
 public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
 	public static final String ASYNCHRONOUS_JOB_DOES_NOT_EXIST = "Asynchronous job: '%s' does not exist";
@@ -73,14 +68,15 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 	private static final String TRUNCATE_ALL = "DELETE FROM "+ASYNCH_JOB_STATUS+" WHERE "+COL_ASYNCH_JOB_ID+" > -1";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+
+	public AsynchJobStatusDAOImpl(JdbcTemplate jdbcTemplate, DBOBasicDao basicDao, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+	}
 	
 	RowMapper<DBOAsynchJobStatus> statusRowMapper = new DBOAsynchJobStatus().getTableMapping();
 

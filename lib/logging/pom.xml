@@ -21,6 +21,10 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>firehose</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -116,6 +120,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-utils</artifactId>
 		</dependency>
+
 
 	</dependencies>
 </project>

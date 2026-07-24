@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.manager.agent.handler.grid.SetValueProcessorFact
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangePublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.UpdateRowChange;
@@ -39,7 +40,6 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaVi
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterTranslation;
-import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -75,7 +75,6 @@ import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
-import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.query.QueryRequest;
@@ -130,7 +129,6 @@ public class GridManagerImpl implements GridManager {
 	private final String gridPatchBucket;
 	private final S3Client s3Client;
 	private final SynapseS3Client synapseS3Client;
-	private final InternalReplicaToHubEventPublisher internalEventPublisher;
 	private final List<CreateGridHandler> createGridHandlers;
 	private final GridAuthorizationManager gridAuthorizationManager;
 	private final UserManager userManager;
@@ -140,14 +138,16 @@ public class GridManagerImpl implements GridManager {
 	private final GridReplicaViewManager gridReplicaViewManager;
 	private final PatchBuilderPublisher patchBuilderPublisher;
 	private final SetValueProcessorFactory setValueProcessorFactory;
+	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 
 	@Autowired
 	public GridManagerImpl(AwsCredentialsProvider awsCredentialsProvider, WebsocketApi websocketApi, GridDao gridDao,
-	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client, InternalReplicaToHubEventPublisher internalEventPublisher,
+	   StackConfiguration config, S3Client s3Client, SynapseS3Client synapseS3Client,
 	   List<CreateGridHandler> createHandlers, GridAuthorizationManager gridAuthorizationManager, UserManager userManager,
 	   ApiGatewayManagementApiAsyncClient apiGatewayManagmentClient, TransferManager transferManager,
 	   TransactionalMessenger transactionalMessenger, GridReplicaViewManager gridReplicaViewManager,
-	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory) {
+	   PatchBuilderPublisher patchBuilderPublisher, SetValueProcessorFactory setValueProcessorFactory,
+	   GridReplicaConnectionManager gridReplicaConnectionManager) {
 		super();
 		this.awsCredentialsProvider = awsCredentialsProvider;
 		this.websocketApi = websocketApi;
@@ -156,7 +156,6 @@ public class GridManagerImpl implements GridManager {
 		this.gridPatchBucket = String.format("%s.grid.patch.sagebase.org", config.getStack());
 		this.s3Client = s3Client;
 		this.synapseS3Client = synapseS3Client;
-		this.internalEventPublisher = internalEventPublisher;
 		this.createGridHandlers = createHandlers;
 		this.gridAuthorizationManager = gridAuthorizationManager;
 		this.userManager = userManager;
@@ -166,6 +165,7 @@ public class GridManagerImpl implements GridManager {
 		this.gridReplicaViewManager = gridReplicaViewManager;
 		this.patchBuilderPublisher = patchBuilderPublisher;
 		this.setValueProcessorFactory = setValueProcessorFactory;
+		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
 	}
 
 	@WriteTransaction
@@ -194,44 +194,22 @@ public class GridManagerImpl implements GridManager {
 		GridSession session = result.getGridSession();
 
 		gridDao.updateSessionBenefactorIds(session.getSessionId(), result.getBenefactorIds());
-		
-		if (result.getGridReplica() != null) {
-			GridReplica replica = result.getGridReplica();
-			/*
-			 * This call will establish a new internal connection to this replica. It will
-			 * also trigger a new [8,"connected"] event to be sent to the replica's worker.
-			 */
-			sendInternalConnectEvent(user, session, replica, EventSource.INTERNAL);
-		}
-		
+
 		if (session.getGridJsonSchema$Id() != null) {
 			// establish the connection to be used the validation worker.
-			GridReplica validationReplica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.VALIDATION);
-			
-			sendInternalConnectEvent(user, session, validationReplica, EventSource.VALIDATION);
+			gridReplicaConnectionManager.createReplicaAndConnect(user.getId(), session.getSessionId(), false,
+					EventSource.VALIDATION);
 		}
 		
 		// establish the connection to be used for jobs triggered by the user
-
-		GridReplica supportReplica = gridDao.createReplica(user.getId(), session.getSessionId(), false, EventSource.USER_SUPPORT);
-		
-		sendInternalConnectEvent(user, session, supportReplica, EventSource.USER_SUPPORT);
+		gridReplicaConnectionManager.createReplicaAndConnect(user.getId(), session.getSessionId(), false,
+				EventSource.USER_SUPPORT);
 		
 		// Creating replicas modify the session ETAG, so we reload it from the database
 		session = gridDao.getGridSession(session.getSessionId()).orElseThrow();
 		
 		return new CreateGridResponse().setGridSession(session);
 	}
-	
-	void sendInternalConnectEvent(UserInfo user, GridSession session, GridReplica replica, EventSource source) {
-		// establish the connection to be used the validation worker.
-		internalEventPublisher.publishEventAfterCommit(
-				new EventContext(EventType.CONNECT, source, UUID.randomUUID().toString()),
-				JsonRxMessageType.Notification, "connection",
-				new Connection().setGridSessionId(GridUtils.gridSessionIdAsLong(session.getSessionId()))
-						.setReplicaId(replica.getReplicaId()).setUserId(user.getId()));
-	}
-	
 
 	/**
 	 * If the grid owner is a team, the user must belong to the team, or the user must be the owner user.
@@ -270,8 +248,8 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(source, "source");
 		// User must have access to the session in order to create a replica
 		validGridSessionAccess(user, gridSessionId);
-		GridReplica replia = gridDao.createReplica(user.getId(), gridSessionId, isAgent, source);
-		return new CreateReplicaResponse().setReplica(replia);
+		GridReplica replica = gridReplicaConnectionManager.createReplica(user.getId(), gridSessionId, isAgent, source);
+		return new CreateReplicaResponse().setReplica(replica);
 	}
 
 	@Override
@@ -368,6 +346,35 @@ public class GridManagerImpl implements GridManager {
 		ValidateArgument.required(benefactorIds, "benefactorIds");
 		gridDao.updateSessionBenefactorIds(sessionId, benefactorIds);
 		evictUnauthorizedConnections(sessionId);
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateSourceEntityVersion(String sessionId, Long sourceVersion) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(sourceVersion, "sourceVersion");
+		gridDao.updateSourceEntityVersion(sessionId, sourceVersion);
+	}
+
+	@WriteTransaction
+	@Override
+	public void updateSessionSchemaId(String sessionId, String schemaId) {
+		ValidateArgument.required(sessionId, "sessionId");
+		GridSession existingSession = gridDao.getGridSession(sessionId)
+				.orElseThrow(() -> new NotFoundException(GRID_SESSION_NOT_FOUND));
+		gridDao.updateSessionSchemaId(sessionId, schemaId);
+		if (schemaId != null) {
+			if (existingSession.getGridJsonSchema$Id() == null) {
+				// The session had no schema bound, so its VALIDATION replica does not
+				// exist yet (it is only created at session-creation time when a schema
+				// is already bound). Create it now so the validation worker has a
+				// connection to publish results through.
+				gridReplicaConnectionManager.createReplicaAndConnect(Long.parseLong(existingSession.getStartedBy()), sessionId,
+						false, EventSource.VALIDATION);
+			}
+			// Publish event to invalidate current validation results
+			gridReplicaConnectionManager.publishSchemaChangedEvent(sessionId);
+		}
 	}
 
 	@Override
@@ -627,9 +634,7 @@ public class GridManagerImpl implements GridManager {
 
 	@Override
 	public GridReplica createAgentReplica(UserInfo user, GridSession session) {
-		GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), true, EventSource.AGENT);
-		sendInternalConnectEvent(user, session, replica, EventSource.AGENT);
-		return replica;
+		return gridReplicaConnectionManager.createReplicaAndConnect(user.getId(), session.getSessionId(), true, EventSource.AGENT);
 	}
 
 	@Override

@@ -134,4 +134,24 @@ public class CsvSchemaReconcilerTest {
 		assertEquals(ColumnType.STRING_LIST, csvSchema.get(1).getColumnType());
 		assertEquals(ColumnType.INTEGER_LIST, csvSchema.get(2).getColumnType());
 	}
+
+	@Test
+	public void testReconcileWithComposedSchema() {
+		// the array property lives behind an allOf + $ref, as in a validation schema
+		Map<String, JsonSchema> defProperties = Collections.singletonMap(
+				"col1", new JsonSchema().setType(Type.array));
+		Map<String, JsonSchema> definitions = Collections.singletonMap(
+				"X", new JsonSchema().setProperties(defProperties));
+
+		List<ColumnModel> csvSchema = Arrays.asList(
+				new ColumnModel().setName("col1").setColumnType(ColumnType.STRING)
+		);
+		JsonSchema validationSchema = new JsonSchema()
+				.setDefinitions(definitions)
+				.setAllOf(Arrays.asList(new JsonSchema().set$ref("#/definitions/X")));
+
+		// call under test
+		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
+		assertEquals(ColumnType.STRING_LIST, csvSchema.get(0).getColumnType());
+	}
 }

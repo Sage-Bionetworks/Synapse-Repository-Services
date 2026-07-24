@@ -49,14 +49,15 @@ import org.sagebionetworks.repo.model.subscription.SubscriptionObjectType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 
 	public static final String OFFSET = "offset";
@@ -65,13 +66,16 @@ public class DBOSubscriptionDAOImpl implements SubscriptionDAO{
 	public static final String SUBSCRIPTION_OBJECT_IDS = "objectIds";
 	public static final String OBJECT_TYPE = "objectType";
 	public static final String SUBSCRIBER_ID = "subscriberId";
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedTemplate;
-	@Autowired
-	private IdGenerator idGenerator;
+
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedTemplate;
+	private final IdGenerator idGenerator;
+
+	public DBOSubscriptionDAOImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedTemplate, IdGenerator idGenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedTemplate = namedTemplate;
+		this.idGenerator = idGenerator;
+	}
 	
 	private static final String SQL_GET_EMAIL_SUBSCRIBERS = "SELECT S."
 			+ COL_SUBSCRIPTION_ID + ", S." + COL_SUBSCRIPTION_SUBSCRIBER_ID

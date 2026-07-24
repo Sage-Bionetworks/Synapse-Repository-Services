@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.validation;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
@@ -38,17 +41,17 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.FilterElement;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.filter.VectorIdFilterElement;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 @ExtendWith(MockitoExtension.class)
 public class GridReplicaValidationManagerImplTest {
@@ -56,11 +59,9 @@ public class GridReplicaValidationManagerImplTest {
 	@Mock
 	private GridReplicaViewManager mockGridReplicaViewManager;
 	@Mock
-	private JsonSchemaManager mockJsonSchemaManager;
+	private GridRowValidator mockGridRowValidator;
 	@Mock
 	private GridDao mockGridDao;
-	@Mock
-	private JsonSchemaValidationManager mockJsonSchemaValidationManager;
 	@Mock
 	private PatchBuilderPublisher mockPatchBuilderPublisher;
 
@@ -77,6 +78,7 @@ public class GridReplicaValidationManagerImplTest {
 	private ValidationResults validationResult;
 	private IntendedChange intendedChange;
 	private GridConnectionInfo validationConnection;
+	private GridConnectionInfo internalConnection;
 
 	@BeforeEach
 	public void before() {
@@ -98,6 +100,8 @@ public class GridReplicaValidationManagerImplTest {
 		intendedChange = new UpdateMetadataChange().setRowMetadataId(rows.get(0).getArrNodeId());
 		validationConnection = new GridConnectionInfo().setConnectionId("con123").setSessionId(sessionId)
 				.setReplicaId(replicaId);
+		internalConnection = new GridConnectionInfo().setConnectionId("internalCon456").setSessionId(sessionId)
+				.setReplicaId(999L);
 	}
 
 	@Spy
@@ -340,7 +344,7 @@ public class GridReplicaValidationManagerImplTest {
 		// call under test
 		manager.validateAllRows(sessionId, replicaId);
 
-		verifyNoMoreInteractions(mockPatchBuilderPublisher, mockJsonSchemaManager, mockJsonSchemaValidationManager);
+		verifyNoMoreInteractions(mockPatchBuilderPublisher, mockGridRowValidator);
 	}
 
 	@Test
@@ -353,7 +357,7 @@ public class GridReplicaValidationManagerImplTest {
 
 	@Test
 	public void testValidateRows() {
-		when(mockJsonSchemaManager.getValidationSchema(schemaId)).thenReturn(jsonSchema);
+		when(mockGridRowValidator.getValidationSchema(schemaId)).thenReturn(jsonSchema);
 		rows.get(0).setRowObject(new RowObject()
 				.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value1\"}"))));
 		// Sets an existing and equal validation result for the second row
@@ -363,7 +367,7 @@ public class GridReplicaValidationManagerImplTest {
 				new RowMetadata().setRowValidation(new RowValidation().setValidationResults(validationResult))));
 		IntendedChange intendedChange2 = new UpdateMetadataChange().setRowMetadataId(rows.get(1).getArrNodeId());
 
-		when(mockJsonSchemaValidationManager.validateBatch(jsonSchema,
+		when(mockGridRowValidator.validateBatch(jsonSchema,
 				List.of(new JsonObjectSubject(rows.get(0).getRowObject().getData().getRowJsonDocument()),
 						new JsonObjectSubject(rows.get(1).getRowObject().getData().getRowJsonDocument())
 				)))
@@ -382,8 +386,8 @@ public class GridReplicaValidationManagerImplTest {
 	public void testCleanupValidation() {
 		validationResult.setSchema$id(schemaId);
 		validationResult.setValidatedOn(new Date());
-		// call under test
-		manager.cleanupValidationResults(validationResult);
+		// call under test — cleanup lives on GridRowValidator
+		GridRowValidator.cleanupValidationResults(validationResult);
 		assertNull(validationResult.getSchema$id());
 		assertNull(validationResult.getValidatedOn());
 	}
@@ -509,5 +513,121 @@ public class GridReplicaValidationManagerImplTest {
 		boolean result = manager.isDataNewerThanValidationResult(rowView);
 
 		assertEquals(false, result);
+	}
+
+	@Test
+	public void testValidateAfterSchemaChangeWithNoSession() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.empty());
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockGridReplicaViewManager, mockPatchBuilderPublisher);
+	}
+
+	@Test
+	public void testValidateSchemaChangeWithNoAfterSchema() {
+		gridSession.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockGridReplicaViewManager, mockPatchBuilderPublisher);
+	}
+
+	@Test
+	public void testValidateAfterSchemaChangeWithNoInternalConnection() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL)).thenReturn(Optional.empty());
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockGridReplicaViewManager, mockPatchBuilderPublisher);
+	}
+
+	/**
+	 * No VALIDATION replica/connection exists for this session yet (e.g. a
+	 * schema was bound after creation, with no schema present at creation time).
+	 * The pending bootstrap means this call must be retried once the replica has
+	 * connected.
+	 */
+	@Test
+	public void testValidateAfterSchemaChangeWithPendingValidationConnection() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.empty());
+
+		// call under test
+		assertThrows(RecoverableMessageException.class, () -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockGridReplicaViewManager, mockPatchBuilderPublisher);
+	}
+
+	@Test
+	public void testValidateAfterSchemaChangeWithNullHeader() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
+		when(mockGridReplicaViewManager.readHeader(sessionId, internalConnection.getReplicaId()))
+				.thenReturn(Optional.empty());
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockPatchBuilderPublisher);
+	}
+
+	@Test
+	public void testValidateAfterSchemaChangeWithEmptyRows() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
+		when(mockGridReplicaViewManager.readHeader(sessionId, internalConnection.getReplicaId()))
+				.thenReturn(Optional.of(gridHeader));
+		when(mockGridReplicaViewManager.getQueryIterator(eq(gridHeader), anyList()))
+				.thenReturn(Collections.emptyIterator());
+
+		// call under test
+		assertDoesNotThrow(() -> manager.validateAfterSchemaChange(sessionId));
+		verifyNoMoreInteractions(mockPatchBuilderPublisher);
+	}
+
+	/**
+	 * The defining behavior of validateSchemaChange: a row whose data is OLDER
+	 * than its existing validation result (i.e. one that validateAllRows would
+	 * skip via isDataNewerThanValidationResult) is still re-validated, because
+	 * the schema itself changed, not the row's data.
+	 */
+	@Test
+	public void testValidateAfterSchemaChangeRevalidatesRowsRegardlessOfStaleness() {
+		when(mockGridDao.getGridSession(sessionId)).thenReturn(Optional.of(gridSession));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.VALIDATION)).thenReturn(Optional.of(validationConnection));
+		when(mockGridReplicaViewManager.readHeader(sessionId, internalConnection.getReplicaId()))
+				.thenReturn(Optional.of(gridHeader));
+
+		LogicalTimestamp validationTimestamp = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(20L);
+		LogicalTimestamp olderDataTimestamp = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L);
+		RowView notStaleRow = new RowView().setRowObject(new RowObject()
+				.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value\"}"))
+						.setNodes(List.of(new ConstantNode().setId(olderDataTimestamp))))
+				.setMetadata(new RowMetadata().setRowValidation(new RowValidation().setConstantId(validationTimestamp))));
+		// sanity check: this row would be skipped by the data-changed filter
+        assertFalse(manager.isDataNewerThanValidationResult(notStaleRow));
+
+		Iterator<RowView> rowIterator = List.of(notStaleRow).iterator();
+		when(mockGridReplicaViewManager.getQueryIterator(eq(gridHeader), anyList())).thenReturn(rowIterator);
+
+		List<IntendedChange> changes = List
+				.of(new UpdateMetadataChange().setRowMetadataId(new LogicalTimestamp().setReplicaId(7L).setSequenceNumber(8L)));
+		doReturn(changes).when(manager).validateRows(eq(gridHeader), eq(schemaId), eq(List.of(notStaleRow)));
+
+		// call under test
+		manager.validateAfterSchemaChange(sessionId);
+
+		verify(mockPatchBuilderPublisher).sendChangesToPatchBuilder(
+				new IntendedChangeSet().setConnectionId(validationConnection.getConnectionId()).setChanges(changes)
+						.setReplicaId(validationConnection.getReplicaId()).setSessionId(sessionId));
 	}
 }

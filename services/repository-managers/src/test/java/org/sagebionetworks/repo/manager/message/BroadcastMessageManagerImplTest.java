@@ -51,7 +51,7 @@ import org.sagebionetworks.repo.model.subscription.Topic;
 import org.sagebionetworks.util.TimeoutUtils;
 import org.sagebionetworks.util.progress.ProgressCallback;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 import com.google.common.collect.Lists;
 
 @ExtendWith(MockitoExtension.class)
@@ -138,7 +138,7 @@ public class BroadcastMessageManagerImplTest {
 		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
-		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(SendRawEmailRequest.builder().build());
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(Collections.emptySet());
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
@@ -182,7 +182,7 @@ public class BroadcastMessageManagerImplTest {
 		when(mockBroadcastMessageBuilder.getBroadcastTopic()).thenReturn(topic);
 		
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
-		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(SendRawEmailRequest.builder().build());
 		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222", "2"));
@@ -234,7 +234,7 @@ public class BroadcastMessageManagerImplTest {
 		
 		when(mockEmailQuarantineDao.isQuarantined(quarantinedEmail)).thenReturn(true);
 		when(mockSubscriptionDAO.getAllEmailSubscribers(topic.getObjectId(), topic.getObjectType())).thenReturn(subscribers);
-		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForSubscriber(any(Subscriber.class))).thenReturn(SendRawEmailRequest.builder().build());
 		// call under test
 		manager.broadcastMessage(mockUser, mockCallback, change);
 
@@ -286,7 +286,7 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test
 	public void testSendMessageToNonSubscribersAllWithPermission() throws Exception {
-		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(SendRawEmailRequest.builder().build());
 		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222"));
@@ -321,7 +321,7 @@ public class BroadcastMessageManagerImplTest {
 
 	@Test
 	public void testSendMessageToNonSubscribersWithUserWithoutPermission() throws Exception {
-		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(SendRawEmailRequest.builder().build());
 		
 		Set<String> userIds = new HashSet<String>();
 		userIds.addAll(Arrays.asList("111", "222"));
@@ -360,7 +360,7 @@ public class BroadcastMessageManagerImplTest {
 		String quarantinedEmail = "quarantined@example.com";
 
 		when(mockEmailQuarantineDao.isQuarantined(quarantinedEmail)).thenReturn(true);
-		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(new SendRawEmailRequest());
+		when(mockBroadcastMessageBuilder.buildEmailForNonSubscriber(any(UserNotificationInfo.class))).thenReturn(SendRawEmailRequest.builder().build());
 		
 		
 		Set<String> userIds = new HashSet<String>();

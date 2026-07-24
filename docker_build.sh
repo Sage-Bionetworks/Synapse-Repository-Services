@@ -23,7 +23,7 @@
 # org.sagebionetworks.doi.datacite.api.endpoint - the endpoint used to connect to DataCite for minting DOIs (e.g. mds.test.datacite.org)
 # org.sagebionetworks.google.cloud.enabled - when set to true, enable Google Cloud features
 # org.sagebionetworks.google.cloud.key - the private key used to log into the Google Cloud service account
-# org.sagebionetworks.cloudfront.keypair - the public key ID used for creating signed URLs for CloudFront distribution in front of the S3 data bucket
+# org.sagebionetworks.cloudfront.private.key.id - the public key ID used for creating signed URLs for CloudFront distribution in front of the S3 data bucket
 # org.sagebionetworks.cloudfront.domainname - the domain name for the CloudFront distribution in front of the S3 data bucket
 # org.sagebionetworks.cloudfront.private.key.secret - the private key for the CloudFront distribution in front of the S3 data bucket
 
@@ -112,7 +112,6 @@ bash -c "mvn clean ${MVN_GOAL} ${EXTRA_ARGS} -U \
 -Dorg.sagebionetworks.id.generator.database.connection.url=jdbc:mysql://${org_sagebionetworks_repository_database_connection_url_in_container}/${db_name} \
 -Dorg.sagebionetworks.repository.database.username=${rds_user_name} \
 -Dorg.sagebionetworks.id.generator.database.username=${rds_user_name} \
--Dorg.sagebionetworks.stackEncryptionKey=${org_sagebionetworks_stackEncryptionKey} \
 ${AWS_CREDS} \
 -Dorg.sagebionetworks.stack.instance=${user} \
 -Dorg.sagebionetworks.developer=${user} \
@@ -130,10 +129,17 @@ ${AWS_CREDS} \
 -Dorg.sagebionetworks.sts.iam.arn=${org_sagebionetworks_sts_iam_arn} \
 -Dorg.sagebionetworks.sts.duration.seconds=${org_sagebionetworks_sts_duration_seconds} \
 -Dorg.sagebionetworks.google.cloud.key="${org_sagebionetworks_google_cloud_key}" \
--Dorg.sagebionetworks.cloudfront.keypair="${org_sagebionetworks_cloudfront_keypair}" \
--Dorg.sagebionetworks.cloudfront.domainname="${org_sagebionetworks_cloudfront_domainname}" \
+-Dorg.sagebionetworks.cloudfront.private.key.id="${org_sagebionetworks_cloudfront_private_key_id}" \
 -Dorg.sagebionetworks.cloudfront.private.key.secret="${org_sagebionetworks_cloudfront_private_key_secret}" \
+-Dorg.sagebionetworks.cloudfront.domainname="${org_sagebionetworks_cloudfront_domainname}" \
+-Dorg.sagebionetworks.docusign.enabled="${org_sagebionetworks_docusign_enabled}" \
+-Dorg.sagebionetworks.docusign.private.key='${org_sagebionetworks_docusign_private_key}' \
+-Dorg.sagebionetworks.docusign.account.id="${org_sagebionetworks_docusign_account_id}" \
+-Dorg.sagebionetworks.docusign.user.id="${org_sagebionetworks_docusign_user_id}" \
+-Dorg.sagebionetworks.docusign.integration.key="${org_sagebionetworks_docusign_integration_key}" \
 -Duser.home=${HOME_DIR_WITHIN_CONTAINER}"
+
+# above it's critical use single quotes around '${org_sagebionetworks_docusign_private_key}' since the value has space characters
 
 clean_up_container ${build_container_name}
 

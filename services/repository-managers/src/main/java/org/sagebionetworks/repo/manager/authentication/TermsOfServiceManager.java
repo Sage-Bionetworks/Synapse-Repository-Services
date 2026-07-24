@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.authentication;
 
-import jakarta.annotation.PostConstruct;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -41,11 +39,6 @@ public class TermsOfServiceManager {
 		this.authDao = authDao;
 		this.githubClient = githubClient;
 		this.clock = clock;
-	}
-
-	@PostConstruct
-	public void initialize() {
-		refreshLatestVersion();
 	}
 
 	/**

@@ -1,0 +1,14 @@
+{
+	"description": "The type of synchronization to perform on a grid session.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "PULL",
+			"description": "Update the grid with the latest data from the source, without writing the grid back to the source."
+		},
+		{
+			"name": "PULL_PUSH",
+			"description": "Update the grid with the latest data from the source, then update the source (the referenced entities for EntityView-based grids, or the source RecordSet for RecordSet-based grids) with the grid data."
+		}
+	]
+}

@@ -41,7 +41,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORealmPrincipal;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -50,18 +49,19 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class RealmDaoImpl implements RealmDao {
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+
+	public RealmDaoImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			NamedParameterJdbcTemplate namedJdbcTemplate, JdbcTemplate jdbcTemplate) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 	
 	private Map<String,Long> principalIdToRealmPrincipalDboId;
 	
@@ -348,6 +348,9 @@ public class RealmDaoImpl implements RealmDao {
 		OAuthIdentityProvider orcidIdp = new OAuthIdentityProvider();
 		orcidIdp.setProvider(OAuthProvider.ORCID);
 		idps.add(orcidIdp);
+		OAuthIdentityProvider nihRasIdp = new OAuthIdentityProvider();
+		nihRasIdp.setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE);
+		idps.add(nihRasIdp);
 		defaultRealm.setIdentityProvider(idps);
 		// idempotent MUST be true to ensure that multiple, concurrent servers
 		// can bootstrap the default realm without any errors

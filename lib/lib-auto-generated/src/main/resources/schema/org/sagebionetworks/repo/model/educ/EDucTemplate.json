@@ -1,0 +1,27 @@
+{
+	"description": "Metadata describing an electronic Data Use Certificate (eDUC) template.",
+	"properties": {
+		"templateId": {
+			"type": "string",
+			"description": "The unique identifier of the template."
+		},
+		"name": {
+			"type": "string",
+			"description": "The template name."
+		},
+		"description": {
+			"type": "string",
+			"description": "A description of the template."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the template was created."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the template was last modified."
+		}
+	}
+}

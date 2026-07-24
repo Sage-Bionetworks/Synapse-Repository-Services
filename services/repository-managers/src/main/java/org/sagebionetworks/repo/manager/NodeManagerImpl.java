@@ -707,11 +707,14 @@ public class NodeManagerImpl implements NodeManager {
 			UnauthorizedException, DatastoreException {
 		validateReadAccess(userInfo, entityId);
 		EntityType type = nodeDao.getNodeTypeById(entityId);
-		if (TableType.lookupByEntityType(type).isPresent()) {
+		if (TableType.lookupByEntityType(type).isPresent() && !EntityType.recordset.equals(type)) {
 			/*
 			 * Snapshots do not exist for the current version of tables/views. Therefore the
 			 * current version is excluded from the results by incrementing the offset by
 			 * one.
+			 *
+			 * An exception is RecordSets - RecordSets are a type of FileEntity that can be
+			 * indexed and queried like a table. The current version is a "real" version.
 			 */
 			offset += 1L;
 		}

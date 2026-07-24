@@ -60,7 +60,7 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.SerializationUtils;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -195,9 +195,9 @@ public class PrincipalManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
 		// check that all template fields have been replaced
@@ -343,9 +343,9 @@ public class PrincipalManagerImplUnitTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest =  argument.getValue();
-		assertEquals(Collections.singletonList(EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String)((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertEquals("Request to add or change new email", mimeMessage.getSubject());
 		// check that all template fields have been replaced

@@ -14,8 +14,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.athena.AthenaSupport;
 
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaPartitionScannerWorkerTest {
@@ -32,26 +32,26 @@ public class AthenaPartitionScannerWorkerTest {
 	@Test
 	public void testFireTrigger() throws Exception {
 		
-		Database database = new Database().withName("Some database");
-		Table table = new Table().withName("Some table");
-		
+		Database database = Database.builder().name("Some database").build();
+		Table table = Table.builder().name("Some table").build();
+
 		when(mockAthenaSupport.getDatabases()).thenReturn(Collections.singletonList(database).iterator());
 		when(mockAthenaSupport.getPartitionedTables(database)).thenReturn(Collections.singletonList(table).iterator());
-		
+
 		// Trigger the worker manually
 		worker.run(null);
-		
+
 		verify(mockAthenaSupport).getDatabases();
 		verify(mockAthenaSupport).getPartitionedTables(database);
 		verify(mockAthenaSupport).repairTable(table);
-		
+
 	}
-	
+
 	@Test
 	public void testFireTriggerAndFail() throws Exception {
-		
-		Database database = new Database().withName("Some database");
-		Table table = new Table().withName("Some table");
+
+		Database database = Database.builder().name("Some database").build();
+		Table table = Table.builder().name("Some table").build();
 		
 		IllegalStateException ex = new IllegalStateException();
 		

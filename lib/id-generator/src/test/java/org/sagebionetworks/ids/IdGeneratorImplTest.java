@@ -18,7 +18,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class IdGeneratorImplTest {
 	
 	@Autowired
-	IdGenerator idGenerator;
+	private IdGenerator idGenerator;
 		
 	@Test
 	public void testNewId(){
@@ -130,4 +130,5 @@ public class IdGeneratorImplTest {
 		// cleanup should not break the sequence
 		assertEquals(new Long(lastId+1L), idGenerator.generateNewId(type));
 	}
+	
 }

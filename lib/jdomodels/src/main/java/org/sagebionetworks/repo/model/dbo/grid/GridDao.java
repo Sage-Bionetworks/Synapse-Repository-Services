@@ -221,6 +221,22 @@ public interface GridDao {
 	void updateSessionBenefactorIds(String sessionId, Set<Long> benefactorIds);
 
 	/**
+	 * Update the synchronized source entity version number for a grid session.
+	 * @param sessionId
+	 * @param sourceVersion
+	 */
+	void updateSourceEntityVersion(String sessionId, Long sourceVersion);
+
+	/**
+	 * Update the bound JSON schema $id recorded on a grid session. This is the
+	 * schema the grid's rows are validated against; it is updated when the source's
+	 * bound schema changes during synchronization.
+	 * @param sessionId
+	 * @param schemaId
+	 */
+	void updateSessionSchemaId(String sessionId, String schemaId);
+
+	/**
 	 * Get the set of benefactor IDs stored for a grid session.
 	 * @param sessionId
 	 * @return Empty set if no benefactor IDs have been stored.

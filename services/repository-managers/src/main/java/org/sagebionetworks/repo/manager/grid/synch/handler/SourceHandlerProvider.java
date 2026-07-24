@@ -29,6 +29,6 @@ public interface SourceHandlerProvider {
 	 *                   with (determines which source implementation to create)
 	 * @return a SourceHandler instance for the specified source type
 	 */
-	SourceHandler createNewProvider(AsyncJobProgressCallback callback, UserInfo user, GridSession session,
-			GridSource gridSource) throws Exception;
+	SourceHandler createNewHandler(AsyncJobProgressCallback callback, UserInfo user, GridSession session,
+	                               GridSource gridSource) throws Exception;
 }

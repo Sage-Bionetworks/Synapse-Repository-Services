@@ -39,6 +39,7 @@ import org.sagebionetworks.controller.model.ResponseModel;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaUtils;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.repo.web.rest.doc.IncludeInOpenApiDoc;
 import org.sagebionetworks.schema.EnumValue;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -240,9 +241,17 @@ public class ControllerToControllerModelTranslator {
 			String methodName = method.getSimpleName().toString();
 			reporter.print(Kind.NOTE, "Extracting method " + methodName);
 
-			if (method.getAnnotation(Deprecated.class) != null) {
+			boolean deprecated = method.getAnnotation(Deprecated.class) != null;
+			boolean forceInclude = hasIncludeInOpenApiDocMarker(method.getAnnotationMirrors());
+
+			if (deprecated && !forceInclude) {
 				reporter.print(Kind.NOTE,  String.format("Method %s has been deprecated and is not included in the OpenAPI translation.", methodName));
 				continue;
+			}
+			if (forceInclude && !deprecated) {
+				reporter.print(Kind.NOTE, String.format(
+						"Method %s has an %s annotation but is not deprecated; the annotation has no effect.",
+						methodName, IncludeInOpenApiDoc.class.getSimpleName()));
 			}
 
 			DocCommentTree docCommentTree = docTrees.getDocCommentTree(method);
@@ -262,10 +271,28 @@ public class ControllerToControllerModelTranslator {
 					.withParameters(getParameters(method.getParameters(), parameterToDescription, schemaMap))
 					.withRequestBody(requestBody.isEmpty() ? null : requestBody.get())
 					.withResponse(getResponseModel(method, docCommentTree.getBlockTags(), annotationToModel, schemaMap))
-					.withAuthenticationRequired(methodHasUserIdParameter(method));
+					.withAuthenticationRequired(methodHasUserIdParameter(method))
+					.withDeprecated(deprecated);
 			methods.add(methodModel);
 		}
 		return methods;
+	}
+
+	/**
+	 * Determines if a method is marked with {@link IncludeInOpenApiDoc}, which forces inclusion of an
+	 * otherwise-{@link Deprecated} method in the OpenAPI translation.
+	 *
+	 * @param methodAnnotations - all of the annotations present on a method.
+	 * @return true if the method has the {@link IncludeInOpenApiDoc} marker annotation, false otherwise.
+	 */
+	boolean hasIncludeInOpenApiDocMarker(List<? extends AnnotationMirror> methodAnnotations) {
+		ValidateArgument.required(methodAnnotations, "methodAnnotations");
+		for (AnnotationMirror annotation : methodAnnotations) {
+			if (IncludeInOpenApiDoc.class.getSimpleName().equals(getSimpleAnnotationName(annotation))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

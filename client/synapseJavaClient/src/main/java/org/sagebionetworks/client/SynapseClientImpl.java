@@ -143,6 +143,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
@@ -162,6 +163,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -638,7 +641,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String AUTH_OAUTH_2_SESSION_V2 = AUTH_OAUTH_2+"/session2";
 	public static final String AUTH_OAUTH_2_ACCOUNT_V2 = AUTH_OAUTH_2+"/account2";
 	public static final String AUTH_OAUTH_2_ALIAS = AUTH_OAUTH_2+"/alias";
-	
+	public static final String AUTH_OAUTH_2_IDENTITY = AUTH_OAUTH_2+"/identity";
+
 	public static final String AUTH_OPENID_CONFIG = "/.well-known/openid-configuration";
 	public static final String AUTH_OAUTH_2_JWKS = AUTH_OAUTH_2+"/jwks";
 	public static final String AUTH_OAUTH_2_CLIENT = AUTH_OAUTH_2+"/client";
@@ -4658,9 +4662,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException {
 		return postJSONEntity(getAuthEndpoint(), AUTH_OAUTH_2_ALIAS, request, PrincipalAlias.class);
-		
+
 	}
-	
+
+	@Override
+	public void bindOIDCIdentity(OAuthValidationRequest request) throws SynapseException {
+		voidPost(getAuthEndpoint(), AUTH_OAUTH_2_IDENTITY, request, null);
+	}
+
 	@Override
 	public void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException {
 		ValidateArgument.required(provider, "provider");
@@ -5538,7 +5547,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public PrincipalAliasResponse getPrincipalAlias(PrincipalAliasRequest request) throws SynapseException {
-		return postJSONEntity(getRepoEndpoint(), PRINCIPAL+"/alias", request, PrincipalAliasResponse.class);
+		return postJSONEntity(getRepoEndpoint(), PRINCIPAL+"/alias/", request, PrincipalAliasResponse.class);
 	}
 
 	@Override
@@ -5785,6 +5794,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			url += "?nextPageToken="+nextPageToken;
 		}
 		return getJSONEntity(getRepoEndpoint(), url, OpenSubmissionPage.class);
+	}
+
+	private static final String EDUC_TEMPLATE = "/eDuc/template";
+
+	@Override
+	public EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException {
+		return postJSONEntity(getRepoEndpoint(), EDUC_TEMPLATE, request, EDucTemplatePage.class);
 	}
 
 	@Override
@@ -6709,6 +6725,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
     @Override
     public TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException {
         return putJSONEntity(getRepoEndpoint(), "/curation/task/" + taskId + "/status", statusUpdate, TaskStatus.class);
+    }
+
+    @Override
+    public String startComputeTaskExecution(Long taskId) throws SynapseException {
+        AsyncJobId jobId = postJSONEntity(getRepoEndpoint(), "/curation/task/" + taskId + "/execute/async/start", null, AsyncJobId.class);
+        return jobId.getToken();
+    }
+
+    @Override
+    public ComputeTaskExecutionResponse getComputeTaskExecutionResult(Long taskId, String asyncToken) throws SynapseException, SynapseResultNotReadyException {
+        String url = "/curation/task/" + taskId + "/execute/async/get/" + asyncToken;
+        return (ComputeTaskExecutionResponse) getAsynchJobResponse(url, ComputeTaskExecutionResponse.class, getRepoEndpoint());
     }
 
 	@Override

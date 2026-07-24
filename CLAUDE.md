@@ -4,11 +4,11 @@ Backend platform for Sage Bionetworks' Synapse — a collaborative research data
 
 ## Tech Stack
 
-- **Java 21 LTS** (upgraded for Spring AI Bedrock AgentCore support)
-- **Spring 6.1.10** (Spring MVC, Spring JDBC, Spring AOP) — NOT Spring Boot
+- **Java 21 LTS**
+- **Spring 6.x** (Spring MVC, Spring JDBC, Spring AOP) — NOT Spring Boot
 - **jakarta.servlet / jakarta.annotation** — migrated from javax.* for Spring 6 compatibility
-- **MySQL 8.0** via Spring JdbcTemplate (no ORM, no Spring Data)
-- **Tomcat 9** (WAR deployment)
+- **MySQL 8.x** via Spring JdbcTemplate (no ORM, no Spring Data)
+- **Tomcat 10x** (WAR deployment)
 - **Jackson 2.20.0**, Log4j 2, Guava 30.1.1
 - **AWS SDK v1** (1.12.x) + **AWS SDK v2** (2.29.x), Google Cloud Storage
 - **No Lombok**
@@ -21,6 +21,13 @@ mvn clean install -pl <module-path> -DskipTests          # Single module
 mvn test -pl <module-path>                               # Unit tests for module
 mvn test -pl <module-path> -Dtest=<TestClassName>        # Single test class
 ```
+
+## Maven Dependency Management
+
+- **Dependency versions**: ALL dependency versions (including internal lib modules) MUST be defined in the root `pom.xml` `<dependencyManagement>` section
+- **Sub-module poms**: Sub-module `pom.xml` files declare dependencies WITHOUT `<version>` tags — versions are inherited from the root
+- **Why**: This ensures consistent versions across all modules and prevents version conflicts in the reactor build
+- **Example**: When adding a new lib module (e.g., `lib-database-configuration`), add it to the root pom's `<dependencyManagement>` with `<version>${project.version}</version>`, then sub-modules can reference it with just `<groupId>` and `<artifactId>`
 
 ## Module Structure
 
@@ -82,7 +89,7 @@ platform (root)
 - Unit tests: `*Test.java` — JUnit 5 + Mockito 2.27
   - `@ExtendWith(MockitoExtension.class)`, `@Mock`, `@InjectMocks`
 - Integration tests: `IT*.java` (in integration-test module)
-- **Mockito 5.23.0** — strict stubbing is enabled by default
+- **Mockito 5.x** — strict stubbing is enabled by default
   - **Functional/lambda parameters**: When mocking methods that accept functional interfaces (e.g., OpenSearch Java client's `search(Function<...>, Class)`), use `doAnswer()` to execute the lambda parameter. The lambda must be invoked to trigger validation logic inside it. See `OpenSearchManagerImplTest.stubSearchToExecuteLambda()` for the pattern.
   - **Varargs parameters**: When a method has varargs and the implementation passes an array, match with the array type. Example: for `method(String... keys)` called with `String[]`, use `any(String[].class)` not `any(String.class)`. For `method(IdAndVersion... ids)` called with `IdAndVersion[]`, use `any(IdAndVersion[].class)`.
   - **Overloaded methods**: When mocking overloaded methods, be explicit about which overload to match — using `any()` without type can cause ambiguous method reference errors.
@@ -180,6 +187,22 @@ See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md` for th
 - **Controller testing**: Use IT tests with the Java client in `integration-test/`, not autowired controller tests (`*AutowiredTest` classes). Every new controller method needs a corresponding `SynapseClient`/`SynapseClientImpl` method and an IT test. Deep logic checks belong in manager unit tests; IT tests just verify each HTTP call works.
 - **Exception mapping**: `NumberFormatException` extends `IllegalArgumentException`, which maps to HTTP 400. It is acceptable to let it propagate without wrapping.
 - **Reuse existing constants**: Before defining a new string constant, check if it already exists in a shared constants class (e.g., `SqlConstants`). Add new constants to the appropriate shared class rather than defining them locally.
+- **Multi-value LIST columns**: Stored as JSON on the main table (`T<id>`) and unnested at query time via `JSON_TABLE(...)` — they are **not** separate physical index tables (that model was removed in PLFM-7968).
+
+## Code Comments
+
+- **Prioritize Expressive Code**: Write highly readable, self-documenting code as the primary means of explanation. Use comments exclusively to provide critical context that cannot be naturally expressed through clean naming conventions and clear structure.
+- **Target the Audience (Javadocs vs. Inline)**: Match documentation placement to its specific consumer:
+  - **Public API (Javadocs)**: Focus class and method Javadocs strictly on the public contract, defining the behavior, parameters, and return values expected by the caller at that specific level of abstraction.
+  - **Internal Logic (Inline Comments)**: Place all underlying execution details, algorithmic mechanics, and internal complexities entirely within inline comments inside the implementation body.
+- **Document Intent, Refactor Mechanics**: Dedicate internal comments to explaining the underlying business logic, constraints, and rationale behind the code (the Why). Allow the code architecture to explain the execution (the What). Treat any impulse to write step-by-step prose about what the code is doing as an immediate signal to refactor the code into clearer, smaller functions.
+- **Current State Only**: Code comments and CLAUDE.md files should exclusively describe the current state, logic, and intent of the code.
+  - Keep historical context, diff explanations, and "before vs. after" commentary entirely within planning documents, commit messages, PR descriptions, or narrowly scoped as comments that are co-located with specific regression tests.
+  - Limit references to past logic strictly to active, ongoing code migration paths that directly impact current execution.
+- **Stable References**: Code comments and CLAUDE.md files should use reference points that survive automated refactoring and ongoing codebase evolution.
+  - Point to other code exclusively through language-supported dynamic links (like Javadoc {@link}) or external issue keys (like PLFM-1234).
+  - Define target locations using conceptual names or programmable signatures instead of brittle options like absolute file paths or hard-coded line numbers.
+
 
 ## Critical Constraints
 

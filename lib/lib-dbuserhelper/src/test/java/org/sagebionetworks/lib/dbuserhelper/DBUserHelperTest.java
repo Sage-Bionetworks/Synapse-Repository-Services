@@ -29,10 +29,10 @@ class DBUserHelperTest {
 		when(mockConfig.getDbReadOnlyPassword()).thenReturn("userPassword");
 		when(mockConfig.getStack()).thenReturn("dev");
 		when(mockConfig.getStackInstance()).thenReturn("101");
-		when(mockTemplate.update(anyString())).thenReturn(1, 1);
-		DBUserHelper dbUserHelper = new DBUserHelper(mockConfig);
+		when(mockTemplate.update(anyString())).thenReturn(1, 1, 1);
+
 		// call under test
-		dbUserHelper.createDbReadOnlyUser(mockTemplate);
+		DBUserHelper.createDbReadOnlyUser(mockTemplate, mockConfig);
 
 		verify(mockTemplate).update("CREATE USER IF NOT EXISTS 'userName'@'%' IDENTIFIED BY 'userPassword'");
 		verify(mockTemplate).update("GRANT PROCESS, SELECT ON *.* TO 'userName'@'%'");

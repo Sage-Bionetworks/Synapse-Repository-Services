@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager.oauth;
 
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -25,6 +27,11 @@ public class OAuthManagerImpl implements OAuthManager {
 	private Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap;
 	
 	public OAuthManagerImpl(Map<OAuthProvider, OAuthProviderBinding> oauthProvidersBindingMap) {
+		Set<OAuthProvider> missing = EnumSet.allOf(OAuthProvider.class);
+		missing.removeAll(oauthProvidersBindingMap.keySet());
+		if (!missing.isEmpty()) {
+			throw new IllegalStateException("Missing OAuthProviderBinding for: " + missing);
+		}
 		this.oauthProvidersBindingMap = oauthProvidersBindingMap;
 	}
 

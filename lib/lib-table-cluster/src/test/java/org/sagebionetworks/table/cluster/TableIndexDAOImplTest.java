@@ -426,6 +426,42 @@ public class TableIndexDAOImplTest {
 	}
 
 	@Test
+	public void testGetDataSizeBytesForTableWithMissingTable() {
+		// Table has never been created — SUM over zero rows returns null
+		tableIndexDAO.deleteTable(tableId);
+
+		// call under test
+		Long size = tableIndexDAO.getDataSizeBytesForTable(tableId);
+
+		assertNull(size, "getDataSizeBytesForTable must return null for a table that does not exist");
+	}
+
+	@Test
+	public void testGetDataSizeBytesForTableWithPopulatedTable() {
+		// Create the table, insert rows, then verify the reported size is positive.
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		createOrUpdateTable(allTypes, indexDescription);
+
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getSelectColumns(allTypes));
+		set.setTableId(tableId.toString());
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelTestUtils.assignRowIdsAndVersionNumbers(set, range);
+		createOrUpdateOrDeleteRows(tableId, set, allTypes);
+
+		// call under test
+		Long size = tableIndexDAO.getDataSizeBytesForTable(tableId);
+
+		assertNotNull(size, "getDataSizeBytesForTable must return non-null for a populated table");
+		assertTrue(size > 0L, "getDataSizeBytesForTable must return a positive value for a populated table, got: " + size);
+	}
+
+	@Test
 	public void testGetMaxVersionForTable() {
 		tableIndexDAO.createSecondaryTables(tableId);
 		// Before the table exists the max version should be -1L

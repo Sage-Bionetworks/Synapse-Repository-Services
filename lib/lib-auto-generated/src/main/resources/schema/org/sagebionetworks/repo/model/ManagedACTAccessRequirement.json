@@ -41,6 +41,10 @@
 		"isTwoFaRequired": {
 			"type": "boolean",
 			"description": "If true, then accessor needs to enable two factor authentication before gaining access to the data."
+		},
+		"eDucTemplateId": {
+			"type": "string",
+			"description": "The ID of the electronic Data Use Certificate (eDUC) template to fill out for data access requests."
 		}
 	}
 }

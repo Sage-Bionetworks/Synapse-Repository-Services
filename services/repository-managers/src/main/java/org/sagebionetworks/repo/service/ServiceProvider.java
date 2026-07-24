@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.service;
 import org.sagebionetworks.repo.service.auth.OpenIDConnectService;
 import org.sagebionetworks.repo.service.dataaccess.DataAccessService;
 import org.sagebionetworks.repo.service.discussion.DiscussionService;
+import org.sagebionetworks.repo.service.docusign.EDucService;
 import org.sagebionetworks.repo.service.drs.DrsService;
 import org.sagebionetworks.repo.service.statistics.StatisticsService;
 import org.sagebionetworks.repo.service.subscription.SubscriptionService;
@@ -80,6 +81,8 @@ public interface ServiceProvider {
 	public DockerService getDockerService();
 
 	public DataAccessService getDataAccessService();
+
+	public EDucService getEDucService();
 	
 	public OpenIDConnectService getOpenIDConnectService();
 	

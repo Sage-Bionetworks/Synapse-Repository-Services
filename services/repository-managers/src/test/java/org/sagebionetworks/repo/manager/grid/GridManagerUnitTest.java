@@ -1,19 +1,18 @@
 package org.sagebionetworks.repo.manager.grid;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -26,7 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -48,6 +46,7 @@ import org.sagebionetworks.repo.manager.agent.handler.grid.SetValueProcessorFact
 import org.sagebionetworks.repo.manager.config.WebsocketApi;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandler;
 import org.sagebionetworks.repo.manager.grid.create.CreateGridHandlerResult;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.IntendedChangeSet;
 import org.sagebionetworks.repo.manager.grid.internal.replica.change.PatchBuilderPublisher;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.Column;
@@ -57,11 +56,9 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.query.QueryElement;
-import org.sagebionetworks.repo.manager.grid.response.InternalReplicaToHubEventPublisher;
 import org.sagebionetworks.repo.manager.table.RowHandlerProvider;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.RecordSet;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -94,7 +91,6 @@ import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
-import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -113,16 +109,14 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 import com.amazonaws.services.s3.transfer.model.UploadResult;
-
 import au.com.bytecode.opencsv.CSVReader;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
-import software.amazon.awssdk.services.apigatewaymanagementapi.ApiGatewayManagementApiAsyncClient;
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.DeleteConnectionRequest;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.DeleteConnectionResponse;
 import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneException;
-import software.amazon.awssdk.core.ResponseBytes;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
@@ -157,9 +151,6 @@ public class GridManagerUnitTest {
 
 	@Mock
 	private AsyncJobProgressCallback mockCallback;
-
-	@Mock
-	private InternalReplicaToHubEventPublisher mockInternalEventPublisher;
 
 	@Mock
 	private GridAuthorizationManager mockGridAuthManager;
@@ -241,7 +232,10 @@ public class GridManagerUnitTest {
 
 	@Mock
 	private SetValueProcessorFactory mockSetValueProcessorFactory;
-	
+
+	@Mock
+	private GridReplicaConnectionManager mockGridReplicaConnectionManager;
+
 	@BeforeEach
 	public void before() {
 		userId = 123L;
@@ -261,9 +255,10 @@ public class GridManagerUnitTest {
 
 		when(mockConfig.getStack()).thenReturn("dev");
 		gridManager = new GridManagerImpl(mockCredentialsProvider, mockWebsocketApi, mockGridDao, mockConfig,
-			mockS3Client, mockSynapseS3Client, mockInternalEventPublisher, List.of(mockCreateGridHandler),
+			mockS3Client, mockSynapseS3Client, List.of(mockCreateGridHandler),
 			mockGridAuthManager, mockUserManager, mockApiGatewayClient, mockTransferManager,
-			mockTransactionalMessenger, mockGridReplicaViewManager, mockPatchBuilderPublisher, mockSetValueProcessorFactory
+			mockTransactionalMessenger, mockGridReplicaViewManager, mockPatchBuilderPublisher, mockSetValueProcessorFactory,
+			mockGridReplicaConnectionManager
 		);
 		
 		gridManager = Mockito.spy(gridManager);
@@ -288,13 +283,9 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
-		
-		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
-				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
 
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
-			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
 
@@ -304,10 +295,9 @@ public class GridManagerUnitTest {
 		assertEquals(expected, result.getGridSession());
 
 		verify(mockGridDao).updateSessionBenefactorIds(gridSessionId, Collections.emptySet());
-		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
-		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
 
-		verifyNoMoreInteractions(mockInternalEventPublisher);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 
 	@Test
@@ -318,13 +308,9 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
 
 		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
-				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
-
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
-			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
 
@@ -334,10 +320,9 @@ public class GridManagerUnitTest {
 		assertEquals(expected, result.getGridSession());
 
 		verify(mockGridDao).updateSessionBenefactorIds(gridSessionId, Collections.emptySet());
-		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
-		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
 
-		verifyNoMoreInteractions(mockInternalEventPublisher);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 
 	@Test
@@ -349,12 +334,9 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		GridReplica handlerReplica = new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId);
 		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
-				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(handlerReplica)
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected)
 						.setBenefactorIds(benefactorIds));
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
-				.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
 
 		// call under test
@@ -372,16 +354,8 @@ public class GridManagerUnitTest {
 		when(mockGridAuthManager.validateGridOwner(mockUser, null)).thenReturn(userId);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId).setGridJsonSchema$Id("someSchemaId");
-		GridReplica replica = new GridReplica().setGridSessionId(expected.getSessionId()).setReplicaId(replicaId);
 		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
-				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
-		GridReplica validationReplica = new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId + 1L);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.VALIDATION))
-				.thenReturn(validationReplica);
-		
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
-			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 		
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
 
@@ -391,11 +365,10 @@ public class GridManagerUnitTest {
 		assertEquals(expected, result.getGridSession());
 
 		verify(mockGridDao).updateSessionBenefactorIds(gridSessionId, Collections.emptySet());
-		verifyConnectionEvent(EventSource.INTERNAL, replicaId);
-		verifyConnectionEvent(EventSource.VALIDATION, replicaId + 1);
-		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		verifyConnectionEvent(EventSource.VALIDATION);
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
 
-		verifyNoMoreInteractions(mockInternalEventPublisher);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 
 	@Test
@@ -405,12 +378,8 @@ public class GridManagerUnitTest {
 		when(mockCreateGridHandler.canCreate(request)).thenReturn(true);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
-		GridReplica replica = null;
 		when(mockCreateGridHandler.createGrid(mockCallback, mockUser, request, gridManager))
-				.thenReturn(new CreateGridHandlerResult().setGridSession(expected).setGridReplica(replica));
-
-		when(mockGridDao.createReplica(userId, gridSessionId, false, EventSource.USER_SUPPORT))
-			.thenReturn(new GridReplica().setGridSessionId(gridSessionId).setReplicaId(replicaId - 1));
+				.thenReturn(new CreateGridHandlerResult().setGridSession(expected));
 
 		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(expected));
 
@@ -420,9 +389,9 @@ public class GridManagerUnitTest {
 		assertEquals(expected, result.getGridSession());
 
 		verify(mockGridDao).updateSessionBenefactorIds(gridSessionId, Collections.emptySet());
-		verifyConnectionEvent(EventSource.USER_SUPPORT, replicaId - 1);
+		verifyConnectionEvent(EventSource.USER_SUPPORT);
 
-		verifyNoMoreInteractions(mockInternalEventPublisher);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
 	}
 	
 	
@@ -544,7 +513,7 @@ public class GridManagerUnitTest {
 		// must have access to create a replica.
 		doNothing().when(gridManager).validGridSessionAccess(mockUser, gridSessionId);
 		GridReplica replica = new GridReplica().setReplicaId(333L);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, eventSource)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplica(userId, gridSessionId, isAgent, eventSource)).thenReturn(replica);
 
 		// call under test
 		CreateReplicaResponse response = gridManager.createReplica(mockUser, gridSessionId, isAgent, eventSource);
@@ -1230,6 +1199,82 @@ public class GridManagerUnitTest {
 		verify(mockGridDao).deleteGridSession(gridSessionId);
 	}
 
+	/**
+	 * Changing the schema on a session that already had one bound must not create
+	 * a second VALIDATION replica — the replica already exists — but it must still
+	 * invalidate existing validation results.
+	 */
+	@Test
+	public void testUpdateSessionSchemaId() {
+		String schemaId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/some.schema";
+		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
+				.setGridJsonSchema$Id("previousSchemaId");
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+
+		// call under test
+		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
+		verify(mockGridReplicaConnectionManager, never()).createReplicaAndConnect(any(), any(), anyBoolean(), any());
+	}
+
+	/**
+	 * Binding a schema to a session that previously had none must provision the
+	 * VALIDATION replica (it was not created at session-creation time) in addition
+	 * to invalidating validation results.
+	 */
+	@Test
+	public void testUpdateSessionSchemaIdBindsSchemaForFirstTime() {
+		String schemaId = "https://repo-prod.prod.sagebase.org/repo/v1/schema/type/registered/some.schema";
+		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
+				.setGridJsonSchema$Id(null);
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+
+		// call under test
+		gridManager.updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridDao).updateSessionSchemaId(gridSessionId, schemaId);
+		verify(mockGridReplicaConnectionManager).createReplicaAndConnect(userId, gridSessionId, false, EventSource.VALIDATION);
+		verify(mockGridReplicaConnectionManager).publishSchemaChangedEvent(gridSessionId);
+	}
+
+	/**
+	 * Clearing the bound schema (schemaId == null) has nothing to re-validate
+	 * against, so no invalidation event is published.
+	 */
+	@Test
+	public void testUpdateSessionSchemaIdWithNullSchemaId() {
+		GridSession existing = new GridSession().setSessionId(gridSessionId).setStartedBy(userId.toString())
+				.setGridJsonSchema$Id("previousSchemaId");
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.of(existing));
+
+		// call under test
+		gridManager.updateSessionSchemaId(gridSessionId, null);
+		verify(mockGridDao).updateSessionSchemaId(gridSessionId, null);
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
+	}
+
+	@Test
+	public void testUpdateSessionSchemaIdWithNotFound() {
+		String schemaId = "some-schema";
+		when(mockGridDao.getGridSession(gridSessionId)).thenReturn(Optional.empty());
+
+		// call under test
+		assertThrows(NotFoundException.class, () -> gridManager.updateSessionSchemaId(gridSessionId, schemaId));
+		verify(mockGridDao, never()).updateSessionSchemaId(any(), any());
+		verifyNoMoreInteractions(mockGridReplicaConnectionManager);
+	}
+
+	@Test
+	public void testUpdateSessionSchemaIdWithNullSessionId() {
+		String schemaId = "some-schema";
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.updateSessionSchemaId(null, schemaId);
+		}).getMessage();
+		assertEquals("sessionId is required.", message);
+		verifyNoMoreInteractions(mockGridDao, mockGridReplicaConnectionManager);
+	}
+
 	@ParameterizedTest
 	@EnumSource(value = EventSource.class)
     public void testGetDefaultInternalConnection(EventSource source) {
@@ -1242,17 +1287,9 @@ public class GridManagerUnitTest {
         verifyNoMoreInteractions(mockGridDao);
     }
 	
-	void verifyConnectionEvent(EventSource expectedSource, Long replicaId) {
-		verify(mockInternalEventPublisher).publishEventAfterCommit(eventContextCaptor.capture(),
-				eq(JsonRxMessageType.Notification), eq("connection"),
-				eq(new Connection().setGridSessionId(gridSessionIdLong).setReplicaId(replicaId).setUserId(userId)));
-
-		EventContext capturedContext = eventContextCaptor.getValue();
-		assertEquals(EventType.CONNECT, capturedContext.getEventType());
-		assertEquals(expectedSource, capturedContext.getEventSource());
-		String connectionId = capturedContext.getConnectionId();
-		assertNotNull(connectionId);
-		assertDoesNotThrow(() -> UUID.fromString(connectionId));
+	void verifyConnectionEvent(EventSource expectedSource) {
+		verify(mockGridReplicaConnectionManager).createReplicaAndConnect(userId, gridSessionId,
+				EventSource.AGENT.equals(expectedSource), expectedSource);
 	}
 
 	@Test

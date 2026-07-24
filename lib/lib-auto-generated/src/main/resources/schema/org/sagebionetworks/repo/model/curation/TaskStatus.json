@@ -22,6 +22,11 @@
       "format": "date-time",
       "description": "Timestamp of when the status was last updated."
     },
+    "dueDate": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp by which the task should be completed. Null if no due date has been set."
+    },
     "etag": {
       "type": "string",
       "description": "Optimistic concurrency control token for the task status.",

@@ -308,7 +308,7 @@ public class QueryTranslator implements TranslatedQuery {
 	 * 
 	 * @return
 	 */
-	boolean isAggregatedResult() {
+	public boolean isAggregatedResult() {
 		return isAggregatedResult;
 	}
 

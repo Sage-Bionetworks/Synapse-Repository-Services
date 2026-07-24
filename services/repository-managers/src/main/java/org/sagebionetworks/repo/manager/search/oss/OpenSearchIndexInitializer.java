@@ -12,6 +12,7 @@ import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.search.SearchConstants;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,9 +22,9 @@ public class OpenSearchIndexInitializer {
     private Logger log;
     private OpenSearchClient client;
 
-    public OpenSearchIndexInitializer(LoggerProvider logProvider, OpenSearchClient client) {
+    public OpenSearchIndexInitializer(LoggerProvider logProvider, @Qualifier("synSearchOssClient") OpenSearchClient synSearchOssClient) {
         this.log = logProvider.getLogger(OpenSearchIndexInitializer.class.getName());
-        this.client = client;
+        this.client = synSearchOssClient;
 
     }
 

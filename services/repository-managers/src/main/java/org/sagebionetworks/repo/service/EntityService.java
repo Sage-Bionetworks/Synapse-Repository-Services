@@ -213,6 +213,20 @@ public interface EntityService {
 			UnauthorizedException;
 
 	/**
+	 * Update an existing entity, optionally skipping the type-specific sanitize
+	 * sub-step within the validation step. Sanitization strips server-controlled
+	 * fields that a client must not set directly; trusted internal callers that
+	 * legitimately need to persist such a field (e.g. the grid export job persisting
+	 * the validation file handle) may skip it. Validation is always performed.
+	 *
+	 * @param skipSanitization when true, the type-specific sanitize step is not fired
+	 */
+	<T extends Entity> T updateEntity(Long userId, T updatedEntity, boolean newVersion, String activityId,
+			boolean skipSanitization)
+			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException,
+			UnauthorizedException;
+
+	/**
 	 * Update request for the file handle of an entity revision
 	 * 
 	 * @param userId

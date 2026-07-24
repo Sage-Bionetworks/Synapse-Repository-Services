@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.row.translator.ColumnTypeToConType;
@@ -28,11 +26,10 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValue;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.grid.GridSession;
-import org.sagebionetworks.repo.model.grid.patch.ConType;
+import org.sagebionetworks.repo.model.grid.SyncType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -42,10 +39,18 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.FileProvider;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+/**
+ * Read/rules side of a grid session sourced from an entity view. The rows are the
+ * result of {@code select * from <view>}, streamed to a disk index and keyed by
+ * row id. Its paired {@link SourceWriter} ({@link InPlaceAnnotationSourceWriter})
+ * writes cell changes back as annotations; row/column membership is query-driven
+ * and cannot be modified from the grid.
+ */
 @Component
 @Scope("prototype")
 public class EntityViewSourceHandler implements SourceHandler {
@@ -59,7 +64,6 @@ public class EntityViewSourceHandler implements SourceHandler {
 	private final AnnotationWriter annotationWriter;
 	private final JsonSchemaManager jsonSchemaManager;
 	private final AnnotationsTranslator annotationsTranslator;
-	private final List<String> errorMessages;
 	private final Set<Long> collectedBenefactorIds;
 	private List<ColumnModel> schema;
 	private List<DiskPointer> diskPointers;
@@ -80,7 +84,6 @@ public class EntityViewSourceHandler implements SourceHandler {
 		this.annotationWriter = annotationWriter;
 		this.jsonSchemaManager = jsonSchemaManager;
 		this.annotationsTranslator = annotationsTranslator;
-		this.errorMessages = new ArrayList<>();
 		this.collectedBenefactorIds = new HashSet<>();
 		initialize();
 	}
@@ -136,6 +139,11 @@ public class EntityViewSourceHandler implements SourceHandler {
 	}
 
 	@Override
+	public SourceWriter createSourceWriter(SyncType syncType) {
+		return new InPlaceAnnotationSourceWriter(user, annotationWriter, annotationsTranslator);
+	}
+
+	@Override
 	public RowSourceItemReader getSourceRowReader() throws IOException {
 		return new RowSourceItemReader(diskPointers, fileProvider.createRandomAccessFile(tempFile, "r"));
 	}
@@ -148,66 +156,24 @@ public class EntityViewSourceHandler implements SourceHandler {
 	}
 
 	@Override
-	public boolean canAddRemoveRows() {
-		return false;
-	}
-
-	@Override
-	public boolean canAddRemoveColumns() {
-		return false;
-	}
-
-	@Override
-	public void addNewRowToSource(RowSourceItem copy) {
-		errorMessages.add(String.format("Cannot add the row: '%s' to a source view.", copy.getKey()));
-	}
-
-	@Override
 	public List<String> getCurrentSourceSchema() {
 		return schema.stream().map(ColumnModel::getName).collect(Collectors.toList());
 	}
 
+	/**
+	 * EntityView sources support only {@link SyncType#PULL_PUSH}. PULL is rejected
+	 * because entity-view row membership is query-driven and cannot be written back
+	 * to the source independently of a push.
+	 */
 	@Override
-	public void addColumnToSource(String name) {
-		errorMessages.add(String.format("Cannot add the column: '%s' to a source view.", name));
-	}
-
-	@Override
-	public void removeColumn(String columnName) {
-		errorMessages.add(String.format("Cannot remove the column: '%s' from a source view.", columnName));
-	}
-
-	@Override
-	public void removeRow(RowSourceItem fetchRow) {
-		errorMessages.add(String.format("Cannot remove the row: '%s' from a source view.", fetchRow.getKey()));
-	}
-
-	@Override
-	public void applyCellChangesFromCopyToSource(String rowId, Map<String, ConValue> changes) {
-		try {
-			Map<String, AnnotationsValue> changedCells = translateCellChanges(changes);
-			annotationWriter.updateChangedAnnotations(user, rowId, changedCells);
-		} catch (IllegalArgumentException e) {
-			errorMessages.add(String.format("Failed to update row: '%s' in the source view.  Error message: %s", rowId,
-					e.getMessage()));
-			throw e;
-		}
-	}
-
-	Map<String, AnnotationsValue> translateCellChanges(Map<String, ConValue> changes) {
-		Map<String, AnnotationsValue> changedCells = new HashMap<>();
-		for (Map.Entry<String, ConValue> e : changes.entrySet()) {
-			ConValue cv = e.getValue();
-			if (cv == null || ConType.UNDEFINED.equals(cv.getType()) || ConType.NULL.equals(cv.getType())
-					|| cv.getValue() == null) {
-				changedCells.put(e.getKey(), null);
-			} else {
-				JSONObject json = new JSONObject();
-				json.put(e.getKey(), cv.getValue());
-				changedCells.put(e.getKey(), annotationsTranslator.getAnnotationValueFromJsonObject(e.getKey(), json));
-			}
-		}
-		return changedCells;
+	public void validateSyncType(SyncType syncType) {
+		ValidateArgument.required(syncType, "syncType");
+		switch (syncType) {
+            case PULL -> throw new IllegalArgumentException("PULL synchronization is not supported for EntityView-based grid sessions.");
+            case PULL_PUSH -> {
+				// allowed
+            }
+        }
 	}
 
 	@Override
@@ -215,11 +181,6 @@ public class EntityViewSourceHandler implements SourceHandler {
 		if (tempFile != null) {
 			tempFile.delete();
 		}
-	}
-
-	@Override
-	public List<String> getErrorMessages() {
-		return errorMessages;
 	}
 
 }

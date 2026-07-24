@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.manager.grid.synch.io;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.Queue;
 
 import org.sagebionetworks.util.ValidateArgument;
 
@@ -32,29 +34,34 @@ import org.sagebionetworks.util.ValidateArgument;
  */
 public class RowSourceItemReader implements AutoCloseable {
 
-	private final Map<String, DiskPointer> diskPointerMap;
+	private final Map<String, Queue<DiskPointer>> diskPointerMap;
 	private final RandomAccessFile raf;
 
 	/**
-	 * Creates a new reader with indexed access to rows stored on disk.
+	 * Creates a new reader with indexed access to rows stored on disk. When
+	 * multiple pointers share the same key (duplicate source rows), all are
+	 * preserved in arrival order.
 	 *
-	 * @param diskPointers list of pointers to serialized rows on disk (indexed by
-	 *                     key)
+	 * @param diskPointers list of pointers to serialized rows on disk
 	 * @param raf          the random access file containing the serialized row data
 	 */
 	public RowSourceItemReader(List<DiskPointer> diskPointers, RandomAccessFile raf) {
 		ValidateArgument.required(raf, "RandomAccessFile");
 		ValidateArgument.required(diskPointers, "DiskPointers");
-		this.diskPointerMap = diskPointers.stream()
-				.collect(Collectors.toMap(DiskPointer::getKey, pointer -> pointer, (a, b) -> a, LinkedHashMap::new));
-		;
+		LinkedHashMap<String, Queue<DiskPointer>> map = new LinkedHashMap<>();
+		for (DiskPointer pointer : diskPointers) {
+			map.computeIfAbsent(pointer.getKey(), k -> new ArrayDeque<>()).add(pointer);
+		}
+		this.diskPointerMap = map;
 		this.raf = raf;
 	}
 
 	/**
-	 * Consumes and returns the row with the specified key. This is called during
-	 * Phase 1 of synchronization when a copy row is matched with a source row,
-	 * "consuming" the source row so it won't be processed again in Phase 2.
+	 * Consumes and returns the first occurrence of a row with the specified key.
+	 * This is called during Phase 1 of synchronization when a copy row is matched
+	 * with a source row, "consuming" the source row so it won't be processed again
+	 * in Phase 2. If further rows with the same key exist (duplicates), they remain
+	 * and will be returned by {@link #remainingRows()}.
 	 *
 	 * <p>
 	 * The returned RowHeader provides lazy access to the row data - the full row is
@@ -65,10 +72,13 @@ public class RowSourceItemReader implements AutoCloseable {
 	 *         key
 	 */
 	public Optional<RowSourceItemReference> consumeRow(String key) {
-
-		DiskPointer diskPointer = diskPointerMap.remove(key);
-		if (diskPointer == null) {
+		Queue<DiskPointer> queue = diskPointerMap.get(key);
+		if (queue == null) {
 			return Optional.empty();
+		}
+		DiskPointer diskPointer = queue.poll();
+		if (queue.isEmpty()) {
+			diskPointerMap.remove(key);
 		}
 		return Optional.of(createRowHeader(diskPointer));
 	}
@@ -80,12 +90,14 @@ public class RowSourceItemReader implements AutoCloseable {
 	 *
 	 * <p>
 	 * After Phase 1, any rows remaining in the map are rows that exist in the
-	 * source but not in the copy (or were deleted by the user in the copy).
+	 * source but not in the copy (or were deleted by the user in the copy). When a
+	 * key has multiple remaining occurrences (duplicates not matched during Phase
+	 * 1), all of them are returned here in CSV arrival order.
 	 *
 	 * @return iterator over remaining unmatched rows
 	 */
 	public Iterator<RowSourceItemReference> remainingRows() {
-		return diskPointerMap.values().stream().map(this::createRowHeader).iterator();
+		return diskPointerMap.values().stream().flatMap(Collection::stream).map(this::createRowHeader).iterator();
 	}
 
 	/**

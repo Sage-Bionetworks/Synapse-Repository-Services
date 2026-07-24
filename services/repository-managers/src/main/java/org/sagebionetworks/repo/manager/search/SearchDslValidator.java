@@ -8,9 +8,11 @@ import java.util.Set;
 
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.aggregations.Buckets;
 import org.opensearch.client.opensearch._types.aggregations.CardinalityAggregation;
 import org.opensearch.client.opensearch._types.aggregations.DateHistogramAggregation;
 import org.opensearch.client.opensearch._types.aggregations.DateRangeAggregation;
+import org.opensearch.client.opensearch._types.aggregations.FiltersAggregation;
 import org.opensearch.client.opensearch._types.aggregations.HistogramAggregation;
 import org.opensearch.client.opensearch._types.aggregations.RangeAggregation;
 import org.opensearch.client.opensearch._types.aggregations.TermsAggregation;
@@ -143,15 +145,23 @@ final class SearchDslValidator {
 
 	/**
 	 * Aggregation kinds a caller may use. Bucket aggregations may carry nested
-	 * sub-aggregations via {@code aggregations()}. Intentionally excludes
-	 * {@code ScriptedMetric}, pipeline aggregations (e.g. {@code BucketScript},
-	 * {@code BucketSelector}), and the {@code Filter}/{@code Filters} aggregations (whose
-	 * bodies are queries that would need separate query-DSL validation).
+	 * sub-aggregations via {@code aggregations()}. The {@code Filter}/{@code Filters} aggregations
+	 * wrap a query body, which is validated through the same path as the top-level query
+	 * ({@link #validateQuery}) in {@link #walkAggregation}.
+	 * <p>
+	 * Intentionally excludes {@code ScriptedMetric} and pipeline aggregations (e.g.
+	 * {@code BucketScript}, {@code BucketSelector}). Also intentionally excludes {@code Global}
+	 * (and any other aggregation that resets or escapes the query scope): a {@code Global}
+	 * aggregation deliberately runs outside the current search context, so it would see documents
+	 * the top-level query &mdash; and the future server-side row-level ACL filter layered into that
+	 * query's {@code bool.must} &mdash; excludes. {@code Filter}/{@code Filters} are safe because
+	 * they run <i>inside</i> the search context and so remain scoped by the top-level query.
 	 */
 	static final Set<Aggregation.Kind> ALLOWED_AGGREGATION_KINDS = EnumSet.of(
 			// bucket
 			Aggregation.Kind.Terms, Aggregation.Kind.Histogram, Aggregation.Kind.DateHistogram,
 			Aggregation.Kind.Range, Aggregation.Kind.DateRange, Aggregation.Kind.Missing,
+			Aggregation.Kind.Filter, Aggregation.Kind.Filters,
 			// metric
 			Aggregation.Kind.Min, Aggregation.Kind.Max, Aggregation.Kind.Avg,
 			Aggregation.Kind.Sum, Aggregation.Kind.Stats, Aggregation.Kind.ExtendedStats,
@@ -411,6 +421,21 @@ final class SearchDslValidator {
 		checkBoundsShape(aggregation.path("date_histogram"), "date_histogram");
 		checkRangesShape(aggregation.path("range"), "range");
 		checkRangesShape(aggregation.path("date_range"), "date_range");
+
+		// `filter` / `filters` bodies are full query subtrees; their opaque leaf slots must pass the
+		// same shape gate as the top-level query (mirrors how a highlight_query body is gated).
+		JsonNode filter = aggregation.get("filter");
+		if (filter != null && filter.isObject()) {
+			validateQueryLeafShapes(filter);
+		}
+		// The filters slot is either a keyed object (name to query) or an array of queries; iterating
+		// a JsonNode yields the map values in the first case and the elements in the second.
+		JsonNode filters = aggregation.path("filters").get("filters");
+		if (filters != null) {
+			for (JsonNode query : filters) {
+				validateQueryLeafShapes(query);
+			}
+		}
 
 		validateAggregationLeafShapes(aggregation.get("aggregations"));
 	}
@@ -886,6 +911,15 @@ final class SearchDslValidator {
 		case Cardinality:
 			validateCardinalityAgg(agg.cardinality());
 			break;
+		case Filter:
+			// The filter body is a query clause; validate it through the same depth/clause caps and
+			// per-kind checks as the top-level query, sharing the aggregation's clause counter so a
+			// filter body cannot smuggle additional clauses past QUERY_MAX_CLAUSES.
+			walkQuery(agg.filter(), depth + 1, count);
+			break;
+		case Filters:
+			walkFilters(agg.filters(), depth + 1, count);
+			break;
 		default:
 			// Allowlisted aggregations with no additional caps to enforce (Missing, Min, Max, Avg,
 			// Sum, Stats, ExtendedStats, ValueCount). Any kind outside ALLOWED_AGGREGATION_KINDS is not
@@ -896,6 +930,28 @@ final class SearchDslValidator {
 		Map<String, Aggregation> subAggregations = agg.aggregations();
 		if (!subAggregations.isEmpty()) {
 			walkAggregationMap(subAggregations, depth + 1, count);
+		}
+	}
+
+	/**
+	 * Validate the query bodies carried by a {@code filters} aggregation. The {@code filters} slot is
+	 * a tagged union of either a keyed map (name to query) or an array of queries; each query is run
+	 * through {@link #walkQuery} with the shared clause counter, exactly like the single-bucket
+	 * {@code filter} body.
+	 */
+	static void walkFilters(FiltersAggregation filters, int depth, int[] count) {
+		Buckets<Query> buckets = filters.filters();
+		if (buckets == null) {
+			return;
+		}
+		if (buckets.isKeyed()) {
+			for (Query query : buckets.keyed().values()) {
+				walkQuery(query, depth, count);
+			}
+		} else if (buckets.isArray()) {
+			for (Query query : buckets.array()) {
+				walkQuery(query, depth, count);
+			}
 		}
 	}
 

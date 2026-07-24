@@ -784,20 +784,31 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			return;
 		}
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
-		QuerySpecification resultQuery = query;
-		for(BenefactorDescription dependencyDesc: indexDescription.getBenefactors()) {
+		for (BenefactorAccessFilter filter : computeAccessibleBenefactors(user, indexDescription, indexDao, types)) {
+			buildBenefactorFilter(query, filter.accessibleIds(), filter.benefactorColumnName());
+		}
+	}
+
+	@Override
+	public List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
+			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
+		List<BenefactorDescription> benefactors = indexDescription.getBenefactors();
+		List<BenefactorAccessFilter> filters = new ArrayList<>(benefactors.size());
+		for (BenefactorDescription dependencyDesc : benefactors) {
 			// lookup the distinct benefactor IDs applied to the table.
-			Set<Long> tableBenefactors = null;
+			Set<Long> tableBenefactors;
 			try {
-				tableBenefactors = indexDao.getDistinctLongValues(idAndVersion, dependencyDesc.getBenefactorColumnName());
+				tableBenefactors = indexDao.getDistinctLongValues(indexDescription.getIdAndVersion(), dependencyDesc.getBenefactorColumnName());
 			} catch (BadSqlGrammarException e) { // table has not been created yet
 				tableBenefactors = Collections.emptySet();
 			}
-
 			Set<Long> accessibleBenefactors = tableManagerSupport.getAccessibleBenefactors(user, dependencyDesc.getBenefactorType(), tableBenefactors, types);
 
-			buildBenefactorFilter(resultQuery, accessibleBenefactors, dependencyDesc.getBenefactorColumnName());
+			// -1 is the default value for a row with no benefactor; it must always be accessible.
+			accessibleBenefactors.add(-1L);
+			filters.add(new BenefactorAccessFilter(dependencyDesc.getBenefactorColumnName(), accessibleBenefactors));
 		}
+		return filters;
 	}
 
     /**
@@ -814,9 +825,6 @@ public class TableQueryManagerImpl implements TableQueryManager {
                                                            String benefactorColumnName) {
         ValidateArgument.required(originalQuery, "originalQuery");
         ValidateArgument.required(accessibleBenefactors, "accessibleBenefactors");
-
-		// add -1 to set, as -1 is default value for benefactors column
-		accessibleBenefactors.add(-1l);
 
         // copy the original model
         try {

@@ -7,10 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -62,8 +61,7 @@ public class TableEntityMetadataProviderTest  {
 		table.setColumnIds(columnIds);
 		
 		userInfo = new UserInfo(false, 55L);
-		event = new EntityEvent();
-		event.setType(EventType.CREATE);
+		event = new EntityEvent(EventType.CREATE,  Collections.emptyList(), userInfo);
 	}
 	
 	@Test
@@ -152,9 +150,9 @@ public class TableEntityMetadataProviderTest  {
 	@Test
 	public void testValidateEntityForCreateWithNullSearchEnabled() {
 		table.setIsSearchEnabled(null);
-		
-		event.setType(EventType.CREATE);
-		
+
+		event = new EntityEvent(EventType.CREATE, Collections.emptyList(), userInfo);
+
 		// Call under test
 		provider.validateEntity(table, event);
 
@@ -164,8 +162,9 @@ public class TableEntityMetadataProviderTest  {
 	@Test
 	public void testValidateEntityForUpdateWithNullSearchEnabled() {
 		table.setIsSearchEnabled(null);
-		event.setType(EventType.UPDATE);
-		
+
+		event = new EntityEvent(EventType.UPDATE, Collections.emptyList(), userInfo);
+
 		Node node = new Node()
 			.setIsSearchEnabled(true);
 		

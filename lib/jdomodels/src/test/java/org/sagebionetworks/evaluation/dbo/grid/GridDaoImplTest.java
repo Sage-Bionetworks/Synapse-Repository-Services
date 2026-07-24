@@ -152,6 +152,52 @@ public class GridDaoImplTest {
 	}
 
 	@Test
+	public void testCreateGridSessionWithSourceVersion() {
+		Node node = nodeDao.createNewNode(NodeTestUtils.createNew("source", adminUserId));
+		// call under test
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)
+				.setSourceId(node.getId()).setSourceVersion(3L));
+		assertEquals(3L, session.getSourceEntityVersionNumber());
+
+		// round-trips through persistence
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(session, back);
+	}
+
+	@Test
+	public void testCreateGridSessionWithNullSourceVersion() {
+		// A session created without a source version stores null
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		assertNull(session.getSourceEntityVersionNumber());
+
+		GridSession back = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(session, back);
+	}
+
+	@Test
+	public void testUpdateSourceEntityVersion() {
+		Node node = nodeDao.createNewNode(NodeTestUtils.createNew("source", adminUserId));
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId)
+				.setSourceId(node.getId()).setSourceVersion(1L));
+		// call under test
+		dao.updateSourceEntityVersion(session.getSessionId(), 5L);
+
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
+		assertEquals(5L, updated.getSourceEntityVersionNumber());
+	}
+
+	@Test
+	public void testUpdateSessionSchemaId() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		assertNull(session.getGridJsonSchema$Id());
+		// call under test
+		dao.updateSessionSchemaId(session.getSessionId(), "my.org-Schema-2.0.0");
+
+		GridSession updated = dao.getGridSession(session.getSessionId()).get();
+		assertEquals("my.org-Schema-2.0.0", updated.getGridJsonSchema$Id());
+	}
+
+	@Test
 	public void getGridSessionDoesNotExist() {
 		// call under test
 		assertEquals(Optional.empty(), dao.getGridSession("doesnotexist"));

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.athena;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -31,9 +30,10 @@ import org.sagebionetworks.repo.model.athena.RecurrentAthenaQueryResult;
 import org.sagebionetworks.repo.model.athena.RowMapper;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
-import com.amazonaws.services.athena.model.QueryExecution;
-import com.amazonaws.services.athena.model.QueryExecutionState;
-import com.amazonaws.services.athena.model.QueryExecutionStatus;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
+import software.amazon.awssdk.services.athena.model.QueryExecutionState;
+import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
+
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
@@ -75,7 +75,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		manager.configureProcessorMap(Arrays.asList(mockProcessor));
 		
-		mockQueryExecution = new QueryExecution().withQueryExecutionId("456").withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED));
+		mockQueryExecution = QueryExecution.builder().queryExecutionId("456").status(QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build()).build();
 		
 		mockRequest = new RecurrentAthenaQueryResult()
 				.withQueryName("SomeQueryName")
@@ -148,9 +148,9 @@ public class RecurrentAthenaQueryManagerTest {
 		
 	@Test
 	public void testProcessRecurrentAthenaQueryResultWithQueryQueued() {
-		
-		mockQueryExecution.setStatus(new QueryExecutionStatus().withState(QueryExecutionState.QUEUED));
-		
+
+		mockQueryExecution = mockQueryExecution.toBuilder().status(QueryExecutionStatus.builder().state(QueryExecutionState.QUEUED).build()).build();
+
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
 		
 		String message = assertThrows(RecoverableMessageException.class, () -> {
@@ -158,14 +158,14 @@ public class RecurrentAthenaQueryManagerTest {
 			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
-		assertEquals("The query with id " + mockQueryExecution.getQueryExecutionId() + " is still processing.", message);
+		assertEquals("The query with id " + mockQueryExecution.queryExecutionId() + " is still processing.", message);
 	}
 	
 	@Test
 	public void testProcessRecurrentAthenaQueryResultWithQueryRunning() {
-		
-		mockQueryExecution.setStatus(new QueryExecutionStatus().withState(QueryExecutionState.RUNNING));
-		
+
+		mockQueryExecution = mockQueryExecution.toBuilder().status(QueryExecutionStatus.builder().state(QueryExecutionState.RUNNING).build()).build();
+
 		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
 		
 		String message = assertThrows(RecoverableMessageException.class, () -> {
@@ -173,7 +173,7 @@ public class RecurrentAthenaQueryManagerTest {
 			manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		}).getMessage();
 		
-		assertEquals("The query with id " + mockQueryExecution.getQueryExecutionId() + " is still processing.", message);
+		assertEquals("The query with id " + mockQueryExecution.queryExecutionId() + " is still processing.", message);
 	}
 	
 	@Test
@@ -181,14 +181,14 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		int count = 0;
 		
-		for (QueryExecutionState state : QueryExecutionState.values()) {
+		for (QueryExecutionState state : QueryExecutionState.knownValues()) {
 			
 			if (state == QueryExecutionState.RUNNING || state == QueryExecutionState.QUEUED || state == QueryExecutionState.SUCCEEDED) {
 				continue;
 			}
 			
-			mockQueryExecution.setStatus(new QueryExecutionStatus().withState(state).withStateChangeReason("some reason"));
-			
+			mockQueryExecution = mockQueryExecution.toBuilder().status(QueryExecutionStatus.builder().state(state).stateChangeReason("some reason").build()).build();
+
 			when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
 			
 			String message = assertThrows(IllegalStateException.class, () -> {
@@ -196,11 +196,22 @@ public class RecurrentAthenaQueryManagerTest {
 				manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 			}).getMessage();
 			
-			assertEquals("The query with id " +  mockQueryExecution.getQueryExecutionId() + " did not SUCCEED (State: " + state + ", reason: some reason)", message);
+			assertEquals("The query with id " +  mockQueryExecution.queryExecutionId() + " did not SUCCEED (State: " + state + ", reason: some reason)", message);
 			
-			verify(mockAthenaSupport, times(++count)).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
+			verify(mockAthenaSupport, times(++count)).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
 		}
 		
+	}
+
+	@Test
+	public void testProcessRecurrentAthenaQueryResultWithQueryExecStateUnknown() {
+		QueryExecutionState unknownState = QueryExecutionState.UNKNOWN_TO_SDK_VERSION;
+		mockQueryExecution = mockQueryExecution.toBuilder().status(QueryExecutionStatus.builder().state(unknownState).stateChangeReason("some reason").build()).build();
+
+		when(mockAthenaSupport.getQueryExecutionStatus(anyString())).thenReturn(new AthenaQueryExecutionAdapter(mockQueryExecution));
+
+		assertThrows(IllegalArgumentException.class, () -> { manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl); });
+
 	}
 	
 	@Test
@@ -208,7 +219,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(null);
 		
 		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
@@ -218,8 +229,8 @@ public class RecurrentAthenaQueryManagerTest {
 		// Call under test
 		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
-		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockProcessor).processQueryResultsPage(page.getResults());
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
@@ -229,7 +240,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(Collections.emptyList())
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(null);
 		
 		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
@@ -239,8 +250,8 @@ public class RecurrentAthenaQueryManagerTest {
 		// Call under test
 		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
-		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verifyNoMoreInteractions(mockProcessor);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
@@ -250,7 +261,7 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		AthenaQueryResultPage<Long> page = new AthenaQueryResultPage<Long>()
 				.withResults(null)
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(null);
 		
 		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
@@ -260,8 +271,8 @@ public class RecurrentAthenaQueryManagerTest {
 		// Call under test
 		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
-		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verifyNoMoreInteractions(mockProcessor);
 		verify(mockSqsClient, never()).sendMessage(any());
 	}
@@ -271,12 +282,12 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		AthenaQueryResultPage<Long> page1 = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken("next");
 		
 		AthenaQueryResultPage<Long> page2 = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(4L, 5L))
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(null);
 		
 		when(mockProcessor.getRowMapper()).thenReturn(mockRowMapper);
@@ -286,9 +297,9 @@ public class RecurrentAthenaQueryManagerTest {
 		// Call under test
 		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
-		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, page1.getNextPageToken(), RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, page1.getNextPageToken(), RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockProcessor).processQueryResultsPage(page1.getResults());
 		verify(mockProcessor).processQueryResultsPage(page2.getResults());
 		verify(mockSqsClient, never()).sendMessage(any());
@@ -301,7 +312,7 @@ public class RecurrentAthenaQueryManagerTest {
 				
 		AthenaQueryResultPage<Long> page1 = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(1L, 2L, 3L))
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(nextToken);
 		
 		List<AthenaQueryResultPage<Long>> nextPages = new ArrayList<>();		
@@ -309,7 +320,7 @@ public class RecurrentAthenaQueryManagerTest {
 		for (int i=0; i< RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS; i++) {
 			AthenaQueryResultPage<Long> next = new AthenaQueryResultPage<Long>()
 				.withResults(Arrays.asList(4L, 5L))
-				.withQueryExecutionId(mockQueryExecution.getQueryExecutionId())
+				.withQueryExecutionId(mockQueryExecution.queryExecutionId())
 				.withNextPageToken(nextToken);
 			nextPages.add(next);
 		}
@@ -322,10 +333,10 @@ public class RecurrentAthenaQueryManagerTest {
 		// Call under test
 		manager.processRecurrentAthenaQueryResult(mockRequest, queueUrl);
 		
-		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.getQueryExecutionId());
+		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
 		
-		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
-		verify(mockAthenaSupport, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS - 1)).getQueryResultsPage(mockQueryExecution.getQueryExecutionId(), mockRowMapper, nextToken, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
+		verify(mockAthenaSupport, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS - 1)).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, nextToken, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		
 		verify(mockProcessor, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS)).processQueryResultsPage(anyList());
 		

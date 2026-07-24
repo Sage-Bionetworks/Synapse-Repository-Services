@@ -114,6 +114,7 @@ import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthResetRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
@@ -132,6 +133,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
@@ -2092,7 +2095,15 @@ public interface SynapseClient extends BaseClient {
 	 */
 	PrincipalAlias bindOAuthProvidersUserId(OAuthValidationRequest request)
 			throws SynapseException;
-	
+
+	/**
+	 * Bind an OIDC identity (subject) to the user's account.
+	 *
+	 * @param request
+	 * @throws SynapseException
+	 */
+	void bindOIDCIdentity(OAuthValidationRequest request) throws SynapseException;
+
 	/**
 	 * Remove an alias associated with an account via the OAuth mechanism.
 	 * 
@@ -3554,6 +3565,16 @@ public interface SynapseClient extends BaseClient {
 	OpenSubmissionPage getOpenSubmissions(String nextPageToken) throws SynapseException;
 
 	/**
+	 * List a page of available eDUC (electronic Data Use Certificate) templates.
+	 * Only an ACT member can perform this action.
+	 *
+	 * @param request the list request
+	 * @return a page of eDUC template metadata
+	 * @throws SynapseException
+	 */
+	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
+
+	/**
 	 * Retrieve a page of AccessorGroup.
 	 * 
 	 * @param request
@@ -4736,6 +4757,10 @@ public interface SynapseClient extends BaseClient {
     TaskStatus getTaskStatus(Long taskId) throws SynapseException;
 
     TaskStatus updateTaskStatus(Long taskId, TaskStatus statusUpdate) throws SynapseException;
+
+    String startComputeTaskExecution(Long taskId) throws SynapseException;
+
+    ComputeTaskExecutionResponse getComputeTaskExecutionResult(Long taskId, String asyncToken) throws SynapseException, SynapseResultNotReadyException;
 
     RealmIdList listRealmIds() throws SynapseException ;
     

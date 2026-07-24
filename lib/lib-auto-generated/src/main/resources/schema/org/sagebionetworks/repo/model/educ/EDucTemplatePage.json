@@ -1,0 +1,16 @@
+{
+	"description": "A page of eDUC template metadata.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.educ.EDucTemplate"
+			},
+			"description": "The templates on the current page."
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "The token to get the next page of results."
+		}
+	}
+}

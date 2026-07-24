@@ -373,6 +373,19 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
+	public Long getDataSizeBytesForTable(IdAndVersion tableId) {
+		String mainTableName = SQLUtils.getTableNameForId(tableId, false);
+		// List columns are stored as JSON on the main table (T<id>), so there are no
+		// separate physical tables to sum. SUM over zero matching rows returns NULL; that
+		// absent-table case maps to null, matching getRowCountForTable's contract.
+		Long size = template.queryForObject(
+				"SELECT SUM(DATA_LENGTH + INDEX_LENGTH) FROM information_schema.TABLES"
+				+ " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?",
+				Long.class, mainTableName);
+		return size;
+	}
+
+	@Override
 	public Long getMaxCurrentCompleteVersionForTable(IdAndVersion tableId) {
 		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {

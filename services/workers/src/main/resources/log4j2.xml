@@ -42,6 +42,12 @@
 				level="debug" additivity="false">
 			<appender-ref ref="traceProfiling" />
 		</logger>
+		<logger name="org.springaicommunity" level="debug" additivity="false">
+			<appender-ref ref="Console" />
+		</logger>
+		<logger name="org.springframework.ai" level="debug" additivity="false">
+			<appender-ref ref="Console" />
+		</logger>
 		<!-- <logger name="org.sagebionetworks.file.worker.FileHandleKeysArchiveWorker" level="debug">
 			<appender-ref ref="workers" />
 		</logger> -->

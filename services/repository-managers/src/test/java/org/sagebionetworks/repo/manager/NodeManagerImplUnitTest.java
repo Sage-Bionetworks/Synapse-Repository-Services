@@ -1465,6 +1465,24 @@ public class NodeManagerImplUnitTest {
 		// offset + one for tables/views
 		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset+1, limit);
 	}
+
+	@Test
+	public void testGetVersionsOfEntityWithRecordSet() {
+		long offset = 0;
+		long limit = 10;
+		when(mockAuthManager.hasAccess(any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockNodeDao.getNodeTypeById(nodeId)).thenReturn(EntityType.recordset);
+		VersionInfo info = new VersionInfo();
+		info.setId("456");
+		List<VersionInfo> expected = Lists.newArrayList(info);
+		when(mockNodeDao.getVersionsOfEntity(any(String.class), any(Long.class), any(Long.class))).thenReturn(expected);
+		// call under test
+		List<VersionInfo> results = nodeManager.getVersionsOfEntity(mockUserInfo, nodeId, offset, limit);
+		assertEquals(expected, results);
+		verify(mockAuthManager).hasAccess(mockUserInfo, nodeId, ACCESS_TYPE.READ);
+		// RecordSet current version is itself a snapshot, so the offset is NOT incremented.
+		verify(mockNodeDao).getVersionsOfEntity(nodeId, offset, limit);
+	}
 	
 	@Test
 	public void testGetName() {

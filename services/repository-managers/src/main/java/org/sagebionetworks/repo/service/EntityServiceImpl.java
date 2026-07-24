@@ -273,9 +273,10 @@ public class EntityServiceImpl implements EntityService {
 			}
 		});
 	}
-	
+
+
 	/**
-	 * Fire a validate event.  
+	 * Fire a validate event.
 	 * @param userInfo
 	 * @param eventType
 	 * @param entity
@@ -285,12 +286,27 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		this.fireValidateEvent(userInfo, eventType, entity, type, false);
+	}
+
+	/**
+	 * Fire a validate event.
+	 * @param userInfo
+	 * @param eventType
+	 * @param entity
+	 * @param type
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type, boolean skipValidation) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		List<EntityHeader> newPath = null;
 		if (entity.getParentId() != null) {
 			newPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
-		EntityEvent event = new EntityEvent(eventType, newPath, userInfo);
+		EntityEvent event = new EntityEvent(eventType, newPath, userInfo, skipValidation);
 		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
@@ -302,11 +318,20 @@ public class EntityServiceImpl implements EntityService {
 			}
 		});
 	}
-	
+
 	@WriteTransaction
 	@Override
 	public <T extends Entity> T updateEntity(Long userId,
 			T updatedEntity, boolean newVersion, String activityId)
+			throws NotFoundException, ConflictingUpdateException,
+			DatastoreException, InvalidModelException, UnauthorizedException {
+		return updateEntity(userId, updatedEntity, newVersion, activityId, false);
+	}
+
+	@WriteTransaction
+	@Override
+	public <T extends Entity> T updateEntity(Long userId,
+			T updatedEntity, boolean newVersion, String activityId, boolean skipSanitization)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -319,7 +344,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EventType eventType = EventType.UPDATE;
 		// Fire the event
-		fireValidateEvent(userInfo, eventType, updatedEntity, type);
+		fireValidateEvent(userInfo, eventType, updatedEntity, type, skipSanitization);
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update

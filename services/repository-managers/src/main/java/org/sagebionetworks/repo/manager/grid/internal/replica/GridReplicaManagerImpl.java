@@ -36,11 +36,7 @@ import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-
-import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 @Component
 public class GridReplicaManagerImpl implements GridReplicaManager {
@@ -50,21 +46,19 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 	private final GridIndexManager gridIndexManager;
 	private final GridReplicaSnapshotManager snapshotManager;
 	private final InternalReplicaToHubEventPublisher publisher;
-	private final SnsClient snsClient;
-	private final String topicArn;
 	private final HttpClient httpClient;
+	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 
 	public GridReplicaManagerImpl(GridIndexManager gridIndexManager,
 			GridReplicaSnapshotManager snapshotManager,
 			InternalReplicaToHubEventPublisher publisher,
-			SnsClient snsClient, @Qualifier("gridReplicaChangeTopicArn") String gridReplicaChangeTopicArn,
-			HttpClient httpClient) {
+			HttpClient httpClient,
+			GridReplicaConnectionManager gridReplicaConnectionManager) {
 		this.gridIndexManager = gridIndexManager;
 		this.snapshotManager = snapshotManager;
 		this.publisher = publisher;
-		this.snsClient = snsClient;
-		this.topicArn = gridReplicaChangeTopicArn;
 		this.httpClient = httpClient;
+		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
 	}
 
 	void synchronizeClock(ProgressCallback callback, GridConnectionInfo connection) {
@@ -102,7 +96,7 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 			patchChanges.forEach((indexType, timestamps) -> cumulativeChanges.computeIfAbsent(indexType, k -> new LinkedHashSet<>()).addAll(timestamps));
 		});
 
-		sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, cumulativeChanges));
+		gridReplicaConnectionManager.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, cumulativeChanges));
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
 	}
@@ -126,7 +120,7 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 		}
 		List<LogicalTimestamp> clock = gridIndexManager.getClock(connection.getSessionId(), connection.getReplicaId());
 		sendClockMessage(messageId, connection.getConnectionId(), clock);
-		sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
+		gridReplicaConnectionManager.sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
 	}
 
 	Path downloadSnapshotFile(URL snapshotPresignedUrl) {
@@ -165,12 +159,6 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to download snapshot from: " + snapshotPresignedUrl, e);
 		}
-	}
-
-
-	void sendChangesToTopic(ReplicaChangeSet changeSet) {
-		log.info("Publishing replica change set to topic: {} changeSet: {}", topicArn, changeSet);
-		snsClient.publish(PublishRequest.builder().targetArn(topicArn).message(changeSet.toJson()).build());
 	}
 
 	@Override

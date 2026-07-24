@@ -1,0 +1,35 @@
+{
+    "description": "Status of a DUC envelope",
+    "name": "EDucStatusEnum",
+    "type": "string",
+    "enum": [
+        {
+            "name": "draft",
+            "description": "the envelope has been created but not yet sent for signature"
+        },
+        {
+            "name": "sent",
+            "description": "email notification with a link has been sent to at least one recipient, and it stays in this state until recipients have at least viewed it"
+        },
+        {
+            "name": "delivered",
+            "description": "all recipients have viewed the documents in the signing experience"
+        },
+        {
+            "name": "completed",
+            "description": "signing is finished"
+        },
+        {
+            "name": "declined",
+            "description": "a recipient has explicitly declined to sign; signing will never be completed"
+        },
+        {
+            "name": "voided",
+            "description": "the sender has voided the DUC or it has expired"
+        },
+        {
+            "name": "correct",
+            "description": "the sender has opened the envelope for correction; the signing process is paused"
+        }
+    ]
+}
