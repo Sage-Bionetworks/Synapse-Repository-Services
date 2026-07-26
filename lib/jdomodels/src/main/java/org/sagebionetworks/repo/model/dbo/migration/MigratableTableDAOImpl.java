@@ -599,16 +599,53 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	@MigrationWriteTransaction
 	public int deleteByRange(final TypeData type, final long minimumId, final long maximumId) {
 		ValidateArgument.required(type, "MigrationType");
+		final MigrationType migrationType = MigrationType.valueOf(type.getMigrationType());
 		// Foreign Keys must be ignored for this operation.
 		return this.runWithKeyChecksIgnored(() -> {
-			String deleteSQLTemplate = this.deleteByRangeMap.get(MigrationType.valueOf(type.getMigrationType()));
-			String sql = String.format(deleteSQLTemplate, type.getBackupIdColumnName());
+			String deleteSQLTemplate = this.deleteByRangeMap.get(migrationType);
+			String sql = String.format(deleteSQLTemplate,
+					resolveBackupIdColumnName(migrationType, type.getBackupIdColumnName()));
 			NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 			Map<String, Object> parameters = new HashMap<>(2);
 			parameters.put(DMLUtils.BIND_MIN_ID, minimumId);
 			parameters.put(DMLUtils.BIND_MAX_ID, maximumId);
 			return namedTemplate.update(sql, parameters);
 		});
+	}
+
+	/**
+	 * Determine the column of this stack's table that holds the backup IDs of a range defined by the migration source.
+	 * The source's name is used as-is unless this type has declared that its backup ID column was renamed away from
+	 * that name.
+	 *
+	 * @param sourceBackupIdColumnName The backup ID column name recorded in the source's manifest
+	 * @return The column to range over on this stack
+	 */
+	String resolveBackupIdColumnName(MigrationType type, String sourceBackupIdColumnName) {
+		FieldColumn backupIdColumn = this.backupIdColumns.get(type);
+		String previousColumnName = backupIdColumn.getPreviousColumnName();
+		if (previousColumnName != null) {
+			if (previousColumnName.equalsIgnoreCase(sourceBackupIdColumnName)) {
+				// The source predates the rename, so its range is expressed in the old column's values. The current
+				// column replaced it and holds those same values.
+				log.info("Migration source named the pre-rename backup ID column '{}' for type {}; ranging over '{}'.",
+						sourceBackupIdColumnName, type, backupIdColumn.getColumnName());
+				return backupIdColumn.getColumnName();
+			}
+			if (backupIdColumn.getColumnName().equalsIgnoreCase(sourceBackupIdColumnName)) {
+				// The source has been deployed with the rename, so nothing names the old column any more. Harmless,
+				// but the bridge is now dead code.
+				log.warn("Migration source named the current backup ID column '{}' for type {}, so the rename bridge"
+						+ " from '{}' is no longer needed and can be removed.", sourceBackupIdColumnName, type,
+						previousColumnName);
+			}
+		}
+		/*
+		 * A manifest's ID range is expressed in the values of the source stack's backup ID column, so that column is
+		 * named directly. Any name this stack does not recognize is passed through so that the database rejects it,
+		 * rather than silently deleting by some other column.
+		 */
+		return sourceBackupIdColumnName;
 	}
 
 	@Override

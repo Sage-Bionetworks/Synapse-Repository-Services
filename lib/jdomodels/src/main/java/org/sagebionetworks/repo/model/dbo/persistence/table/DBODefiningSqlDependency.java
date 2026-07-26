@@ -37,8 +37,14 @@ public class DBODefiningSqlDependency
 
 	private static final String MATERIALIZED_VIEW_TYPE = ObjectType.MATERIALIZED_VIEW.name();
 
+	// The backup ID column name used by the release before this table was generalized. A migration source running that
+	// release records this name in its backup manifest.
+	@TemporaryCode(author = "BryanFauble", comment = "Remove this and the withPreviousColumnName bridge below once production records OBJECT_ID as the backup ID column in its migration manifest.")
+	private static final String LEGACY_BACKUP_ID_COLUMN = "MATERIALIZED_VIEW_ID";
+
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("objectId", COL_DEFINING_SQL_DEP_OBJECT_ID, true).withIsBackupId(true),
+		new FieldColumn("objectId", COL_DEFINING_SQL_DEP_OBJECT_ID, true).withIsBackupId(true)
+				.withPreviousColumnName(LEGACY_BACKUP_ID_COLUMN),
 		new FieldColumn("objectVersion", COL_DEFINING_SQL_DEP_OBJECT_VERSION, true),
 		new FieldColumn("objectType", COL_DEFINING_SQL_DEP_OBJECT_TYPE),
 		new FieldColumn("sourceTableId", COL_DEFINING_SQL_DEP_SOURCE_TABLE_ID, true),

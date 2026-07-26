@@ -21,7 +21,8 @@ public class FieldColumn {
 	private boolean isBackupId = false;
 	private boolean isSelfForeignKey = false;
 	private boolean hasFileHandleRef = false;
-	
+	private String previousColumnName = null;
+
 	/**
 	 * @param fieldName - the name of the field as declared in the DBO class.
 	 * @param columnName - the name of the column in the database
@@ -164,9 +165,35 @@ public class FieldColumn {
 		return this;
 	}
 	
+	/**
+	 * The name this column had in the previous release, when it has been renamed.
+	 *
+	 * @return Null unless a rename was declared via {@link #withPreviousColumnName(String)}
+	 */
+	public String getPreviousColumnName() {
+		return previousColumnName;
+	}
+
+	/**
+	 * Declare that this column was renamed, naming the column it replaces. Only meaningful on the backup ID column of a
+	 * MigratableDatabaseObject: a migration source that predates the rename records the old name in its backup manifest,
+	 * and the destination needs to recognize that name as referring to this column.
+	 * <p>
+	 * This is a temporary bridge for a single release. Remove it once production has been deployed with the new column
+	 * name, at which point no manifest names the old column any more.
+	 *
+	 * @param previousColumnName The name of the column in the release before the rename
+	 * @return This {@link FieldColumn} reference for chaining
+	 */
+	public FieldColumn withPreviousColumnName(String previousColumnName) {
+		this.previousColumnName = previousColumnName;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(columnName, fieldName, isBackupId, isEtag, hasFileHandleRef, isPrimaryKey, isSelfForeignKey);
+		return Objects.hash(columnName, fieldName, isBackupId, isEtag, hasFileHandleRef, isPrimaryKey, isSelfForeignKey,
+				previousColumnName);
 	}
 
 	@Override
@@ -183,14 +210,14 @@ public class FieldColumn {
 		FieldColumn other = (FieldColumn) obj;
 		return Objects.equals(columnName, other.columnName) && Objects.equals(fieldName, other.fieldName) && isBackupId == other.isBackupId
 				&& isEtag == other.isEtag && hasFileHandleRef == other.hasFileHandleRef && isPrimaryKey == other.isPrimaryKey
-				&& isSelfForeignKey == other.isSelfForeignKey;
+				&& isSelfForeignKey == other.isSelfForeignKey && Objects.equals(previousColumnName, other.previousColumnName);
 	}
 
 	@Override
 	public String toString() {
 		return "FieldColumn [fieldName=" + fieldName + ", columnName=" + columnName + ", isPrimaryKey=" + isPrimaryKey + ", isEtag="
 				+ isEtag + ", isBackupId=" + isBackupId + ", isSelfForeignKey=" + isSelfForeignKey + ", isFileHandleRef=" + hasFileHandleRef
-				+ "]";
+				+ ", previousColumnName=" + previousColumnName + "]";
 	}
 
 }

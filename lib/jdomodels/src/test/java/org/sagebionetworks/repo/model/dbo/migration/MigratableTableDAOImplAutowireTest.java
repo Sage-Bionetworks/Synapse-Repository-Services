@@ -28,6 +28,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -41,6 +42,8 @@ import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBODefiningSqlDependency;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBODefiningSqlObject;
 import org.sagebionetworks.repo.model.dbo.schema.DBOOrganization;
 import org.sagebionetworks.repo.model.dbo.schema.JsonSchemaDao;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
@@ -427,7 +430,113 @@ public class MigratableTableDAOImplAutowireTest {
 		count = migratableTableDAO.deleteByRange(typeData, minId, maxId+1);
 		assertEquals(1, count);
 	}
-	
+
+	/**
+	 * A type that has not declared a rename must not silently range over some other column: deleting by the wrong
+	 * column would remove the wrong rows, so an unrecognized name has to reach the database and be rejected.
+	 */
+	@Test
+	public void testDeleteByRangeWithUndeclaredColumnName() {
+		ColumnModel one = new ColumnModel();
+		one.setColumnType(ColumnType.INTEGER);
+		one.setName("one");
+		one = columnModelDao.createColumnModel(one);
+		long id = Long.parseLong(one.getId());
+
+		TypeData typeData = new TypeData().setMigrationType(MigrationType.COLUMN_MODEL.name())
+				.setBackupIdColumnName("SOME_UNKNOWN_COLUMN");
+
+		// call under test
+		assertThrows(RuntimeException.class, () -> migratableTableDAO.deleteByRange(typeData, id, id));
+
+		// the row is untouched.
+		assertEquals(one, columnModelDao.getColumnModel(one.getId()));
+	}
+
+	/**
+	 * Regression for the migration failure caused by generalizing the materialized view source tables: both types kept
+	 * their MigrationType but renamed their backup id column from MATERIALIZED_VIEW_ID to OBJECT_ID, so a manifest
+	 * written by a stack that predates the rename names a column these tables no longer have.
+	 */
+	@Test
+	public void testDeleteByRangeWithLegacyMaterializedViewColumnName() {
+		long objectId = 987654321L;
+
+		DBODefiningSqlObject object = new DBODefiningSqlObject();
+		object.setId(objectId);
+		object.setEtag(UUID.randomUUID().toString());
+		migratableTableDAO.createOrUpdate(MigrationType.MATERIALIZED_VIEW_ID, Lists.newArrayList(object));
+
+		DBODefiningSqlDependency dependency = new DBODefiningSqlDependency();
+		dependency.setObjectId(objectId);
+		dependency.setObjectVersion(-1L);
+		dependency.setObjectType(ObjectType.MATERIALIZED_VIEW.name());
+		dependency.setSourceTableId(123L);
+		dependency.setSourceTableVersion(-1L);
+		migratableTableDAO.createOrUpdate(MigrationType.MATERIALIZED_VIEW_SOURCE_TABLE, Lists.newArrayList(dependency));
+
+		TypeData secondaryType = new TypeData()
+				.setMigrationType(MigrationType.MATERIALIZED_VIEW_SOURCE_TABLE.name())
+				.setBackupIdColumnName("MATERIALIZED_VIEW_ID");
+		TypeData primaryType = new TypeData().setMigrationType(MigrationType.MATERIALIZED_VIEW_ID.name())
+				.setBackupIdColumnName("MATERIALIZED_VIEW_ID");
+
+		// call under test - secondaries are deleted before their primary, as they are on restore.
+		int secondaryCount = migratableTableDAO.deleteByRange(secondaryType, objectId, objectId);
+		int primaryCount = migratableTableDAO.deleteByRange(primaryType, objectId, objectId);
+
+		assertEquals(1, secondaryCount);
+		assertEquals(1, primaryCount);
+	}
+
+	@Test
+	public void testResolveBackupIdColumnNameWithCurrentColumnName() {
+		// call under test
+		String result = migratableTableDAO.resolveBackupIdColumnName(MigrationType.NODE, "ID");
+
+		assertEquals("ID", result);
+	}
+
+	@Test
+	public void testResolveBackupIdColumnNameWithoutDeclaredRename() {
+		// NODE declares no rename, so an unrecognized name is passed through to fail against the database.
+		// call under test
+		String result = migratableTableDAO.resolveBackupIdColumnName(MigrationType.NODE, "SOME_UNKNOWN_COLUMN");
+
+		assertEquals("SOME_UNKNOWN_COLUMN", result);
+	}
+
+	@Test
+	public void testResolveBackupIdColumnNameWithDeclaredRename() {
+		// call under test
+		String result = migratableTableDAO.resolveBackupIdColumnName(MigrationType.MATERIALIZED_VIEW_SOURCE_TABLE,
+				"MATERIALIZED_VIEW_ID");
+
+		assertEquals("OBJECT_ID", result);
+	}
+
+	@Test
+	public void testResolveBackupIdColumnNameWithDeclaredRenameOnPrimary() {
+		// call under test
+		String result = migratableTableDAO.resolveBackupIdColumnName(MigrationType.MATERIALIZED_VIEW_ID,
+				"MATERIALIZED_VIEW_ID");
+
+		assertEquals("OBJECT_ID", result);
+	}
+
+	/**
+	 * Once the source has been deployed with the rename it names the current column, leaving the bridge as dead code.
+	 * That is a cleanup signal only and must not change the resolved column.
+	 */
+	@Test
+	public void testResolveBackupIdColumnNameWithStaleDeclaredRename() {
+		// call under test
+		String result = migratableTableDAO.resolveBackupIdColumnName(MigrationType.MATERIALIZED_VIEW_SOURCE_TABLE,
+				"OBJECT_ID");
+
+		assertEquals("OBJECT_ID", result);
+	}
+
 	@Test
 	public void testCreateOrUpdate() {
 		// Note: Principal does not need to exists since foreign keys will be off.

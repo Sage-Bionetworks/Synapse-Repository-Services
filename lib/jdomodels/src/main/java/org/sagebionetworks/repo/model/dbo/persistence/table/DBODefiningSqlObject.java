@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.TemporaryCode;
 
 /**
  * This DBO represents the node identifier of a defining-SQL object (e.g. a materialized view or a
@@ -29,8 +30,15 @@ public class DBODefiningSqlObject implements MigratableDatabaseObject<DBODefinin
 
 	private static final List<MigratableDatabaseObject<?, ?>> SECONDARY_OBJECTS = Arrays.asList(new DBODefiningSqlDependency());
 	private static final MigratableTableTranslation<DBODefiningSqlObject, DBODefiningSqlObject> TRANSLATOR = new BasicMigratableTableTranslation<>();
+
+	// The backup ID column name used by the release before this table was generalized. A migration source running that
+	// release records this name in its backup manifest.
+	@TemporaryCode(author = "BryanFauble", comment = "Remove this and the withPreviousColumnName bridge below once production records OBJECT_ID as the backup ID column in its migration manifest.")
+	private static final String LEGACY_BACKUP_ID_COLUMN = "MATERIALIZED_VIEW_ID";
+
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_DEFINING_SQL_OBJECT_ID, true).withIsBackupId(true),
+		new FieldColumn("id", COL_DEFINING_SQL_OBJECT_ID, true).withIsBackupId(true)
+				.withPreviousColumnName(LEGACY_BACKUP_ID_COLUMN),
 		new FieldColumn("etag", COL_DEFINING_SQL_OBJECT_ETAG).withIsEtag(true)
 	};
 

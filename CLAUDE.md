@@ -168,6 +168,13 @@ When a DB column is renamed (e.g., `PROJECT_ID` → `OBJECT_ID`), the backup XML
 2. **Stack N+1** (after production has the new column):
    - Remove the old bridge field (`projectId`) and the translator bridge logic. The new field is now the sole source of truth.
 
+Renaming a **backup ID** column needs one more bridge on top of the field bridge above, because a backup's `BackupManifest` records the backup ID column name as it was on the *source* stack, and the destination ranges over that column when deleting the rows it is about to restore:
+
+1. **Stack N**: declare the rename on the backup ID `FieldColumn` — `.withIsBackupId(true).withPreviousColumnName(COL_OLD_NAME)`. The destination then recognizes the old name as referring to the new column. Mark it `@TemporaryCode`.
+2. **Stack N+1**: remove `withPreviousColumnName`. Once production records the new name, a still-declared bridge logs a warning naming the column to clean up; it is otherwise harmless.
+
+The bridge is deliberately opt-in per column: an undeclared column name is passed through to the database and fails loudly, because ranging over the wrong column would delete the wrong rows.
+
 ## Curation Grid (Curator)
 
 See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md` for the CRDT-based grid architecture, WebSocket protocol, and AI agent integration.
