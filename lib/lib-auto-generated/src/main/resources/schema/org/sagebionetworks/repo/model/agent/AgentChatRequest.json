@@ -17,6 +17,13 @@
 		"enableTrace": {
 			"description": "Optional. When trace is enabled, the agent will include information about its decision process and the functions/tools it will use to process this request. Default value is false.",
 			"type": "boolean"
+		},
+		"context": {
+			"type": "array",
+			"description": "Additional structured data to send to the agent.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.agent.AgentPromptSessionContext"
+			}
 		}
 	}
 }

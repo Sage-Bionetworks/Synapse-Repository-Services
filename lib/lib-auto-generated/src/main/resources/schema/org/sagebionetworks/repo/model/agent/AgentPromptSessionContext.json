@@ -1,0 +1,9 @@
+{
+	"description": "Additional context provided in an agent prompt.",
+	"type": "interface",
+	"properties": {
+		"concreteType": {
+			"type": "string"
+		}
+	}
+}

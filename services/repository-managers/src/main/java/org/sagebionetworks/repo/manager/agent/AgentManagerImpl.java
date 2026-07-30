@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.agent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,12 +23,12 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvid
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
 import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
+import org.sagebionetworks.repo.model.agent.AgentPromptSessionContext;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
@@ -44,6 +45,9 @@ import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,9 +204,6 @@ public class AgentManagerImpl implements AgentManager {
 
 	/**
 	 * Send the user's text directly to the agent via an invoke_agent call.
-	 * 
-	 * @param sessionId
-	 * @param inputText
 	 * @return
 	 */
 	String invokeAgentWithText(String jobId, AgentSession session, AgentChatRequest request) {
@@ -213,8 +214,21 @@ public class AgentManagerImpl implements AgentManager {
 		InvokeAgentRequest startRequest = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
 				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId())
 				.enableTrace(enableTrace).inputText(request.getChatText())
-				.sessionState(sessionState -> sessionState.promptSessionAttributes(
-						Map.of(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString())))
+				.sessionState(sessionState -> {
+					Map<String, String> promptSessionAttributes = new HashMap<>();
+					if (!userManager.getUserInfo(session.getStartedBy()).isUserAnonymous()) {
+						promptSessionAttributes.put("user_id", session.getStartedBy().toString());
+					}
+
+					promptSessionAttributes.put(PROMPT_SESSION_ATTRIBUTE_ACCESS_LEVEL, session.getAgentAccessLevel().toString());
+
+					if (request.getContext() != null) {
+						request.getContext().forEach(context ->
+								addContextToSessionAttributes(context, promptSessionAttributes)
+						);
+					}
+					sessionState.promptSessionAttributes(promptSessionAttributes);
+				})
 				.build();
 
 		AgentResponse res = invokeAgentAsync(jobId, agentRegistration.getType(), session, startRequest);
@@ -453,6 +467,28 @@ public class AgentManagerImpl implements AgentManager {
 		});
 		List<Parameter> requestBodyParams = getRequestBody(input.requestBody());
 		return new ReturnControlEvent(userId, input.actionGroup(), function, params, requestBodyParams, context);
+	}
+
+	/**
+	 * Serializes a single {@link AgentPromptSessionContext} into the provided prompt session attributes map.
+	 *
+	 * @param context    the context object to serialize
+	 * @param attributes the map to populate with the context's key/value pairs
+	 */
+	void addContextToSessionAttributes(AgentPromptSessionContext context, Map<String, String> attributes) {
+		try {
+			JSONObjectAdapter writeTo = new JSONObjectAdapterImpl();
+			context.writeToJSONObject(writeTo);
+			writeTo.keys().forEachRemaining(k -> {
+				try {
+					attributes.put(k, writeTo.get(k).toString());
+				} catch (JSONObjectAdapterException e) {
+					throw new IllegalArgumentException(e);
+				}
+			});
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("Failed to serialize session context", e);
+		}
 	}
 
 	List<Parameter> getRequestBody(ApiRequestBody body) {

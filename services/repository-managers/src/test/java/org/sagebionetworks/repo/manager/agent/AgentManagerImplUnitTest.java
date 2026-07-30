@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.agent;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -55,11 +57,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
+import org.sagebionetworks.repo.model.agent.AgentPromptSessionContext;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
+import org.sagebionetworks.repo.model.agent.EntityContext;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.repo.model.agent.SessionContext;
 import org.sagebionetworks.repo.model.agent.TraceEvent;
@@ -307,7 +311,8 @@ public class AgentManagerImplUnitTest {
 		var builder = InvokeAgentRequest.builder().agentId(agentRegistration.getAwsAgentId())
 				.agentAliasId(agentRegistration.getAwsAliasId()).sessionId(session.getSessionId()).enableTrace(false)
 				.inputText(inputText).sessionState(sessionState -> sessionState.promptSessionAttributes(
-						Map.of("access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
+						Map.of("user_id", nonSageNonAdmin.getId().toString(),
+								"access_level", AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString())));
 
 		invokeAgentRequest = builder.build();
 
@@ -346,6 +351,13 @@ public class AgentManagerImplUnitTest {
 				.build();
 
 		traceRequest = new TraceEventsRequest().setJobId(jobId).setNewerThanTimestamp(123L);
+
+		// Default stub: userManager returns the matching UserInfo for each user
+		// (lenient so tests that don't trigger this call don't fail)
+		Mockito.lenient().when(mockUserManager.getUserInfo(nonSageNonAdmin.getId())).thenReturn(nonSageNonAdmin);
+		Mockito.lenient().when(mockUserManager.getUserInfo(anonymousUserId)).thenReturn(anonymous);
+		Mockito.lenient().when(mockUserManager.getUserInfo(sageUser.getId())).thenReturn(sageUser);
+		Mockito.lenient().when(mockUserManager.getUserInfo(adminId)).thenReturn(admin);
 	}
 
 	@Test
@@ -1466,6 +1478,169 @@ public class AgentManagerImplUnitTest {
 		// call under test
 		List<Parameter> result = manager.getRequestBody(body);
 		assertNull(result);
+	}
+
+	@Test
+	public void testInvokeAgentWithTextIncludesContextInPromptSessionAttributes() {
+		// Setup context with EntityContext
+		EntityContext entityContext = new EntityContext().setEntityId("syn123").setVersionNumber(5L);
+		chatRequest.setContext(List.of(entityContext));
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+
+		// Verify access_level is present
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
+		// Verify EntityContext fields are serialized as prompt session attributes
+		assertEquals("syn123", promptSessionAttributes.get("entityId"));
+		assertEquals("5", promptSessionAttributes.get("versionNumber"));
+		assertEquals(EntityContext.class.getName(), promptSessionAttributes.get("concreteType"));
+	}
+
+	@Test
+	public void testInvokeAgentWithTextIncludesMultipleContextsInPromptSessionAttributes() {
+		// Setup multiple contexts
+		EntityContext entityContext1 = new EntityContext().setEntityId("syn123").setVersionNumber(5L);
+		EntityContext entityContext2 = new EntityContext().setEntityId("syn456").setVersionNumber(10L);
+		chatRequest.setContext(List.of(entityContext1, entityContext2));
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+
+		// Verify access_level is present
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
+		// When multiple contexts have the same keys, the last one wins
+		assertEquals("syn456", promptSessionAttributes.get("entityId"));
+		assertEquals("10", promptSessionAttributes.get("versionNumber"));
+	}
+
+	@Test
+	public void testInvokeAgentWithTextIncludesUserIdForNonAnonymousUser() {
+		// Set the session to be started by a non-anonymous user
+		session.setStartedBy(nonSageNonAdmin.getId());
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+
+		// Verify user_id is added to prompt session attributes
+		assertEquals(nonSageNonAdmin.getId().toString(), promptSessionAttributes.get("user_id"));
+	}
+
+	@Test
+	public void testInvokeAgentWithTextExcludesUserIdForAnonymousUser() {
+		// Set the session to be started by anonymous user
+		session.setStartedBy(anonymousUserId);
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+
+		// Verify user_id is NOT in prompt session attributes for anonymous users
+		assertFalse(promptSessionAttributes.containsKey("user_id"));
+		// But access_level should still be present
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
+	}
+
+	@Test
+	public void testInvokeAgentWithTextWithEmptyContextList() {
+		// Use anonymous user to simplify - only access_level expected
+		session.setStartedBy(anonymousUserId);
+		chatRequest.setContext(List.of());
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+
+		// Verify only access_level is present when context is empty and user is anonymous
+		assertEquals(1, promptSessionAttributes.size());
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
+	}
+
+	@Test
+	public void testInvokeAgentWithTextWithContextAndNonAnonymousUser() {
+		// Setup both context and non-anonymous user
+		EntityContext entityContext = new EntityContext().setEntityId("syn789");
+		chatRequest.setContext(List.of(entityContext));
+		session.setStartedBy(nonSageNonAdmin.getId());
+
+		when(mockAgentDao.getRegeistration(session.getAgentRegistrationId()))
+				.thenReturn(Optional.of(agentRegistration));
+
+		ArgumentCaptor<InvokeAgentRequest> requestCaptor = ArgumentCaptor.forClass(InvokeAgentRequest.class);
+		doReturn(new AgentResponse().appendText("response")).when(manager).invokeAgentAsync(eq(jobId),
+				eq(agentRegistration.getType()), eq(session), requestCaptor.capture());
+
+		// call under test
+		String result = manager.invokeAgentWithText(jobId, session, chatRequest);
+
+		assertEquals("response", result);
+
+		InvokeAgentRequest capturedRequest = requestCaptor.getValue();
+
+		// Verify prompt session attributes contain user_id, access_level, and context data
+		Map<String, String> promptSessionAttributes = capturedRequest.sessionState().promptSessionAttributes();
+		assertEquals(nonSageNonAdmin.getId().toString(), promptSessionAttributes.get("user_id"));
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE.toString(), promptSessionAttributes.get("access_level"));
+		assertEquals("syn789", promptSessionAttributes.get("entityId"));
+		assertEquals(EntityContext.class.getName(), promptSessionAttributes.get("concreteType"));
 	}
 
 }
