@@ -200,61 +200,6 @@
 				<version>1.3.7</version>
 			</dependency>
 
-			<!-- Make sure all the Jackson libraries are of the same version -->
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-core</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-annotations</artifactId>
-				<version>${jackson.annotations.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.datatype</groupId>
-				<artifactId>jackson-datatype-jsr310</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.jaxrs</groupId>
-				<artifactId>jackson-jaxrs-json-provider</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.module</groupId>
-				<artifactId>jackson-module-jaxb-annotations</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-databind</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.dataformat</groupId>
-				<artifactId>jackson-dataformat-cbor</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.dataformat</groupId>
-				<artifactId>jackson-dataformat-csv</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>com.fasterxml.jackson.jakarta.rs</groupId>
-				<artifactId>jackson-jakarta-rs-json-provider</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-
 			<dependency>
 				<groupId>org.glassfish.jersey.core</groupId>
 				<artifactId>jersey-client</artifactId>
@@ -811,6 +756,17 @@
 				<version>2.9.0</version>
 			</dependency>
 
+			<!-- Jackson BOM keeps every Jackson artifact on the same version. It is imported
+				first so that its versions win over the older Jackson versions pinned by the
+				AWS SDK and Spring AI BOMs below. -->
+			<dependency>
+				<groupId>com.fasterxml.jackson</groupId>
+				<artifactId>jackson-bom</artifactId>
+				<version>${jackson.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+
 			<!-- Import the BOM for AWS sdk dependencies v1 -->
 			<dependency>
 				<groupId>com.amazonaws</groupId>
@@ -1025,7 +981,7 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-dependency-plugin</artifactId>
-					<version>2.7</version>
+					<version>3.11.0</version>
 					<executions>
 						<execution>
 							<goals>
@@ -1180,7 +1136,7 @@
 			 Spring 6 requires Java 17+ and jakarta.* namespace (migrated from javax.*).
 		-->
 		<org.springframework.version>6.2.18</org.springframework.version>
-		<jackson.version>2.20.0</jackson.version>
+		<jackson.version>2.22.1</jackson.version>
 		<xstream.version>1.4.21</xstream.version>
 		<maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ssZ</maven.build.timestamp.format>
 		<mysql.mysql-connector-java.version>8.4.0</mysql.mysql-connector-java.version>
@@ -1202,7 +1158,6 @@
 		<jsoup.version>1.14.2</jsoup.version>
 		<bouncycastle.version>1.84</bouncycastle.version>
 		<jjwt.version>0.11.2</jjwt.version>
-		<jackson.annotations.version>2.20</jackson.annotations.version>
 		<jersey.version>3.1.6</jersey.version>
 		<auth0.java-jwt.version>3.4.1</auth0.java-jwt.version>
 		<spring-ai.version>1.1.7</spring-ai.version>
