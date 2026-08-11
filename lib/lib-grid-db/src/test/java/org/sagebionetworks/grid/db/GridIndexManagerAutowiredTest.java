@@ -258,7 +258,7 @@ public class GridIndexManagerAutowiredTest {
                     long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNano);
                     assertNotNull(exportedClock);
                     long fileSize = Files.exists(exportedFile) ? Files.size(exportedFile) : 0L;
-                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, rows={}, cols={}",
+                    log.info("exportSnapshot duration={} ms, exported file='{}', size={} bytes, nRows={}, nCols={}",
                             durationMs, exportedFile.toAbsolutePath(), fileSize, nRows, nCols);
                 }
 
