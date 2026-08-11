@@ -54,19 +54,17 @@ import java.util.Map;
  * so that the S3 Client for that region is used.
  * 
  */
-public class SynapseS3ClientImpl implements SynapseS3Client {
+public class SynapseS3ClientImpl extends SynapseS3ClientV2Impl implements SynapseS3Client {
 
 	private Map<Region, AmazonS3> regionSpecificClients;
 
-	private S3ClientProvider s3ClientProvider;
-
 	public SynapseS3ClientImpl(Map<Region, AmazonS3> regionSpecificClients, S3ClientProvider s3ClientProvider) {
+		super(s3ClientProvider);
 		this.regionSpecificClients=regionSpecificClients;
-		this.s3ClientProvider=s3ClientProvider;
 	}
 
 	public Region getRegionForBucket(String bucketName) {
-		return toS3ModelRegion(s3ClientProvider.getRegionForBucket(bucketName));
+		return toS3ModelRegion(getRegionForBucketV2(bucketName));
 	}
 
 	/*

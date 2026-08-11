@@ -22,6 +22,15 @@ Two factories coexist while the codebase migrates from AWS SDK v1 to v2:
 - `aws/ProfileCredentialsProviderV2V1Adapter` — bridges the two credential-provider hierarchies so a single resolved credential source feeds both.
 - `aws/v2/S3ClientProvider` — the single place where the region of a bucket is resolved (`HeadBucket`, cached for an hour) and where the v2 `S3Client` for that region is supplied. `SynapseS3Client` delegates its region resolution here and maps the result onto the v1 `s3.model.Region`, whose us-east-1 value (`US_Standard`) has a null id.
 
+### The S3 facade during the migration
+
+`SynapseS3Client` is the single S3 facade callers inject, and it currently exposes both SDK generations:
+
+- `SynapseS3ClientV2` / `SynapseS3ClientV2Impl` declare the v2-typed operations, each named with a `V2` suffix (`getObjectV2`, `putObjectV2`, …) so it can sit beside its v1 sibling. These files are deliberately free of any `com.amazonaws` import.
+- `SynapseS3Client` extends that interface and adds the legacy v1-typed operations; `SynapseS3ClientImpl` extends `SynapseS3ClientV2Impl` and implements them against the v1 client map.
+
+Callers migrate one at a time from a v1 method to its `V2` sibling. When the last v1 caller is gone the v1 half is deleted and the `V2` suffix is dropped. New S3 code should only use the `V2` methods. There is intentionally no v2 sibling for the deprecated ListObjects API — callers move to `listObjectsV2`.
+
 **New AWS clients should use `AwsClientFactoryV2` (v2).** When a subsystem still needs a v1 client, reuse the adapter rather than constructing a parallel credential chain.
 
 ## Constraints
