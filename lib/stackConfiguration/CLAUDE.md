@@ -20,6 +20,7 @@ Two factories coexist while the codebase migrates from AWS SDK v1 to v2:
 - `aws/AwsClientFactory` — SDK **v1** clients (legacy).
 - `aws/v2/AwsClientFactoryV2` — SDK **v2** clients.
 - `aws/ProfileCredentialsProviderV2V1Adapter` — bridges the two credential-provider hierarchies so a single resolved credential source feeds both.
+- `aws/v2/S3ClientProvider` — the single place where the region of a bucket is resolved (`HeadBucket`, cached for an hour) and where the v2 `S3Client` for that region is supplied. `SynapseS3Client` delegates its region resolution here and maps the result onto the v1 `s3.model.Region`, whose us-east-1 value (`US_Standard`) has a null id.
 
 **New AWS clients should use `AwsClientFactoryV2` (v2).** When a subsystem still needs a v1 client, reuse the adapter rather than constructing a parallel credential chain.
 
