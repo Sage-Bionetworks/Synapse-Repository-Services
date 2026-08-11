@@ -11,6 +11,7 @@ import javax.sql.DataSource;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.lib.dbuserhelper.DBUserHelper;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
@@ -38,8 +39,6 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	 */
 	private BasicDataSource singleConnectionPool;
 
-	private DBUserHelper dbUserHelper;
-
 	/**
 	 * Note: The DAO is autowired so it can be profiled. See: PLFM-5984. We might
 	 * need an alternate solution to support multiple database connections in the
@@ -49,13 +48,16 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 
 	private SearchIndexStatusDao searchIndexStatusDao;
 
+	private StackConfiguration stackConfiguration;
+
 	@Autowired
-	public ConnectionFactoryImpl(@Qualifier("tableDatabaseConnectionPool") BasicDataSource tableDatabaseConnectionPool, TableIndexDAO tableIndexDao,
-	                             SearchIndexStatusDao searchIndexStatusDao, DBUserHelper dbuh) {
+	public ConnectionFactoryImpl(@Qualifier("tableDatabaseConnectionPool") BasicDataSource tableDatabaseConnectionPool,
+			TableIndexDAO tableIndexDao, SearchIndexStatusDao searchIndexStatusDao,
+			StackConfiguration stackConfiguration) {
 		this.singleConnectionPool = tableDatabaseConnectionPool;
 		this.tableIndexDao = tableIndexDao;
 		this.searchIndexStatusDao = searchIndexStatusDao;
-		this.dbUserHelper = dbuh;
+		this.stackConfiguration = stackConfiguration;
 	}
 
 	@Override
@@ -79,7 +81,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 
 	private void createDBUser() {
 		JdbcTemplate template = new JdbcTemplate(singleConnectionPool);
-		dbUserHelper.createDbReadOnlyUser(template);
+		DBUserHelper.createDbReadOnlyUser(template, stackConfiguration);
 	}
 
 	/**

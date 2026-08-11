@@ -206,6 +206,12 @@ public class ColumnConstants {
 	public static final Long DEFAULT_LIST_LENGTH = 100L;
 
 	/**
+	 * The minimum number of elements for a LIST column type. A list column must allow at least
+	 * two elements; values below this are rejected by ColumnModelUtils.validateListLengthForClone.
+	 */
+	public static final long MINIMUM_LIST_LENGTH = 2L;
+
+	/**
 	 * The maximum total number of characters across all elements in a list column, excluding JSON
 	 * control characters such as '[', ']', ',', and '"'. The per-column maximum list length is
 	 * derived as: floor(MAX_ALLOWED_LIST_TOTAL_CHARACTERS / max_chars_per_element).

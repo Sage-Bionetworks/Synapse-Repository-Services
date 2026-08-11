@@ -130,7 +130,7 @@ public class EntityManagerImpl implements EntityManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		entityAuthorizationManager.hasAccess(userInfo, entityId, ACCESS_TYPE.READ).checkAuthorizationOrElseThrow();
-		return getEntity(entityId, entityClass);
+		return getEntityWithoutAuthorization(entityId, entityClass);
 	}
 
 	@Override
@@ -150,7 +150,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T getEntity(String entityId, Class<? extends T> entityClass)
+	public <T extends Entity> T getEntityWithoutAuthorization(String entityId, Class<? extends T> entityClass)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		ValidateArgument.required(entityId, "entityId");
 		org.sagebionetworks.repo.model.Annotations entityPropertyAnnotations = nodeManager
@@ -706,7 +706,7 @@ public class EntityManagerImpl implements EntityManager {
 	public JsonSubject getEntityJsonSubject(String entityId, boolean includeDerivedAnnotations) {
 		ValidateArgument.required(entityId, "entityId");
 		Class<? extends Entity> entityClass = null;
-		Entity entity = getEntity(entityId, entityClass);
+		Entity entity = getEntityWithoutAuthorization(entityId, entityClass);
 
 		Annotations annotations = getAnnotations(entityId, includeDerivedAnnotations);
 

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
@@ -29,8 +30,8 @@ public class CsvSchemaReconciler {
 		if (validationSchema == null) {
 			return;
 		}
-		Map<String, JsonSchema> properties = validationSchema.getProperties();
-		if (properties == null) {
+		Map<String, JsonSchema> properties = JsonSchemaProperties.collectTopLevelProperties(validationSchema);
+		if (properties.isEmpty()) {
 			return;
 		}
 		for (ColumnModel column : csvSchema) {

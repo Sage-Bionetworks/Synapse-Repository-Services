@@ -11,10 +11,11 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.model.Content;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+
+import software.amazon.awssdk.services.ses.SesClient;
+import software.amazon.awssdk.services.ses.model.Content;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 /**
  * This wrapper around the Amazon SES client allows us to suppress sending
@@ -29,7 +30,7 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	static private Log log = LogFactory.getLog(SynapseEmailServiceImpl.class);
 
 	@Autowired
-	private AmazonSimpleEmailService amazonSESClient;
+	private SesClient amazonSESClient;
 	
 	@Autowired
 	private SynapseS3Client s3Client;
@@ -56,27 +57,27 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 	}
 
 	public void writeToFile(SendEmailRequest emailRequest) {
-		String to = emailRequest.getDestination().getToAddresses().get(0);
+		String to = emailRequest.destination().toAddresses().get(0);
 		String body = null;
-		Content textContent = emailRequest.getMessage().getBody().getText();
-		if (textContent!=null && textContent.getData()!=null && textContent.getData().length()>0) {
-			body = textContent.getData();
+		Content textContent = emailRequest.message().body().text();
+		if (textContent!=null && textContent.data()!=null && textContent.data().length()>0) {
+			body = textContent.data();
 		}
-		Content htmlContent = emailRequest.getMessage().getBody().getHtml();
-		if (htmlContent!=null && htmlContent.getData()!=null && htmlContent.getData().length()>0) {
+		Content htmlContent = emailRequest.message().body().html();
+		if (htmlContent!=null && htmlContent.data()!=null && htmlContent.data().length()>0) {
 			if (body==null) {
-				body = htmlContent.getData();
+				body = htmlContent.data();
 			} else {
-				body += htmlContent.getData();
+				body += htmlContent.data();
 			}
 		}
 		writeObjectToFile(body, to);
 	}
-	
+
 	public void writeToFile(SendRawEmailRequest rawEmailRequest) {
 		try {
-			String to = rawEmailRequest.getDestinations().get(0);
-			writeObjectToFile(new String(rawEmailRequest.getRawMessage().getData().array(), "UTF-8"), to);
+			String to = rawEmailRequest.destinations().get(0);
+			writeObjectToFile(new String(rawEmailRequest.rawMessage().data().asByteArray(), "UTF-8"), to);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

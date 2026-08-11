@@ -38,7 +38,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
@@ -179,6 +178,22 @@ public class DBOAccessControlListDAOImplTest {
 		return acl;
 	}
 
+	/**
+	 * Whether any of the given groups has the given access type to the given entity. The DAO's
+	 * {@link AccessControlListDAO#canAccess} now rejects {@link ObjectType#ENTITY} (entity access must
+	 * resolve the benefactor via the EntityAuthorizationManager), so these tests reach the same
+	 * benefactor-resolving logic through {@link AccessControlListDAO#getAccessibleBenefactors}.
+	 */
+	private boolean canAccessEntity(Set<Long> groups, String entityId, ACCESS_TYPE accessType) {
+		Long entityIdLong = KeyFactory.stringToKey(entityId);
+		return aclDAO.getAccessibleBenefactors(groups, Set.of(entityIdLong), ObjectType.ENTITY, accessType)
+				.contains(entityIdLong);
+	}
+
+	private boolean canAccessEntity(UserInfo user, String entityId, ACCESS_TYPE accessType) {
+		return canAccessEntity(user.getGroups(), entityId, accessType);
+	}
+
 	@AfterEach
 	public void tearDown() throws Exception {
 		for (AccessControlList acl : aclList){
@@ -225,28 +240,36 @@ public class DBOAccessControlListDAOImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		
+		assertTrue(canAccessEntity(gs, node.getId(), ACCESS_TYPE.READ));
+
 		// but it doesn't have 'UPDATE' access
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		
+		assertFalse(canAccessEntity(gs, node.getId(), ACCESS_TYPE.UPDATE));
+
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
 		gs.add(Long.parseLong(sham.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertFalse(canAccessEntity(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 	
 	@Test
 	public void testCanAccessStatus() throws Exception {
-		// call under test
-		AuthorizationStatus status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		assertTrue(status.isAuthorized());
-		// call under test
-		status = aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		assertFalse(status.isAuthorized());
-		assertEquals("You do not have UPDATE permission for ENTITY : "+node.getId(), status.getMessage());
+		// the user's groups include 'group', which has READ (but not UPDATE) on 'node'
+		assertTrue(canAccessEntity(userInfo, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(canAccessEntity(userInfo, node.getId(), ACCESS_TYPE.UPDATE));
+	}
+
+	@Test
+	public void testCanAccessWithEntityTypeThrows() {
+		Set<Long> gs = Set.of(Long.parseLong(group.getId()));
+
+		// canAccess cannot be used for entities; entity access must resolve the benefactor via the
+		// EntityAuthorizationManager (the benefactor-resolving entry point is getAccessibleBenefactors).
+		assertThrows(IllegalArgumentException.class,
+				() -> aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertThrows(IllegalArgumentException.class,
+				() -> aclDAO.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 	}
 	
 	@Test
@@ -531,9 +554,9 @@ public class DBOAccessControlListDAOImplTest {
 		
 		Set<Long> gs = new HashSet<Long>();
 		gs.add(Long.parseLong(group.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertFalse(canAccessEntity(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(canAccessEntity(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(canAccessEntity(gs, node.getId(), ACCESS_TYPE.CREATE));
 
 		AccessControlList acl2 = aclDAO.get(rid, ObjectType.ENTITY);
 		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
@@ -593,15 +616,15 @@ public class DBOAccessControlListDAOImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> gs2 = new HashSet<Long>();
 		gs2.add(Long.parseLong(group2.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
-		
+		assertFalse(canAccessEntity(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(canAccessEntity(gs2, node.getId(), ACCESS_TYPE.READ));
+
 		// Group one can do this but 2 cannot.
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertTrue(canAccessEntity(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(canAccessEntity(gs, node.getId(), ACCESS_TYPE.CREATE));
 		// Now try 2
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
+		assertFalse(canAccessEntity(gs2, node.getId(), ACCESS_TYPE.UPDATE));
+		assertFalse(canAccessEntity(gs2, node.getId(), ACCESS_TYPE.CREATE));
 		
 	}
 	

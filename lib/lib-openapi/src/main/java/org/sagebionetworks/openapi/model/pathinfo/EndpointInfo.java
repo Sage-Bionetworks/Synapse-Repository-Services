@@ -22,6 +22,7 @@ public class EndpointInfo implements JSONEntity {
 	private RequestBodyInfo requestBody;
 	private Map<String, ResponseInfo> responses;
 	private Map<String, String[]> securityRequirements;
+	private Boolean deprecated;
 	
 	public List<String> getTags() {
 		return tags;
@@ -75,10 +76,19 @@ public class EndpointInfo implements JSONEntity {
 		this.securityRequirements = securityRequirements;
 		return this;
 	}
+
+	public Boolean getDeprecated() {
+		return deprecated;
+	}
+
+	public EndpointInfo withDeprecated(Boolean deprecated) {
+		this.deprecated = deprecated;
+		return this;
+	}
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(operationId, parameters, requestBody, responses, tags);
+		return Objects.hash(operationId, parameters, requestBody, responses, tags, deprecated);
 	}
 	
 	@Override
@@ -92,13 +102,15 @@ public class EndpointInfo implements JSONEntity {
 		EndpointInfo other = (EndpointInfo) obj;
 		return Objects.equals(operationId, other.operationId) && Objects.equals(parameters, other.parameters)
 				&& Objects.equals(requestBody, other.requestBody) && Objects.equals(responses, other.responses)
-				&& Objects.equals(tags, other.tags) && securityRequirementsAreEqual(securityRequirements, other.securityRequirements);
+				&& Objects.equals(tags, other.tags) && Objects.equals(deprecated, other.deprecated)
+				&& securityRequirementsAreEqual(securityRequirements, other.securityRequirements);
 	}
 	
 	@Override
 	public String toString() {
 		return "EndpointInfo [tags=" + tags + ", operationId=" + operationId + ", parameters=" + parameters
-				+ ", requestBody=" + requestBody + ", responses=" + responses + ", securityRequirements=" + securityRequirements + "]";
+				+ ", requestBody=" + requestBody + ", responses=" + responses + ", securityRequirements="
+				+ securityRequirements + ", deprecated=" + deprecated + "]";
 	}
 	
 	@Override
@@ -123,6 +135,10 @@ public class EndpointInfo implements JSONEntity {
 		
 		if (this.operationId != null) {
 			writeTo.put("operationId", operationId);
+		}
+
+		if (Boolean.TRUE.equals(this.deprecated)) {
+			writeTo.put("deprecated", true);
 		}
 		
 		if (this.parameters != null) {

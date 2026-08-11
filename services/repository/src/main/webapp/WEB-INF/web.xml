@@ -134,6 +134,7 @@
 		<url-pattern>/auth/v1/sessionAccessToken</url-pattern>
 		<url-pattern>/auth/v1/user/*</url-pattern>
 		<url-pattern>/auth/v1/oauth2/alias</url-pattern>
+		<url-pattern>/auth/v1/oauth2/identity</url-pattern>
 		<url-pattern>/auth/v1/oauth2/client/*</url-pattern>
 		<url-pattern>/auth/v1/authenticatedOn</url-pattern>
 		<url-pattern>/auth/v1/oauth2/consent</url-pattern>

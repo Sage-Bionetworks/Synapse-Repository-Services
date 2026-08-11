@@ -85,6 +85,8 @@ public interface AuthenticationService {
 
 	void unbindExternalID(Long userId, OAuthProvider provider, String aliasName);
 
+	void bindOIDCIdentity(Long userId, OAuthValidationRequest validationRequest);
+
 	/**
 	 * Authenticates username and password combination
 	 * User can use an authentication receipt from previous login to skip extra security checks

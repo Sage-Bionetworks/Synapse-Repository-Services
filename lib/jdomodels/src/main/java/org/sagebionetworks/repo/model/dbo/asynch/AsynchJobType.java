@@ -6,6 +6,8 @@ import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.doi.v2.DoiRequest;
 import org.sagebionetworks.repo.model.doi.v2.DoiResponse;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
@@ -139,6 +141,8 @@ public enum AsynchJobType {
 					.setMessageGroupId(((GridUpdateJobRequest) s.getRequestBody()).getSessionId() + "-"
 							+ ((GridUpdateJobRequest) s.getRequestBody()).getReplicaId())
 					.setMessageDeduplicationId(s.getJobId())),
+
+	COMPUTE_TASK_EXECUTION(ComputeTaskExecutionRequest.class, ComputeTaskExecutionResponse.class),
 
 	SEARCH_QUERY(SearchIndexQuery.class, SearchQueryResults.class);
 

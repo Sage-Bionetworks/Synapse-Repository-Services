@@ -48,10 +48,6 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.grid.patch.Patch;
 import org.sagebionetworks.repo.model.grid.patch.compact.LogicalTimestampCompactSerializable;
 import org.sagebionetworks.util.progress.ProgressCallback;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class GridReplicaManagerImplTest {
@@ -65,11 +61,11 @@ public class GridReplicaManagerImplTest {
 	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
-	SnsClient mockSnsClient;
-	@Mock
 	HttpClient mockHttpClient;
 	@Mock
 	private HttpResponse<Path> mockHttpResponse;
+	@Mock
+	private GridReplicaConnectionManager mockGridReplicaConnectionManager;
 
 	private GridConnectionInfo connection;
 	private String sessionId;
@@ -79,7 +75,6 @@ public class GridReplicaManagerImplTest {
 	private List<LogicalTimestamp> clock;
 	private Patch patch1;
 	private Patch patch2;
-	private String topicArn;
 	private Map<IndexType, Set<LogicalTimestamp>> changes;
 
 	@BeforeEach
@@ -95,11 +90,6 @@ public class GridReplicaManagerImplTest {
 				.setOperations(List.of());
 		patch2 = new Patch().setPatchId(new LogicalTimestamp().setReplicaId(5L).setSequenceNumber(6L))
 				.setOperations(List.of());
-
-		topicArn = "arn:aws:sns:us-east-1:123456789012:test-topic";
-
-		// Set the gridReplicaChangeTopicArn field value
-		ReflectionTestUtils.setField(manager, "topicArn", topicArn);
 
 		changes = Map.of(IndexType.arr, Set.of(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(55L)));
 	}
@@ -149,7 +139,6 @@ public class GridReplicaManagerImplTest {
 	@Test
 	public void testOnApplyPatchesSinglePatch() {
 		when(mockGridIndexManager.applyPatch(sessionId, replicaId, patch1)).thenReturn(changes);
-		doNothing().when(manager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, changes));
 
 		// Mock the gridIndexManager calls
 		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(clock);
@@ -160,6 +149,7 @@ public class GridReplicaManagerImplTest {
 
 		// verify interactions
 		verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch1);
+		verify(mockGridReplicaConnectionManager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, changes));
 		verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		verify(manager).sendClockMessage(methodId, connectionId, clock);
 		verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
@@ -173,7 +163,6 @@ public class GridReplicaManagerImplTest {
 		Map<IndexType, Set<LogicalTimestamp>> expectedCumulativeChanges = Map.of(IndexType.arr, Set.of(
 				new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(55L),
 				new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(77L)));
-		doNothing().when(manager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, expectedCumulativeChanges));
 
 		// Mock the gridIndexManager calls
 		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(clock);
@@ -183,11 +172,12 @@ public class GridReplicaManagerImplTest {
 		manager.onApplyPatches(mockCallback, connection, methodId, List.of(patch1, patch2));
 
 		// verify patches are applied in sequence
-		InOrder inOrder = inOrder(mockGridIndexManager, manager);
+		InOrder inOrder = inOrder(mockGridIndexManager, manager, mockGridReplicaConnectionManager);
 		inOrder.verify(mockGridIndexManager).refreshMessageChain(sessionId, replicaId, methodId);
 		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch1);
 		inOrder.verify(mockGridIndexManager).applyPatch(sessionId, replicaId, patch2);
-		inOrder.verify(manager).sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, expectedCumulativeChanges));
+		inOrder.verify(mockGridReplicaConnectionManager)
+				.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, expectedCumulativeChanges));
 		inOrder.verify(mockGridIndexManager).getClock(sessionId, replicaId);
 		inOrder.verify(manager).sendClockMessage(methodId, connectionId, clock);
 	}
@@ -198,7 +188,6 @@ public class GridReplicaManagerImplTest {
 
 		when(mockGridIndexManager.getClock(sessionId, replicaId)).thenReturn(clock);
 		doNothing().when(manager).sendClockMessage(methodId, connectionId, clock);
-		doNothing().when(manager).sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
 		Path tempFile = Files.createTempFile("test-snapshot-", ".cbor");
 		try {
 			doReturn(tempFile).when(manager).downloadSnapshotFile(snapshotUrl);
@@ -211,7 +200,7 @@ public class GridReplicaManagerImplTest {
 			verify(mockGridIndexManager).applySnapshot(sessionId, replicaId, tempFile);
 			verify(mockGridIndexManager).getClock(sessionId, replicaId);
 			verify(manager).sendClockMessage(methodId, connectionId, clock);
-			verify(manager).sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
+			verify(mockGridReplicaConnectionManager).sendChangesToTopic(ReplicaChangeSet.fromSnapshot(connection));
 
 			// Verify cleanup occurred
 			assertFalse(Files.exists(tempFile), "Temp file should be deleted after success");
@@ -265,17 +254,6 @@ public class GridReplicaManagerImplTest {
 		
 		verifyNoMoreInteractions(mockGridIndexManager, mockPublisher);
 	}
-
-	@Test
-	public void testSendChangesToTopic() {
-		// call under test
-		manager.sendChangesToTopic(ReplicaChangeSet.fromPatch(connection, changes));
-		verify(mockSnsClient).publish(PublishRequest.builder().targetArn(topicArn)
-				.message("{\"sessionId\":\"session456\",\"replicaId\":111,\"changeSource\":\"PATCH\","
-						+ "\"changes\":{\"arr\":[[111,55]]}}")
-				.build());
-	}
-
 
 	@Test
 	public void testDownloadSnapshotFileWithNullUrl() {

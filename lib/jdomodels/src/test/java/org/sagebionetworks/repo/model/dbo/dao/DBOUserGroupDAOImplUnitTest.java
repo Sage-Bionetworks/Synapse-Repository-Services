@@ -6,12 +6,15 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -27,31 +30,33 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class DBOUserGroupDAOImplUnitTest {
-	
-	@Mock
-	private TransactionalMessenger mockTransactionalMessenger;
-	@Mock
-	private IdGenerator mockIdGenerator;
+
 	@Mock
 	private DBOBasicDao mockBasicDAO;
 	@Mock
+	private IdGenerator mockIdGenerator;
+	@Mock
+	private TransactionalMessenger mockTransactionalMessenger;
+	@Mock
 	private NamedParameterJdbcTemplate mockNamedJdbcTemplate;
+	@Mock
+	private JdbcTemplate mockJdbcTemplate;
+
 	private DBOUserGroupDAOImpl userGroupDAO;
 	private UserGroup ug;
 	private Long id = 1L;
 
 	@BeforeEach
 	public void setup() {
-		userGroupDAO = new DBOUserGroupDAOImpl();
-		ReflectionTestUtils.setField(userGroupDAO, "basicDao", mockBasicDAO);
-		ReflectionTestUtils.setField(userGroupDAO, "idGenerator", mockIdGenerator);
-		ReflectionTestUtils.setField(userGroupDAO, "transactionalMessenger", mockTransactionalMessenger);
-		ReflectionTestUtils.setField(userGroupDAO, "namedJdbcTemplate", mockNamedJdbcTemplate);
+		List<BootstrapPrincipal> bootstrapPrincipals = Collections.emptyList();
+		userGroupDAO = new DBOUserGroupDAOImpl(mockBasicDAO, mockIdGenerator, mockTransactionalMessenger,
+				mockNamedJdbcTemplate, mockJdbcTemplate, bootstrapPrincipals);
 
 		ug = new UserGroup();
 		ug.setCreationDate(new Date());

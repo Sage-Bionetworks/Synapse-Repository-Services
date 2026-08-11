@@ -865,6 +865,33 @@ public class StackConfigurationImpl implements StackConfiguration {
 	}
 	
 	/**
+	 * OIDC Client ID for NIH RAS Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASClientId() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.ras.client.id");
+	}
+
+	/**
+	 * OIDC Client Secret for Sage Bio Identity Provider
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASClientSecret() {
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.oauth2.nih.ras.client.secret");
+	}
+
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document
+	 * @return
+	 */
+	@Override
+	public String getOAuth2NIHRASDiscoveryDocument() {
+		return configuration.getProperty("org.sagebionetworks.oauth2.nih.ras.discoveryDocument");
+	}
+	
+	/**
 	 * 
 	 * @return
 	 */
@@ -1352,7 +1379,7 @@ public class StackConfigurationImpl implements StackConfiguration {
 
 	@Override
 	public String getCloudFrontKeyId() {
-		return configuration.getProperty("org.sagebionetworks.cloudfront.private.key.id");
+		return stackEncrypter.getDecryptedProperty("org.sagebionetworks.cloudfront.private.key.id");
 	}
 
 	@Override
@@ -1373,5 +1400,30 @@ public class StackConfigurationImpl implements StackConfiguration {
 	@Override
 	public Long getDefaultProjectStorageLimit() {
 		return Long.valueOf(configuration.getProperty("org.sagebionetworks.project.storage.default.limit"));
+	}
+
+	@Override
+	public String getModelIdClaudeHaiku() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.haiku");
+	}
+
+	@Override
+	public String getModelIdClaudeSonnet() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.sonnet");
+	}
+
+	@Override
+	public String getModelIdClaudeOpus() {
+		return configuration.getProperty("org.sagebionetworks.agent.model.claude.opus");
+	}
+
+	@Override
+	public String getBedrockConverseRegion() {
+		return configuration.getProperty("org.sagebionetworks.bedrock.converse.region");
+	}
+
+	@Override
+	public Long getBedrockConverseSocketTimeoutSeconds() {
+		return Long.valueOf(configuration.getProperty("org.sagebionetworks.bedrock.converse.socket.timeout.seconds"));
 	}
 }

@@ -50,33 +50,39 @@ import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * @author brucehoff
  *
  */
+@Repository
 public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final DBOBasicDao basicDao;
+	private final UserGroupDAO userGroupDAO;
+	private final TransactionalMessenger transactionalMessenger;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final List<BootstrapPrincipal> bootstrapPrincipals;
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	public DBOUserProfileDAOImpl(DBOBasicDao basicDao, UserGroupDAO userGroupDAO,
+			TransactionalMessenger transactionalMessenger, NamedParameterJdbcTemplate namedJdbcTemplate,
+			JdbcTemplate jdbcTemplate, List<BootstrapPrincipal> bootstrapPrincipals) {
+		this.basicDao = basicDao;
+		this.userGroupDAO = userGroupDAO;
+		this.transactionalMessenger = transactionalMessenger;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+		this.bootstrapPrincipals = bootstrapPrincipals;
+	}
 	
 	private static final String REALM_PARAM_NAME = "realm";
 	
@@ -286,18 +292,18 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
-	// @WriteTransaction -- write transaction will not work here because this method 
+	@PostConstruct
+	// @WriteTransaction -- write transaction will not work here because this method
 	// is called directly on the bean rather than on the transaction proxy.
 	public void bootstrapProfiles() {
 		// Boot strap all users and groups
-		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
+		if (this.bootstrapPrincipals == null) {
 			throw new IllegalArgumentException(
 					"bootstrapPrincipals users cannot be null");
 		}
 
 		// For each one determine if it exists, if not create it
-		for (BootstrapPrincipal abs : this.userGroupDAO
-				.getBootstrapPrincipals()) {
+		for (BootstrapPrincipal abs : this.bootstrapPrincipals) {
 			if (abs.getId() == null)
 				throw new IllegalArgumentException(
 						"Bootstrap users must have an id");

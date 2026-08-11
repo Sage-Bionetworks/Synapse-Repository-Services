@@ -43,6 +43,7 @@
     <context:component-scan base-package="org.sagebionetworks.tos.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.limits.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.grid.workers" annotation-config="false"/>
+    <context:component-scan base-package="org.sagebionetworks.curation.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.principal.worker" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.search.workers" annotation-config="false"/>
     <context:component-scan base-package="org.sagebionetworks.recordset.worker" annotation-config="false"/>
@@ -145,7 +146,7 @@
 		<ref bean="fileHandleKeysArchiveWorkerTrigger"/>
 		<ref bean="fileHandleRestoreRequestWorkerTrigger"/>
 		<ref bean="materializedViewWorkerTrigger"/>
-		<ref bean="materializedViewSourceUpdateWorkerTrigger"/>
+		<ref bean="definingSqlSourceUpdateWorkerTrigger"/>
 		<ref bean="accessRequirementToProjectWorkerTrigger"/>
 		<ref bean="missingTableStatusWorkerTrigger"/>
 		<ref bean="tableSnapshotWorkerTrigger"/>
@@ -192,6 +193,9 @@
 		<!-- Search Index -->
 		<ref bean="searchQueryWorkerTrigger"/>
 		<ref bean="searchIndexLifecycleWorkerTrigger"/>
+
+		<!-- Curation compute task execution -->
+		<ref bean="computeTaskExecutionTrigger"/>
 
 	</util:list>
 

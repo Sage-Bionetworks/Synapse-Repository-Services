@@ -59,6 +59,9 @@ public class DBOUserGroupDAOImplTest {
 	@Autowired
 	private NodeDAO nodeDao;
 
+	@Autowired
+	private List<BootstrapPrincipal> bootstrapPrincipals;
+
 	private List<String> groupsToDelete;
 	private String aclToDelete;
 	private String projectToDelete;
@@ -186,7 +189,7 @@ public class DBOUserGroupDAOImplTest {
 
 	@Test
 	public void testBootstrapUsers() throws DatastoreException, NotFoundException {
-		List<BootstrapPrincipal> boots = this.userGroupDAO.getBootstrapPrincipals();
+		List<BootstrapPrincipal> boots = this.bootstrapPrincipals;
 		assertNotNull(boots);
 		assertTrue(boots.size() > 0);
 		// Each should exist

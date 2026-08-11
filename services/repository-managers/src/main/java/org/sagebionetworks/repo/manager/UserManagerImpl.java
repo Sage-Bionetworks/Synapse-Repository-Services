@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -362,6 +364,22 @@ public class UserManagerImpl implements UserManager {
 
 		principalOidcBindingDao.clearBindings(userId);
 		
+	}
+
+	@Override
+	public List<IdentityProvider> getIdentityProviders(UserInfo userInfo) {
+		ValidateArgument.required(userInfo, "userInfo");
+		List<IdentityProvider> providers = new ArrayList<>();
+		if (AuthorizationConstants.DEFAULT_REALM_ID.equals(userInfo.getRealmId())) {
+			providers.add(new SynapseIdentityProvider());
+		}
+		List<OAuthProvider> oauthProviders = principalOidcBindingDao.getLinkedProviders(userInfo.getId());
+		for (OAuthProvider oauthProvider : oauthProviders) {
+			OAuthIdentityProvider oip = new OAuthIdentityProvider();
+			oip.setProvider(oauthProvider);
+			providers.add(oip);
+		}
+		return providers;
 	}
 
 	@Override

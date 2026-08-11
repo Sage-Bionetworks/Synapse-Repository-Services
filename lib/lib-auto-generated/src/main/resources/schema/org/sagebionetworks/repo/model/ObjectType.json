@@ -201,6 +201,14 @@
         {
             "name": "RECORDSET",
             "description": "A RecordSet entity whose CSV-backed data is indexed and queryable like a table."
+        },
+        {
+            "name": "SEARCH_INDEX",
+            "description": "A SearchIndex entity. Used as the type discriminator on source-dependency fan-out messages (published to the SOURCE_DEPENDENCY_EVENT topic) so the search index rebuild worker can select the messages meant for it."
+        },
+        {
+            "name": "SOURCE_DEPENDENCY_EVENT",
+            "description": "A non-durable event topic that fans out rebuild triggers to every defining-SQL object (materialized view, search index, ...) that depends on a source table/view when that source becomes available."
         }
     ]
 }

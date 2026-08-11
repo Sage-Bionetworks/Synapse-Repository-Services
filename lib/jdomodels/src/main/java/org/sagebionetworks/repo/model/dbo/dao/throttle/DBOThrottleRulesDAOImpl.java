@@ -14,10 +14,11 @@ import org.sagebionetworks.repo.model.dao.throttle.ThrottleRulesDAO;
 import org.sagebionetworks.repo.model.throttle.ThrottleRule;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBOThrottleRulesDAOImpl implements ThrottleRulesDAO {
 	private static final RowMapper<ThrottleRule> THROTTLE_RULE_ROW_MAPPER = new RowMapper<ThrottleRule>() {
 
@@ -41,8 +42,11 @@ public class DBOThrottleRulesDAOImpl implements ThrottleRulesDAO {
 		+ ") VALUES ( ?, ?, ?, ?)";
 	private static final String SQL_TRUNCATE = "TRUNCATE TABLE " + TABLE_THROTTLE_RULES;
 	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+
+	public DBOThrottleRulesDAOImpl(JdbcTemplate jdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+	}
 	
 	@Override
 	public List<ThrottleRule> getAllThrottleRules() {

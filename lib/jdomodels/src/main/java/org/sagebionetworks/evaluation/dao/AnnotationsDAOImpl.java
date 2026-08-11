@@ -49,12 +49,13 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
 	private static final String SELECT_FROM_ANNO_OWNER = "SELECT * " +
@@ -104,14 +105,15 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			"DELETE FROM "+TABLE_SUBSTATUS_ANNO_OWNER+" WHERE "+
 			COL_SUBSTATUS_ANNO_SUBID+" IN (:"+COL_SUBSTATUS_ANNO_SUBID+")";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final DBOBasicDao dboBasicDao;
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private DBOBasicDao dboBasicDao;
+	public AnnotationsDAOImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate, DBOBasicDao dboBasicDao) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.dboBasicDao = dboBasicDao;
+	}
 	
 	@Override
 	public Annotations getAnnotations(Long owner) {

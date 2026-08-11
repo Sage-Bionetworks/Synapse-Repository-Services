@@ -18,30 +18,30 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	private static final String UPDATE_FOR_PRINCIPAL = "UPDATE "+TABLE_NOTIFICATION_EMAIL+
 			" SET "+COL_NOTIFICATION_EMAIL_ALIAS_ID+" = ?, "+COL_NOTIFICATION_EMAIL_ETAG+" = ? "+
 			" WHERE "+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
-	
-	private static final String SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL = 
+
+	private static final String SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL =
 			"SELECT a."+ COL_PRINCIPAL_ALIAS_DISPLAY +" FROM "+TABLE_NOTIFICATION_EMAIL+" n, "+TABLE_PRINCIPAL_ALIAS+
 			" a WHERE n."+COL_NOTIFICATION_EMAIL_ALIAS_ID+"=a."+COL_PRINCIPAL_ALIAS_ID+
 			" AND n."+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final IdGenerator idGenerator;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
 
-	public NotificationEmailDaoImpl() {}
+	public NotificationEmailDaoImpl(IdGenerator idGenerator, DBOBasicDao basicDao, JdbcTemplate jdbcTemplate) {
+		this.idGenerator = idGenerator;
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+	}
 	
 	private static void validateDTO(PrincipalAlias dto) {
 		if (dto.getAlias()==null) throw new IllegalArgumentException("email address is missing.");

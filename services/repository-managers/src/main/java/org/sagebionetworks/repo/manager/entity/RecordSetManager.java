@@ -17,10 +17,12 @@ public interface RecordSetManager {
     public void validateRecordSet(RecordSet entity, EntityEvent event);
 
     /**
-     * Infers the column schema from the RecordSet's CSV (reconciled with any bound
-     * JSON Schema) and binds it both to this revision's immutable snapshot
-     * (T{id}_{v}) and to the entity-level default that unversioned queries read
-     * (T{id}). Finally, a message is sent to trigger rebuilding the index.
+     * Infers the column schema from the RecordSet's bound JSON Schema and
+     * binds it both to this revision's immutable snapshot (T{id}_{v}) and
+     * to the entity-level default that unversioned queries read (T{id}).
+     * Finally, a message is sent to trigger rebuilding the index.
+     * <p>
+     * If no bound JSON Schema is present, then the RecordSet will not be indexed.
      */
     public void inferSchemaAndBindToIndex(UserInfo userInfo, RecordSet entity);
 

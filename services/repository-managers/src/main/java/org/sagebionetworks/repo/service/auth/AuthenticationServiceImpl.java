@@ -180,8 +180,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		Long loggedInUserId = oidcBinding.getUserId();
 		
-		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill	
-		if (oidcBinding.getAliasId() == null) {
+		// In https://sagebionetworks.jira.com/browse/PLFM-8198 we added the alias FK and we need to backfill
+		// but the following should only be done for the special cases of Google and ORCiD alias types
+		if ((OAuthProvider.GOOGLE_OAUTH_2_0.equals(request.getProvider()) || OAuthProvider.ORCID.equals(request.getProvider())) && 
+				oidcBinding.getAliasId() == null) {
 						
 			PrincipalAlias alias = findPrincipalAlias(request.getProvider(), providedInfo).orElseThrow(() -> {
 				// If an alias is not found the user deleted the associated alias and the binding is not valid anymore
@@ -310,6 +312,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		// now bind the ID to the user account
 		return userManager.bindAlias(providersUserId.getAlias(), providersUserId.getType(), userId);
+	}
+	
+	@Override
+	public void bindOIDCIdentity(Long userId, OAuthValidationRequest validationRequest) {
+		
+		UserInfo user = userManager.getUserInfo(userId);
+		
+		if (user.isUserAnonymous()) {
+			throw new UnauthorizedException("User ID is required.");
+		}
+		
+		// only allow the binding if the given provider is in the user's realm
+		IdentityProvider identityProvider = new OAuthIdentityProvider().setProvider(validationRequest.getProvider());
+		Optional<String> optionalRealmId = realmDao.getRealmIdForIdentityProvider(identityProvider);
+		if (optionalRealmId.isEmpty()) {
+			throw new IllegalArgumentException("There is no security realm associated with "+validationRequest.getProvider().name());
+		}
+		if (!user.getRealmId().equals(optionalRealmId.get())) {
+			throw new IllegalArgumentException("Cannot bind an alias from "+validationRequest.getProvider().name()+" for this user.");
+		}
+
+		ProvidedUserInfo providedUserInfo = oauthManager.validateUserWithProvider(
+			validationRequest.getProvider(), 
+			validationRequest.getAuthenticationCode(),
+			validationRequest.getRedirectUrl());
+		
+		PrincipalAlias principalAlias = new PrincipalAlias().setPrincipalId(user.getId());
+		userManager.bindUserToOidcSubject(principalAlias, validationRequest.getProvider(), providedUserInfo.getSubject());
 	}
 	
 	@Override

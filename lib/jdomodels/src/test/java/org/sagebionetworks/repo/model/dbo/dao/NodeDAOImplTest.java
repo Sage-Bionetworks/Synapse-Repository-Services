@@ -168,6 +168,9 @@ public class NodeDAOImplTest {
 	@Autowired
 	private TeamDAO teamDAO;
 	
+	@Qualifier("jdbcTemplate")
+	@Autowired
+	private JdbcTemplate repoJdbcTempalte;
 
 	@Autowired
 	private MigratableTableDAO migratableTableDao;
@@ -6044,5 +6047,13 @@ public class NodeDAOImplTest {
 		assertNotNull(result.getPath());
 		assertEquals(827, result.getPath().length());
 	}
-
+	
+	/**
+	 * Ensure the datasource used by the IdGenerator is not the same as the main repository datasource.
+	 * This is a test added for PLFM-9736.
+	 */
+	@Test
+	public void testIdGeneratorDataSourcesDoesNotMatchRepoDataSource() {
+		assertNotEquals(repoJdbcTempalte.getDataSource().toString(), idGenerator.getDataSourceString());
+	}
 }

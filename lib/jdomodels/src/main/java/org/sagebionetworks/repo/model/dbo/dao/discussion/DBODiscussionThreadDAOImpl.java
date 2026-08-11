@@ -60,23 +60,27 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 
 	public static final String THREAD_DOES_NOT_EXIST = "Thread: '%s' does not exist";
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedTemplate;
-	@Autowired
-	private DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedTemplate;
+	private final DBOBasicDao basicDao;
+
+	public DBODiscussionThreadDAOImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedTemplate, DBOBasicDao basicDao) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedTemplate = namedTemplate;
+		this.basicDao = basicDao;
+	}
 
 	public static final Charset UTF8 = Charset.forName("UTF-8");
 	private RowMapper<DiscussionThreadBundle> DISCUSSION_THREAD_BUNDLE_ROW_MAPPER = new RowMapper<DiscussionThreadBundle>(){

@@ -36,7 +36,8 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.table.RowHandlerProvider;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.manager.table.query.MainQuery;
@@ -104,7 +105,7 @@ public class QueryCreateGridHandlerTest {
 	@Mock
 	private EntityManager mockEntityManager;
 	@Mock
-	private JsonSchemaManager mockSchemaManager;
+	private GridRowValidator mockGridRowValidator;
 	@Mock
 	private GridAuthorizationManager mockGridAuthorizationManager;
 	
@@ -124,6 +125,8 @@ public class QueryCreateGridHandlerTest {
 
 	@Mock
 	private File mockFile;
+	@Mock
+	private GridReplicaConnectionManager mockGridReplicaConnectionManager;
 
 	@Spy
 	@InjectMocks
@@ -191,14 +194,14 @@ public class QueryCreateGridHandlerTest {
 		when(mockQueryManager.runQueryAsStream(eq(mockCallback), eq(mockSessionOwnerUser), eq(query),
 				rowHandlerProviderCaptor.capture(), eq(ACCESS_TYPE.READ), eq(ACCESS_TYPE.UPDATE))).thenReturn(new QueryResultBundle());
 		doReturn(Optional.of(schema$id)).when(handler).getSchemaId(mockUser, tableId, rows);
-		when(mockSchemaManager.getValidationSchema(schema$id)).thenReturn(new JsonSchema().setRequired(List.of("foo")));
+		when(mockGridRowValidator.getValidationSchema(schema$id)).thenReturn(new JsonSchema().setRequired(List.of("foo")));
 		when(mockEntityManager.getEntityType(tableId)).thenReturn(EntityType.entityview);
 
 		GridSession expected = new GridSession().setSessionId(gridSessionId);
 		when(mockGridDao.createGridSession(
 				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
 				.thenReturn(expected);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		// call under test
@@ -206,7 +209,6 @@ public class QueryCreateGridHandlerTest {
 				new CreateGridRequest().setInitialQuery(query), mockSnapshotStore);
 		assertTrue(query.getIncludeEntityEtag());
 		assertNotNull(result.getGridSession());
-		assertNotNull(result.getGridReplica());
 	}
 
 	@Test
@@ -224,7 +226,7 @@ public class QueryCreateGridHandlerTest {
 		when(mockGridDao
 				.createGridSession(new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(null)))
 				.thenReturn(expected);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		// call under test
@@ -242,7 +244,7 @@ public class QueryCreateGridHandlerTest {
 				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
 				.thenReturn(expected);
 		doReturn(Optional.of(schema$id)).when(handler).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		LockUnavilableException e = new LockUnavilableException(LockType.Read, "key", "context");
 		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
 				queryOptions)).thenReturn(queryResultBundle);
@@ -267,7 +269,7 @@ public class QueryCreateGridHandlerTest {
 				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
 				.thenReturn(expected);
 		doReturn(Optional.of(schema$id)).when(handler).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		TableUnavailableException e = new TableUnavailableException(new TableStatus().setTableId("syn123"));
 		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
 				queryOptions)).thenReturn(queryResultBundle);
@@ -290,7 +292,7 @@ public class QueryCreateGridHandlerTest {
 				new CreateGridSession().setUserId(userId).setSourceId(tableId).setSchemaId(schema$id)))
 				.thenReturn(expected);
 		doReturn(Optional.of(schema$id)).when(handler).getSchemaId(mockUser, tableId, rows);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		IOException e = new IOException("not connected");
 		when(mockQueryManager.querySinglePage(mockCallback, mockUser, new Query().setSql(query.getSql()).setLimit(1L),
 				queryOptions)).thenReturn(queryResultBundle);
@@ -388,7 +390,7 @@ public class QueryCreateGridHandlerTest {
 				any(), eq(ACCESS_TYPE.READ), eq(ACCESS_TYPE.UPDATE))).thenReturn(new QueryResultBundle());
 		doReturn(Optional.empty()).when(handler).getSchemaId(mockUser, tableId, rows);
 		when(mockGridDao.createGridSession(any())).thenReturn(new GridSession().setSessionId(gridSessionId));
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		// call under test — view sources use rows' benefactor IDs (empty here since no rows streamed in mock)
@@ -409,7 +411,7 @@ public class QueryCreateGridHandlerTest {
 				any(), eq(ACCESS_TYPE.READ), eq(ACCESS_TYPE.UPDATE))).thenReturn(new QueryResultBundle());
 		doReturn(Optional.empty()).when(handler).getSchemaId(mockUser, tableId, rows);
 		when(mockGridDao.createGridSession(any())).thenReturn(new GridSession().setSessionId(gridSessionId));
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		// call under test — table sources return empty set; checkSourceAccess() enforces authorization
@@ -430,7 +432,7 @@ public class QueryCreateGridHandlerTest {
 				any(), eq(ACCESS_TYPE.READ), eq(ACCESS_TYPE.UPDATE))).thenReturn(new QueryResultBundle());
 		doReturn(Optional.empty()).when(handler).getSchemaId(mockUser, tableId, rows);
 		when(mockGridDao.createGridSession(any())).thenReturn(new GridSession().setSessionId(gridSessionId));
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		String message = assertThrows(RuntimeException.class, () -> {
@@ -450,7 +452,7 @@ public class QueryCreateGridHandlerTest {
 		when(mockQueryManager.runQueryAsStream(any(), any(), any(), any(), any(ACCESS_TYPE[].class))).thenReturn(new QueryResultBundle());
 		doReturn(Optional.empty()).when(handler).getSchemaId(mockUser, tableId, rows);
 		when(mockGridDao.createGridSession(any())).thenReturn(new GridSession().setSessionId(gridSessionId));
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockQueryManager.getMaxBytesPerRequest()).thenReturn(2_000_000L);
 
 		ArgumentCaptor<CreateGridSession> sessionCaptor = ArgumentCaptor.forClass(CreateGridSession.class);
@@ -470,7 +472,7 @@ public class QueryCreateGridHandlerTest {
 		GridReplica handlerReplica = new GridReplica().setReplicaId(replicaId);
 		List<ColumnModel> schema = List.of(new ColumnModel().setColumnType(ColumnType.INTEGER).setName("foo"));
 		Set<Long> collectedIds = new HashSet<>();
-		Optional<JsonSchema> validationSchema = Optional.empty();
+		Optional<String> schemaId = Optional.empty();
 		Long benefactorId = 555L;
 
 		when(mockFileProvider.createTempFile("snapshot", ".cbor")).thenReturn(mockFile);
@@ -479,7 +481,7 @@ public class QueryCreateGridHandlerTest {
 
 		// call under test
 		BenefactorCollectingRowHandler result = handler.getBenefactorCollectingRowHandler(
-				mockSnapshotStore, session, handlerReplica, schema, List.of(), userId, validationSchema, collectedIds);
+				mockSnapshotStore, session, handlerReplica, schema, List.of(), userId, schemaId, collectedIds);
 
 		assertNotNull(result);
 		// row with benefactorId — should be collected

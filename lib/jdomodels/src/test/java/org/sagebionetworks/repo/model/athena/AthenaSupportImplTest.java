@@ -12,10 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,33 +24,35 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.TokenPaginationIterator;
 
-import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.GetQueryExecutionRequest;
-import com.amazonaws.services.athena.model.GetQueryExecutionResult;
-import com.amazonaws.services.athena.model.GetQueryResultsRequest;
-import com.amazonaws.services.athena.model.GetQueryResultsResult;
-import com.amazonaws.services.athena.model.QueryExecution;
-import com.amazonaws.services.athena.model.QueryExecutionContext;
-import com.amazonaws.services.athena.model.QueryExecutionState;
-import com.amazonaws.services.athena.model.QueryExecutionStatistics;
-import com.amazonaws.services.athena.model.QueryExecutionStatus;
-import com.amazonaws.services.athena.model.ResultConfiguration;
-import com.amazonaws.services.athena.model.ResultSet;
-import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.athena.model.StartQueryExecutionRequest;
-import com.amazonaws.services.athena.model.StartQueryExecutionResult;
-import com.amazonaws.services.glue.AWSGlue;
-import com.amazonaws.services.glue.model.Column;
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.GetDatabaseRequest;
-import com.amazonaws.services.glue.model.GetDatabaseResult;
-import com.amazonaws.services.glue.model.GetDatabasesResult;
-import com.amazonaws.services.glue.model.GetTableRequest;
-import com.amazonaws.services.glue.model.GetTableResult;
-import com.amazonaws.services.glue.model.GetTablesResult;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.GetQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.GetQueryExecutionResponse;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.QueryExecution;
+import software.amazon.awssdk.services.athena.model.QueryExecutionContext;
+import software.amazon.awssdk.services.athena.model.QueryExecutionState;
+import software.amazon.awssdk.services.athena.model.QueryExecutionStatistics;
+import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
+import software.amazon.awssdk.services.athena.model.ResultConfiguration;
+import software.amazon.awssdk.services.athena.model.ResultSet;
+import software.amazon.awssdk.services.athena.model.Row;
+import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
+import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
+import software.amazon.awssdk.services.glue.GlueClient;
+import software.amazon.awssdk.services.glue.model.Column;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.EntityNotFoundException;
+import software.amazon.awssdk.services.glue.model.GetDatabaseRequest;
+import software.amazon.awssdk.services.glue.model.GetDatabaseResponse;
+import software.amazon.awssdk.services.glue.model.GetDatabasesRequest;
+import software.amazon.awssdk.services.glue.model.GetDatabasesResponse;
+import software.amazon.awssdk.services.glue.model.GetTableRequest;
+import software.amazon.awssdk.services.glue.model.GetTableResponse;
+import software.amazon.awssdk.services.glue.model.GetTablesRequest;
+import software.amazon.awssdk.services.glue.model.GetTablesResponse;
+import software.amazon.awssdk.services.glue.model.Table;
 import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,39 +67,39 @@ public class AthenaSupportImplTest {
 	private static final String TEST_OUTPUT_RESULTS_LOCATION = "s3://test.log.bucket/athena/000000123";
 
 	@Mock
-	private AWSGlue mockGlueClient;
+	private GlueClient mockGlueClient;
 
 	@Mock
-	private AmazonAthena mockAthenaClient;
+	private AthenaClient mockAthenaClient;
 
 	@Mock
 	private StackConfiguration mockConfig;
 
 	@Mock
-	private GetDatabasesResult mockDatabasesResults;
+	private GetDatabasesResponse mockDatabasesResults;
 
 	@Mock
-	private GetTablesResult mockTablesResults;
+	private GetTablesResponse mockTablesResults;
 
 	@Mock
-	private GetTableResult mockTableResult;
+	private GetTableResponse mockTableResult;
 
 	@Mock
-	private GetDatabaseResult mockDatabaseResult;
+	private GetDatabaseResponse mockDatabaseResult;
 
 	@Mock
-	private StartQueryExecutionResult mockStartQueryResult;
+	private StartQueryExecutionResponse mockStartQueryResult;
 
 	@Mock
-	private GetQueryExecutionResult mockQueryExecutionResult;
+	private GetQueryExecutionResponse mockQueryExecutionResult;
 
 	@Mock
-	private GetQueryResultsResult mockQueryResult;
+	private GetQueryResultsResponse mockQueryResult;
 
 	private AthenaSupportImpl athenaSupport;
-	
+
 	private RowMapper<String> rowMapper = (Row row) -> {
-		return row.getData().get(0).getVarCharValue();
+		return row.data().get(0).varCharValue();
 	};
 
 	@BeforeEach
@@ -127,49 +126,50 @@ public class AthenaSupportImplTest {
 
 	@Test
 	public void testGetDatabases() {
-		Database database = new Database().withName(TEST_DB);
+		Database database = Database.builder().name(TEST_DB).build();
 		List<Database> mockDatabases = Collections.singletonList(database);
 
-		when(mockDatabasesResults.getDatabaseList()).thenReturn(mockDatabases);
-		when(mockGlueClient.getDatabases(any())).thenReturn(mockDatabasesResults);
+		when(mockDatabasesResults.databaseList()).thenReturn(mockDatabases);
+		when(mockGlueClient.getDatabases((GetDatabasesRequest) any())).thenReturn(mockDatabasesResults);
 
 		Iterator<Database> databases = athenaSupport.getDatabases();
 
 		assertTrue(databases.hasNext());
 		assertEquals(database, databases.next());
 
-		verify(mockGlueClient).getDatabases(any());
+		verify(mockGlueClient).getDatabases((GetDatabasesRequest) any());
 	}
 
 	@Test
 	public void testGetPartitionedTablesEmpty() {
-		Database database = new Database().withName(TEST_DB);
+		Database database = Database.builder().name(TEST_DB).build();
 
-		List<Table> mockTables = Collections.singletonList(new Table().withName(TEST_TABLE).withDatabaseName(TEST_DB));
+		List<Table> mockTables = Collections.singletonList(Table.builder().name(TEST_TABLE).databaseName(TEST_DB).build());
 
-		when(mockTablesResults.getTableList()).thenReturn(mockTables);
-		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
+		when(mockTablesResults.tableList()).thenReturn(mockTables);
+		when(mockGlueClient.getTables((GetTablesRequest) any())).thenReturn(mockTablesResults);
 
 		// Call under test
 		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
 
 		assertFalse(tables.hasNext());
-		verify(mockGlueClient).getTables(any());
+		verify(mockGlueClient).getTables((GetTablesRequest) any());
 	}
 
 	@Test
 	public void testGetPartitionedTables() {
-		Database database = new Database().withName(TEST_DB);
+		Database database = Database.builder().name(TEST_DB).build();
 
-		Table table = new Table()
-				.withName(TEST_TABLE)
-				.withDatabaseName(TEST_DB)
-				.withPartitionKeys(new Column().withName(TEST_COLUMN));
+		Table table = Table.builder()
+				.name(TEST_TABLE)
+				.databaseName(TEST_DB)
+				.partitionKeys(Column.builder().name(TEST_COLUMN).build())
+				.build();
 
 		List<Table> mockTables = Collections.singletonList(table);
 
-		when(mockTablesResults.getTableList()).thenReturn(mockTables);
-		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
+		when(mockTablesResults.tableList()).thenReturn(mockTables);
+		when(mockGlueClient.getTables((GetTablesRequest) any())).thenReturn(mockTablesResults);
 
 		// Call under test
 		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
@@ -177,29 +177,32 @@ public class AthenaSupportImplTest {
 		assertTrue(tables.hasNext());
 		assertEquals(table, tables.next());
 		assertFalse(tables.hasNext());
-		verify(mockGlueClient).getTables(any());
+		verify(mockGlueClient).getTables((GetTablesRequest) any());
 	}
 	
 	@Test
 	public void testGetPartitionedTablesSkipUnpartitionedTables() {
-		Database database = new Database().withName(TEST_DB);
+		Database database = Database.builder().name(TEST_DB).build();
 		
-		Table table1 = new Table()
-				.withName(TEST_TABLE)
-				.withDatabaseName(TEST_DB)
-				.withPartitionKeys(new Column().withName(TEST_COLUMN));
+		Table table1 = Table.builder()
+				.name(TEST_TABLE)
+				.databaseName(TEST_DB)
+				.partitionKeys(Column.builder().name(TEST_COLUMN).build())
+				.build();
 
-		Table table2 = new Table().withName(TEST_TABLE)
-				.withDatabaseName(TEST_DB)
-				.withPartitionKeys(Collections.emptyList());
-		
-		Table table3 = new Table().withName(TEST_TABLE)
-				.withDatabaseName(TEST_DB);
+		Table table2 = Table.builder().name(TEST_TABLE)
+				.databaseName(TEST_DB)
+				.partitionKeys(Collections.emptyList())
+				.build();
+
+		Table table3 = Table.builder().name(TEST_TABLE)
+				.databaseName(TEST_DB)
+				.build();
 
 		List<Table> mockTables = ImmutableList.of(table1, table2, table3);
 
-		when(mockTablesResults.getTableList()).thenReturn(mockTables);
-		when(mockGlueClient.getTables(any())).thenReturn(mockTablesResults);
+		when(mockTablesResults.tableList()).thenReturn(mockTables);
+		when(mockGlueClient.getTables((GetTablesRequest) any())).thenReturn(mockTablesResults);
 
 		// Call under test
 		Iterator<Table> tables = athenaSupport.getPartitionedTables(database);
@@ -207,7 +210,7 @@ public class AthenaSupportImplTest {
 		assertTrue(tables.hasNext());
 		assertEquals(table1, tables.next());
 		assertFalse(tables.hasNext());
-		verify(mockGlueClient).getTables(any());
+		verify(mockGlueClient).getTables((GetTablesRequest) any());
 	}
 
 	@Test
@@ -216,11 +219,11 @@ public class AthenaSupportImplTest {
 		String databaseName = prefixWithInstance(TEST_DB);
 		String tableName = prefixWithInstance(TEST_TABLE);
 
-		Database database = new Database().withName(databaseName);
+		Database database = Database.builder().name(databaseName).build();
 
-		GetTableRequest request = new GetTableRequest().withDatabaseName(databaseName).withName(tableName);
+		GetTableRequest request = GetTableRequest.builder().databaseName(databaseName).name(tableName).build();
 
-		when(mockTableResult.getTable()).thenReturn(new Table().withDatabaseName(databaseName).withName(tableName));
+		when(mockTableResult.table()).thenReturn(Table.builder().databaseName(databaseName).name(tableName).build());
 
 		when(mockGlueClient.getTable(eq(request))).thenReturn(mockTableResult);
 
@@ -228,8 +231,8 @@ public class AthenaSupportImplTest {
 		Table table = athenaSupport.getTable(database, TEST_TABLE);
 
 		assertNotNull(table);
-		assertEquals(tableName, table.getName());
-		assertEquals(databaseName, table.getDatabaseName());
+		assertEquals(tableName, table.name());
+		assertEquals(databaseName, table.databaseName());
 		verify(mockGlueClient).getTable(eq(request));
 	}
 
@@ -245,18 +248,18 @@ public class AthenaSupportImplTest {
 
 		GetQueryExecutionRequest queryExecutionRequest = getQueryExecutionRequest(queryId);
 
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
+		when(mockStartQueryResult.queryExecutionId()).thenReturn(queryId);
 
-		QueryExecutionStatistics expectedStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
+		QueryExecutionStatistics expectedStats = QueryExecutionStatistics.builder().dataScannedInBytes(1000L)
+				.engineExecutionTimeInMillis(1000L).build();
 
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(new QueryExecution()
-				.withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED)).withStatistics(expectedStats));
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(QueryExecution.builder()
+				.status(QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build()).statistics(expectedStats).build());
 
 		when(mockAthenaClient.startQueryExecution(eq(expectedRequest))).thenReturn(mockStartQueryResult);
 		when(mockAthenaClient.getQueryExecution(eq(queryExecutionRequest))).thenReturn(mockQueryExecutionResult);
 
-		Table table = new Table().withDatabaseName(databaseName).withName(tableName);
+		Table table = Table.builder().databaseName(databaseName).name(tableName).build();
 
 		// Call under test
 		AthenaQueryStatistics queryStats = athenaSupport.repairTable(table);
@@ -269,9 +272,9 @@ public class AthenaSupportImplTest {
 	@Test
 	public void testGetTableNotFound() {
 
-		Database database = new Database().withName(prefixWithInstance(TEST_DB));
+		Database database = Database.builder().name(prefixWithInstance(TEST_DB)).build();
 
-		when(mockGlueClient.getTable(any())).thenThrow(EntityNotFoundException.class);
+		when(mockGlueClient.getTable((GetTableRequest) any())).thenThrow(EntityNotFoundException.class);
 
 		Assertions.assertThrows(NotFoundException.class, () -> {
 			// Call under test
@@ -291,11 +294,11 @@ public class AthenaSupportImplTest {
 	public void testGetDatabase() {
 		String databaseName = "someDatabase";
 
-		Database database = new Database().withName(prefixWithInstance(databaseName));
+		Database database = Database.builder().name(prefixWithInstance(databaseName)).build();
 
-		GetDatabaseRequest request = new GetDatabaseRequest().withName(database.getName().toLowerCase());
+		GetDatabaseRequest request = GetDatabaseRequest.builder().name(database.name().toLowerCase()).build();
 
-		when(mockDatabaseResult.getDatabase()).thenReturn(database);
+		when(mockDatabaseResult.database()).thenReturn(database);
 		when(mockGlueClient.getDatabase(request)).thenReturn(mockDatabaseResult);
 
 		// Call under test
@@ -356,10 +359,10 @@ public class AthenaSupportImplTest {
 		String query = "SELECT count(*) FROM " + tableName;
 		String queryId = "abcd";
 
-		Database database = new Database().withName(databaseName);
+		Database database = Database.builder().name(databaseName).build();
 
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
+		when(mockStartQueryResult.queryExecutionId()).thenReturn(queryId);
+		when(mockAthenaClient.startQueryExecution((StartQueryExecutionRequest) any())).thenReturn(mockStartQueryResult);
 
 		// Call under test
 		String queryExecutionId = athenaSupport.submitQuery(database, query);
@@ -377,7 +380,7 @@ public class AthenaSupportImplTest {
 
 		QueryExecution queryExecution = getQueryExecution(queryId);
 
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(queryExecution);
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(queryExecution);
 		when(mockAthenaClient.getQueryExecution(getQueryExecutionRequest(queryId))).thenReturn(mockQueryExecutionResult);
 
 		AthenaQueryExecution result = athenaSupport.getQueryExecutionStatus(queryId);
@@ -385,7 +388,7 @@ public class AthenaSupportImplTest {
 		assertEquals(new AthenaQueryExecutionAdapter(queryExecution), result);
 
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
-		verify(mockQueryExecutionResult).getQueryExecution();
+		verify(mockQueryExecutionResult).queryExecution();
 	}
 
 	@Test
@@ -394,10 +397,10 @@ public class AthenaSupportImplTest {
 		boolean excludeHeader = true;
 		String value = "Some Value";
 
-		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", value));
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		when(mockQueryResult.resultSet()).thenReturn(getResultSet("Header", value));
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockAthenaClient.getQueryExecution((GetQueryExecutionRequest) any())).thenReturn(mockQueryExecutionResult);
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResult);
 
 		// Call under test
 		AthenaQueryResult<String> result = athenaSupport.getQueryResults(queryId, rowMapper, excludeHeader);
@@ -410,12 +413,12 @@ public class AthenaSupportImplTest {
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
 
 		// The results are actually fetched from the iterator
-		verify(mockAthenaClient, never()).getQueryResults(any());
+		verify(mockAthenaClient, never()).getQueryResults((GetQueryResultsRequest) any());
 
 		assertTrue(result.getQueryResultsIterator().hasNext());
 
 		// Now the fetch is fired
-		verify(mockAthenaClient).getQueryResults(any());
+		verify(mockAthenaClient).getQueryResults((GetQueryResultsRequest) any());
 
 	}
 	
@@ -426,18 +429,19 @@ public class AthenaSupportImplTest {
 		
 		GetQueryExecutionRequest queryExecutionRequest = getQueryExecutionRequest(queryId);
 		QueryExecution queryExecution = getQueryExecution(queryId);
-		queryExecution.getStatus().withState(QueryExecutionState.FAILED);
+		// Update state - v2 models are immutable so we need to rebuild
+		queryExecution = queryExecution.toBuilder().status(queryExecution.status().toBuilder().state(QueryExecutionState.FAILED).build()).build();
 
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(queryExecution);
-		when(mockAthenaClient.getQueryExecution(queryExecutionRequest)).thenReturn(mockQueryExecutionResult);
-		
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(queryExecution);
+		when(mockAthenaClient.getQueryExecution((GetQueryExecutionRequest) any())).thenReturn(mockQueryExecutionResult);
+
 		Assertions.assertThrows(IllegalStateException.class, ()->{
 			// Call under test
 			athenaSupport.getQueryResults(queryId, rowMapper, excludeHeader);
 		});
-		
+
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
-		verify(mockAthenaClient, never()).getQueryResults(any());
+		verify(mockAthenaClient, never()).getQueryResults((GetQueryResultsRequest) any());
 	}
 	
 	@Test
@@ -447,9 +451,9 @@ public class AthenaSupportImplTest {
 		int limit = 100;
 		String pageToken = null;
 
-		when(mockQueryResult.getNextToken()).thenReturn("next");
-		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", value, value));
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		when(mockQueryResult.nextToken()).thenReturn("next");
+		when(mockQueryResult.resultSet()).thenReturn(getResultSet("Header", value, value));
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResult);
 		
 		AthenaQueryResultPage<String> expected = new AthenaQueryResultPage<String>()
 				.withQueryExecutionId(queryId)
@@ -457,10 +461,11 @@ public class AthenaSupportImplTest {
 				// Note that since the pageToken is null the header is skipped
 				.withResults(Arrays.asList(value, value));
 		
-		GetQueryResultsRequest expectedRequest = new GetQueryResultsRequest()
-				.withQueryExecutionId(queryId)
-				.withMaxResults(limit)
-				.withNextToken(pageToken);
+		GetQueryResultsRequest expectedRequest = GetQueryResultsRequest.builder()
+				.queryExecutionId(queryId)
+				.maxResults(limit)
+				.nextToken(pageToken)
+				.build();
 
 		// Call under test
 		AthenaQueryResultPage<String> result = athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
@@ -479,19 +484,20 @@ public class AthenaSupportImplTest {
 		int limit = 100;
 		String pageToken = "someToken";
 
-		when(mockQueryResult.getNextToken()).thenReturn("next");
-		when(mockQueryResult.getResultSet()).thenReturn(getResultSet(value, value));
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
-		
+		when(mockQueryResult.nextToken()).thenReturn("next");
+		when(mockQueryResult.resultSet()).thenReturn(getResultSet(value, value));
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResult);
+
 		AthenaQueryResultPage<String> expected = new AthenaQueryResultPage<String>()
 				.withQueryExecutionId(queryId)
 				.withNextPageToken("next")
 				.withResults(Arrays.asList(value, value));
 		
-		GetQueryResultsRequest expectedRequest = new GetQueryResultsRequest()
-				.withQueryExecutionId(queryId)
-				.withMaxResults(limit)
-				.withNextToken(pageToken);
+		GetQueryResultsRequest expectedRequest = GetQueryResultsRequest.builder()
+				.queryExecutionId(queryId)
+				.maxResults(limit)
+				.nextToken(pageToken)
+				.build();
 
 		// Call under test
 		AthenaQueryResultPage<String> result = athenaSupport.getQueryResultsPage(queryId, rowMapper, pageToken, limit);
@@ -584,14 +590,14 @@ public class AthenaSupportImplTest {
 		String queryId = "abcd";
 		boolean excludeHeader = false;
 
-		Database database = new Database().withName(databaseName);
+		Database database = Database.builder().name(databaseName).build();
 
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
-		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", countResult));
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		when(mockStartQueryResult.queryExecutionId()).thenReturn(queryId);
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockQueryResult.resultSet()).thenReturn(getResultSet("Header", countResult));
+		when(mockAthenaClient.startQueryExecution((StartQueryExecutionRequest) any())).thenReturn(mockStartQueryResult);
+		when(mockAthenaClient.getQueryExecution((GetQueryExecutionRequest) any())).thenReturn(mockQueryExecutionResult);
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResult);
 
 		// Call under test
 		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, rowMapper, excludeHeader);
@@ -604,15 +610,15 @@ public class AthenaSupportImplTest {
 
 		verify(mockAthenaClient).startQueryExecution(getStartQueryExecutionRequest(databaseName, query));
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
-		verify(mockAthenaClient, never()).getQueryResults(any());
+		verify(mockAthenaClient, never()).getQueryResults((GetQueryResultsRequest) any());
 
 		assertTrue(result.getQueryResultsIterator().hasNext());
-		
-		verify(mockAthenaClient).getQueryResults(any());
-		
+
+		verify(mockAthenaClient).getQueryResults((GetQueryResultsRequest) any());
+
 		assertEquals("Header", result.getQueryResultsIterator().next());
 		assertEquals(countResult, result.getQueryResultsIterator().next());
-		
+
 		assertFalse(result.getQueryResultsIterator().hasNext());
 
 	}
@@ -626,14 +632,14 @@ public class AthenaSupportImplTest {
 		String queryId = "abcd";
 		boolean excludeHeader = true;
 
-		Database database = new Database().withName(databaseName);
+		Database database = Database.builder().name(databaseName).build();
 
-		when(mockStartQueryResult.getQueryExecutionId()).thenReturn(queryId);
-		when(mockQueryExecutionResult.getQueryExecution()).thenReturn(getQueryExecution(queryId));
-		when(mockQueryResult.getResultSet()).thenReturn(getResultSet("Header", countResult));
-		when(mockAthenaClient.startQueryExecution(any())).thenReturn(mockStartQueryResult);
-		when(mockAthenaClient.getQueryExecution(any())).thenReturn(mockQueryExecutionResult);
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResult);
+		when(mockStartQueryResult.queryExecutionId()).thenReturn(queryId);
+		when(mockQueryExecutionResult.queryExecution()).thenReturn(getQueryExecution(queryId));
+		when(mockQueryResult.resultSet()).thenReturn(getResultSet("Header", countResult));
+		when(mockAthenaClient.startQueryExecution((StartQueryExecutionRequest) any())).thenReturn(mockStartQueryResult);
+		when(mockAthenaClient.getQueryExecution((GetQueryExecutionRequest) any())).thenReturn(mockQueryExecutionResult);
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResult);
 
 		// Call under test
 		AthenaQueryResult<String> result = athenaSupport.executeQuery(database, query, rowMapper, excludeHeader);
@@ -646,29 +652,28 @@ public class AthenaSupportImplTest {
 
 		verify(mockAthenaClient).startQueryExecution(getStartQueryExecutionRequest(databaseName, query));
 		verify(mockAthenaClient).getQueryExecution(getQueryExecutionRequest(queryId));
-		verify(mockAthenaClient, never()).getQueryResults(any());
+		verify(mockAthenaClient, never()).getQueryResults((GetQueryResultsRequest) any());
 
 		assertTrue(result.getQueryResultsIterator().hasNext());
-		
-		verify(mockAthenaClient).getQueryResults(any());
-		
+
+		verify(mockAthenaClient).getQueryResults((GetQueryResultsRequest) any());
+
 		assertEquals(countResult, result.getQueryResultsIterator().next());
 		assertFalse(result.getQueryResultsIterator().hasNext());
 
 	}
 
 	private ResultSet getResultSet(String... values) {
-		ResultSet resultSet = new ResultSet();
-
-		for (String value : values) {
-			resultSet.withRows(getRow(value));
-		}
-
-		return resultSet;
+		ResultSet.Builder resultSetBuilder = ResultSet.builder();
+		List<Row> rows = Arrays.stream(values)
+				.map(this::getRow)
+				.toList();
+		resultSetBuilder.rows(rows);
+		return resultSetBuilder.build();
 	}
 
 	private Row getRow(String value) {
-		return new Row().withData(new Datum().withVarCharValue(value));
+		return Row.builder().data(Datum.builder().varCharValue(value).build()).build();
 	}
 
 	private AthenaQueryResult<String> getQueryResult(boolean excludeHeader, String queryId) {
@@ -686,7 +691,7 @@ public class AthenaSupportImplTest {
 
 			@Override
 			public AthenaQueryStatistics getQueryExecutionStatistics() {
-				return new AthenaQueryStatisticsAdapter(getQueryExecution(queryId).getStatistics());
+				return new AthenaQueryStatisticsAdapter(getQueryExecution(queryId).statistics());
 			}
 
 			@Override
@@ -697,26 +702,26 @@ public class AthenaSupportImplTest {
 	}
 
 	private QueryExecution getQueryExecution(String queryId) {
-		QueryExecutionStatistics queryStats = new QueryExecutionStatistics().withDataScannedInBytes(1000L)
-				.withEngineExecutionTimeInMillis(1000L);
+		QueryExecutionStatistics queryStats = QueryExecutionStatistics.builder().dataScannedInBytes(1000L)
+				.engineExecutionTimeInMillis(1000L).build();
 
-		QueryExecution queryExecution = new QueryExecution().withStatus(new QueryExecutionStatus().withState(QueryExecutionState.SUCCEEDED))
-				.withStatistics(queryStats);
+		QueryExecution queryExecution = QueryExecution.builder().status(QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build())
+				.statistics(queryStats).build();
 
 		return queryExecution;
 	}
 
 	private GetQueryExecutionRequest getQueryExecutionRequest(String queryId) {
-		return new GetQueryExecutionRequest().withQueryExecutionId(queryId);
+		return GetQueryExecutionRequest.builder().queryExecutionId(queryId).build();
 	}
 
 	private StartQueryExecutionRequest getStartQueryExecutionRequest(String databaseName, String query) {
-		QueryExecutionContext queryContext = new QueryExecutionContext().withDatabase(databaseName.toLowerCase());
+		QueryExecutionContext queryContext = QueryExecutionContext.builder().database(databaseName.toLowerCase()).build();
 
-		ResultConfiguration resultConfiguration = new ResultConfiguration().withOutputLocation(TEST_OUTPUT_RESULTS_LOCATION);
+		ResultConfiguration resultConfiguration = ResultConfiguration.builder().outputLocation(TEST_OUTPUT_RESULTS_LOCATION).build();
 
-		StartQueryExecutionRequest request = new StartQueryExecutionRequest().withQueryExecutionContext(queryContext)
-				.withResultConfiguration(resultConfiguration).withQueryString(query);
+		StartQueryExecutionRequest request = StartQueryExecutionRequest.builder().queryExecutionContext(queryContext)
+				.resultConfiguration(resultConfiguration).queryString(query).build();
 
 		return request;
 	}

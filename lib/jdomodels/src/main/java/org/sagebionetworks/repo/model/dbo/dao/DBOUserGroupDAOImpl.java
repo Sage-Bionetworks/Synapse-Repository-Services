@@ -35,7 +35,6 @@ import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,22 +50,23 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	private static final String SQL_SELECT_ALL = "SELECT * FROM "+TABLE_USER_GROUP;
 
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	private List<BootstrapPrincipal> bootstrapPrincipals;
+	private final DBOBasicDao basicDao;
+	private final IdGenerator idGenerator;
+	private final TransactionalMessenger transactionalMessenger;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final List<BootstrapPrincipal> bootstrapPrincipals;
+
+	public DBOUserGroupDAOImpl(DBOBasicDao basicDao, IdGenerator idGenerator,
+			TransactionalMessenger transactionalMessenger, NamedParameterJdbcTemplate namedJdbcTemplate,
+			JdbcTemplate jdbcTemplate, List<BootstrapPrincipal> bootstrapPrincipals) {
+		this.basicDao = basicDao;
+		this.idGenerator = idGenerator;
+		this.transactionalMessenger = transactionalMessenger;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+		this.bootstrapPrincipals = bootstrapPrincipals;
+	}
 	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
@@ -117,16 +117,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		return map;
 	};
 	
-	
 
-	public List<BootstrapPrincipal> getBootstrapPrincipals() {
-		return bootstrapPrincipals;
-	}
 
-	public void setBootstrapPrincipals(List<BootstrapPrincipal> bootstrapPrincipals) {
-		this.bootstrapPrincipals = bootstrapPrincipals;
-	}
-	
 	@Override
 	public List<UserGroup> getAllPrincipals() {
 		List<DBOUserGroup> dbos = namedJdbcTemplate.query(SQL_SELECT_ALL, userGroupRowMapper);
@@ -266,7 +258,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	}
 	
 	/**
-	 * This is called by Spring after all properties are set
+	 * This is called by the getUserGroupDAO @Bean method in JdoModelsConfig after construction
 	 */
 	@Override
 	@WriteTransaction

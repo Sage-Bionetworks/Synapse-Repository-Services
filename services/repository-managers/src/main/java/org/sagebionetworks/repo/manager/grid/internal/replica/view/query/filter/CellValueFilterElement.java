@@ -128,18 +128,44 @@ public class CellValueFilterElement implements FilterElement {
 
 		sqlBuilder.append("(");
 		appendJsonLengthCheck(sqlBuilder, columnIndex);
+		sqlBuilder.append(" ");
 
-		String function = isString(value) ? "->>" : "->";
-		sqlBuilder.append(" VALS").append(function).append("'$[").append(columnIndex).append("].v[0]' ").append(operator.toSql());
+		// The value is matched strictly by its JSON type: a scalar value compares against a scalar cell
+		// (VALS->>'...v[0]'), while a JSON array value compares against a LIST cell (VALS->'...v[0]' cast
+		// to JSON). The grid stores no column type, so this literal-type match is the only way to avoid
+		// ambiguity: a wrapped scalar ["A"] does not match a scalar cell "A", and does not match both a
+		// scalar and a list cell in a mixed column.
+		Object comparisonValue = value;
+		boolean singleElementArray = value instanceof JSONArray && ((JSONArray) value).length() == 1;
+		boolean equalityOperator = CellValueOperatorElement.EQUALS.equals(operator)
+				|| CellValueOperatorElement.NOT_EQUALS.equals(operator);
+		if (singleElementArray && !equalityOperator) {
+			// Ordering and text operators (>, <, LIKE, ...) against a JSON array are not meaningful, so a
+			// single-element array unambiguously refers to its scalar element. Unwrap it.
+			comparisonValue = ((JSONArray) value).get(0);
+		}
+		appendComparison(sqlBuilder, params, bind, columnIndex, comparisonValue);
+		sqlBuilder.append(")");
+	}
 
-		if (isJsonType(value)) {
+	/**
+	 * Append a single {@code VALS-><path> <operator> <value>} comparison, choosing the JSON accessor
+	 * ({@code ->>} for strings, {@code ->} otherwise) and binding the value as JSON when it is a
+	 * JSON-typed value (array, object, or boolean).
+	 */
+	private void appendComparison(StringBuilder sqlBuilder, Map<String, Object> params, String bind,
+			Integer columnIndex, Object singleValue) {
+		String function = isString(singleValue) ? "->>" : "->";
+		sqlBuilder.append("VALS").append(function).append("'$[").append(columnIndex).append("].v[0]' ")
+				.append(operator.toSql());
+
+		if (isJsonType(singleValue)) {
 			sqlBuilder.append(" CAST(:").append(bind).append(" AS JSON)");
-			params.put(bind, value.toString());
+			params.put(bind, singleValue.toString());
 		} else {
 			sqlBuilder.append(" :").append(bind);
-			params.put(bind, value);
+			params.put(bind, singleValue);
 		}
-		sqlBuilder.append(")");
 	}
 
 	private void handleMultipleValues(StringBuilder sqlBuilder, Map<String, Object> params, String bind,

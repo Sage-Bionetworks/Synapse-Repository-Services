@@ -20,13 +20,16 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
+import org.sagebionetworks.repo.manager.agent.supervisor.CurieSupervisorFactory;
+import org.sagebionetworks.repo.manager.agent.tool.AgentTraceCallback;
 import org.sagebionetworks.repo.manager.config.AgentSuffix;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
+import org.sagebionetworks.repo.model.agent.AgentChatAttachmentState;
+import org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
@@ -42,6 +45,7 @@ import org.sagebionetworks.repo.model.agent.UpdateAgentSessionRequest;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.agent.AgentDao;
 import org.sagebionetworks.repo.model.feature.Feature;
+import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
@@ -88,12 +92,15 @@ public class AgentManagerImpl implements AgentManager {
 	private Logger logger;
 	private final Consumer cloudWatchConsumer;
 	private final UserManager userManager;
+	private final CurieSupervisorFactory curieSupervisorFactory;
+	private final AgentChatAttachmentStager attachmentStager;
 
 	@Autowired
 	public AgentManagerImpl(AgentDao agentDao, AgentClientProvider agentClientProvider,
 			Map<AgentSuffix, String> stackBedrockAgentIds, ReturnControlHandlerProvider handlerProvider, Clock clock,
 			AsynchronousJobStatusDAO statusDao, FeatureManager featureManager, AgentContextValidator contextValidator,
-			Consumer consumer, UserManager userManager) {
+			Consumer consumer, UserManager userManager, CurieSupervisorFactory curieSupervisorFactory,
+			AgentChatAttachmentStager attachmentStager) {
 		super();
 		this.agentDao = agentDao;
 		this.agentClientProvider = agentClientProvider;
@@ -112,6 +119,8 @@ public class AgentManagerImpl implements AgentManager {
 		this.contextValidator = contextValidator;
 		this.cloudWatchConsumer = consumer;
 		this.userManager = userManager;
+		this.curieSupervisorFactory = curieSupervisorFactory;
+		this.attachmentStager = attachmentStager;
 	}
 
 	@Autowired
@@ -166,17 +175,59 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSessionId(), "request.sessionId");
 		AgentSession session = getAndValidateAgentSession(userInfo, request.getSessionId());
+		// Attachments are staged into the shared code interpreter session, which only the Curie
+		// multi-agent supervisor uses; reject them on any other session type rather than silently
+		// dropping them.
+		boolean experimentalCurie = isExperimentalCurieSession(session);
+		List<FileHandleAssociation> attachments = request.getAttachments();
+		boolean hasAttachments = attachments != null && !attachments.isEmpty();
+		if (hasAttachments && !experimentalCurie) {
+			throw new IllegalArgumentException(
+					"Attachments are only supported for experimental grid (Curie) chat sessions.");
+		}
 		// do nothing with an empty of blank input.
 		if (request.getChatText() == null || request.getChatText().isBlank()) {
 			return new AgentChatResponse().setResponseText("").setSessionId(request.getSessionId());
+		}
+		// Experimental grid sessions are handled by the Curie multi-agent supervisor rather than the
+		// default Bedrock agent.
+		if (experimentalCurie) {
+			GridAgentSessionContext gridContext = (GridAgentSessionContext) session.getSessionContext();
+			// When trace is enabled, record the supervisor's conversation with its specialists
+			// against this job. A null callback (trace disabled) records nothing.
+			boolean enableTrace = request.getEnableTrace() != null ? request.getEnableTrace() : false;
+			AgentTraceCallback traceCallback = enableTrace
+					? message -> agentDao.addTraceToJob(jobId, clock.currentTimeMillis(), message)
+					: null;
+			// Stage the turn's attachments into the shared session before the model runs, then tell the
+			// supervisor about the files that staged successfully. Failures are reported to the client via
+			// attachmentStatuses; the turn proceeds with whatever staged.
+			List<AgentChatAttachmentStatus> attachmentStatuses = attachmentStager.stageAttachments(userInfo,
+					session.getSessionId(), attachments);
+			List<AgentChatAttachmentStatus> stagedAttachments = attachmentStatuses.stream()
+					.filter(status -> AgentChatAttachmentState.STAGED.equals(status.getStatus()))
+					.collect(Collectors.toList());
+			String curieResponse = curieSupervisorFactory.create().chat(request.getChatText(), stagedAttachments,
+					userInfo, session.getSessionId(), gridContext, traceCallback);
+			return new AgentChatResponse().setResponseText(curieResponse).setSessionId(request.getSessionId())
+					.setAttachmentStatuses(hasAttachments ? attachmentStatuses : null);
 		}
 		String responseText = invokeAgentWithText(jobId, session, request);
 		return new AgentChatResponse().setResponseText(responseText).setSessionId(request.getSessionId());
 	}
 
 	/**
+	 * A session is handled by the Curie multi-agent supervisor when it carries a grid context flagged
+	 * experimental; all other sessions are handled by the default Bedrock agent.
+	 */
+	private static boolean isExperimentalCurieSession(AgentSession session) {
+		return session.getSessionContext() instanceof GridAgentSessionContext gridContext
+				&& Boolean.TRUE.equals(gridContext.getExperimental());
+	}
+
+	/**
 	 * Helper to get and validate the session for the provided sessionId.
-	 * 
+	 *
 	 * @param userInfo
 	 * @param sessionId
 	 * @return

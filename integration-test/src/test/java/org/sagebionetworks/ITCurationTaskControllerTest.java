@@ -9,7 +9,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -195,7 +199,13 @@ public class ITCurationTaskControllerTest {
             assertEquals(TaskState.NOT_STARTED, bundle.getStatus().getState());
             assertEquals(task.getEtag(), bundle.getStatus().getEtag());
 
-            // Update status to IN_PROGRESS
+            // Set due date via task update
+            Date dueDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+            task.setDueDate(dueDate);
+            task = synapse.updateMetadataTask(task);
+            assertEquals(dueDate, task.getDueDate());
+
+            // Update status to IN_PROGRESS using the updated task's etag
             TaskStatus statusUpdate = new TaskStatus()
                     .setState(TaskState.IN_PROGRESS)
                     .setEtag(task.getEtag());

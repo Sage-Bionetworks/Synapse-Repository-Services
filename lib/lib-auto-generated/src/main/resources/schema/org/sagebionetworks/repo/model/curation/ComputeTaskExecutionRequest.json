@@ -1,0 +1,14 @@
+{
+  "description": "Request to execute an automated computation for a curation task. The task must be in the NOT_STARTED state and have ExecutableTaskExecutionDetails.",
+  "implements": [
+    {
+      "$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+    }
+  ],
+  "properties": {
+    "taskId": {
+      "type": "integer",
+      "description": "The ID of the CurationTask to execute."
+    }
+  }
+}

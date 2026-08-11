@@ -17,6 +17,10 @@
 		"agentsReplicaId": {
 			"description": "The replica ID issued to the user's agent.",
 			"type": "integer"
+		},
+		"experimental": {
+			"description": "Optional. When true, this grid session is processed by the experimental Curie multi-agent supervisor instead of the default agent. Default value is false.",
+			"type": "boolean"
 		}
 	}
 }

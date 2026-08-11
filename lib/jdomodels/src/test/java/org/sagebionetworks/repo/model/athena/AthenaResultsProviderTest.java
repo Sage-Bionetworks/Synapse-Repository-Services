@@ -12,6 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,12 +25,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.util.TokenPaginationPage;
 import org.sagebionetworks.util.TokenPaginationProvider;
 
-import com.amazonaws.services.athena.AmazonAthena;
-import com.amazonaws.services.athena.model.Datum;
-import com.amazonaws.services.athena.model.GetQueryResultsRequest;
-import com.amazonaws.services.athena.model.GetQueryResultsResult;
-import com.amazonaws.services.athena.model.ResultSet;
-import com.amazonaws.services.athena.model.Row;
+import software.amazon.awssdk.services.athena.AthenaClient;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsRequest;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.ResultSet;
+import software.amazon.awssdk.services.athena.model.Row;
 
 @ExtendWith(MockitoExtension.class)
 public class AthenaResultsProviderTest {
@@ -38,20 +40,20 @@ public class AthenaResultsProviderTest {
 	private static final String HEADER_COL = "HeaderColumn";
 
 	@Mock
-	private AmazonAthena mockAthenaClient;
+	private AthenaClient mockAthenaClient;
 
 	@Mock
 	private GetQueryResultsRequest mockQueryRequest;
 
 	@Mock
-	private GetQueryResultsResult mockQueryResults;
+	private GetQueryResultsResponse mockQueryResults;
 	
 	@Mock
 	private RowMapper<String> mockMapper;
 
 	@BeforeEach
 	public void before() {
-		when(mockAthenaClient.getQueryResults(any())).thenReturn(mockQueryResults);
+		when(mockAthenaClient.getQueryResults((GetQueryResultsRequest) any())).thenReturn(mockQueryResults);
 	}
 
 	@Test
@@ -59,7 +61,7 @@ public class AthenaResultsProviderTest {
 		int resultsNumber = 0;
 		ResultSet results = getResultSet(resultsNumber);
 
-		when(mockQueryResults.getResultSet()).thenReturn(results);
+		when(mockQueryResults.resultSet()).thenReturn(results);
 
 		boolean excludeHeader = true;
 		String nextToken = null;
@@ -74,7 +76,7 @@ public class AthenaResultsProviderTest {
 		assertTrue(nextPage.getResults().isEmpty());
 
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(nextToken));
-		verify(mockQueryResults).getResultSet();
+		verify(mockQueryResults).resultSet();
 		verify(mockMapper, never()).mapRow(any());
 	}
 
@@ -84,7 +86,7 @@ public class AthenaResultsProviderTest {
 		int resultsNumber = 10;
 		ResultSet results = getResultSet(resultsNumber);
 
-		when(mockQueryResults.getResultSet()).thenReturn(results);
+		when(mockQueryResults.resultSet()).thenReturn(results);
 		when(mockMapper.mapRow(any())).then(this::getMapperAnswer);
 
 		boolean excludeHeader = true;
@@ -103,7 +105,7 @@ public class AthenaResultsProviderTest {
 		assertNotEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(nextToken));
-		verify(mockQueryResults).getResultSet();
+		verify(mockQueryResults).resultSet();
 		verify(mockMapper, times(resultsNumber)).mapRow(any());
 	}
 	
@@ -113,7 +115,7 @@ public class AthenaResultsProviderTest {
 		int resultsNumber = 10;
 		ResultSet results = getResultSet(resultsNumber);
 
-		when(mockQueryResults.getResultSet()).thenReturn(results);
+		when(mockQueryResults.resultSet()).thenReturn(results);
 		when(mockMapper.mapRow(any())).then(this::getMapperAnswer);
 
 		boolean excludeHeader = false;
@@ -132,7 +134,7 @@ public class AthenaResultsProviderTest {
 		assertEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(nextToken));
-		verify(mockQueryResults).getResultSet();
+		verify(mockQueryResults).resultSet();
 		verify(mockMapper, times(resultsNumber + 1)).mapRow(any());
 	}
 	
@@ -147,8 +149,8 @@ public class AthenaResultsProviderTest {
 
 		String nextToken = "nextToken";
 		
-		when(mockQueryResults.getResultSet()).thenReturn(firstPage, secondPage);
-		when(mockQueryResults.getNextToken()).thenReturn(nextToken, new String[] { null });
+		when(mockQueryResults.resultSet()).thenReturn(firstPage, secondPage);
+		when(mockQueryResults.nextToken()).thenReturn(nextToken, new String[] { null });
 		when(mockMapper.mapRow(any())).then(this::getMapperAnswer);
 
 		boolean excludeHeader = true;
@@ -166,7 +168,7 @@ public class AthenaResultsProviderTest {
 		assertNotEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(null));
-		verify(mockQueryResults).getResultSet();
+		verify(mockQueryResults).resultSet();
 		verify(mockMapper, times(firstPageResults)).mapRow(any());
 
 		// Call under test, second page
@@ -179,7 +181,7 @@ public class AthenaResultsProviderTest {
 		assertNotEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(nextToken));
-		verify(mockQueryResults, times(2)).getResultSet();
+		verify(mockQueryResults, times(2)).resultSet();
 		verify(mockMapper, times(firstPageResults + secondPageResults)).mapRow(any());
 		
 	}
@@ -197,8 +199,8 @@ public class AthenaResultsProviderTest {
 
 		String nextToken = "nextToken";
 		
-		when(mockQueryResults.getResultSet()).thenReturn(firstPage, secondPage);
-		when(mockQueryResults.getNextToken()).thenReturn(nextToken, new String[] { null });
+		when(mockQueryResults.resultSet()).thenReturn(firstPage, secondPage);
+		when(mockQueryResults.nextToken()).thenReturn(nextToken, new String[] { null });
 		when(mockMapper.mapRow(any())).then(this::getMapperAnswer);
 
 		boolean excludeHeader = false;
@@ -216,7 +218,7 @@ public class AthenaResultsProviderTest {
 		assertEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(null));
-		verify(mockQueryResults).getResultSet();
+		verify(mockQueryResults).resultSet();
 		verify(mockMapper, times(firstPageResults)).mapRow(any());
 
 		// Call under test, second page
@@ -229,7 +231,7 @@ public class AthenaResultsProviderTest {
 		assertNotEquals(HEADER_COL, nextPage.getResults().get(0));
 		
 		verify(mockAthenaClient).getQueryResults(getQueryResultsRequest(nextToken));
-		verify(mockQueryResults, times(2)).getResultSet();
+		verify(mockQueryResults, times(2)).resultSet();
 		verify(mockMapper, times(firstPageResults + secondPageResults)).mapRow(any());
 
 		
@@ -237,12 +239,12 @@ public class AthenaResultsProviderTest {
 
 	
 	private String getMapperAnswer(InvocationOnMock invocation) {
-		return ((Row)invocation.getArgument(0)).getData().stream().map(Datum::getVarCharValue).collect(Collectors.joining(","));
+		return ((Row)invocation.getArgument(0)).data().stream().map(Datum::varCharValue).collect(Collectors.joining(","));
 	}
 
 	private GetQueryResultsRequest getQueryResultsRequest(String nextToken) {
-		GetQueryResultsRequest request = new GetQueryResultsRequest().withQueryExecutionId(QUERY_ID)
-				.withMaxResults(AthenaResultsProvider.MAX_PAGE_SIZE).withNextToken(nextToken);
+		GetQueryResultsRequest request = GetQueryResultsRequest.builder().queryExecutionId(QUERY_ID)
+				.maxResults(AthenaResultsProvider.MAX_PAGE_SIZE).nextToken(nextToken).build();
 
 		return request;
 	}
@@ -256,15 +258,17 @@ public class AthenaResultsProviderTest {
 	}
 
 	private ResultSet getResultSet(int numberOfRows, int startIndex, boolean includeHeader) {
-		ResultSet resultSet = new ResultSet();
+		ResultSet.Builder resultSetBuilder = ResultSet.builder();
+		List<Row> rows = new ArrayList<>(numberOfRows+1);
 		if (includeHeader) {
 			// Athena always include the header row
-			resultSet.withRows(getHeaderRow());
+			rows.add(getHeaderRow());
 		}
 		for (int i = startIndex; i < numberOfRows + startIndex; i++) {
-			resultSet.withRows(getRow(String.valueOf(i)));
+			rows.add(getRow(String.valueOf(i)));
 		}
-		return resultSet;
+		resultSetBuilder.rows(rows);
+		return resultSetBuilder.build();
 	}
 
 	private Row getHeaderRow() {
@@ -272,7 +276,7 @@ public class AthenaResultsProviderTest {
 	}
 
 	private Row getRow(String value) {
-		return new Row().withData(new Datum().withVarCharValue(value));
+		return Row.builder().data(Datum.builder().varCharValue(value).build()).build();
 	}
 
 }

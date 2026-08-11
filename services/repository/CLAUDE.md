@@ -45,6 +45,19 @@ public class EntityController {
 
 `org.sagebionetworks.repo.service.ServiceProvider` — facade that exposes all service interfaces. Controllers inject this single bean rather than individual managers.
 
+### One controller per resource family
+
+A related family of resource types can share a single `@Controller`. Example: `SearchManagementController` serves TextAnalyzer, ColumnAnalyzerOverride, SynonymSet, SearchConfiguration, SearchConfigBinding, and the async search query/autocomplete endpoints — it replaced four separate controllers (`SearchQueryController`, `SynonymSetController`, `TextAnalyzerController`, `ColumnAnalyzerOverrideController`). Prefer consolidating a tightly related family over one controller per type.
+
+## Servlet Filter Chain
+
+Request filters are declared in `src/main/webapp/WEB-INF/web.xml`; **filter order is the `<filter-mapping>` declaration order and is load-bearing**. Some filter classes live in the `services/authutil` module (`SimpleCORSFilter`, `CookieSessionTokenFilter`) — that module has no CLAUDE.md of its own because its behavior is only meaningful in this chain. Current order: `trailingSlashRedirect → httpToHttps → unexpectedException → requestSizeThrottle → httpMethod → cookie → simpleCORS → stackStatus → authFilter → adminServiceAuth → … → throttles → …`.
+
+Guardrails (each has bitten before — do not "clean up"):
+- **Keep `unexpectedExceptionFilter` high in the chain, above the auth/business filters** — it is the last-chance handler that logs unexpected errors before they reach users (PLFM-3205/3206).
+- **Do NOT add `/auth/v1/*` paths to `acceptTermsOfUseFilter` or `twoFactorAuthRequiredFilter`** `<url-pattern>`s — users must be able to accept the terms of use / enable 2FA before those filters would otherwise block them.
+- **Do NOT broaden `cloudMailInAuthFilter` beyond `/cloudMailInMessage/*`** — CloudMailIn does not send BasicAuth on the `/cloudMailInAuthorization/*` endpoint, so the filter is deliberately scoped out of it.
+
 ## Spring Configuration
 
 - `web.xml` → `ContextLoaderListener` loads root context, `DispatcherServlet` loads MVC context

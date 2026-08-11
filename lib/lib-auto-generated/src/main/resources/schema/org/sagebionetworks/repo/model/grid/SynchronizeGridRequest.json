@@ -9,6 +9,10 @@
 		"gridSessionId": {
 			"type": "string",
 			"description": "The ID of the grid session to synchronize."
+		},
+		"syncType": {
+			"$ref": "org.sagebionetworks.repo.model.grid.SyncType",
+			"description": "The type of synchronization to perform. For both values, the grid will be updated. If \"PULL_PUSH\", the referenced entities (EntityView-based grids) or the source RecordSet (RecordSet-based grids) will be updated after updating the grid with the latest data. Default is \"PULL_PUSH\". Currently, EntityView-based grids only support PULL_PUSH."
 		}
 	}
 }

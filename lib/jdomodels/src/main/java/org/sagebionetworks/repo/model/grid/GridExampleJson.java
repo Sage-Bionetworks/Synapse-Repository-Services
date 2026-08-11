@@ -177,11 +177,11 @@ public class GridExampleJson {
 										.setFilters(List.of(new RowSelectionFilter().setIsSelected(true)))))))),
 				// Update Example 4
 				new UpdateExample().setDescription(
-						"Set status = true only for rows with IDs r2 and r5 (explicit RowIdFilter targeting previously retrieved IDs).")
+						"When asked to update specific rows given their row IDs, use a RowIdFilter. A row ID is the compact `replicaId.sequenceNumber` form a query returns for each row (e.g. 123.456), not a column value. For example, set status = true only for the rows whose IDs are 123.456 and 123.789.")
 						.setUpdate_json(JDOSecondaryPropertyUtils.createJSONFromObject(
 								new GridUpdateRequest().setUpdate(new UpdateBatch().setBatch(List.of(new Update()
 										.setSet(List.of(new LiteralSetValue().setColumnName("status").setValue(true)))
-										.setFilters(List.of(new RowIdFilter().setRowIdsIn(List.of("r2", "r5"))))))))),
+										.setFilters(List.of(new RowIdFilter().setRowIdsIn(List.of("123.456", "123.789"))))))))),
 				// Update Example 5
 				new UpdateExample().setDescription("Set color to undefined for rows where material is null.")
 						.setUpdate_json(JDOSecondaryPropertyUtils

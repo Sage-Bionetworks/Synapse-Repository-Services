@@ -442,11 +442,11 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	
 	/**
 	 * Sends a message to trigger an update for the table with the given id, this will not modify the status of the table
-	 * 
+	 *
 	 * @param idAndVersion
 	 */
 	void triggerIndexUpdate(IdAndVersion idAndVersion);
-	
+
 	/**
 	 * @param idAndVersion
 	 * @return An {@link ActionsRequiredDao} instance for the table with the given id

@@ -186,6 +186,21 @@ These entity types share a common pattern. Follow it whenever introducing a new 
 
 Failing the parse synchronously in the metadata provider means malformed `definingSql` is rejected with `IllegalArgumentException` (HTTP 400) at create/update time, instead of silently FAILED'ing during the async build.
 
+`SearchIndex` adds a managed-OpenSearch-domain build path and row-level benefactor ACL on top of this pattern — see `manager/search/CLAUDE.md` for the domain/shard/ACL specifics and DSL validation.
+
+`RecordSet` is also queryable but **not** defining-SQL driven: `RecordSetManagerImpl`/`RecordSetIndexManagerImpl` require a bound JSON Schema and derive columns from it (via `RecordSetSchemaResolver`), not from CSV inference — a RecordSet with no bound schema is not indexed.
+
+## Plugin-Registry Pattern
+
+Several subsystems resolve behavior by a `Map` keyed on an enum, built from an autowired `List` of `@Service` beans (one bean per key) in `ManagerConfiguration`. When adding a new variant, add a `@Service` bean — do not edit a central switch. Instances:
+
+- **Entity metadata providers** (`repo/service/metadata/`) — keyed by `EntityType`; strict `{DTO}MetadataProvider` naming. Missing/misnamed → the new entity type is silently unwired. See `service/metadata/CLAUDE.md`.
+- **OIDC claim providers** (`repo/manager/oauth/claimprovider/`) — keyed by `OIDCClaimName`. See `manager/oauth/CLAUDE.md`.
+- **File handle association providers** (`repo/manager/file/`) — keyed by `FileHandleAssociateType`.
+- **Agent return-control handlers** (`repo/manager/agent/`) — `ReturnControlHandlerProvider` keyed by actionGroup+function; `CodeInterpreterTools` exposes Spring AI `@Tool` methods with a staging-bucket copy-then-presign flow.
+
+Sub-packages with their own deep conventions have their own files: `manager/search/` (OpenSearch domain build + DSL validation), `manager/oauth/` (OIDC/claim providers), `service/metadata/` (entity provider registry), `manager/file/scanner/` (auto-SQL file-handle scanners), `manager/dataaccess/` (access-request submission state machine), and `grid/internal/replica/` (CRDT internals).
+
 ## Curation Grid (Curator)
 
 A spreadsheet-style collaborative editing feature that allows data curators to annotate files (FileEntity annotations) and manage record-based metadata (RecordSet entities). Unlike the standard Controller → Manager → DAO pattern, the grid uses a **CRDT (Conflict-free Replicated Data Type)** architecture based on the [JSON-Joy](https://jsonjoy.com/) specification, enabling real-time multi-user and AI-assisted editing.
@@ -193,7 +208,7 @@ A spreadsheet-style collaborative editing feature that allows data curators to a
 ### Hub-and-Replica Architecture
 
 - **Grid Session**: Created via async job (`POST /grid/session/async/start`). Represents a collaborative editing session backed by a CRDT document.
-- **Replicas**: Each connected client (or AI agent) gets a unique replica with a numeric `replicaId`. Single writer per replica, multiple readers allowed.
+- **Replicas**: Each connected client (or AI agent) gets a unique replica with a numeric `replicaId`. Single writer per replica, multiple readers allowed. `GridReplicaConnectionManager` creates replicas and publishes their lifecycle events.
 - **Hub**: A cluster of workers that receives patches from all replicas via an **SQS queue**, persists them, and broadcasts `"new-patch"` notifications to all connected replicas.
 
 ### WebSocket Protocol
@@ -216,13 +231,30 @@ The grid document uses JSON-Joy CRDT node types:
 
 Grid patches are stored relationally in `lib-grid-db` tables — the full CRDT document is **never loaded into memory**. A SQL template (`services/repository-managers/src/main/resources/grid/grid-index-view-template.sql`) joins patch tables to produce a paginated tabular view, enabling efficient reads over large datasets.
 
+### Grid Synchronization
+
+A grid session is created *from* a source entity and can be re-synchronized with it later (`POST` a `SynchronizeGridRequest` async job, package `org.sagebionetworks.repo.manager.grid.synch`). `SyncType.PULL` only updates the grid from the source; `SyncType.PULL_PUSH` also writes the merged result back to the source afterward.
+
+- **`SourceHandler` / `SourceWriter`** (`grid.synch.handler`) bridge the generic sync engine to a concrete source type. One pair of implementations exists per source: `EntityViewSourceHandler`/`Writer` and `RecordSetSourceHandler`/`RecordSetSourceWriter`. A `SourceHandler` reports keying/matchability/deletion rules to the engine; the paired `SourceWriter` performs the (optional) push.
+- **Two-phase merge**: Phase 1 reconciles schema (source columns vs. grid columns) and matches rows by a source-supplied key; Phase 2 streams the merged row set, applying CRDT patches to the grid and reporting each final row to the `SourceWriter` for an optional push.
+
+The two source types differ enough to warrant a side-by-side comparison:
+
+| Aspect                | EntityView                                                                                                                           | RecordSet                                                                                                                                                                                                                                                                            |
+|-----------------------|--------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Supported `SyncType`s | `PULL_PUSH` only                                                                                                                     | `PULL` and `PULL_PUSH`                                                                                                                                                                                                                                                               |
+| Row identity          | The ID of the entity the row represents                                                                                              | The entity's `upsertKey` columns, deterministically encoded by `UpsertKeyEncoder`                                                                                                                                                                                                    |
+| Mutation on push      | **In place** — cell changes write directly to entity annotations                                                                     | **Never in place** — a `PULL_PUSH` push builds a brand-new artifact (data CSV + validation summary, via `RecordSetArtifactBuilder`) and creates a new RecordSet revision                                                                                                             |
+| Deletion detection    | Immediate — every read is against live annotations, so a row/column simply absent from the current read is absent, no history needed | Baseline-relative — each revision's CSV is immutable, so a row/column is only inferred "deleted by the user" by diffing the *synced baseline* (`sourceEntityVersionNumber` recorded on the session) against the latest revision. A null baseline (first sync) never infers deletions |
+| Unmatchable rows      | None — every row is intrinsically keyed by entity ID                                                                                 | Rows with an incomplete `upsertKey` get a synthetic UUID key so they're never matched — always copied through as-is instead of merged                                                                                                                                                |
+
 ### AI Agent Integration
 
 The AI Grid Assistant binds to a grid session via `GridAgentSessionContext` (containing `gridSessionId` and `usersReplicaId`). The agent reads and writes grid data through **MCP services** (Grid Query / Grid Update) that translate SQL-like operations into CRDT patches flowing through the same hub.
 
 ### Validation Worker
 
-A dedicated worker listens to grid changes via an SQS queue, validates each changed row against the bound **JSON Schema**, and writes validation results back as CRDT patches to `rows[*].metadata.rowValidation`.
+A dedicated worker listens to grid changes via an SQS queue, validates each changed row against the bound **JSON Schema** (`GridRowValidator` + `ValidationSummaryAccumulator` in `grid/internal/replica/validation/`), and writes validation results back as CRDT patches to `rows[*].metadata.rowValidation`. For the replica/patch/validation internals, see `grid/internal/replica/CLAUDE.md`.
 
 ### Key REST APIs
 

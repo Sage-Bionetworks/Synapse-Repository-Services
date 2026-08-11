@@ -1067,6 +1067,13 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_MODIFIED_ON = 				"MODIFIED_ON";
 	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
 	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
+	public static final String COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID =		"EDUC_ENVELOPE_ID";
+
+	// DataAccessRequestUser
+	public static final String DDL_DATA_ACCESS_REQUEST_USER =					"schema/DataAccessRequestUser-ddl.sql";
+	public static final String TABLE_DATA_ACCESS_REQUEST_USER =					"DATA_ACCESS_REQUEST_USER";
+	public static final String COL_DATA_ACCESS_REQUEST_USER_REQUEST_ID =		"REQUEST_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_USER_USER_ID =			"USER_ID";
 
 	// DataAccessSubmission
 	public static final String DDL_DATA_ACCESS_SUBMISSION = 						"schema/DataAccessSubmission-ddl.sql";
@@ -1258,17 +1265,19 @@ public class SqlConstants {
 	public static final String COL_FILES_SCANNER_STATUS_SCANNED_ASSOCIATIONS_COUNT = 	"SCANNED_ASSOCIATIONS_COUNT";
 	public static final String COL_FILES_SCANNER_STATUS_RELINKED_FILES_COUNT =		 	"RELINKED_FILES_COUNT";
 	
-	// The materialized view source tables
-	public static final String DDL_MV_ID = 												"schema/MaterializedViewId-ddl.sql";
-	public static final String TABLE_MV_ID = 											"MATERIALIZED_VIEW_ID";
-	public static final String COL_MV_ID_ID = 											"MATERIALIZED_VIEW_ID";
-	public static final String COL_MV_ID_ETAG = 										"ETAG";
-	public static final String DDL_MV_SOURCE_TABLES = 									"schema/MaterializedViewSourceTables-ddl.sql";
-	public static final String TABLE_MV_TABLES = 										"MATERIALIZED_VIEW_SOURCE_TABLES";
-	public static final String COL_MV_TABLES_MV_ID = 									"MATERIALIZED_VIEW_ID";
-	public static final String COL_MV_TABLES_MV_VERSION = 								"MATERIALIZED_VIEW_VERSION";
-	public static final String COL_MV_TABLES_SOURCE_TABLE_ID =							"SOURCE_TABLE_ID";
-	public static final String COL_MV_TABLES_SOURCE_TABLE_VERSION =						"SOURCE_TABLE_VERSION";
+	// The defining-SQL object id table (owner) and its source-dependency table.
+	// Generalized from the materialized view pattern to also serve other defining-SQL objects (e.g. SearchIndex).
+	public static final String DDL_DEFINING_SQL_OBJECT = 								"schema/DefiningSqlObject-ddl.sql";
+	public static final String TABLE_DEFINING_SQL_OBJECT = 								"DEFINING_SQL_OBJECT";
+	public static final String COL_DEFINING_SQL_OBJECT_ID = 							"OBJECT_ID";
+	public static final String COL_DEFINING_SQL_OBJECT_ETAG = 							"ETAG";
+	public static final String DDL_DEFINING_SQL_DEPENDENCY = 							"schema/DefiningSqlDependency-ddl.sql";
+	public static final String TABLE_DEFINING_SQL_DEPENDENCY = 							"DEFINING_SQL_DEPENDENCY";
+	public static final String COL_DEFINING_SQL_DEP_OBJECT_ID = 						"OBJECT_ID";
+	public static final String COL_DEFINING_SQL_DEP_OBJECT_VERSION = 					"OBJECT_VERSION";
+	public static final String COL_DEFINING_SQL_DEP_OBJECT_TYPE = 						"OBJECT_TYPE";
+	public static final String COL_DEFINING_SQL_DEP_SOURCE_TABLE_ID =					"SOURCE_TABLE_ID";
+	public static final String COL_DEFINING_SQL_DEP_SOURCE_TABLE_VERSION =				"SOURCE_TABLE_VERSION";
 	
 	// The principal OIDC subject mapping table
 	public static final String DDL_PRINCIPAL_OIDC_BINDING = 							"schema/PrincipalOIDCBinding-ddl.sql";
@@ -1476,6 +1485,7 @@ public class SqlConstants {
     public static final String COL_CURATION_TASK_EXECUTION_DETAILS = "EXECUTION_DETAILS";
     public static final String COL_CURATION_TASK_STATE_UPDATED_BY = "STATE_UPDATED_BY";
     public static final String COL_CURATION_TASK_STATE_UPDATED_ON = "STATE_UPDATED_ON";
+    public static final String COL_CURATION_TASK_DUE_DATE = "DUE_DATE";
 
 
     // Table to track a record set validation summary for a specific version
@@ -1580,6 +1590,15 @@ public class SqlConstants {
 	public static final String COL_SCOB_CREATED_BY						= "CREATED_BY";
 	public static final String COL_SCOB_CREATED_ON						= "CREATED_ON";
 	public static final String DDL_SEARCH_CONFIG_OBJECT_BINDING			= "schema/SearchConfigBinding-ddl.sql";
+
+	// EDUC_QUOTA
+	public static final String TABLE_EDUC_QUOTA							= "EDUC_QUOTA";
+	public static final String COL_EDUC_QUOTA_ID						= "ID";
+	public static final String COL_EDUC_QUOTA_USER_ID					= "USER_ID";
+	public static final String COL_EDUC_QUOTA_ACCESS_REQUIREMENT_ID		= "ACCESS_REQUIREMENT_ID";
+	public static final String COL_EDUC_QUOTA_CREATED_ON				= "CREATED_ON";
+	public static final String COL_EDUC_QUOTA_ENVELOPE_ID				= "ENVELOPE_ID";
+	public static final String DDL_EDUC_QUOTA							= "schema/EDucQuota-ddl.sql";
 
 	/**
 	 * Function names:

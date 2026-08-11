@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
 import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
+import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.grid.query.result.Row;
 
 public interface GridManager extends PatchStore, SnapshotStore {
 
@@ -84,6 +86,16 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	 * @return
 	 */
 	GridReplica getReplica(UserInfo user, String sessionId, Long repicaId);
+
+	/**
+	 * Get the summary information (connection status and type) for a single replica of a grid session.
+	 *
+	 * @param user
+	 * @param sessionId
+	 * @param replicaId
+	 * @return
+	 */
+	GridReplicaInfo getReplicaInfo(UserInfo user, String sessionId, Long replicaId);
 
 	/**
 	 * List all replicas for a grid session with their connection status and type.
@@ -266,6 +278,19 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	 * @return Number of rows updated
 	 */
 	long executeGridUpdate(GridHeader header, GridConnectionInfo publishingConnection,
+			JSONObject rawUpdate) throws Exception;
+
+	/**
+	 * Preview the effect of a grid update without publishing any change. Resolves the same set of rows and
+	 * set-value logic as {@link #executeGridUpdate}, but instead of publishing patches it returns the
+	 * resulting cells for a bounded sample of affected rows (capped at 10).
+	 *
+	 * @param header               Grid header for column metadata
+	 * @param publishingConnection Connection whose replicaId is embedded in patches
+	 * @param rawUpdate            Raw JSON of a single Update object
+	 * @return the affected rows, each carrying only the cells this update would change
+	 */
+	List<Row> executeGridUpdatePreview(GridHeader header, GridConnectionInfo publishingConnection,
 			JSONObject rawUpdate) throws Exception;
 
 	/**

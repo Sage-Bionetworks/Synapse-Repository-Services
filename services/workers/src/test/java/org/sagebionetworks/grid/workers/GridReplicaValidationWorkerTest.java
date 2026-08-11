@@ -156,4 +156,27 @@ public class GridReplicaValidationWorkerTest {
 		worker.run(mockCallback, message);
 		verify(mockValidationManager).validateAllRows(sessionId, replicaId);
 	}
+
+	@Test
+	public void testRunWithSchemaChangedMessage() throws RecoverableMessageException, Exception {
+		changeSet = ReplicaChangeSet.fromSchemaChange(sessionId);
+		message = new Message().withBody(changeSet.toJson());
+		// call under test
+		worker.run(mockCallback, message);
+		verify(mockValidationManager).validateAfterSchemaChange(sessionId);
+	}
+
+	@Test
+	public void testRunWithSchemaChangedMessagePropagatesRecoverableException() throws RecoverableMessageException, Exception {
+		changeSet = ReplicaChangeSet.fromSchemaChange(sessionId);
+		message = new Message().withBody(changeSet.toJson());
+		RecoverableMessageException e = new RecoverableMessageException("pending validation connection");
+		doThrow(e).when(mockValidationManager).validateAfterSchemaChange(sessionId);
+
+		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class, () -> {
+			// call under test
+			worker.run(mockCallback, message);
+		});
+		assertEquals(e, thrown);
+	}
 }

@@ -38,8 +38,12 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	// Get the current max.
 	public static final String MAX_ID = "SELECT MAX(ID) FROM %1$S";
 	
-	@Autowired
-	JdbcTemplate idGeneratorJdbcTemplate;
+	private final JdbcTemplate idGeneratorJdbcTemplate;
+
+	public IdGeneratorImpl(JdbcTemplate idGeneratorJdbcTemplate) {
+		super();
+		this.idGeneratorJdbcTemplate = idGeneratorJdbcTemplate;
+	}
 
 	/**
 	 * Note: This is a call to a separate database and does not participate in the
@@ -171,6 +175,11 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	@Override
 	public long getRowCount(IdType type) {
 		return idGeneratorJdbcTemplate.queryForObject(String.format(SELECT_COUNT_FROM_TYPE, type.name()), Long.class);
+	}
+
+	@Override
+	public String getDataSourceString() {
+		return idGeneratorJdbcTemplate.getDataSource().toString();
 	}
 	
 }

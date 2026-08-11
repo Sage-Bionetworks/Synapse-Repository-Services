@@ -8,9 +8,11 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,8 +57,7 @@ public class RecordSetSchemaResolverTest {
 	}
 
 	private void stubInferSchema(List<ColumnModel> columns) {
-		doReturn(columns).when(resolver).inferSchemaFromCsv(any(FileHandle.class), any(CsvTableDescriptor.class),
-				anyBoolean());
+		doReturn(columns).when(resolver).inferSchemaFromCsv(any(FileHandle.class), any(CsvTableDescriptor.class));
 	}
 
 	private void stubBoundSchema(JsonSchema schema) {
@@ -76,7 +77,7 @@ public class RecordSetSchemaResolverTest {
 
 		// call under test
 		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
-				csvDescriptor, false);
+				csvDescriptor);
 		List<ColumnModel> schema = result.getSchema();
 
 		assertEquals(2, schema.size());
@@ -100,7 +101,7 @@ public class RecordSetSchemaResolverTest {
 
 		// call under test
 		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
-				csvDescriptor, false);
+				csvDescriptor);
 		List<ColumnModel> schema = result.getSchema();
 
 		assertEquals(2, schema.size());
@@ -123,10 +124,10 @@ public class RecordSetSchemaResolverTest {
 
 		// call under test
 		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
-				csvDescriptor, false);
+				csvDescriptor);
 
 		assertEquals(List.of("a", "b", "c"),
-				result.getSchema().stream().map(ColumnModel::getName).collect(java.util.stream.Collectors.toList()));
+				result.getSchema().stream().map(ColumnModel::getName).collect(Collectors.toList()));
 		// "a" is index 0, "c" is index 2 in the inferred schema.
 		assertEquals(List.of(0, 2), result.getRequiredColumnIndices());
 	}
@@ -140,31 +141,148 @@ public class RecordSetSchemaResolverTest {
 
 		// call under test
 		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
-				csvDescriptor, false);
+				csvDescriptor);
 
 		assertEquals(2, result.getSchema().size());
 		assertTrue(result.getRequiredColumnIndices().isEmpty());
 	}
 
 	@Test
-	public void testGetReconciledSchemaWithFullScanFalsePassesFlagThrough() {
-		stubInferSchema(List.of(new ColumnModel().setName("value").setColumnType(ColumnType.INTEGER)));
-		when(mockEntityManager.findBoundSchema(entityId)).thenReturn(Optional.empty());
-
-		// call under test
-		resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor, false);
-
-		verify(resolver).inferSchemaFromCsv(fileHandle, csvDescriptor, false);
+	public void testToColumnModel() {
+		assertEquals(ColumnType.INTEGER, RecordSetSchemaResolver.toColumnModel("i", new JsonSchema().setType(Type.integer)).getColumnType());
+		assertEquals(ColumnType.DOUBLE, RecordSetSchemaResolver.toColumnModel("n", new JsonSchema().setType(Type.number)).getColumnType());
+		assertEquals(ColumnType.BOOLEAN, RecordSetSchemaResolver.toColumnModel("b", new JsonSchema().setType(Type._boolean)).getColumnType());
+		// An unconstrained string maps to MEDIUMTEXT.
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("s", new JsonSchema().setType(Type.string)).getColumnType());
+		// A length-constrained string maps to a sized STRING.
+		ColumnModel constrainedString = RecordSetSchemaResolver.toColumnModel("s", new JsonSchema().setType(Type.string).setMaxLength(50L));
+		assertEquals(ColumnType.STRING, constrainedString.getColumnType());
+		assertEquals(50L, constrainedString.getMaximumSize());
+		// An array with no declared items defaults to MEDIUMTEXT.
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr", new JsonSchema().setType(Type.array)).getColumnType());
+		// An object maps to JSON.
+		assertEquals(ColumnType.JSON, RecordSetSchemaResolver.toColumnModel("o", new JsonSchema().setType(Type.object)).getColumnType());
+		// An explicit "null" type maps to MEDIUMTEXT (distinct from a property with no type set).
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("nul", new JsonSchema().setType(Type._null)).getColumnType());
+		// Arrays map by their element type. A length-constrained string element resolves to STRING -> STRING_LIST,
+		// and the element's maximumSize is carried onto the list column.
+		ColumnModel stringList = RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string).setMaxLength(50L)));
+		assertEquals(ColumnType.STRING_LIST, stringList.getColumnType());
+		assertEquals(50L, stringList.getMaximumSize());
+		assertEquals(ColumnType.INTEGER_LIST, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.integer))).getColumnType());
+		assertEquals(ColumnType.BOOLEAN_LIST, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type._boolean))).getColumnType());
+		// An array whose element type has no list equivalent falls back to MEDIUMTEXT: an
+		// unconstrained string element (-> MEDIUMTEXT) and a number element (-> DOUBLE) both do so.
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))).getColumnType());
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.number))).getColumnType());
+		// An array of objects: the element resolves to JSON, which has no list equivalent -> MEDIUMTEXT.
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.object))).getColumnType());
+		// An array of arrays: the element resolves to a list type, which itself has no list equivalent -> MEDIUMTEXT.
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(
+						new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.integer)))).getColumnType());
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("untyped", new JsonSchema()).getColumnType());
 	}
 
 	@Test
-	public void testGetReconciledSchemaWithFullScanTruePassesFlagThrough() {
-		stubInferSchema(List.of(new ColumnModel().setName("value").setColumnType(ColumnType.DOUBLE)));
+	public void testGetJsonSchemaColumns() {
+		// A LinkedHashMap preserves insertion order so the derived columns are deterministic.
+		Map<String, JsonSchema> properties = new LinkedHashMap<>();
+		properties.put("a", new JsonSchema().setType(Type.integer));
+		properties.put("b", new JsonSchema().setType(Type._boolean));
+		JsonSchema validationSchema = new JsonSchema().setProperties(properties);
+
+		// call under test
+		List<ColumnModel> columns = RecordSetSchemaResolver.getJsonSchemaColumns(validationSchema);
+
+		assertEquals(List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setName("b").setColumnType(ColumnType.BOOLEAN)), columns);
+	}
+
+	@Test
+	public void testGetJsonSchemaColumnsWithNullSchema() {
+		// call under test
+		assertTrue(RecordSetSchemaResolver.getJsonSchemaColumns(null).isEmpty());
+	}
+
+	@Test
+	public void testGetJsonSchemaColumnsWithNullProperties() {
+		// call under test
+		assertTrue(RecordSetSchemaResolver.getJsonSchemaColumns(new JsonSchema()).isEmpty());
+	}
+
+	@Test
+	public void testGetJsonSchemaColumnsWithComposedSchema() {
+		// Properties live behind an allOf + $ref, as produced by a validation schema.
+		Map<String, JsonSchema> defProperties = new LinkedHashMap<>();
+		defProperties.put("a", new JsonSchema().setType(Type.integer));
+		defProperties.put("b", new JsonSchema().setType(Type._boolean));
+		Map<String, JsonSchema> definitions = new LinkedHashMap<>();
+		definitions.put("X", new JsonSchema().setProperties(defProperties));
+
+		JsonSchema validationSchema = new JsonSchema()
+				.setDefinitions(definitions)
+				.setAllOf(List.of(new JsonSchema().set$ref("#/definitions/X")));
+
+		// call under test
+		List<ColumnModel> columns = RecordSetSchemaResolver.getJsonSchemaColumns(validationSchema);
+
+		assertEquals(List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setName("b").setColumnType(ColumnType.BOOLEAN)), columns);
+	}
+
+	@Test
+	public void testGetReconciledSchemaAddsSchemaOnlyColumn() {
+		// The CSV has only "a"; the bound schema declares an additional property "c"
+		// that is not in the CSV. "c" must be appended as a new column.
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER)));
+		JsonSchema validationSchema = new JsonSchema()
+				.setProperties(Map.of("c", new JsonSchema().setType(Type.integer)));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
+
+		assertEquals(List.of("a", "c"),
+				schema.stream().map(ColumnModel::getName).collect(Collectors.toList()));
+		assertEquals(ColumnType.INTEGER, schema.get(1).getColumnType());
+	}
+
+	@Test
+	public void testGetReconciledSchemaIncludesJsonSchemaPropertyNames() {
+		// Both "a" (overlaps CSV) and "b" (schema-only) must appear in jsonSchemaColumnNames.
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER)));
+		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
+				"a", new JsonSchema().setType(Type.integer),
+				"b", new JsonSchema().setType(Type.string)));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
+				csvDescriptor);
+
+		List<String> names = result.getJsonSchemaColumnNames();
+		assertEquals(2, names.size());
+		assertTrue(names.containsAll(List.of("a", "b")));
+	}
+
+	@Test
+	public void testGetReconciledSchemaWithNoBoundSchemaHasEmptyJsonSchemaColumnNames() {
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER)));
 		when(mockEntityManager.findBoundSchema(entityId)).thenReturn(Optional.empty());
 
 		// call under test
-		resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor, true);
+		RecordSetSchemaResolver.ReconciledSchema result = resolver.getReconciledSchema(entityId, fileHandle,
+				csvDescriptor);
 
-		verify(resolver).inferSchemaFromCsv(fileHandle, csvDescriptor, true);
+		assertTrue(result.getJsonSchemaColumnNames().isEmpty());
 	}
 }

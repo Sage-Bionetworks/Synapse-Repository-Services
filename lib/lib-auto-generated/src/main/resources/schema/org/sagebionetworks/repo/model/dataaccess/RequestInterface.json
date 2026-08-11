@@ -74,6 +74,10 @@
 		"signingOfficial": {
 			"$ref": "org.sagebionetworks.repo.model.dataaccess.SigningOfficial",
 			"description": "Information about the institution's signing official."
+		},
+		"eDucSignatureEnvelopeId": {
+			"type": "string",
+			"description": "The envelope ID for the routed eDUC signature document."
 		}
 	}
 }

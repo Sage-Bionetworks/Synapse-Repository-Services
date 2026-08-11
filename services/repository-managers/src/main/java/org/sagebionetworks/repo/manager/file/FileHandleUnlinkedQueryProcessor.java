@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.file.FileHandleStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.athena.model.Row;
+import software.amazon.awssdk.services.athena.model.Row;
 
 /**
  * Processor for the recurrent query that computes the unlinked file handles
@@ -20,7 +20,7 @@ public class FileHandleUnlinkedQueryProcessor implements RecurrentAthenaQueryPro
 	static final int UPDATED_ON_DAYS_LIMIT = 30;
 	
 	static RowMapper<Long> ROW_MAPPER = (Row row) -> {
-		return Long.valueOf(row.getData().get(0).getVarCharValue());
+		return Long.valueOf(row.data().get(0).varCharValue());
 	};
 
 	private FileHandleDao fileHandleDao;

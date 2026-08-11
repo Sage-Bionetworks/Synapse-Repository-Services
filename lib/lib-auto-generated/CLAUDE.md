@@ -79,9 +79,11 @@ src/main/resources/schema/org/sagebionetworks/
 - **`transient: true`**: Field exists in POJO but is NOT serialized to JSON (used for id, etag, createdOn)
 - **`format: "date-time"`**: String property treated as ISO 8601 timestamp
 - **Arrays**: `"type": "array"` with `"items": { "$ref": "..." }`, optional `"uniqueItems": true`
+- **Lists of objects as a payload**: When a method needs to accept (or return) a *list* — a controller/API request or response body, or a tool argument — do NOT use a bare `List<T>` / top-level array. Define a new request/response schema with a **single property that is an array**, and pass that POJO instead. This is the standard Synapse shape: it keeps the payload a JSON object (extensible with sibling fields later) and generates a named, documented type. Example: to accept a list of IDs, define a schema `{"properties": {"entityIds": {"type": "array", "items": {"type": "string"}}}}` and take that request object as the argument.
 - **Required fields**: `"required": true` on a property
 - **Map types**: For map-like properties, either define the sub-type schema explicitly OR treat the entire value as a plain `"type": "string"` (expecting a JSON string). Do NOT use `Map<String, String>` where the string values are themselves serialized JSON — this creates ambiguous "JSON within JSON" that bypasses schema validation.
 - **Descriptions must match implementation**: Schema descriptions (especially for optional fields like "If null, lists X") are API contracts. Always verify the implementation matches the schema description. If behavior changes, update the schema text to match.
+- **Mirroring an external API's shape**: When a schema family models a pass-through external API (e.g. the `search/dsl/` package — 60+ schemas mirroring the OpenSearch query DSL, `$ref`-composed), keep field names and nesting **identical to that external spec** rather than Synapse-idiomatic naming, so the objects serialize straight through to the external service.
 
 ## Generated Code Patterns
 

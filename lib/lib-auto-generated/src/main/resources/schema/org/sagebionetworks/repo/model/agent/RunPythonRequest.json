@@ -1,0 +1,9 @@
+{
+	"description": "Request to execute a Python script in the current code interpreter session.",
+	"properties": {
+		"script": {
+			"type": "string",
+			"description": "The Python script to execute. This is a JSON string value, so any control characters within the script must be escaped: newlines as '\\n', tabs as '\\t', and double quotes as '\\\"'."
+		}
+	}
+}

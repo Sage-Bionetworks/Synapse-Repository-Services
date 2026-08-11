@@ -10,7 +10,8 @@ Backend platform for Sage Bionetworks' Synapse — a collaborative research data
 - **MySQL 8.x** via Spring JdbcTemplate (no ORM, no Spring Data)
 - **Tomcat 10x** (WAR deployment)
 - **Jackson 2.20.0**, Log4j 2, Guava 30.1.1
-- **AWS SDK v1** (1.12.x) + **AWS SDK v2** (2.29.x), Google Cloud Storage
+- **AWS SDK v1** (1.12.x) + **AWS SDK v2** (2.40.x), Google Cloud Storage — v1 is being phased out client-by-client for v2 (see `lib/stackConfiguration` `AwsClientFactory` → `AwsClientFactoryV2`)
+- **Spring AI** (`spring-ai-bom`, `spring-ai-agentcore-bom`) — Bedrock Converse `ChatModel` + AgentCore code-interpreter for the AI agent feature (wired in `SpringAiConfiguration`)
 - **No Lombok**
 
 ## Build Commands
@@ -21,6 +22,13 @@ mvn clean install -pl <module-path> -DskipTests          # Single module
 mvn test -pl <module-path>                               # Unit tests for module
 mvn test -pl <module-path> -Dtest=<TestClassName>        # Single test class
 ```
+
+## Maven Dependency Management
+
+- **Dependency versions**: ALL dependency versions (including internal lib modules) MUST be defined in the root `pom.xml` `<dependencyManagement>` section
+- **Sub-module poms**: Sub-module `pom.xml` files declare dependencies WITHOUT `<version>` tags — versions are inherited from the root
+- **Why**: This ensures consistent versions across all modules and prevents version conflicts in the reactor build
+- **Example**: When adding a new lib module (e.g., `lib-database-configuration`), add it to the root pom's `<dependencyManagement>` with `<version>${project.version}</version>`, then sub-modules can reference it with just `<groupId>` and `<artifactId>`
 
 ## Module Structure
 
@@ -38,6 +46,8 @@ platform (root)
 │   ├── lib-worker/               # Worker framework
 │   ├── lib-grid/                 # JSON-Joy CRDT model objects (CBOR encoding)
 │   ├── lib-grid-db/              # Grid CRDT relational database persistence
+│   ├── lib-database-configuration/ # DataSource/JdbcTemplate beans + @WriteTransaction annotations
+│   ├── lib-docusign/             # DocuSign e-signature integration
 │   └── ...                       # id-generator, database-semaphore, lib-upload, etc.
 ├── services/
 │   ├── repository-managers/      # Business logic (Manager interfaces + impls)
@@ -60,7 +70,7 @@ platform (root)
 - Package: `org.sagebionetworks.repo.manager`
 - Interface + Impl pattern (e.g., `EntityManager` / `EntityManagerImpl`)
 - `@Service` on implementations, constructor injection preferred
-- `@WriteTransaction` for write operations (from `org.sagebionetworks.repo.transactions`)
+- `@WriteTransaction` for write operations (`org.sagebionetworks.repo.transactions`, defined in the `lib-database-configuration` module)
 - Also: `@MandatoryWriteTransaction`, `@NewWriteTransaction`
 - Input validation: `ValidateArgument.required(value, "fieldName")`
 
@@ -79,7 +89,7 @@ platform (root)
 
 ## Testing
 
-- Unit tests: `*Test.java` — JUnit 5 + Mockito 2.27
+- Unit tests: `*Test.java` — JUnit 5 + Mockito 5.x
   - `@ExtendWith(MockitoExtension.class)`, `@Mock`, `@InjectMocks`
 - Integration tests: `IT*.java` (in integration-test module)
 - **Mockito 5.x** — strict stubbing is enabled by default
@@ -133,7 +143,8 @@ Key classes:
 When creating new database tables, the DBO must implement `MigratableDatabaseObject<D, B>`:
 - Provide a `MigrationType` (order matters — must come after dependencies)
 - Provide a `MigratableTableTranslation` for backup/restore conversion
-- Register primary types in `lib/jdomodels/src/main/resources/dbo-beans.spb.xml` (order matters)
+- Primary types are discovered by `DboAutoDiscovery` classpath scan — place the DBO under an existing `org.sagebionetworks.repo.model.dbo.*` persistence package (follow the standard package pattern rather than inventing a new package name) and annotate the DAO `@Repository`. Only packages listed in `DboAutoDiscovery.DBO_PACKAGES` are scanned, so a DBO in a new/creative package is silently never discovered or migrated.
+- DDL creation order is derived automatically by `DboDependencyAnalyzer` (parses `FOREIGN KEY ... REFERENCES` from each DDL) — no manual ordering
 - Secondary types are discovered automatically via `getSecondaryTypes()`
 - Primary tables need an etag column (NOT NULL) for change detection; secondary tables need a foreign key to their owner's backup ID
 - Key test: `MigratableTableDAOImplAutowireTest.testAllMigrationTypesRegistered()` (`lib/jdomodels/src/test/java/org/sagebionetworks/repo/model/dbo/migration/MigratableTableDAOImplAutowireTest.java`) — validates all `MigrationType` values have registered DBOs
@@ -180,14 +191,30 @@ See `services/repository-managers/CLAUDE.md` and `lib/lib-grid/CLAUDE.md` for th
 - **Controller testing**: Use IT tests with the Java client in `integration-test/`, not autowired controller tests (`*AutowiredTest` classes). Every new controller method needs a corresponding `SynapseClient`/`SynapseClientImpl` method and an IT test. Deep logic checks belong in manager unit tests; IT tests just verify each HTTP call works.
 - **Exception mapping**: `NumberFormatException` extends `IllegalArgumentException`, which maps to HTTP 400. It is acceptable to let it propagate without wrapping.
 - **Reuse existing constants**: Before defining a new string constant, check if it already exists in a shared constants class (e.g., `SqlConstants`). Add new constants to the appropriate shared class rather than defining them locally.
+- **Multi-value LIST columns**: Stored as JSON on the main table (`T<id>`) and unnested at query time via `JSON_TABLE(...)` — they are **not** separate physical index tables (that model was removed in PLFM-7968).
+
+## Code Comments
+
+- **Prioritize Expressive Code**: Write highly readable, self-documenting code as the primary means of explanation. Use comments exclusively to provide critical context that cannot be naturally expressed through clean naming conventions and clear structure.
+- **Target the Audience (Javadocs vs. Inline)**: Match documentation placement to its specific consumer:
+  - **Public API (Javadocs)**: Focus class and method Javadocs strictly on the public contract, defining the behavior, parameters, and return values expected by the caller at that specific level of abstraction.
+  - **Internal Logic (Inline Comments)**: Place all underlying execution details, algorithmic mechanics, and internal complexities entirely within inline comments inside the implementation body.
+- **Document Intent, Refactor Mechanics**: Dedicate internal comments to explaining the underlying business logic, constraints, and rationale behind the code (the Why). Allow the code architecture to explain the execution (the What). Treat any impulse to write step-by-step prose about what the code is doing as an immediate signal to refactor the code into clearer, smaller functions.
+- **Current State Only**: Code comments and CLAUDE.md files should exclusively describe the current state, logic, and intent of the code.
+  - Keep historical context, diff explanations, and "before vs. after" commentary entirely within planning documents, commit messages, PR descriptions, or narrowly scoped as comments that are co-located with specific regression tests.
+  - Limit references to past logic strictly to active, ongoing code migration paths that directly impact current execution.
+- **Stable References**: Code comments and CLAUDE.md files should use reference points that survive automated refactoring and ongoing codebase evolution.
+  - Point to other code exclusively through language-supported dynamic links (like Javadoc {@link}) or external issue keys (like PLFM-1234).
+  - Define target locations using conceptual names or programmable signatures instead of brittle options like absolute file paths or hard-coded line numbers.
+
 
 ## Critical Constraints
 
 1. **Java 21 LTS** — Java 21 language features are now available (records, text blocks, pattern matching, sealed classes, virtual threads)
 2. **jakarta namespace** — migrated from javax.* for Spring 6 compatibility
 3. **Spring 6.1** — no Spring Boot APIs
-4. **Mockito 2.27** — no mockStatic, no Mockito 4/5 features
+4. **Mockito 5.x** — strict stubbing enabled by default (no lenient stubbing; fix argument matchers instead)
 5. **No Lombok**
 6. **No Spring Data** — all DB via JdbcTemplate
 7. **WAR packaging** — not executable JARs
-8. **Migration-safe schema changes** — new DBO tables must implement `MigratableDatabaseObject` and be registered in `dbo-beans.spb.xml`; data moves between tables require a two-stack mirroring/backfill rollout
+8. **Migration-safe schema changes** — new DBO tables must implement `MigratableDatabaseObject` and live in a package scanned by `DboAutoDiscovery`; data moves between tables require a two-stack mirroring/backfill rollout

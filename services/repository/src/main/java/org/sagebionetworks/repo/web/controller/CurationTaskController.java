@@ -9,10 +9,15 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
+import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
 import org.sagebionetworks.repo.model.curation.TaskStatus;
+import org.sagebionetworks.repo.service.AsynchronousJobServices;
 import org.sagebionetworks.repo.service.CurationTaskService;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -40,6 +45,9 @@ public class CurationTaskController {
 
     @Autowired
     CurationTaskService service;
+
+    @Autowired
+    AsynchronousJobServices asynchronousJobServices;
 
     /**
      * Create a CurationTask associated with a project.
@@ -189,5 +197,50 @@ public class CurationTaskController {
             @PathVariable Long taskId,
             @RequestBody TaskStatus taskStatus) {
         return service.updateTaskStatus(userId, taskId, taskStatus);
+    }
+
+    /**
+     * Start an asynchronous job to execute the automated computation for a curation task.
+     * The task must be in NOT_STARTED state and have ExecutableTaskExecutionDetails.
+     * The caller must be an assignee of the task or have UPDATE access on the task's project.
+     *
+     * @param userId
+     * @param taskId the ID of the CurationTask to execute
+     * @return an AsyncJobId token to poll for results
+     */
+    @RequiredScope({view, modify})
+    @ResponseStatus(HttpStatus.CREATED)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_EXECUTE_ASYNC_START, method = RequestMethod.POST)
+    public @ResponseBody
+    AsyncJobId startTaskExecution(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @PathVariable Long taskId) {
+        ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest();
+        request.setTaskId(taskId);
+        AsynchronousJobStatus job = asynchronousJobServices.startJob(userId, request);
+        AsyncJobId asyncJobId = new AsyncJobId();
+        asyncJobId.setToken(job.getJobId());
+        return asyncJobId;
+    }
+
+    /**
+     * Get the result of a task execution job.
+     *
+     * @param userId
+     * @param taskId the ID of the CurationTask
+     * @param asyncToken the token returned by startTaskExecution
+     * @return the execution response
+     * @throws Throwable
+     */
+    @RequiredScope({view})
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = UrlHelpers.CURATION_TASK_EXECUTE_ASYNC_GET, method = RequestMethod.GET)
+    public @ResponseBody
+    ComputeTaskExecutionResponse getTaskExecutionResult(
+            @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+            @PathVariable Long taskId,
+            @PathVariable String asyncToken) throws Throwable {
+        AsynchronousJobStatus jobStatus = asynchronousJobServices.getJobStatusAndThrow(userId, asyncToken);
+        return (ComputeTaskExecutionResponse) jobStatus.getResponseBody();
     }
 }

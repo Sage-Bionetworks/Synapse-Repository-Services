@@ -3,14 +3,14 @@ package org.sagebionetworks.repo.manager.entity;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +22,6 @@ import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -31,20 +30,18 @@ import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.metadata.EntityEvent;
 import org.sagebionetworks.repo.service.metadata.EventType;
 
 @ExtendWith(MockitoExtension.class)
 public class RecordSetManagerImplTest {
-
-	@Mock
-	private FileHandleManager mockFileHandleManager;
 
 	@Mock
 	private RecordSetSchemaResolver mockSchemaResolver;
@@ -70,8 +67,8 @@ public class RecordSetManagerImplTest {
 	private RecordSet recordSet;
 	private UserInfo userInfo;
 
-	private FileHandle dataFileHandle;
-	private List<ColumnModel> inferredColumns;
+	private JsonSchema boundSchema;
+	private List<ColumnModel> schemaColumns;
 	private List<ColumnModel> persistedColumns;
 	private long newRevisionNumber = 3L;
 	private IdAndVersion versionedKey;
@@ -88,11 +85,18 @@ public class RecordSetManagerImplTest {
 
 		userInfo = new UserInfo(false, 55L);
 
-		dataFileHandle = new S3FileHandle().setId("456");
-		inferredColumns = List.of(new ColumnModel().setName("a"), new ColumnModel().setName("b"));
+		Map<String, JsonSchema> properties = new LinkedHashMap<>();
+		properties.put("a", new JsonSchema().setType(Type.integer));
+		properties.put("b", new JsonSchema().setType(Type._boolean));
+		boundSchema = new JsonSchema().setProperties(properties);
+
+		schemaColumns = List.of(
+			new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setName("b").setColumnType(ColumnType.BOOLEAN)
+		);
 		persistedColumns = List.of(
-			new ColumnModel().setId("11").setName("a"),
-			new ColumnModel().setId("22").setName("b")
+			new ColumnModel().setId("11").setName("a").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setId("22").setName("b").setColumnType(ColumnType.BOOLEAN)
 		);
 
 		// The revision number may not have been bumped in the RecordSet DTO, so the
@@ -106,10 +110,8 @@ public class RecordSetManagerImplTest {
 	 */
 	private void setupSchemaBinding() {
 		when(mockNodeDao.getCurrentRevisionNumber("syn123")).thenReturn(newRevisionNumber);
-		when(mockFileHandleManager.getRawFileHandleUnchecked("456")).thenReturn(dataFileHandle);
-		when(mockSchemaResolver.getReconciledSchema(eq("syn123"), eq(dataFileHandle),
-				any(CsvTableDescriptor.class), eq(false))).thenReturn(new RecordSetSchemaResolver.ReconciledSchema(inferredColumns, Collections.emptyList()));
-		when(mockColumnModelManager.createColumnModels(userInfo, inferredColumns)).thenReturn(persistedColumns);
+		when(mockSchemaResolver.getBoundValidationSchema("syn123")).thenReturn(Optional.of(boundSchema));
+		when(mockColumnModelManager.createColumnModels(userInfo, schemaColumns)).thenReturn(persistedColumns);
 	}
 
 	/**
@@ -117,7 +119,7 @@ public class RecordSetManagerImplTest {
 	 */
 	private void verifySchemaBound() {
 		List<String> expectedIds = List.of("11", "22");
-		verify(mockColumnModelManager).createColumnModels(userInfo, inferredColumns);
+		verify(mockColumnModelManager).createColumnModels(userInfo, schemaColumns);
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(expectedIds, versionedKey);
 		verify(mockColumnModelManager).bindColumnsToDefaultVersionOfObject(expectedIds, "syn123");
 	}
@@ -246,19 +248,31 @@ public class RecordSetManagerImplTest {
 
 	@Test
 	public void testInferSchemaAndBindToIndexWithEmptySchema() {
-		when(mockFileHandleManager.getRawFileHandleUnchecked("456")).thenReturn(dataFileHandle);
-		when(mockSchemaResolver.getReconciledSchema(eq("syn123"), eq(dataFileHandle),
-				any(CsvTableDescriptor.class), eq(false))).thenReturn(
-						new RecordSetSchemaResolver.ReconciledSchema(Collections.emptyList(), Collections.emptyList())
-		);
+		// A bound schema is present but declares no properties, so no columns can be derived.
+		when(mockSchemaResolver.getBoundValidationSchema("syn123")).thenReturn(Optional.of(new JsonSchema()));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			recordSetManager.inferSchemaAndBindToIndex(userInfo, recordSet);
 		}).getMessage();
 
-		assertEquals("Cannot determine the schema from the CSV file, at least one column header must be present.", message);
+		assertEquals("Cannot determine the column model schema from the JSON Schema. At least one property must be present.", message);
 
+		verifyNoInteractions(mockColumnModelManager);
+		verifyNoInteractions(mockNodeDao);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testInferSchemaAndBindToIndexWithNoBoundSchema() {
+		// With no bound JSON Schema the RecordSet is not indexed: the whole binding path is skipped.
+		when(mockSchemaResolver.getBoundValidationSchema("syn123")).thenReturn(Optional.empty());
+
+		// call under test
+		recordSetManager.inferSchemaAndBindToIndex(userInfo, recordSet);
+
+		verifyNoInteractions(mockColumnModelManager);
+		verifyNoInteractions(mockNodeDao);
 		verifyNoInteractions(mockTableManagerSupport);
 	}
 

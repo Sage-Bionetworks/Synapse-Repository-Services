@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.auth.CallersContext;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -760,12 +761,51 @@ public class UserManagerImplUnitTest {
 	
 	@Test
 	public void testClearOidcBindingsWithNoId() {
-		
-		String result = assertThrows(IllegalArgumentException.class, () -> {			
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
 			userManager.clearOidcBindings(null);
 		}).getMessage();
-		
+
 		assertEquals("The user id is required.", result);
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithDefaultRealm() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of(OAuthProvider.GOOGLE_OAUTH_2_0));
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(2, result.size());
+		assertTrue(result.get(0) instanceof SynapseIdentityProvider);
+		assertTrue(result.get(1) instanceof OAuthIdentityProvider);
+		assertEquals(OAuthProvider.GOOGLE_OAUTH_2_0, ((OAuthIdentityProvider) result.get(1)).getProvider());
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithNonDefaultRealm() {
+		UserInfo userInfo = new UserInfo(false, 123L, "other-realm");
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of(OAuthProvider.ORCID));
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0) instanceof OAuthIdentityProvider);
+		assertEquals(OAuthProvider.ORCID, ((OAuthIdentityProvider) result.get(0)).getProvider());
+	}
+
+	@Test
+	public void testGetIdentityProvidersWithNoLinkedProviders() {
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
+		when(mockPrincipalOidcDao.getLinkedProviders(123L)).thenReturn(List.of());
+
+		// call under test
+		List<IdentityProvider> result = userManager.getIdentityProviders(userInfo);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0) instanceof SynapseIdentityProvider);
 	}
 }

@@ -25,47 +25,47 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.model.CreateTopicRequest;
-import com.amazonaws.services.sns.model.CreateTopicResult;
-import com.amazonaws.services.sns.model.PublishRequest;
 import com.google.common.collect.Lists;
+
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.CreateTopicRequest;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 /**
  * The basic implementation of the RepositoryMessagePublisher.  This implementation will publish all messages to an AWS topic
  * where external subscribers can receive notification of changes to the repository.
- * 
+ *
  * @author John
  *
  */
 @Service("messagePublisher")
 public class RepositoryMessagePublisherImpl implements RepositoryMessagePublisher {
-		
+
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
 
 	private TransactionalMessenger transactionalMessanger;
 
-	private AmazonSNS awsSNSClient;
+	private SnsClient awsSNSClient;
 
 	private StackConfiguration stackConfiguration;
 
 	// Maps each object type to its topic
-	private Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
+	private Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();
 
 	private ConcurrentLinkedQueue<Message> messageQueue = new ConcurrentLinkedQueue<Message>();
 
 	@Autowired
-	public RepositoryMessagePublisherImpl(TransactionalMessenger transactionalMessanger, AmazonSNS awsSNSClient, StackConfiguration stackConfiguration) {
+	public RepositoryMessagePublisherImpl(TransactionalMessenger transactionalMessanger, SnsClient awsSNSClient, StackConfiguration stackConfiguration) {
 		this.transactionalMessanger = transactionalMessanger;
 		this.awsSNSClient = awsSNSClient;
 		this.stackConfiguration = stackConfiguration;
 	}
-	
+
 	/**
 	 * Used by tests to inject a mock client.
 	 * @param awsSNSClient
 	 */
-	public void setAwsSNSClient(AmazonSNS awsSNSClient) {
+	public void setAwsSNSClient(SnsClient awsSNSClient) {
 		this.awsSNSClient = awsSNSClient;
 	}
 
@@ -95,13 +95,20 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// Add the message to a queue
 		messageQueue.add(message);
 	}
-	
+
 	@Override
 	public void fireLocalStackMessage(LocalStackMessage message) {
 		ValidateArgument.required(message, "The message");
 		ValidateArgument.required(message.getObjectType(), "The message.objectType");
 		String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
 		publish(message, topicArn);
+	}
+
+	@Override
+	public void publishLocalStackMessageToTopic(ObjectType topicType, LocalStackMessage message) {
+		ValidateArgument.required(topicType, "The topicType");
+		ValidateArgument.required(message, "The message");
+		publish(message, getTopicInfoLazy(topicType).getArn());
 	}
 
 	@Override
@@ -115,7 +122,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	/**
-	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
+	 * Quartz will fire this method on a timer.  This is where we actually publish the data.
 	 */
 	@Override
 	public void timerFired(){
@@ -143,7 +150,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			}
 		}
 	}
-	
+
 	/**
 	 * Poll all data currently on the queue and add it to a list.
 	 * @return
@@ -159,7 +166,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	/**
 	 * Get the topic info for a given type (lazy loaded).
-	 * 
+	 *
 	 * @param type
 	 * @return
 	 */
@@ -171,8 +178,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		if(info == null){
 			// Create the topic
 			String name = stackConfiguration.getRepositoryChangeTopic(type.name());
-			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(name));
-			String arn = result.getTopicArn();
+			String arn = awsSNSClient.createTopic(CreateTopicRequest.builder().name(name).build()).topicArn();
 			info = new TopicInfo(name, arn);
 			this.typeToTopicMap.put(type, info);
 		}
@@ -181,7 +187,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	/**
 	 * Publish the message and recored it as sent. Each sent message requires its own transaction.
-	 * 
+	 *
 	 * @param message
 	 */
 	@NewWriteTransaction
@@ -190,8 +196,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// treat as a batch of size one.
 		publishBatchToTopic(message.getObjectType(), Arrays.asList(message));
 	}
-	
-	
+
+
 	@NewWriteTransaction
 	@Override
 	public void publishBatchToTopic(ObjectType type, List<ChangeMessage> batch) {
@@ -228,9 +234,9 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			log.trace("Publishing a message: " + json);
 		}
 		// Publish the message to the topic.
-		awsSNSClient.publish(new PublishRequest(topicArn, json));
+		awsSNSClient.publish(PublishRequest.builder().topicArn(topicArn).message(json).build());
 	}
-	
+
 	/**
 	 * Information about a topic.
 	 *

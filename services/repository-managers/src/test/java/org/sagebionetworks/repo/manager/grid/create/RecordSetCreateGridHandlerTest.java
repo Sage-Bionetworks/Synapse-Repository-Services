@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +35,8 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
 import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.RecordSet;
@@ -46,8 +46,8 @@ import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dbo.grid.CreateGridSession;
 import org.sagebionetworks.repo.model.dbo.grid.GridDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.AuthorizationMode;
+import org.sagebionetworks.repo.model.grid.ClockTable;
 import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.EventSource;
 import org.sagebionetworks.repo.model.grid.GridReplica;
@@ -55,7 +55,6 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.GridUtils;
 import org.sagebionetworks.repo.model.grid.encoding.IndexedModelEncoder;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -95,7 +94,7 @@ public class RecordSetCreateGridHandlerTest {
 	private CsvFileHandleProvider mockCsvProvider;
 
 	@Mock
-	private JsonSchemaManager mockJsonSchemaManager;
+	private GridRowValidator mockGridRowValidator;
 
 	@Mock
 	private FileProvider mockFileProvider;
@@ -108,6 +107,8 @@ public class RecordSetCreateGridHandlerTest {
 
 	@Mock
 	private RecordSetSchemaResolver mockSchemaResolver;
+	@Mock
+	private GridReplicaConnectionManager mockGridReplicaConnectionManager;
 
 	@Spy
 	@InjectMocks
@@ -129,7 +130,6 @@ public class RecordSetCreateGridHandlerTest {
 	private CsvTableDescriptor csvDescriptor;
 	private List<ColumnModel> csvSchema;
 	private RecordSet recordSet;
-	private JsonSchema jsonSchema;
 	private ClockTable clockTable;
 	@Mock
 	private CSVReader mockCsvReader;
@@ -149,7 +149,6 @@ public class RecordSetCreateGridHandlerTest {
 		replicaId = 88L;
 		replica = new GridReplica().setReplicaId(replicaId);
 		schema$id = "someorg-somename";
-		jsonSchema = new JsonSchema().setRequired(List.of("bar"));
 
 		gridSession = new GridSession();
 
@@ -181,7 +180,6 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockAuthorizationManager.hasAccess(mockUser, recordSet.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
 		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.of(
 				new JsonSchemaObjectBinding().setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id))));
-		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(jsonSchema);
 
 		gridSession = new GridSession().setSessionId(gridSessionId);
 
@@ -189,15 +187,15 @@ public class RecordSetCreateGridHandlerTest {
 				new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()).setSourceVersion(versionNumber).setSchemaId(schema$id)))
 				.thenReturn(gridSession);
 
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1)));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(mockSnapshotStore, gridSession, replica, csvSchema,
-				 List.of(1), mockFileProvider, userId, jsonSchema);
+				 List.of(1), mockFileProvider, userId, schema$id);
 
 		when(mockCsvReader.readNext()).thenReturn(new String[] { "foo", "bar" }, new String[] { "1", "one" },
 				new String[] { "2", "two" }, new String[] { null, "three" }, null);
@@ -230,12 +228,12 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockGridDao.createGridSession(new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()).setSourceVersion(versionNumber)))
 				.thenReturn(gridSession);
 
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of()));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(mockSnapshotStore, gridSession, replica, csvSchema,
@@ -266,8 +264,6 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
 		when(mockAuthorizationManager.hasAccess(mockUser, recordSet.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(jsonSchema);
 		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.of(
 				new JsonSchemaObjectBinding().setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id))));
 
@@ -276,17 +272,17 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockGridDao.createGridSession(new CreateGridSession().setUserId(userId).setSchemaId(schema$id).setSourceId(recordSet.getId()).setSourceVersion(versionNumber)))
 				.thenReturn(gridSession);
 
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
 		csvDescriptor = new CsvTableDescriptor().setIsFirstLineHeader(true);
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1)));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(mockSnapshotStore, gridSession, replica, csvSchema,
-				List.of(1), mockFileProvider, userId, jsonSchema);
+				List.of(1), mockFileProvider, userId, schema$id);
 
 		when(mockCsvReader.readNext()).thenReturn(new String[] { "foo", "bar" }, new String[] { "1", "one" },
 				new String[] { "2", "two" }, new String[] { null, "three" }, null);
@@ -311,8 +307,6 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockUser.getId()).thenReturn(userId);
 		when(mockEntityManager.getEntity(mockUser, recordSet.getId(), RecordSet.class)).thenReturn(recordSet);
 		when(mockAuthorizationManager.hasAccess(mockUser, recordSet.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
-		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.empty());
-		when(mockJsonSchemaManager.getValidationSchema(schema$id)).thenReturn(jsonSchema);
 		when(mockEntityManager.findBoundSchema(recordSet.getId())).thenReturn(Optional.of(
 				new JsonSchemaObjectBinding().setJsonSchemaVersionInfo(new JsonSchemaVersionInfo().set$id(schema$id))));
 
@@ -321,17 +315,17 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockGridDao.createGridSession(new CreateGridSession().setUserId(userId).setSchemaId(schema$id).setSourceId(recordSet.getId()).setSourceVersion(versionNumber)))
 				.thenReturn(gridSession);
 
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
 		IOException ioe = new IOException("nope");
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1)));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(1), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(mockSnapshotStore, gridSession, replica, csvSchema,
-				List.of(1), mockFileProvider, userId, jsonSchema);
+				List.of(1), mockFileProvider, userId, schema$id);
 
 		when(mockCsvReader.readNext()).thenThrow(ioe);
 
@@ -361,14 +355,14 @@ public class RecordSetCreateGridHandlerTest {
 		when(mockGridDao.createGridSession(new CreateGridSession().setUserId(userId).setSourceId(recordSet.getId()).setSourceVersion(versionNumber)))
 				.thenReturn(gridSession);
 
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
 		csvSchema = Collections.emptyList();
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of()));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(), Collections.emptyList()));
 
 		String errorMessage = assertThrows(IllegalArgumentException.class, () -> {
 			// Call under test
@@ -391,7 +385,7 @@ public class RecordSetCreateGridHandlerTest {
 
 		// Call under test
 		SnapshotRowHandler snapshotHandler = handler.getSnapshotRowHandler(mockSnapshotStore, gridSession, replica, csvSchema,
-				List.of(), mockFileProvider, userId, jsonSchema);
+				List.of(), mockFileProvider, userId, null);
 
 
 		assertNotNull(snapshotHandler);
@@ -413,11 +407,11 @@ public class RecordSetCreateGridHandlerTest {
 
 		gridSession = new GridSession().setSessionId(gridSessionId);
 		when(mockGridDao.createGridSession(any())).thenReturn(gridSession);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of()));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(any(), any(), any(), any(), any(), any(), any(), any());
 		when(mockCsvReader.readNext()).thenReturn(new String[]{"header"}, (String[]) null);
@@ -439,11 +433,11 @@ public class RecordSetCreateGridHandlerTest {
 
 		gridSession = new GridSession().setSessionId(gridSessionId);
 		when(mockGridDao.createGridSession(any())).thenReturn(gridSession);
-		when(mockGridDao.createReplica(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
+		when(mockGridReplicaConnectionManager.createReplicaAndConnect(userId, gridSessionId, isAgent, EventSource.INTERNAL)).thenReturn(replica);
 		when(mockFileHandleManager.getRawFileHandleUnchecked(recordSet.getDataFileHandleId())).thenReturn(csvFile);
 
-		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor, true))
-				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of()));
+		when(mockSchemaResolver.getReconciledSchema(recordSet.getId(), csvFile, csvDescriptor))
+				.thenReturn(new RecordSetSchemaResolver.ReconciledSchema(csvSchema, List.of(), Collections.emptyList()));
 		doReturn(mockCsvReader).when(mockCsvProvider).getCsvReader(csvFile, csvDescriptor);
 		doReturn(mockRowHandler).when(handler).getSnapshotRowHandler(any(), any(), any(), any(), any(), any(), any(), any());
 		when(mockCsvReader.readNext()).thenReturn(new String[]{"header"}, (String[]) null);

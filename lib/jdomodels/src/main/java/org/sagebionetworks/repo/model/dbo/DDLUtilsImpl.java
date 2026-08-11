@@ -2,13 +2,9 @@ package org.sagebionetworks.repo.model.dbo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.function.IntConsumer;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -35,14 +31,17 @@ public class DDLUtilsImpl implements DDLUtils{
 	private static final String ALREADY_EXISTS = "already exists";
 
 	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
-	
+
 	// Determine if the table exists
 	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	StackConfiguration stackConfiguration;
+
+	private final JdbcTemplate jdbcTemplate;
+	private final StackConfiguration stackConfiguration;
+
+	public DDLUtilsImpl(JdbcTemplate jdbcTemplate, StackConfiguration stackConfiguration) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.stackConfiguration = stackConfiguration;
+	}
 	
 	/**
 	 * If the given table does not already exist, then create it using the provided SQL file

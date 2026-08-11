@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtils;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -877,9 +878,9 @@ public class UploadPreviewBuilderTest {
 				//
 				new ColumnModel().setName("aString").setColumnType(ColumnType.STRING).setMaximumSize(5L),
 				//
-				new ColumnModel().setName("intArray").setColumnType(ColumnType.INTEGER_LIST).setMaximumListLength(3L),
+				new ColumnModel().setName("intArray").setColumnType(ColumnType.INTEGER_LIST).setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH),
 				//
-				new ColumnModel().setName("stringArray").setColumnType(ColumnType.STRING_LIST).setMaximumListLength(3L).setMaximumSize(3L),
+				new ColumnModel().setName("stringArray").setColumnType(ColumnType.STRING_LIST).setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH).setMaximumSize(3L),
 				//
 				new ColumnModel().setName("jsonObject").setColumnType(ColumnType.JSON));
 		assertEquals(expected, result.getSuggestedColumns());

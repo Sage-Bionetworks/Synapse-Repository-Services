@@ -18,15 +18,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
-import org.sagebionetworks.repo.manager.table.TableQueryManager;
-import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
@@ -42,20 +41,27 @@ import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryOptions;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableUnavailableException;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
+import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.TranslatedQuery;
+import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.model.CurrentUserFunction;
+import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.table.query.util.SqlElementUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
@@ -70,11 +76,41 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	private static final Logger LOG = LogManager.getLogger(SearchIndexLifecycleManagerImpl.class);
 	private static final String INDEX_PREFIX = "search-index-";
+	private static final String OBJECT_TYPE = ObjectType.SEARCH_INDEX.name();
+	// Blue-green physical slots. Queries target the alias getAliasName(entityId); each build streams
+	// into whichever of these two deterministic physical indices the alias is NOT currently serving,
+	// then atomically repoints the alias and deletes the just-demoted slot. Two fixed names bound the
+	// footprint to two indices per entity; the pre-build idle-slot delete is a defensive backstop for
+	// the rare case where the post-swap delete failed, not the primary cleanup mechanism.
+	static final String SLOT_A = "a";
+	static final String SLOT_B = "b";
 	private static final String LOCK_KEY_PREFIX = "search-index-build:";
 	private static final int MAX_ERROR_MESSAGE_LENGTH = 3000;
 	private static final int BATCH_SIZE = 1000;
 	private static final long MAX_ROWS = 500_000L;
 	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
+
+	// Build-time dynamic shard sizing for the managed OpenSearch domain. The source table's
+	// on-disk size is a conservative upper bound for the derived index (the defining SQL may
+	// select a subset of columns), so this never under-shards.
+	// Target shard size sits mid the AWS-recommended 10-30 GiB band, safely under the 50 GiB ceiling.
+	static final long TARGET_SHARD_BYTES = 25L * 1024 * 1024 * 1024;
+	// 6 shards x 50 GiB effective = ~300 GiB capacity, well above the
+	// ~146 GiB max MySQL source table. Guards a runaway size reading.
+	static final int MAX_SHARDS = 6;
+
+	/**
+	 * Compute the number of primary shards for an index from the source table's data size.
+	 * Null or zero size maps to a single shard; otherwise the byte count is bucketed into
+	 * {@link #TARGET_SHARD_BYTES} shards, clamped to {@code [1, MAX_SHARDS]}.
+	 */
+	static int computeShardCount(Long dataSizeBytes) {
+		if (dataSizeBytes == null || dataSizeBytes <= 0) {
+			return 1;
+		}
+		long shards = ((dataSizeBytes + TARGET_SHARD_BYTES) - 1) / TARGET_SHARD_BYTES;
+		return (int) Math.max(1, Math.min(shards, MAX_SHARDS));
+	}
 
     /**
 	 * Convert a raw String row value (as delivered by the table query stream) into the Java
@@ -110,8 +146,6 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final ConnectionFactory connectionFactory;
 	private final OpenSearchManager openSearchManager;
 	private final SearchConfigurationResolver searchConfigurationResolver;
-	private final TableQueryManager tableQueryManager;
-	private final UserManager userManager;
 	private final EntityManager entityManager;
 	private final SynonymSetDao synonymSetDao;
 	private final ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
@@ -119,22 +153,23 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final TableManagerSupport tableManagerSupport;
 	private final ColumnModelManager columnModelManager;
 	private final WriteReadSemaphore writeReadSemaphore;
+	private final StackConfiguration stackConfiguration;
+	private final DefiningSqlDependencyDao definingSqlDependencyDao;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
 			SearchConfigurationResolver searchConfigurationResolver,
-			TableQueryManager tableQueryManager, UserManager userManager,
 			EntityManager entityManager,
 			SynonymSetDao synonymSetDao, ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao,
 			TextAnalyzerDao textAnalyzerDao,
 			TableManagerSupport tableManagerSupport,
 			ColumnModelManager columnModelManager,
-			WriteReadSemaphore writeReadSemaphore) {
+			WriteReadSemaphore writeReadSemaphore,
+			StackConfiguration stackConfiguration,
+			DefiningSqlDependencyDao definingSqlDependencyDao) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
-		this.tableQueryManager = tableQueryManager;
-		this.userManager = userManager;
 		this.entityManager = entityManager;
 		this.synonymSetDao = synonymSetDao;
 		this.columnAnalyzerOverrideDao = columnAnalyzerOverrideDao;
@@ -142,6 +177,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.tableManagerSupport = tableManagerSupport;
 		this.columnModelManager = columnModelManager;
 		this.writeReadSemaphore = writeReadSemaphore;
+		this.stackConfiguration = stackConfiguration;
+		this.definingSqlDependencyDao = definingSqlDependencyDao;
 	}
 
 	@Override
@@ -151,6 +188,15 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		ValidateArgument.requiredNotBlank(definingSql, "definingSql");
 		IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSql).get(0);
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceId);
+		// A virtual table is a query rewrite, not a materialized index: it has no status row and
+		// never fires a TABLE_STATUS_EVENT. A SearchIndex registered against one would build once
+		// but never receive a source-availability event to rebuild on, drifting silently stale.
+		// The dependency graph is one level deep, so the underlying table's events would fan out
+		// to that table's own dependents, never to this SearchIndex. Forbid it at registration.
+		if (TableType.virtualtable.equals(indexDescription.getTableType())) {
+			throw new IllegalArgumentException(
+					"The defining SQL of a search index cannot reference a virtual table.");
+		}
 		// SqlContext.query: TableIndexDescription rejects `build`; only Views/MVs accept it.
 		QueryTranslator sqlQuery = QueryTranslator.builder()
 				.sql(definingSql)
@@ -158,20 +204,31 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
 				.build();
+		// An aggregating defining SQL collapses source rows that may span different
+		// benefactors into a single output row, for which there is no correct per-row
+		// benefactor. When the source has benefactors, reject it up front (mirrors the
+		// materialized-view guard) rather than building an index whose row-level access
+		// filter would silently exclude every aggregated document.
+		if (sqlQuery.isAggregatedResult() && !indexDescription.getBenefactors().isEmpty()) {
+			throw new IllegalArgumentException(
+					"The defining SQL of a search index over an access-controlled source cannot include a group by clause.");
+		}
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columnModelManager.createColumnModel(c).getId())
 				.collect(Collectors.toList());
 		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
+		// Record the source -> SearchIndex edge so a source table/view that becomes AVAILABLE can
+		// reverse-look-up which SearchIndex(es) depend on it and enqueue their rebuild.
+		definingSqlDependencyDao.setSourceTable(searchIndexId, OBJECT_TYPE, sourceId);
 		return schemaIds;
 	}
 
 	@Override
-	public void handleCreate(ProgressCallback progressCallback, String entityId, Long userId) throws Exception {
+	public void handleCreate(ProgressCallback progressCallback, String entityId) throws Exception {
 		ValidateArgument.required(entityId, "entityId");
-		ValidateArgument.required(userId, "userId");
 		try (WriteLock lock = writeReadSemaphore.getWriteLock(
 				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.buildIndex", LOCK_KEY_PREFIX + entityId))) {
-			buildIndex(progressCallback, entityId, userId, true);
+			buildIndex(progressCallback, entityId);
 		} catch (LockUnavilableException e) {
 			throw new RecoverableMessageException(
 					"Search index " + entityId + " is already being built by another worker", e);
@@ -179,13 +236,12 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	}
 
 	@Override
-	public void handleUpdate(ProgressCallback progressCallback, String entityId, Long userId) throws Exception {
+	public void handleUpdate(ProgressCallback progressCallback, String entityId) throws Exception {
 		ValidateArgument.required(entityId, "entityId");
-		ValidateArgument.required(userId, "userId");
 		try (WriteLock lock = writeReadSemaphore.getWriteLock(
 				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.buildIndex", LOCK_KEY_PREFIX + entityId))) {
 			// In the MVP updates are unconditionally replacing the index on all changes regardless of what the change is.
-			buildIndex(progressCallback, entityId, userId, true);
+			buildIndex(progressCallback, entityId);
 		} catch (LockUnavilableException e) {
 			throw new RecoverableMessageException(
 					"Search index " + entityId + " is already being built by another worker", e);
@@ -199,32 +255,39 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * on permanent failure. Transient failures (table unavailable, lock contention,
 	 * concurrent-delete on AOSS) propagate as {@link RecoverableMessageException}
 	 * so the worker can re-queue without flipping the index to FAILED.
+	 * <p>
+	 * Every source row is indexed without authorization; read access is enforced only at
+	 * query time via the per-row {@code _benefactor_<i>} filtering.
 	 *
 	 * @param progressCallback     Refreshes the per-entity write lock during the build.
 	 * @param entityId             SearchIndex entity ID.
-	 * @param userId               User who triggered the change. Authorization for the
-	 *                             row stream is performed as the realm's anonymous user;
-	 *                             this id is recorded for audit only.
-	 * @param deleteExistingFirst  When true, the AOSS index is dropped before the build
-	 *                             (the rebuild path); when false, the build assumes no
-	 *                             existing index exists.
 	 */
-	private void buildIndex(ProgressCallback progressCallback, String entityId, Long userId,
-			boolean deleteExistingFirst)
+	private void buildIndex(ProgressCallback progressCallback, String entityId)
 			throws Exception {
+		LOG.info("Building search index for entity: {}", entityId);
 		SearchIndexStatusDao statusDao = connectionFactory.getSearchIndexStatusDao();
+		String aliasName = getAliasName(entityId);
+		// The physical index this build streams into; assigned once the target slot is known so the
+		// failure path can clean up the partial green index without touching the live one.
+		String physicalSlot = null;
 		try {
-			UserInfo user = userManager.getUserInfo(userId);
-			SearchIndex searchIndex = entityManager.getEntity(user, entityId, SearchIndex.class);
+			SearchIndex searchIndex = entityManager.getEntityWithoutAuthorization(entityId, SearchIndex.class);
 
 			String definingSQL = searchIndex.getDefiningSQL();
 
-			statusDao.createOrUpdate(new SearchIndexStatus()
-					.setSearchIndexId(entityId)
-					.setState(SearchIndexState.CREATING));
+			// Blue-green: the alias resolves to the currently-live physical index, or is empty on the
+			// first build. A first build has nothing to serve yet, so it records CREATING and the query
+			// path throws until it finishes; a rebuild keeps the live index queryable and leaves the
+			// state ACTIVE untouched until the alias swap at the end.
+			Optional<String> oldTarget = openSearchManager.getAliasTarget(aliasName);
+			if (oldTarget.isEmpty()) {
+				statusDao.createOrUpdate(new SearchIndexStatus()
+						.setSearchIndexId(entityId)
+						.setState(SearchIndexState.CREATING));
+			}
 
 			Optional<SearchConfiguration> configOpt = searchConfigurationResolver.resolve(
-					user, searchIndex.getSearchConfigurationId(), searchIndex.getParentId());
+					searchIndex.getSearchConfigurationId(), searchIndex.getParentId());
 			SearchConfiguration config = configOpt.orElse(null);
 
 			List<ColumnAnalyzerOverride> overrides = loadColumnAnalyzerOverrides(config);
@@ -235,8 +298,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// path is qname-only — no more inline branches.
 			Map<String, TextAnalyzer> inlineAnalyzers = materializeInlineAnalyzerSlots(config, overrides);
 
-			// Bound schema order must match the streamed row values' order positionally —
-			// runQueryAsStream below relies on this alignment to map values to columns.
+			// Bound schema order must match the streamed row values' order positionally — the
+			// SearchIndexRowHandler relies on this alignment to map the leading row values to
+			// document columns (and treat any trailing values as benefactor columns).
 			List<ColumnModel> selectedColumns = tableManagerSupport.getTableSchema(IdAndVersion.parse(entityId));
 			if (selectedColumns == null || selectedColumns.isEmpty()) {
 				throw new IllegalStateException("SearchIndex " + entityId
@@ -244,22 +308,35 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			}
 			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
 
-			// Build the index as the anonymous user. This enforces Sage governance:
-			// only tables marked DataType.OPEN_DATA with PUBLIC read access can be
-			// indexed. Any other table will fail authorization during queryPreflight,
-			// and the search index will be recorded as FAILED.
-			UserInfo anonymousUser = userManager.getUserInfo(user.getRealmAnonymousUserId());
-			Query query = new Query();
-			query.setSql(definingSQL);
+			IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSQL).get(0);
+			IndexDescription sourceIndexDescription = tableManagerSupport.getIndexDescription(sourceId);
+			TableIndexDAO indexDao = connectionFactory.getConnection(sourceId);
 
-			QueryOptions countOnly = new QueryOptions()
-					.withRunQuery(false)
-					.withRunCount(true)
-					.withReturnSelectColumns(false)
-					.withReturnFacets(false);
-			QueryResultBundle countResult = tableQueryManager.querySinglePage(
-					progressCallback, anonymousUser, query, countOnly);
-			Long rowCount = countResult.getQueryCount();
+			// Require the source to be AVAILABLE first. A PROCESSING source cannot be waited on by
+			// retrying the message — a source table can take far longer to become AVAILABLE than
+			// the SQS retention window, so retry-until-expiry sends the message to the dead-letter
+			// queue. Instead record WAITING_FOR_SOURCE and consume the message; the rebuild fires
+			// later, driven by the source's own TABLE_STATUS_EVENT(AVAILABLE), which fans out a
+			// per-dependent rebuild message. A failed source is a permanent build failure.
+			TableStatus sourceStatus = tableManagerSupport.getTableStatusOrCreateIfNotExists(sourceId);
+			switch (sourceStatus.getState()) {
+			case AVAILABLE:
+				break;
+			case PROCESSING:
+				statusDao.createOrUpdate(new SearchIndexStatus()
+						.setSearchIndexId(entityId)
+						.setState(SearchIndexState.WAITING_FOR_SOURCE));
+				LOG.info("Search index for entity {} is WAITING_FOR_SOURCE ({})", entityId, sourceId);
+				return;
+			default:
+				throw new TableFailedException(sourceStatus);
+			}
+
+			// Conservative whole-table ceiling: the defining SQL queries a single source table
+			// so it cannot expand the row count beyond the source's row count.
+			// The handler's mid-stream MAX_ROWS guard remains
+			// the backstop. A null count means the source index table is absent.
+			Long rowCount = indexDao.getRowCountForTable(sourceId);
 			if (rowCount != null && rowCount > MAX_ROWS) {
 				throw new IllegalStateException(
 						"Search index would exceed maximum of " + MAX_ROWS
@@ -285,32 +362,77 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// IllegalArgumentException via SearchOpaqueJsonUtil.
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers = resolveAnalyzers(analyzers);
 
-			String indexName = getIndexName(entityId);
-			if (deleteExistingFirst) {
-				openSearchManager.deleteIndex(indexName);
-			}
-			openSearchManager.createIndex(indexName, selectedColumns,
+			int benefactorCount = sourceIndexDescription.getBenefactors().size();
+
+			// Size the index from the source table's on-disk bytes. The source is a conservative
+			// upper bound for the derived index, so this never under-shards. Replicas are
+			// stack-coupled: the single-node dev domain cannot allocate a replica (it would sit
+			// UNASSIGNED), so dev uses 0; prod uses 1 for HA and read scaling.
+			Long dataSizeBytes = indexDao.getDataSizeBytesForTable(sourceId);
+			int numberOfShards = computeShardCount(dataSizeBytes);
+			int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
+
+			// Build into the physical slot the alias is NOT currently serving, so the live index keeps
+			// answering queries throughout. createIndex is delete-then-create on the fixed slot name, so
+			// any orphan left in the idle slot by a previously-failed build is overwritten here.
+			physicalSlot = getIdlePhysicalSlot(entityId, oldTarget);
+			openSearchManager.deleteIndex(physicalSlot);
+			openSearchManager.createIndex(physicalSlot, selectedColumns,
 					defaultAnalyzer,
-					overrides, resolvedAnalyzers);
+					overrides, resolvedAnalyzers,
+					benefactorCount, numberOfShards, numberOfReplicas);
 
 			// AOSS acknowledges createIndex and returns an already-queryable index before its
 			// shards are actually ready to accept writes. Block until a real sentinel write
 			// succeeds so the bulk stream below does not race against index_not_found_exception.
-			openSearchManager.waitForIndexWritable(indexName);
+			openSearchManager.waitForIndexWritable(physicalSlot);
 
-			tableQueryManager.runQueryAsStream(progressCallback, anonymousUser, query,
-					(QueryTranslations translations) -> new SearchIndexRowHandler(
-							indexName, selectColumns, openSearchManager),
-					ACCESS_TYPE.READ);
+			// SqlContext.query (not build) emits the select against the source's materialized
+			// index table; build context is rejected by table and view sources (only a
+			// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
+			// source row without authorization and is served to many users through per-row
+			// benefactor filtering, so there is no single current user to bind.
+			QueryTranslator base = QueryTranslator.builder()
+					.sql(definingSQL)
+					.schemaProvider(tableManagerSupport)
+					.sqlContext(SqlContext.query)
+					.indexDescription(sourceIndexDescription)
+					.build();
+			// Splice the source's per-dependency benefactor columns into the select so the handler can
+			// read them as trailing row values.
+			TranslatedQuery query = buildWithBenefactorColumns(base, sourceIndexDescription);
+			// queryAsStream does not close the handler; the try-with-resources flushes the final
+			// partial batch.
+			try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
+					physicalSlot, selectColumns, openSearchManager)) {
+				indexDao.queryAsStream(query, handler);
+			}
+
+			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
+			// become visible to queries; the old index served every query up to this instant.
+			openSearchManager.swapAlias(aliasName, physicalSlot, oldTarget);
+
+			// The old index is no longer reachable via the alias; delete it now rather than waiting
+			// for the next rebuild's idle-slot cleanup, so an entity that is never rebuilt again does
+			// not leave an orphaned index behind. Best-effort — a failure here does not affect the
+			// just-completed build; the next rebuild's pre-build idle-slot delete retries it.
+			oldTarget.ifPresent(old -> {
+				try {
+					openSearchManager.deleteIndex(old);
+				} catch (Exception e) {
+					LOG.error("Failed to delete demoted search index " + old + " for entity: " + entityId, e);
+				}
+			});
 
 			statusDao.createOrUpdate(new SearchIndexStatus()
 					.setSearchIndexId(entityId)
 					.setState(SearchIndexState.ACTIVE));
-		} catch (RecoverableMessageException | TableUnavailableException | TableFailedException | LockUnavilableException e) {
+			LOG.info("Search index for entity {} is ACTIVE", entityId);
+		} catch (RecoverableMessageException | TableFailedException | LockUnavilableException e) {
 			// Propagate transient/infrastructure exceptions to the worker so it can
-			// convert them into RecoverableMessageException (table unavailable / lock)
-			// or permanent failure (table failed). Do not record FAILED here — the
-			// failure is not in the search index's configuration.
+			// convert them into RecoverableMessageException (lock) or permanent failure
+			// (table failed). Do not record FAILED here — the failure is not in the search
+			// index's configuration.
 			throw e;
 		} catch (Throwable e) {
 			// Another worker is currently deleting this same AOSS index. Translate
@@ -343,11 +465,14 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 					.setSearchIndexId(entityId)
 					.setState(SearchIndexState.FAILED)
 					.setErrorMessage(errorMessage));
-			// Best-effort cleanup of partial AOSS index
-			try {
-				openSearchManager.deleteIndex(getIndexName(entityId));
-			} catch (Exception deleteEx) {
-				LOG.error("Failed to clean up partial index for entity: " + entityId, deleteEx);
+			// Best-effort cleanup of the partial green index. Only the slot this build was streaming
+			// into is dropped — the live index (still referenced by the alias) is left untouched.
+			if (physicalSlot != null) {
+				try {
+					openSearchManager.deleteIndex(physicalSlot);
+				} catch (Exception deleteEx) {
+					LOG.error("Failed to clean up partial index for entity: " + entityId, deleteEx);
+				}
 			}
 		}
 	}
@@ -373,13 +498,49 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			if (stateOpt.isEmpty()) {
 				return;
 			}
-			try {
-				openSearchManager.deleteIndex(getIndexName(entityId));
+			// Delete both physical slots independently so a failure on one does not skip the
+			// other. Deleting the concrete index that backs the query alias also removes its
+			// alias membership, so no separate alias removal is required; a slot that does not
+			// exist is an idempotent no-op.
+			boolean slotADeleted = tryDeleteSlot(getPhysicalSlotName(entityId, SLOT_A), entityId);
+			boolean slotBDeleted = tryDeleteSlot(getPhysicalSlotName(entityId, SLOT_B), entityId);
+			// Only drop the DB rows once both slots are confirmed gone, so a slot left behind by
+			// a failed delete can still be found and retried on the next lifecycle message.
+			if (slotADeleted && slotBDeleted) {
 				statusDao.delete(searchIndexId);
-			} catch (Throwable e) {
-				LOG.error("Failed to delete search index for entity: " + entityId, e);
+				// The node ON DELETE CASCADE normally clears the source edge; drop it explicitly
+				// too so a lifecycle delete that runs before the node delete leaves no stale edge.
+				definingSqlDependencyDao.deleteObject(IdAndVersion.parse(entityId));
 			}
 		} catch (LockUnavilableException e) {
+			throw new RecoverableMessageException(
+					"Search index " + entityId + " is locked by another worker", e);
+		}
+	}
+
+	@Override
+	public void rebuildIfStale(ProgressCallback progressCallback, String entityId) throws Exception {
+		ValidateArgument.required(entityId, "entityId");
+		try (WriteLock lock = writeReadSemaphore.getWriteLock(
+				new WriteLockRequest(progressCallback, "SearchIndexLifecycleManager.rebuildIfStale",
+						LOCK_KEY_PREFIX + entityId))) {
+			// Authoritative gate under the lock: the lock linearizes this against any in-flight build.
+			//  - WAITING_FOR_SOURCE: first-availability build.
+			//  - ACTIVE: live-sync — always rebuild.
+			//  - CREATING / FAILED / absent: no-op (a CREATING index that has since finished is observed
+			//    as ACTIVE and rebuilt; FAILED is terminal until a manual rebuild).
+			Optional<SearchIndexState> stateOpt = connectionFactory.getSearchIndexStatusDao()
+					.getState(KeyFactory.stringToKey(entityId));
+			if (stateOpt.isEmpty()) {
+				return;
+			}
+			SearchIndexState state = stateOpt.get();
+			if (SearchIndexState.WAITING_FOR_SOURCE.equals(state) || SearchIndexState.ACTIVE.equals(state)) {
+				buildIndex(progressCallback, entityId);
+			}
+		} catch (LockUnavilableException e) {
+			// Another worker holds the per-entity lock (an in-flight build). Requeue for retry once it
+			// frees, same as the materialized view rebuild path.
 			throw new RecoverableMessageException(
 					"Search index " + entityId + " is locked by another worker", e);
 		}
@@ -552,8 +713,104 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		return new TextAnalyzer().setName(qname).setSettings(inlineSettings);
 	}
 
-	private String getIndexName(String entityId) {
+	/**
+	 * Splice the source index's physical benefactor columns into the base query so the streamed rows
+	 * carry one benefactor value per source dependency (in {@link IndexDescription#getBenefactors()}
+	 * order).
+	 * <p>
+	 * The columns must land <em>before</em> the trailing by-name metadata columns ({@code ROW_ID,
+	 * ROW_VERSION}) and be mirrored into the select-column headers as INTEGER columns, because
+	 * {@code SQLTranslatorUtils.readRow} reads {@code Row.values} positionally (the first
+	 * {@code getSelectColumns().length} result columns) while reading {@code ROW_ID}/{@code ROW_VERSION}
+	 * by name. The base translator's {@code getSelectColumns()} holds only the document columns
+	 * (metadata columns are added to the SQL by name, not to the headers), so the splice index is
+	 * simply that header count.
+	 * <p>
+	 * Only a materialized view stores its per-dependency benefactors as physical columns of its index
+	 * table that must be spliced in here. A view's single benefactor is already read by name into
+	 * {@code Row.benefactorId} (via the by-name metadata columns the base query emits), and a table has
+	 * none, so for any non-materialized-view source the base query is returned unchanged.
+	 *
+	 * @param base   a query-context {@link QueryTranslator} built from the source's defining SQL.
+	 * @param source the source's {@link IndexDescription}.
+	 * @return a {@link TranslatedQuery} ready to stream through {@code TableIndexDAO.queryAsStream}.
+	 */
+	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescription source) {
+		if (!TableType.materializedview.equals(source.getTableType())) {
+			return CachedQueryRequest.clone(base);
+		}
+
+		List<String> benefactorColumnNames = new ArrayList<>();
+		for (BenefactorDescription desc : source.getBenefactors()) {
+			benefactorColumnNames.add(desc.getBenefactorColumnName());
+		}
+		if (benefactorColumnNames.isEmpty()) {
+			return CachedQueryRequest.clone(base);
+		}
+
+		// The document columns are the only headers on the base translator; the benefactor columns
+		// splice in just after them, ahead of the by-name ROW_ID/ROW_VERSION metadata in the SQL.
+		int spliceIndex = base.getSelectColumns().size();
+		SelectList selectList = base.getTranslatedModel().getFirstElementOfType(SelectList.class);
+		for (int i = 0; i < benefactorColumnNames.size(); i++) {
+			DerivedColumn column = SqlElementUtils.createNonQuotedDerivedColumn(benefactorColumnNames.get(i));
+			selectList.getColumns().add(spliceIndex + i, column);
+		}
+		selectList.recursiveSetParent();
+		String outputSQL = base.getTranslatedModel().toSql();
+
+		List<SelectColumn> headers = new ArrayList<>(base.getSelectColumns());
+		for (String name : benefactorColumnNames) {
+			headers.add(new SelectColumn().setName(name).setColumnType(ColumnType.INTEGER));
+		}
+
+		return CachedQueryRequest.clone(base).setOutputSQL(outputSQL).setSelectColumns(headers);
+	}
+
+	/** The stable alias queries target: {@code search-index-<entityId>}. */
+	private String getAliasName(String entityId) {
 		return INDEX_PREFIX + entityId;
+	}
+
+	/** A physical slot index: {@code search-index-<entityId>-<slot>}. */
+	private String getPhysicalSlotName(String entityId, String slot) {
+		return INDEX_PREFIX + entityId + "-" + slot;
+	}
+
+	/**
+	 * The physical slot to build into: the one the alias is NOT currently serving. On the first build
+	 * ({@code currentTarget} empty) this is slot A; otherwise it is whichever slot the alias does not
+	 * already point at, so the live index keeps serving queries while the new one is built.
+	 */
+	private String getIdlePhysicalSlot(String entityId, Optional<String> currentTarget) {
+		String slotA = getPhysicalSlotName(entityId, SLOT_A);
+		if (currentTarget.isPresent() && currentTarget.get().equals(slotA)) {
+			return getPhysicalSlotName(entityId, SLOT_B);
+		}
+		return slotA;
+	}
+
+	/**
+	 * Attempts to delete a single physical slot, isolated from any sibling slot delete.
+	 * A concurrent-delete race is translated into a {@link RecoverableMessageException} so the
+	 * caller retries; any other failure is logged and swallowed, returning {@code false} so the
+	 * caller knows this slot was not confirmed deleted.
+	 */
+	private boolean tryDeleteSlot(String physicalSlot, String entityId) {
+		try {
+			openSearchManager.deleteIndex(physicalSlot);
+			return true;
+		} catch (OpenSearchException e) {
+			if (OpenSearchManagerImpl.isConcurrentDeleteError(e)) {
+				throw new RecoverableMessageException(
+						"Concurrent delete in progress while deleting search index for entity " + entityId, e);
+			}
+			LOG.error("Failed to delete search index slot " + physicalSlot + " for entity: " + entityId, e);
+			return false;
+		} catch (Exception e) {
+			LOG.error("Failed to delete search index slot " + physicalSlot + " for entity: " + entityId, e);
+			return false;
+		}
 	}
 
 	static class SearchIndexRowHandler implements RowHandler {
@@ -580,12 +837,32 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			doc.put("_row_id", row.getRowId());
 			doc.put("_row_version", row.getVersionNumber());
 			List<String> values = row.getValues();
+			// The bound schema (columns) defines the document columns; they are the leading
+			// values of the row. Any trailing values are the benefactor columns the translator
+			// appended to the select (one per source dependency, in getBenefactors() order).
+			// This relies on the invariant that the translated select's document-column count
+			// equals the bound-schema width, since both derive from the same defining SQL.
 			for (int i = 0; i < columns.size() && i < values.size(); i++) {
 				String value = values.get(i);
 				if (value != null) {
 					SelectColumn column = columns.get(i);
 					doc.put(column.getId(), convertForDocument(value, column.getColumnType()));
 				}
+			}
+			// Write one _benefactor_N field per source dependency, in the same order the
+			// query-time ACL filter expects. A materialized view appends its benefactor columns
+			// as trailing row values; a view exposes its single benefactor through the by-name
+			// scalar Row.benefactorId (nothing trails values). A plain table has no benefactor
+			// and leaves both empty.
+			if (values.size() > columns.size()) {
+				for (int i = columns.size(); i < values.size(); i++) {
+					String value = values.get(i);
+					if (value != null) {
+						doc.put("_benefactor_" + (i - columns.size()), Long.valueOf(value));
+					}
+				}
+			} else if (row.getBenefactorId() != null) {
+				doc.put("_benefactor_0", row.getBenefactorId());
 			}
 			String docId = String.valueOf(row.getRowId());
 			batch.add(BulkOperation.of(op -> op

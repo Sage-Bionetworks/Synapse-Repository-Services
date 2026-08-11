@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_MODIFIED_BY;
@@ -16,12 +17,13 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.dbo.migration.BasicMigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
@@ -36,7 +38,8 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("modifiedBy", COL_DATA_ACCESS_REQUEST_MODIFIED_BY),
 			new FieldColumn("modifiedOn", COL_DATA_ACCESS_REQUEST_MODIFIED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
-			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED).withHasFileHandleRef(true)
+			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED).withHasFileHandleRef(true),
+			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID)
 		};
 
 	private Long id;
@@ -48,6 +51,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private Long modifiedOn;
 	private String etag;
 	private byte[] requestSerialized;
+	private String eDucEnvelopeId;
 
 	@Override
 	public String toString() {
@@ -199,6 +203,14 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		this.requestSerialized = requestSerialized;
 	}
 
+	public String getEDucEnvelopeId() {
+		return eDucEnvelopeId;
+	}
+
+	public void setEDucEnvelopeId(String eDucEnvelopeId) {
+		this.eDucEnvelopeId = eDucEnvelopeId;
+	}
+
 	@Override
 	public TableMapping<DBORequest> getTableMapping() {
 		return new TableMapping<DBORequest>(){
@@ -216,6 +228,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_REQUEST_ETAG));
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
 				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
+				dbo.setEDucEnvelopeId(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID));
 				return dbo;
 			}
 
@@ -249,7 +262,23 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 
 	@Override
 	public MigratableTableTranslation<DBORequest, DBORequest> getTranslator() {
-		return new BasicMigratableTableTranslation<DBORequest>();
+		return new MigratableTableTranslation<DBORequest, DBORequest>() {
+			@Override
+			public DBORequest createDatabaseObjectFromBackup(DBORequest backup) {
+				if (backup.getEDucEnvelopeId() == null && backup.getRequestSerialized() != null) {
+					RequestInterface dto = RequestUtils.readSerializedField(backup.getRequestSerialized());
+					if (dto.getEDucSignatureEnvelopeId() != null) {
+						backup.setEDucEnvelopeId(dto.getEDucSignatureEnvelopeId());
+					}
+				}
+				return backup;
+			}
+
+			@Override
+			public DBORequest createBackupFromDatabaseObject(DBORequest dbo) {
+				return dbo;
+			}
+		};
 	}
 
 	@Override
@@ -264,7 +293,9 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 
 	@Override
 	public List<MigratableDatabaseObject<?, ?>> getSecondaryTypes() {
-		return null;
+		List<MigratableDatabaseObject<?, ?>> list = new LinkedList<>();
+		list.add(new DBORequestUser());
+		return list;
 	}
 
 }

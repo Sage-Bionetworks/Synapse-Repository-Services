@@ -7,9 +7,12 @@ DAO interfaces and shared exception types. This module defines the persistence c
 ```
 org.sagebionetworks.repo.model
 ├── dao/                    # DAO interfaces (NodeDAO, AccessControlListDAO, etc.)
+├── schema/                 # JSON Schema helpers, e.g. JsonSchemaProperties
 ├── (root)                  # Core interfaces, enums, utility classes
 └── ...                     # Domain-specific sub-packages
 ```
+
+Reusable helper worth knowing: `schema/JsonSchemaProperties.java` walks a `JsonSchema` through `$ref`/`allOf`/`anyOf`/`oneOf`/`if-then-else` to collect top-level property names (used to derive `ColumnModel`s from a bound schema) — prefer it over re-implementing schema traversal.
 
 ## DAO Interfaces
 

@@ -1,0 +1,44 @@
+{
+    "description": "Summary of a data access request",
+    "properties": {
+        "requestId": {
+            "type": "string",
+            "description": "Id of the data access request"
+        },
+        "accessRequirementName": {
+            "type": "string",
+            "description": "Name of the related access requirement"
+        },
+        "status": {
+            "$ref": "org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum",
+            "description": "The status of the request"
+        },
+        "isEDuc": {
+            "type": "boolean",
+            "description": "True if the request uses the eDUC flow"
+        },
+        "signaturesRequested": {
+            "type": "integer",
+            "description": "The number of signers requested for the eDUC, or null if using non-eDUC flow"
+        },
+        "signaturesAcquired": {
+            "type": "integer",
+            "description": "The number of signers who have signed the eDUC, or null if using non-eDUC flow"
+        },
+        "submittedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date/time the request was submitted, or null if not yet submitted"
+        },
+        "modifiedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date/time the request was last modified"
+        },
+        "expiresOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Date/time when the access approval expires, or null if no approval exists for this user"
+        }
+    }
+}

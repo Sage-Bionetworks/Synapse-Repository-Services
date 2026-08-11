@@ -1,0 +1,43 @@
+import os
+
+file_path = '${filePath}'
+page_number = ${pageNumber}
+max_chars = ${maxChars}
+
+if not os.path.exists(file_path):
+    print('FILE_NOT_FOUND: ' + file_path)
+else:
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(file_path)
+        num_pages = len(reader.pages)
+        print('page_count: ' + str(num_pages))
+        meta = reader.metadata or {}
+        if meta.get('/Title'):
+            print('title: ' + str(meta.get('/Title')))
+        if meta.get('/Author'):
+            print('author: ' + str(meta.get('/Author')))
+        if page_number and page_number > 0:
+            if page_number > num_pages:
+                print('PAGE_OUT_OF_RANGE: requested ' + str(page_number) + ' of ' + str(num_pages))
+            else:
+                text = reader.pages[page_number - 1].extract_text() or ''
+                print('page: ' + str(page_number))
+                print('text:')
+                print(text[:max_chars])
+                if len(text) > max_chars:
+                    print('... [text truncated at ' + str(max_chars) + ' chars]')
+        else:
+            printed = 0
+            for i in range(num_pages):
+                remaining = max_chars - printed
+                if remaining <= 0:
+                    print('... [remaining pages truncated at ' + str(max_chars) + ' chars total]')
+                    break
+                text = reader.pages[i].extract_text() or ''
+                chunk = text[:remaining]
+                print('--- page ' + str(i + 1) + ' ---')
+                print(chunk)
+                printed += len(chunk)
+    except ImportError:
+        print('NO_PDF_LIBRARY: pypdf is not available in this session')

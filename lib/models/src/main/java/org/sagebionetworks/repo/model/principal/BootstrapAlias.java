@@ -12,14 +12,16 @@ public class BootstrapAlias {
 	public Long getAliasId() {
 		return aliasId;
 	}
-	public void setAliasId(Long aliasId) {
+	public BootstrapAlias setAliasId(Long aliasId) {
 		this.aliasId = aliasId;
+		return this;
 	}
 	public String getAliasName() {
 		return aliasName;
 	}
-	public void setAliasName(String aliasName) {
+	public BootstrapAlias setAliasName(String aliasName) {
 		this.aliasName = aliasName;
+		return this;
 	}
 
 }

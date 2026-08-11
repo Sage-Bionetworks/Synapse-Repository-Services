@@ -4,55 +4,37 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2;
-import com.amazonaws.services.apigatewayv2.AmazonApiGatewayV2ClientBuilder;
-import com.amazonaws.services.appconfigdata.AWSAppConfigData;
-import com.amazonaws.services.appconfigdata.AWSAppConfigDataClientBuilder;
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatch;
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClientBuilder;
 import com.amazonaws.services.glue.AWSGlue;
 import com.amazonaws.services.glue.AWSGlueClientBuilder;
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehose;
-import com.amazonaws.services.kinesisfirehose.AmazonKinesisFirehoseClientBuilder;
-import com.amazonaws.services.kms.AWSKMS;
-import com.amazonaws.services.kms.AWSKMSAsyncClientBuilder;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Region;
 import com.amazonaws.services.s3.transfer.TransferManager;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClientBuilder;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
-import com.amazonaws.services.sns.AmazonSNS;
-import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
-import com.amazonaws.services.stepfunctions.AWSStepFunctions;
-import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 
 /**
  * A factory for creating AWS clients using credential chains.
  *
  */
 public class AwsClientFactory {
-	
+
 	/*
-	 * AmazonS3ClientBuilder takes as a parameter a value from com.amazonaws.regions.Regions, 
+	 * AmazonS3ClientBuilder takes as a parameter a value from com.amazonaws.regions.Regions,
 	 * which has String values like US_EAST_1, US_WEST_1, CA_CENTRAL_1.
-	 * 
-	 * AmazonS3.getBucketLocation() returns a String representation of an instance of 
-	 * com.amazonaws.services.s3.model.Region, which has String values like null (for us-east-1), 
+	 *
+	 * AmazonS3.getBucketLocation() returns a String representation of an instance of
+	 * com.amazonaws.services.s3.model.Region, which has String values like null (for us-east-1),
 	 * us-west-1, ca-central-1.
-	 * 
-	 * To make things more complicated, there is a utility to map from Regions to Region but it's 
-	 * com.amazonaws.regions.Region, not com.amazonaws.services.s3.model.Region, and it has values 
+	 *
+	 * To make things more complicated, there is a utility to map from Regions to Region but it's
+	 * com.amazonaws.regions.Region, not com.amazonaws.services.s3.model.Region, and it has values
 	 * like us-east-1, us-west-1, ca-central-1.
-	 * 
+	 *
 	 * So we have to map in two steps:
 	 */
 	public static Region getS3RegionForAWSRegions(Regions awsRegion) {
@@ -63,7 +45,7 @@ public class AwsClientFactory {
 
 	/**
 	 * Create all region-specific instances of the AmazonS3 client using a credential chain.
-	 * 
+	 *
 	 * @return
 	 */
 	public static SynapseS3Client createAmazonS3Client() {
@@ -82,7 +64,7 @@ public class AwsClientFactory {
 
 	/**
 	 * Create an instance of the TransferManager using a credential chain.
-	 * 
+	 *
 	 * @return
 	 */
 	public static TransferManager createTransferManager() {
@@ -90,32 +72,8 @@ public class AwsClientFactory {
 	}
 
 	/**
-	 * Create an instance of the AmazonAppConfigData using a credential chain.
-	 *
-	 * @return
-	 */
-	public static AWSAppConfigData createAppConfigClient() {
-		AWSAppConfigDataClientBuilder builder = AWSAppConfigDataClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * Create an instance of the AmazonSimpleSystemsManagement using a credential chain.
-	 *
-	 * @return
-	 */
-	public static AWSSimpleSystemsManagement createParameterStoreClient() {
-		AWSSimpleSystemsManagementClientBuilder builder = AWSSimpleSystemsManagementClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
 	 * Create an instance of the AmazonCloudWatch using a credential chain.
-	 * 
+	 *
 	 * @return
 	 */
 	public static AmazonCloudWatch createCloudWatchClient() {
@@ -125,17 +83,9 @@ public class AwsClientFactory {
 		return builder.build();
 	}
 
-	/** Create an instance of AWSSecurityTokenService using a credential chain. */
-	public static AWSSecurityTokenService createAmazonSecurityTokenServiceClient() {
-		AWSSecurityTokenServiceClientBuilder builder = AWSSecurityTokenServiceClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
 	/**
 	 * Create an instance of the AmazonSQS using a credential chain.
-	 * 
+	 *
 	 * @return
 	 */
 	public static AmazonSQS createAmazonSQSClient() {
@@ -146,52 +96,6 @@ public class AwsClientFactory {
 	}
 
 	/**
-	 * Create an instance of AmazonSNS using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AmazonSNS createAmazonSNSClient() {
-		AmazonSNSClientBuilder builder = AmazonSNSClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * Create an instance of AmazonSimpleEmailService using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AmazonSimpleEmailService createAmazonSimpleEmailServiceClient() {
-		AmazonSimpleEmailServiceClientBuilder builder = AmazonSimpleEmailServiceClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * Create an instance of AWSKMS client using a credential chain.
-	 * 
-	 * @return
-	 */
-	public static AWSKMS createAmazonKeyManagementServiceClient() {
-		AWSKMSAsyncClientBuilder builder = AWSKMSAsyncClientBuilder.standard();
-		builder.withRegion(Regions.US_EAST_1);
-		builder.withCredentials(SynapseAWSCredentialsProviderChain.getInstance());
-		return builder.build();
-	}
-
-	/**
-	 * @return An instance of AmazonKinesisFirehose client using the synapse credential chain
-	 */
-	public static AmazonKinesisFirehose createAmazonKinesisFirehoseClient(){
-		return AmazonKinesisFirehoseClientBuilder.standard()
-				.withRegion(Regions.US_EAST_1)
-				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
-				.build();
-	}
-	
-	/**
 	 * @return An instance of AmazonAthena client using the synapse credential chain
 	 */
 	public static AmazonAthena createAmazonAthenaClient() {
@@ -200,7 +104,7 @@ public class AwsClientFactory {
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
 	}
-	
+
 	/**
 	 * @return An instance of AWSGlue client using the synapse credential chain
 	 */
@@ -210,26 +114,5 @@ public class AwsClientFactory {
 				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
 				.build();
 	}
-	
-	/**
-	 * @return An instance of the AWSStepFunctions client using the synapse credential chain
-	 */
-	public static AWSStepFunctions createAmazonStepFunctionsClient() {
-		return AWSStepFunctionsClientBuilder.standard()
-				.withRegion(Regions.US_EAST_1)
-				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
-				.build();
-	}
-	
-	/**
-	 * 
-	 * @return An instance of the {@link AmazonApiGatewayV2} client using the synpase credential chain
-	 */
-	public static AmazonApiGatewayV2 createAmazonApiGatewayClient() {
-		return AmazonApiGatewayV2ClientBuilder.standard()
-				.withRegion(Regions.US_EAST_1)
-				.withCredentials(SynapseAWSCredentialsProviderChain.getInstance())
-				.build();
-	}
-	
+
 }

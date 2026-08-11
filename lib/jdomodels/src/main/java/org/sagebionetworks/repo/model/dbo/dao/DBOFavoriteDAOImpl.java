@@ -39,26 +39,29 @@ import org.sagebionetworks.repo.model.favorite.SortBy;
 import org.sagebionetworks.repo.model.favorite.SortDirection;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 /**
  * @author dburdick
  *
  */
+@Repository
 public class DBOFavoriteDAOImpl implements FavoriteDAO {
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	
-	@Autowired
-	private IdGenerator idGenerator;
+
+	private final DBOBasicDao basicDao;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final IdGenerator idGenerator;
+
+	public DBOFavoriteDAOImpl(DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate,
+			IdGenerator idGenerator) {
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.idGenerator = idGenerator;
+	}
 
 	private static final String ORDER_BY_PARAM_NAME = "orderByParam";
 	private static final String DIRECTION_PARAM_NAME = "directionParam";

@@ -15,8 +15,8 @@
 	
 	<import resource="stack-configuration.spb.xml" />
 
-	<bean id="awsSNSClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSNSClient" scope="prototype"/>
+	<bean id="awsSNSClient" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
+		factory-method="createSnsClient" scope="prototype"/>
 
 	<bean id="awsSQSClient" class="org.sagebionetworks.aws.AwsClientFactory"
 		factory-method="createAmazonSQSClient" scope="singleton" />

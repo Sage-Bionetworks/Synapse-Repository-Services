@@ -3,14 +3,21 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.export;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +27,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporterImpl.ValidationSummaryBuilder;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -37,11 +46,15 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationResults;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.util.csv.CSVWriterProvider;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -62,7 +75,11 @@ public class GridRecordSetExporterImplTest {
 	private CSVWriterProvider mockCsvWriterProvider;
 	@Mock
     private FileHandleManager mockFileHandleManager;
-	
+	@Mock
+	private TransactionTemplate mockTransactionTemplate;
+	@Mock
+	private GridRowValidator mockGridRowValidator;
+
 	@InjectMocks
 	private GridRecordSetExporterImpl exporter;
 
@@ -138,7 +155,6 @@ public class GridRecordSetExporterImplTest {
 		ArgumentCaptor<LocalFileUploadRequest> uploadRequestCaptor = ArgumentCaptor.forClass(LocalFileUploadRequest.class);
 		
 		when(mockFileHandleManager.uploadLocalFile(uploadRequestCaptor.capture())).thenReturn(new S3FileHandle().setId(validationFileHandleId));
-		
 		when(mockEntityService.updateEntity(userId, recordSet, true, null, true))
 			.then(invocation -> {
 				// Simulate version increment performed by the service; the service
@@ -252,5 +268,131 @@ public class GridRecordSetExporterImplTest {
 	public void testExportGridWithNullSessionIdInRequest() {
 		request.setSessionId(null);
 		assertThrows(IllegalArgumentException.class, () -> exporter.exportGrid(user, request, mockJobCallback));
+	}
+
+	@Test
+	public void testCreateArtifactBuilder() throws Exception {
+		CSVWriter mockDataWriter = mock(CSVWriter.class);
+		CSVWriter mockValidationWriter = mock(CSVWriter.class);
+
+		when(mockCsvWriterProvider.createWriter(any(FileWriter.class), eq(csvDescriptor))).thenReturn(mockDataWriter);
+		when(mockCsvWriterProvider.createWriter(any(FileWriter.class), isNull())).thenReturn(mockValidationWriter);
+
+		List<String> orderedColumnNames = List.of("col1", "col2");
+		JsonSchema validationSchema = new JsonSchema();
+		String fileNamePrefix = "job123";
+
+		RecordSetArtifactBuilder builder = null;
+
+		try {
+			// Call under test
+			builder = exporter.createArtifactBuilder(fileNamePrefix, orderedColumnNames, validationSchema, csvDescriptor, recordSetId);
+
+			assertNotNull(builder);
+			assertNotNull(builder.getDataCsvFile());
+			assertNotNull(builder.getValidationDetailsFile());
+			assertTrue(builder.getDataCsvFile().getName().startsWith(fileNamePrefix + "_push_data"));
+			assertTrue(builder.getValidationDetailsFile().getName().startsWith(fileNamePrefix + "_push_validation_details"));
+
+			// The header rows are written to each CSV as part of construction.
+			verify(mockDataWriter).writeNext(new String[] {"col1", "col2"});
+			verify(mockValidationWriter).writeNext(new String[] {"row_index", "is_valid", "validation_error_message", "all_validation_messages"});
+		} finally {
+			if (builder != null) {
+				builder.close();
+			}
+		}
+	}
+
+	@Test
+	public void testPushFromArtifactBuilder() throws Exception {
+		File dataFile = File.createTempFile("push_data", ".csv");
+		File validationFile = File.createTempFile("push_validation_details", ".csv");
+
+		try {
+			ValidationSummaryStatistics validationSummary = new ValidationSummaryStatistics()
+				.setContainerId(recordSetId)
+				.setTotalNumberOfChildren(3L)
+				.setNumberOfValidChildren(1L)
+				.setNumberOfInvalidChildren(1L)
+				.setNumberOfUnknownChildren(1L)
+				.setGeneratedOn(new Date());
+
+			RecordSetArtifactBuilder mockArtifactBuilder = mock(RecordSetArtifactBuilder.class);
+			when(mockArtifactBuilder.getDataCsvFile()).thenReturn(dataFile);
+			when(mockArtifactBuilder.getValidationDetailsFile()).thenReturn(validationFile);
+			when(mockArtifactBuilder.getValidationSummary()).thenReturn(validationSummary);
+
+			String dataFileHandleId = "111";
+			String pushedValidationFileHandleId = "222";
+
+			ArgumentCaptor<LocalFileUploadRequest> uploadRequestCaptor = ArgumentCaptor.forClass(LocalFileUploadRequest.class);
+
+			when(mockFileHandleManager.uploadLocalFile(uploadRequestCaptor.capture())).thenReturn(
+				new S3FileHandle().setId(dataFileHandleId),
+				new S3FileHandle().setId(pushedValidationFileHandleId)
+			);
+
+			doAnswer((Answer<RecordSet>) invocation -> {
+				TransactionCallback<RecordSet> callback = invocation.getArgument(0);
+				return callback.doInTransaction(mock(TransactionStatus.class));
+			}).when(mockTransactionTemplate).execute(any());
+
+			when(mockEntityService.updateEntity(userId, recordSet, true, null, true))
+				.then(invocation -> {
+					// Simulate version increment performed by the service; the service
+					// returns the re-fetched entity.
+					recordSet.setVersionNumber(2L);
+					return recordSet;
+				});
+
+			// Call under test
+			RecordSet result = exporter.pushFromArtifactBuilder(user, recordSet, mockArtifactBuilder);
+
+			assertEquals(2L, result.getVersionNumber());
+			assertEquals(dataFileHandleId, result.getDataFileHandleId());
+			assertEquals(pushedValidationFileHandleId, result.getValidationFileHandleId());
+			assertEquals(validationSummary, result.getValidationSummary());
+
+			List<LocalFileUploadRequest> uploadRequests = uploadRequestCaptor.getAllValues();
+			assertEquals(2, uploadRequests.size());
+
+			LocalFileUploadRequest dataUploadRequest = uploadRequests.get(0);
+			assertEquals(user.getId().toString(), dataUploadRequest.getUserId());
+			assertEquals(dataFile, dataUploadRequest.getFileToUpload());
+			assertEquals("text/csv", dataUploadRequest.getContentType());
+
+			LocalFileUploadRequest validationUploadRequest = uploadRequests.get(1);
+			assertEquals(user.getId().toString(), validationUploadRequest.getUserId());
+			assertEquals(validationFile, validationUploadRequest.getFileToUpload());
+			assertEquals("grid_validation_details.csv", validationUploadRequest.getFileName());
+			assertEquals("text/csv", validationUploadRequest.getContentType());
+
+			verify(mockValidationResultDao).setRecordSetValidationSummaryStatistics(
+				KeyFactory.stringToKey(recordSetId), 2L, validationSummary
+			);
+
+			verify(mockTransactionTemplate).execute(any());
+		} finally {
+			dataFile.delete();
+			validationFile.delete();
+		}
+	}
+
+	@Test
+	public void testPushFromArtifactBuilderWithNullUser() {
+		RecordSetArtifactBuilder mockArtifactBuilder = mock(RecordSetArtifactBuilder.class);
+		assertThrows(IllegalArgumentException.class, () -> exporter.pushFromArtifactBuilder(null, recordSet, mockArtifactBuilder));
+	}
+
+	@Test
+	public void testPushFromArtifactBuilderWithNullRecordSet() {
+		RecordSetArtifactBuilder mockArtifactBuilder = mock(RecordSetArtifactBuilder.class);
+		assertThrows(IllegalArgumentException.class, () -> exporter.pushFromArtifactBuilder(user, null, mockArtifactBuilder));
+	}
+
+	@Test
+	public void testPushFromArtifactBuilderWithNullArtifactBuilder() {
+		assertThrows(IllegalArgumentException.class, () -> exporter.pushFromArtifactBuilder(user, recordSet, null));
 	}
 }

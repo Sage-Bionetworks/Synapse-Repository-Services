@@ -83,6 +83,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+/**
+ * 
+ */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class GridReplicaViewManagerImplAutowireTest {
@@ -491,7 +494,6 @@ public class GridReplicaViewManagerImplAutowireTest {
 				assertEquals(expected, filtered, String.format("For: columnName: '%s', type: '%s',  value: %s",
 						cm.getName(), cm.getColumnType().name(), value));
 			}
-
 		}
 	}
 
@@ -1463,6 +1465,110 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// The row should have the JSON array as its value
 		String actualValue = ((JSONObject) result.getRows().get(0).getData()).getString("a");
 		assertEquals("[\"alpha\",\"beta\"]", actualValue);
+	}
+
+	/**
+	 * PLFM-9831/PLFM-9831.2: a filter value is matched strictly by its JSON type. On a scalar column a
+	 * scalar value "A" matches the scalar cells, while a single-element array value ["A"] is a genuine
+	 * JSON array and therefore matches no scalar cell. This is the half of the reviewer's mixed-column
+	 * scenario that proves a wrapped array cannot leak into a scalar cell.
+	 */
+	@Test
+	public void testQueryWithEqualsOperatorAndScalarColumn() throws IOException, JSONObjectAdapterException {
+		schema = List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(100L),
+				new ColumnModel().setName("b").setColumnType(ColumnType.INTEGER));
+		// Two rows in each category so a correct EQUALS filter returns exactly the "A" subset.
+		rows = List.of(
+				new Row().setValues(List.of("A", "1")),
+				new Row().setValues(List.of("A", "2")),
+				new Row().setValues(List.of("B", "3")),
+				new Row().setValues(List.of("B", "4")));
+
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		// A scalar value matches the scalar cells.
+		Query scalarQuery = new Query()
+				.setColumnSelection(List.of(new SelectAll()))
+				.setFilters(List.of(new CellValueFilter()
+						.setColumnName("a")
+						.setOperator(CellValueOperator.EQUALS)
+						.setValue("A")))
+				.setLimit(10L)
+				.setOffset(0L);
+
+		// call under test
+		QueryResult scalarResult = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement(scalarQuery));
+
+		assertNotNull(scalarResult);
+		assertEquals(2, scalarResult.getRows().size());
+		scalarResult.getRows().forEach(r -> {
+			try {
+				assertEquals("A", ((JSONObject) r.getData()).getString("a"));
+			} catch (JSONException e) {
+				throw new RuntimeException(e);
+			}
+		});
+
+		// A single-element array value is a JSON array and matches no scalar cell.
+		Query arrayQuery = new Query()
+				.setColumnSelection(List.of(new SelectAll()))
+				.setFilters(List.of(new CellValueFilter()
+						.setColumnName("a")
+						.setOperator(CellValueOperator.EQUALS)
+						.setValue(new JSONArrayAdapterImpl(new JSONArray(List.of("A"))))))
+				.setLimit(10L)
+				.setOffset(0L);
+
+		// call under test
+		QueryResult arrayResult = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement(arrayQuery));
+
+		assertNotNull(arrayResult);
+		assertEquals(0, arrayResult.getRows().size());
+	}
+
+	/**
+	 * PLFM-9831.2: on a LIST column a single-element array value ["A"] matches the single-element list
+	 * cells exactly. This is the other half of the reviewer's mixed-column scenario: the same ["A"]
+	 * filter that misses scalar cells (see {@link #testQueryWithEqualsOperatorAndScalarColumn()}) does
+	 * match a genuine list cell.
+	 */
+	@Test
+	public void testQueryWithEqualsOperatorAndSingleElementArrayOnListColumn()
+			throws IOException, JSONObjectAdapterException {
+		schema = List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING_LIST).setMaximumSize(100L),
+				new ColumnModel().setName("b").setColumnType(ColumnType.INTEGER));
+		// Two single-element list cells in each category so the ["A"] filter returns exactly that subset.
+		rows = List.of(
+				new Row().setValues(List.of("[\"A\"]", "1")),
+				new Row().setValues(List.of("[\"A\"]", "2")),
+				new Row().setValues(List.of("[\"B\"]", "3")),
+				new Row().setValues(List.of("[\"B\"]", "4")));
+
+		writeRowsAsPatches(rows, sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		Query query = new Query()
+				.setColumnSelection(List.of(new SelectAll()))
+				.setFilters(List.of(new CellValueFilter()
+						.setColumnName("a")
+						.setOperator(CellValueOperator.EQUALS)
+						.setValue(new JSONArrayAdapterImpl(new JSONArray(List.of("A"))))))
+				.setLimit(10L)
+				.setOffset(0L);
+
+		// call under test
+		QueryResult result = gridViewManager.querySinglePageAsQueryResult(header, new QueryElement(query));
+
+		assertNotNull(result);
+		assertEquals(2, result.getRows().size());
+		result.getRows().forEach(r -> {
+			try {
+				assertEquals("[\"A\"]", ((JSONObject) r.getData()).getString("a"));
+			} catch (JSONException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 
 }

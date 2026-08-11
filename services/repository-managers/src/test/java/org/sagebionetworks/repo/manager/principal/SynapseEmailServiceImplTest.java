@@ -17,11 +17,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.simpleemail.model.Body;
-import com.amazonaws.services.simpleemail.model.Content;
-import com.amazonaws.services.simpleemail.model.Destination;
-import com.amazonaws.services.simpleemail.model.Message;
-import com.amazonaws.services.simpleemail.model.SendEmailRequest;
+import software.amazon.awssdk.services.ses.model.Body;
+import software.amazon.awssdk.services.ses.model.Content;
+import software.amazon.awssdk.services.ses.model.Destination;
+import software.amazon.awssdk.services.ses.model.Message;
+import software.amazon.awssdk.services.ses.model.SendEmailRequest;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -54,18 +54,15 @@ public class SynapseEmailServiceImplTest {
 		s3KeyToDelete = to+".json";
 		assertFalse(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client, 2000L));
 		S3TestUtils.addObjectToDelete(BUCKET, s3KeyToDelete);
-		SendEmailRequest emailRequest = new SendEmailRequest();
-		Destination destination = new Destination();
-		destination.setToAddresses(Collections.singletonList(to));
-		emailRequest.setDestination(destination);
-		Message message = new Message();
-		Body body = new Body();
-		Content content = new Content();
-		content.setData("my dog has fleas");
-		body.setText(content);
-		message.setBody(body);
-		emailRequest.setMessage(message);
-		emailRequest.setSource("me@foo.bar");
+		Content content = Content.builder().data("my dog has fleas").build();
+		Body body = Body.builder().text(content).build();
+		Message message = Message.builder().body(body).build();
+		Destination destination = Destination.builder().toAddresses(Collections.singletonList(to)).build();
+		SendEmailRequest emailRequest = SendEmailRequest.builder()
+				.destination(destination)
+				.message(message)
+				.source("me@foo.bar")
+				.build();
 		sesClient.sendEmail(emailRequest);
 		assertTrue(S3TestUtils.doesFileExist(BUCKET, s3KeyToDelete, s3Client, 60000L));
 	}

@@ -1,0 +1,12 @@
+{
+  "description": "Request to copy one or more Synapse files into the code interpreter session so they can be inspected or processed.",
+  "properties": {
+    "files": {
+      "type": "array",
+      "description": "The files to add, each pairing a fileHandleAssociation (from the get-files-metadata tool) with the session path where it should appear.",
+      "items": {
+        "$ref": "org.sagebionetworks.repo.model.agent.SessionFileToAdd"
+      }
+    }
+  }
+}

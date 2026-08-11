@@ -25,22 +25,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.athena.model.Row;
-import com.amazonaws.services.glue.AWSGlue;
-import com.amazonaws.services.glue.model.Column;
-import com.amazonaws.services.glue.model.CreateDatabaseRequest;
-import com.amazonaws.services.glue.model.CreateTableRequest;
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.DatabaseInput;
-import com.amazonaws.services.glue.model.DeleteDatabaseRequest;
-import com.amazonaws.services.glue.model.DeleteTableRequest;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.GetDatabaseRequest;
-import com.amazonaws.services.glue.model.GetTableRequest;
-import com.amazonaws.services.glue.model.SerDeInfo;
-import com.amazonaws.services.glue.model.StorageDescriptor;
-import com.amazonaws.services.glue.model.Table;
-import com.amazonaws.services.glue.model.TableInput;
+import software.amazon.awssdk.services.athena.model.Row;
+import software.amazon.awssdk.services.glue.GlueClient;
+import software.amazon.awssdk.services.glue.model.Column;
+import software.amazon.awssdk.services.glue.model.CreateDatabaseRequest;
+import software.amazon.awssdk.services.glue.model.CreateTableRequest;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.DatabaseInput;
+import software.amazon.awssdk.services.glue.model.DeleteDatabaseRequest;
+import software.amazon.awssdk.services.glue.model.DeleteTableRequest;
+import software.amazon.awssdk.services.glue.model.EntityNotFoundException;
+import software.amazon.awssdk.services.glue.model.GetDatabaseRequest;
+import software.amazon.awssdk.services.glue.model.GetTableRequest;
+import software.amazon.awssdk.services.glue.model.SerDeInfo;
+import software.amazon.awssdk.services.glue.model.StorageDescriptor;
+import software.amazon.awssdk.services.glue.model.Table;
+import software.amazon.awssdk.services.glue.model.TableInput;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
@@ -52,7 +52,7 @@ public class AthenaSupportImplAutowireTest {
 	private StackConfiguration stackConfig;
 
 	@Autowired
-	private AWSGlue glueClient;
+	private GlueClient glueClient;
 
 	@Autowired
 	private SynapseS3Client s3Client;
@@ -135,7 +135,7 @@ public class AthenaSupportImplAutowireTest {
 
 	private void deleteGlueTable(String databaseName, String tableName) {
 		try {
-			glueClient.deleteTable(new DeleteTableRequest().withDatabaseName(databaseName).withName(tableName));
+			glueClient.deleteTable(DeleteTableRequest.builder().databaseName(databaseName).name(tableName).build());
 		} catch (EntityNotFoundException e) {
 
 		}
@@ -143,7 +143,7 @@ public class AthenaSupportImplAutowireTest {
 
 	private void deleteGlueDatabase(String databaseName) {
 		try {
-			glueClient.deleteDatabase(new DeleteDatabaseRequest().withName(databaseName));
+			glueClient.deleteDatabase(DeleteDatabaseRequest.builder().name(databaseName).build());
 		} catch (EntityNotFoundException e) {
 
 		}
@@ -151,39 +151,39 @@ public class AthenaSupportImplAutowireTest {
 
 	private void createGlueDatabase(String databaseName) {
 		try {
-			glueClient.getDatabase(new GetDatabaseRequest().withName(databaseName));
+			glueClient.getDatabase(GetDatabaseRequest.builder().name(databaseName).build());
 		} catch (EntityNotFoundException e) {
 			// @formatter:off
-			glueClient.createDatabase(new CreateDatabaseRequest()
-					.withDatabaseInput(new DatabaseInput().withName(databaseName).withDescription("Testing database")));
+			glueClient.createDatabase(CreateDatabaseRequest.builder()
+					.databaseInput(DatabaseInput.builder().name(databaseName).description("Testing database").build()).build());
 			// @formatter:on
 		}
 	}
 
 	private void createGlueTable(String databaseName, String tableName) {
 		try {
-			glueClient.getTable(new GetTableRequest().withDatabaseName(databaseName).withName(tableName));
+			glueClient.getTable(GetTableRequest.builder().databaseName(databaseName).name(tableName).build());
 		} catch (EntityNotFoundException e) {
 			// @formatter:off
 						
-			StorageDescriptor storageDescriptor = new StorageDescriptor()
-					.withColumns(new Column().withName(columnName).withType("string"))
-					.withLocation("s3://" + getS3Bucket() +  "/" + tableName)
-					.withInputFormat("org.apache.hadoop.mapred.TextInputFormat")
-					.withOutputFormat("org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat")
-					.withSerdeInfo(new SerDeInfo()
-							.withSerializationLibrary("org.openx.data.jsonserde.JsonSerDe")
-							.withParameters(ImmutableMap.of("serialization.format", "1")));
+			StorageDescriptor storageDescriptor = StorageDescriptor.builder()
+					.columns(Column.builder().name(columnName).type("string").build())
+					.location("s3://" + getS3Bucket() +  "/" + tableName)
+					.inputFormat("org.apache.hadoop.mapred.TextInputFormat")
+					.outputFormat("org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat")
+					.serdeInfo(SerDeInfo.builder()
+							.serializationLibrary("org.openx.data.jsonserde.JsonSerDe")
+							.parameters(ImmutableMap.of("serialization.format", "1")).build()).build();
 			
-			glueClient.createTable(new CreateTableRequest()
-					
-					.withDatabaseName(databaseName)
-					.withTableInput(new TableInput()
-							.withTableType("EXTERNAL_TABLE")
-							.withPartitionKeys(new Column().withName(partitionName).withType("int"))
-							.withName(tableName)
-							.withStorageDescriptor(storageDescriptor))
-					);
+			glueClient.createTable(CreateTableRequest.builder()
+
+					.databaseName(databaseName)
+					.tableInput(TableInput.builder()
+							.tableType("EXTERNAL_TABLE")
+							.partitionKeys(Column.builder().name(partitionName).type("int").build())
+							.name(tableName)
+							.storageDescriptor(storageDescriptor).build())
+					.build());
 			 
 			// @formatter:on
 
@@ -209,7 +209,7 @@ public class AthenaSupportImplAutowireTest {
 		boolean testTableFound = false;
 		
 		while(tables.hasNext()) {
-			if (tables.next().getName().equals(athenaSupport.getTableName(tableName) )) {
+			if (tables.next().name().equals(athenaSupport.getTableName(tableName) )) {
 				testTableFound = true;
 			}
 		}
@@ -230,7 +230,7 @@ public class AthenaSupportImplAutowireTest {
 
 		// Call under test
 		AthenaQueryResult<Integer> result = athenaSupport.executeQuery(database, query, (Row row) -> {
-			return Integer.valueOf(row.getData().get(0).getVarCharValue());
+			return Integer.valueOf(row.data().get(0).varCharValue());
 		}, excludeHeader);
 
 		assertNotNull(result);
@@ -246,7 +246,7 @@ public class AthenaSupportImplAutowireTest {
 
 		// Call under test, rerun the query
 		result = athenaSupport.executeQuery(database, query, (Row row) -> {
-			return Integer.valueOf(row.getData().get(0).getVarCharValue());
+			return Integer.valueOf(row.data().get(0).varCharValue());
 		}, excludeHeader);
 
 		assertNotNull(result);

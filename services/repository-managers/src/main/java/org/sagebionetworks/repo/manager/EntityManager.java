@@ -69,6 +69,19 @@ public interface EntityManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Get an entity without an authorization check.
+	 * @param <T>
+	 * @param entityId
+	 * @param entityClass
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	<T extends Entity> T getEntityWithoutAuthorization(String entityId, Class<? extends T> entityClass)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
 	 * Get the full path of an entity.
 	 * 
 	 * @param userInfo

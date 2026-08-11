@@ -11,18 +11,21 @@ import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
-	
-	@Autowired
-	private DBOBasicDao basicDao;
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final DBOBasicDao basicDao;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	public SubmissionFileHandleDAOImpl(DBOBasicDao basicDao, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.basicDao = basicDao;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 	
 	private static final String SELECT_ALL = "SELECT *";
 	

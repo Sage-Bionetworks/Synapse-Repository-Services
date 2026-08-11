@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,6 +44,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -116,6 +118,8 @@ public class AccessRequirementManagerImplUnitTest {
 	private DataAccessAuthorizationManager mockDaAuthManager;
 	@Mock
 	private ForumDAO forumDao;
+	@Mock
+	private DocuSignClient mockDocuSignClient;
 
 	@InjectMocks
 	private AccessRequirementManagerImpl arm;
@@ -219,6 +223,22 @@ public class AccessRequirementManagerImplUnitTest {
 		verifyNoMoreInteractions(accessRequirementDAO);
 	}
 	
+	@Test
+	public void testCreateWithInvalidEDucTemplate() {
+		ManagedACTAccessRequirement ar = createExpectedAR();
+		ar.setEDucTemplateId("invalid-tpl");
+		doThrow(new IllegalArgumentException("Template has no signer roles defined."))
+				.when(mockDocuSignClient).validateTemplate("invalid-tpl");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> arm.createAccessRequirement(userInfo, ar));
+
+		assertEquals("Template has no signer roles defined.", ex.getMessage());
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+		verifyNoMoreInteractions(accessRequirementDAO);
+	}
+
 	@Test
 	public void testUpdateAccessRequirementWithSubjectsDefinedByAnnotations() {
 		AccessRequirement ar = createExpectedAR();
@@ -591,6 +611,23 @@ public class AccessRequirementManagerImplUnitTest {
 		assertThrows(UnauthorizedException.class, () -> {
 			arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate);
 		});
+		verifyNoMoreInteractions(mockTransactionalMessenger);
+	}
+
+	@Test
+	public void testUpdateWithInvalidEDucTemplate() {
+		ManagedACTAccessRequirement toUpdate = createExpectedAR();
+		String accessRequirementId = "1";
+		toUpdate.setId(1L);
+		toUpdate.setEDucTemplateId("invalid-tpl");
+		doThrow(new IllegalArgumentException("Template has no signer roles defined."))
+				.when(mockDocuSignClient).validateTemplate("invalid-tpl");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> arm.updateAccessRequirement(userInfo, accessRequirementId, toUpdate));
+
+		assertEquals("Template has no signer roles defined.", ex.getMessage());
 		verifyNoMoreInteractions(mockTransactionalMessenger);
 	}
 

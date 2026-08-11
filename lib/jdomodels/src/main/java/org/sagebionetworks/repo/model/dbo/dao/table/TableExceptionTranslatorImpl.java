@@ -4,7 +4,7 @@ import org.sagebionetworks.repo.model.dao.table.ColumnNameProvider;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
 import java.util.HashSet;
@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Component
 public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 
 	private static Pattern PATTERN_TABLE_NAME = Pattern.compile(SQLUtils.TABLE_PREFIX + "[0-9]+");
@@ -24,11 +25,13 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	private static final String CHECK_CONSTRAINT_SUFFIX = "' is violated.";
 	private static final String CHECK_CONSTRAINT_PREFIX = "Check constraint '";
 
-	@Autowired
-	private ColumnNameProvider columnNameProvider;
-	
-	@Autowired
-	private ConnectionFactory connectionFactory;
+	private final ColumnNameProvider columnNameProvider;
+	private final ConnectionFactory connectionFactory;
+
+	public TableExceptionTranslatorImpl(ColumnNameProvider columnNameProvider, ConnectionFactory connectionFactory) {
+		this.columnNameProvider = columnNameProvider;
+		this.connectionFactory = connectionFactory;
+	}
 
 	/**
 	 * Attempt to translate the given exception into a human readable error message.

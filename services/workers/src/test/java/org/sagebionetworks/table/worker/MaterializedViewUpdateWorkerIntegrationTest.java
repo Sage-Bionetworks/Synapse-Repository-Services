@@ -49,7 +49,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.download.AddToDownloadListRequest;
 import org.sagebionetworks.repo.model.download.AddToDownloadListResponse;
@@ -84,6 +84,10 @@ import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.DatabaseColumnInfo;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -127,13 +131,16 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	private TrashManager trashManager;
 
 	@Autowired
-	private MaterializedViewDao materializedViewDao;
+	private DefiningSqlDependencyDao definingSqlDependencyDao;
 
 	@Autowired
 	private RepositoryMessagePublisher repositoryMessagePublisher;
 
 	@Autowired
 	private DBOChangeDAO changeDAO;
+
+	@Autowired
+	private ConnectionFactory tableConnectionFactory;
 
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
@@ -854,6 +861,80 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 			asyncHelper.assertQueryResult(adminUserInfo, materializedQuery, (results) -> {
 			}, MAX_WAIT_MS);
 		});
+	}
+
+	/**
+	 * Documents a known leak, end-to-end through the real SNS/SQS pipeline and every worker wired
+	 * by main-scheduler-spb.xml: deleting a MaterializedView entity does NOT drop its index table
+	 * (T&lt;id&gt;) from the index database.
+	 *
+	 * The delete DOES fan out a message — but as a generic {@link ObjectType#ENTITY} DELETE
+	 * (see NodeDAOImpl.delete), not a {@link ObjectType#MATERIALIZED_VIEW} one. The
+	 * MATERIALIZED_VIEW_UPDATE queue subscribes only to the MATERIALIZED_VIEW topic
+	 * (Synapse-Stack-Builder sns-and-sqs-config.json), so the message never reaches
+	 * MaterializedViewUpdateWorker and its deleteViewIndex branch is never invoked. This test
+	 * asserts the actual CHANGES-table fan-out to prove exactly which message is (and is not)
+	 * published, then confirms the index table survives.
+	 *
+	 * If a MATERIALIZED_VIEW-typed DELETE ever gets published on entity deletion, the two
+	 * assertions below (no MV DELETE, index table still exists) will start failing — flip them to
+	 * assert an MV DELETE is published and the table is gone (empty getDatabaseInfo), and remove
+	 * this note.
+	 */
+	@Test
+	public void testMaterializedViewIndexOrphanedOnEntityDelete() throws Exception {
+		String projectId = createProject();
+
+		List<ColumnModel> schema = List.of(columnModelManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setColumnType(ColumnType.STRING).setName("one")));
+
+		IdAndVersion tableId = createTable(projectId, TableModelUtils.getIds(schema));
+
+		String definingSql = "select * from " + tableId;
+
+		IdAndVersion materializedViewId = createMaterializedView(projectId, definingSql);
+
+		asyncHelper.waitForTableOrViewToBeAvailable(materializedViewId, MAX_WAIT_MS);
+
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(materializedViewId);
+
+		// The index table exists in the index database once the MV has built.
+		List<DatabaseColumnInfo> builtInfo = indexDao.getDatabaseInfo(materializedViewId, false);
+		assertFalse(builtInfo.isEmpty(), "Expected the materialized view index table to exist after build");
+
+		Set<Long> mvObjectId = Set.of(materializedViewId.getId());
+
+		// call under test
+		entityManager.deleteEntity(adminUserInfo, materializedViewId.getId().toString());
+
+		// The entity is gone from the main database.
+		assertThrows(NotFoundException.class,
+				() -> entityManager.getEntity(adminUserInfo, materializedViewId.getId().toString()));
+
+		// A DELETE message IS fanned out — but as a generic ENTITY DELETE, not an MV one.
+		assertTrue(
+				changeDAO.getChangesForObjectIds(ObjectType.ENTITY, mvObjectId).stream()
+						.anyMatch(c -> ChangeType.DELETE.equals(c.getChangeType())),
+				"Expected an ENTITY DELETE change message for the deleted materialized view node");
+
+		// Nothing ever publishes a MATERIALIZED_VIEW-typed DELETE, so the MV worker never runs its
+		// deleteViewIndex branch.
+		assertTrue(
+				changeDAO.getChangesForObjectIds(ObjectType.MATERIALIZED_VIEW, mvObjectId).stream()
+						.noneMatch(c -> ChangeType.DELETE.equals(c.getChangeType())),
+				"No MATERIALIZED_VIEW DELETE should be published on entity delete (this is the leak)");
+
+		// LEAK: give the whole worker fleet a real window to drain the fanned-out messages and drop
+		// the index table. Wait for the table to disappear and expect the wait to TIME OUT — no
+		// worker ever cleans it up, so it stays orphaned in the index database.
+		long cleanupGraceMs = 15_000L;
+		boolean tableWasDropped = TimeUtils.waitFor(cleanupGraceMs, 1000L, materializedViewId,
+				id -> indexDao.getDatabaseInfo(id, false).isEmpty());
+		assertFalse(tableWasDropped,
+				"Materialized view index table is orphaned in the index database after entity delete");
+
+		// Clean up the orphaned index table the way a stack rebuild eventually would.
+		indexDao.deleteTable(materializedViewId);
 	}
 
 	@Test

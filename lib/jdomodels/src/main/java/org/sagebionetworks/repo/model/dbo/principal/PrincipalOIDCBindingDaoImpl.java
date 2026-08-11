@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_OIDC_BINDING_SUBJECT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_OIDC_BINDING;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -98,6 +99,16 @@ public class PrincipalOIDCBindingDaoImpl implements PrincipalOIDCBindingDao {
 		
 	}
 	
+	@Override
+	public List<OAuthProvider> getLinkedProviders(Long principalId) {
+		String sql = "SELECT DISTINCT " + COL_PRINCIPAL_OIDC_BINDING_PROVIDER
+				+ " FROM " + TABLE_PRINCIPAL_OIDC_BINDING
+				+ " WHERE " + COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID + " = ?";
+		return jdbcTemplate.queryForList(sql, String.class, principalId).stream()
+				.map(OAuthProvider::valueOf)
+				.toList();
+	}
+
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("TRUNCATE TABLE " + TABLE_PRINCIPAL_OIDC_BINDING);

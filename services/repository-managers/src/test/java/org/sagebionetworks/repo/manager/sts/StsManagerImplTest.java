@@ -36,10 +36,11 @@ import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.amazonaws.services.securitytoken.model.Credentials;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
+import software.amazon.awssdk.services.sts.model.Credentials;
+
 import com.google.common.collect.ImmutableList;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,7 +83,7 @@ public class StsManagerImplTest {
 	private StackConfiguration mockStackConfiguration;
 
 	@Mock
-	private AWSSecurityTokenService mockStsClient;
+	private StsClient mockStsClient;
 
 	@InjectMocks
 	private StsManagerImpl stsManager;
@@ -146,11 +147,11 @@ public class StsManagerImplTest {
 				AssumeRoleRequest.class);
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
-		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.roleSessionName());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.durationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.roleArn());
 
-		String policy = request.getPolicy();
+		String policy = request.policy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
@@ -189,7 +190,7 @@ public class StsManagerImplTest {
 				AssumeRoleRequest.class);
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
-		assertEquals(sessionDurationSeconds, request.getDurationSeconds());
+		assertEquals(sessionDurationSeconds, request.durationSeconds());
 	}
 
 	@Test
@@ -219,11 +220,11 @@ public class StsManagerImplTest {
 				AssumeRoleRequest.class);
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
-		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.roleSessionName());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.durationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.roleArn());
 
-		String policy = request.getPolicy();
+		String policy = request.policy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"*\"]}"));
@@ -266,11 +267,11 @@ public class StsManagerImplTest {
 				AssumeRoleRequest.class);
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
-		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.roleSessionName());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.durationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.roleArn());
 
-		String policy = request.getPolicy();
+		String policy = request.policy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + BUCKET + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
@@ -314,11 +315,11 @@ public class StsManagerImplTest {
 				AssumeRoleRequest.class);
 		verify(mockStsClient).assumeRole(requestCaptor.capture());
 		AssumeRoleRequest request = requestCaptor.getValue();
-		assertEquals(EXPECTED_STS_SESSION_NAME, request.getRoleSessionName());
-		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.getDurationSeconds());
-		assertEquals(AWS_ROLE_ARN, request.getRoleArn());
+		assertEquals(EXPECTED_STS_SESSION_NAME, request.roleSessionName());
+		assertEquals(StsManagerImpl.DEFAULT_DURATION_SECONDS, request.durationSeconds());
+		assertEquals(AWS_ROLE_ARN, request.roleArn());
 
-		String policy = request.getPolicy();
+		String policy = request.policy();
 		assertTrue(policy.contains("\"arn:aws:s3:::" + expectedBucket + "\""));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "\"]}"));
 		assertTrue(policy.contains("{\"s3:prefix\":[\"" + BASE_KEY + "/*\"]}"));
@@ -361,10 +362,14 @@ public class StsManagerImplTest {
 		when(mockStackConfiguration.getSTSTokenDurationSeconds()).thenReturn(null); // without this, it returns 0
 
 		// Mock the actual STS call.
-		Credentials credentials = new Credentials(AWS_ACCESS_KEY, AWS_SECRET_KEY, AWS_SESSION_TOKEN,
-				AWS_EXPIRATION_DATE);
-		AssumeRoleResult result = new AssumeRoleResult().withCredentials(credentials);
-		when(mockStsClient.assumeRole(any())).thenReturn(result);
+		Credentials credentials = Credentials.builder()
+				.accessKeyId(AWS_ACCESS_KEY)
+				.secretAccessKey(AWS_SECRET_KEY)
+				.sessionToken(AWS_SESSION_TOKEN)
+				.expiration(AWS_EXPIRATION_DATE.toInstant())
+				.build();
+		AssumeRoleResponse result = AssumeRoleResponse.builder().credentials(credentials).build();
+		when(mockStsClient.assumeRole(any(AssumeRoleRequest.class))).thenReturn(result);
 	}
 
 	private void assertStsCredentials(StsCredentials credentials) {

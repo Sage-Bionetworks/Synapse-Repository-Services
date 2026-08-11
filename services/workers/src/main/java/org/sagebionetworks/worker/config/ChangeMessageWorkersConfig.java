@@ -190,7 +190,7 @@ public class ChangeMessageWorkersConfig {
 			.withStartDelay(253)
 			.build();
 	}
-	
+
 	@Bean
 	public SimpleTriggerFactoryBean fileHandleStreamWorkerTrigger(StackStatusGate stackStatusGate, FileHandleStreamWorker fileHandleStreamWorker) {
 		
@@ -324,7 +324,7 @@ public class ChangeMessageWorkersConfig {
 				.withSemaphoreLockKey("searchIndexLifecycleWorker")
 				.withSemaphoreMaxLockCount(4)
 				.withSemaphoreLockAndMessageVisibilityTimeoutSec(300)
-				.withMaxThreadsPerMachine(4)
+				.withMaxThreadsPerMachine(2)
 				.withSingleton(concurrentStackManager)
 				.withCanRunInReadOnly(false)
 				.withQueueName(queueName)

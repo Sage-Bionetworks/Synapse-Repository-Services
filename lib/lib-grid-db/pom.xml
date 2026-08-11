@@ -24,12 +24,6 @@
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-dbuserhelper</artifactId>
-			<version>develop-SNAPSHOT</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-grid</artifactId>
 		</dependency>
 

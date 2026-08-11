@@ -7,7 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.BodyPart;
 import jakarta.mail.MessagingException;
@@ -20,7 +20,7 @@ public class MessageTestUtil {
 	public static String getSubjectFromRawMessage(SendRawEmailRequest request) {
 		try {
 			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-					new ByteArrayInputStream(request.getRawMessage().getData().array()));
+					new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 			return mimeMessage.getSubject();
 		} catch (MessagingException e) {
 			throw new RuntimeException(e);
@@ -30,7 +30,7 @@ public class MessageTestUtil {
 	public static String getBodyFromRawMessage(SendRawEmailRequest request, String expectedMimeType) {
 		try {
 			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-					new ByteArrayInputStream(request.getRawMessage().getData().array()));
+					new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 			assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
 			MimeMultipart content = (MimeMultipart)mimeMessage.getContent();
 			assertEquals(1, content.getCount());
@@ -48,7 +48,7 @@ public class MessageTestUtil {
 	public static String getHeaderFromRawMessage(SendRawEmailRequest request, String headerName) {
 		try {
 			MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-					new ByteArrayInputStream(request.getRawMessage().getData().array()));
+					new ByteArrayInputStream(request.rawMessage().data().asByteArray()));
 			assertTrue(mimeMessage.getContentType().startsWith("multipart/related"));
 			String[] headerValues = mimeMessage.getHeader(headerName);
 			assertEquals(1, headerValues.length);

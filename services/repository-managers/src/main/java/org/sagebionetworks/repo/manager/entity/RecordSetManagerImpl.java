@@ -6,8 +6,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.grid.create.RecordSetCreateGridHandler;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -16,10 +14,9 @@ import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.schema.EntitySchemaValidationResultDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.metadata.EntityEvent;
 import org.sagebionetworks.repo.service.metadata.EventType;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -29,23 +26,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class RecordSetManagerImpl implements RecordSetManager {
 
-    private final FileHandleManager fileHandleManager;
-    private final RecordSetSchemaResolver schemaResolver;
     private final ColumnModelManager columnModelManager;
     private final NodeDAO nodeDao;
     private final TableManagerSupport tableManagerSupport;
     private final EntitySchemaValidationResultDao validationResultDao;
+    private final RecordSetSchemaResolver recordSetSchemaResolver;
 
     @Inject
-    public RecordSetManagerImpl(FileHandleManager fileHandleManager, RecordSetSchemaResolver schemaResolver,
-                                ColumnModelManager columnModelManager, NodeDAO nodeDao,
-                                TableManagerSupport tableManagerSupport, EntitySchemaValidationResultDao validationResultDao) {
-        this.fileHandleManager = fileHandleManager;
-        this.schemaResolver = schemaResolver;
+    public RecordSetManagerImpl(ColumnModelManager columnModelManager, NodeDAO nodeDao,
+                                TableManagerSupport tableManagerSupport, EntitySchemaValidationResultDao validationResultDao,
+                                RecordSetSchemaResolver recordSetSchemaResolver) {
         this.columnModelManager = columnModelManager;
         this.nodeDao = nodeDao;
         this.tableManagerSupport = tableManagerSupport;
         this.validationResultDao = validationResultDao;
+        this.recordSetSchemaResolver = recordSetSchemaResolver;
     }
 
     @Override
@@ -71,34 +66,29 @@ public class RecordSetManagerImpl implements RecordSetManager {
     @Override
     @WriteTransaction
     public void inferSchemaAndBindToIndex(UserInfo userInfo, RecordSet entity) {
-        FileHandle dataFileHandle = fileHandleManager.getRawFileHandleUnchecked(entity.getDataFileHandleId());
-        // RecordSet.csvDescriptor is optional, so fall back to the same default as the grid create flow
-        CsvTableDescriptor csvDescriptor = Optional.ofNullable(entity.getCsvDescriptor())
-                .orElse(RecordSetCreateGridHandler.DEFAULT_RECORD_SET_CSV_DESCRIPTOR);
+        // Only index RecordSets that have a bound JSON Schema. The columns are derived from the bound schema.
+        Optional<JsonSchema> jsonSchema = recordSetSchemaResolver.getBoundValidationSchema(entity.getId());
+        if (jsonSchema.isPresent()) {
+            List<ColumnModel> schema = RecordSetSchemaResolver.getJsonSchemaColumns(jsonSchema.get());
+            if (schema.isEmpty()) {
+                throw new IllegalArgumentException("Cannot determine the column model schema from the JSON Schema. At least one property must be present.");
+            }
 
-        // This step occurs within the same transaction as the entity update, so we avoid a full CSV scan.
-        // Because we are not scanning all rows, the inferred columns may be inaccurate. A bound JSON Schema
-        // can be used to 'reconcile' the column models and ensure the schema is correct.
-        boolean doFullCsvScan = false;
-        List<ColumnModel> schema = schemaResolver.getReconciledSchema(entity.getId(), dataFileHandle, csvDescriptor, doFullCsvScan).getSchema();
-        if (schema.isEmpty()) {
-            throw new IllegalArgumentException("Cannot determine the schema from the CSV file, at least one column header must be present.");
+            List<ColumnModel> persistedColumns = columnModelManager.createColumnModels(userInfo, schema);
+            List<String> columnIds = persistedColumns.stream().map(ColumnModel::getId).collect(Collectors.toList());
+
+            Long id = KeyFactory.stringToKey(entity.getId());
+            Long versionNumber = nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(id));
+            IdAndVersion versionedKey = IdAndVersion.newBuilder().setId(id).setVersion(versionNumber).build();
+            // Versioned binding preserves the schema for this specific snapshot.
+            columnModelManager.bindColumnsToVersionOfObject(columnIds, versionedKey);
+            // Default binding serves queries against "syn123" (no version). The provider
+            // always fires for the current revision, so this is always correct here.
+            columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, entity.getId());
+
+            // Finally, trigger rebuilding the index.
+            triggerIndexRebuild(entity);
         }
-
-        List<ColumnModel> persistedColumns = columnModelManager.createColumnModels(userInfo, schema);
-        List<String> columnIds = persistedColumns.stream().map(ColumnModel::getId).collect(Collectors.toList());
-
-        Long id = KeyFactory.stringToKey(entity.getId());
-        Long versionNumber = nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(id));
-        IdAndVersion versionedKey = IdAndVersion.newBuilder().setId(id).setVersion(versionNumber).build();
-        // Versioned binding preserves the schema for this specific snapshot.
-        columnModelManager.bindColumnsToVersionOfObject(columnIds, versionedKey);
-        // Default binding serves queries against "syn123" (no version). The provider
-        // always fires for the current revision, so this is always correct here.
-        columnModelManager.bindColumnsToDefaultVersionOfObject(columnIds, entity.getId());
-
-        // Finally, trigger rebuilding the index.
-        triggerIndexRebuild(entity);
     }
 
     void triggerIndexRebuild(RecordSet entity) {

@@ -1,0 +1,12 @@
+{
+  "description": "Request to describe the session-eligibility metadata for one or more Synapse files (each a FileEntity or RecordSet).",
+  "properties": {
+    "entityIds": {
+      "type": "array",
+      "description": "The FileEntity or RecordSet IDs to describe (e.g. 'syn123' or 'syn123.5').",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

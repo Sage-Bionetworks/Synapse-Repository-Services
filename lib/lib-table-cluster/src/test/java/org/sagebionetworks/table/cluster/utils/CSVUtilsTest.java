@@ -525,8 +525,7 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType("[\"a\",\"b\"]", intList);
 		assertNotNull(cm);
 		assertEquals(ColumnType.STRING_LIST, cm.getColumnType());
-		// maximumListLength should be carried forward (max of 3 and 2)
-		assertEquals(Long.valueOf(3), cm.getMaximumListLength());
+		assertEquals(ColumnConstants.DEFAULT_LIST_LENGTH, cm.getMaximumListLength());
 	}
 
 	@Test
@@ -601,7 +600,8 @@ public class CSVUtilsTest {
 		ColumnModel cm = CSVUtils.checkType("[\"a\",\"b\"]", current);
 		// maximumSize is max of current (4) and longest element "a"/"b" (1) = 4
 		assertEquals(
-				new ColumnModel().setColumnType(ColumnType.STRING_LIST).setMaximumSize(4L).setMaximumListLength(2L),
+				new ColumnModel().setColumnType(ColumnType.STRING_LIST).setMaximumSize(4L)
+						.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH),
 				cm);
 	}
 
@@ -611,7 +611,8 @@ public class CSVUtilsTest {
 		// call under test
 		ColumnModel cm = CSVUtils.checkType("[1,2,3,4]", current);
 		assertEquals(
-				new ColumnModel().setColumnType(ColumnType.INTEGER_LIST).setMaximumSize(9L).setMaximumListLength(4L),
+				new ColumnModel().setColumnType(ColumnType.INTEGER_LIST).setMaximumSize(9L)
+						.setMaximumListLength(ColumnConstants.DEFAULT_LIST_LENGTH),
 				cm);
 	}
 

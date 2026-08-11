@@ -18,11 +18,12 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class DataTypeDaoImpl implements DataTypeDao {
 
 	/**
@@ -39,12 +40,15 @@ public class DataTypeDaoImpl implements DataTypeDao {
 	private static final String SQL_DELETE_OBJECT = "DELETE FROM " + TABLE_DATA_TYPE + " WHERE "
 			+ COL_DATA_TYPE_OBJECT_ID + " = ? AND " + COL_DATA_TYPE_OBJECT_TYPE + " = ?";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private DBOBasicDao dboBasicDao;
-	@Autowired
-	private IdGenerator idgenerator;
+	private final JdbcTemplate jdbcTemplate;
+	private final DBOBasicDao dboBasicDao;
+	private final IdGenerator idgenerator;
+
+	public DataTypeDaoImpl(JdbcTemplate jdbcTemplate, DBOBasicDao dboBasicDao, IdGenerator idgenerator) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.dboBasicDao = dboBasicDao;
+		this.idgenerator = idgenerator;
+	}
 
 	@WriteTransaction
 	@Override

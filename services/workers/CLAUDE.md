@@ -158,6 +158,8 @@ Common transient exceptions to catch and retry:
 - `AmazonServiceException` (service errors)
 - `TemporarilyUnavailableException`
 
+**Worker-specific exception semantics matter.** In `SearchIndexLifecycleWorker`, a `NotFoundException` on the source entity means "entity is gone → clean up its index" (falls back to the delete path), NOT a generic permanent failure — preserve that fallback when editing the exception cascade.
+
 ## Worker Categories
 
 | Package | Type | Description |
@@ -166,12 +168,14 @@ Common transient exceptions to catch and retry:
 | `table/` | Message-driven | Table index management, materialized view updates |
 | `replication/` | Batch message | Entity replication to index database |
 | `file/` | Message-driven | File preview generation |
-| `search/` | Message-driven | Search index (OpenSearch) updates |
+| `search/oss/worker/` | Message-driven | Legacy OpenSearch index writer (`SearchIndexWorker`, queue-driven) |
+| `search/workers/` | Mixed | `SearchIndexLifecycleWorker` (change-message-driven, builds/deletes managed-domain SearchIndex) + `SearchQueryWorker` (`AsyncJobRunner`) |
+| `recordset/worker/` | Message-driven | `RecordSetIndexWorker` — builds the queryable index for a RecordSet version |
 | `schema/` | Message-driven | JSON Schema validation |
 | `migration/` | Batch message | Data migration workers |
 | `log/` | Scheduled | S3 log collation |
 | `agent/` | Message-driven | AI agent chat processing |
-| `grid/` | Message-driven | Grid CRDT patch processing, validation |
+| `grid/` | Mixed | Grid CRDT patch processing + validation (message-driven) plus `GridQueryWorker`/`GridUpdateWorker` (`AsyncJobRunner`) |
 
 ## Key Architectural Worker: ChangeSentMessageSynchWorker
 
@@ -192,7 +196,7 @@ This worker drives index rebuilding after migration:
 
 ## Testing
 
-- JUnit 5 + Mockito 2.27 (`@ExtendWith(MockitoExtension.class)`)
+- JUnit 5 + Mockito 5.x (`@ExtendWith(MockitoExtension.class)`)
 - Mock managers/DAOs, verify expected calls
 - Test both success paths and error handling (RecoverableMessageException vs permanent failure)
 - Test ObjectType/ChangeType filtering logic

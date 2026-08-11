@@ -28,26 +28,26 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-
 public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final UserGroupDAO userGroupDAO;
+	private final TransactionalMessenger transactionalMessenger;
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
+	public DBOGroupMembersDAOImpl(NamedParameterJdbcTemplate namedJdbcTemplate, JdbcTemplate jdbcTemplate,
+			UserGroupDAO userGroupDAO, TransactionalMessenger transactionalMessenger) {
+		this.namedJdbcTemplate = namedJdbcTemplate;
+		this.jdbcTemplate = jdbcTemplate;
+		this.userGroupDAO = userGroupDAO;
+		this.transactionalMessenger = transactionalMessenger;
+	}
 
 	private static final String PRINCIPAL_ID_PARAM_NAME = "principalId";
 	private static final String GROUP_ID_PARAM_NAME     = "groupId";

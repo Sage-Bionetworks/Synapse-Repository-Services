@@ -5,15 +5,8 @@ package org.sagebionetworks.repo.model.principal;
  * @author John
  *
  */
-public abstract class BootstrapPrincipal {
+public interface BootstrapPrincipal {
+	
+	Long getId();
 
-	Long id;
-
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}	
 }

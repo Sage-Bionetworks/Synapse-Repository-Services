@@ -26,8 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.Table;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -76,12 +76,12 @@ public class FileHandleStreamWorkerIntegrationTest {
 		Database dataBase = athenaSupport.getDatabase("firehoseLogs");
 		Table table = athenaSupport.getTable(dataBase, "fileHandleDataRecords");
 		
-		String query = "SELECT COUNT(*) FROM " + table.getName() + " WHERE id = " + fileHandleId;
+		String query = "SELECT COUNT(*) FROM " + table.name() + " WHERE id = " + fileHandleId;
 		
 		TimeUtils.waitFor(TIMEOUT, 5000, () -> {
 			
 			AthenaQueryResult<Long> q = athenaSupport.executeQuery(dataBase, query, (row) -> {
-				return Long.valueOf(row.getData().get(0).getVarCharValue());
+				return Long.valueOf(row.data().get(0).varCharValue());
 			});
 			
 			Iterator<Long> it = q.getQueryResultsIterator();

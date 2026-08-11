@@ -75,6 +75,15 @@ public interface GridDao {
 	Optional<Long> getReplicaCreatedBy(String sessionId, Long replicaId);
 
 	/**
+	 * Get the summary information (connection status and type) for a single replica.
+	 *
+	 * @param sessionId
+	 * @param replicaId
+	 * @return {@link Optional#empty()} if no replica with the given id exists in the session.
+	 */
+	Optional<GridReplicaInfo> getReplicaInfo(String sessionId, Long replicaId);
+
+	/**
 	 * List all replicas for a session with their connection status.
 	 *
 	 * @param sessionId

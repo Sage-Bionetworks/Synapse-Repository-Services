@@ -44,19 +44,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.Table;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest;
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.stepfunctions.AWSStepFunctions;
-import com.amazonaws.services.stepfunctions.model.DescribeExecutionRequest;
-import com.amazonaws.services.stepfunctions.model.ExecutionStatus;
-import com.amazonaws.services.stepfunctions.model.ListStateMachinesRequest;
-import com.amazonaws.services.stepfunctions.model.ListStateMachinesResult;
-import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
-import com.amazonaws.services.stepfunctions.model.StateMachineListItem;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.Table;
+import software.amazon.awssdk.services.sfn.SfnClient;
+import software.amazon.awssdk.services.sfn.model.DescribeExecutionRequest;
+import software.amazon.awssdk.services.sfn.model.ExecutionStatus;
+import software.amazon.awssdk.services.sfn.model.ListStateMachinesRequest;
+import software.amazon.awssdk.services.sfn.model.ListStateMachinesResponse;
+import software.amazon.awssdk.services.sfn.model.StartExecutionRequest;
+import software.amazon.awssdk.services.sfn.model.StateMachineListItem;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -84,7 +84,7 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 	private Scheduler scheduler;
 	
 	@Autowired
-	private AWSStepFunctions stepFunctionsClient;
+	private SfnClient stepFunctionsClient;
 	
 	@Autowired
 	private StackConfiguration config;
@@ -189,11 +189,15 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		
 		String stateMachineArn = findStateMachineArn("UnlinkedFileHandles");
 		
-		String executionArn = stepFunctionsClient.startExecution(new StartExecutionRequest().withStateMachineArn(stateMachineArn)).getExecutionArn();
+		String executionArn = stepFunctionsClient.startExecution(
+				StartExecutionRequest.builder().stateMachineArn(stateMachineArn).build()
+		).executionArn();
 		
 		TimeUtils.waitFor(TIMEOUT, 1000L, () -> {
 			
-			ExecutionStatus status = ExecutionStatus.valueOf(stepFunctionsClient.describeExecution(new DescribeExecutionRequest().withExecutionArn(executionArn)).getStatus());
+			ExecutionStatus status = stepFunctionsClient.describeExecution(
+					DescribeExecutionRequest.builder().executionArn(executionArn).build()
+			).status();
 			
 			switch (status) {
 			case FAILED:
@@ -218,14 +222,14 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 		
 		Table fileHandleDataTable = athenaSupport.getTable(dataBase, tableName);
 		
-		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.getName() + " WHERE " + idColumn + " IN (" + String.join(",", ids.stream().map(id -> id.toString()).collect(Collectors.toList())) + ")";
+		String query = "SELECT COUNT(*) FROM " + fileHandleDataTable.name() + " WHERE " + idColumn + " IN (" + String.join(",", ids.stream().map(id -> id.toString()).collect(Collectors.toList())) + ")";
 		
 		LOG.info("Executing query {}...", query);
 		
 		TimeUtils.waitFor(TIMEOUT, 5000L, () -> {
 			
 			AthenaQueryResult<Long> q = athenaSupport.executeQuery(dataBase, query, (row) -> {
-				return Long.valueOf(row.getData().get(0).getVarCharValue());
+				return Long.valueOf(row.data().get(0).varCharValue());
 			});
 			
 			Iterator<Long> it = q.getQueryResultsIterator();
@@ -245,19 +249,20 @@ public class FileHandleUnlinkedQueryIntegrationTest {
 	}
 	
 	private String findStateMachineArn(String name) {
-		ListStateMachinesResult result;
+		ListStateMachinesResponse result;
 		String nextPageToken = null;
 		do {
-			result = stepFunctionsClient.listStateMachines(new ListStateMachinesRequest().withMaxResults(10).withNextToken(nextPageToken));
-			for (StateMachineListItem stateMachine : result.getStateMachines()) {
-				if (stateMachine.getName().toLowerCase().contains((stack + instance + name).toLowerCase())) {
-					LOG.info("Found state machine with name: {} , ARN: {}", stateMachine.getName(), stateMachine.getStateMachineArn());
-					return stateMachine.getStateMachineArn();
+			result = stepFunctionsClient.listStateMachines(
+					ListStateMachinesRequest.builder().maxResults(10).nextToken(nextPageToken).build());
+			for (StateMachineListItem stateMachine : result.stateMachines()) {
+				if (stateMachine.name().toLowerCase().contains((stack + instance + name).toLowerCase())) {
+					LOG.info("Found state machine with name: {} , ARN: {}", stateMachine.name(), stateMachine.stateMachineArn());
+					return stateMachine.stateMachineArn();
 				}
 			}
-			nextPageToken = result.getNextToken();
+			nextPageToken = result.nextToken();
 		} while (nextPageToken != null);
-		
+
 		throw new IllegalArgumentException("The state machine named " + name + " could not be found");
 	}
 

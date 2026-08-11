@@ -6,11 +6,14 @@ import java.util.List;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
 import org.sagebionetworks.repo.model.dbo.search.ColumnAnalyzerOverrideDao;
 import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
@@ -39,16 +42,19 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 	private final ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao;
 	private final TextAnalyzerDao textAnalyzerDao;
 	private final NodeDAO nodeDAO;
+	private final EntityAuthorizationManager entityAuthorizationManager;
 
 	public SearchConfigurationManagerImpl(SearchConfigurationDao searchConfigurationDao, AccessControlListDAO aclDao,
 			OrganizationDao organizationDao,
-			ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao, TextAnalyzerDao textAnalyzerDao, NodeDAO nodeDAO) {
+			ColumnAnalyzerOverrideDao columnAnalyzerOverrideDao, TextAnalyzerDao textAnalyzerDao, NodeDAO nodeDAO,
+			EntityAuthorizationManager entityAuthorizationManager) {
 		this.searchConfigurationDao = searchConfigurationDao;
 		this.aclDao = aclDao;
 		this.organizationDao = organizationDao;
 		this.columnAnalyzerOverrideDao = columnAnalyzerOverrideDao;
 		this.textAnalyzerDao = textAnalyzerDao;
 		this.nodeDAO = nodeDAO;
+		this.entityAuthorizationManager = entityAuthorizationManager;
 	}
 
 	@Override
@@ -132,10 +138,15 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 		Long entityId = KeyFactory.stringToKey(request.getEntityId());
 		Long searchConfigId = Long.parseLong(request.getSearchConfigurationId());
 
-		// Verify entity exists and user has EDIT permission
-		if (!user.isAdmin()) {
-			aclDao.canAccess(user, String.valueOf(entityId), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
-				.checkAuthorizationOrElseThrow();
+		// Verify the user has UPDATE permission on the entity, resolving the benefactor ACL.
+		entityAuthorizationManager.hasAccess(user, request.getEntityId(), ACCESS_TYPE.UPDATE)
+			.checkAuthorizationOrElseThrow();
+
+		// A search configuration can only be bound to a Project or Folder so that entities within
+		// that container inherit the binding.
+		EntityType entityType = nodeDAO.getNodeTypeById(request.getEntityId());
+		if (!NodeUtils.isProjectOrFolder(entityType)) {
+			throw new IllegalArgumentException("A search configuration can only be bound to a Project or Folder.");
 		}
 
 		// Verify search config exists
@@ -174,10 +185,9 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 
 		Long nodeId = KeyFactory.stringToKey(entityId);
 
-		if (!user.isAdmin()) {
-			aclDao.canAccess(user, String.valueOf(nodeId), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)
-				.checkAuthorizationOrElseThrow();
-		}
+		// Verify the user has UPDATE permission on the entity, resolving the benefactor ACL.
+		entityAuthorizationManager.hasAccess(user, entityId, ACCESS_TYPE.UPDATE)
+			.checkAuthorizationOrElseThrow();
 
 		searchConfigurationDao.clearSearchConfigBinding(nodeId, ENTITY_OBJECT_TYPE);
 	}

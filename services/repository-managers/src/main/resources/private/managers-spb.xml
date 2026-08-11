@@ -117,13 +117,10 @@
 
 	<bean id="passwordResetTokenGenerator" class="org.sagebionetworks.repo.manager.authentication.PasswordResetTokenGeneratorImpl"/>
 	
-	<bean id="amazonSESClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSimpleEmailServiceClient"/>
+	<bean id="amazonSESClient" class="org.sagebionetworks.aws.v2.AwsClientFactoryV2"
+		factory-method="createSesClient"/>
     
 	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
-
-	<bean id="amazonStsClient" class="org.sagebionetworks.aws.AwsClientFactory"
-		factory-method="createAmazonSecurityTokenServiceClient"/>
 
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 

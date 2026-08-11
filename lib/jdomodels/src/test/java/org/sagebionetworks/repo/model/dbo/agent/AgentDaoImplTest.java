@@ -100,7 +100,8 @@ public class AgentDaoImplTest {
 	
 	@Test
 	public void testCreateSessionWithContext() {
-		context = new GridAgentSessionContext().setGridSessionId("session123").setUsersReplicaId(987L);
+		context = new GridAgentSessionContext().setGridSessionId("session123").setUsersReplicaId(987L)
+				.setExperimental(true);
 
 		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.BASELINE, registrationRequest);
 		// call under test

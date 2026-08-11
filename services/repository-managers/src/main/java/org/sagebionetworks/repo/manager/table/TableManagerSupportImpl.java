@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -128,7 +127,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	                               ViewScopeTypeDao viewScopeDao, WriteReadSemaphore writeReadSemaphoreRunner,
 	                               @Lazy AuthorizationManager authorizationManager, TableSnapshotDao tableSnapshotDao,
 	                               @Lazy MetadataIndexProviderFactory metadataIndexProviderFactory, @Lazy DefaultColumnModelMapper defaultColumnMapper,
-	                               MaterializedViewDao materializedViewDao, FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider
+	                               FileProvider fileProvider, SynapseS3Client s3Client, Clock clock, LoggerProvider loggerProvider
 			, TableExceptionTranslator tableExceptionTranslator) {
 		super();
 		this.tableStatusDAO = tableStatusDAO;

@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.utils.ContentTypeUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -74,40 +73,39 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
 import com.amazonaws.services.s3.model.S3Object;
 
 /**
  * The basic implementation of the V2WikiPageDao.
  * (Derived from org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl)
- * 
+ *
  * @author hso
  *
  */
-
+@Repository
 public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
-	
 
-	@Autowired
-	private IdGenerator idGenerator;
-	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
-	@Autowired
-	private DBOBasicDao basicDao;
-	
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired
-	private NamedParameterJdbcTemplate namedTemplate;
-	
-	@Autowired
-	private SynapseS3Client s3Client;
+	private final IdGenerator idGenerator;
+	private final TransactionalMessenger transactionalMessenger;
+	private final DBOBasicDao basicDao;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedTemplate;
+	private final SynapseS3Client s3Client;
+	private final FileHandleDao fileMetadataDao;
 
-	@Autowired
-	private FileHandleDao fileMetadataDao;	
+	public V2DBOWikiPageDaoImpl(IdGenerator idGenerator, TransactionalMessenger transactionalMessenger,
+			DBOBasicDao basicDao, JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedTemplate,
+			SynapseS3Client s3Client, FileHandleDao fileMetadataDao) {
+		this.idGenerator = idGenerator;
+		this.transactionalMessenger = transactionalMessenger;
+		this.basicDao = basicDao;
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedTemplate = namedTemplate;
+		this.s3Client = s3Client;
+		this.fileMetadataDao = fileMetadataDao;
+	}	
 
 	/**
 	 * Used to detect if a wiki object already exists.

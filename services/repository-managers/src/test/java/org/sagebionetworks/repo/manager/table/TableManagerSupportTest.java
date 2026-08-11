@@ -65,7 +65,6 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.dbo.dao.table.MaterializedViewDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -157,8 +156,6 @@ public class TableManagerSupportTest {
 	@Mock
 	private DefaultColumnModelMapper mockDefaultColumnModelMapper;
 	@Mock
-	private MaterializedViewDao mockMaterializedViewDao;
-	@Mock
 	private WriteReadSemaphore mockWriteReadSemaphore;
 	@Mock
 	private FileProvider mockFileProvider;
@@ -221,7 +218,7 @@ public class TableManagerSupportTest {
 		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
 				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
 				mockWriteReadSemaphore, mockAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
-				mockDefaultColumnModelMapper, mockMaterializedViewDao, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
+				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
 		managerSpy = Mockito.spy(manager);
 			
 		userInfo = new UserInfo(false, 8L);
@@ -1093,7 +1090,6 @@ public class TableManagerSupportTest {
 		assertEquals(expectedHash, result.getTableHash());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
 		verify(managerSpy).getLastTableChangeNumber(idAndVersion);
-		verifyNoMoreInteractions(mockMaterializedViewDao);
 	}
 	
 	@Test
@@ -1108,7 +1104,6 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyNoMoreInteractions(mockMaterializedViewDao);
 	}
 	
 	@Test
@@ -1123,7 +1118,6 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyNoMoreInteractions(mockMaterializedViewDao);
 	}
 	
 	@Test
@@ -1160,7 +1154,6 @@ public class TableManagerSupportTest {
 		assertEquals("3c718b5c2382c1203a9f1e1932a14029", result.getTableHash());
 		verify(managerSpy, never()).getLastTableChangeNumber(any());
 		verify(mockNodeDao).getNodeTypeById(idAndVersion.getId().toString());
-		verifyNoMoreInteractions(mockMaterializedViewDao);
 	}
 	
 	public void setupLookup(IndexDescription...all){

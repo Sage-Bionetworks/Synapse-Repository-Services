@@ -22,7 +22,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.sagebionetworks.aws.SynapseS3Client;
 
-import com.amazonaws.services.kms.model.DecryptResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 
@@ -51,8 +50,6 @@ public class ConfigurationPropertiesImplTest {
 
 	String secretsBucket;
 	String secretsKey;
-
-	DecryptResult decryptResult;
 
 	@Before
 	public void before() throws IOException {

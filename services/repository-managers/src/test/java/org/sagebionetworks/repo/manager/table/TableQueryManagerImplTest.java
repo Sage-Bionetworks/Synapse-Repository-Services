@@ -54,6 +54,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -110,6 +111,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableDependency;
@@ -2170,9 +2172,10 @@ public class TableQueryManagerImplTest {
 	public void testBuildBenefactorFilter() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
-		
+
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
@@ -2235,6 +2238,7 @@ public class TableQueryManagerImplTest {
 	public void testBuildBenefactorFilterWithoutWhereClause() throws ParseException, EmptyResultException{
 		final QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		final LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
 		// call under test
@@ -2260,10 +2264,11 @@ public class TableQueryManagerImplTest {
 	public void testBuildBenefactorFilterWithOtherBenefactorColumnName() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
 		String benefactorColumnName = "BENEFACTOR_TWO";
-		
+
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, benefactorColumnName);
 		// should filter by benefactorId
@@ -2275,9 +2280,10 @@ public class TableQueryManagerImplTest {
 		// there is no benefactor column in the schema.
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
-		
+
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
@@ -2297,12 +2303,13 @@ public class TableQueryManagerImplTest {
 	 * @throws EmptyResultException
 	 */
 	@Test
-	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException {	
+	public void testBuildBenefactorFilterPLFM_4036() throws ParseException, EmptyResultException {
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 > 0 or i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(456L);
 		benefactorIds.add(123L);
-		
+
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 		// should filter by benefactorId
@@ -2314,6 +2321,7 @@ public class TableQueryManagerImplTest {
 		// no where clause in the original query.
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		benefactorIds.add(-1l);
 		benefactorIds.add(123L);
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
@@ -2325,6 +2333,9 @@ public class TableQueryManagerImplTest {
 	public void testBuildBenefactorFilterEmpty() throws ParseException, EmptyResultException{
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId+" where i1 is not null").querySpecification();
 		LinkedHashSet<Long> benefactorIds = new LinkedHashSet<Long>();
+		// -1 is the caller-supplied sentinel; with no real accessible benefactors the
+		// filter always evaluates to false for normal rows (only rows with no benefactor match).
+		benefactorIds.add(-1l);
 		// call under test
 		TableQueryManagerImpl.buildBenefactorFilter(query, benefactorIds, TableConstants.ROW_BENEFACTOR);
 
@@ -2713,7 +2724,78 @@ public class TableQueryManagerImplTest {
 
 		verify(mockRowHandler, never()).close();
 	}
-	
+
+	@Test
+	public void testComputeAccessibleBenefactorsWithMultipleBenefactors() {
+		IdAndVersion tableIdAndVersion = IdAndVersion.parse("syn123");
+		BenefactorDescription descA0 = new BenefactorDescription("ROW_BENEFACTOR__A0", ObjectType.ENTITY);
+		BenefactorDescription descA1 = new BenefactorDescription("ROW_BENEFACTOR__A1", ObjectType.ENTITY);
+		IndexDescription indexDescription = Mockito.mock(IndexDescription.class);
+		when(indexDescription.getIdAndVersion()).thenReturn(tableIdAndVersion);
+		when(indexDescription.getBenefactors()).thenReturn(List.of(descA0, descA1));
+
+		Set<Long> tableBenefactorsA0 = Sets.newHashSet(10L, 20L);
+		Set<Long> tableBenefactorsA1 = Sets.newHashSet(30L, 40L);
+		when(mockTableIndexDAO.getDistinctLongValues(tableIdAndVersion, "ROW_BENEFACTOR__A0")).thenReturn(tableBenefactorsA0);
+		when(mockTableIndexDAO.getDistinctLongValues(tableIdAndVersion, "ROW_BENEFACTOR__A1")).thenReturn(tableBenefactorsA1);
+
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, tableBenefactorsA0)).thenReturn(new HashSet<>(Set.of(20L)));
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, tableBenefactorsA1)).thenReturn(new HashSet<>(Set.of(30L, 40L)));
+
+		// call under test
+		List<BenefactorAccessFilter> result = manager.computeAccessibleBenefactors(user, indexDescription, mockTableIndexDAO);
+
+		assertEquals(2, result.size());
+		assertEquals("ROW_BENEFACTOR__A0", result.get(0).benefactorColumnName());
+		assertTrue(result.get(0).accessibleIds().contains(-1L));
+		assertTrue(result.get(0).accessibleIds().contains(20L));
+		assertEquals("ROW_BENEFACTOR__A1", result.get(1).benefactorColumnName());
+		assertTrue(result.get(1).accessibleIds().contains(-1L));
+		assertTrue(result.get(1).accessibleIds().contains(30L));
+		assertTrue(result.get(1).accessibleIds().contains(40L));
+	}
+
+	@Test
+	public void testComputeAccessibleBenefactorsIncludesMinusOneSentinel() {
+		IdAndVersion tableIdAndVersion = IdAndVersion.parse("syn123");
+		BenefactorDescription desc = new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY);
+		IndexDescription indexDescription = Mockito.mock(IndexDescription.class);
+		when(indexDescription.getIdAndVersion()).thenReturn(tableIdAndVersion);
+		when(indexDescription.getBenefactors()).thenReturn(List.of(desc));
+
+		Set<Long> tableBenefactors = Sets.newHashSet(100L, 200L);
+		when(mockTableIndexDAO.getDistinctLongValues(tableIdAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(tableBenefactors);
+		// accessible set does NOT contain -1 before computeAccessibleBenefactors adds it
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, tableBenefactors)).thenReturn(new HashSet<>(Set.of(100L)));
+
+		// call under test
+		List<BenefactorAccessFilter> result = manager.computeAccessibleBenefactors(user, indexDescription, mockTableIndexDAO);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0).accessibleIds().contains(-1L));
+		assertTrue(result.get(0).accessibleIds().contains(100L));
+	}
+
+	@Test
+	public void testComputeAccessibleBenefactorsWhenTableNotBuilt() {
+		IdAndVersion tableIdAndVersion = IdAndVersion.parse("syn123");
+		BenefactorDescription desc = new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY);
+		IndexDescription indexDescription = Mockito.mock(IndexDescription.class);
+		when(indexDescription.getIdAndVersion()).thenReturn(tableIdAndVersion);
+		when(indexDescription.getBenefactors()).thenReturn(List.of(desc));
+
+		when(mockTableIndexDAO.getDistinctLongValues(tableIdAndVersion, TableConstants.ROW_BENEFACTOR))
+				.thenThrow(new BadSqlGrammarException("task", "sql", new java.sql.SQLException()));
+		// empty candidate set because table doesn't exist yet
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, Collections.emptySet())).thenReturn(new HashSet<>());
+
+		// call under test — must not propagate BadSqlGrammarException
+		List<BenefactorAccessFilter> result = manager.computeAccessibleBenefactors(user, indexDescription, mockTableIndexDAO);
+
+		assertEquals(1, result.size());
+		assertTrue(result.get(0).accessibleIds().contains(-1L));
+	}
+
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){
 		RowSet rowSet = new RowSet();
 		List<SelectColumn> headerObjects = new ArrayList<>();

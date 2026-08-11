@@ -66,7 +66,7 @@ import org.sagebionetworks.repo.model.ses.QuarantinedEmailException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.simpleemail.model.SendRawEmailRequest;
+import software.amazon.awssdk.services.ses.model.SendRawEmailRequest;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
@@ -591,9 +591,9 @@ public class MembershipInvitationManagerImplTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest = argument.getValue();
-		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
 		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
@@ -601,7 +601,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
 		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
-		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
+		assertEquals("First Last <username@synapse.org>", emailRequest.source());
 	}
 	
 	@Test
@@ -623,9 +623,9 @@ public class MembershipInvitationManagerImplTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest = argument.getValue();
-		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
 		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
@@ -633,7 +633,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(ServiceConstants.ACCEPT_EMAIL_INVITATION_ENDPOINT));
 		assertEquals("First Last has invited you to join the Test team team", mimeMessage.getSubject());
-		assertEquals("First Last <username@synapse.org>", emailRequest.getSource());
+		assertEquals("First Last <username@synapse.org>", emailRequest.source());
 	}
 	
 	@Test
@@ -657,9 +657,9 @@ public class MembershipInvitationManagerImplTest {
 		ArgumentCaptor<SendRawEmailRequest> argument = ArgumentCaptor.forClass(SendRawEmailRequest.class);
 		Mockito.verify(mockSynapseEmailService).sendRawEmail(argument.capture());
 		SendRawEmailRequest emailRequest = argument.getValue();
-		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.getDestinations());
+		assertEquals(Collections.singletonList(INVITEE_EMAIL), emailRequest.destinations());
 		MimeMessage mimeMessage = new MimeMessage(Session.getDefaultInstance(new Properties()),
-				new ByteArrayInputStream(emailRequest.getRawMessage().getData().array()));
+				new ByteArrayInputStream(emailRequest.rawMessage().data().asByteArray()));
 		String body = (String) ((MimeMultipart) mimeMessage.getContent()).getBodyPart(0).getContent();
 		assertNotNull(mimeMessage.getSubject());
 		assertFalse(body.contains(mis.getTeamId())); //PLFM-5369: Users kept clicking the team page instead of joining the team via invitation link.
@@ -667,7 +667,7 @@ public class MembershipInvitationManagerImplTest {
 		assertTrue(body.contains(mis.getMessage()));
 		assertTrue(body.contains(acceptInvitationEndpoint));
 		assertEquals("username has invited you to join the Test team team", mimeMessage.getSubject());
-		assertEquals("username@synapse.org", emailRequest.getSource());
+		assertEquals("username@synapse.org", emailRequest.source());
 	}
 	
 	@Test

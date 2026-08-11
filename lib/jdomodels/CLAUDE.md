@@ -54,12 +54,12 @@ new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true)  // isPrimaryKey
 4. Implement `getMigratableTableType()` returning a `MigrationType` enum value
 5. Add table/column constants to `SqlConstants`
 6. Create DDL file in `src/main/resources/schema/`
-7. Register in `src/main/resources/dbo-beans.spb.xml` (order matters — after dependencies)
+7. Place the DBO/DAO in a package listed in `DboAutoDiscovery.DBO_PACKAGES` and annotate the DAO `@Repository` — registration is by classpath auto-discovery, not XML (see [Spring Configuration](#spring-configuration))
 
 ### Primary vs Secondary Tables
 
-- **Primary**: Has etag column (`withIsEtag(true)`), migrated independently, registered in `dbo-beans.spb.xml`
-- **Secondary**: Owned by a primary table, discovered via `getSecondaryTypes()`, has FK to owner's backup ID, NOT registered in `dbo-beans.spb.xml`
+- **Primary**: Has etag column (`withIsEtag(true)`), migrated independently, discovered by `DboAutoDiscovery` (classpath scan) as a top-level `DatabaseObject`
+- **Secondary**: Owned by a primary table, discovered via the owner's `getSecondaryTypes()`, has FK to owner's backup ID — never scanned directly
 
 ## DAO Pattern
 
@@ -102,8 +102,13 @@ Naming: `TABLE_` prefix for table names, `COL_` for columns, `DDL_` for DDL path
 
 ## Spring Configuration
 
-- **`dbo-beans.spb.xml`** — registers primary migratable DBO types in migration order (dependencies first). This is the most important config file for migration.
-- Additional `*-spb.xml` files for feature-specific beans
+DBO registration is **classpath auto-discovery** via Java config in `src/main/java/org/sagebionetworks/repo/model/config/`.
+
+- **`JdoModelsConfig`** — `@Configuration`/`@ComponentScan` entry point; also bootstraps principal IDs (**do not change those IDs** — they are real production objects).
+- **`DboAutoDiscovery`** — classpath-scans the fixed `DBO_PACKAGES` array for `DatabaseObject` implementations and auto-classifies primary vs secondary via `getSecondaryTypes()`. A new DBO in a package **not** in `DBO_PACKAGES` is silently never registered or migrated (no startup error).
+- **`DboDependencyAnalyzer`** — topologically sorts DDL creation order by parsing `FOREIGN KEY ... REFERENCES` out of each DDL file, so ordering is derived, not hand-maintained.
+
+For the migration engine's startup invariants (enum order, CHANGE-last, backup-column validation), see `dbo/migration/CLAUDE.md`.
 
 ## Database Split
 
@@ -121,6 +126,8 @@ MyClass obj = JDOSecondaryPropertyUtils.createObjectFromJSON(MyClass.class, json
 ```
 
 Do NOT create custom `ObjectMapper` or `JSONObjectAdapter` serialization code in DAO classes — the utilities in `JDOSecondaryPropertyUtils` are already tested and handle null/error cases.
+
+For **opaque, non-`JSONEntity`** JSON columns — where the value is a free-form `Map`/`List`/`JSONObject`/scalar rather than a generated POJO (e.g. `TextAnalyzer.settings`, `SynonymSet.definition`, `SearchConfiguration.defaultAnalyzer`) — use `OpaqueJsonColumnCodecUtil` (`dbo.search`) instead. Pass the actual `Map`/`List`/`JSONObject`; **never pre-stringify JSON before `serialize()`** — a `String` is encoded as a JSON scalar (quoted), not as raw JSON passthrough.
 
 ## SQL Patterns
 

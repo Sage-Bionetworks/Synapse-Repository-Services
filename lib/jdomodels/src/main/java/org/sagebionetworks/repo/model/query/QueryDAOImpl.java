@@ -35,18 +35,22 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.jdo.SizeLimitRowMapper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class QueryDAOImpl implements QueryDAO {
-	
-	@Autowired
-	AccessControlListDAO accessControlListDAO;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	private AccessControlListDAO accessControlListDAO;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	public QueryDAOImpl(AccessControlListDAO accessControlListDAO, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.accessControlListDAO = accessControlListDAO;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 
 	private static final String INNER_JOIN_TYPE = "inner";
 	private static final String LEFT_OUTER_JOIN_TYPE = "left outer";

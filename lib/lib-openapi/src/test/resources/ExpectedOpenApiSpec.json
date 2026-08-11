@@ -611,6 +611,13 @@
       "operationId": "get-/repo/v1/complex-pet/noauthorization",
       "parameters": [],
       "responses": {"200": {"description": "Void"}}
+    }},
+    "/repo/v1/complex-pet/deprecated-included": {"get": {
+      "tags": ["ComplexPets"],
+      "operationId": "get-/repo/v1/complex-pet/deprecated-included",
+      "deprecated": true,
+      "parameters": [],
+      "responses": {"200": {"description": "Void"}}
     }}
   },
   "components": {

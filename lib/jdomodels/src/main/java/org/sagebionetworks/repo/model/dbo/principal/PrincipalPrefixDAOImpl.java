@@ -17,11 +17,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.transactions.WriteTransaction;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
 	private static final String SQL_PARAM_GROUP_ID = "groupId";
@@ -117,10 +118,13 @@ public class PrincipalPrefixDAOImpl implements PrincipalPrefixDAO {
 
 	private static final String REG_EX_NON_ALPHA_NUMERIC = "[^a-z0-9]";
 
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	@Autowired
-	private NamedParameterJdbcTemplate namedJdbcTemplate;
+	private final JdbcTemplate jdbcTemplate;
+	private final NamedParameterJdbcTemplate namedJdbcTemplate;
+
+	public PrincipalPrefixDAOImpl(JdbcTemplate jdbcTemplate, NamedParameterJdbcTemplate namedJdbcTemplate) {
+		this.jdbcTemplate = jdbcTemplate;
+		this.namedJdbcTemplate = namedJdbcTemplate;
+	}
 
 	/*
 	 * (non-Javadoc)

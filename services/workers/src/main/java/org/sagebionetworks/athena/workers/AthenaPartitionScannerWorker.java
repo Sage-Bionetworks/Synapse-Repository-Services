@@ -10,8 +10,8 @@ import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.Table;
+import software.amazon.awssdk.services.glue.model.Database;
+import software.amazon.awssdk.services.glue.model.Table;
 
 public class AthenaPartitionScannerWorker implements ProgressingRunner {
 
@@ -51,7 +51,7 @@ public class AthenaPartitionScannerWorker implements ProgressingRunner {
 			try {
 				athenaSupport.repairTable(table);
 			} catch (Throwable e) {
-				LOG.error("Could not repair table " + table.getName() + ": " + e.getMessage(), e);
+				LOG.error("Could not repair table " + table.name() + ": " + e.getMessage(), e);
 				boolean willRetry = false;
 				// Sends a fail metric for cloud watch
 				workerLogger.logWorkerFailure(AthenaPartitionScannerWorker.class.getName(), e, willRetry);

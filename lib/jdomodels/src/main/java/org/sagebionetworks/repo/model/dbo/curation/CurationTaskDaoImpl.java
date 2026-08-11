@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_DUE_DATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_EXECUTION_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURATION_TASK_ID;
@@ -62,20 +63,24 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
         this.idGenerator = idGenerator;
     }
 
-    private static final RowMapper<CurationTask> CURATION_TASK_ROW_MAPPER = (rs, rowNum) ->
-            new CurationTask().setTaskId(rs.getLong(COL_CURATION_TASK_ID))
-                    .setDataType(rs.getString(COL_CURATION_TASK_DATA_TYPE))
-                    .setProjectId(KeyFactory.keyToString(rs.getLong(COL_CURATION_TASK_PROJECT_ID)))
-                    .setInstructions(rs.getString(COL_CURATION_TASK_INSTRUCTIONS))
-                    .setEtag(rs.getString(COL_CURATION_TASK_ETAG))
-                    .setCreatedBy(rs.getString(COL_CURATION_TASK_CREATED_BY))
-                    .setCreatedOn(new Date(rs.getTimestamp(COL_CURATION_TASK_CREATED_ON).getTime()))
-                    .setModifiedBy(rs.getString(COL_CURATION_TASK_MODIFIED_BY))
-                    .setModifiedOn(new Date(rs.getTimestamp(COL_CURATION_TASK_MODIFIED_ON).getTime()))
-                    .setTaskProperties(
-                            JDOSecondaryPropertyUtils.createObjectFromJSON(CurationTaskProperties.class, rs.getString(COL_CURATION_TASK_TASK_PROPERTIES))
-                    )
-                    .setAssigneePrincipalId(rs.getString(COL_CURATION_TASK_ASSIGNEE));
+    private static final RowMapper<CurationTask> CURATION_TASK_ROW_MAPPER = (rs, rowNum) -> {
+        Timestamp dueDate = rs.getTimestamp(COL_CURATION_TASK_DUE_DATE);
+        return new CurationTask()
+                .setTaskId(rs.getLong(COL_CURATION_TASK_ID))
+                .setDataType(rs.getString(COL_CURATION_TASK_DATA_TYPE))
+                .setProjectId(KeyFactory.keyToString(rs.getLong(COL_CURATION_TASK_PROJECT_ID)))
+                .setInstructions(rs.getString(COL_CURATION_TASK_INSTRUCTIONS))
+                .setEtag(rs.getString(COL_CURATION_TASK_ETAG))
+                .setCreatedBy(rs.getString(COL_CURATION_TASK_CREATED_BY))
+                .setCreatedOn(new Date(rs.getTimestamp(COL_CURATION_TASK_CREATED_ON).getTime()))
+                .setModifiedBy(rs.getString(COL_CURATION_TASK_MODIFIED_BY))
+                .setModifiedOn(new Date(rs.getTimestamp(COL_CURATION_TASK_MODIFIED_ON).getTime()))
+                .setTaskProperties(
+                        JDOSecondaryPropertyUtils.createObjectFromJSON(CurationTaskProperties.class, rs.getString(COL_CURATION_TASK_TASK_PROPERTIES))
+                )
+                .setAssigneePrincipalId(rs.getString(COL_CURATION_TASK_ASSIGNEE))
+                .setDueDate(dueDate != null ? new Date(dueDate.getTime()) : null);
+    };
 
     private static final RowMapper<TaskStatus> TASK_STATUS_ROW_MAPPER = (rs, rowNum) -> {
         String executionDetailsJson = rs.getString(COL_CURATION_TASK_EXECUTION_DETAILS);
@@ -111,10 +116,11 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 + COL_CURATION_TASK_INSTRUCTIONS + ", "
                 + COL_CURATION_TASK_TASK_PROPERTIES + ", "
                 + COL_CURATION_TASK_ASSIGNEE + ", "
+                + COL_CURATION_TASK_DUE_DATE + ", "
                 + COL_CURATION_TASK_CREATED_ON + ", "
                 + COL_CURATION_TASK_MODIFIED_ON + ", "
                 + COL_CURATION_TASK_ETAG
-                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), UUID())";
+                + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), UUID())";
 
         Long id = idGenerator.generateNewId(IdType.CURATION_TASK_ID);
 
@@ -129,7 +135,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getProjectId(),
                     dbo.getInstructions(),
                     dbo.getTaskPropertiesJson(),
-                    dbo.getAssigneeId()
+                    dbo.getAssigneeId(),
+                    dbo.getDueDate()
             );
         } catch (DuplicateKeyException e) {
             handleUniquenessConstraintViolation(e);
@@ -155,7 +162,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 + COL_CURATION_TASK_DATA_TYPE + " = ?, "
                 + COL_CURATION_TASK_INSTRUCTIONS + " = ?, "
                 + COL_CURATION_TASK_TASK_PROPERTIES + " = ?, "
-                + COL_CURATION_TASK_ASSIGNEE + " = ? "
+                + COL_CURATION_TASK_ASSIGNEE + " = ?, "
+                + COL_CURATION_TASK_DUE_DATE + " = ? "
                 + "WHERE " + COL_CURATION_TASK_ID + " = ? ";
 
         try {
@@ -166,6 +174,7 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                     dbo.getInstructions(),
                     dbo.getTaskPropertiesJson(),
                     dbo.getAssigneeId(),
+                    dbo.getDueDate(),
                     dbo.getId());
         } catch (DuplicateKeyException e) {
             handleUniquenessConstraintViolation(e);
@@ -249,7 +258,7 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
 
     @Override
     public List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
-            List<TaskState> stateFilter, long limit, long offset) {
+            List<TaskState> stateFilter, List<Long> taskIds, long limit, long offset) {
         ValidateArgument.requiredNotEmpty(projectIds, "projectIds");
 
         StringBuilder sql = new StringBuilder("SELECT * FROM CURATION_TASK WHERE PROJECT_ID IN (:projectIds)");
@@ -265,6 +274,11 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
             List<String> stateNames = stateFilter.stream().map(TaskState::name).collect(Collectors.toList());
             sql.append(" AND STATE IN (:stateFilter)");
             params.addValue("stateFilter", stateNames);
+        }
+
+        if (taskIds != null && !taskIds.isEmpty()) {
+            sql.append(" AND " + COL_CURATION_TASK_ID + " IN (:taskIds)");
+            params.addValue("taskIds", taskIds);
         }
 
         sql.append(" ORDER BY ID LIMIT :limit OFFSET :offset");
@@ -307,8 +321,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
                 .setInstructions(dto.getInstructions())
                 .setEtag(dto.getEtag())
                 .setTaskPropertiesJson(JDOSecondaryPropertyUtils.createJSONFromObject(dto.getTaskProperties()))
-                .setAssigneeId(dto.getAssigneePrincipalId() != null? Long.parseLong(dto.getAssigneePrincipalId()):null)
-                ;
+                .setAssigneeId(dto.getAssigneePrincipalId() != null ? Long.parseLong(dto.getAssigneePrincipalId()) : null)
+                .setDueDate(dto.getDueDate() != null ? new Timestamp(dto.getDueDate().getTime()) : null);
         if (dto.getCreatedBy() != null) {
             dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
         }

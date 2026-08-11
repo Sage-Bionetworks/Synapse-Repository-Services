@@ -1,0 +1,35 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Grid Specialist Test Schema",
+	"type": "object",
+	"properties": {
+		"a": {
+			"type": "string",
+			"description": "The row key."
+		},
+		"species": {
+			"type": "string",
+			"description": "The species name."
+		},
+		"weight": {
+			"type": "integer",
+			"description": "The weight. A row without an integer weight fails validation."
+		},
+		"age": {
+			"type": "integer",
+			"description": "The age."
+		},
+		"color": {
+			"type": "string",
+			"description": "The color."
+		},
+		"subspecies": {
+			"type": "string",
+			"description": "The subspecies name."
+		}
+	},
+	"required": [
+		"a",
+		"weight"
+	]
+}

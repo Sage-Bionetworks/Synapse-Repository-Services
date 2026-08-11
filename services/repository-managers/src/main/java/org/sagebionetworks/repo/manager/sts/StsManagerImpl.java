@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.sts;
 
 import java.io.StringWriter;
+import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -30,11 +31,12 @@ import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.services.securitytoken.AWSSecurityTokenService;
-import com.amazonaws.services.securitytoken.model.AssumeRoleRequest;
-import com.amazonaws.services.securitytoken.model.AssumeRoleResult;
-import com.amazonaws.services.securitytoken.model.Credentials;
 import com.google.common.collect.ImmutableMap;
+
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
+import software.amazon.awssdk.services.sts.model.AssumeRoleResponse;
+import software.amazon.awssdk.services.sts.model.Credentials;
 
 @Component
 public class StsManagerImpl implements StsManager {
@@ -62,7 +64,7 @@ public class StsManagerImpl implements StsManager {
 	private StackConfiguration stackConfiguration;
 
 	@Autowired
-	private AWSSecurityTokenService stsClient;
+	private StsClient stsClient;
 
 	private final VelocityEngine velocityEngine;
 
@@ -80,9 +82,9 @@ public class StsManagerImpl implements StsManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "entityId");
 		ValidateArgument.required(permission, "permission");
-		
+
 		final ACCESS_TYPE[] requiredAccessList;
-		
+
 		switch (permission) {
 		case read_write:
 			requiredAccessList = new ACCESS_TYPE[] { ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.UPDATE, ACCESS_TYPE.CREATE, ACCESS_TYPE.DELETE };
@@ -93,18 +95,18 @@ public class StsManagerImpl implements StsManager {
 		default:
 			throw new IllegalArgumentException("Unsupported permission type " + permission);
 		}
-		
+
 		// If the entity does not exist this will throw a not found (See https://sagebionetworks.jira.com/browse/PLFM-7604)
 		authManager.hasAccess(userInfo, entityId, requiredAccessList).checkAuthorizationOrElseThrow();
 
 		// Entity must have an STS-enabled storage location.
 		Optional<UploadDestinationListSetting> projectSetting = projectSettingsManager.getProjectSettingForNode(
 				userInfo, entityId, ProjectSettingsType.upload, UploadDestinationListSetting.class);
-		
+
 		if (!projectSetting.isPresent() || !projectSettingsManager.isStsStorageLocationSetting(projectSetting.get())) {
 			throw new IllegalArgumentException("Entity must have an STS-enabled storage location");
 		}
-		
+
 		// Shortcut: STS-enabled project settings can only have 1 storage location.
 		long storageLocationId = projectSetting.get().getLocations().get(0);
 		StsStorageLocationSetting storageLocationSetting = (StsStorageLocationSetting) projectSettingsManager
@@ -145,29 +147,29 @@ public class StsManagerImpl implements StsManager {
 		String policy = writer.toString();
 
 		// Call STS.
-		AssumeRoleRequest request = new AssumeRoleRequest();
 		Integer stsTokenDurationSeconds = stackConfiguration.getSTSTokenDurationSeconds();
-		if (stsTokenDurationSeconds==null) {
+		if (stsTokenDurationSeconds == null) {
 			stsTokenDurationSeconds = DEFAULT_DURATION_SECONDS;
 		}
-		request.setDurationSeconds(stsTokenDurationSeconds);
-		request.setPolicy(policy);
-		request.setRoleArn(stackConfiguration.getTempCredentialsIamRoleArn());
+		AssumeRoleRequest request = AssumeRoleRequest.builder()
+				.durationSeconds(stsTokenDurationSeconds)
+				.policy(policy)
+				.roleArn(stackConfiguration.getTempCredentialsIamRoleArn())
+				// Session Name is required, but it has a max length of 64 characters. Keep it short but descriptive.
+				.roleSessionName("sts-" + userInfo.getId() + "-" + entityId)
+				.build();
 
-		// Session Name is required, but it has a max length of 64 characters. Keep it short but descriptive.
-		request.setRoleSessionName("sts-" + userInfo.getId() + "-" + entityId);
-
-		AssumeRoleResult result = stsClient.assumeRole(request);
+		AssumeRoleResponse result = stsClient.assumeRole(request);
 
 		// Convert credentials to our own home-made class, so that our service can marshall it to/from JSON.
-		Credentials awsCredentials = result.getCredentials();
+		Credentials awsCredentials = result.credentials();
 		StsCredentials stsCredentials = new StsCredentials();
 		stsCredentials.setBucket(bucket);
 		stsCredentials.setBaseKey(storageLocationSetting.getBaseKey());
-		stsCredentials.setAccessKeyId(awsCredentials.getAccessKeyId());
-		stsCredentials.setSecretAccessKey(awsCredentials.getSecretAccessKey());
-		stsCredentials.setSessionToken(awsCredentials.getSessionToken());
-		stsCredentials.setExpiration(awsCredentials.getExpiration());
+		stsCredentials.setAccessKeyId(awsCredentials.accessKeyId());
+		stsCredentials.setSecretAccessKey(awsCredentials.secretAccessKey());
+		stsCredentials.setSessionToken(awsCredentials.sessionToken());
+		stsCredentials.setExpiration(Date.from(awsCredentials.expiration()));
 		return stsCredentials;
 	}
 

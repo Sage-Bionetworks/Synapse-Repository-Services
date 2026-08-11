@@ -1,0 +1,55 @@
+{
+    "description": "The status of a data access request",
+    "name": "AccessRequestStatusEnum",
+    "type": "string",
+    "enum": [
+        {
+            "name": "created",
+            "description": "The request has been created but not yet submitted or routed for eDUC signature"
+        },
+        {
+            "name": "draft",
+            "description": "A draft eDUC envelope has been created but not yet sent for signature"
+        },
+        {
+            "name": "sent",
+            "description": "The eDUC has been sent to recipients for signature"
+        },
+        {
+            "name": "delivered",
+            "description": "All eDUC recipients have viewed the document"
+        },
+        {
+            "name": "completed",
+            "description": "All eDUC recipients have signed the document"
+        },
+        {
+            "name": "declined",
+            "description": "An eDUC recipient has declined to sign"
+        },
+        {
+            "name": "voided",
+            "description": "The eDUC envelope has been voided or expired"
+        },
+        {
+            "name": "correct",
+            "description": "The eDUC envelope has been opened for correction"
+        },
+        {
+            "name": "submitted",
+            "description": "The request has been submitted for review"
+        },
+        {
+            "name": "approved",
+            "description": "The submission has been approved"
+        },
+        {
+            "name": "rejected",
+            "description": "The submission has been rejected"
+        },
+        {
+            "name": "cancelled",
+            "description": "The submission has been cancelled"
+        }
+    ]
+}

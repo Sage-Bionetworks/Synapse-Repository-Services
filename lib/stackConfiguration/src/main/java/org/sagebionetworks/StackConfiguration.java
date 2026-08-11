@@ -541,7 +541,7 @@ public interface StackConfiguration {
 	public String getOAuth2ArcusBioClientSecret();
 	
 	/**
-	 * URL for the OIDC server discovery/configuration JSON document
+	 * URL for the OIDC server discovery/configuration JSON document for Arcus Bio
 	 * @return
 	 */
 	public String getOAuth2ArcusBioDiscoveryDocument();
@@ -559,10 +559,28 @@ public interface StackConfiguration {
 	public String getOAuth2SageBioClientSecret();
 	
 	/**
-	 * URL for the OIDC server discovery/configuration JSON document
+	 * URL for the OIDC server discovery/configuration JSON document for Sage Bionetworks
 	 * @return
 	 */
 	public String getOAuth2SageBioDiscoveryDocument();
+
+	/**
+	 * OIDC Client ID for NIH RAS Identity Provider
+	 * @return
+	 */
+	public String getOAuth2NIHRASClientId();
+
+	/**
+	 * OIDC Client Secret for NIH RAS Identity Provider
+	 * @return
+	 */
+	public String getOAuth2NIHRASClientSecret();
+	
+	/**
+	 * URL for the OIDC server discovery/configuration JSON document for NIH RAS
+	 * @return
+	 */
+	public String getOAuth2NIHRASDiscoveryDocument();
 
 	/**
 	 * 
@@ -822,7 +840,7 @@ public interface StackConfiguration {
 	public String getFileServiceEndpoint();
 
 	/**
-	 * 
+	 *
 	 * @return search service endpoint
 	 */
 	public String getSearchServiceEndpoint();
@@ -952,4 +970,29 @@ public interface StackConfiguration {
 	 * @return The default project storage limit for the synapse bucket
 	 */
 	Long getDefaultProjectStorageLimit();
+
+	/**
+	 * @return The AWS region for Bedrock Converse API calls.
+	 */
+	String getBedrockConverseRegion();
+
+	/**
+	 * @return The HTTP socket (read) timeout, in seconds, for a single Bedrock Converse call.
+	 */
+	Long getBedrockConverseSocketTimeoutSeconds();
+
+	/**
+	 * @return The Claude Haiku model ID.
+	 */
+	String getModelIdClaudeHaiku();
+
+	/**
+	 * @return The Claude Sonnet model ID.
+	 */
+	String getModelIdClaudeSonnet();
+
+	/**
+	 * @return The Claude Opus model ID.
+	 */
+	String getModelIdClaudeOpus();
 }

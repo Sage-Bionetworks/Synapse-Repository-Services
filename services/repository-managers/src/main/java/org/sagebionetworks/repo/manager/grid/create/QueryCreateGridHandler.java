@@ -15,8 +15,8 @@ import org.sagebionetworks.repo.manager.grid.GridAuthorizationManager;
 import org.sagebionetworks.repo.manager.grid.IndexedModelEncoderProvider;
 import org.sagebionetworks.repo.manager.grid.SnapshotRowHandler;
 import org.sagebionetworks.repo.manager.grid.SnapshotStore;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
-import org.sagebionetworks.repo.manager.schema.JsonSchemaValidationManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaConnectionManager;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
@@ -51,25 +51,26 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 	private final GridDao gridDao;
 	private final TableQueryManager tableQueryManager;
 	private final EntityManager entityManager;
-	private final JsonSchemaManager schemaManager;
-	private final JsonSchemaValidationManager jsonSchemaValidationManager;
+	private final GridRowValidator gridRowValidator;
 	private final GridAuthorizationManager gridAuthorizationManager;
 	private final FileProvider fileProvider;
 	private final IndexedModelEncoderProvider encoderProvider;
+	private final GridReplicaConnectionManager gridReplicaConnectionManager;
 
 	public QueryCreateGridHandler(GridDao gridDao, EntityManager entityManager, TableQueryManager tableQueryManager,
-								  JsonSchemaManager schemaManager, JsonSchemaValidationManager jsonSchemaValidationManager,
+								  GridRowValidator gridRowValidator,
 								  GridAuthorizationManager gridAuthorizationManager, FileProvider fileProvider,
-								  IndexedModelEncoderProvider encoderProvider) {
+								  IndexedModelEncoderProvider encoderProvider,
+								  GridReplicaConnectionManager gridReplicaConnectionManager) {
 		super();
 		this.gridDao = gridDao;
 		this.entityManager = entityManager;
 		this.tableQueryManager = tableQueryManager;
-		this.schemaManager = schemaManager;
-		this.jsonSchemaValidationManager = jsonSchemaValidationManager;
+		this.gridRowValidator = gridRowValidator;
 		this.gridAuthorizationManager = gridAuthorizationManager;
 		this.fileProvider = fileProvider;
 		this.encoderProvider = encoderProvider;
+		this.gridReplicaConnectionManager = gridReplicaConnectionManager;
 	}
 
 	@Override
@@ -98,7 +99,7 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			GridSession session = gridDao.createGridSession(new CreateGridSession().setUserId(user.getId())
 					.setSourceId(tableId).setSchemaId(schemaIdOp.orElse(null)).setOwner(request.getOwnerPrincipalId())
 					.setAuthorizationMode(request.getAuthorizationMode()));
-			GridReplica replica = gridDao.createReplica(user.getId(), session.getSessionId(), false,
+			GridReplica replica = gridReplicaConnectionManager.createReplicaAndConnect(user.getId(), session.getSessionId(), false,
 					EventSource.INTERNAL);
 
 			// Always include the entity etag so it is included in the grid metadata. The
@@ -106,7 +107,7 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			// grid data back into a Synapse Table or View
 			initialQuery.setIncludeEntityEtag(true);
 
-			final Optional<JsonSchema> validationSchema = schemaIdOp.map(schemaManager::getValidationSchema);
+			final Optional<JsonSchema> validationSchema = schemaIdOp.map(gridRowValidator::getValidationSchema);
 
 			final List<String> columnsRequiredBySchema = validationSchema
 					.map(JsonSchema::getRequired)
@@ -131,7 +132,7 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 			tableQueryManager.runQueryAsStream(callback, filterUser, initialQuery, t -> {
 				List<ColumnModel> schema = t.getMainQuery().getTranslator().getSchemaOfSelect();
 				return getBenefactorCollectingRowHandler(snapshotStore, session, replica, schema,
-						columnsRequiredBySchemaIndices, user.getId(), validationSchema, collectedBenefactorIds);
+						columnsRequiredBySchemaIndices, user.getId(), schemaIdOp, collectedBenefactorIds);
 			}, ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE);
 
 			EntityType sourceType = entityManager.getEntityType(tableId);
@@ -159,10 +160,10 @@ public class QueryCreateGridHandler implements CreateGridHandler {
 	BenefactorCollectingRowHandler getBenefactorCollectingRowHandler(SnapshotStore snapshotStore,
 			GridSession session, GridReplica replica, List<ColumnModel> schema,
 			List<Integer> columnsRequiredBySchemaIndices, Long userId,
-			Optional<JsonSchema> validationSchema, Set<Long> collectedBenefactorIds) {
+			Optional<String> schemaId, Set<Long> collectedBenefactorIds) {
 		SnapshotRowHandler snapshotHandler = new SnapshotRowHandler(snapshotStore, session.getSessionId(),
 				replica.getReplicaId(), schema, columnsRequiredBySchemaIndices, fileProvider, encoderProvider,
-				userId, jsonSchemaValidationManager, validationSchema.orElse(null));
+				userId, gridRowValidator, schemaId.orElse(null));
 		return new BenefactorCollectingRowHandler(snapshotHandler, collectedBenefactorIds);
 	}
 

@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
@@ -100,11 +101,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	private ForumDAO forumDao;
 
+	private DocuSignClient docuSignClient;
+
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
 			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListManager aclManager,
-			DataAccessAuthorizationManager daAuthManager, ForumDAO forumDao) {
+			DataAccessAuthorizationManager daAuthManager, ForumDAO forumDao, DocuSignClient docuSignClient) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
 		this.nodeDao = nodeDao;
@@ -115,6 +118,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.aclManager = aclManager;
 		this.daAuthManager = daAuthManager;
 		this.forumDao = forumDao;
+		this.docuSignClient = docuSignClient;
 	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
@@ -227,6 +231,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
+		if (accessRequirement instanceof ManagedACTAccessRequirement managedAr
+				&& managedAr.getEDucTemplateId() != null) {
+			docuSignClient.validateTemplate(managedAr.getEDucTemplateId());
+		}
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
@@ -344,6 +352,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(accessRequirementId.equals(toUpdate.getId().toString()),
 			"Update specified ID "+accessRequirementId+" but object contains id: "+toUpdate.getId());
 		validateAccessRequirement(toUpdate);
+		if (toUpdate instanceof ManagedACTAccessRequirement managedAr
+				&& managedAr.getEDucTemplateId() != null) {
+			docuSignClient.validateTemplate(managedAr.getEDucTemplateId());
+		}
 
 		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();

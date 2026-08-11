@@ -121,7 +121,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.auth.internal.AWS4SignerUtils;
-import com.amazonaws.services.cloudfront.CloudFrontUrlSigner;
+import software.amazon.awssdk.services.cloudfront.CloudFrontUtilities;
+import software.amazon.awssdk.services.cloudfront.model.CannedSignerRequest;
 import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
@@ -448,7 +449,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		PrivateKey privateKey = KeyPairUtil.getPrivateKeyFromPEM(privateKeyValue, RSA);
 		Long creationTimeMS = System.currentTimeMillis();
 		String creationDate = AWS4SignerUtils.formatTimestamp(creationTimeMS);
-		Date expirationDate = new Date(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
+		Instant expirationInstant = Instant.ofEpochMilli(creationTimeMS + PRESIGNED_URL_EXPIRE_TIME_MS);
 
 		/*
 		S3 interprets "+" in the path part of an object URL as a space. In order to differentiate
@@ -483,12 +484,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 		String resourceUrl = uriBuilder.build(uriComponentsEncoded).toString();
 
-		String signedUrl = CloudFrontUrlSigner.getSignedURLWithCannedPolicy(
-				resourceUrl,
-				keyPairId,
-				privateKey,
-				expirationDate
-		);
+		String signedUrl = CloudFrontUtilities.create()
+				.getSignedUrlWithCannedPolicy(CannedSignerRequest.builder()
+						.resourceUrl(resourceUrl)
+						.keyPairId(keyPairId)
+						.privateKey(privateKey)
+						.expirationDate(expirationInstant)
+						.build())
+				.url();
 
 		return signedUrl;
 	}

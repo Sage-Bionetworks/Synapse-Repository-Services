@@ -31,7 +31,7 @@ public interface CurationTaskDao {
     void clearActiveSessionId(Long taskId);
 
     List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
-            List<TaskState> stateFilter, long limit, long offset);
+            List<TaskState> stateFilter, List<Long> taskIds, long limit, long offset);
 
     Set<Long> getDistinctProjectIds();
 

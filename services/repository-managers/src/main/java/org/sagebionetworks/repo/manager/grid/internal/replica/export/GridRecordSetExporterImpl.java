@@ -4,13 +4,15 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.util.List;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.LocalFileUploadRequest;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.manager.grid.internal.replica.validation.ValidationSummaryAccumulator;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -20,9 +22,8 @@ import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridSession;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.schema.ValidationResults;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.EntityService;
@@ -30,15 +31,14 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterProvider;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
 @Service
 public class GridRecordSetExporterImpl implements GridRecordSetExporter {
-	
-	private static final String[] VALIDATION_CSV_HEADERS = new String[] {
-		"row_index", "is_valid", "validation_error_message", "all_validation_messages"
-	};
+
+	private static final int VALIDATION_BATCH_SIZE = 1000;
 
 	private final GridManager gridManager;
 	private final GridReplicaSupport gridReplicaSupport;
@@ -46,9 +46,17 @@ public class GridRecordSetExporterImpl implements GridRecordSetExporter {
 	private final GridReplicaCsvExporter csvExporter;
 	private final EntitySchemaValidationResultDao validationResultDao;
 	private final CSVWriterProvider csvWriterProvider;
-    private final FileHandleManager fileHandleManager;
+	private final FileHandleManager fileHandleManager;
+	private final GridRowValidator gridRowValidator;
+	private final TransactionTemplate readCommitedTransactionTemplate;
 
-	public GridRecordSetExporterImpl(GridManager gridManager, GridReplicaSupport gridReplicaSupport, EntityService entityService, GridReplicaCsvExporter csvExporter, EntitySchemaValidationResultDao validationResultDao, CSVWriterProvider csvWriterProvider, FileHandleManager fileHandleManager) {
+
+	public GridRecordSetExporterImpl(GridManager gridManager, GridReplicaSupport gridReplicaSupport,
+									 EntityService entityService, GridReplicaCsvExporter csvExporter,
+									 EntitySchemaValidationResultDao validationResultDao,
+									 CSVWriterProvider csvWriterProvider, FileHandleManager fileHandleManager,
+									 GridRowValidator gridRowValidator, TransactionTemplate readCommitedTransactionTemplate
+	) {
 		this.gridManager = gridManager;
 		this.gridReplicaSupport = gridReplicaSupport;
 		this.entityService = entityService;
@@ -56,6 +64,8 @@ public class GridRecordSetExporterImpl implements GridRecordSetExporter {
 		this.validationResultDao = validationResultDao;
 		this.csvWriterProvider = csvWriterProvider;
 		this.fileHandleManager = fileHandleManager;
+		this.gridRowValidator = gridRowValidator;
+		this.readCommitedTransactionTemplate = readCommitedTransactionTemplate;
 	}
 	
 	@Override
@@ -104,7 +114,7 @@ public class GridRecordSetExporterImpl implements GridRecordSetExporter {
 		}
 		
 		// Creates a new version of the record set that points to the new file and persist the validation summary
-		recordSet = createNewVersion(user, recordSet, exportedFileId, validationSummary, validationFileId);
+		recordSet = createRecordSetVersionFromArtifacts(user, recordSet, exportedFileId, validationSummary, validationFileId);
 
 		// Update the GridSession to denote that it is in sync with the record set
 		gridManager.updateSourceEntityVersion(request.getSessionId(), recordSet.getVersionNumber());
@@ -137,7 +147,77 @@ public class GridRecordSetExporterImpl implements GridRecordSetExporter {
 		return result.getResultsFileHandleId();
 	}
 	
-	RecordSet createNewVersion(UserInfo user, RecordSet recordSet, String newFileHandleId, ValidationSummaryStatistics validationSummary, String validationFileHandleId) {
+	@Override
+	public RecordSetArtifactBuilder createArtifactBuilder(String fileNamePrefix, List<String> orderedColumnNames,
+	                                                      JsonSchema validationSchema, CsvTableDescriptor csvDescriptor, String recordSetId) throws IOException {
+		File dataFile = File.createTempFile(fileNamePrefix + "_push_data", ".csv");
+		File validationFile = File.createTempFile(fileNamePrefix + "_push_validation_details", ".csv");
+		CSVWriter dataWriter = null;
+		CSVWriter validationWriter = null;
+		try {
+			dataWriter = csvWriterProvider.createWriter(new FileWriter(dataFile, StandardCharsets.UTF_8), csvDescriptor);
+			validationWriter = csvWriterProvider.createWriter(new FileWriter(validationFile, StandardCharsets.UTF_8),
+					null);
+			return new RecordSetArtifactBuilder(orderedColumnNames, validationSchema, gridRowValidator, dataWriter, validationWriter,
+					dataFile, validationFile, VALIDATION_BATCH_SIZE, recordSetId);
+		} catch (IOException | RuntimeException e) {
+			// Clean up on failure to construct the artifact builder.
+			closeQuietly(dataWriter);
+			closeQuietly(validationWriter);
+			dataFile.delete();
+			validationFile.delete();
+			throw e;
+		}
+	}
+
+	private static void closeQuietly(CSVWriter writer) {
+		if (writer != null) {
+			try {
+				writer.close();
+			} catch (IOException e) {
+				// ignore
+			}
+		}
+	}
+
+	@Override
+	public RecordSet pushFromArtifactBuilder(UserInfo user, RecordSet recordSet, RecordSetArtifactBuilder artifactBuilder) {
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(recordSet, "recordSet");
+		ValidateArgument.required(artifactBuilder, "artifactBuilder");
+
+		String dataFileId = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest()
+				.withUserId(user.getId().toString())
+				.withFileToUpload(artifactBuilder.getDataCsvFile())
+				.withContentType("text/csv")).getId();
+
+		String validationFileId = fileHandleManager.uploadLocalFile(new LocalFileUploadRequest()
+				.withUserId(user.getId().toString())
+				.withFileName("grid_validation_details.csv")
+				.withContentType("text/csv")
+				.withFileToUpload(artifactBuilder.getValidationDetailsFile())).getId();
+
+		// Start the transaction AFTER the uploads complete.
+		return readCommitedTransactionTemplate.execute((status) ->
+				createRecordSetVersionFromArtifacts(user, recordSet, dataFileId, artifactBuilder.getValidationSummary(), validationFileId)
+		);
+	}
+
+
+	/**
+	 * Create a new RecordSet version pointing at the provided data file handle and
+	 * validation-details file handle, and persist the validation summary. This is
+	 * the shared "create version" tail used by both {@link #exportGrid} and
+	 * {@link #pushFromArtifactBuilder}.
+	 *
+	 * @param user                       the calling user
+	 * @param recordSet                  the source RecordSet
+	 * @param newFileHandleId            the new data CSV file handle id
+	 * @param validationSummary          the validation summary to persist
+	 * @param validationFileHandleId	 the validation-details file handle id
+	 * @return the updated RecordSet
+	 */
+	RecordSet createRecordSetVersionFromArtifacts(UserInfo user, RecordSet recordSet, String newFileHandleId, ValidationSummaryStatistics validationSummary, String validationFileHandleId) {
 		recordSet.setDataFileHandleId(newFileHandleId);
 		// The file handle with the validation details is stored in the revision table
 		recordSet.setValidationFileHandleId(validationFileHandleId);
@@ -163,57 +243,23 @@ public class GridRecordSetExporterImpl implements GridRecordSetExporter {
 		return updated;
 	}
 	
-	final class ValidationSummaryBuilder implements RowViewCallbackHandler {
+	static final class ValidationSummaryBuilder implements RowViewCallbackHandler {
 
-		private String recordSetId;
-		private int totalCount = 0;
-		private int validCount = 0;
-		private int invalidCount = 0;
-		private int unknownCount = 0;
-		private CSVWriter validationCsvWriter;
-		
+		private final String recordSetId;
+		private final ValidationSummaryAccumulator accumulator;
+
 		ValidationSummaryBuilder(String recordSetId, CSVWriter validationCsvWriter) throws IOException {
 			this.recordSetId = recordSetId;
-			this.validationCsvWriter = validationCsvWriter;
-			this.validationCsvWriter.writeNext(VALIDATION_CSV_HEADERS);
+			this.accumulator = new ValidationSummaryAccumulator(validationCsvWriter);
 		}
 		
 		@Override
 		public void next(RowView rowView) {
-			// row_index, is_valid, validation_error_message, all_validation_messages
-			String[] rowValidationDetails = new String[] { String.valueOf(totalCount), null, null, null };
-			
-			totalCount++;
-			
-			ValidationResults validationResult = rowView.getRowValidationResults();
-			
-			if (validationResult == null) {
-				unknownCount++;
-			} else if (Boolean.TRUE.equals(validationResult.getIsValid())) {
-				validCount++;
-				rowValidationDetails[1] = "true";
-			} else {
-				invalidCount++;
-				rowValidationDetails[1] = "false";
-				rowValidationDetails[2] = validationResult.getValidationErrorMessage();
-				rowValidationDetails[3] = JDOSecondaryPropertyUtils.writeStringListToJson(validationResult.getAllValidationMessages());
-			}
-			
-			try {
-				validationCsvWriter.writeNext(rowValidationDetails);
-			} catch (IOException e) {
-				throw new IllegalStateException("Could not write validation details to CSV file.", e);
-			}
+			accumulator.record(rowView.getRowValidationResults());
 		}
 		
 		ValidationSummaryStatistics getValidationSummary() {
-			return new ValidationSummaryStatistics()
-				.setContainerId(recordSetId)
-				.setTotalNumberOfChildren(Long.valueOf(totalCount))
-				.setNumberOfValidChildren(Long.valueOf(validCount))
-				.setNumberOfInvalidChildren(Long.valueOf(invalidCount))
-				.setNumberOfUnknownChildren(Long.valueOf(unknownCount))
-				.setGeneratedOn(new Date());
+			return accumulator.getValidationSummary(recordSetId);
 		}
 		
 	}

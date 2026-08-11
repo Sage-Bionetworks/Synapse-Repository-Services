@@ -27,6 +27,12 @@
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
 
+		<!-- Used to generate the grid request JSON schema for the grid agent specialist prompts -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-openapi</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-doi</artifactId>
@@ -238,6 +244,38 @@
              <scope>runtime</scope>
          </dependency>
 
+		<!-- Spring AI Bedrock Converse -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-bedrock-converse</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-client-chat</artifactId>
+		</dependency>
+
+		<!-- AgentCore Memory + Code Interpreter -->
+		<dependency>
+			<groupId>org.springaicommunity</groupId>
+			<artifactId>spring-ai-agentcore-memory</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springaicommunity</groupId>
+			<artifactId>spring-ai-agentcore-code-interpreter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockruntime</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentcore</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>bedrockagentcorecontrol</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>bedrockagentruntime</artifactId>
@@ -285,6 +323,18 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>sns</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>ses</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>opensearch</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>cloudfront</artifactId>
 		</dependency>
 
 		<dependency>
