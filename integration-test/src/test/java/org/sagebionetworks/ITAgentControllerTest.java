@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
@@ -70,6 +71,7 @@ public class ITAgentControllerTest {
 		assertEquals(jobResult.getJobToken(), trace.getJobId());
 	}
 
+	@Disabled // We disabled this test as the custom agent (id= 0O3IDUIR36 ) uses a model that has "reached the end of its life".
 	@Test
 	public void testChatCustomAgent() throws SynapseException {
 

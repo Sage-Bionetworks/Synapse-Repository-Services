@@ -9,8 +9,6 @@ import java.util.Optional;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
@@ -28,7 +26,6 @@ import org.sagebionetworks.repo.model.sts.StsCredentials;
 import org.sagebionetworks.repo.model.sts.StsPermission;
 import org.sagebionetworks.upload.multipart.MultipartUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.ImmutableMap;
@@ -51,29 +48,27 @@ public class StsManagerImpl implements StsManager {
 							"\"s3:ListMultipartUploadParts\",\"s3:PutObject\",\"s3:ListBucketMultipartUploads\",\"s3:PutObjectAcl\"")
 					.build();
 
-	@Autowired
-	private EntityAuthorizationManager authManager;
+	private final EntityAuthorizationManager authManager;
 
-	@Autowired
-	private FileHandleManager fileHandleManager;
+	private final FileHandleManager fileHandleManager;
 
-	@Autowired
-	private ProjectSettingsManager projectSettingsManager;
+	private final ProjectSettingsManager projectSettingsManager;
 
-	@Autowired
-	private StackConfiguration stackConfiguration;
+	private final StackConfiguration stackConfiguration;
 
-	@Autowired
-	private StsClient stsClient;
+	private final StsClient stsClient;
 
 	private final VelocityEngine velocityEngine;
 
-	/** Initializes the STS Manager. */
-	public StsManagerImpl() {
-		velocityEngine = new VelocityEngine();
-		velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		velocityEngine.setProperty("runtime.references.strict", true);
+	public StsManagerImpl(EntityAuthorizationManager authManager, FileHandleManager fileHandleManager,
+			ProjectSettingsManager projectSettingsManager, StackConfiguration stackConfiguration, StsClient stsClient,
+			VelocityEngine velocityEngine) {
+		this.authManager = authManager;
+		this.fileHandleManager = fileHandleManager;
+		this.projectSettingsManager = projectSettingsManager;
+		this.stackConfiguration = stackConfiguration;
+		this.stsClient = stsClient;
+		this.velocityEngine = velocityEngine;
 	}
 
 	@Override

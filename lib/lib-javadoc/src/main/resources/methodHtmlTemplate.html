@@ -79,8 +79,8 @@
 											<tr>
 												<td>Required <a href="${pathToRoot}org/sagebionetworks/repo/model/oauth/OAuthScope.html">OAuth Scopes</a></td>
 												<td>
-													#foreach( $scope in $method.requiredScopes ) 
-														#if($velocityCount > 1)
+													#foreach( $scope in $method.requiredScopes )
+														#if($foreach.count > 1)
 															, 
 														#end
 														$scope 
@@ -98,7 +98,7 @@
 													href="$method.requestBody.href">$method.requestBody.display</a>#*
 													*##if($method.requestBodyGenericParams)#*
 														*#&lt;#foreach( $param in $method.requestBodyGenericParams)#*
-															*#<a href="$param.href">$param.display</a>#if($velocityCount > 1),#end#*
+															*#<a href="$param.href">$param.display</a>#if($foreach.count > 1),#end#*
 														*##end&gt;#*
 													*##end#*
 													*#<br>(application/json)</br>
@@ -111,7 +111,7 @@
 													href="$method.responseBody.href">$method.responseBody.display</a>#*
 													*##if($method.responseBodyGenericParams)#*
 														*#&lt;#foreach( $param in $method.responseBodyGenericParams)#*
-															*#<a href="$param.href">$param.display</a>#if($velocityCount > 1),#end#*
+															*#<a href="$param.href">$param.display</a>#if($foreach.count > 1),#end#*
 														*##end&gt;#*
 													*##end#*
 													*#<br>(application/json)</br>

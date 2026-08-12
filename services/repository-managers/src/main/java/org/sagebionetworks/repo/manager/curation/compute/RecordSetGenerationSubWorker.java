@@ -8,8 +8,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisorFactory;
@@ -75,16 +73,14 @@ public class RecordSetGenerationSubWorker implements ComputeTaskSubWorker<Record
 	public RecordSetGenerationSubWorker(RecordSetGenerationSupervisorFactory supervisorFactory,
 			AgentCoreCodeInterpreterClient codeInterpreterClient, CodeInterpreterFileManager codeInterpreterFileManager,
 			RecordSetOutputWriter recordSetOutputWriter, CurationTaskManager curationTaskManager,
-			EntityManager entityManager) {
+			EntityManager entityManager, VelocityEngine velocityEngine) {
 		this.supervisorFactory = supervisorFactory;
 		this.codeInterpreterClient = codeInterpreterClient;
 		this.codeInterpreterFileManager = codeInterpreterFileManager;
 		this.recordSetOutputWriter = recordSetOutputWriter;
 		this.curationTaskManager = curationTaskManager;
 		this.entityManager = entityManager;
-		this.velocityEngine = new VelocityEngine();
-		this.velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		this.velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		this.velocityEngine = velocityEngine;
 	}
 
 	@Override

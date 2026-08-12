@@ -13,8 +13,6 @@ import java.util.UUID;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -83,7 +81,7 @@ public class CodeInterpreterFileManager {
 	public CodeInterpreterFileManager(S3Client s3Client, S3Presigner s3Presigner,
 			AgentCoreCodeInterpreterClient codeInterpreterClient, FileHandleManager fileHandleManager,
 			FileHandleDao fileHandleDao, IdGenerator idGenerator, StorageLocationDAO storageLocationDAO,
-			StackConfiguration stackConfig) {
+			StackConfiguration stackConfig, VelocityEngine velocityEngine) {
 		this.s3Client = s3Client;
 		this.s3Presigner = s3Presigner;
 		this.codeInterpreterClient = codeInterpreterClient;
@@ -93,10 +91,7 @@ public class CodeInterpreterFileManager {
 		this.storageLocationDAO = storageLocationDAO;
 		this.stagingBucket = stackConfig.getStack() + ".code-interpreter.staging.sagebase.org";
 		this.synapseBucket = stackConfig.getS3Bucket();
-		this.velocityEngine = new VelocityEngine();
-		this.velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		this.velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		this.velocityEngine.setProperty("runtime.references.strict", true);
+		this.velocityEngine = velocityEngine;
 	}
 
 	/**

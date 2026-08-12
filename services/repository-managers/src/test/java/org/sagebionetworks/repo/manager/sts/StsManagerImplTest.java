@@ -13,15 +13,16 @@ import java.util.Date;
 import java.util.Optional;
 
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -85,8 +86,14 @@ public class StsManagerImplTest {
 	@Mock
 	private StsClient mockStsClient;
 
-	@InjectMocks
 	private StsManagerImpl stsManager;
+
+	@BeforeEach
+	public void before() {
+		// The IAM policy is rendered from a strict Velocity template, so use the real engine.
+		stsManager = new StsManagerImpl(mockAuthManager, mockFileHandleManager, mockProjectSettingsManager,
+				mockStackConfiguration, mockStsClient, new ManagerConfiguration().velocityEngine());
+	}
 
 	@Test
 	public void getTemporaryCredentials_noProjectSetting() {

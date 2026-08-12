@@ -5,8 +5,6 @@ import java.io.StringWriter;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.springframework.ai.chat.model.ChatModel;
@@ -25,14 +23,17 @@ public class JsonSchemaSpecialistFactory {
 	private final StackConfiguration stackConfig;
 	private final JsonSchemaTools jsonSchemaTools;
 	private final CodeInterpreterTools codeInterpreterTools;
+	private final VelocityEngine velocityEngine;
 	private final String renderedSystemPrompt;
 
 	public JsonSchemaSpecialistFactory(ChatModel chatModel, StackConfiguration stackConfig,
-			JsonSchemaTools jsonSchemaTools, CodeInterpreterTools codeInterpreterTools) {
+			JsonSchemaTools jsonSchemaTools, CodeInterpreterTools codeInterpreterTools,
+			VelocityEngine velocityEngine) {
 		this.chatModel = chatModel;
 		this.stackConfig = stackConfig;
 		this.jsonSchemaTools = jsonSchemaTools;
 		this.codeInterpreterTools = codeInterpreterTools;
+		this.velocityEngine = velocityEngine;
 		this.renderedSystemPrompt = renderSystemPrompt();
 	}
 
@@ -41,16 +42,13 @@ public class JsonSchemaSpecialistFactory {
 	}
 
 	String renderSystemPrompt() {
-		// Note: strict reference mode is intentionally NOT enabled. The prompt contains JSON Schema
-		// keywords such as $id, $ref, and $schema, which Velocity would otherwise treat as undefined
-		// variable references. In non-strict mode these render literally, which is what we want.
-		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		engine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-
 		VelocityContext context = new VelocityContext();
+		// The shared engine runs in strict-reference mode, so bind $D to a literal '$' and use ${D} in
+		// the template wherever a literal dollar sign is intended. This prompt contains JSON Schema
+		// keywords such as $ref, $id, and $schema, which are written as ${D}ref, ${D}id, etc.
+		context.put("D", "$");
 
-		Template template = engine.getTemplate(PROMPT_TEMPLATE);
+		Template template = velocityEngine.getTemplate(PROMPT_TEMPLATE);
 		StringWriter writer = new StringWriter();
 		template.merge(context, writer);
 		return writer.toString();

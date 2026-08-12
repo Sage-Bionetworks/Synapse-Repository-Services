@@ -11,8 +11,6 @@ import java.util.List;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.springframework.ai.chat.model.ChatModel;
@@ -34,14 +32,17 @@ public class TableQuerySpecialistFactory {
 	private final StackConfiguration stackConfig;
 	private final TableQueryTools tableQueryTools;
 	private final CodeInterpreterTools codeInterpreterTools;
+	private final VelocityEngine velocityEngine;
 	private final String renderedSystemPrompt;
 
 	public TableQuerySpecialistFactory(ChatModel chatModel, StackConfiguration stackConfig,
-			TableQueryTools tableQueryTools, CodeInterpreterTools codeInterpreterTools) {
+			TableQueryTools tableQueryTools, CodeInterpreterTools codeInterpreterTools,
+			VelocityEngine velocityEngine) {
 		this.chatModel = chatModel;
 		this.stackConfig = stackConfig;
 		this.tableQueryTools = tableQueryTools;
 		this.codeInterpreterTools = codeInterpreterTools;
+		this.velocityEngine = velocityEngine;
 		this.renderedSystemPrompt = renderSystemPrompt();
 	}
 
@@ -50,17 +51,12 @@ public class TableQuerySpecialistFactory {
 	}
 
 	String renderSystemPrompt() {
-		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		engine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		engine.setProperty("runtime.references.strict", true);
-
 		List<SqlExample> sqlExamples = loadSqlExamples();
 
 		VelocityContext context = new VelocityContext();
 		context.put("sqlExamples", sqlExamples);
 
-		Template template = engine.getTemplate(PROMPT_TEMPLATE);
+		Template template = velocityEngine.getTemplate(PROMPT_TEMPLATE);
 		StringWriter writer = new StringWriter();
 		template.merge(context, writer);
 		return writer.toString();

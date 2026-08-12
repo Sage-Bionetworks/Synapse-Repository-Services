@@ -5,8 +5,6 @@ import java.io.StringWriter;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityTool;
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityToolBase;
@@ -47,13 +45,10 @@ public class FileSummaryTools extends JSONEntityToolBase {
 	private final AgentCoreCodeInterpreterClient codeInterpreterClient;
 	private final VelocityEngine velocityEngine;
 
-	public FileSummaryTools(AgentCoreCodeInterpreterClient codeInterpreterClient) {
+	public FileSummaryTools(AgentCoreCodeInterpreterClient codeInterpreterClient, VelocityEngine velocityEngine) {
 		super();
 		this.codeInterpreterClient = codeInterpreterClient;
-		this.velocityEngine = new VelocityEngine();
-		this.velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		this.velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		this.velocityEngine.setProperty("runtime.references.strict", true);
+		this.velocityEngine = velocityEngine;
 	}
 
 	@JSONEntityTool(description = "Inspect a file on the code interpreter session filesystem without loading its full contents. "

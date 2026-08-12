@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
+import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.springframework.ai.chat.model.ChatModel;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +32,8 @@ public class FileSummarySpecialistFactoryTest {
 
 	@BeforeEach
 	public void setup() {
-		factory = new FileSummarySpecialistFactory(mockChatModel, mockStackConfig, mockFileSummaryTools, mockCodeInterpreterTools);
+		factory = new FileSummarySpecialistFactory(mockChatModel, mockStackConfig, mockFileSummaryTools, mockCodeInterpreterTools,
+				new ManagerConfiguration().velocityEngine());
 	}
 
 	@Test

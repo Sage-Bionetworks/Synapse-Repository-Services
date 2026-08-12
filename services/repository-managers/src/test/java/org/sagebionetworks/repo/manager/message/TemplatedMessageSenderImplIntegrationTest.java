@@ -28,8 +28,8 @@ public class TemplatedMessageSenderImplIntegrationTest {
 		// Mirrors ManagerConfiguration.velocityEngine(): load templates from the classpath and enable
 		// strict reference mode so that referencing an undefined variable throws rather than rendering empty.
 		VelocityEngine velocityEngine = new VelocityEngine();
-		velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		velocityEngine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		velocityEngine.setProperty(RuntimeConstants.RESOURCE_LOADERS, "classpath");
+		velocityEngine.setProperty("resource.loader.classpath.class", ClasspathResourceLoader.class.getName());
 		velocityEngine.setProperty(RuntimeConstants.RUNTIME_REFERENCES_STRICT, true);
 		velocityEngine.init();
 		// Only the VelocityEngine is exercised by buildMessageBody, the other collaborators are not needed

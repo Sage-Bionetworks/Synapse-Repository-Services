@@ -138,9 +138,9 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 public class ManagerConfiguration {
 
 	private static final String VELOCITY_RESOURCE_LOADERS = "classpath,file";
-	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "classpath.resource.loader.class";
-	private static final String VELOCITY_PARAM_FILE_LOADER_CLASS = "file.resource.loader.class";
-	private static final String VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT = "runtime.references.strict";
+	private static final String VELOCITY_PARAM_CLASSPATH_LOADER_CLASS = "resource.loader.classpath.class";
+	private static final String VELOCITY_PARAM_FILE_LOADER_CLASS = "resource.loader.file.class";
+	private static final String VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT = "runtime.strict_mode.enable";
 
 	/**
 	 * @return The velocity engine instance that can be used within the managers
@@ -148,7 +148,7 @@ public class ManagerConfiguration {
 	@Bean
 	public VelocityEngine velocityEngine() {
 		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, VELOCITY_RESOURCE_LOADERS);
+		engine.setProperty(RuntimeConstants.RESOURCE_LOADERS, VELOCITY_RESOURCE_LOADERS);
 		engine.setProperty(VELOCITY_PARAM_CLASSPATH_LOADER_CLASS, ClasspathResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_FILE_LOADER_CLASS, FileResourceLoader.class.getName());
 		engine.setProperty(VELOCITY_PARAM_RUNTIME_REFERENCES_STRICT, true);

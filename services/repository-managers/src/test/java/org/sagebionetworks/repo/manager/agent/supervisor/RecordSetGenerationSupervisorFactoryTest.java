@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
+import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 
@@ -43,7 +44,7 @@ public class RecordSetGenerationSupervisorFactoryTest {
 		when(mockSpecialistToolProvider.getTools(SupervisorTools.TOOL_ENTITY_METADATA, SupervisorTools.TOOL_JSON_SCHEMA,
 				SupervisorTools.TOOL_FILE_SUMMARY)).thenReturn(List.of(mockToolCallback));
 		factory = new RecordSetGenerationSupervisorFactory(mockChatModel, mockStackConfig, mockSpecialistToolProvider,
-				mockCodeInterpreterTools);
+				mockCodeInterpreterTools, new ManagerConfiguration().velocityEngine());
 	}
 
 	@Test

@@ -31,6 +31,7 @@ import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFailureCode;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFileRequest;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFileResult;
+import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -95,7 +96,8 @@ public class CodeInterpreterFileManagerTest {
 		when(mockStackConfig.getStack()).thenReturn("dev");
 		when(mockStackConfig.getS3Bucket()).thenReturn("devdata.sagebase.org");
 		fileManager = new CodeInterpreterFileManager(mockS3Client, mockS3Presigner, mockCodeInterpreterClient,
-				mockFileHandleManager, mockFileHandleDao, mockIdGenerator, mockStorageLocationDAO, mockStackConfig);
+				mockFileHandleManager, mockFileHandleDao, mockIdGenerator, mockStorageLocationDAO, mockStackConfig,
+				new ManagerConfiguration().velocityEngine());
 	}
 
 	@Test

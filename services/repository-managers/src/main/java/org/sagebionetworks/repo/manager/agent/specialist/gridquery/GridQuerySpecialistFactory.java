@@ -5,8 +5,6 @@ import java.io.StringWriter;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.grid.GridExamples;
 import org.springframework.ai.chat.model.ChatModel;
@@ -26,13 +24,15 @@ public class GridQuerySpecialistFactory {
 	private final ChatModel chatModel;
 	private final StackConfiguration stackConfig;
 	private final GridQueryTools gridQueryTools;
+	private final VelocityEngine velocityEngine;
 	private final String renderedSystemPrompt;
 
 	public GridQuerySpecialistFactory(ChatModel chatModel, StackConfiguration stackConfig,
-			GridQueryTools gridQueryTools) {
+			GridQueryTools gridQueryTools, VelocityEngine velocityEngine) {
 		this.chatModel = chatModel;
 		this.stackConfig = stackConfig;
 		this.gridQueryTools = gridQueryTools;
+		this.velocityEngine = velocityEngine;
 		this.renderedSystemPrompt = renderSystemPrompt();
 	}
 
@@ -41,15 +41,10 @@ public class GridQuerySpecialistFactory {
 	}
 
 	String renderSystemPrompt() {
-		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		engine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-		engine.setProperty("runtime.references.strict", true);
-
 		VelocityContext context = new VelocityContext();
 		context.put("queryExamples", GridExamples.getQueryExamples());
 
-		Template template = engine.getTemplate(PROMPT_TEMPLATE);
+		Template template = velocityEngine.getTemplate(PROMPT_TEMPLATE);
 		StringWriter writer = new StringWriter();
 		template.merge(context, writer);
 		return writer.toString();

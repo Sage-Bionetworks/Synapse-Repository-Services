@@ -5,8 +5,6 @@ import java.io.StringWriter;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
-import org.apache.velocity.runtime.RuntimeConstants;
-import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.springframework.ai.chat.model.ChatModel;
@@ -25,14 +23,17 @@ public class FileSummarySpecialistFactory {
 	private final StackConfiguration stackConfig;
 	private final FileSummaryTools fileSummaryTools;
 	private final CodeInterpreterTools codeInterpreterTools;
+	private final VelocityEngine velocityEngine;
 	private final String renderedSystemPrompt;
 
 	public FileSummarySpecialistFactory(ChatModel chatModel, StackConfiguration stackConfig,
-			FileSummaryTools fileSummaryTools, CodeInterpreterTools codeInterpreterTools) {
+			FileSummaryTools fileSummaryTools, CodeInterpreterTools codeInterpreterTools,
+			VelocityEngine velocityEngine) {
 		this.chatModel = chatModel;
 		this.stackConfig = stackConfig;
 		this.fileSummaryTools = fileSummaryTools;
 		this.codeInterpreterTools = codeInterpreterTools;
+		this.velocityEngine = velocityEngine;
 		this.renderedSystemPrompt = renderSystemPrompt();
 	}
 
@@ -41,13 +42,9 @@ public class FileSummarySpecialistFactory {
 	}
 
 	String renderSystemPrompt() {
-		VelocityEngine engine = new VelocityEngine();
-		engine.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
-		engine.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
-
 		VelocityContext context = new VelocityContext();
 
-		Template template = engine.getTemplate(PROMPT_TEMPLATE);
+		Template template = velocityEngine.getTemplate(PROMPT_TEMPLATE);
 		StringWriter writer = new StringWriter();
 		template.merge(context, writer);
 		return writer.toString();
