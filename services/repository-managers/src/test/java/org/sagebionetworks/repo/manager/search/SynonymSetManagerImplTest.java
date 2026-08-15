@@ -62,9 +62,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testCreateWithNonSageUser() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () ->
@@ -75,9 +73,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testUpdateWithNonSageUser() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () ->
@@ -88,9 +84,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testDeleteWithNonSageUser() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () ->
@@ -101,9 +95,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testCreateWithAnonymousUser() {
-		UserInfo anon = new UserInfo(false);
-		anon.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		anon.setGroups(Set.of(anon.getId()));
+		UserInfo anon = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID, Set.of(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () ->
@@ -117,9 +109,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testCreateWithUserWithoutOrgAcl() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 		when(organizationDao.getOrganizationByName("test-org")).thenReturn(new Organization().setId("42"));
 		when(aclDao.canAccess(any(UserInfo.class), eq("42"), eq(ObjectType.ORGANIZATION), eq(ACCESS_TYPE.CREATE)))
 			.thenReturn(AuthorizationStatus.accessDenied("no"));
@@ -132,9 +122,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testCreateWithUserWithOrgAcl() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 		when(organizationDao.getOrganizationByName("test-org")).thenReturn(new Organization().setId("42"));
 		when(aclDao.canAccess(any(UserInfo.class), eq("42"), eq(ObjectType.ORGANIZATION), eq(ACCESS_TYPE.CREATE)))
 			.thenReturn(AuthorizationStatus.authorized());
@@ -149,8 +137,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testCreateWithAdminBypassesOrgAcl() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet input = new SynonymSet().setOrganizationName("test-org").setName("test")
 				.setDefinition("{\"type\":\"synonym_graph\",\"synonyms\":[\"a, b\"]}");
 		when(synonymSetDao.create(eq(1L), any())).thenReturn(input.setId("1"));
@@ -168,7 +155,7 @@ public class SynonymSetManagerImplTest {
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(new SynonymSet()));
 
 		// call under test
-		manager.get(new UserInfo(false), "1");
+		manager.get(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), "1");
 		verifyNoMoreInteractions(aclDao);
 	}
 
@@ -176,8 +163,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testDeleteWithAdmin() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet existing = new SynonymSet().setId("1").setOrganizationName("test-org");
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(existing));
 
@@ -188,8 +174,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testDeleteWithFkConstraint() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet existing = new SynonymSet().setId("1").setOrganizationName("test-org");
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(existing));
 		org.mockito.Mockito.doThrow(new IllegalArgumentException("Cannot delete synonym set '1' because it is still referenced."))
@@ -208,7 +193,7 @@ public class SynonymSetManagerImplTest {
 		when(synonymSetDao.get("999")).thenReturn(Optional.empty());
 
 		// call under test
-		NotFoundException ex = assertThrows(NotFoundException.class, () -> manager.get(new UserInfo(false), "999"));
+		NotFoundException ex = assertThrows(NotFoundException.class, () -> manager.get(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), "999"));
 		assertEquals("A synonym set with the given id does not exist.", ex.getMessage());
 	}
 
@@ -223,7 +208,7 @@ public class SynonymSetManagerImplTest {
 		ListSynonymSetsRequest request = new ListSynonymSetsRequest();
 
 		// call under test
-		ListSynonymSetsResponse response = manager.list(new UserInfo(false), request);
+		ListSynonymSetsResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 		assertEquals(1, response.getResults().size());
 		verify(synonymSetDao).listAll(anyLong(), anyLong());
 		verify(synonymSetDao, never()).list(anyString(), anyLong(), anyLong());
@@ -239,7 +224,7 @@ public class SynonymSetManagerImplTest {
 		request.setOrganizationName("test-org");
 
 		// call under test
-		ListSynonymSetsResponse response = manager.list(new UserInfo(false), request);
+		ListSynonymSetsResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 		assertEquals(1, response.getResults().size());
 		assertEquals("1", response.getResults().get(0).getId());
 	}
@@ -248,9 +233,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testUpdateWithUserWithoutOrgAcl() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 		SynonymSet request = new SynonymSet().setId("1").setOrganizationName("test-org").setName("test_name")
 				.setDefinition("{\"type\":\"synonym_graph\",\"synonyms\":[\"a, b\"]}");
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(new SynonymSet().setId("1").setOrganizationName("test-org").setName("test_name")));
@@ -265,8 +248,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testUpdateWithOrgNameMismatch() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet request = new SynonymSet().setId("1").setOrganizationName("other-org").setName("test_name")
 				.setDefinition("{\"type\":\"synonym_graph\",\"synonyms\":[\"a, b\"]}");
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(new SynonymSet().setId("1").setOrganizationName("test-org")));
@@ -278,8 +260,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testUpdateWithNameChangeThrows() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet request = new SynonymSet()
 			.setId("1").setOrganizationName("test-org").setName("new_name")
 			.setDefinition("{\"type\":\"synonym_graph\",\"synonyms\":[\"a, b\"]}");
@@ -304,7 +285,7 @@ public class SynonymSetManagerImplTest {
 		ListSynonymSetsRequest request = new ListSynonymSetsRequest();
 
 		// call under test
-		ListSynonymSetsResponse response = manager.list(new UserInfo(false), request);
+		ListSynonymSetsResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertNotNull(response.getNextPageToken(), "Expected a next page token when DAO returns more than limit results");
 		assertEquals(50, response.getResults().size());
@@ -312,8 +293,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testDeleteWithNonExistentId() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(synonymSetDao.get("999")).thenReturn(Optional.empty());
 
 		// call under test
@@ -323,8 +303,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testUpdateWithNonExistentId() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet request = validSynonymSet().setId("999").setName("updated");
 		when(synonymSetDao.get("999")).thenReturn(Optional.empty());
 
@@ -335,9 +314,7 @@ public class SynonymSetManagerImplTest {
 
 	@Test
 	public void testDeleteWithOrgAclCheck() {
-		UserInfo user = new UserInfo(false);
-		user.setId(1L);
-		user.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 		SynonymSet existing = new SynonymSet().setId("1").setOrganizationName("other-org");
 		when(synonymSetDao.get("1")).thenReturn(Optional.of(existing));
 		when(organizationDao.getOrganizationByName("other-org")).thenReturn(new Organization().setId("99"));
@@ -358,7 +335,7 @@ public class SynonymSetManagerImplTest {
 		ListSynonymSetsRequest request = new ListSynonymSetsRequest();
 
 		// call under test
-		ListSynonymSetsResponse response = manager.list(new UserInfo(false), request);
+		ListSynonymSetsResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertNull(response.getNextPageToken(), "Expected null next page token when all results fit in one page");
 		assertEquals(1, response.getResults().size());
@@ -381,8 +358,7 @@ public class SynonymSetManagerImplTest {
 	public void testAdminBypassesOrgAclOnUpdate() {
 		// Admin users skip the per-org ACL check on update — covers the !user.isAdmin()=false
 		// half of the L95 guard.
-		UserInfo admin = new UserInfo(true);
-		admin.setId(2L);
+		UserInfo admin = new UserInfo(true, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SynonymSet existing = validSynonymSet().setId("1");
 		SynonymSet input = validSynonymSet().setId("1");
 		when(synonymSetDao.get("1")).thenReturn(java.util.Optional.of(existing));

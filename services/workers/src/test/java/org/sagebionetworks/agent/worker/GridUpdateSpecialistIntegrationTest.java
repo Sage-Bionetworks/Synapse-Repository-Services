@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,6 +25,8 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.grid.workers.GridIntegrationTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.gridupdate.GridUpdateSpecialist;
 import org.sagebionetworks.repo.manager.agent.specialist.gridupdate.GridUpdateSpecialistFactory;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -69,6 +72,7 @@ import org.sagebionetworks.util.JsonEntityUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterProviderImpl;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -199,7 +203,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testLiteralSetWhereNull() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "For every row where the u1Age column is null, set u1Age to 25. Leave rows that "
@@ -212,7 +216,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testTwoSetsWithExplicitNullAndLimit() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "For rows where u2Height is greater than 12, set u2Type to 'tall' and set u2Footing to "
@@ -235,7 +239,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testLiteralSetForSelection() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Set u3Name to 'Dave' for all of the rows I currently have selected.");
@@ -251,7 +255,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testSetByRowId() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// The update specialist has no query tool to discover row ids, so read the composite
 		// replicaId.sequenceNumber ids for the target rows (a1 and a4) and hand them to the model verbatim.
@@ -272,7 +276,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testSetToUndefined() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "For rows where u5Material is null, clear the u5Color cell so it becomes undefined "
@@ -289,7 +293,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testBatchOfThree() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Make these updates together: set u6Status to 'active' for rows where u6Age is greater "
@@ -320,7 +324,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testTemplateConcat() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Combine the firstName and lastName columns into the u7FullName column, separated by a "
@@ -335,7 +339,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testTemplateRegexExtract() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Extract the domain (the part after the '@') from the email column into the u8Domain "
@@ -351,7 +355,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testTemplateMultiColumnSkipMissing() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Build a path of the form 'bucket/folder/filename' into the u9Path column from the "
@@ -370,7 +374,7 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testTemplateRegexReplace() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		applyUpdate(specialist, "Reformat the phone column from the '(555) 123-4567' style to '555-123-4567' by "
@@ -385,18 +389,18 @@ public class GridUpdateSpecialistIntegrationTest {
 
 	@Test
 	public void testPreviewDoesNotApplyChange() throws Exception {
-		GridUpdateSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Preview — do not apply — what setting pvColor to 'PREVIEWED' would do "
 				+ "for the row where pvColor is currently 'pOrig1'. Show me the resulting value, but make no change "
-				+ "to the grid.", admin, null, gridContext);
+				+ "to the grid.", toolContext());
 		assertNotNull(response);
 		if (response.contains("?")) {
 			// A preview writes nothing, so it needs no authorization to proceed; if the model asks anyway,
 			// steer it back to previewing only rather than authorizing an actual change.
-			response = specialist.chat("Just run the preview and show me the result. Do not apply any change.", admin,
-					null, gridContext);
+			response = specialist.chat("Just run the preview and show me the result. Do not apply any change.",
+					toolContext());
 			assertNotNull(response);
 		}
 
@@ -420,13 +424,24 @@ public class GridUpdateSpecialistIntegrationTest {
 	 * authorize it to proceed once. The prompt frames the caller as a supervisor, so a confirmation
 	 * request should be rare — this keeps the test robust when it happens.
 	 */
-	private void applyUpdate(GridUpdateSpecialist specialist, String instruction) {
-		String response = specialist.chat(instruction, admin, null, gridContext);
+	private void applyUpdate(Agent specialist, String instruction) {
+		String response = specialist.chat(instruction, toolContext());
 		assertNotNull(response);
 		if (response.contains("?")) {
-			response = specialist.chat("You may proceed with making the change.", admin, null, gridContext);
+			response = specialist.chat("You may proceed with making the change.", toolContext());
 			assertNotNull(response);
 		}
+	}
+
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and the grid session
+	 * context that scopes and authorizes every update the specialist applies.
+	 */
+	private ToolContext toolContext() {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, admin);
+		AgentToolContextKey.GRID_SESSION_CONTEXT.put(context, gridContext);
+		return new ToolContext(context);
 	}
 
 	/** The current value of a cell (by row "a" key and column name) as a String, or null if undefined. */

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.springframework.ai.chat.model.ChatModel;
 
@@ -36,7 +37,7 @@ public class GridUpdateSpecialistFactoryTest {
 	@Test
 	public void testCreate() {
 		// call under test
-		GridUpdateSpecialist specialist = factory.create();
+		Agent specialist = factory.create();
 
 		assertNotNull(specialist);
 	}

@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -16,7 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySpecialist;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySpecialistFactory;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
@@ -33,6 +36,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.CodeExecutionResult;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -100,12 +104,25 @@ public class TableQuerySpecialistIntegrationTest {
 		columnManager.truncateAllColumnData(adminUser);
 	}
 
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and, when the specialist
+	 * needs to read or write files, an already-started code session.
+	 */
+	private ToolContext toolContext(String sessionId) {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, adminUser);
+		if (sessionId != null) {
+			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
+		}
+		return new ToolContext(context);
+	}
+
 	@Test
 	public void testDescribeTable() {
-		TableQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Describe the table " + tableId, adminUser, null);
+		String response = specialist.chat("Describe the table " + tableId, toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("name") || response.toLowerCase().contains("column"),
@@ -116,12 +133,12 @@ public class TableQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testQueryTable() {
-		TableQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat(
 				"Query the table " + tableId + " and tell me how many rows it has",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.contains("3") || response.contains("three"),
@@ -130,15 +147,15 @@ public class TableQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testMultiTurnConversation() {
-		TableQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
-		String describeResponse = specialist.chat("Describe " + tableId, adminUser, null);
+		String describeResponse = specialist.chat("Describe " + tableId, toolContext(null));
 		assertNotNull(describeResponse);
 
 		// call under test — multi-turn, references the same table without re-specifying the ID
 		String queryResponse = specialist.chat(
 				"What are the distinct values in the name column?",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(queryResponse);
 		assertTrue(queryResponse.contains("Alice") || queryResponse.contains("Bob") || queryResponse.contains("Charlie"),
@@ -149,12 +166,12 @@ public class TableQuerySpecialistIntegrationTest {
 	public void testWriteQueryToSession() {
 		String sessionId = codeInterpreterClient.startSession("specialistIT-" + System.nanoTime());
 		try {
-			TableQuerySpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test
 			String response = specialist.chat(
 					"Write all rows from " + tableId + " where age > 25 to query_specialist/filtered.csv",
-					adminUser, sessionId);
+					toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.contains("query_specialist") || response.contains("filtered") || response.contains("csv"),

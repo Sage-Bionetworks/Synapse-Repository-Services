@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -13,7 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.agent.specialist.jsonschema.JsonSchemaSpecialist;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.jsonschema.JsonSchemaSpecialistFactory;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -24,6 +27,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.CodeExecutionResult;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -71,12 +75,25 @@ public class JsonSchemaSpecialistIntegrationTest {
 		} catch (Exception e) { }
 	}
 
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and, when the specialist
+	 * needs to write files, an already-started code session.
+	 */
+	private ToolContext toolContext(String sessionId) {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, adminUser);
+		if (sessionId != null) {
+			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
+		}
+		return new ToolContext(context);
+	}
+
 	@Test
 	public void testDescribeSchema() {
-		JsonSchemaSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Describe the JSON schema " + parentSchema$id, adminUser, null);
+		String response = specialist.chat("Describe the JSON schema " + parentSchema$id, toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("name") || response.toLowerCase().contains("address")
@@ -86,12 +103,12 @@ public class JsonSchemaSpecialistIntegrationTest {
 
 	@Test
 	public void testDescribeReferencedType() {
-		JsonSchemaSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test — the referenced Address type is inlined into definitions
 		String response = specialist.chat(
 				"What fields are defined on the address property of schema " + parentSchema$id + "?",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("street") || response.toLowerCase().contains("city"),
@@ -102,12 +119,12 @@ public class JsonSchemaSpecialistIntegrationTest {
 	public void testWriteSchemaToSession() {
 		String sessionId = codeInterpreterClient.startSession("schemaSpecialistIT-" + System.nanoTime());
 		try {
-			JsonSchemaSpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test
 			String response = specialist.chat(
 					"Write the schema " + parentSchema$id + " to schema_specialist/person.json",
-					adminUser, sessionId);
+					toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.contains("schema_specialist") || response.contains("person") || response.contains("json"),

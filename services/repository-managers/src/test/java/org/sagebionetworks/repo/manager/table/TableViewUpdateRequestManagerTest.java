@@ -33,6 +33,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -103,7 +104,7 @@ public class TableViewUpdateRequestManagerTest {
 	
 	@BeforeEach
 	public void beforeEach(){
-		user = new UserInfo(false, 12L);
+		user = new UserInfo(false, 12L, AuthorizationConstants.DEFAULT_REALM_ID);
 		viewId = "syn213";
 		idAndVersion  = IdAndVersion.parse(viewId);
 		schema = TableModelTestUtils.createColumsWithNames("one", "two");

@@ -1,19 +1,18 @@
 package org.sagebionetworks.repo.manager.agent.specialist.filesummary;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.ai.bedrock.converse.BedrockChatOptions;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ToolContext;
 
 /**
  * A conversational file summary specialist agent. It reads files that already exist on the shared
@@ -21,7 +20,7 @@ import org.springframework.ai.chat.model.ChatModel;
  * supervisor's context window. Each instance maintains its own chat memory and is intended for a
  * single task delegation (multi-turn within that task, but discarded after).
  */
-public class FileSummarySpecialist {
+public class FileSummarySpecialist implements Agent {
 
 	private final ChatClient chatClient;
 	private final String conversationId;
@@ -37,26 +36,21 @@ public class FileSummarySpecialist {
 				.defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
 				.defaultOptions(BedrockChatOptions.builder()
 						.model(stackConfig.getModelIdClaudeHaiku())
-						.maxTokens(4096)
+						.maxTokens(Agent.MODELS_MAX_TOKENS)
 						.build())
 				.build();
 	}
 
-	/**
-	 * Send a message to this specialist and get a response. Maintains conversation
-	 * context across multiple calls within the same specialist instance.
-	 */
-	public String chat(String message, UserInfo user, String sessionId) {
-		Map<String, Object> context = new HashMap<>();
-		AgentToolContextKey.USER_INFO.put(context, user);
-		if (sessionId != null) {
-			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
-		}
+	@Override
+	public AgentRole getAgentRole() {
+		return AgentRole.SPECIALIST;
+	}
+
+	@Override
+	public ChatClientRequestSpec prepareChatClientRequestSpec(String message, ToolContext context) {
 		return chatClient.prompt()
 				.user(message)
-				.toolContext(context)
-				.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-				.call()
-				.content();
+				.toolContext(context.getContext())
+				.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId));
 	}
 }

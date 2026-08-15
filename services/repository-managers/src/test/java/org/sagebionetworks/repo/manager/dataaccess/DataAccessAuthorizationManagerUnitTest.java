@@ -25,6 +25,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -60,7 +61,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		managerSpy = Mockito.spy(manager);
 	}
 	
@@ -243,7 +244,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testCanReviewAccessRequirementSubmissionsWithACTMember() {
 		
-		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
 		
 		String accessRequirementId = "123";
 		
@@ -259,7 +260,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testCanReviewAccessRequirementSubmissionsWithAdmin() {
 		
-		user = new UserInfo(true);
+		user = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		String accessRequirementId = "123";
 		
@@ -324,7 +325,7 @@ public class DataAccessAuthorizationManagerUnitTest {
 	@Test
 	public void testIsAccessRequirementReviewerAsACTMember() {
 		
-		user.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()));
 		
 		// Call under test
 		boolean result = manager.isAccessRequirementReviewer(user);

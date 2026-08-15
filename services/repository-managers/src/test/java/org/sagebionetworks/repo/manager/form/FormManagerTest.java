@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -95,7 +96,7 @@ public class FormManagerTest {
 	@BeforeEach
 	public void before() {
 		boolean isAdmin = false;
-		user = new UserInfo(isAdmin, 555L);
+		user = new UserInfo(isAdmin, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
 		groupId = "456";
 		groupName = "some group";
 		groupToReturn = new FormGroup();
@@ -112,7 +113,7 @@ public class FormManagerTest {
 		changeRequest.setName(validName);
 		changeRequest.setFileHandleId(dataFileHandleId);
 
-		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		submittedStatus = new SubmissionStatus();

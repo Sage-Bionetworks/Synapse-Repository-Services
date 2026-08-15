@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -210,7 +211,7 @@ public class TableQueryManagerImplTest {
 	public void before() throws Exception {
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);
-		user = new UserInfo(false, 7L);
+		user = new UserInfo(false, 7L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		status = new TableStatus();
 		status.setTableId(tableId);

@@ -116,8 +116,8 @@ public class UserManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		admin = new UserInfo(true);
-		notAdmin = new UserInfo(false);
+		admin = new UserInfo(true, 1L, DEFAULT_REALM_ID);
+		notAdmin = new UserInfo(false, 2L, DEFAULT_REALM_ID);
 		
 		alias = "alias";
 		principalAlias = new PrincipalAlias();

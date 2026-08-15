@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
@@ -18,7 +20,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.agent.specialist.entitymetadata.EntityMetadataSpecialist;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.entitymetadata.EntityMetadataSpecialistFactory;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
@@ -38,6 +41,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
 import org.springaicommunity.agentcore.codeinterpreter.CodeExecutionResult;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -126,10 +130,10 @@ public class EntityMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testGetAnnotations() {
-		EntityMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("What annotations does " + folderId + " have?", adminUser, null);
+		String response = specialist.chat("What annotations does " + folderId + " have?", toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -139,11 +143,11 @@ public class EntityMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testGetEntityDetails() {
-		EntityMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Describe the entity " + folderId + " including its type and name.",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -153,11 +157,11 @@ public class EntityMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testGetSchemaBinding() {
-		EntityMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Is there a JSON schema bound to " + projectId + "? If so, which one?",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -167,10 +171,10 @@ public class EntityMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testGetChildren() {
-		EntityMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("What entities are inside " + projectId + "?", adminUser, null);
+		String response = specialist.chat("What entities are inside " + projectId + "?", toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -180,12 +184,12 @@ public class EntityMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testGetFilesMetadata() {
-		EntityMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Report the file metadata for " + fileId
 				+ ". Include its content type, its size in bytes, and whether it can be added to a session.",
-				adminUser, null);
+				toolContext(null));
 
 		assertNotNull(response);
 		assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -201,12 +205,12 @@ public class EntityMetadataSpecialistIntegrationTest {
 	public void testAddFileToSession() {
 		String sessionId = codeInterpreterClient.startSession("entityMetadataIT-" + System.nanoTime());
 		try {
-			EntityMetadataSpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test
 			String response = specialist.chat(
 					"Add the file " + fileId + " to the session at entity_metadata_specialist/data.csv",
-					adminUser, sessionId);
+					toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.length() <= MAX_RESPONSE_CHARS, "Response should be within the cap. Got: " + response);
@@ -220,6 +224,19 @@ public class EntityMetadataSpecialistIntegrationTest {
 		} finally {
 			codeInterpreterClient.stopSession(sessionId);
 		}
+	}
+
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and, when the specialist
+	 * needs to stage a file, an already-started code session.
+	 */
+	private ToolContext toolContext(String sessionId) {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, adminUser);
+		if (sessionId != null) {
+			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
+		}
+		return new ToolContext(context);
 	}
 
 	private JsonSchema getSchemaFromClasspath(String name) throws Exception {

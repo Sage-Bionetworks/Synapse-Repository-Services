@@ -99,8 +99,7 @@ public class UsersEntityPermissionsDaoImplTest {
 		Set<Long> userOneGroups = Sets.newHashSet(userOneId, teamOneId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
-		userOne = new UserInfo(false, userOneId, AuthorizationConstants.DEFAULT_REALM_ID);
-		userOne.setGroups(userOneGroups);
+		userOne = new UserInfo(false, userOneId, AuthorizationConstants.DEFAULT_REALM_ID, userOneGroups);
 		userOne.setCertified(true);
 		userOne.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		userOne.setRealmAuthenticatedUsersId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
@@ -127,19 +126,8 @@ public class UsersEntityPermissionsDaoImplTest {
 	}
 
 	@Test
-	public void testGetEntityPermissionsWithNullGroups() {
-		userOne.setGroups(null);
-		List<Long> entityIds = Arrays.asList(111L, 222L);
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			// call under test
-			entityPermissionDao.getEntityPermissions(userOne, entityIds);
-		}).getMessage();
-		assertEquals("userGroups is required.", message);
-	}
-
-	@Test
 	public void testGetEntityPermissionsWithEmptyGroups() {
-		userOne.setGroups(Collections.emptySet());
+		userOne = new UserInfo(false, userOneId, AuthorizationConstants.DEFAULT_REALM_ID, Collections.emptySet());
 		List<Long> entityIds = Arrays.asList(111L, 222L);
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

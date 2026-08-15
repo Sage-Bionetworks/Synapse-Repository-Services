@@ -24,6 +24,7 @@ import org.sagebionetworks.doi.datacite.DataciteClient;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.portals.PortalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DoiAssociationDao;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -96,7 +97,7 @@ public class DoiManagerImplTest {
 		portalId = DoiManagerImpl.SYNAPSE_PORTAL_ID;
 		doiObjectType = DoiObjectType.ENTITY;
 		
-		userInfo = new UserInfo(false, 1234L);
+		userInfo = new UserInfo(false, 1234L, AuthorizationConstants.DEFAULT_REALM_ID);
 		inputDto = setUpDto(true);
 		outputDto = setUpDto(true);
 	}

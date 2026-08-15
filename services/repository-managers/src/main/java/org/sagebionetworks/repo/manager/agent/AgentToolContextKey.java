@@ -39,7 +39,22 @@ public enum AgentToolContextKey {
 	 * An {@link org.sagebionetworks.repo.manager.agent.tool.AgentTraceCallback} used to record each
 	 * tool invocation against the originating asynchronous job.
 	 */
-	TRACE_CALLBACK("agentTraceCallback");
+	TRACE_CALLBACK("agentTraceCallback"),
+
+	/**
+	 * The durable Synapse chat session id of an interactive Curie turn. Distinct from
+	 * {@link #CODE_SESSION_ID} (an AWS code interpreter session): the {@code CurieSupervisor} uses it
+	 * both to derive its cross-machine conversation id and to build the lazy code-session supplier it
+	 * installs under {@link #CODE_SESSION_SUPPLIER}.
+	 */
+	CHAT_SESSION_ID("chatSessionId"),
+
+	/**
+	 * The {@link java.util.List} of {@link org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus}
+	 * successfully staged into the shared code interpreter session for the current Curie turn. The
+	 * {@code CurieSupervisor} reads it to prepend a description of those files to the user message.
+	 */
+	STAGED_ATTACHMENTS("stagedAttachments");
 
 	private final String key;
 

@@ -40,8 +40,7 @@ public class MembershipInvitationServiceTest {
 	
 	@BeforeEach
 	public void before() throws Exception {
-		userInfo = new UserInfo(false); 
-		userInfo.setId(USER_ID);
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(USER_ID)).thenReturn(userInfo);
 	}
 

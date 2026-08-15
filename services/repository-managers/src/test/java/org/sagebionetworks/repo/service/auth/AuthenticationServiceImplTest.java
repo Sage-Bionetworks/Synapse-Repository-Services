@@ -969,7 +969,7 @@ public class AuthenticationServiceImplTest {
 	public void testRevokeAllSessionAccessTokensWithDifferentUserAndAdmin() {
 		Long adminUserId = 1L;
 		
-		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(new UserInfo(true));
+		when(mockUserManager.getUserInfo(adminUserId)).thenReturn(new UserInfo(true, adminUserId, DEFAULT_REALM_ID));
 		
 		service.revokeAllSessionAccessTokens(adminUserId, userId);
 		
@@ -980,7 +980,7 @@ public class AuthenticationServiceImplTest {
 	public void testRevokeAllSessionAccessTokensWithDifferentUserAndNotAnAdmin() {
 		Long otherUserId = 1L;
 		
-		when(mockUserManager.getUserInfo(otherUserId)).thenReturn(new UserInfo(false));
+		when(mockUserManager.getUserInfo(otherUserId)).thenReturn(new UserInfo(false, otherUserId, DEFAULT_REALM_ID));
 		
 		String message = assertThrows(UnauthorizedException.class, () -> {			
 			service.revokeAllSessionAccessTokens(otherUserId, userId);

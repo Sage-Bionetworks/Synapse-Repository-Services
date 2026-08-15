@@ -87,7 +87,7 @@ public class AccessInterceptorTest {
 	@BeforeEach
 	public void before() throws Exception {
 		userId = 12345L;
-		userInfo = new UserInfo(false, 123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// Setup the happy mock
 		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());

@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -95,8 +96,7 @@ public class AsynchJobStatusManagerImplTest {
 	public void before() throws DatastoreException, NotFoundException{
 		startedJobId = "99999";
 	
-		user = new UserInfo(false);
-		user.setId(007L);
+		user = new UserInfo(false, 007L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		status = new AsynchronousJobStatus();
 		status.setStartedByUserId(user.getId());

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterSessionProvider;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
@@ -60,7 +61,7 @@ public class CurieSupervisorFactoryTest {
 	@Test
 	public void testCreate() {
 		// call under test
-		CurieSupervisor supervisor = factory.create();
+		Agent supervisor = factory.create();
 
 		assertNotNull(supervisor);
 	}

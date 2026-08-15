@@ -31,6 +31,7 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -87,8 +88,7 @@ public class TableUploadManagerTest {
 	@Before
 	public void before() throws Exception {
 		// User
-		user = new UserInfo(false);
-		user.setId(999L);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		uploadRequest = new UploadToTableRequest();
 		uploadRequest.setTableId("syn456");

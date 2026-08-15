@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileHandleUrlRequest;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -84,7 +85,7 @@ public class TableServicesImplTest {
 	@BeforeEach
 	public void beforeEach() throws Exception{
 		userId = 123L;
-		userInfo = new UserInfo(false, userId);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		columns = TableModelTestUtils.createOneOfEachType();
 		headers = TableModelUtils.getSelectColumns(columns);
 		tableId = "syn456";

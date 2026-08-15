@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.curation.compute.ComputeTaskDispatcher;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionResponse;
@@ -44,7 +45,7 @@ public class ComputeTaskExecutionWorkerTest {
 	@Test
 	public void testRunWithSuccess() throws Exception {
 		String jobId = "job-123";
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(987L);
 		ComputeTaskExecutionResponse expectedResponse = new ComputeTaskExecutionResponse().setTaskId(987L);
 
@@ -60,7 +61,7 @@ public class ComputeTaskExecutionWorkerTest {
 	@Test
 	public void testRunWithRecoverableException() throws Exception {
 		String jobId = "job-123";
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(987L);
 
 		when(mockDispatcher.dispatch(jobId, user, request, mockCallback))
@@ -74,7 +75,7 @@ public class ComputeTaskExecutionWorkerTest {
 	@Test
 	public void testRunWithException() throws Exception {
 		String jobId = "job-123";
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		ComputeTaskExecutionRequest request = new ComputeTaskExecutionRequest().setTaskId(987L);
 
 		when(mockDispatcher.dispatch(jobId, user, request, mockCallback))

@@ -312,7 +312,7 @@ public class SubmissionManagerTest {
 		// add another contributor as an admin
 		SubmissionContributor submissionContributor = new SubmissionContributor();
 		submissionContributor.setPrincipalId("101");
-		SubmissionContributor scCreated = submissionManager.addSubmissionContributor(new UserInfo(true), SUB_ID, submissionContributor);
+		SubmissionContributor scCreated = submissionManager.addSubmissionContributor(new UserInfo(true, 999L, DEFAULT_REALM_ID), SUB_ID, submissionContributor);
 		assertEquals("101", scCreated.getPrincipalId());
 		assertNotNull(scCreated.getCreatedOn());
 		
@@ -1119,8 +1119,7 @@ public class SubmissionManagerTest {
 	@Test
 	public void testProcessCancelRequestWithUnauthorizedUser() {
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
-		UserInfo unauthorizedUser = new UserInfo(false);
-		unauthorizedUser.setId(Long.parseLong(USER_ID+1));
+		UserInfo unauthorizedUser = new UserInfo(false, Long.parseLong(USER_ID+1), DEFAULT_REALM_ID);
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.processUserCancelRequest(unauthorizedUser, subWithId.getId());
 		});
@@ -1131,8 +1130,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
-		UserInfo authorizedUser = new UserInfo(false);
-		authorizedUser.setId(Long.parseLong(USER_ID));
+		UserInfo authorizedUser = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID);
 		
 		Assertions.assertThrows(UnauthorizedException.class, ()-> {
 			submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
@@ -1145,8 +1143,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
 		when(mockSubmissionDAO.getCreatedBy(subWithId.getId())).thenReturn(USER_ID);
 		subStatus.setCanCancel(true);
-		UserInfo authorizedUser = new UserInfo(false);
-		authorizedUser.setId(Long.parseLong(USER_ID));
+		UserInfo authorizedUser = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID);
 		
 		submissionManager.processUserCancelRequest(authorizedUser, subWithId.getId());
 		

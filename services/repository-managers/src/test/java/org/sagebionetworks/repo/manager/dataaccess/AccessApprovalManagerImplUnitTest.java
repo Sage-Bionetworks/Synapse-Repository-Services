@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalInfo;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
@@ -102,11 +103,9 @@ public class AccessApprovalManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false);
-		userInfo.setId(4L);
+		userInfo = new UserInfo(false, 4L, AuthorizationConstants.DEFAULT_REALM_ID);
 		boolean isAdmin = false;
-		atcUser = new UserInfo(isAdmin, 5L);
-		atcUser.setGroups(Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
+		atcUser = new UserInfo(isAdmin, 5L, AuthorizationConstants.DEFAULT_REALM_ID, Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
 	}
 
 	@Test
@@ -482,7 +481,7 @@ public class AccessApprovalManagerImplUnitTest {
 		Long anonId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		accessApproval.setAccessorId(anonId.toString());
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new ACTAccessRequirement());
-		userInfo.setId(anonId);
+		userInfo = new UserInfo(false, anonId, AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(anonId);
 		when(mockUserManager.getUserInfo(anonId)).thenReturn(userInfo);
 		

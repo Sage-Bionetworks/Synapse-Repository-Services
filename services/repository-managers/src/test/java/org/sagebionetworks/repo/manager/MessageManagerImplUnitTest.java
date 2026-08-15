@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -128,9 +129,7 @@ public class MessageManagerImplUnitTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		
-		creatorUserInfo = new UserInfo(false);
-		creatorUserInfo.setId(CREATOR_ID);
-		creatorUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		creatorUserInfo = new UserInfo(false, CREATOR_ID, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(CREATOR_ID));
 		
 		recipientUsernameAlias = new PrincipalAlias();
 		recipientUsernameAlias.setAlias("bar");
@@ -635,9 +634,7 @@ public class MessageManagerImplUnitTest {
 		assertTrue(joinedErrors.contains("may not send"));
 		
 		// But an admin can do it
-		UserInfo adminUserInfo = new UserInfo(true);
-		adminUserInfo.setId(CREATOR_ID);
-		adminUserInfo.setGroups(Collections.singleton(CREATOR_ID));
+		UserInfo adminUserInfo = new UserInfo(true, CREATOR_ID, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(CREATOR_ID));
 		when(userManager.getUserInfo(CREATOR_ID)).thenReturn(adminUserInfo);
 		
 		when(authorizationManager.canAccess(adminUserInfo, authUsersId.toString(),

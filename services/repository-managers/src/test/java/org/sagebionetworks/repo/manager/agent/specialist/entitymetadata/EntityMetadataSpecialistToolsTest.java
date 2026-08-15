@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RecordSet;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AddFilesToSessionRequest;
 import org.sagebionetworks.repo.model.agent.GetFilesMetadataRequest;
@@ -70,7 +71,7 @@ public class EntityMetadataSpecialistToolsTest {
 	@BeforeEach
 	public void setup() {
 		tools = new EntityMetadataSpecialistTools(mockEntityService, mockCodeInterpreterFileManager);
-		userInfo = new UserInfo(false, 101L);
+		userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo));
 		toolContextWithSession = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
 				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123"));

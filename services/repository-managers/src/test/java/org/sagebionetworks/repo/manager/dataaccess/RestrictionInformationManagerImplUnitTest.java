@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -80,7 +81,7 @@ public class RestrictionInformationManagerImplUnitTest {
 		entityIdAsLong = KeyFactory.stringToKey(TEST_ENTITY_ID);
 		teamIdAsLong = KeyFactory.stringToKey(TEST_PRINCIPAL_ID);
 		
-		userInfo = new UserInfo(false, teamIdAsLong);
+		userInfo = new UserInfo(false, teamIdAsLong, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		testEntity = new Node();
 		testEntity.setCreatedByPrincipalId(999L); // different from TEST_PRINCIPAL_ID

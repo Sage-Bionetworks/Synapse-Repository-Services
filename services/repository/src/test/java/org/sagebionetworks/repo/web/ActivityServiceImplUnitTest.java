@@ -19,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.repo.manager.ActivityManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -53,7 +54,7 @@ public class ActivityServiceImplUnitTest {
 		mockUserManager = mock(UserManager.class);
 		activityService = new ActivityServiceImpl(mockActivityManager, mockEntityManager, mockUserManager);
 		
-		userInfo = new UserInfo(false);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		
 		activity = new Activity();

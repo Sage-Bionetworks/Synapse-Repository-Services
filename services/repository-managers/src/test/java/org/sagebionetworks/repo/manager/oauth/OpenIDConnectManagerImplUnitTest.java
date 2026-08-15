@@ -253,12 +253,10 @@ public class OpenIDConnectManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false, USER_ID_LONG, DEFAULT_REALM_ID);
-		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
+		userInfo = new UserInfo(false, USER_ID_LONG, DEFAULT_REALM_ID, Collections.singleton(USER_ID_LONG));
 		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
-		anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		oauthClient = new OAuthClient();

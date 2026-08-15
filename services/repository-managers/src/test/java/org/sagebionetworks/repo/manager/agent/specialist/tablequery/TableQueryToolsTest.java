@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.TableDescription;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -78,7 +79,7 @@ public class TableQueryToolsTest {
 	@BeforeEach
 	public void setup() {
 		tools = new TableQueryTools(mockTableQueryManager, mockTableManagerSupport, mockEntityManager, mockCodeInterpreterFileManager);
-		userInfo = new UserInfo(false, 101L);
+		userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo));
 		toolContextWithSession = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
 				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123"));

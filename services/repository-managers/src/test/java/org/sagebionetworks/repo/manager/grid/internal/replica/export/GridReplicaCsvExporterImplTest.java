@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -94,8 +95,7 @@ public class GridReplicaCsvExporterImplTest {
 
     @BeforeEach
     public void before() {
-        userInfo = new UserInfo(false);
-        userInfo.setId(userId);
+        userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
         request = new DownloadFromGridRequest();
         request.setSessionId(sessionId);

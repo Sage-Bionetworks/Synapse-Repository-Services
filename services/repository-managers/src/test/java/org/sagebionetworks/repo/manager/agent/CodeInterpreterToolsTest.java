@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.RunPythonRequest;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
@@ -36,8 +37,7 @@ public class CodeInterpreterToolsTest {
 	@BeforeEach
 	public void before() {
 		tools = new CodeInterpreterTools(codeInterpreterClient);
-		userInfo = new UserInfo(false);
-		userInfo.setId(123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 
 	@Test

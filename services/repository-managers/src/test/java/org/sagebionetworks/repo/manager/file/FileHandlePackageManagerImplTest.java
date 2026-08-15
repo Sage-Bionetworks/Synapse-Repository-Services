@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.CallersContext;
@@ -118,7 +119,7 @@ public class FileHandlePackageManagerImplTest {
 		this.sessionId = UUID.randomUUID().toString();
 		boolean isAdmin = false;
 		long userId = 123L;
-		userInfo = new UserInfo(isAdmin, userId);
+		userInfo = new UserInfo(isAdmin, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setContext(new CallersContext().setSessionId(sessionId));
 		// @formatter:off
 		associations = Arrays.asList(

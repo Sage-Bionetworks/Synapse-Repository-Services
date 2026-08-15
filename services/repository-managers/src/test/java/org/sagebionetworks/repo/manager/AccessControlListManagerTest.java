@@ -173,7 +173,7 @@ public class AccessControlListManagerTest {
 		when(userGroupDAO.getUsersRealms(anyList())).thenReturn(Map.of("0", Set.of("1", "123")));
 
 		// call under test
-		userInfo.setRealmId("1");
+		userInfo = new UserInfo(false, 123L, "1");
 		String message = assertThrows(InvalidModelException.class, () -> {
 			aclManager.create(userInfo, acl, ObjectType.ENTITY, userInfo.getId());
 		}).getMessage();
@@ -182,8 +182,8 @@ public class AccessControlListManagerTest {
 		verifyNoMoreInteractions(aclDao);
 
 		//admin is also not allowed to change other realm acl
-		adminUser.setRealmId("1");
-		userInfo.setRealmId("0");
+		adminUser = new UserInfo(true, 456L, "1");
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		String messageTwo = assertThrows(InvalidModelException.class, () -> {
 			aclManager.create(adminUser, acl, ObjectType.ENTITY, userInfo.getId());

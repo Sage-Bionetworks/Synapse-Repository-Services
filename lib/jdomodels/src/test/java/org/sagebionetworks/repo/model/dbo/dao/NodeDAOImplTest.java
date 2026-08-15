@@ -235,7 +235,7 @@ public class NodeDAOImplTest {
 		
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
-		adminUser = new UserInfo(true, creatorUserGroupId);
+		adminUser = new UserInfo(true, creatorUserGroupId, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		assertNotNull(nodeDao);
 		toDelete = new ArrayList<String>();

@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.semaphore.MemoryCountingSemaphore;
 import org.sagebionetworks.repo.model.semaphore.MemoryTimeBlockCountingSemaphore;
@@ -39,7 +40,7 @@ public class SemaphoreManagerImplTest {
 	
 	@Test
 	public void testReleaseAllLocksAsAdminHappy(){
-		manager.releaseAllLocksAsAdmin(new UserInfo(true));
+		manager.releaseAllLocksAsAdmin(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID));
 		verify(mockSemaphoreDao, times(1)).releaseAllLocks();
 		verify(mockMemoryCountingSemaphore, times(1)).releaseAllLocks();
 		verify(mockMemoryTimeBlockCountingSemaphore, times(1)).releaseAllLocks();
@@ -47,7 +48,7 @@ public class SemaphoreManagerImplTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testReleaseAllLocksAsAdminUnauthorized(){
-		manager.releaseAllLocksAsAdmin(new UserInfo(false));
+		manager.releaseAllLocksAsAdmin(new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID));
 		verify(mockSemaphoreDao, never()).releaseAllLocks();
 		verify(mockMemoryCountingSemaphore, never()).releaseAllLocks();
 		verify(mockMemoryTimeBlockCountingSemaphore, never()).releaseAllLocks();

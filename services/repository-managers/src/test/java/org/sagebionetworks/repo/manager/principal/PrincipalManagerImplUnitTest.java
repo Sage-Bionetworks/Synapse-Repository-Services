@@ -119,7 +119,7 @@ public class PrincipalManagerImplUnitTest {
 		user = createNewUser();
 		now = new Date();
 
-		adminUserInfo = new UserInfo(true);
+		adminUserInfo = new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), DEFAULT_REALM_ID);
 	}
 	
 	@Test
@@ -405,7 +405,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAdditionalEmailValidationInvalidEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail("not-an-email-address");
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
@@ -415,7 +415,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAdditionalEmailValidationInvalidEndpoint() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		Username email = new Username();
 		email.setEmail(EMAIL);
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
@@ -426,7 +426,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
 		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
-		UserInfo userInfo = new UserInfo(false, anonId);
+		UserInfo userInfo = new UserInfo(false, anonId, DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(anonId);
 		Username email = new Username();
 		email.setEmail(EMAIL);
@@ -485,7 +485,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testAddEmailWrongUser() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		EmailValidationSignedToken emailValidationSignedToken = PrincipalUtils.createEmailValidationSignedToken(222L, EMAIL, now, mockTokenGenerator);
 		Assertions.assertThrows(IllegalArgumentException.class, ()-> {	
 			manager.addEmail(userInfo, emailValidationSignedToken, null);
@@ -504,7 +504,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testRemoveEmailHappyCase() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
@@ -529,7 +529,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void testRemoveNotificationEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		Long aliasId = 1L;
@@ -545,7 +545,7 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testRemoveBOGUSEmail() throws Exception {
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias("notification@mail.com");
 		Long aliasId = 1L;
@@ -613,7 +613,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testSetNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		PrincipalAlias currentNotificationAlias =  new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		Long aliasId = 1L;
@@ -632,7 +632,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testSetNonExistentNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(USER_ID, AliasType.USER_EMAIL, EMAIL)).
 				thenReturn(Collections.<PrincipalAlias>emptyList());
 
@@ -648,7 +648,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testGetNotificationEmail() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 		
 		when(mockEmailQuarantineDao.getQuarantinedEmail(EMAIL)).thenReturn(Optional.empty());
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(USER_ID)).thenReturn(EMAIL);
@@ -668,7 +668,7 @@ public class PrincipalManagerImplUnitTest {
 	@Test
 	public void testGetNotificationEmailWithQuarantineStatus() {
 		// Setup
-		UserInfo userInfo = new UserInfo(false, USER_ID);
+		UserInfo userInfo = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 
 		EmailQuarantineReason quarantineReason = EmailQuarantineReason.PERMANENT_BOUNCE;
 		
@@ -746,7 +746,7 @@ public class PrincipalManagerImplUnitTest {
 
 	@Test
 	public void clearUserInformationNonAdmin() {
-		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false), USER_ID));
+		assertThrows(UnauthorizedException.class, () -> manager.clearPrincipalInformation(new UserInfo(false, 1L, DEFAULT_REALM_ID), USER_ID));
 	}
 
 

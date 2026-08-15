@@ -32,6 +32,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.feature.FeatureManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -92,8 +93,7 @@ public class ProjectStorageLimitsManagerTest {
 	
 	@BeforeEach
 	public void before() {
-		planManagerUser = new UserInfo(false, 123L);
-		planManagerUser.setGroups(new HashSet<>());
+		planManagerUser = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<>());
 		planManagerUser.getGroups().add(BOOTSTRAP_PRINCIPAL.PLAN_MANAGERS.getPrincipalId());
 	}
 	
@@ -242,7 +242,7 @@ public class ProjectStorageLimitsManagerTest {
 	
 	@Test
 	public void testGetProjectStorageUsageWithNotPlanManagerAndAuthorized() {
-		planManagerUser.setGroups(Collections.emptySet());
+		planManagerUser.getGroups().clear();
 		
 		String projectId = "syn123";
 		Long projectIdLong = 123L;
@@ -282,7 +282,7 @@ public class ProjectStorageLimitsManagerTest {
 	
 	@Test
 	public void testGetProjectStorageUsageWithNotPlanManagerAndNotAuthorized() {
-		planManagerUser.setGroups(Collections.emptySet());
+		planManagerUser.getGroups().clear();
 		
 		String projectId = "syn123";
 		
@@ -572,7 +572,7 @@ public class ProjectStorageLimitsManagerTest {
 	
 	@Test
 	public void testSetProjectStorageLimitWithUnauthorized() {
-		planManagerUser.setGroups(Collections.emptySet());
+		planManagerUser.getGroups().clear();
 		
 		Long projectId = 123L;
 		Long storageLocationId = 2L;		

@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.GridReplicaSupport
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridRecordSetExporterImpl.ValidationSummaryBuilder;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.validation.GridRowValidator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -106,7 +107,7 @@ public class GridRecordSetExporterImplTest {
 
 	@BeforeEach
 	public void setup() {
-		user = new UserInfo(false, userId);
+		user = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		csvDescriptor = new CsvTableDescriptor();
 

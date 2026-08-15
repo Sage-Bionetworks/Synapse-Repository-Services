@@ -248,10 +248,9 @@ public class UserManagerImpl implements UserManager {
 		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
 			isAdmin = true;
 		}
-		UserInfo ui = new UserInfo(isAdmin, principalId, principal.getRealmId());
+		UserInfo ui = new UserInfo(isAdmin, principalId, principal.getRealmId(), groups);
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
-		ui.setGroups(groups);
 		ui.setRealmAnonymousUserId(Long.valueOf(realmPrincipals.getAnonymousUser()));
 		ui.setRealmAuthenticatedUsersId(Long.valueOf(realmPrincipals.getAuthenticatedUsers()));
 		ui.setRealmPublicUsersId(Long.valueOf(realmPrincipals.getPublicGroup()));

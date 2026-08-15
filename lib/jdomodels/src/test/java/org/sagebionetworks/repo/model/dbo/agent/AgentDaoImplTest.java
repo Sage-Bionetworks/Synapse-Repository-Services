@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
@@ -65,7 +66,7 @@ public class AgentDaoImplTest {
 		this.sessionId = "sessionId";
 		this.accessLevel = AgentAccessLevel.PUBLICLY_ACCESSIBLE;
 		this.registrationId = "123";
-		this.admin = new UserInfo(true, adminUserId);
+		this.admin = new UserInfo(true, adminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 		this.admin.setContext(new CallersContext().setSessionId("abc"));
 		this.request = new AgentChatRequest().setSessionId(sessionId).setChatText("hello");
 		this.registrationRequest = new AgentRegistrationRequest().setAwsAgentId("awsId").setAwsAliasId("awsAlias");

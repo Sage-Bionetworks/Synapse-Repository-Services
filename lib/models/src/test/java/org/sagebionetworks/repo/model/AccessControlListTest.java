@@ -20,7 +20,7 @@ public class AccessControlListTest {
 	@Test
 	public void testGrantEntityAdminACL(){
 		String nodeId = "123";
-		UserInfo info = new UserInfo(false, 123L);
+		UserInfo info = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEntityAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
@@ -42,7 +42,7 @@ public class AccessControlListTest {
 	@Test
 	public void testGrantEvaluationAdminACL(){
 		String nodeId = "123";
-		UserInfo info = new UserInfo(false, 123L);
+		UserInfo info = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantEvaluationAdminAccess(nodeId, info, new Date());
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);

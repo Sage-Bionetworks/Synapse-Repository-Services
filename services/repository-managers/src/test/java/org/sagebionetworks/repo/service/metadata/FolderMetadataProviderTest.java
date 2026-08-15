@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.sts.StsManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.service.metadata.EntityEvent;
@@ -25,7 +26,7 @@ public class FolderMetadataProviderTest {
 	private static final String FOLDER_ID = "syn123";
 	private static final String NEW_PARENT_ID = "syn456";
 	private static final String OLD_PARENT_ID = "syn879";
-	private static final UserInfo USER_INFO = new UserInfo(false);
+	private static final UserInfo USER_INFO = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 	@Mock
 	private EntityManager mockEntityManager;

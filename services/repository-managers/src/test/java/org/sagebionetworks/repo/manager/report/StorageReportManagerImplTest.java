@@ -43,7 +43,7 @@ public class StorageReportManagerImplTest {
 	@InjectMocks
 	StorageReportManagerImpl storageReportManager;
 
-	private static final UserInfo adminUser = new UserInfo(true);
+	private static final UserInfo adminUser = new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 	private static final DownloadStorageReportRequest request = new DownloadStorageReportRequest();
 
 	private static final String projectId = "syn123";
@@ -54,7 +54,6 @@ public class StorageReportManagerImplTest {
 
 	@Before
 	public void before() {
-		adminUser.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		when(mockConnectionFactory.getFirstConnection()).thenReturn(mockTableIndexDao);
 		when(mockAuthorizationManager.isReportTeamMemberOrAdmin(adminUser)).thenReturn(true);
 

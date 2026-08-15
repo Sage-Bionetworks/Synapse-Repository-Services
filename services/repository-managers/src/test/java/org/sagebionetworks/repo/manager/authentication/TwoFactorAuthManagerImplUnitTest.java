@@ -39,6 +39,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -111,7 +112,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		userEncryptionKey = AESEncryptionUtils.newSecretKeyFromPassword(totpEncryptionPassword, user.getId().toString());
 		encryptedTotpSecret = AESEncryptionUtils.encryptWithAESGCM(totpSecret, userEncryptionKey);
@@ -382,7 +383,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	@Test
 	public void testGet2FAStatusWithAnonymousUser() {
 		
-		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		TwoFactorAuthStatus expected = new TwoFactorAuthStatus().setStatus(TwoFactorState.DISABLED);
@@ -433,7 +434,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	@Test
 	public void testDisable2FaForUserWhen2FaEnabled() {
 		Long targetUserId = 456L;
-		UserInfo targetUser = new UserInfo(false, targetUserId);
+		UserInfo targetUser = new UserInfo(false, targetUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockOtpSecretDao.hasActiveSecret(targetUserId)).thenReturn(true);
 		when(mockUserManager.getUserInfo(targetUserId)).thenReturn(targetUser);
 		doNothing().when(manager).send2FaStateChangeNotification(any(), any());
@@ -499,7 +500,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 	
 	@Test
 	public void testAssertValidUserWithAnonymousUser() {
-		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		String result = assertThrows(UnauthorizedException.class, () -> {			

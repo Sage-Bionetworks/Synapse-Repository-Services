@@ -52,10 +52,10 @@ public class BulkDownloadManagerImplAutowireTest {
 		userOneIdLong = userGroupDao.create(ug);
 		userOneId = ""+userOneIdLong;
 		boolean isAdmin = false;
-		user = new UserInfo(isAdmin, userOneIdLong);
-		
+		user = new UserInfo(isAdmin, userOneIdLong, AuthorizationConstants.DEFAULT_REALM_ID);
+
 		isAdmin = true;
-		admin = new UserInfo(isAdmin, 123L);
+		admin = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 	}
 	

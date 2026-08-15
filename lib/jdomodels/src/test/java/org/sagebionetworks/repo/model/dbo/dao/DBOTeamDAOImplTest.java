@@ -661,7 +661,7 @@ public class DBOTeamDAOImplTest {
 	}
 
 	private void addUserAsAdmin(Long userId, String teamId) {
-		AccessControlList acl = AccessControlListUtil.createACL(teamId, new UserInfo(true, userId),
+		AccessControlList acl = AccessControlListUtil.createACL(teamId, new UserInfo(true, userId, DEFAULT_REALM_ID),
 				Collections.singleton(ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE), new Date());
 		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
 	}

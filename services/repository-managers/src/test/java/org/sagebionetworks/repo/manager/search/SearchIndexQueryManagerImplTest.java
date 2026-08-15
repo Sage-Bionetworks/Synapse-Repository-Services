@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -104,8 +105,7 @@ public class SearchIndexQueryManagerImplTest {
 
 	@BeforeEach
 	public void setUp() {
-		user = new UserInfo(false);
-		user.setId(999L);
+		user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 
 	private SearchIndex setupSearchIndex() {

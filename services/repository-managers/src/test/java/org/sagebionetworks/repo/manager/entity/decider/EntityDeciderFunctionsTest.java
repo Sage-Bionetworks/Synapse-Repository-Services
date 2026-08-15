@@ -50,13 +50,13 @@ public class EntityDeciderFunctionsTest {
 	public void before() {
 		Long entityId = 111L;
 		permissionState = new UserEntityPermissionsState(entityId);
-		adminUser = new UserInfo(true/* isAdmin */, 222L);
-		nonAdminUser = new UserInfo(false/* isAdmin */, 333L);
+		adminUser = new UserInfo(true/* isAdmin */, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
+		nonAdminUser = new UserInfo(false/* isAdmin */, 333L, AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser = new UserInfo(false/* isAdmin */,
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L);
-		certifiedUser = new UserInfo(false/* isAdmin */, 555L);
+		notCertifiedUser = new UserInfo(false/* isAdmin */, 444L, AuthorizationConstants.DEFAULT_REALM_ID);
+		certifiedUser = new UserInfo(false/* isAdmin */, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUser.setCertified(true);
 
 		restrictionStatus = new UsersRestrictionStatus().withSubjectId(entityId).withUserId(nonAdminUser.getId());

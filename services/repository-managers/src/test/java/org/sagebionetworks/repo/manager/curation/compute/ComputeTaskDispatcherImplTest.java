@@ -25,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.ComputeTaskExecutionRequest;
@@ -64,8 +65,7 @@ public class ComputeTaskDispatcherImplTest {
 
 	@BeforeEach
 	public void setup() {
-		userInfo = new UserInfo(false, userId);
-		userInfo.setGroups(new HashSet<>(Set.of(userId)));
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID, new HashSet<>(Set.of(userId)));
 
 		when(mockSubWorker.getExecutionDetailsType()).thenReturn(SampleSheetGenerationExecutionDetails.class);
 		dispatcher = new ComputeTaskDispatcherImpl(mockCurationTaskDao, mockCurationTaskManager, List.of(mockSubWorker));

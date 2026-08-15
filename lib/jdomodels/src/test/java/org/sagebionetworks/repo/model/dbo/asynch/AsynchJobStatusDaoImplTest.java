@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
@@ -78,7 +79,7 @@ public class AsynchJobStatusDaoImplTest {
 		uploadToTableResult.setRowsProcessed(7L);
 		response.setResults(Collections.singletonList(uploadToTableResult));
 
-		userInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userInfo = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setContext(new CallersContext().setSessionId(UUID.randomUUID().toString()));
 		assertNotNull(userInfo);
 	}
@@ -433,14 +434,5 @@ public class AsynchJobStatusDaoImplTest {
 			asynchJobStatusDao.startJob(userInfo, body);
 		}).getMessage();
 		assertEquals("user.context is required.", message);
-	}
-	
-	@Test
-	public void testStartJobWithNullUserId() {
-		userInfo.setId(null);
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			asynchJobStatusDao.startJob(userInfo, body);
-		}).getMessage();
-		assertEquals("user.id is required.", message);
 	}
 }

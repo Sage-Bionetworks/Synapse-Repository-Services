@@ -85,8 +85,8 @@ class RealmManagerImplTest {
 	
 	@BeforeEach
 	void setUp() throws Exception {
-		userInfo = new UserInfo(false);
-		adminUserInfo = new UserInfo(true);
+		userInfo = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
+		adminUserInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		rootEntityAcl = new AccessControlList();
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		rootEntityAcl.setResourceAccess(raSet);

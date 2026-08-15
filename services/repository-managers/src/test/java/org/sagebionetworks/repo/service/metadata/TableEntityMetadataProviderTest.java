@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -60,7 +61,7 @@ public class TableEntityMetadataProviderTest  {
 		table.setId(entityId);
 		table.setColumnIds(columnIds);
 		
-		userInfo = new UserInfo(false, 55L);
+		userInfo = new UserInfo(false, 55L, AuthorizationConstants.DEFAULT_REALM_ID);
 		event = new EntityEvent(EventType.CREATE,  Collections.emptyList(), userInfo);
 	}
 	

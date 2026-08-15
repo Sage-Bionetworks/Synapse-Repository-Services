@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.limits.ProjectStorageLimitsManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.limits.ProjectStorageLocationLimit;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
@@ -36,7 +37,7 @@ public class ProjectStorageServiceTest {
 	@BeforeEach
 	public void before() {
 		userId = 123L;
-		user = new UserInfo(false, userId);
+		user = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		projectId = "syn123";
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(user);

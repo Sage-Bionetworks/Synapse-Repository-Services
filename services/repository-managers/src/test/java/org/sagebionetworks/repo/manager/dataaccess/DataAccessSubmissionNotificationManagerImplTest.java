@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
 import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TeamConstants;
@@ -143,7 +144,7 @@ public class DataAccessSubmissionNotificationManagerImplTest {
 		String dataAccessSubmissionId = "111";
 		Long reviewer = 1L;
 		Long submittedBy = 2L;
-		UserInfo messageSender = new UserInfo(false, 3L);
+		UserInfo messageSender = new UserInfo(false, 3L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String reviewerName = "reviewer";
 		String submittedByName = "submitter";
 		

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.curation.compute;
 
 import java.io.StringWriter;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +10,7 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskP
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.stereotype.Service;
 
 /**
@@ -108,8 +111,13 @@ public class RecordSetGenerationSubWorker implements ComputeTaskSubWorker<Record
 		String sessionId = codeInterpreterClient.startSession("recordSetGen-" + task.getTaskId());
 		try {
 			callback.updateProgress("Running the RecordSet generation supervisor", 0L, 100L);
+			// The batch path runs against an already-started session, so the id is placed directly under
+			// CODE_SESSION_ID (no lazy supplier) for the supervisor's specialists to resolve.
+			ToolContext toolContext = new ToolContext(Map.of(
+					AgentToolContextKey.USER_INFO.getKey(), user,
+					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
 			String supervisorResponse = supervisorFactory.create().chat(buildSupervisorMessage(properties.getFolderId(),
-					targetSchemaId, properties.getInstructions()), user, sessionId);
+					targetSchemaId, properties.getInstructions()), toolContext);
 
 			SupervisorResult.requireSuccess(supervisorResponse, "RecordSet generation did not succeed: ");
 

@@ -78,16 +78,11 @@ public class TextAnalyzerManagerImplTest {
 
 	@BeforeEach
 	void setUp() {
-		sageUser = new UserInfo(false);
-		sageUser.setId(1L);
-		sageUser.setGroups(Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
+		sageUser = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(1L, BOOTSTRAP_PRINCIPAL.SAGE_BIONETWORKS.getPrincipalId()));
 
-		nonSageUser = new UserInfo(false);
-		nonSageUser.setId(2L);
-		nonSageUser.setGroups(Set.of(2L));
+		nonSageUser = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(2L));
 
-		adminUser = new UserInfo(true);
-		adminUser.setId(3L);
+		adminUser = new UserInfo(true, 3L, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 
 	// --- Create authorization ---
@@ -104,9 +99,7 @@ public class TextAnalyzerManagerImplTest {
 
 	@Test
 	public void testCreateAsAnonymousThrows() {
-		UserInfo anon = new UserInfo(false);
-		anon.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		anon.setGroups(Set.of(anon.getId()));
+		UserInfo anon = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID, Set.of(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId()));
 
 		TextAnalyzer input = new TextAnalyzer()
 			.setOrganizationName("test-org").setName("test").setSettings(VALID_SETTINGS);
@@ -164,7 +157,7 @@ public class TextAnalyzerManagerImplTest {
 		when(textAnalyzerDao.get(1L)).thenReturn(Optional.of(analyzer));
 
 		// call under test
-		assertEquals("1", manager.get(new UserInfo(false), 1L).getId());
+		assertEquals("1", manager.get(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), 1L).getId());
 		verifyNoMoreInteractions(aclDao);
 	}
 
@@ -173,7 +166,7 @@ public class TextAnalyzerManagerImplTest {
 		when(textAnalyzerDao.get(999L)).thenReturn(Optional.empty());
 
 		// call under test
-		assertThrows(NotFoundException.class, () -> manager.get(new UserInfo(false), 999L));
+		assertThrows(NotFoundException.class, () -> manager.get(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), 999L));
 	}
 
 	// --- Update authorization ---
@@ -322,7 +315,7 @@ public class TextAnalyzerManagerImplTest {
 		request.setOrganizationName("test-org");
 
 		// call under test
-		ListTextAnalyzersResponse response = manager.list(new UserInfo(false), request);
+		ListTextAnalyzersResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertEquals(1, response.getResults().size());
 	}
@@ -335,7 +328,7 @@ public class TextAnalyzerManagerImplTest {
 		ListTextAnalyzersRequest request = new ListTextAnalyzersRequest();
 
 		// call under test
-		ListTextAnalyzersResponse response = manager.list(new UserInfo(false), request);
+		ListTextAnalyzersResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertEquals(1, response.getResults().size());
 		verify(textAnalyzerDao).listAll(anyLong(), anyLong());
@@ -354,7 +347,7 @@ public class TextAnalyzerManagerImplTest {
 		ListTextAnalyzersRequest request = new ListTextAnalyzersRequest();
 
 		// call under test
-		ListTextAnalyzersResponse response = manager.list(new UserInfo(false), request);
+		ListTextAnalyzersResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertNotNull(response.getNextPageToken(), "Expected a next page token when DAO returns more than limit results");
 		assertEquals(50, response.getResults().size());
@@ -368,7 +361,7 @@ public class TextAnalyzerManagerImplTest {
 		ListTextAnalyzersRequest request = new ListTextAnalyzersRequest();
 
 		// call under test
-		ListTextAnalyzersResponse response = manager.list(new UserInfo(false), request);
+		ListTextAnalyzersResponse response = manager.list(new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID), request);
 
 		assertNull(response.getNextPageToken(), "Expected null next page token when all results fit in one page");
 		assertEquals(1, response.getResults().size());
@@ -689,9 +682,7 @@ public class TextAnalyzerManagerImplTest {
 		// Admin users bypass the per-org ACL check (the !user.isAdmin() guard at L114/L138 in
 		// update/delete and the parallel guard in create). One parameterized test covers every
 		// mutation path rather than three near-identical case bodies.
-		UserInfo admin = new UserInfo(true);
-		admin.setId(2L);
-		admin.setGroups(Set.of(2L));
+		UserInfo admin = new UserInfo(true, 2L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(2L));
 
 		switch (action) {
 			case "create": {

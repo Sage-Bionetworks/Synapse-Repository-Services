@@ -103,11 +103,9 @@ public class EDucManagerTest {
 
 		adminUser = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 
-		actUser = new UserInfo(false, 2L, DEFAULT_REALM_ID);
-		actUser.setGroups(new HashSet<>(Collections.singleton(TeamConstants.ACT_TEAM_ID)));
+		actUser = new UserInfo(false, 2L, DEFAULT_REALM_ID, new HashSet<>(Collections.singleton(TeamConstants.ACT_TEAM_ID)));
 
-		regularUser = new UserInfo(false, 3L, DEFAULT_REALM_ID);
-		regularUser.setGroups(new HashSet<>());
+		regularUser = new UserInfo(false, 3L, DEFAULT_REALM_ID, new HashSet<>());
 	}
 
 	private EDucTemplate template(String id) {

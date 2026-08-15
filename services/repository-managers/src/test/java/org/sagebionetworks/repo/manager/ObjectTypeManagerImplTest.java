@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
@@ -52,7 +53,7 @@ public class ObjectTypeManagerImplTest {
 
 		boolean isAdmin = false;
 		Long userId = 123L;
-		userInfo = new UserInfo(isAdmin, userId);
+		userInfo = new UserInfo(isAdmin, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 		objectId = "syn456";
 		objectType = ObjectType.ENTITY;
 		dataType = DataType.SENSITIVE_DATA;

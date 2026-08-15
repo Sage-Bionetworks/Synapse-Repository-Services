@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.grid.GridManager;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.repo.model.grid.GridSession;
@@ -62,7 +63,7 @@ public class JsonSchemaToolsTest {
 	@BeforeEach
 	public void setup() {
 		tools = new JsonSchemaTools(mockJsonSchemaManager, mockCodeInterpreterFileManager, mockGridManager);
-		userInfo = new UserInfo(false, 101L);
+		userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		gridContext = new GridAgentSessionContext().setGridSessionId("grid-1").setUsersReplicaId(1L);
 		toolContext = new ToolContext(Map.of());
 		toolContextWithSession = new ToolContext(Map.of(AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123"));

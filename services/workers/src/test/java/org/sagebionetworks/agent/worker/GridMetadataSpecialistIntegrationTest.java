@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,8 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.grid.workers.GridIntegrationTestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.gridmetadata.GridMetadataSpecialist;
 import org.sagebionetworks.repo.manager.agent.specialist.gridmetadata.GridMetadataSpecialistFactory;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -46,6 +50,7 @@ import org.sagebionetworks.repo.service.EntityService;
 import org.sagebionetworks.util.ClasspathUtil;
 import org.sagebionetworks.util.JsonEntityUtils;
 import org.sagebionetworks.util.csv.CSVWriterProviderImpl;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -161,11 +166,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testDescribeGridSchema() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("What JSON schema is this grid's data validated against? Give me its id.",
-				admin, null, gridContext);
+				toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("gridmetadataspecialist"),
@@ -174,11 +179,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testResolveUserReplica() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("A cell in the grid was last changed by replica " + userReplicaId
-				+ ". Is that a person, an AI agent, or the system?", admin, null, gridContext);
+				+ ". Is that a person, an AI agent, or the system?", toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("user") || response.toLowerCase().contains("person"),
@@ -187,11 +192,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testResolveAgentReplica() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("A row in the grid was last changed by replica " + agentReplicaId
-				+ ". Is that a person, an AI agent, or the system?", admin, null, gridContext);
+				+ ". Is that a person, an AI agent, or the system?", toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains("agent"),
@@ -201,11 +206,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testResolveServiceReplica() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("A row in the grid was last changed by replica " + serviceReplicaId
-				+ ". Is that a person, an AI agent, or the system?", admin, null, gridContext);
+				+ ". Is that a person, an AI agent, or the system?", toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -216,11 +221,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testNameReplicaCreator() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Who is the Synapse user that created replica " + userReplicaId
-				+ "? Give me their username.", admin, null, gridContext);
+				+ "? Give me their username.", toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.toLowerCase().contains(adminUsername.toLowerCase()),
@@ -230,11 +235,11 @@ public class GridMetadataSpecialistIntegrationTest {
 
 	@Test
 	public void testListParticipants() {
-		GridMetadataSpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Who else is working on this grid session? List the participants and say "
-				+ "what kind each one is.", admin, null, gridContext);
+				+ "what kind each one is.", toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -242,6 +247,17 @@ public class GridMetadataSpecialistIntegrationTest {
 		assertTrue(lower.contains("user") || lower.contains("person"),
 				"The participant list should include the USER replica. Got: " + response);
 		assertTrue(lower.contains("agent"), "The participant list should include the AGENT replica. Got: " + response);
+	}
+
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and the grid session
+	 * context whose replicas and schema the specialist reports on.
+	 */
+	private ToolContext toolContext() {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, admin);
+		AgentToolContextKey.GRID_SESSION_CONTEXT.put(context, gridContext);
+		return new ToolContext(context);
 	}
 
 	private String createJsonSchema() throws Exception {

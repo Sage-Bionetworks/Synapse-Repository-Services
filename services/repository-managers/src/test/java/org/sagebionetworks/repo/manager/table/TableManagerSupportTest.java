@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -221,7 +222,7 @@ public class TableManagerSupportTest {
 				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
 		managerSpy = Mockito.spy(manager);
 			
-		userInfo = new UserInfo(false, 8L);
+		userInfo = new UserInfo(false, 8L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		idAndVersion = IdAndVersion.parse("syn123");
 		tableId = idAndVersion.getId().toString();

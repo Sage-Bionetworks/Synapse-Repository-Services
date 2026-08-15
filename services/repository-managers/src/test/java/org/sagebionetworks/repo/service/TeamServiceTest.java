@@ -224,12 +224,8 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false);
-		userInfo1.setId(userId);
-		userInfo1.setRealmId("0");
-		UserInfo userInfo2 = new UserInfo(false);
-		userInfo2.setId(principalId);
-		userInfo2.setRealmId("0");
+		UserInfo userInfo1 = new UserInfo(false, userId, "0");
+		UserInfo userInfo2 = new UserInfo(false, principalId, "0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();
@@ -239,7 +235,7 @@ public class TeamServiceTest {
 		List<MessageToUserAndBody> resultList = Collections.singletonList(result);
 		when(mockTeamManager.createJoinedTeamNotifications(userInfo1, userInfo2, teamId, teamEndpoint, notificationUnsubscribeEndpoint)).thenReturn(resultList);
 		when(mockTeamManager.addMember(userInfo1, teamId, userInfo2)).thenReturn(true);
-		
+
 		teamService.addMember(userId, teamId, principalId.toString(), teamEndpoint, notificationUnsubscribeEndpoint);
 		verify(mockTeamManager, times(1)).addMember(userInfo1, teamId, userInfo2);
 		verify(mockUserManager).getUserInfo(userId);
@@ -259,12 +255,8 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false);
-		userInfo1.setId(userId);
-		userInfo1.setRealmId("0");
-		UserInfo userInfo2 = new UserInfo(false);
-		userInfo2.setId(principalId);
-		userInfo2.setRealmId("0");
+		UserInfo userInfo1 = new UserInfo(false, userId, "0");
+		UserInfo userInfo2 = new UserInfo(false, principalId, "0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();
@@ -307,12 +299,8 @@ public class TeamServiceTest {
 		Long principalId = 333L;
 		String teamEndpoint = "teamEndpoint:";
 		String notificationUnsubscribeEndpoint = "notificationUnsubscribeEndpoint:";
-		UserInfo userInfo1 = new UserInfo(false);
-		userInfo1.setId(userId);
-		userInfo1.setRealmId("0");
-		UserInfo userInfo2 = new UserInfo(false);
-		userInfo2.setId(principalId);
-		userInfo2.setRealmId("0");
+		UserInfo userInfo1 = new UserInfo(false, userId, "0");
+		UserInfo userInfo2 = new UserInfo(false, principalId, "0");
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo1);
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo2);
 		MessageToUser mtu = new MessageToUser();

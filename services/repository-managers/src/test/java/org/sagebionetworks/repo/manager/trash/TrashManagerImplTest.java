@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
@@ -107,12 +108,10 @@ public class TrashManagerImplTest {
 	public void setUp() throws Exception {
 
 		userID = 12345L;
-		userInfo = new UserInfo(false /* not admin */);
-		userInfo.setId(userID);
+		userInfo = new UserInfo(false /* not admin */, userID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		adminUserID = 67890L;
-		adminUserInfo = new UserInfo(true);
-		adminUserInfo.setId(adminUserID);
+		adminUserInfo = new UserInfo(true, adminUserID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		nodeID = "syn420";
 		nodeName = "testName.test";
@@ -565,8 +564,7 @@ public class TrashManagerImplTest {
 	@Test
 	public void testListTrashedEntitiesWhenCurrentUserIsNotAdminAndDifferentOtherUser() {
 		final long tempUserID = 1234567890L;
-		UserInfo tempUser = new UserInfo(false);
-		tempUser.setId(tempUserID);
+		UserInfo tempUser = new UserInfo(false, tempUserID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			trashManager.listTrashedEntities(userInfo, tempUser, 1, 1);
@@ -663,8 +661,7 @@ public class TrashManagerImplTest {
 		
 		when(mockTrashCanDao.getTrashedEntity(nodeID)).thenReturn(Optional.of(nodeTrashedEntity));
 		
-		UserInfo tempUser = new UserInfo(false);
-		tempUser.setId(123L);
+		UserInfo tempUser = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		Assertions.assertThrows(UnauthorizedException.class, () -> {
 			trashManager.flagForPurge(tempUser, nodeID);

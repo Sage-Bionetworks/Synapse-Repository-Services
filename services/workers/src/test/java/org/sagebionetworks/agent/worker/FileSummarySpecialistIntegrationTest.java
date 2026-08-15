@@ -12,10 +12,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
-import org.sagebionetworks.repo.manager.agent.specialist.filesummary.FileSummarySpecialist;
 import org.sagebionetworks.repo.manager.agent.specialist.filesummary.FileSummarySpecialistFactory;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -50,6 +50,15 @@ public class FileSummarySpecialistIntegrationTest {
 
 	private void setupUser() {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+	}
+
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and the already-started
+	 * code session the file to summarize lives on.
+	 */
+	private ToolContext toolContext(String sessionId) {
+		return new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), adminUser,
+				AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
 	}
 
 	/**
@@ -96,10 +105,10 @@ public class FileSummarySpecialistIntegrationTest {
 			String path = "summary_specialist/people.csv";
 			writeSampleCsv(sessionId, path);
 
-			FileSummarySpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test
-			String response = specialist.chat("Summarize the file " + path, adminUser, sessionId);
+			String response = specialist.chat("Summarize the file " + path, toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.toLowerCase().contains("name") || response.toLowerCase().contains("age")
@@ -117,11 +126,11 @@ public class FileSummarySpecialistIntegrationTest {
 		setupUser();
 		String sessionId = codeInterpreterClient.startSession("fileSummaryIT-" + System.nanoTime());
 		try {
-			FileSummarySpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test
 			String response = specialist.chat(
-					"Summarize the file summary_specialist/does_not_exist.csv", adminUser, sessionId);
+					"Summarize the file summary_specialist/does_not_exist.csv", toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.toLowerCase().contains("not") || response.toLowerCase().contains("exist")
@@ -140,10 +149,10 @@ public class FileSummarySpecialistIntegrationTest {
 			String path = "summary_specialist/report.pdf";
 			writeClasspathBinaryToSession(sessionId, "summarySpecialist/sample-three-page.pdf", "application/pdf", path);
 
-			FileSummarySpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test — summarize the entire document
-			String response = specialist.chat("Summarize the PDF document " + path, adminUser, sessionId);
+			String response = specialist.chat("Summarize the PDF document " + path, toolContext(sessionId));
 
 			assertNotNull(response);
 			assertTrue(response.contains("3") || response.toLowerCase().contains("three"),
@@ -163,11 +172,11 @@ public class FileSummarySpecialistIntegrationTest {
 			String path = "summary_specialist/report.pdf";
 			writeClasspathBinaryToSession(sessionId, "summarySpecialist/sample-three-page.pdf", "application/pdf", path);
 
-			FileSummarySpecialist specialist = specialistFactory.create();
+			Agent specialist = specialistFactory.create();
 
 			// call under test — summarize only the second page
 			String response = specialist.chat(
-					"Summarize the text of the second page of the PDF " + path, adminUser, sessionId);
+					"Summarize the text of the second page of the PDF " + path, toolContext(sessionId));
 
 			assertNotNull(response);
 			// The second page is about regional sales; its unique marker is BETA-MARKER-222.

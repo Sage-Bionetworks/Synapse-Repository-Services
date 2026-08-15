@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -125,12 +126,9 @@ public class OAuthClientManagerImplUnitTest {
 	
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
-		userInfo.setGroups(Collections.singleton(USER_ID_LONG));
+		userInfo = new UserInfo(false, USER_ID_LONG, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(USER_ID_LONG));
 
-		anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUserInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		sector_identifier_uri = new URI(SECTOR_IDENTIFIER_URI_JSON_FILE_URL);		
@@ -357,8 +355,7 @@ public class OAuthClientManagerImplUnitTest {
 
 	@Test
 	public void testCanCreate() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID_LONG);
+		UserInfo userInfo = new UserInfo(false, USER_ID_LONG, AuthorizationConstants.DEFAULT_REALM_ID);
 		// method under test
 		assertTrue(OAuthClientManagerImpl.canCreate(userInfo));
 		

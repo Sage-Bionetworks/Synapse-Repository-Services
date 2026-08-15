@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.curation.compute;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.supervisor.SampleSheetSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
@@ -15,6 +18,7 @@ import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskP
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.stereotype.Service;
 
 /**
@@ -86,8 +90,13 @@ public class SampleSheetGenerationSubWorker implements ComputeTaskSubWorker<Samp
 		String sessionId = codeInterpreterClient.startSession("sampleSheetGen-" + task.getTaskId());
 		try {
 			callback.updateProgress("Running the sample sheet supervisor", 0L, 100L);
+			// The batch path runs against an already-started session, so the id is placed directly under
+			// CODE_SESSION_ID (no lazy supplier) for the supervisor's specialists to resolve.
+			ToolContext toolContext = new ToolContext(Map.of(
+					AgentToolContextKey.USER_INFO.getKey(), user,
+					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
 			String supervisorResponse = supervisorFactory.create()
-					.chat(buildSupervisorMessage(fileViewId, targetSchemaId), user, sessionId);
+					.chat(buildSupervisorMessage(fileViewId, targetSchemaId), toolContext);
 
 			SupervisorResult.requireSuccess(supervisorResponse, "Sample sheet generation did not succeed: ");
 

@@ -5,22 +5,23 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterSessionProvider;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
-import org.sagebionetworks.repo.manager.agent.tool.AgentTraceCallback;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus;
-import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.ai.bedrock.converse.BedrockChatOptions;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClient.ChatClientRequestSpec;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 
 /**
@@ -34,7 +35,7 @@ import org.springframework.ai.tool.ToolCallback;
  * AgentCore Memory) rather than an in-JVM store, keyed by a conversation id derived from the user
  * and the durable chat session id so any worker resolves the same conversation.
  */
-public class CurieSupervisor {
+public class CurieSupervisor implements Agent {
 
 	private final ChatClient chatClient;
 	private final CodeInterpreterSessionProvider sessionProvider;
@@ -54,47 +55,56 @@ public class CurieSupervisor {
 				.defaultAdvisors(MessageChatMemoryAdvisor.builder(memory).build())
 				.defaultOptions(BedrockChatOptions.builder()
 						.model(stackConfig.getModelIdClaudeSonnet())
-						.maxTokens(8192)
+						.maxTokens(Agent.MODELS_MAX_TOKENS)
 						.build())
 				.build();
 	}
 
+	@Override
+	public AgentRole getAgentRole() {
+		return AgentRole.SUPERVISOR;
+	}
+
 	/**
-	 * Send a message to this supervisor and get a response. Conversation context is durable and
-	 * cross-machine: it is keyed by a conversation id derived from the user and the durable chat
-	 * {@code sessionId}, so a later turn on a different worker continues the same conversation. Both
-	 * {@code user} and {@code sessionId} are required for this reason. The trusted
-	 * {@link GridAgentSessionContext} is forwarded to the grid specialists via the agent-immutable
-	 * tool context, so they operate against the user's replica in the current grid session. The
-	 * optional {@code traceCallback} is forwarded the same way so every tool call in this turn — at
-	 * this supervisor and in the specialists it delegates to — is recorded as job trace.
+	 * Conversation context is durable and cross-machine: it is keyed by a conversation id derived from
+	 * the {@link AgentToolContextKey#USER_INFO caller} and the durable
+	 * {@link AgentToolContextKey#CHAT_SESSION_ID chat session id}, so a later turn on a different worker
+	 * continues the same conversation. Both are required for this reason. The
+	 * {@link AgentToolContextKey#GRID_SESSION_CONTEXT grid context} and the optional
+	 * {@link AgentToolContextKey#TRACE_CALLBACK trace callback} flow through to the grid specialists
+	 * unchanged, so they operate against the user's replica and every tool call in the turn — at this
+	 * supervisor and in the specialists it delegates to — is recorded as job trace.
 	 * <p>
 	 * The costly code interpreter session is provisioned lazily: a {@link CodeSessionSupplier} keyed by
-	 * this Synapse chat {@code sessionId} is placed in the context, and the session is created (or
-	 * reused across turns and workers) only on the first {@code runPython} or specialist delegation of
-	 * the turn — never on a purely conversational turn.
+	 * the chat session id is added to the context here, and the session is created (or reused across
+	 * turns and workers) only on the first {@code runPython} or specialist delegation of the turn —
+	 * never on a purely conversational turn. Any files staged into that session for this turn are
+	 * described to the model via a preamble prepended to the user message.
 	 */
-	public String chat(String message, List<AgentChatAttachmentStatus> stagedAttachments, UserInfo user,
-			String sessionId, GridAgentSessionContext gridContext, AgentTraceCallback traceCallback) {
+	@Override
+	public ChatClientRequestSpec prepareChatClientRequestSpec(String message, ToolContext context) {
+		UserInfo user = (UserInfo) AgentToolContextKey.USER_INFO.get(context);
+		String chatSessionId = (String) AgentToolContextKey.CHAT_SESSION_ID.get(context);
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(user.getId(), "user.getId()");
-		ValidateArgument.requiredNotBlank(sessionId, "sessionId");
+		ValidateArgument.requiredNotBlank(chatSessionId, "chatSessionId");
 		// AgentCore Memory parses this as actorId:sessionId — the user is the actor, the durable
 		// Synapse chat session is the session.
-		String conversationId = user.getId() + ":" + sessionId;
-		Map<String, Object> context = new HashMap<>();
-		AgentToolContextKey.USER_INFO.put(context, user);
-		AgentToolContextKey.CODE_SESSION_SUPPLIER.put(context, sessionProvider.lazySupplier(sessionId));
-		AgentToolContextKey.GRID_SESSION_CONTEXT.put(context, gridContext);
-		if (traceCallback != null) {
-			AgentToolContextKey.TRACE_CALLBACK.put(context, traceCallback);
-		}
+		String conversationId = user.getId() + ":" + chatSessionId;
+
+		// Add the lazy, memoizing code-session supplier so the shared session is created only on the
+		// first code activity of the turn. The rest of the caller-supplied context flows through to the
+		// specialists unchanged.
+		Map<String, Object> toolContext = new HashMap<>(context.getContext());
+		AgentToolContextKey.CODE_SESSION_SUPPLIER.put(toolContext, sessionProvider.lazySupplier(chatSessionId));
+
+		@SuppressWarnings("unchecked")
+		List<AgentChatAttachmentStatus> stagedAttachments = (List<AgentChatAttachmentStatus>) AgentToolContextKey.STAGED_ATTACHMENTS
+				.get(context);
 		return chatClient.prompt()
 				.user(withAttachmentPreamble(message, stagedAttachments))
-				.toolContext(context)
-				.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-				.call()
-				.content();
+				.toolContext(toolContext)
+				.advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId));
 	}
 
 	/**

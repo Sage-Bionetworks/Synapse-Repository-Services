@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.springframework.ai.chat.model.ChatModel;
@@ -39,7 +40,7 @@ public class GridMetadataSpecialistFactoryTest {
 	@Test
 	public void testCreate() {
 		// call under test
-		GridMetadataSpecialist specialist = factory.create();
+		Agent specialist = factory.create();
 
 		assertNotNull(specialist);
 	}
