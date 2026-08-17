@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
@@ -39,7 +40,8 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 			new FieldColumn("modifiedOn", COL_DATA_ACCESS_REQUEST_MODIFIED_ON),
 			new FieldColumn("etag", COL_DATA_ACCESS_REQUEST_ETAG).withIsEtag(true),
 			new FieldColumn("requestSerialized", COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED).withHasFileHandleRef(true),
-			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID)
+			new FieldColumn("eDucEnvelopeId", COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID),
+			new FieldColumn("eDucContentHash", COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH)
 		};
 
 	private Long id;
@@ -52,6 +54,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 	private String etag;
 	private byte[] requestSerialized;
 	private String eDucEnvelopeId;
+	private String eDucContentHash;
 
 	@Override
 	public String toString() {
@@ -211,6 +214,14 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 		this.eDucEnvelopeId = eDucEnvelopeId;
 	}
 
+	public String getEDucContentHash() {
+		return eDucContentHash;
+	}
+
+	public void setEDucContentHash(String eDucContentHash) {
+		this.eDucContentHash = eDucContentHash;
+	}
+
 	@Override
 	public TableMapping<DBORequest> getTableMapping() {
 		return new TableMapping<DBORequest>(){
@@ -229,6 +240,7 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED);
 				dbo.setRequestSerialized(blob.getBytes(1, (int) blob.length()));
 				dbo.setEDucEnvelopeId(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID));
+				dbo.setEDucContentHash(rs.getString(COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH));
 				return dbo;
 			}
 

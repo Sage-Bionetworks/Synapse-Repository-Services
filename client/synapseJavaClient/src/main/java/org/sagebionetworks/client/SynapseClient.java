@@ -133,6 +133,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -3573,6 +3575,52 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
+
+	/**
+	 * Route the eDUC associated with a data access request for electronic signature.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the signature quota information including remaining routings
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota routeEDucForSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Get the status of a routed eDUC envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the signature status of the envelope
+	 * @throws SynapseException
+	 */
+	EDucSignatureStatus getEDucSignatureStatus(String requestId) throws SynapseException;
+
+	/**
+	 * Cancel a routed eDUC envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @throws SynapseException
+	 */
+	void cancelEDucSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Apply the current content of a data access request to its already-routed eDUC signature
+	 * envelope. Does not create a new envelope, so has no impact on the signature quota.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return the updated signature status of the envelope
+	 * @throws SynapseException
+	 */
+	EDucSignatureStatus updateRoutedEDucSignature(String requestId) throws SynapseException;
+
+	/**
+	 * Determine whether the current content of a data access request could be applied to its
+	 * routed eDUC signature envelope.
+	 *
+	 * @param requestId the ID of the data access request
+	 * @return true if an update could be applied, false if attempting it would fail
+	 * @throws SynapseException
+	 */
+	boolean canUpdateRoutedEDucSignature(String requestId) throws SynapseException;
 
 	/**
 	 * Retrieve a page of AccessorGroup.

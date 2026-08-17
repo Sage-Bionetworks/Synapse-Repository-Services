@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_USER_REQUEST_ID;
@@ -82,6 +83,14 @@ public class DBORequestDAOImpl implements RequestDAO {
 			+ " FROM " + TABLE_DATA_ACCESS_REQUEST
 			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
 
+	public static final String SQL_GET_CONTENT_HASH = "SELECT " + COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH
+			+ " FROM " + TABLE_DATA_ACCESS_REQUEST
+			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
+
+	public static final String SQL_SET_CONTENT_HASH = "UPDATE " + TABLE_DATA_ACCESS_REQUEST
+			+ " SET " + COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH + " = ?"
+			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
+
 	public static final String SQL_GET_FOR_UPDATE = SQL_GET_BY_ID + " FOR UPDATE";
 
 	private static final String SQL_DELETE_REQUEST_USERS = "DELETE FROM " + TABLE_DATA_ACCESS_REQUEST_USER
@@ -154,6 +163,10 @@ public class DBORequestDAOImpl implements RequestDAO {
 		DBORequest dbo = new DBORequest();
 		RequestUtils.copyDtoToDbo(toUpdate, dbo);
 		dbo.setEtag(UUID.randomUUID().toString());
+		// The content hash is server-managed and not carried on the request DTO. Preserve the
+		// existing value so a routine request edit does not clear it; only routing/correcting an
+		// envelope changes the hash (via setEDucContentHash).
+		dbo.setEDucContentHash(getEDucContentHash(toUpdate.getId()));
 		basicDao.update(dbo);
 		populateRequestUsers(toUpdate);
 		return getUserOwnCurrentRequest(toUpdate.getAccessRequirementId(), toUpdate.getCreatedBy());
@@ -191,6 +204,21 @@ public class DBORequestDAOImpl implements RequestDAO {
 	public String getAccessRequirementId(String requestId) {
 		try {
 			return jdbcTemplate.queryForObject(SQL_GET_AR_ID_BY_ID, String.class, requestId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, requestId));
+		}
+	}
+
+	@WriteTransaction
+	@Override
+	public void setEDucContentHash(String requestId, String hash) {
+		jdbcTemplate.update(SQL_SET_CONTENT_HASH, hash, requestId);
+	}
+
+	@Override
+	public String getEDucContentHash(String requestId) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_CONTENT_HASH, String.class, requestId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, requestId));
 		}

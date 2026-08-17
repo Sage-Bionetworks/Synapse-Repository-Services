@@ -1068,6 +1068,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
 	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
 	public static final String COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID =		"EDUC_ENVELOPE_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH =		"EDUC_CONTENT_HASH";
 
 	// DataAccessRequestUser
 	public static final String DDL_DATA_ACCESS_REQUEST_USER =					"schema/DataAccessRequestUser-ddl.sql";

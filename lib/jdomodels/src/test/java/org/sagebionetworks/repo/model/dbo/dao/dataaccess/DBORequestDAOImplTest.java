@@ -204,6 +204,69 @@ public class DBORequestDAOImplTest {
 	}
 
 	@Test
+	public void testSetAndGetEDucContentHash() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+
+		// initially null
+		assertNull(requestDao.getEDucContentHash(created.getId()));
+
+		// call under test
+		requestDao.setEDucContentHash(created.getId(), "abc123");
+		assertEquals("abc123", requestDao.getEDucContentHash(created.getId()));
+
+		// can be overwritten
+		requestDao.setEDucContentHash(created.getId(), "def456");
+		assertEquals("def456", requestDao.getEDucContentHash(created.getId()));
+
+		// can be cleared
+		requestDao.setEDucContentHash(created.getId(), null);
+		assertNull(requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testUpdatePreservesEDucContentHash() {
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		dto.setId(created.getId());
+		dto.setEtag(created.getEtag());
+		toDelete = created.getId();
+
+		// record a content hash (as routing/correcting an envelope would)
+		requestDao.setEDucContentHash(created.getId(), "hash-at-route");
+
+		// a routine request edit must NOT clear the server-managed hash
+		AccessorChange add = new AccessorChange();
+		add.setUserId(individualGroup.getId());
+		add.setType(AccessType.GAIN_ACCESS);
+		dto.setAccessorChanges(Arrays.asList(add));
+		requestDao.update(dto);
+
+		assertEquals("hash-at-route", requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testGetEDucContentHashWithNonExisting() {
+		String message = assertThrows(NotFoundException.class, () -> {
+			// call under test
+			requestDao.getEDucContentHash("-123");
+		}).getMessage();
+
+		assertEquals("Data access request: '-123' does not exist", message);
+	}
+
+	@Test
 	public void testGetForUpdateWithoutTransaction() {
 		Request dto = RequestTestUtils.createNewRequest();
 		

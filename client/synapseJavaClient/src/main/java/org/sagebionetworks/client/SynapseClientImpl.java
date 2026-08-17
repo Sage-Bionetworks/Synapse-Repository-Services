@@ -163,6 +163,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
@@ -5797,10 +5799,48 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	private static final String EDUC_TEMPLATE = "/eDuc/template";
+	private static final String EDUC_SIGNATURE = "/signature";
+	private static final String EDUC_SIGNATURE_STATUS = EDUC_SIGNATURE + "/status";
+	private static final String EDUC_SIGNATURE_PRECHECK = EDUC_SIGNATURE + "/precheck";
 
 	@Override
 	public EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), EDUC_TEMPLATE, request, EDucTemplatePage.class);
+	}
+
+	@Override
+	public EDucSignatureQuota routeEDucForSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		return postJSONEntity(getRepoEndpoint(), url, null, EDucSignatureQuota.class);
+	}
+
+	@Override
+	public EDucSignatureStatus getEDucSignatureStatus(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE_STATUS;
+		return getJSONEntity(getRepoEndpoint(), url, EDucSignatureStatus.class);
+	}
+
+	@Override
+	public void cancelEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
+	public EDucSignatureStatus updateRoutedEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		return putJSONEntity(getRepoEndpoint(), url, null, EDucSignatureStatus.class);
+	}
+
+	@Override
+	public boolean canUpdateRoutedEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE_PRECHECK;
+		return getBooleanResult(getRepoEndpoint(), url);
 	}
 
 	@Override

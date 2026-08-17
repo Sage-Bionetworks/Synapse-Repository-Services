@@ -47,6 +47,16 @@ public class EDucService {
 		return eDucManager.getSignatureStatus(userInfo, requestId);
 	}
 
+	public EDucSignatureStatus updateRoutedEnvelope(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.updateRoutedEnvelope(userInfo, requestId);
+	}
+
+	public boolean canUpdateRoutedEnvelope(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.canUpdateRoutedEnvelopePrecheck(userInfo, requestId);
+	}
+
 	public void cancelSignature(Long userId, String requestId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		eDucManager.cancelSignature(userInfo, requestId);

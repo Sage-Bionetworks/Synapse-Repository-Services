@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -20,6 +22,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -428,5 +431,168 @@ public class DocuSignClientTest {
 
 		assertEquals(0, result.size());
 		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	private static Signer existingSigner(String recipientId, String roleName, String status) {
+		Signer signer = new Signer();
+		signer.setRecipientId(recipientId);
+		signer.setRoleName(roleName);
+		signer.setStatus(status);
+		return signer;
+	}
+
+	@Test
+	public void testCorrectEnvelopeSequence() {
+		// PI already signed; signing official still pending
+		Signer pi = existingSigner("1", "principal_investigator", "completed");
+		Signer so = existingSigner("2", "signing_official", "sent");
+		Recipients recipients = new Recipients();
+		recipients.setSigners(List.of(pi, so));
+		Envelope existing = new Envelope();
+		existing.setRecipients(recipients);
+		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
+
+		Map<String, String> roleEmails = Map.of(
+				"principal_investigator", "pi@example.com",
+				"signing_official", "so-new@example.com"
+		);
+		Map<RoleLabelKey, String> tabValues = Map.of(
+				new RoleLabelKey("signing_official", "signing_official_name"), "Dr. Smith"
+		);
+
+		// call under test
+		client.correctEnvelope("env-1", roleEmails, tabValues);
+
+		InOrder order = inOrder(mockDocuSignEnvelopesApi);
+		order.verify(mockDocuSignEnvelopesApi).getEnvelope("env-1");
+		ArgumentCaptor<Envelope> correctCaptor = ArgumentCaptor.forClass(Envelope.class);
+		order.verify(mockDocuSignEnvelopesApi).updateEnvelope(eq("env-1"), correctCaptor.capture());
+		assertEquals("correct", correctCaptor.getValue().getStatus());
+
+		// only the not-yet-signed signing_official is updated (PI is left untouched)
+		ArgumentCaptor<Recipients> updateCaptor = ArgumentCaptor.forClass(Recipients.class);
+		order.verify(mockDocuSignEnvelopesApi).updateRecipients(eq("env-1"), updateCaptor.capture(), eq(true));
+		List<Signer> updatedSigners = updateCaptor.getValue().getSigners();
+		assertEquals(1, updatedSigners.size());
+		assertEquals("2", updatedSigners.get(0).getRecipientId());
+		assertEquals("signing_official", updatedSigners.get(0).getRoleName());
+		assertEquals("so-new@example.com", updatedSigners.get(0).getEmail());
+
+		ArgumentCaptor<Envelope> sendCaptor = ArgumentCaptor.forClass(Envelope.class);
+		order.verify(mockDocuSignEnvelopesApi).updateEnvelope(eq("env-1"), sendCaptor.capture());
+		assertEquals("sent", sendCaptor.getValue().getStatus());
+
+		// nothing to add or remove in this scenario
+		verify(mockDocuSignEnvelopesApi, never()).createRecipients(any(), any(), eq(true));
+		verify(mockDocuSignEnvelopesApi, never()).deleteRecipients(any(), any());
+	}
+
+	@Test
+	public void testCorrectEnvelopeAddsAndRemovesCollaborators() {
+		// creator/collaborator_1 signed; collaborator_2 pending and about to be removed
+		Signer pi = existingSigner("1", "principal_investigator", "completed");
+		Signer collab1 = existingSigner("2", "collaborator_1", "completed");
+		Signer collab2 = existingSigner("3", "collaborator_2", "sent");
+		Recipients recipients = new Recipients();
+		recipients.setSigners(List.of(pi, collab1, collab2));
+		Envelope existing = new Envelope();
+		existing.setRecipients(recipients);
+		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
+
+		// desired: keep PI and collaborator_1, drop collaborator_2, add collaborator_3
+		Map<String, String> roleEmails = Map.of(
+				"principal_investigator", "pi@example.com",
+				"collaborator_1", "c1@example.com",
+				"collaborator_3", "c3@example.com"
+		);
+		Map<RoleLabelKey, String> tabValues = Map.of(
+				new RoleLabelKey("collaborator_3", "collaborator_3_name"), "New Collaborator"
+		);
+
+		// call under test
+		client.correctEnvelope("env-1", roleEmails, tabValues);
+
+		// collaborator_2 (pending, no longer desired) is deleted
+		ArgumentCaptor<Recipients> deleteCaptor = ArgumentCaptor.forClass(Recipients.class);
+		verify(mockDocuSignEnvelopesApi).deleteRecipients(eq("env-1"), deleteCaptor.capture());
+		List<Signer> deleted = deleteCaptor.getValue().getSigners();
+		assertEquals(1, deleted.size());
+		assertEquals("3", deleted.get(0).getRecipientId());
+		assertEquals("collaborator_2", deleted.get(0).getRoleName());
+
+		// collaborator_3 (new) is added with a fresh recipientId beyond the existing max (3)
+		ArgumentCaptor<Recipients> createCaptor = ArgumentCaptor.forClass(Recipients.class);
+		verify(mockDocuSignEnvelopesApi).createRecipients(eq("env-1"), createCaptor.capture(), eq(true));
+		List<Signer> created = createCaptor.getValue().getSigners();
+		assertEquals(1, created.size());
+		assertEquals("collaborator_3", created.get(0).getRoleName());
+		assertEquals("c3@example.com", created.get(0).getEmail());
+		assertEquals("4", created.get(0).getRecipientId());
+		assertEquals("New Collaborator", created.get(0).getName());
+
+		// no not-yet-signed existing role remains to update (PI and collaborator_1 are completed)
+		verify(mockDocuSignEnvelopesApi, never()).updateRecipients(any(), any(), eq(true));
+	}
+
+	@Test
+	public void testCorrectEnvelopeWithNullEnvelopeId() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.correctEnvelope(null, Map.of(), Map.of()));
+		assertEquals("envelopeId is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
+	public void testCorrectEnvelopeWithNullRoleEmails() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.correctEnvelope("env-1", null, Map.of()));
+		assertEquals("roleEmails is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
+	public void testCorrectEnvelopeWithNullTabValues() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.correctEnvelope("env-1", Map.of(), null));
+		assertEquals("tabValues is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
+	public void testBuildUpdatedRecipientsSkipsCompletedSigner() {
+		Signer completed = existingSigner("1", "principal_investigator", "completed");
+		Signer pending = existingSigner("2", "signing_official", "sent");
+
+		Recipients result = DocuSignClient.buildUpdatedRecipients(List.of(completed, pending),
+				Map.of("principal_investigator", "pi@example.com", "signing_official", "so@example.com"),
+				Map.of());
+
+		assertEquals(1, result.getSigners().size());
+		assertEquals("signing_official", result.getSigners().get(0).getRoleName());
+	}
+
+	@Test
+	public void testBuildRemovedRecipientsSkipsCompletedSigner() {
+		// a completed signer no longer desired must NOT be removed
+		Signer completed = existingSigner("1", "collaborator_1", "completed");
+		Signer pending = existingSigner("2", "collaborator_2", "sent");
+
+		Recipients result = DocuSignClient.buildRemovedRecipients(List.of(completed, pending), Map.of());
+
+		assertEquals(1, result.getSigners().size());
+		assertEquals("collaborator_2", result.getSigners().get(0).getRoleName());
+	}
+
+	@Test
+	public void testBuildNewRecipientsOnlyAddsMissingRoles() {
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi),
+				Map.of("principal_investigator", "pi@example.com", "collaborator_1", "c1@example.com"),
+				Map.of());
+
+		assertEquals(1, result.getSigners().size());
+		assertEquals("collaborator_1", result.getSigners().get(0).getRoleName());
+		assertEquals("2", result.getSigners().get(0).getRecipientId());
 	}
 }

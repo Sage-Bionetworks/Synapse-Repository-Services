@@ -3,8 +3,10 @@ package org.sagebionetworks.docusign;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucSignerStatus;
@@ -20,6 +22,7 @@ import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
+import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateRole;
@@ -105,6 +108,161 @@ public class DocuSignClient {
 		envelopesApi.updateEnvelope(envelopeId, envelope);
 	}
 
+	// A DocuSign signer whose status is one of these has already finished and must not be modified.
+	private static final Set<String> COMPLETED_SIGNER_STATUSES = Set.of("completed", "signed");
+
+	/**
+	 * Applies new signer emails and tab values to an in-flight (sent or delivered) envelope by
+	 * correcting it: the envelope is placed into the "correct" state (which pauses signing),
+	 * recipients are added, updated, and removed to match the desired content, and the envelope is
+	 * then re-sent. Recipients who have already signed are left untouched.
+	 *
+	 * @param envelopeId the ID of the envelope to correct
+	 * @param roleEmails map from role name to the signer's desired email address
+	 * @param tabValues map from (roleName, tabLabel) to the desired text value to pre-fill
+	 */
+	public void correctEnvelope(String envelopeId, Map<String, String> roleEmails,
+			Map<RoleLabelKey, String> tabValues) {
+		ValidateArgument.required(envelopeId, "envelopeId");
+		ValidateArgument.required(roleEmails, "roleEmails");
+		ValidateArgument.required(tabValues, "tabValues");
+
+		// Fetch the current recipients to obtain their recipientIds and per-signer status.
+		Envelope existing = envelopesApi.getEnvelope(envelopeId);
+		List<Signer> existingSigners = existing.getRecipients() == null ? List.of()
+				: existing.getRecipients().getSigners();
+		if (existingSigners == null) {
+			existingSigners = List.of();
+		}
+
+		// Place the envelope into the "correct" state, which pauses the signing process.
+		Envelope correcting = new Envelope();
+		correcting.setStatus("correct");
+		envelopesApi.updateEnvelope(envelopeId, correcting);
+
+		Recipients toDelete = buildRemovedRecipients(existingSigners, roleEmails);
+		Recipients toUpdate = buildUpdatedRecipients(existingSigners, roleEmails, tabValues);
+		Recipients toCreate = buildNewRecipients(existingSigners, roleEmails, tabValues);
+
+		if (hasSigners(toDelete)) {
+			envelopesApi.deleteRecipients(envelopeId, toDelete);
+		}
+		if (hasSigners(toUpdate)) {
+			envelopesApi.updateRecipients(envelopeId, toUpdate, true);
+		}
+		if (hasSigners(toCreate)) {
+			envelopesApi.createRecipients(envelopeId, toCreate, true);
+		}
+
+		// Take the envelope out of "correct" and re-send it. "delivered" is a DocuSign-derived
+		// status that cannot be set, so the resume transition is always to "sent"; DocuSign
+		// re-derives "delivered"/"completed" as recipients act.
+		Envelope resending = new Envelope();
+		resending.setStatus("sent");
+		envelopesApi.updateEnvelope(envelopeId, resending);
+	}
+
+	// Existing (not-yet-signed) signers whose role is no longer desired are removed.
+	static Recipients buildRemovedRecipients(List<Signer> existingSigners, Map<String, String> roleEmails) {
+		List<Signer> removed = new ArrayList<>();
+		for (Signer existing : existingSigners) {
+			if (isCompleted(existing)) {
+				continue;
+			}
+			if (!roleEmails.containsKey(existing.getRoleName())) {
+				Signer signer = new Signer();
+				signer.setRecipientId(existing.getRecipientId());
+				signer.setRoleName(existing.getRoleName());
+				removed.add(signer);
+			}
+		}
+		return toRecipients(removed);
+	}
+
+	// Existing (not-yet-signed) signers whose role is still desired get their email and tabs re-applied.
+	static Recipients buildUpdatedRecipients(List<Signer> existingSigners,
+			Map<String, String> roleEmails, Map<RoleLabelKey, String> tabValues) {
+		List<Signer> updated = new ArrayList<>();
+		for (Signer existing : existingSigners) {
+			if (isCompleted(existing)) {
+				continue;
+			}
+			String roleName = existing.getRoleName();
+			if (!roleEmails.containsKey(roleName)) {
+				continue;
+			}
+			Signer signer = new Signer();
+			signer.setRecipientId(existing.getRecipientId());
+			signer.setRoleName(roleName);
+			signer.setEmail(roleEmails.get(roleName));
+			Tabs tabs = new Tabs();
+			signer.setTabs(tabs);
+			String fullName = fillTabsForRole(roleName, tabs, tabValues);
+			if (fullName != null) {
+				signer.setName(fullName);
+			}
+			updated.add(signer);
+		}
+		return toRecipients(updated);
+	}
+
+	// Desired roles that are not present on the envelope are added as new recipients.
+	static Recipients buildNewRecipients(List<Signer> existingSigners,
+			Map<String, String> roleEmails, Map<RoleLabelKey, String> tabValues) {
+		Set<String> existingRoles = new HashSet<>();
+		int maxRecipientId = 0;
+		for (Signer existing : existingSigners) {
+			existingRoles.add(existing.getRoleName());
+			maxRecipientId = Math.max(maxRecipientId, parseRecipientId(existing.getRecipientId()));
+		}
+
+		List<Signer> created = new ArrayList<>();
+		int nextRecipientId = maxRecipientId;
+		for (Map.Entry<String, String> entry : roleEmails.entrySet()) {
+			String roleName = entry.getKey();
+			if (existingRoles.contains(roleName)) {
+				continue;
+			}
+			nextRecipientId++;
+			Signer signer = new Signer();
+			signer.setRecipientId(Integer.toString(nextRecipientId));
+			signer.setRoutingOrder(Integer.toString(nextRecipientId));
+			signer.setRoleName(roleName);
+			signer.setEmail(entry.getValue());
+			Tabs tabs = new Tabs();
+			signer.setTabs(tabs);
+			String fullName = fillTabsForRole(roleName, tabs, tabValues);
+			if (fullName != null) {
+				signer.setName(fullName);
+			}
+			created.add(signer);
+		}
+		return toRecipients(created);
+	}
+
+	private static boolean isCompleted(Signer signer) {
+		return signer.getStatus() != null
+				&& COMPLETED_SIGNER_STATUSES.contains(signer.getStatus().toLowerCase());
+	}
+
+	private static int parseRecipientId(String recipientId) {
+		try {
+			return Integer.parseInt(recipientId);
+		} catch (NumberFormatException e) {
+			return 0;
+		}
+	}
+
+	private static Recipients toRecipients(List<Signer> signers) {
+		Recipients recipients = new Recipients();
+		recipients.setSigners(signers);
+		return recipients;
+	}
+
+	private static boolean hasSigners(Recipients recipients) {
+		return recipients.getSigners() != null && !recipients.getSigners().isEmpty();
+	}
+
 	static List<TemplateRole> buildTemplateRoles(Map<String, String> roleEmails,
 			Map<RoleLabelKey, String> tabValues) {
 		List<TemplateRole> roles = new ArrayList<>();
@@ -118,23 +276,36 @@ public class DocuSignClient {
 
 			Tabs tabs = new Tabs();
 			role.setTabs(tabs);
-
-			for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
-				if (!tabEntry.getKey().roleName().equals(roleName)) {
-					continue;
-				}
-				String tabLabel = tabEntry.getKey().tabLabel();
-				String value = tabEntry.getValue();
-				TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabLabel);
-				type.fillInTabValue(tabs, tabLabel, value);
-				if (TabType.FULL_NAME.equals(type)) {
-					role.setName(value);
-				}
-			}
+			role.setName(fillTabsForRole(roleName, tabs, tabValues));
 
 			roles.add(role);
 		}
 		return roles;
+	}
+
+	/**
+	 * Populates the given {@code tabs} with the values for the given role. Any tab-level
+	 * constraints (e.g. which tabs are locked/read-only for the signer) are defined on the
+	 * template and carried forward by DocuSign, so they are not set here.
+	 *
+	 * @return the value of the role's FULL_NAME tab, if any, so the caller can also set it as the
+	 *         recipient's name; null if the role has no FULL_NAME tab value.
+	 */
+	private static String fillTabsForRole(String roleName, Tabs tabs, Map<RoleLabelKey, String> tabValues) {
+		String fullName = null;
+		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
+			if (!tabEntry.getKey().roleName().equals(roleName)) {
+				continue;
+			}
+			String tabLabel = tabEntry.getKey().tabLabel();
+			String value = tabEntry.getValue();
+			TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabLabel);
+			type.fillInTabValue(tabs, tabLabel, value);
+			if (TabType.FULL_NAME.equals(type)) {
+				fullName = value;
+			}
+		}
+		return fullName;
 	}
 
 	public void voidEnvelope(String envelopeId, String reason) {
