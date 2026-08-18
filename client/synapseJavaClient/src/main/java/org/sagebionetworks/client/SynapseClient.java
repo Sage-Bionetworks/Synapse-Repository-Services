@@ -133,10 +133,6 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
-import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
-import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
-import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SubmissionInfoPage;
@@ -185,6 +181,10 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
@@ -329,9 +329,9 @@ import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
 import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
-import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
@@ -3577,6 +3577,7 @@ public interface SynapseClient extends BaseClient {
 	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
 
 	/**
+<<<<<<< HEAD
 	 * Route the eDUC associated with a data access request for electronic signature.
 	 *
 	 * @param requestId the ID of the data access request
@@ -3621,6 +3622,15 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	boolean canUpdateRoutedEDucSignature(String requestId) throws SynapseException;
+
+	/* Get the calling user's current eDUC (electronic Data Use Certificate) signature routing quota
+	 * for the access requirement associated with the given data access request.
+	 *
+	 * @param requestId the data access request ID
+	 * @return the signature quota including remaining routings
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota getEDucSignatureQuota(String requestId) throws SynapseException;
 
 	/**
 	 * Retrieve a page of AccessorGroup.

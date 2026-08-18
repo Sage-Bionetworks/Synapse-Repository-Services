@@ -37,6 +37,17 @@ public class EDucService {
 		return eDucManager.routeForSignature(userInfo, requestId);
 	}
 
+	public EDucSignatureQuota getSignatureQuota(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.getSignatureQuota(userInfo, requestId);
+	}
+
+	public EDucSignatureQuota resetQuota(Long userId, String accessRequirementId, Long targetUserId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo targetUserInfo = userManager.getUserInfo(targetUserId);
+		return eDucManager.resetQuota(userInfo, accessRequirementId, targetUserInfo.getId());
+	}
+
 	public EDucFileHandleId previewEDuc(Long userId, String requestId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return eDucManager.previewEDuc(userInfo, requestId);
