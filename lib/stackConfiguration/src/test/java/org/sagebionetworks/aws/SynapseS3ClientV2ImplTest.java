@@ -10,8 +10,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,6 +27,8 @@ import org.sagebionetworks.aws.v2.S3ClientProvider;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.http.AbortableInputStream;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
@@ -212,20 +216,63 @@ public class SynapseS3ClientV2ImplTest {
 	}
 
 	@Test
-	public void testGetObjectV2WithDestinationFile() {
+	public void testGetObjectV2WithDestinationFile() throws Exception {
 		setupBucketClient();
 
 		GetObjectRequest request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build();
-		Path destination = Paths.get("target", "downloaded-object");
-		GetObjectResponse expected = GetObjectResponse.builder().contentLength(123L).build();
+		GetObjectResponse expected = GetObjectResponse.builder().contentLength(11L).build();
+		Path destination = Files.createTempFile("SynapseS3ClientV2ImplTest", ".tmp");
 
-		when(mockBucketClient.getObject(request, destination)).thenReturn(expected);
+		try {
+			stubDownloadOf(expected, "new content");
 
-		// call under test
-		GetObjectResponse result = client.getObjectV2(request, destination);
+			// call under test
+			GetObjectResponse result = client.getObjectV2(request, destination);
 
-		assertEquals(expected, result);
-		verify(mockBucketClient).getObject(request, destination);
+			assertEquals(expected, result);
+			assertEquals("new content", readContent(destination));
+		} finally {
+			Files.deleteIfExists(destination);
+		}
+	}
+
+	@Test
+	public void testGetObjectV2WithExistingDestinationFile() throws Exception {
+		setupBucketClient();
+
+		GetObjectRequest request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(OBJECT_KEY).build();
+		GetObjectResponse expected = GetObjectResponse.builder().contentLength(11L).build();
+		Path destination = Files.createTempFile("SynapseS3ClientV2ImplTest", ".tmp");
+
+		try {
+			Files.write(destination, "stale content".getBytes(StandardCharsets.UTF_8));
+			stubDownloadOf(expected, "new content");
+
+			// call under test
+			GetObjectResponse result = client.getObjectV2(request, destination);
+
+			assertEquals(expected, result);
+			assertEquals("new content", readContent(destination));
+		} finally {
+			Files.deleteIfExists(destination);
+		}
+	}
+
+	private static String readContent(Path file) throws Exception {
+		return new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * Hand the given content to whatever {@link ResponseTransformer} the facade builds, the way the
+	 * real client would once the response body starts streaming.
+	 */
+	private void stubDownloadOf(GetObjectResponse response, String content) {
+		when(mockBucketClient.getObject(any(GetObjectRequest.class), any(ResponseTransformer.class)))
+				.thenAnswer(invocation -> {
+					ResponseTransformer<GetObjectResponse, GetObjectResponse> transformer = invocation.getArgument(1);
+					return transformer.transform(response, AbortableInputStream
+							.create(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8))));
+				});
 	}
 
 	@Test

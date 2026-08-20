@@ -96,7 +96,7 @@ public interface SynapseS3ClientV2 {
 	 * Download an object to a local file.
 	 *
 	 * @param request         Describes the object to read
-	 * @param destinationFile The file to write the content to, must not already exist
+	 * @param destinationFile The file to write the content to, replaced if it already exists
 	 * @return The metadata of the downloaded object
 	 */
 	GetObjectResponse getObjectV2(GetObjectRequest request, Path destinationFile);

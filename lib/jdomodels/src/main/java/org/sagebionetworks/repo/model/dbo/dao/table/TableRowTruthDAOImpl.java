@@ -52,7 +52,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -299,7 +303,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				out.close();
 				// upload it to S3.
 				String key = String.format(KEY_TEMPLATE, UUID.randomUUID().toString());
-				s3Client.putObject(s3Bucket, key, temp);
+				s3Client.putObjectV2(PutObjectRequest.builder().bucket(s3Bucket).key(key).build(),
+						RequestBody.fromFile(temp));
 				return key;
 			} finally {
 				if (temp != null) {
@@ -315,12 +320,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	public List<ColumnChange> getSchemaChangeForVersion(String tableId, long versionNumber) throws IOException {
 		TableRowChange dto = getTableRowChange(tableId, versionNumber);
 		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
-		try {
-			return ColumnModelUtils.readSchemaChangeFromGz(object.getObjectContent());
-		} finally {
-			// Need to close the stream unconditionally.
-			object.getObjectContent().close();
+		try (ResponseInputStream<GetObjectResponse> object = getChangeStream(dto)) {
+			return ColumnModelUtils.readSchemaChangeFromGz(object);
 		}
 	}
 
@@ -429,13 +430,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Override
 	public SparseChangeSetDto getRowSet(TableRowChange dto) throws IOException {
 		// Download the file from S3
-		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKeyNew());
-		try {
-			return TableModelUtils.readSparseChangeSetDtoFromGzStream(object.getObjectContent());
-		} finally {
-			// Need to close the stream unconditionally.
-			object.getObjectContent().close();
+		try (ResponseInputStream<GetObjectResponse> object = getChangeStream(dto)) {
+			return TableModelUtils.readSparseChangeSetDtoFromGzStream(object);
 		}
+	}
+
+	private ResponseInputStream<GetObjectResponse> getChangeStream(TableRowChange dto) {
+		return s3Client
+				.getObjectV2(GetObjectRequest.builder().bucket(dto.getBucket()).key(dto.getKeyNew()).build());
 	}
 
 	@Override
@@ -444,7 +446,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<String> keysToDelete = listAllKeysForTable(tableId);
 		// Delete each object from S3
 		for (String key : keysToDelete) {
-			s3Client.deleteObject(s3Bucket, key);
+			s3Client.deleteObjectV2(s3Bucket, key);
 		}
 		// let cascade delete take care of deleting the row changes
 		jdbcTemplate.update(SQL_DELETE_ROW_DATA_FOR_TABLE, KeyFactory.stringToKey(tableId));
@@ -456,7 +458,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<String> keysToDelete = listAllKeys();
 		// Delete each object from S3
 		for (String key : keysToDelete) {
-			s3Client.deleteObject(s3Bucket, key);
+			s3Client.deleteObjectV2(s3Bucket, key);
 		}
 		jdbcTemplate.update(SQL_TRUNCATE_SEQUENCE_TABLE);
 	}

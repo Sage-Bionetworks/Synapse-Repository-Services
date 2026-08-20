@@ -1,12 +1,15 @@
 package org.sagebionetworks.aws;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import org.sagebionetworks.aws.v2.S3ClientProvider;
 
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
@@ -93,7 +96,7 @@ public class SynapseS3ClientV2Impl implements SynapseS3ClientV2 {
 
 	@Override
 	public GetObjectResponse getObjectV2(GetObjectRequest request, Path destinationFile) {
-		return clientFor(request.bucket()).getObject(request, destinationFile);
+		return clientFor(request.bucket()).getObject(request, replacingFile(destinationFile));
 	}
 
 	@Override
@@ -210,6 +213,16 @@ public class SynapseS3ClientV2Impl implements SynapseS3ClientV2 {
 
 	private S3Client clientFor(String bucketName) {
 		return s3ClientProvider.getClientForBucket(bucketName);
+	}
+
+	// Callers download into a temp file they have already created, which the stock
+	// ResponseTransformer.toFile(Path) rejects. Replacing the destination keeps the behaviour callers
+	// had before the migration off of SDK v1 (PLFM-9749).
+	private static ResponseTransformer<GetObjectResponse, GetObjectResponse> replacingFile(Path destination) {
+		return (response, stream) -> {
+			Files.copy(stream, destination, StandardCopyOption.REPLACE_EXISTING);
+			return response;
+		};
 	}
 
 	// A missing bucket or key surfaces as a typed sub-class of S3Exception on some code paths and as a
