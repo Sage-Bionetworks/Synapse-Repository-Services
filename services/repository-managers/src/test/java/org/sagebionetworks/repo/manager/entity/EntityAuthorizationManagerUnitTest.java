@@ -71,7 +71,7 @@ public class EntityAuthorizationManagerUnitTest {
 	@BeforeEach
 	public void before() {
 		boolean isAdmin = false;
-		userInfo = new UserInfo(isAdmin, 123L);
+		userInfo = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setCertified(true);
 		userInfo.getGroups().add(userInfo.getId());
 		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
@@ -95,7 +95,7 @@ public class EntityAuthorizationManagerUnitTest {
 
 	@Test
 	public void testGetUserPermissionsForEntityWithNoPermissions() {
-		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
@@ -439,7 +439,7 @@ public class EntityAuthorizationManagerUnitTest {
 	 */
 	@Test
 	public void testGetUserPermissionsForEntityWithCanUploadFalse() {
-		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		userInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		
 		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);

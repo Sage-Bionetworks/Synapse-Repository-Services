@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.grid.internal.replica.export.GridReplicaCsvExporter;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
@@ -43,8 +44,7 @@ public class GridCSVDownloadWorkerTest {
     @BeforeEach
     public void before() throws Exception {
         userId = 987L;
-        userInfo = new UserInfo(false);
-        userInfo.setId(userId);
+        userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
         request = new DownloadFromGridRequest();
         String sessionId = "some-session-id";

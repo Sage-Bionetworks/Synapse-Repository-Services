@@ -104,7 +104,7 @@ public class RecordSetArtifactBuilder implements AutoCloseable {
 		if (validationSchema != null) {
 			List<JsonSubject> subjects = new ArrayList<>(bufferedCells.size());
 			for (Map<String, ConValue> cells : bufferedCells) {
-				subjects.add(new JsonObjectSubject(GridJsonUtils.gridRowToJsonObject(orderedColumnNames, cells)));
+				subjects.add(new JsonObjectSubject(GridJsonUtils.gridCellsToJsonObject(orderedColumnNames, cells)));
 			}
 			results = gridRowValidator.validateBatch(validationSchema, subjects);
 		}

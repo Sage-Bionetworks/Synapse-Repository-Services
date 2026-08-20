@@ -57,7 +57,7 @@ public class NotificationManagerImplTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, USER_ID);
+		user = new UserInfo(false, USER_ID, DEFAULT_REALM_ID);
 	}
 
 	@Test

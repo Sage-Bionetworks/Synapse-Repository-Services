@@ -30,6 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -82,11 +83,9 @@ public class SubscriptionManagerImplTest {
 		topic.setObjectType(SubscriptionObjectType.FORUM);
 		userId = 2L;
 		anotherUser = 4L;
-		userInfo = new UserInfo(false);
-		userInfo.setId(userId);
 		Set<Long> groups = new HashSet<Long>();
 		groups.add(userId);
-		userInfo.setGroups(groups);
+		userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID, groups);
 		sub = new Subscription();
 		sub.setObjectId(objectId);
 		

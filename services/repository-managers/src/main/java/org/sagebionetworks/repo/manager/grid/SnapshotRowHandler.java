@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -344,12 +343,13 @@ public class SnapshotRowHandler implements RowHandler {
      * @return a ConstantNode containing the validation results as a JSON object
      */
     ConstantNode createValidationConstant(Map<Integer, ConstantNode> cellValues) {
-        // Convert Map<Integer, ConstantNode> to List<ConstantNode> ordered by index
-        List<ConstantNode> orderedNodes = IntStream.range(0, columnNames.size())
-                .mapToObj(i -> cellValues.get(i))
-                .collect(Collectors.toList());
-
-        // Build JSON from constants
+        // getRowData leaves VectorNode.values null for a row with no values.
+        ConstantNode[] orderedNodes = new ConstantNode[columnNames.size()];
+        if (cellValues != null) {
+            for (int i = 0; i < orderedNodes.length; i++) {
+                orderedNodes[i] = cellValues.get(i);
+            }
+        }
         JSONObject rowJson = GridJsonUtils.gridRowToJsonObject(columnNames, orderedNodes);
 
         // Create JsonSubject for validation

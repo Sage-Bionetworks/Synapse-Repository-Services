@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFailureCode;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFileRequest;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFileResult;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatAttachmentFailureCode;
 import org.sagebionetworks.repo.model.agent.AgentChatAttachmentState;
@@ -40,7 +41,7 @@ public class AgentChatAttachmentStagerTest {
 	@InjectMocks
 	private AgentChatAttachmentStager stager;
 
-	private final UserInfo user = new UserInfo(false, 101L);
+	private final UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 	private final String agentSessionId = "agent-session-1";
 	private final String codeSessionId = "code-session-1";
 

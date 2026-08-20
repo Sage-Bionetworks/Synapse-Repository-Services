@@ -82,8 +82,8 @@ public class AdministrationServiceImplTest {
 	@BeforeEach
 	public void before() throws DatastoreException, NotFoundException{
 		// Setup the users
-		nonAdmin = new UserInfo(false);
-		admin = new UserInfo(true);
+		nonAdmin = new UserInfo(false, nonAdminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
+		admin = new UserInfo(true, adminUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 	
 	@Test

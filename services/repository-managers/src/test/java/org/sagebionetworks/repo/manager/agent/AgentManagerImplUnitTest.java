@@ -49,7 +49,6 @@ import org.sagebionetworks.repo.manager.agent.handler.ReturnControlEvent;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandler;
 import org.sagebionetworks.repo.manager.agent.handler.ReturnControlHandlerProvider;
 import org.sagebionetworks.repo.manager.agent.parameter.Parameter;
-import org.sagebionetworks.repo.manager.agent.supervisor.CurieSupervisor;
 import org.sagebionetworks.repo.manager.agent.supervisor.CurieSupervisorFactory;
 import org.sagebionetworks.repo.manager.agent.tool.AgentTraceCallback;
 import org.sagebionetworks.repo.manager.config.AgentSuffix;
@@ -83,6 +82,7 @@ import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
+import org.springframework.ai.chat.model.ToolContext;
 
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.bedrockagentruntime.BedrockAgentRuntimeAsyncClient;
@@ -171,7 +171,7 @@ public class AgentManagerImplUnitTest {
 	private CurieSupervisorFactory mockCurieSupervisorFactory;
 
 	@Mock
-	private CurieSupervisor mockCurieSupervisor;
+	private Agent mockCurieSupervisor;
 
 	@Mock
 	private AgentChatAttachmentStager mockAttachmentStager;
@@ -253,19 +253,14 @@ public class AgentManagerImplUnitTest {
 		anonymousUserId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 
 		boolean isAdmin = false;
-		sageUser = new UserInfo(isAdmin);
-		sageUser.setGroups(Set.of(sageTeamId));
-		sageUser.setId(444L);
+		sageUser = new UserInfo(isAdmin, 444L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(sageTeamId));
 
-		anonymous = new UserInfo(false);
-		anonymous.setId(anonymousUserId);
+		anonymous = new UserInfo(false, anonymousUserId, AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymous.setRealmAnonymousUserId(anonymousUserId);
 
-		admin = new UserInfo(true);
-		admin.setId(adminId);
+		admin = new UserInfo(true, adminId, AuthorizationConstants.DEFAULT_REALM_ID);
 
-		nonSageNonAdmin = new UserInfo(false);
-		nonSageNonAdmin.setId(555L);
+		nonSageNonAdmin = new UserInfo(false, 555L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		invocationId = "someInvocationId";
 
@@ -637,8 +632,8 @@ public class AgentManagerImplUnitTest {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
 		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
 		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
-		when(mockCurieSupervisor.chat(eq(inputText), eq(List.of()), eq(sageUser), eq(sessionId), eq(gridContext), any()))
-				.thenReturn("curie-answer");
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
 
 		// call under test
 		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
@@ -646,6 +641,13 @@ public class AgentManagerImplUnitTest {
 		// A turn without attachments carries no attachmentStatuses in the response.
 		assertEquals(new AgentChatResponse().setSessionId(sessionId).setResponseText("curie-answer"), response);
 		verify(manager, never()).invokeAgentWithText(any(), any(), any());
+		// The supervisor receives a tool context carrying the acting user, chat session, grid context, and
+		// (here empty) staged attachments.
+		ToolContext toolContext = contextCaptor.getValue();
+		assertEquals(sageUser, AgentToolContextKey.USER_INFO.get(toolContext));
+		assertEquals(sessionId, AgentToolContextKey.CHAT_SESSION_ID.get(toolContext));
+		assertEquals(gridContext, AgentToolContextKey.GRID_SESSION_CONTEXT.get(toolContext));
+		assertEquals(List.of(), AgentToolContextKey.STAGED_ATTACHMENTS.get(toolContext));
 	}
 
 	@Test
@@ -657,16 +659,17 @@ public class AgentManagerImplUnitTest {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
 		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
 		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
-		ArgumentCaptor<AgentTraceCallback> callbackCaptor = ArgumentCaptor.forClass(AgentTraceCallback.class);
-		when(mockCurieSupervisor.chat(eq(inputText), eq(List.of()), eq(sageUser), eq(sessionId), eq(gridContext),
-				callbackCaptor.capture())).thenReturn("curie-answer");
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
 		when(mockClock.currentTimeMillis()).thenReturn(123L);
 
 		// call under test
 		manager.invokeAgent(sageUser, jobId, chatRequest);
 
-		// The supplied callback writes trace against this job using the manager's clock.
-		AgentTraceCallback callback = callbackCaptor.getValue();
+		// With trace enabled, the tool context carries a callback that writes trace against this job using
+		// the manager's clock.
+		AgentTraceCallback callback = (AgentTraceCallback) AgentToolContextKey.TRACE_CALLBACK
+				.get(contextCaptor.getValue());
 		assertNotNull(callback);
 		callback.addTraceToJob("a message");
 		verify(mockAgentDao).addTraceToJob(jobId, 123L, "a message");
@@ -681,15 +684,14 @@ public class AgentManagerImplUnitTest {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
 		when(mockAttachmentStager.stageAttachments(eq(sageUser), eq(sessionId), any())).thenReturn(List.of());
 		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
-		ArgumentCaptor<AgentTraceCallback> callbackCaptor = ArgumentCaptor.forClass(AgentTraceCallback.class);
-		when(mockCurieSupervisor.chat(eq(inputText), eq(List.of()), eq(sageUser), eq(sessionId), eq(gridContext),
-				callbackCaptor.capture())).thenReturn("curie-answer");
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
 
 		// call under test
 		manager.invokeAgent(sageUser, jobId, chatRequest);
 
-		// With trace disabled no callback is supplied, so nothing is recorded.
-		assertNull(callbackCaptor.getValue());
+		// With trace disabled no callback is placed in the tool context, so nothing is recorded.
+		assertNull(AgentToolContextKey.TRACE_CALLBACK.get(contextCaptor.getValue()));
 	}
 
 	@Test
@@ -717,9 +719,8 @@ public class AgentManagerImplUnitTest {
 		doReturn(session).when(manager).getAndValidateAgentSession(sageUser, sessionId);
 		when(mockAttachmentStager.stageAttachments(sageUser, sessionId, attachments)).thenReturn(statuses);
 		when(mockCurieSupervisorFactory.create()).thenReturn(mockCurieSupervisor);
-		// Only the successfully staged files are forwarded to the supervisor; failures reach the client only.
-		when(mockCurieSupervisor.chat(eq(inputText), eq(List.of(stagedStatus)), eq(sageUser), eq(sessionId),
-				eq(gridContext), any())).thenReturn("curie-answer");
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		when(mockCurieSupervisor.chat(eq(inputText), contextCaptor.capture())).thenReturn("curie-answer");
 
 		// call under test
 		AgentChatResponse response = manager.invokeAgent(sageUser, jobId, chatRequest);
@@ -729,6 +730,9 @@ public class AgentManagerImplUnitTest {
 				.setAttachmentStatuses(statuses), response);
 		verify(mockAttachmentStager).stageAttachments(sageUser, sessionId, attachments);
 		verify(manager, never()).invokeAgentWithText(any(), any(), any());
+		// Only the successfully staged files are forwarded to the supervisor; failures reach the client only.
+		assertEquals(List.of(stagedStatus),
+				AgentToolContextKey.STAGED_ATTACHMENTS.get(contextCaptor.getValue()));
 	}
 
 	@Test

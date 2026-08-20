@@ -47,6 +47,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -118,8 +119,8 @@ public class EvaluationManagerTest {
 	public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 
 		// UserInfo
-		ownerInfo = new UserInfo(false, OWNER_ID);
-		userInfo = new UserInfo(false, USER_ID);
+		ownerInfo = new UserInfo(false, OWNER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// Evaluation
 		now = new Date();

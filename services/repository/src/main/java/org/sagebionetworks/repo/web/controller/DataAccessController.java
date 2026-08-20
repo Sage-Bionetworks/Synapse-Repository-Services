@@ -508,6 +508,24 @@ public class DataAccessController {
 	}
 
 	/**
+	 * Get the calling user's current eDUC signature routing quota for the access requirement
+	 * associated with the given data access request. This is a read-only operation that does not
+	 * route anything.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The signature quota information including remaining routings.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_QUOTA, method = RequestMethod.GET)
+	public @ResponseBody EDucSignatureQuota getEDucSignatureQuota(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().getSignatureQuota(userId, requestId);
+	}
+
+	/**
 	 * Get the status of a routed eDUC envelope.
 	 *
 	 * @param userId    - The ID of the user who is making the request.

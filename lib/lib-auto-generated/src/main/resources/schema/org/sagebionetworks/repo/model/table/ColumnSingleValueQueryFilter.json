@@ -7,7 +7,7 @@
 			"$ref": "org.sagebionetworks.repo.model.table.HasValues"
 		}
 	],
-	"description": "A filter using a single value against a column. Values within the values list have an OR relationship",
+	"description": "A filter using a single value against a column. The number of values depends on the operator: IS_NULL and IS_NOT_NULL take no values; BETWEEN takes exactly two values (lower and upper bound); the relational comparison operators (EQUAL when a single value, NOT_EQUAL, GREATER_THAN, LESS_THAN, GREATER_THAN_OR_EQUAL, LESS_THAN_OR_EQUAL) take exactly one value; LIKE, EQUAL, and IN accept one or more values that are combined in an OR relationship.",
 	"properties": {
 		"columnName": {
 			"type": "string",
@@ -25,11 +25,43 @@
 				},
 				{
 					"name": "EQUAL",
-					"description": "The EQUAL operation."
+					"description": "The EQUAL (=) operation."
 				},
 				{
 					"name": "IN",
 					"description": "The IN operation."
+				},
+				{
+					"name": "GREATER_THAN",
+					"description": "The greater than (>) operation. Takes exactly one value."
+				},
+				{
+					"name": "LESS_THAN",
+					"description": "The less than (<) operation. Takes exactly one value."
+				},
+				{
+					"name": "GREATER_THAN_OR_EQUAL",
+					"description": "The greater than or equal (>=) operation. Takes exactly one value."
+				},
+				{
+					"name": "LESS_THAN_OR_EQUAL",
+					"description": "The less than or equal (<=) operation. Takes exactly one value."
+				},
+				{
+					"name": "NOT_EQUAL",
+					"description": "The not equal (<>) operation. Takes exactly one value."
+				},
+				{
+					"name": "IS_NULL",
+					"description": "The IS NULL operation. Takes no values."
+				},
+				{
+					"name": "IS_NOT_NULL",
+					"description": "The IS NOT NULL operation. Takes no values."
+				},
+				{
+					"name": "BETWEEN",
+					"description": "The BETWEEN operation. Takes exactly two values: the inclusive lower and upper bounds."
 				}
 			]
 		}

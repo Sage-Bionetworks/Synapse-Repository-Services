@@ -24,6 +24,7 @@ class DocuSignTemplateValidator {
 	record RequiredTab(String label, TabType type) {}
 
 	static final List<RequiredTab> SIGNING_OFFICIAL_TABS = List.of(
+			new RequiredTab("signing_official_institution", TabType.TEXT),
 			new RequiredTab("signing_official_name", TabType.FULL_NAME),
 			new RequiredTab("signing_official_title", TabType.TITLE),
 			new RequiredTab("signing_official_email", TabType.EMAIL_ADDRESS),
@@ -32,7 +33,6 @@ class DocuSignTemplateValidator {
 	);
 
 	static final List<RequiredTab> PRINCIPAL_INVESTIGATOR_TABS = List.of(
-			new RequiredTab("principal_investigator_institution", TabType.TEXT),
 			new RequiredTab("principal_investigator_name", TabType.FULL_NAME),
 			new RequiredTab("principal_investigator_title", TabType.TITLE),
 			new RequiredTab("principal_investigator_email", TabType.EMAIL_ADDRESS),

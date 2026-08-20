@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.manager.curation.compute;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.SampleSheetSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.RecordSet;
@@ -15,6 +19,7 @@ import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskP
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.stereotype.Service;
 
 /**
@@ -83,11 +88,22 @@ public class SampleSheetGenerationSubWorker implements ComputeTaskSubWorker<Samp
 		String recordSetId = getDestinationRecordSetId(user, properties.getDestinationTaskId());
 		String targetSchemaId = recordSetOutputWriter.getBoundSchemaId(user, recordSetId);
 
+		long startNanos = System.nanoTime();
 		String sessionId = codeInterpreterClient.startSession("sampleSheetGen-" + task.getTaskId());
 		try {
+			LOG.info("Starting sample sheet generation for task {}: inputFileViewId={}, recordSetId={}, "
+					+ "targetSchemaId={}, sessionId={}", task.getTaskId(), fileViewId, recordSetId, targetSchemaId,
+					sessionId);
 			callback.updateProgress("Running the sample sheet supervisor", 0L, 100L);
+			// The batch path runs against an already-started session, so a constant supplier over that
+			// id is installed for the supervisor's specialists to resolve.
+			ToolContext toolContext = new ToolContext(Map.of(
+					AgentToolContextKey.USER_INFO.getKey(), user,
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 			String supervisorResponse = supervisorFactory.create()
-					.chat(buildSupervisorMessage(fileViewId, targetSchemaId), user, sessionId);
+					.chat(buildSupervisorMessage(fileViewId, targetSchemaId), toolContext);
+			LOG.info("Sample sheet supervisor for task {} (session {}) returned: {}", task.getTaskId(), sessionId,
+					supervisorResponse);
 
 			SupervisorResult.requireSuccess(supervisorResponse, "Sample sheet generation did not succeed: ");
 
@@ -100,6 +116,8 @@ public class SampleSheetGenerationSubWorker implements ComputeTaskSubWorker<Samp
 			recordSetOutputWriter.storeCsvAsNewRecordSetVersion(user, recordSetId, dataFileHandleId);
 
 			callback.updateProgress("Sample sheet generation complete", 100L, 100L);
+			LOG.info("Completed sample sheet generation for task {} in {} ms: stored file handle {} on RecordSet {}",
+					task.getTaskId(), (System.nanoTime() - startNanos) / 1_000_000L, dataFileHandleId, recordSetId);
 			return details;
 		} finally {
 			try {

@@ -57,6 +57,11 @@ public class CodeInterpreterSessionProvider {
 				}
 				return resolvedSessionId;
 			}
+
+			@Override
+			public String resolvedSessionIdOrNull() {
+				return resolvedSessionId;
+			}
 		};
 	}
 

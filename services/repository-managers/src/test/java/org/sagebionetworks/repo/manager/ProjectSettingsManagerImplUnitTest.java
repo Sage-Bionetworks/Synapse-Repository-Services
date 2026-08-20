@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectSettingsDAO;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.UploadDestinationLocation;
@@ -109,7 +110,7 @@ public class ProjectSettingsManagerImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false, USER_ID);
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		uploadDestinationListSetting = new UploadDestinationListSetting();
 		uploadDestinationListSetting.setProjectId(PROJECT_ID);
@@ -829,7 +830,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		setting.setLocations(Lists.newArrayList(1L));
 
 
-		UserInfo currentUser = new UserInfo(false, 11L);
+		UserInfo currentUser = new UserInfo(false, 11L, AuthorizationConstants.DEFAULT_REALM_ID);
 		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3StorageLocationSetting.setCreatedBy(11L);
 		when(mockStorageLocationDAO.get(1L)).thenReturn(externalS3StorageLocationSetting);
@@ -846,7 +847,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.newArrayList(1L));
 
-		UserInfo currentUser = new UserInfo(false, 11L);
+		UserInfo currentUser = new UserInfo(false, 11L, AuthorizationConstants.DEFAULT_REALM_ID);
 		ExternalS3StorageLocationSetting externalS3StorageLocationSetting = new ExternalS3StorageLocationSetting();
 		externalS3StorageLocationSetting.setCreatedBy(12L);
 		when(mockStorageLocationDAO.get(1L)).thenReturn(externalS3StorageLocationSetting);
@@ -863,7 +864,7 @@ public class ProjectSettingsManagerImplUnitTest {
 		setting.setSettingsType(ProjectSettingsType.upload);
 		setting.setLocations(Lists.newArrayListWithCapacity(ProjectSettingsManagerImpl.MAX_LOCATIONS_PER_PROJECT + 1));
 
-		UserInfo currentUser = new UserInfo(false, 11L);
+		UserInfo currentUser = new UserInfo(false, 11L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertThrows(IllegalArgumentException.class, () -> projectSettingsManagerImpl.validateProjectSetting(setting, currentUser));
 	}
 

@@ -13,6 +13,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -34,12 +35,12 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testIsOwnerOrAdmin() {
-		UserInfo userInfo = new UserInfo(false/*not admin*/, 1001L);
+		UserInfo userInfo = new UserInfo(false/*not admin*/, 1001L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(userInfo, "1001"));
 		String otherId = "1002";
 		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(userInfo, otherId));
 		
-		UserInfo adminInfo = new UserInfo(true/*is admin*/, 456L);
+		UserInfo adminInfo = new UserInfo(true/*is admin*/, 456L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(adminInfo, otherId));
 
 		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(null, otherId));
@@ -47,17 +48,17 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testIsOwnerACTOrAdmin() {
-		UserInfo userInfo = new UserInfo(false/*not admin*/, 1001L);
+		UserInfo userInfo = new UserInfo(false/*not admin*/, 1001L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertTrue(UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, "1001"));
 		String otherId = "1002";
 		assertFalse(UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, otherId));
 		
-		UserInfo adminInfo = new UserInfo(true/*is admin*/, 456L);
+		UserInfo adminInfo = new UserInfo(true/*is admin*/, 456L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertTrue(UserProfileManagerUtils.isOwnerACTOrAdmin(adminInfo, otherId));
 
 		assertFalse(UserProfileManagerUtils.isOwnerACTOrAdmin(null, otherId));
 		
-		userInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
+		userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
 		assertTrue(UserProfileManagerUtils.isOwnerACTOrAdmin(userInfo, otherId));
 		
 	}
@@ -67,9 +68,8 @@ public class UserProfileManagerUtilsTest {
 	 */
 	@Test
 	public void testClearPrivateFields() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(Collections.emptySet());
-		
+		UserInfo userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.emptySet());
+
 		UserProfile up = new UserProfile();
 		up.setProfilePicureFileHandleId("456");
 		up.setRStudioUrl("http://rstudio");
@@ -90,9 +90,8 @@ public class UserProfileManagerUtilsTest {
 	 */
 	@Test
 	public void testClearPrivateFieldsCreatedOn() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(Collections.emptySet());
-		
+		UserInfo userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.emptySet());
+
 		UserProfile up = new UserProfile();
 		Date createdOn = new Date(123L);
 		up.setCreatedOn(createdOn);
@@ -102,7 +101,7 @@ public class UserProfileManagerUtilsTest {
 
 	@Test
 	public void testClearPrivateFieldsAsAdmin() {
-		UserInfo userInfo = new UserInfo(true);
+		UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		UserProfile up = new UserProfile();
 		up.setEmail("useremail@sagebase.org");
 		up.setTwoFactorAuthEnabled(true);
@@ -117,8 +116,7 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testClearPrivateFieldsAsACT() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setGroups(Collections.singleton(TeamConstants.ACT_TEAM_ID));
+		UserInfo userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(TeamConstants.ACT_TEAM_ID));
 		UserProfile up = new UserProfile();
 		up.setEmail("useremail@sagebase.org");
 		up.setTwoFactorAuthEnabled(true);

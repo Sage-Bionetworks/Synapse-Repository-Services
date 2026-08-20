@@ -163,6 +163,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
@@ -5801,6 +5802,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), EDUC_TEMPLATE, request, EDucTemplatePage.class);
+	}
+
+	@Override
+	public EDucSignatureQuota getEDucSignatureQuota(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		return getJSONEntity(getRepoEndpoint(), "/dataAccessRequest/" + requestId + "/signature/quota",
+				EDucSignatureQuota.class);
 	}
 
 	@Override

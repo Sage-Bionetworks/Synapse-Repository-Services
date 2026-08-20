@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -603,7 +604,7 @@ class CurationTaskDaoAutowireTest {
         // call under test
         List<TaskBundle> bundles = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId())),
-                null, null, List.of(created1.getTaskId(), created2.getTaskId()), 10, 0);
+                null, null, List.of(created1.getTaskId(), created2.getTaskId()), null, null, false, 10, 0);
 
         assertEquals(2, bundles.size());
         assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
@@ -632,7 +633,7 @@ class CurationTaskDaoAutowireTest {
         // call under test - filter by userId
         List<TaskBundle> bundles = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId())),
-                List.of(userId), null, null, 10, 0);
+                List.of(userId), null, null, null, null, false, 10, 0);
 
         assertEquals(1, bundles.size());
         assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
@@ -661,7 +662,7 @@ class CurationTaskDaoAutowireTest {
         // call under test - filter by IN_PROGRESS
         List<TaskBundle> bundles = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId())),
-                null, List.of(TaskState.IN_PROGRESS), null, 10, 0);
+                null, List.of(TaskState.IN_PROGRESS), null, null, null, false, 10, 0);
 
         assertEquals(1, bundles.size());
         assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
@@ -691,7 +692,7 @@ class CurationTaskDaoAutowireTest {
         // call under test - filter by taskId of created1 and created2; created3 in a different project is the decoy
         List<TaskBundle> bundles = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId()), KeyFactory.stringToKey(project2.getId())),
-                null, null, List.of(created1.getTaskId(), created2.getTaskId()), 10, 0);
+                null, null, List.of(created1.getTaskId(), created2.getTaskId()), null, null, false, 10, 0);
 
         assertEquals(2, bundles.size());
         assertEquals(created1.getTaskId(), bundles.get(0).getTask().getTaskId());
@@ -700,7 +701,7 @@ class CurationTaskDaoAutowireTest {
         // non-existent ID is silently excluded
         List<TaskBundle> bundlesWithMissing = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId())),
-                null, null, List.of(created1.getTaskId(), 999999999L), 10, 0);
+                null, null, List.of(created1.getTaskId(), 999999999L), null, null, false, 10, 0);
 
         assertEquals(1, bundlesWithMissing.size());
         assertEquals(created1.getTaskId(), bundlesWithMissing.get(0).getTask().getTaskId());
@@ -728,7 +729,7 @@ class CurationTaskDaoAutowireTest {
             // call under test - filter by task1's ID only; task2 is in the same project and must be excluded
             List<TaskBundle> result = dao.getCurationTaskBundles(
                     List.of(KeyFactory.stringToKey(project1.getId())),
-                    null, null, List.of(task1.getTaskId()), 10, 0);
+                    null, null, List.of(task1.getTaskId()), null, null, false, 10, 0);
 
             assertEquals(1, result.size());
             assertEquals(task1.getTaskId(), result.get(0).getTask().getTaskId());
@@ -743,9 +744,76 @@ class CurationTaskDaoAutowireTest {
         // call under test - filter by non-existent taskId
         List<TaskBundle> bundles = dao.getCurationTaskBundles(
                 List.of(KeyFactory.stringToKey(project1.getId())),
-                null, null, List.of(999999999L), 10, 0);
+                null, null, List.of(999999999L), null, null, false, 10, 0);
 
         assertEquals(0, bundles.size());
+    }
+
+    @Test
+    public void testGetCurationTaskBundlesWithDueDateFilter() {
+        CurationTask task1 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("fastq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        CurationTask task2 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("rnaseq")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.RECORD_BASED)));
+
+        CurationTask task3 = dao.createCurationTask(userId, new CurationTask()
+                .setProjectId(project1.getId())
+                .setDataType("wgs")
+                .setTaskProperties(createTaskProperties(CurationTaskPropertiesType.FILE_BASED)));
+
+        // task1 = past due date, task2 = future due date, task3 = no due date
+        Date pastDate = new Date(Instant.now().minus(2, ChronoUnit.DAYS).toEpochMilli());
+        Date futureDate = new Date(Instant.now().plus(2, ChronoUnit.DAYS).toEpochMilli());
+
+        dao.updateCurationTask(userId, task1.setDueDate(pastDate));
+        dao.updateCurationTask(userId, task2.setDueDate(futureDate));
+
+        List<Long> allThree = List.of(task1.getTaskId(), task2.getTaskId(), task3.getTaskId());
+        Long projectId = KeyFactory.stringToKey(project1.getId());
+
+        // start+end range: only task1 (past)
+        Date filterStart = new Date(Instant.now().minus(3, ChronoUnit.DAYS).toEpochMilli());
+        Date filterEnd = new Date(Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli());
+        List<TaskBundle> rangeResult = dao.getCurationTaskBundles(
+                List.of(projectId), null, null, allThree, filterStart, filterEnd, false, 10, 0);
+        assertEquals(1, rangeResult.size());
+        assertEquals(task1.getTaskId(), rangeResult.get(0).getTask().getTaskId());
+
+        // start only: only task2 (future)
+        Date tomorrowStart = new Date(Instant.now().plus(1, ChronoUnit.DAYS).toEpochMilli());
+        List<TaskBundle> startOnlyResult = dao.getCurationTaskBundles(
+                List.of(projectId), null, null, allThree, tomorrowStart, null, false, 10, 0);
+        assertEquals(1, startOnlyResult.size());
+        assertEquals(task2.getTaskId(), startOnlyResult.get(0).getTask().getTaskId());
+
+        // includeUnset only: only task3 (no due date)
+        List<TaskBundle> unsetOnlyResult = dao.getCurationTaskBundles(
+                List.of(projectId), null, null, allThree, null, null, true, 10, 0);
+        assertEquals(1, unsetOnlyResult.size());
+        assertEquals(task3.getTaskId(), unsetOnlyResult.get(0).getTask().getTaskId());
+
+        // range + includeUnset: task1 (past) + task3 (no due date)
+        List<TaskBundle> rangeAndUnsetResult = dao.getCurationTaskBundles(
+                List.of(projectId), null, null, allThree, filterStart, filterEnd, true, 10, 0);
+        assertEquals(2, rangeAndUnsetResult.size());
+        List<Long> returnedIds = rangeAndUnsetResult.stream()
+                .map(b -> b.getTask().getTaskId()).collect(Collectors.toList());
+        assertTrue(returnedIds.contains(task1.getTaskId()));
+        assertTrue(returnedIds.contains(task3.getTaskId()));
+
+        // no filter: all three
+        List<TaskBundle> noFilterResult = dao.getCurationTaskBundles(
+                List.of(projectId), null, null, allThree, null, null, false, 10, 0);
+        assertEquals(3, noFilterResult.size());
+
+        dao.deleteCurationTask(task1.getTaskId());
+        dao.deleteCurationTask(task2.getTaskId());
+        dao.deleteCurationTask(task3.getTaskId());
     }
 
     @Test

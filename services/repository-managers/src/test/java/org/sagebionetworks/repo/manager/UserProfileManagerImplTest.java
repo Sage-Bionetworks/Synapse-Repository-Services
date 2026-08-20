@@ -140,7 +140,7 @@ public class UserProfileManagerImplTest {
 		assertNotNull(created);
 		assertNotNull(created.getEtag());
 
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, principalId, AuthorizationConstants.DEFAULT_REALM_ID);
 		// Get it back
 		UserProfile clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(created, clone);
@@ -179,7 +179,7 @@ public class UserProfileManagerImplTest {
 		assertNotNull(profile.getUserName());
 		assertNotNull(profile.getEtag());
 
-		UserInfo userInfo = new UserInfo(false, principalId);
+		UserInfo userInfo = new UserInfo(false, principalId, AuthorizationConstants.DEFAULT_REALM_ID);
 		// Get it back
 		UserProfile clone = userProfileManager.getUserProfile(principalId.toString());
 		assertEquals(profile, clone);

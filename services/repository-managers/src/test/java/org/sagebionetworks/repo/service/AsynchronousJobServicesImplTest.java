@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -36,11 +37,10 @@ public class AsynchronousJobServicesImplTest {
 	@Test
 	public void testStartAdminJobAsRegular() {
 		Long userId = 123L;
-		UserInfo expectedUser = new UserInfo(false);
-		expectedUser.setId(123L);
+		UserInfo expectedUser = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
-		
-		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {			
+
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class, () -> {
 			svc.startJob(userId, mockAdminRequest);
 		});
 		
@@ -50,8 +50,7 @@ public class AsynchronousJobServicesImplTest {
 	@Test
 	public void testStartAdminJobAsAdmin() {
 		Long userId = 123L;
-		UserInfo expectedUser = new UserInfo(true);
-		expectedUser.setId(123L);
+		UserInfo expectedUser = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");
@@ -63,8 +62,7 @@ public class AsynchronousJobServicesImplTest {
 	@Test
 	public void testStartRegularJobAsAdmin() {
 		Long userId = 123L;
-		UserInfo expectedUser = new UserInfo(true);
-		expectedUser.setId(123L);
+		UserInfo expectedUser = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");
@@ -76,8 +74,7 @@ public class AsynchronousJobServicesImplTest {
 	@Test
 	public void testStartRegularJobAsRegular() {
 		Long userId = 123L;
-		UserInfo expectedUser = new UserInfo(false);
-		expectedUser.setId(123L);
+		UserInfo expectedUser = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(expectedUser);
 		AsynchronousJobStatus expectedStatus = new AsynchronousJobStatus();
 		expectedStatus.setJobId("jobId");

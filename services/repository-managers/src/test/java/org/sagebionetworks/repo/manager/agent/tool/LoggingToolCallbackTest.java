@@ -18,6 +18,8 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.springframework.ai.chat.model.ToolContext;
@@ -52,7 +54,7 @@ public class LoggingToolCallbackTest {
 		// The logger reads the tool name for every call.
 		when(mockDelegate.getToolDefinition()).thenReturn(mockToolDefinition);
 		when(mockToolDefinition.name()).thenReturn("queryGrid");
-		ToolContext context = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), new UserInfo(false, 123L)));
+		ToolContext context = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID)));
 		when(mockDelegate.call("the prompt", context)).thenReturn("the tool response");
 
 		// call under test
@@ -86,7 +88,7 @@ public class LoggingToolCallbackTest {
 	public void testCallWithoutTraceCallbackInContextDoesNotRecord() {
 		when(mockDelegate.getToolDefinition()).thenReturn(mockToolDefinition);
 		when(mockToolDefinition.name()).thenReturn("askGridQuerySpecialist");
-		ToolContext context = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), new UserInfo(false, 123L)));
+		ToolContext context = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID)));
 		when(mockDelegate.call("the prompt", context)).thenReturn("the tool response");
 
 		// call under test
@@ -138,17 +140,17 @@ public class LoggingToolCallbackTest {
 
 	@Test
 	public void testDescribeContextWithIds() {
-		UserInfo userInfo = new UserInfo(false, 123L);
+		UserInfo userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		GridAgentSessionContext gridContext = new GridAgentSessionContext().setGridSessionId("grid-session-9")
 				.setUsersReplicaId(42L);
 		ToolContext context = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
-				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-abc",
+				AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of("session-abc"),
 				AgentToolContextKey.GRID_SESSION_CONTEXT.getKey(), gridContext));
 
 		// call under test
 		String described = LoggingToolCallback.describeContext(context);
 
-		// Correlation IDs are present.
+		// Correlation IDs are present. A constant supplier reports its id as already resolved.
 		assertTrue(described.contains("userId=123"));
 		assertTrue(described.contains("session-abc"));
 		assertTrue(described.contains("gridSessionId=grid-session-9"));

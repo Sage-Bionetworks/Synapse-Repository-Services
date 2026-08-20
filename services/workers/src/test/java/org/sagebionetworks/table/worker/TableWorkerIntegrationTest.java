@@ -64,6 +64,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -88,9 +89,12 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.BooleanOperator;
 import org.sagebionetworks.repo.model.table.ColumnChange;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
+import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
@@ -106,6 +110,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnSortDirection;
 import org.sagebionetworks.repo.model.table.FacetColumnSortProperty;
 import org.sagebionetworks.repo.model.table.FacetColumnValuesRequest;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.FilterGroup;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
@@ -232,7 +237,7 @@ public class TableWorkerIntegrationTest {
 		when(mockProgressCallback.getLockTimeoutSeconds()).thenReturn(2L);
 		mockProgressCallbackVoid= Mockito.mock(ProgressCallback.class);
 		when(mockProgressCallbackVoid.getLockTimeoutSeconds()).thenReturn(2L);
-		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID));
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -3435,9 +3440,67 @@ public class TableWorkerIntegrationTest {
 				List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(1).getRowId());
 				assertEquals(expectedIds, resultBundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
 		});
-		
+
 	}
-	
+
+	@Test
+	public void testQueryWithNestedFilterGroups() throws Exception {
+		schema = Lists.newArrayList(
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("diagnosis")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.INTEGER).setName("age")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("study")),
+			columnManager.createColumnModel(adminUserInfo, new ColumnModel().setColumnType(ColumnType.STRING).setName("sex"))
+		);
+		createTableWithSchema();
+
+		// Rows are chosen to exercise every branch of the nested filter tree below.
+		List<Row> rows = Arrays.asList(
+			// 0: Alzheimer's AND age>65, not excluded, female -> MATCH
+			TableModelTestUtils.createRow(null, null, "Alzheimer's disease", "70", "included", "female"),
+			// 1: Alzheimer's but age not > 65 -> no match
+			TableModelTestUtils.createRow(null, null, "Alzheimer's disease", "60", "included", "female"),
+			// 2: dementia branch, not excluded, female -> MATCH
+			TableModelTestUtils.createRow(null, null, "vascular dementia", "50", "included", "female"),
+			// 3: matches the OR but the group is excluded -> no match
+			TableModelTestUtils.createRow(null, null, "Alzheimer's disease", "70", "excluded", "female"),
+			// 4: matches the OR, not excluded, but wrong sex -> no match
+			TableModelTestUtils.createRow(null, null, "vascular dementia", "50", "included", "male"),
+			// 5: neither diagnosis branch matches -> no match
+			TableModelTestUtils.createRow(null, null, "healthy control", "80", "included", "female")
+		);
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+
+		referenceSet = appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		// ((diagnosis LIKE '%Alzheimer%' AND age > 65) OR (diagnosis LIKE '%dementia%'))
+		//   AND NOT (study = 'excluded') AND sex = 'female'
+		FilterGroup alzheimerAndAge = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(
+			new ColumnSingleValueQueryFilter().setColumnName("diagnosis").setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("%Alzheimer%")),
+			new ColumnSingleValueQueryFilter().setColumnName("age").setOperator(ColumnSingleValueFilterOperator.GREATER_THAN).setValues(List.of("65"))));
+		FilterGroup diagnosisOr = new FilterGroup().setOperator(BooleanOperator.OR).setChildren(Arrays.asList(
+			alzheimerAndAge,
+			new ColumnSingleValueQueryFilter().setColumnName("diagnosis").setOperator(ColumnSingleValueFilterOperator.LIKE).setValues(List.of("%dementia%"))));
+		FilterGroup notExcluded = new FilterGroup().setOperator(BooleanOperator.AND).setNot(true).setChildren(Arrays.asList(
+			new ColumnSingleValueQueryFilter().setColumnName("study").setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("excluded"))));
+		FilterGroup root = new FilterGroup().setOperator(BooleanOperator.AND).setChildren(Arrays.asList(
+			diagnosisOr,
+			notExcluded,
+			new ColumnSingleValueQueryFilter().setColumnName("sex").setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("female"))));
+
+		queryOptions.withRunCount(true);
+
+		Query query = new Query().setSql("select * from " + tableId + " order by row_id").setAdditionalFilters(List.of(root));
+		waitForConsistentQueryBundle(adminUserInfo, query, queryOptions, (resultBundle) -> {
+			List<Long> expectedIds = Arrays.asList(referenceSet.getRows().get(0).getRowId(), referenceSet.getRows().get(2).getRowId());
+			assertEquals(expectedIds, resultBundle.getQueryResult().getQueryResults().getRows().stream().map(Row::getRowId).collect(Collectors.toList()));
+			assertEquals(2L, resultBundle.getQueryCount());
+		});
+	}
+
 	@Test
 	public void testTextMatchesWithSearchEnabledAndRowUpdated() throws Exception {
 			schema = Lists.newArrayList(

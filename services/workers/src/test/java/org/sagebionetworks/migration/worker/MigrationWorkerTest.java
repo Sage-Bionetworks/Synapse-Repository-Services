@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.migration.AdminRequest;
@@ -138,8 +139,7 @@ public class MigrationWorkerTest {
 	@Test
 	public void testRunWithAsyncMigrationInvalidRequest() throws Throwable {
 		String jobId = "1";
-		UserInfo userInfo = new UserInfo(true);
-		userInfo.setId(100L);
+		UserInfo userInfo = new UserInfo(true, 100L, AuthorizationConstants.DEFAULT_REALM_ID);
 		AdminRequest mri = Mockito.mock(AdminRequest.class);
 		
 		when(mockRequest.getAdminRequest()).thenReturn(mri);

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.manager.dataaccess.RestrictionInformationManager
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -86,13 +87,9 @@ public class MembershipRequestManagerImplTest {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		userInfo = new UserInfo(false);
-		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
-		userInfo.setGroups(Collections.singleton(Long.parseLong(MEMBER_PRINCIPAL_ID)));
-		userInfo.setRealmId(REALM_ID);
+		userInfo = new UserInfo(false, Long.parseLong(MEMBER_PRINCIPAL_ID), REALM_ID, Collections.singleton(Long.parseLong(MEMBER_PRINCIPAL_ID)));
 		// admin
-		adminInfo = new UserInfo(true);
-		adminInfo.setId(-1l);
+		adminInfo = new UserInfo(true, -1l, AuthorizationConstants.DEFAULT_REALM_ID);
 		restrictionInfoRqst = new RestrictionInformationRequest();
 		restrictionInfoRqst.setObjectId(TEAM_ID);
 		restrictionInfoRqst.setRestrictableObjectType(RestrictableObjectType.TEAM);
@@ -175,7 +172,7 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test
 	public void testAnonymousCreate() throws Exception {
-		UserInfo anonymousInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousInfo = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousInfo.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		MembershipRequest mrs = new MembershipRequest();
 		

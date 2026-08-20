@@ -36,6 +36,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionAndDiscussionAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -94,7 +95,7 @@ public class DiscussionThreadManagerImplTest {
 	@InjectMocks
 	private DiscussionThreadManagerImpl threadManager;
 	
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo;
 	private CreateDiscussionThread createDto;
 	private DiscussionThreadBundle dto;
 	private DiscussionThread discussionThread;
@@ -131,7 +132,7 @@ public class DiscussionThreadManagerImplTest {
 		dto.setEtag("etag");
 		dto.setForumId(forumId.toString());
 		dto.setIsDeleted(false);
-		userInfo.setId(userId);
+		userInfo = new UserInfo(false /*not admin*/, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		discussionThread = new DiscussionThread();
 		discussionThread.setObjectId(objectId);

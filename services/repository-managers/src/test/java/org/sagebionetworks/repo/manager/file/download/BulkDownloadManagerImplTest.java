@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -135,7 +136,7 @@ public class BulkDownloadManagerImplTest {
 
 	@BeforeEach
 	public void before() throws Exception {
-		userInfo = new UserInfo(false, 123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		folderId = "syn123";
 		headers = new LinkedList<>();
 		for (int i = 0; i < 5; i++) {
@@ -641,7 +642,7 @@ public class BulkDownloadManagerImplTest {
 	public void truncateAllDownloadDataForAllUsersAdmin() {
 		boolean isAdmin = true;
 		// call under test
-		manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin));
+		manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin, 1L, AuthorizationConstants.DEFAULT_REALM_ID));
 		verify(mockBulkDownloadDao).truncateAllDownloadDataForAllUsers();
 	}
 
@@ -650,7 +651,7 @@ public class BulkDownloadManagerImplTest {
 		boolean isAdmin = false;
 		try {
 			// call under test
-			manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin));
+			manager.truncateAllDownloadDataForAllUsers(new UserInfo(isAdmin, 1L, AuthorizationConstants.DEFAULT_REALM_ID));
 			fail();
 		} catch (UnauthorizedException e) {
 			// expected

@@ -84,8 +84,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@BeforeEach
 	void beforeEach() {
-		userInfo = new UserInfo(false);
-		userInfo.setId(USER_ID);
+		userInfo = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		Claims accessTokenClaims = new DefaultClaims();
 		ClaimsJsonUtil.addAccessClaims(Arrays.asList(OAuthScope.values()), Collections.EMPTY_MAP, accessTokenClaims);
@@ -199,8 +198,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testIssueToken_anonymous() {
-		UserInfo anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUserInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
@@ -377,8 +375,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testGetTokens_anonymous() {
-		UserInfo anonymousUserInfo = new UserInfo(false);
-		anonymousUserInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo anonymousUserInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUserInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test
@@ -402,8 +399,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testGetToken_admin() {
-		UserInfo adminUserInfo = new UserInfo(true);
-		adminUserInfo.setId(1L);
+		UserInfo adminUserInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		AccessTokenRecord tokenRecord = new AccessTokenRecord();
 		tokenRecord.setId(TOKEN_ID);
@@ -453,8 +449,7 @@ public class PersonalAccessTokenManagerImplUnitTest {
 
 	@Test
 	void testRevokeToken_admin() {
-		UserInfo adminUserInfo = new UserInfo(true);
-		adminUserInfo.setId(1L);
+		UserInfo adminUserInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		AccessTokenRecord tokenRecord = new AccessTokenRecord();
 		tokenRecord.setName("tokenName");

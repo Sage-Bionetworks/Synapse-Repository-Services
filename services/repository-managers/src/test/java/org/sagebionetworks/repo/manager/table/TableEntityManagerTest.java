@@ -223,7 +223,7 @@ public class TableEntityManagerTest {
 		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
-		user = new UserInfo(false, 7L);
+		user = new UserInfo(false, 7L, AuthorizationConstants.DEFAULT_REALM_ID);
 		models = TableModelTestUtils.createOneOfEachType(true);
 		tableId = "syn123";
 		idAndVersion = IdAndVersion.parse(tableId);

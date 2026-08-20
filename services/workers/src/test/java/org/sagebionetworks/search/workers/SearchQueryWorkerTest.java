@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 
@@ -43,8 +44,7 @@ public class SearchQueryWorkerTest {
 
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false);
-		user.setId(123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		searchIndexId = "syn456";
 		request = new SearchIndexQuery();
 		request.setSearchIndexId(searchIndexId);

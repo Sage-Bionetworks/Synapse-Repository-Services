@@ -123,8 +123,7 @@ public class DBOAccessControlListDAOImplTest {
 		ug.setRealmId(DEFAULT_REALM_ID);
 		Long userId = userGroupDAO.create(ug);
 		boolean isAdmin = false;
-		userInfo = new UserInfo(isAdmin, userId, DEFAULT_REALM_ID);
-		userInfo.setGroups(Sets.newHashSet(userId, groupOneId, groupTwoId));
+		userInfo = new UserInfo(isAdmin, userId, DEFAULT_REALM_ID, Sets.newHashSet(userId, groupOneId, groupTwoId));
 
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();

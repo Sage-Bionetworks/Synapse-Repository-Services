@@ -19,12 +19,14 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.BooleanOperator;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueFilterOperator;
 import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.FilterGroup;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -136,6 +138,11 @@ public class SQLTranslatorUtils {
 	private static final String DEFINING_WHERE_CAN_ONLY_BE_USED_WITH_A_CTE = "DEFINING_WHERE can only be used with a common table expression with a single inner query";
 	private static final String COLON = ":";
 	public static final String BIND_PREFIX = "b";
+
+	// Bounds on the complexity of the additionalFilters tree (see PLFM-9755).
+	public static final int MAX_FILTER_DEPTH = 5;
+	public static final int MAX_LEAF_PREDICATES = 50;
+	public static final int MAX_CHILDREN_PER_GROUP = 25;
 
 
 	/**
@@ -1135,6 +1142,8 @@ public class SQLTranslatorUtils {
 		ValidateArgument.required(tableExpression, "tableExpression");
 		ValidateArgument.requiredNotEmpty(additionalFilters, "additionalFilters");
 
+		validateFilterLimits(additionalFilters);
+
 		StringBuilder where = new StringBuilder();
 		StringBuilder defining = new StringBuilder();
 
@@ -1174,9 +1183,75 @@ public class SQLTranslatorUtils {
 			translateMultiValueFunctionFilters(builder, (ColumnMultiValueFunctionQueryFilter) filter);
 		} else if (filter instanceof TextMatchesQueryFilter) {
 			translateTextMatchesQueryFilter(builder, (TextMatchesQueryFilter) filter);
+		} else if (filter instanceof FilterGroup) {
+			translateFilterGroup(builder, (FilterGroup) filter);
 		} else {
 			throw new IllegalArgumentException("Unknown QueryFilter type");
 		}
+	}
+
+	/**
+	 * Translates a FilterGroup into a parenthesized boolean expression. Children are recursively
+	 * translated and joined by the group's operator; the whole group is negated when {@code not} is true.
+	 * The emitted SQL is re-parsed by {@link #createSearchCondition(StringBuilder)}, so nesting composes
+	 * naturally into a correctly parenthesized SearchCondition.
+	 */
+	static void translateFilterGroup(StringBuilder builder, FilterGroup group){
+		ValidateArgument.required(group.getOperator(), "FilterGroup.operator");
+		ValidateArgument.requiredNotEmpty(group.getChildren(), "FilterGroup.children");
+
+		if (Boolean.TRUE.equals(group.getNot())) {
+			builder.append("NOT ");
+		}
+		builder.append("(");
+		String joiner = BooleanOperator.OR.equals(group.getOperator()) ? " OR " : " AND ";
+		boolean firstChild = true;
+		for (QueryFilter child : group.getChildren()) {
+			if (!firstChild) {
+				builder.append(joiner);
+			}
+			translateQueryFilters(builder, child);
+			firstChild = false;
+		}
+		builder.append(")");
+	}
+
+	/**
+	 * Validates the additionalFilters tree against the complexity bounds: maximum group nesting depth,
+	 * maximum total leaf predicates across the whole tree, and maximum children per group. The flat
+	 * additionalFilters list is treated as an implicit group for the children-count check.
+	 */
+	static void validateFilterLimits(List<QueryFilter> additionalFilters){
+		ValidateArgument.requirement(additionalFilters.size() <= MAX_CHILDREN_PER_GROUP,
+				"The number of filters in a group exceeds the maximum of " + MAX_CHILDREN_PER_GROUP);
+		int leafCount = 0;
+		for (QueryFilter filter : additionalFilters) {
+			leafCount += countAndValidateFilter(filter, 1);
+		}
+		ValidateArgument.requirement(leafCount <= MAX_LEAF_PREDICATES,
+				"The number of leaf filter predicates exceeds the maximum of " + MAX_LEAF_PREDICATES);
+	}
+
+	/**
+	 * Recursively validates the depth and children-per-group bounds for a single filter and returns the
+	 * number of leaf (non-group) predicates it contributes. A FilterGroup placed directly in the
+	 * additionalFilters list is at depth 1; each level of nesting adds one.
+	 */
+	private static int countAndValidateFilter(QueryFilter filter, int depth){
+		if (!(filter instanceof FilterGroup)) {
+			return 1;
+		}
+		ValidateArgument.requirement(depth <= MAX_FILTER_DEPTH,
+				"The filter nesting depth exceeds the maximum of " + MAX_FILTER_DEPTH);
+		FilterGroup group = (FilterGroup) filter;
+		ValidateArgument.requiredNotEmpty(group.getChildren(), "FilterGroup.children");
+		ValidateArgument.requirement(group.getChildren().size() <= MAX_CHILDREN_PER_GROUP,
+				"The number of filters in a group exceeds the maximum of " + MAX_CHILDREN_PER_GROUP);
+		int leafCount = 0;
+		for (QueryFilter child : group.getChildren()) {
+			leafCount += countAndValidateFilter(child, depth + 1);
+		}
+		return leafCount;
 	}
 
 	static void translateTextMatchesQueryFilter(StringBuilder builder, TextMatchesQueryFilter filter) {
@@ -1193,53 +1268,119 @@ public class SQLTranslatorUtils {
 
 	static void translateSingleValueFilters(StringBuilder builder, ColumnSingleValueQueryFilter filter){
 		ValidateArgument.requiredNotEmpty(filter.getColumnName(), "ColumnSingleValueQueryFilter.columnName");
-		ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.values");
 		ValidateArgument.required(filter.getOperator(), "ColumnSingleValueQueryFilter.operator");
+		validateSingleValueArity(filter);
 		appendFilter(builder, filter);
+	}
+
+	/**
+	 * Validates that the number of values supplied matches the operator: IS_NULL/IS_NOT_NULL take no
+	 * values; BETWEEN takes exactly two; the ordering comparison operators (<>, <, >, <=, >=) take
+	 * exactly one, since OR-joining multiple values would be meaningless for them; LIKE/EQUAL/IN accept
+	 * one or more values that are OR-joined.
+	 */
+	static void validateSingleValueArity(ColumnSingleValueQueryFilter filter){
+		switch (filter.getOperator()) {
+			case IS_NULL:
+			case IS_NOT_NULL:
+				ValidateArgument.requirement(filter.getValues() == null || filter.getValues().isEmpty(),
+						"ColumnSingleValueQueryFilter.values must be empty for operator " + filter.getOperator());
+				break;
+			case BETWEEN:
+				ValidateArgument.requirement(filter.getValues() != null && filter.getValues().size() == 2,
+						"ColumnSingleValueQueryFilter.values must contain exactly two values for operator BETWEEN");
+				break;
+			case NOT_EQUAL:
+			case GREATER_THAN:
+			case LESS_THAN:
+			case GREATER_THAN_OR_EQUAL:
+			case LESS_THAN_OR_EQUAL:
+				ValidateArgument.requirement(filter.getValues() != null && filter.getValues().size() == 1,
+						"ColumnSingleValueQueryFilter.values must contain exactly one value for operator " + filter.getOperator());
+				break;
+			default:
+				ValidateArgument.requiredNotEmpty(filter.getValues(), "ColumnSingleValueQueryFilter.values");
+		}
 	}
 
 	static void appendFilter(StringBuilder builder, ColumnSingleValueQueryFilter filter){
 		builder.append("(");
 
-		boolean firstVal = true;
 		String columnName = filter.getColumnName();
-		
-		// For the IN operator each value is part of the IN clause
-		if (ColumnSingleValueFilterOperator.IN.equals(filter.getOperator())) {
-			builder.append("\"")
-				.append(columnName)
-				.append("\" IN (");			
-			for (String likeValue: filter.getValues()){
-				if(!firstVal){
-					builder.append(",");
-				}				
-				appendSingleQuotedValueToStringBuilder(builder, likeValue);	
-				firstVal = false;
-			}
-			builder.append(")");
-		} else {
-			for (String likeValue: filter.getValues()){
-				if(!firstVal){
-					builder.append(" OR ");
+
+		switch (filter.getOperator()) {
+			case IN:
+				// For the IN operator each value is part of a single IN clause
+				appendQuotedColumn(builder, columnName).append(" IN (");
+				appendCommaSeparatedValues(builder, filter.getValues());
+				builder.append(")");
+				break;
+			case IS_NULL:
+				appendQuotedColumn(builder, columnName).append(" IS NULL");
+				break;
+			case IS_NOT_NULL:
+				appendQuotedColumn(builder, columnName).append(" IS NOT NULL");
+				break;
+			case BETWEEN:
+				appendQuotedColumn(builder, columnName).append(" BETWEEN ");
+				appendSingleQuotedValueToStringBuilder(builder, filter.getValues().get(0));
+				builder.append(" AND ");
+				appendSingleQuotedValueToStringBuilder(builder, filter.getValues().get(1));
+				break;
+			default:
+				// The remaining operators produce one predicate per value, OR-joined together
+				boolean firstVal = true;
+				for (String value: filter.getValues()){
+					if(!firstVal){
+						builder.append(" OR ");
+					}
+					appendQuotedColumn(builder, columnName).append(getSqlOperator(filter.getOperator()));
+					appendSingleQuotedValueToStringBuilder(builder, value);
+					firstVal = false;
 				}
-				builder.append("\"")
-					.append(columnName)
-					.append("\"");
-				switch (filter.getOperator()) {
-					case LIKE:
-						builder.append(" LIKE ");
-						break;
-					case EQUAL:
-						builder.append(" = ");
-						break;
-					default:
-						throw new IllegalArgumentException("Unexpected operator: " + filter.getOperator());
-				}
-				appendSingleQuotedValueToStringBuilder(builder, likeValue);	
-				firstVal = false;
-			}
 		}
 		builder.append(")");
+	}
+
+	private static StringBuilder appendQuotedColumn(StringBuilder builder, String columnName){
+		return builder.append("\"").append(columnName).append("\"");
+	}
+
+	private static void appendCommaSeparatedValues(StringBuilder builder, List<String> values){
+		boolean firstVal = true;
+		for (String value: values){
+			if(!firstVal){
+				builder.append(",");
+			}
+			appendSingleQuotedValueToStringBuilder(builder, value);
+			firstVal = false;
+		}
+	}
+
+	/**
+	 * Maps a single-value comparison operator to its SQL token (surrounded by spaces). Only operators
+	 * that compare against a value are handled here; IN/IS_NULL/IS_NOT_NULL/BETWEEN are handled by their
+	 * own branches in {@link #appendFilter}.
+	 */
+	private static String getSqlOperator(ColumnSingleValueFilterOperator operator){
+		switch (operator) {
+			case LIKE:
+				return " LIKE ";
+			case EQUAL:
+				return " = ";
+			case NOT_EQUAL:
+				return " <> ";
+			case GREATER_THAN:
+				return " > ";
+			case LESS_THAN:
+				return " < ";
+			case GREATER_THAN_OR_EQUAL:
+				return " >= ";
+			case LESS_THAN_OR_EQUAL:
+				return " <= ";
+			default:
+				throw new IllegalArgumentException("Unexpected operator: " + operator);
+		}
 	}
 
 	static void translateMultiValueFunctionFilters(StringBuilder builder, ColumnMultiValueFunctionQueryFilter filter) {

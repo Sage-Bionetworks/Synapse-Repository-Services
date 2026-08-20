@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.discussion.DiscussionReplyManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionSearchIndexManager;
 import org.sagebionetworks.repo.manager.discussion.DiscussionThreadManager;
 import org.sagebionetworks.repo.manager.discussion.ForumManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionReply;
 import org.sagebionetworks.repo.model.discussion.CreateDiscussionThread;
@@ -53,7 +54,7 @@ public class DiscussionServiceImplTest {
 	private DiscussionServiceImpl discussionServices;
 	
 	private Long userId = 123L;
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo = new UserInfo(false /*not admin*/, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 	private String projectId = "syn456";
 	private CreateDiscussionThread createThread;
 	private String forumId = "789";

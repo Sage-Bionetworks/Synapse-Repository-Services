@@ -21,8 +21,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.grid.GridManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
@@ -51,11 +53,11 @@ public class GridMetadataSpecialistToolsTest {
 	@BeforeEach
 	public void before() {
 		tools = new GridMetadataSpecialistTools(mockGridManager, mockPrincipalAliasDAO);
-		userInfo = new UserInfo(false, 101L);
+		userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		gridContext = new GridAgentSessionContext().setGridSessionId("grid-1").setUsersReplicaId(1L)
 				.setAgentsReplicaId(2L);
 		toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
-				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123",
+				AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of("session-123"),
 				AgentToolContextKey.GRID_SESSION_CONTEXT.getKey(), gridContext));
 	}
 

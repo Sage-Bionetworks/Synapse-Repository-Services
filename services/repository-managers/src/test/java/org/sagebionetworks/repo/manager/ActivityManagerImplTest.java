@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -68,10 +69,10 @@ public class ActivityManagerImplTest {
 
 	@BeforeEach
 	public void before() throws Exception{
-		normalUserInfo = new UserInfo(false);
-		adminUserInfo = new UserInfo(true);
-		configureUser(adminUserInfo, "1");
-		configureUser(normalUserInfo, "2");
+		normalUserInfo = new UserInfo(false, 2L, AuthorizationConstants.DEFAULT_REALM_ID);
+		adminUserInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+		configureUser(adminUserInfo);
+		configureUser(normalUserInfo);
 	}
 
 	@Test
@@ -397,8 +398,7 @@ public class ActivityManagerImplTest {
 		return act;
 	}
 
-	private void configureUser(UserInfo userInfo, String userGroupId) {
-		userInfo.setId(Long.parseLong(userGroupId));
+	private void configureUser(UserInfo userInfo) {
 		userInfo.setCreationDate(new Date());
 	}
 		

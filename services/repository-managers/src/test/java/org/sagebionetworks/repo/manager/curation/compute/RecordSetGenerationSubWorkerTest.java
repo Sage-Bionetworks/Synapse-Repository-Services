@@ -16,11 +16,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
-import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisor;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisorFactory;
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
 import org.sagebionetworks.repo.model.EntityChildrenResponse;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.curation.metadata.FileBasedMetadataTaskPro
 import org.sagebionetworks.repo.model.curation.metadata.RecordBasedMetadataTaskProperties;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.springaicommunity.agentcore.codeinterpreter.AgentCoreCodeInterpreterClient;
+import org.springframework.ai.chat.model.ToolContext;
 
 @ExtendWith(MockitoExtension.class)
 public class RecordSetGenerationSubWorkerTest {
@@ -38,7 +42,7 @@ public class RecordSetGenerationSubWorkerTest {
 	@Mock
 	private RecordSetGenerationSupervisorFactory supervisorFactory;
 	@Mock
-	private RecordSetGenerationSupervisor supervisor;
+	private Agent supervisor;
 	@Mock
 	private AgentCoreCodeInterpreterClient codeInterpreterClient;
 	@Mock
@@ -62,7 +66,7 @@ public class RecordSetGenerationSubWorkerTest {
 	public void setup() {
 		subWorker = new RecordSetGenerationSubWorker(supervisorFactory, codeInterpreterClient, codeInterpreterFileManager,
 				recordSetOutputWriter, curationTaskManager, entityManager, new ManagerConfiguration().velocityEngine());
-		user = new UserInfo(false, 101L);
+		user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		// The generation task carries its input parameters in its RecordSetGenerationExecutionProperties.
 		task = new CurationTask().setTaskId(555L).setProjectId("syn1").setDataType("fastq")
 				.setTaskProperties(new RecordSetGenerationExecutionProperties()
@@ -108,7 +112,7 @@ public class RecordSetGenerationSubWorkerTest {
 		stubInputFileCount(2);
 		when(codeInterpreterClient.startSession(any())).thenReturn("session-1");
 		when(supervisorFactory.create()).thenReturn(supervisor);
-		when(supervisor.chat(any(), eq(user), eq("session-1")))
+		when(supervisor.chat(any(), any()))
 				.thenReturn("Done. RESULT: SUCCESS - " + RecordSetGenerationSubWorker.OUTPUT_CSV_PATH);
 		when(codeInterpreterFileManager.getFileFromSession(eq(user), eq("session-1"),
 				eq(RecordSetGenerationSubWorker.OUTPUT_CSV_PATH), eq("text/csv"))).thenReturn("999");
@@ -119,14 +123,18 @@ public class RecordSetGenerationSubWorkerTest {
 		assertEquals(details, result);
 
 		// The input folder, the RecordSet's bound schema, and the untrusted instructions (inside
-		// delimiters) are passed to the supervisor.
+		// delimiters) are passed to the supervisor, along with a tool context carrying the acting user
+		// and the already-started code session.
 		ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-		verify(supervisor).chat(messageCaptor.capture(), eq(user), eq("session-1"));
+		ArgumentCaptor<ToolContext> contextCaptor = ArgumentCaptor.forClass(ToolContext.class);
+		verify(supervisor).chat(messageCaptor.capture(), contextCaptor.capture());
 		String message = messageCaptor.getValue();
 		assertTrue(message.contains("inputFolderId: syn100"), "Got: " + message);
 		assertTrue(message.contains("targetSchemaId: my.org-Sheet-1.0.0"), "Got: " + message);
 		assertTrue(message.contains("<instructions>"), "Got: " + message);
 		assertTrue(message.contains("sample = file name without extension"), "Got: " + message);
+		assertEquals(user, AgentToolContextKey.USER_INFO.get(contextCaptor.getValue()));
+		assertEquals("session-1", CodeSessionSupplier.resolveSessionId(contextCaptor.getValue()));
 
 		// The generated CSV is handed to the shared writer to store as a new RecordSet version.
 		verify(recordSetOutputWriter).storeCsvAsNewRecordSetVersion(user, "syn300", "999");
@@ -183,7 +191,7 @@ public class RecordSetGenerationSubWorkerTest {
 		stubInputFileCount(2);
 		when(codeInterpreterClient.startSession(any())).thenReturn("session-1");
 		when(supervisorFactory.create()).thenReturn(supervisor);
-		when(supervisor.chat(any(), eq(user), eq("session-1")))
+		when(supervisor.chat(any(), any()))
 				.thenReturn("RESULT: ERROR - the input folder syn100 is empty");
 
 		// call under test
@@ -235,7 +243,7 @@ public class RecordSetGenerationSubWorkerTest {
 		stubInputFileCount(RecordSetGenerationSubWorker.MAX_INPUT_FILES);
 		when(codeInterpreterClient.startSession(any())).thenReturn("session-1");
 		when(supervisorFactory.create()).thenReturn(supervisor);
-		when(supervisor.chat(any(), eq(user), eq("session-1")))
+		when(supervisor.chat(any(), any()))
 				.thenReturn("RESULT: SUCCESS - " + RecordSetGenerationSubWorker.OUTPUT_CSV_PATH);
 		when(codeInterpreterFileManager.getFileFromSession(eq(user), eq("session-1"),
 				eq(RecordSetGenerationSubWorker.OUTPUT_CSV_PATH), eq("text/csv"))).thenReturn("999");

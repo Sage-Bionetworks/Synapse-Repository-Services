@@ -34,6 +34,7 @@ import org.opensearch.client.opensearch.core.search.TotalHits;
 import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.IdAndAlias;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -334,7 +335,7 @@ public class SearchManagerImplTest {
                         .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1l, results.getFound());
         assertEquals(document.getId(), results.getHits().get(0).getId());
         verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
@@ -357,7 +358,7 @@ public class SearchManagerImplTest {
                         .relation(TotalHitsRelation.Eq)))).took(1).timedOut(false)
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1l, results.getFound());
         assertEquals(document.getId(), results.getHits().get(0).getId());
         verify(mockSearchClient).search(searchRequestArgumentCaptor.capture(), eq(DocumentFields.class));
@@ -381,7 +382,7 @@ public class SearchManagerImplTest {
                 .shards(ShardStatistics.of(sh -> sh.successful(1).failed(0).total(1)))));
 
         //call under test
-        SearchResults results = mockSearchManager.search(new UserInfo(true), query);
+        SearchResults results = mockSearchManager.search(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(0, results.getHits().size());
 
     }
@@ -438,7 +439,7 @@ public class SearchManagerImplTest {
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
 
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertEquals(1L, results.getSuggestions().size());
         assertEquals("cancr", results.getSuggestions().get(0).getKey());
         assertEquals(1, results.getSuggestions().get(0).getValues().size());
@@ -455,7 +456,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true), query));
+        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query));
     }
 
     @Test
@@ -490,7 +491,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true), query));
+        assertThrows(IllegalStateException.class, () -> mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query));
     }
 
     @Test
@@ -519,7 +520,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertTrue(results.getSuggestions().isEmpty());
         verify(mockSearchClient, times(2)).search(any(SearchRequest.class), eq(DocumentFields.class));
     }
@@ -572,7 +573,7 @@ public class SearchManagerImplTest {
 
         SuggestionQuery query = new SuggestionQuery().setSearchTerm(List.of("cancr"));
         //call under test
-        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true), query);
+        SuggestionResults results = mockSearchManager.getSuggestions(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query);
         assertTrue(results.getSuggestions().get(0).getValues().isEmpty());
         verify(mockSearchClient, times(2)).search(any(SearchRequest.class), eq(DocumentFields.class));
     }

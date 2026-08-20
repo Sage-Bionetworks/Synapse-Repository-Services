@@ -74,7 +74,7 @@ public class TermsOfServiceManagerTest {
 		userId = 123;
 		user = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		adminUser = new UserInfo(true, 1L);
+		adminUser = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 	}
 	
 @Test
@@ -314,7 +314,7 @@ public class TermsOfServiceManagerTest {
 	@EnumSource(mode = Mode.EXCLUDE, value = BOOTSTRAP_PRINCIPAL.class, names = {"ANONYMOUS_USER"})
 	public void testGetUserTermsOfServiceStatusWithBootstrapPrincipals(BOOTSTRAP_PRINCIPAL principal) {
 		userId = principal.getPrincipalId();
-		user.setId(userId);
+		user = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		
 		TermsOfServiceStatus expected = new TermsOfServiceStatus()
 				.setUserId(String.valueOf(userId))
@@ -397,7 +397,7 @@ public class TermsOfServiceManagerTest {
 	@Test
 	public void testUpdateTermsOfServiceRequirementsWithUserNotAdmin() {
 		
-		adminUser = new UserInfo(false, 123L);
+		adminUser = new UserInfo(false, 123L, DEFAULT_REALM_ID);
 		
 		TermsOfServiceRequirements requirements = new TermsOfServiceRequirements()
 				.setMinimumTermsOfServiceVersion("1.0.0")

@@ -27,10 +27,8 @@ import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
 import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
 import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridSession;
-import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.util.ValidateArgument;
-import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
 
 import au.com.bytecode.opencsv.CSVReader;
@@ -75,11 +73,10 @@ public class GridCsvImporterImpl implements GridCsvImporter {
 
 		GridHeader gridHeader = replicaSupport.getGridHeaderOrThrow(gridSession);
 		
-		// Gets the connection info for the publisher now so that we fail fast.
-		// Note: the USER_SUPPORT connection is created once per session for the session creator,
-		// and the import may be submitted by a different user (e.g. a team member). See PLFM-9571.
-		GridConnectionInfo publisherConnInfo = gridManager.getSingletonConnection(gridSession.getSessionId(), EventSource.USER_SUPPORT)
-			.orElseThrow(() -> new RecoverableMessageException("No internal connection found for session: " + gridSession.getSessionId()));
+		// Publish the imported changes under a replica owned by the importing user, so the
+		// imported cells carry user attribution (PLFM-9880)
+		GridConnectionInfo publisherConnInfo = gridManager.getOrCreateUserConnection(gridSession.getSessionId(),
+				user, EventSource.IMPORT);
 		
 		List<String> upsertKey = replicaSupport.getRecordSetOrThrow(user, gridSession).getUpsertKey();
 

@@ -38,6 +38,9 @@ class TestTemplateHelper {
 		FullName name = new FullName();
 		name.setTabLabel("signing_official_name");
 		tabs.setFullNameTabs(List.of(name));
+		Text institution = new Text();
+		institution.setTabLabel("signing_official_institution");
+		tabs.setTextTabs(List.of(institution));
 		Title title = new Title();
 		title.setTabLabel("signing_official_title");
 		tabs.setTitleTabs(List.of(title));
@@ -58,11 +61,9 @@ class TestTemplateHelper {
 		Signer signer = new Signer();
 		signer.setRoleName("principal_investigator");
 		Tabs tabs = new Tabs();
-		Text institution = new Text();
-		institution.setTabLabel("principal_investigator_institution");
 		Text userName = new Text();
 		userName.setTabLabel("principal_investigator_user_name");
-		tabs.setTextTabs(Arrays.asList(institution, userName));
+		tabs.setTextTabs(List.of(userName));
 		FullName name = new FullName();
 		name.setTabLabel("principal_investigator_name");
 		tabs.setFullNameTabs(List.of(name));

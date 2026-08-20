@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.agent.supervisor;
 
-import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
-import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.specialist.entitymetadata.EntityMetadataSpecialistFactory;
 import org.sagebionetworks.repo.manager.agent.specialist.filesummary.FileSummarySpecialistFactory;
 import org.sagebionetworks.repo.manager.agent.specialist.gridmetadata.GridMetadataSpecialistFactory;
@@ -12,17 +10,15 @@ import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySp
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityTool;
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityToolBase;
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityToolParam;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.stereotype.Service;
 
 /**
  * Tools that let a supervisor agent delegate focused sub-tasks to the specialist agents. Each tool
- * creates a fresh specialist (with its own conversation memory) and forwards the supervisor's
- * {@code userInfo} and {@code sessionId} so the specialist operates as the same user against the
- * same shared code interpreter session. The shared session is the hand-off medium: a file written
- * by one specialist can be read or summarized by another.
+ * creates a fresh specialist (with its own conversation memory) and hands it the supervisor's own
+ * tool context unchanged, so the specialist operates as the same user, against the same shared code
+ * interpreter session and grid session, with the same job trace. The shared session is the hand-off
+ * medium: a file written by one specialist can be read or summarized by another.
  */
 @Service
 public class SupervisorTools extends JSONEntityToolBase {
@@ -67,7 +63,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askTableQuerySpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the table query specialist", required = true) String message,
 			ToolContext toolContext) {
-		return tableQuerySpecialistFactory.create().chat(message, extractUserInfo(toolContext), extractSessionId(toolContext));
+		return tableQuerySpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_JSON_SCHEMA, description = "Delegate a task about a Synapse JSON schema to the JSON schema specialist. "
@@ -78,8 +74,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askJsonSchemaSpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the JSON schema specialist", required = true) String message,
 			ToolContext toolContext) {
-		return jsonSchemaSpecialistFactory.create().chat(message, extractUserInfo(toolContext),
-				extractSessionId(toolContext), extractGridContext(toolContext));
+		return jsonSchemaSpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_FILE_SUMMARY, description = "Delegate a task to the file summary specialist to inspect and summarize a file already "
@@ -89,7 +84,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askFileSummarySpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the file summary specialist", required = true) String message,
 			ToolContext toolContext) {
-		return fileSummarySpecialistFactory.create().chat(message, extractUserInfo(toolContext), extractSessionId(toolContext));
+		return fileSummarySpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_ENTITY_METADATA, description = "Delegate a task about a Synapse entity's metadata to the entity metadata specialist. "
@@ -99,7 +94,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askEntityMetadataSpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the entity metadata specialist", required = true) String message,
 			ToolContext toolContext) {
-		return entityMetadataSpecialistFactory.create().chat(message, extractUserInfo(toolContext), extractSessionId(toolContext));
+		return entityMetadataSpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_GRID_QUERY, description = "Delegate a task about the current grid session to the grid query specialist. "
@@ -109,8 +104,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askGridQuerySpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the grid query specialist", required = true) String message,
 			ToolContext toolContext) {
-		return gridQuerySpecialistFactory.create().chat(message, extractUserInfo(toolContext),
-				extractSessionId(toolContext), extractGridContext(toolContext));
+		return gridQuerySpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_GRID_UPDATE, description = "Delegate a task about the current grid session to the grid update specialist. "
@@ -120,8 +114,7 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askGridUpdateSpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the grid update specialist", required = true) String message,
 			ToolContext toolContext) {
-		return gridUpdateSpecialistFactory.create().chat(message, extractUserInfo(toolContext),
-				extractSessionId(toolContext), extractGridContext(toolContext));
+		return gridUpdateSpecialistFactory.create().chat(message, toolContext);
 	}
 
 	@JSONEntityTool(name = TOOL_GRID_METADATA, description = "Delegate a task about the current grid session's metadata to the grid metadata specialist. "
@@ -132,25 +125,6 @@ public class SupervisorTools extends JSONEntityToolBase {
 	public String askGridMetadataSpecialist(
 			@JSONEntityToolParam(description = "A complete, self-contained instruction for the grid metadata specialist", required = true) String message,
 			ToolContext toolContext) {
-		return gridMetadataSpecialistFactory.create().chat(message, extractUserInfo(toolContext),
-				extractSessionId(toolContext), extractGridContext(toolContext));
-	}
-
-	private UserInfo extractUserInfo(ToolContext toolContext) {
-		return (UserInfo) AgentToolContextKey.USER_INFO.get(toolContext);
-	}
-
-	/**
-	 * Resolve the code interpreter session id for the delegated specialist. On the interactive Curie
-	 * path this invokes the lazy supplier, creating the shared session on first delegation; the
-	 * resolved AWS id is then forwarded to the specialist so its own tools operate against the same
-	 * session.
-	 */
-	private String extractSessionId(ToolContext toolContext) {
-		return CodeSessionSupplier.resolveSessionId(toolContext);
-	}
-
-	private GridAgentSessionContext extractGridContext(ToolContext toolContext) {
-		return (GridAgentSessionContext) AgentToolContextKey.GRID_SESSION_CONTEXT.get(toolContext);
+		return gridMetadataSpecialistFactory.create().chat(message, toolContext);
 	}
 }

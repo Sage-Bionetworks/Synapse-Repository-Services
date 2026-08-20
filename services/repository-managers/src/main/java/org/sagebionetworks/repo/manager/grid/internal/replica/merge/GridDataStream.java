@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.merge;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
+import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowData;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
@@ -60,21 +60,21 @@ public class GridDataStream implements DataStream {
 		while (rowViewIterator.hasNext()) {
 			RowView row = rowViewIterator.next();
 
-			List<ConValue> cellValues = row.getRowObject().getData().getCells();
+			RowData rowData = row.getRowObject().getData();
 
-			if (hasNullOrUndefinedUpsertKey(cellValues)) {
+			if (hasNullOrUndefinedUpsertKey(rowData)) {
 				// skip this row – its upsert key is not usable
 				continue;
 			}
 
 			// The id of the vector that holds the row data
-			LogicalTimestamp rowVecId = row.getRowObject().getData().getVectorId();
+			LogicalTimestamp rowVecId = rowData.getVectorId();
 
 			Object[] values = new Object[upsertKey.length + 1];
 
 			// First we map the upsert key columns
 			for (int i = 0; i < upsertKey.length; i++) {
-				values[i] = cellValues.get(upsertKey[i].getGridIndex()).getValue();
+				values[i] = rowData.getCell(upsertKey[i].getGridIndex()).getValue();
 			}
 
 			values[upsertKey.length] = LogicalTimestampCompactSerializable.serialize(rowVecId);
@@ -85,12 +85,12 @@ public class GridDataStream implements DataStream {
 	}
 
 	/**
-	 * Returns {@code true} if any upsert-key cell in the given cell list has a
+	 * Returns {@code true} if any upsert-key cell in the row's cells has a
 	 * {@link ConType#NULL} or {@link ConType#UNDEFINED} type.
 	 */
-	private boolean hasNullOrUndefinedUpsertKey(List<ConValue> cellValues) {
+	private boolean hasNullOrUndefinedUpsertKey(RowData rowData) {
 		for (ColumnMapping key : upsertKey) {
-			ConValue cell = cellValues.get(key.getGridIndex());
+			ConValue cell = rowData.getCell(key.getGridIndex());
 			if (cell == null) {
 				return true;
 			}

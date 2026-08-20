@@ -133,6 +133,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
@@ -3573,6 +3574,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
+
+	/**
+	 * Get the calling user's current eDUC (electronic Data Use Certificate) signature routing quota
+	 * for the access requirement associated with the given data access request.
+	 *
+	 * @param requestId the data access request ID
+	 * @return the signature quota including remaining routings
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota getEDucSignatureQuota(String requestId) throws SynapseException;
 
 	/**
 	 * Retrieve a page of AccessorGroup.

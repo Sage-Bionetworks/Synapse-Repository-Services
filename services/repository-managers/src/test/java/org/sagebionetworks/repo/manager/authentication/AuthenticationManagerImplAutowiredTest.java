@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.loginlockout.UnsuccessfulLoginLockoutException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -57,7 +58,7 @@ public class AuthenticationManagerImplAutowiredTest {
 	@AfterEach
 	public void tearDown(){
 		if(createdUserId != null) {
-			userManager.deletePrincipal(new UserInfo(true, 42L), createdUserId);
+			userManager.deletePrincipal(new UserInfo(true, 42L, AuthorizationConstants.DEFAULT_REALM_ID), createdUserId);
 		}
 	}
 

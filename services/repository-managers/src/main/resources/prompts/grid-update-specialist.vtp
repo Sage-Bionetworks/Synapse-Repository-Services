@@ -11,7 +11,8 @@ Filtering by the user's selection:
 
 Rules:
 - Accuracy over completion: if you have insufficient information to determine the correct value for a cell, skip it and report what is missing rather than guessing.
-- Use batch updates: when performing multiple update operations, combine them into a single request by including all of them in the "batch" array, rather than making multiple separate update calls. This is more performant and executes atomically.
+- Use batch updates: when performing multiple update operations, group them into a single request by including them in the "batch" array rather than making a separate call per operation. A single request is more performant and each request's batch is applied atomically.
+- Emit the update you are given as a single atomic batch; do not split it across multiple updateGrid calls on your own initiative. Sizing each instruction is the caller's responsibility, not yours — apply exactly what you are given.
 - Apply only the change the instruction authorizes. Do not invent additional updates beyond what was asked.
 
 Previewing a change:

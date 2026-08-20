@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.grid.internal.replica.view;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.json.JSONArray;
@@ -237,10 +240,10 @@ public class GridReplicaViewManagerImplAutowireTest {
 								.setData(new RowData()
 										.setVectorId(
 												new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(37L))
-										.setNodes(Arrays.asList(
+										.setNodes(new ConstantNode[] {
 												new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(38L)).setValue(new ConValue(ConType.STRING, "string3")),
 												new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(39L)).setValue(new ConValue(ConType.LONG, 103003L))
-										))
+										})
 										.setRowJsonDocument(new JSONObject(Map.of("a", "string3", "b", 103003L))))
 								.setMetadata(new RowMetadata().setRowValidation(new RowValidation())
 										.setSynapseRow(new SynapseRow()))),
@@ -251,10 +254,10 @@ public class GridReplicaViewManagerImplAutowireTest {
 								.setData(new RowData()
 										.setVectorId(
 												new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(44L))
-										.setNodes(Arrays.asList(
+										.setNodes(new ConstantNode[] {
 												new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(45L)).setValue(new ConValue(ConType.STRING, "string4")),
 												new ConstantNode().setId(new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(46L)).setValue(new ConValue(ConType.LONG, 103004L))
-										))
+										})
 										.setRowJsonDocument(new JSONObject(Map.of("a", "string4", "b", 103004L))))
 								.setMetadata(new RowMetadata().setRowValidation(new RowValidation())
 										.setSynapseRow(new SynapseRow()))));
@@ -290,6 +293,47 @@ public class GridReplicaViewManagerImplAutowireTest {
 		// call under test
 		page = gridViewManager.querySinglePage(header, limit, offset);
 		assertEquals(expected, page);
+	}
+
+	@Test
+	public void testQuerySinglePageWithColumnAddedAfterRows() throws IOException {
+		writeRowsAsPatches(rows.subList(0, 1), sessionId, replicaId, schema, MAX_ROW_SIZE_BYTES);
+		GridHeader header = gridViewManager.readHeader(sessionId, replicaId).get();
+
+		// Add a new column "c" (vector index 2) at the head of the column order. The existing row's
+		// vector is untouched, so "c" has no entry for it.
+		Patch patch = new Patch()
+				.setPatchId(LogicalTimestamp.newIncrement(gridIndexManger.getClock(sessionId, replicaId).get(0), 1));
+		LogicalTimestamp cNameRef = patch
+				.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.STRING, "c")));
+		LogicalTimestamp cVectorIndexRef = patch
+				.addNewOperation(Operations.newConstant().setValue(new ConValue(ConType.LONG, 2L)));
+		patch.addNewOperation(
+				Operations.insertVector().setVectorId(header.getColumnNamesVecId()).setMap(Map.of(2, cNameRef)));
+		patch.addNewOperation(Operations.insertArray().setArrayId(header.getColumnOrderArrId())
+				.setReferenceId(header.getColumnOrderArrId()).setElementIds(List.of(cVectorIndexRef)));
+		gridIndexManger.applyPatch(sessionId, replicaId, patch);
+
+		header = gridViewManager.readHeader(sessionId, replicaId).get();
+		assertEquals(List.of("c", "a", "b"),
+				header.getOrderedColumns().stream().map(Column::getName).collect(Collectors.toList()));
+
+		// call under test
+		List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+
+		assertEquals(1, page.size());
+		RowData data = page.get(0).getRowObject().getData();
+		// "c" has no node in this row, so it is null at that position in the node array and the other
+		// two values stay on their own columns.
+		assertEquals(3, data.getNodes().length);
+		assertNull(data.getNodes()[0]);
+		assertNull(data.getCell(0));
+		assertEquals(new ConValue(ConType.STRING, "string0"), data.getCell(1));
+		assertEquals(new ConValue(ConType.LONG, 103000L), data.getCell(2));
+		JSONObject doc = data.getRowJsonDocument();
+		assertFalse(doc.has("c"));
+		assertEquals("string0", doc.getString("a"));
+		assertEquals(103000L, doc.getLong("b"));
 	}
 
 	@Test
@@ -359,7 +403,8 @@ public class GridReplicaViewManagerImplAutowireTest {
 		assertEquals(allRows.size(), 1);
 		// "a" is undefined, so it is omitted from the JSON document
 		assertEquals(allRows.get(0).getRowObject().getData().getRowJsonDocument().toString(), "{\"b\":null}");
-		assertEquals(allRows.get(0).getRowObject().getCells(), Arrays.asList(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.NULL, null)));
+		assertEquals(new ConValue(ConType.UNDEFINED, null), allRows.get(0).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.NULL, null), allRows.get(0).getRowObject().getData().getCell(1));
 	}
 
 	@Test
@@ -480,7 +525,7 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 		for (int i = 0; i < schema.size(); i++) {
 			ColumnModel cm = schema.get(i);
-			Object value = rowToFind.getRowObject().getCells().get(i).getValue();
+			Object value = rowToFind.getRowObject().getData().getCell(i).getValue();
 			// call under test
 			List<RowView> filtered = gridViewManager.querySinglePage(header,
 					new QueryElement()
@@ -517,8 +562,8 @@ public class GridReplicaViewManagerImplAutowireTest {
 
 		for (int i = 0; i < schema.size(); i++) {
 			ColumnModel cm = schema.get(i);
-			Object v1 = rowToFindOne.getRowObject().getCells().get(i).getValue();
-			Object v2 = rowToFindTwo.getRowObject().getCells().get(i).getValue();
+			Object v1 = rowToFindOne.getRowObject().getData().getCell(i).getValue();
+			Object v2 = rowToFindTwo.getRowObject().getData().getCell(i).getValue();
 			// call under test
 			List<RowView> filtered = gridViewManager.querySinglePage(header,
 					new QueryElement()
@@ -1010,7 +1055,7 @@ public class GridReplicaViewManagerImplAutowireTest {
 		List<RowView> r = gridViewManager.querySinglePage(header,
 				new QueryElement().setSelect(new CountStartElement()));
 		assertEquals(1, r.size());
-		assertNull(r.get(0).getRowObject().getData().getCells());
+		assertNull(r.get(0).getRowObject().getData().getNodes());
 		assertEquals("{\"count\":5}", r.get(0).getRowObject().getData().getRowJsonDocument().toString());
 	}
 	
@@ -1045,11 +1090,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 			new SelectByNameElement(new SelectByName().setColumnName("anInt"))
 		));
 		assertEquals(allRows.size(), subsetResult.size());
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), subsetResult.get(0).getRowObject().getData().getCell(0));
 		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 1)), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 1), subsetResult.get(1).getRowObject().getData().getCell(0));
 		assertEquals("{\"anInt\":1}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 2)), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 2), subsetResult.get(2).getRowObject().getData().getCell(0));
 		assertEquals("{\"anInt\":2}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
 
 		// call under test		
@@ -1057,11 +1102,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 			new SelectByNameElement(new SelectByName().setColumnName("aString"))
 		));
 
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), subsetResult.get(0).getRowObject().getData().getCell(0));
 		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.STRING, "a")), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.STRING, "a"), subsetResult.get(1).getRowObject().getData().getCell(0));
 		assertEquals("{\"aString\":\"a\"}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.STRING, "b")), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.STRING, "b"), subsetResult.get(2).getRowObject().getData().getCell(0));
 		assertEquals("{\"aString\":\"b\"}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
 
 
@@ -1071,11 +1116,14 @@ public class GridReplicaViewManagerImplAutowireTest {
 			new SelectByNameElement(new SelectByName().setColumnName("aString"))
 		));
 
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), subsetResult.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), subsetResult.get(0).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.UNDEFINED, null), subsetResult.get(0).getRowObject().getData().getCell(1));
 		assertEquals("{}", subsetResult.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.STRING, "a")), subsetResult.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 1), subsetResult.get(1).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.STRING, "a"), subsetResult.get(1).getRowObject().getData().getCell(1));
 		assertEquals("{\"anInt\":1,\"aString\":\"a\"}", subsetResult.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.STRING, "b")), subsetResult.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 2), subsetResult.get(2).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.STRING, "b"), subsetResult.get(2).getRowObject().getData().getCell(1));
 		assertEquals("{\"anInt\":2,\"aString\":\"b\"}", subsetResult.get(2).getRowObject().getData().getRowJsonDocument().toString());
 	}
 	
@@ -1107,7 +1155,7 @@ public class GridReplicaViewManagerImplAutowireTest {
 		assertEquals(allRows.size(), result.size());
 		// Nothing selected, we expect empty cells
 		for (int i = 0; i < allRows.size(); i++) {
-			assertEquals(Collections.emptyList(), result.get(i).getRowObject().getData().getCells());
+			assertArrayEquals(new ConstantNode[0], result.get(i).getRowObject().getData().getNodes());
 			assertEquals("{}", result.get(i).getRowObject().getData().getRowJsonDocument().toString());
 		}
 
@@ -1127,11 +1175,14 @@ public class GridReplicaViewManagerImplAutowireTest {
 			new SelectSelectionElement()
 		));
 
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), result.get(0).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.UNDEFINED, null), result.get(0).getRowObject().getData().getCell(1));
 		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.STRING, "a"), new ConValue(ConType.LONG, 1)), result.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.STRING, "a"), result.get(1).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.LONG, 1), result.get(1).getRowObject().getData().getCell(1));
 		assertEquals("{\"aString\":\"a\",\"anInt\":1}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.STRING, "b"), new ConValue(ConType.LONG, 2)), result.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.STRING, "b"), result.get(2).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.LONG, 2), result.get(2).getRowObject().getData().getCell(1));
 		assertEquals("{\"aString\":\"b\",\"anInt\":2}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
 
 		// Add a "column anInt selected" model to the grid
@@ -1149,11 +1200,11 @@ public class GridReplicaViewManagerImplAutowireTest {
 		));
 
 		// Only the second column selected
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), result.get(0).getRowObject().getData().getCell(0));
 		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 1)), result.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 1), result.get(1).getRowObject().getData().getCell(0));
 		assertEquals("{\"anInt\":1}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 2)), result.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 2), result.get(2).getRowObject().getData().getCell(0));
 		assertEquals("{\"anInt\":2}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
 
 		// Add a "column anInt,aString selected" model to the grid
@@ -1171,11 +1222,14 @@ public class GridReplicaViewManagerImplAutowireTest {
 		));
 
 		// both columns selected in reverse order
-		assertEquals(List.of(new ConValue(ConType.UNDEFINED, null), new ConValue(ConType.UNDEFINED, null)), result.get(0).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.UNDEFINED, null), result.get(0).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.UNDEFINED, null), result.get(0).getRowObject().getData().getCell(1));
 		assertEquals("{}", result.get(0).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 1), new ConValue(ConType.STRING, "a")), result.get(1).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 1), result.get(1).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.STRING, "a"), result.get(1).getRowObject().getData().getCell(1));
 		assertEquals("{\"anInt\":1,\"aString\":\"a\"}", result.get(1).getRowObject().getData().getRowJsonDocument().toString());
-		assertEquals(List.of(new ConValue(ConType.LONG, 2), new ConValue(ConType.STRING, "b")), result.get(2).getRowObject().getData().getCells());
+		assertEquals(new ConValue(ConType.LONG, 2), result.get(2).getRowObject().getData().getCell(0));
+		assertEquals(new ConValue(ConType.STRING, "b"), result.get(2).getRowObject().getData().getCell(1));
 		assertEquals("{\"anInt\":2,\"aString\":\"b\"}", result.get(2).getRowObject().getData().getRowJsonDocument().toString());
 	}
 

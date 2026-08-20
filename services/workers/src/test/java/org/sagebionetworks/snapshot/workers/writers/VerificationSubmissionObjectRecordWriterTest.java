@@ -25,6 +25,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.kinesis.AwsKinesisFirehoseLogger;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.verification.VerificationManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -53,7 +54,7 @@ public class VerificationSubmissionObjectRecordWriterTest {
 	@Captor
 	private ArgumentCaptor<List<KinesisObjectSnapshotRecord<?>>> recordCaptor;
 	
-	private UserInfo admin = new UserInfo(true);
+	private UserInfo admin = new UserInfo(true, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 	private Long userId = 123L;
 
 	@BeforeEach

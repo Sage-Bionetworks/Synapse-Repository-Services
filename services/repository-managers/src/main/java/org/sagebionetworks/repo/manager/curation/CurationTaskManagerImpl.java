@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.curation;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
+import org.sagebionetworks.repo.model.curation.DueDateFilter;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskRequest;
 import org.sagebionetworks.repo.model.curation.ListCurationTaskResponse;
 import org.sagebionetworks.repo.model.curation.TaskBundle;
@@ -122,7 +124,23 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         } else {
             assigneeIds = null;
         }
-        
+
+        Date dueDateStart = null;
+        Date dueDateEnd = null;
+        boolean includeUnsetDueDate = false;
+        DueDateFilter dueDateFilter = request.getDueDate();
+        if (dueDateFilter != null) {
+            dueDateStart = dueDateFilter.getStart();
+            dueDateEnd = dueDateFilter.getEnd();
+            includeUnsetDueDate = Boolean.TRUE.equals(dueDateFilter.getIncludeUnset());
+            ValidateArgument.requirement(
+                    dueDateStart != null || dueDateEnd != null || includeUnsetDueDate,
+                    "'dueDate' filter must specify at least one of: start, end, or includeUnset.");
+            ValidateArgument.requirement(
+                    dueDateStart == null || dueDateEnd == null || !dueDateStart.after(dueDateEnd),
+                    "'dueDate.start' must not be after 'dueDate.end'.");
+        }
+
         List<Long> accessibleProjectIds;
 
         if (request.getProjectId() != null) {
@@ -143,7 +161,8 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
 
         List<TaskBundle> bundles = curationTaskDao.getCurationTaskBundles(
                 accessibleProjectIds, assigneeIds, request.getStateFilter(),
-                request.getTaskIds(), token.getLimitForQuery(), token.getOffset());
+                request.getTaskIds(), dueDateStart, dueDateEnd, includeUnsetDueDate,
+                token.getLimitForQuery(), token.getOffset());
 
         List<CurationTask> tasks = bundles.stream().map(TaskBundle::getTask).collect(Collectors.toList());
 

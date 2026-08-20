@@ -32,6 +32,7 @@ import org.sagebionetworks.markdown.MarkdownClientException;
 import org.sagebionetworks.repo.manager.subscription.SubscriptionAndDiscussionAuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.SynapseEmailService;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -193,10 +194,8 @@ public class BroadcastMessageManagerImplTest {
 		UserNotificationInfo userNotificationInfo2 = new UserNotificationInfo();
 		userNotificationInfo2.setUserId("222");
 		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
-		UserInfo hasAccessUserInfo = new UserInfo(false);
-		hasAccessUserInfo.setId(111L);
-		UserInfo accessDeniedUserInfo = new UserInfo(false);
-		accessDeniedUserInfo.setId(222L);
+		UserInfo hasAccessUserInfo = new UserInfo(false, 111L, AuthorizationConstants.DEFAULT_REALM_ID);
+		UserInfo accessDeniedUserInfo = new UserInfo(false, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
 		when(subscriptionAndDiscussionAuthorizationManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
@@ -296,10 +295,8 @@ public class BroadcastMessageManagerImplTest {
 		userNotificationInfo2.setUserId("222");
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
 		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
-		UserInfo hasAccessUserInfo = new UserInfo(false);
-		hasAccessUserInfo.setId(111L);
-		UserInfo accessDeniedUserInfo = new UserInfo(false);
-		accessDeniedUserInfo.setId(222L);
+		UserInfo hasAccessUserInfo = new UserInfo(false, 111L, AuthorizationConstants.DEFAULT_REALM_ID);
+		UserInfo accessDeniedUserInfo = new UserInfo(false, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(accessDeniedUserInfo);
 		when(subscriptionAndDiscussionAuthorizationManager.canSubscribe(hasAccessUserInfo, topic.getObjectId(), topic.getObjectType()))
@@ -331,10 +328,8 @@ public class BroadcastMessageManagerImplTest {
 		userNotificationInfo2.setUserId("222");
 		when(mockBroadcastMessageBuilder.getRelatedUsers()).thenReturn(userIds);
 		when(mockUserProfileDao.getUserNotificationInfo(userIds)).thenReturn(Arrays.asList(userNotificationInfo1, userNotificationInfo2));
-		UserInfo hasAccessUserInfo1 = new UserInfo(false);
-		hasAccessUserInfo1.setId(111L);
-		UserInfo hasAccessUserInfo2 = new UserInfo(false);
-		hasAccessUserInfo2.setId(222L);
+		UserInfo hasAccessUserInfo1 = new UserInfo(false, 111L, AuthorizationConstants.DEFAULT_REALM_ID);
+		UserInfo hasAccessUserInfo2 = new UserInfo(false, 222L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(111L)).thenReturn(hasAccessUserInfo1);
 		when(mockUserManager.getUserInfo(222L)).thenReturn(hasAccessUserInfo2);
 		when(subscriptionAndDiscussionAuthorizationManager.canSubscribe(hasAccessUserInfo1, topic.getObjectId(), topic.getObjectType()))

@@ -11,9 +11,10 @@ import org.springframework.ai.chat.model.ToolContext;
  * <p>
  * The interactive Curie path installs a lazy, memoizing supplier (see
  * {@link CodeInterpreterSessionProvider#lazySupplier(String)}) so the costly code session is created
- * only on the first code activity of a turn. The batch and specialist paths instead place an
- * already-started session id directly under {@link AgentToolContextKey#CODE_SESSION_ID};
- * {@link #resolveSessionId} reads from either source.
+ * only on the first code activity of a turn. The batch and delegated-specialist paths already hold a
+ * started session id and install a constant supplier via {@link #of(String)}. Either way a tool reads
+ * the session id through {@link #resolveSessionId(ToolContext)}, so it need not know how the session
+ * was provisioned.
  */
 @FunctionalInterface
 public interface CodeSessionSupplier {
@@ -25,18 +26,42 @@ public interface CodeSessionSupplier {
 	String getSessionId();
 
 	/**
-	 * Resolve the code interpreter session id from a tool's context. If a
-	 * {@link AgentToolContextKey#CODE_SESSION_SUPPLIER} supplier was installed (the interactive Curie
-	 * path, where the session is created lazily), invoke it; otherwise fall back to the id placed
-	 * directly under {@link AgentToolContextKey#CODE_SESSION_ID} (the batch and specialist paths, where
-	 * the session was already started). Returns {@code null} when neither is present, so a caller can
-	 * preserve its "no session available" guard.
+	 * The already-resolved session id, or {@code null} if it has not been resolved yet. Unlike
+	 * {@link #getSessionId()}, this never triggers creation — it is safe to call from side-effect-free
+	 * contexts such as logging. A lazy supplier returns {@code null} until its first
+	 * {@link #getSessionId()} call has memoized an id; a constant supplier ({@link #of(String)}) always
+	 * returns its id.
+	 */
+	default String resolvedSessionIdOrNull() {
+		return null;
+	}
+
+	/**
+	 * A supplier that always returns the given, already-started session id. Used by the batch and
+	 * delegated-specialist paths, which start the session eagerly rather than lazily.
+	 */
+	static CodeSessionSupplier of(String sessionId) {
+		return new CodeSessionSupplier() {
+
+			@Override
+			public String getSessionId() {
+				return sessionId;
+			}
+
+			@Override
+			public String resolvedSessionIdOrNull() {
+				return sessionId;
+			}
+		};
+	}
+
+	/**
+	 * Resolve the code interpreter session id from a tool's context by invoking the
+	 * {@link AgentToolContextKey#CODE_SESSION_SUPPLIER} supplier installed on it. Returns {@code null}
+	 * when no supplier is present, so a caller can preserve its "no session available" guard.
 	 */
 	static String resolveSessionId(ToolContext toolContext) {
 		Object supplier = AgentToolContextKey.CODE_SESSION_SUPPLIER.get(toolContext);
-		if (supplier != null) {
-			return ((CodeSessionSupplier) supplier).getSessionId();
-		}
-		return (String) AgentToolContextKey.CODE_SESSION_ID.get(toolContext);
+		return supplier == null ? null : ((CodeSessionSupplier) supplier).getSessionId();
 	}
 }

@@ -30,6 +30,10 @@
       },
       "description": "Optional. Filter tasks by their task IDs."
     },
+    "dueDate": {
+      "$ref": "org.sagebionetworks.repo.model.curation.DueDateFilter",
+      "description": "Optional. Filter tasks by due date. At least one of 'start', 'end', or 'includeUnset' must be set. If both 'start' and 'end' are provided, 'start' must not be after 'end'."
+    },
     "nextPageToken": {
       "type": "string",
       "description": "Forward the returned 'nextPageToken' to get the next page of results."

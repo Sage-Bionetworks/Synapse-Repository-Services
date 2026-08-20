@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -37,6 +36,7 @@ import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowObject;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.RowView;
 import org.sagebionetworks.repo.manager.grid.internal.replica.model.SynapseRow;
 import org.sagebionetworks.repo.manager.grid.internal.replica.view.GridReplicaViewManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -95,8 +95,7 @@ public class GridReplicaCsvExporterImplTest {
 
     @BeforeEach
     public void before() {
-        userInfo = new UserInfo(false);
-        userInfo.setId(userId);
+        userInfo = new UserInfo(false, userId, AuthorizationConstants.DEFAULT_REALM_ID);
 
         request = new DownloadFromGridRequest();
         request.setSessionId(sessionId);
@@ -104,16 +103,16 @@ public class GridReplicaCsvExporterImplTest {
         rowViews = new ArrayList<>();
         rowViews.add(new RowView().setRowObject(new RowObject()
                 .setMetadata(new RowMetadata().setSynapseRow(new SynapseRow().setRowId(1L).setVersionNumber(2L).setEtag("etag1")))
-                .setData(new RowData().setNodes(Arrays.asList(
+                .setData(new RowData().setNodes(new ConstantNode[] {
                         new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.STRING, "a")),
                         new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, "b"))
-                )))));
+                }))));
         rowViews.add(new RowView().setRowObject(new RowObject()
                 .setMetadata(new RowMetadata().setSynapseRow(new SynapseRow().setRowId(3L).setVersionNumber(4L).setEtag("etag2")))
-                .setData(new RowData().setNodes(Arrays.asList(
+                .setData(new RowData().setNodes(new ConstantNode[] {
                          new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(102L)).setValue(new ConValue(ConType.STRING, "c")),
                          new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(103L)).setValue(new ConValue(ConType.STRING, "d"))
-                )))));
+                }))));
     }
 
     @Test
@@ -189,6 +188,10 @@ public class GridReplicaCsvExporterImplTest {
 
         when(mockGridManager.getGridSession(userInfo, sessionId)).thenReturn(mockGridSession);
         when(gridReplicaSupport.getGridHeaderOrThrow(mockGridSession)).thenReturn(mockGridHeader);
+        when(mockGridHeader.getOrderedColumns()).thenReturn(List.of(
+                new Column().setName("col1"),
+                new Column().setName("col2")
+        ));
         when(mockJobProgressCallback.getJobId()).thenReturn(jobId);
         when(mockGridReplicaViewManager.getQueryIterator(eq(mockGridHeader), anyList())).thenReturn(mockRowViewIterator);
         when(mockRowViewIterator.hasNext()).thenReturn(true, true, false);
@@ -279,10 +282,10 @@ public class GridReplicaCsvExporterImplTest {
     @Test
     public void testExportGridAsCsvWithNullOrEmptyValues() throws IOException {
         rowViews.get(0).getRowObject().getMetadata().getSynapseRow().setRowId(null).setVersionNumber(null).setEtag(null);
-        rowViews.get(0).getRowObject().getData().setNodes(Arrays.asList(
+        rowViews.get(0).getRowObject().getData().setNodes(new ConstantNode[] {
                  new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.STRING, "a")),
                  new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, ""))
-        ));
+        });
 
         when(mockGridManager.getGridSession(userInfo, sessionId)).thenReturn(mockGridSession);
         when(gridReplicaSupport.getGridHeaderOrThrow(mockGridSession)).thenReturn(mockGridHeader);
@@ -309,6 +312,70 @@ public class GridReplicaCsvExporterImplTest {
         assertArrayEquals(new String[]{"3", "4", "etag2", "c", "d"}, writtenRows.get(2));
 
         rowViews.forEach(verify(mockRowViewCallbackHandler)::next);
+
+        verifyFileUpload();
+    }
+
+    @Test
+    public void testExportGridAsCsvWithMissingCell() throws IOException {
+        rowViews.get(0).getRowObject().getData().setNodes(new ConstantNode[] {
+                null,
+                new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, "b"))
+        });
+
+        when(mockGridManager.getGridSession(userInfo, sessionId)).thenReturn(mockGridSession);
+        when(gridReplicaSupport.getGridHeaderOrThrow(mockGridSession)).thenReturn(mockGridHeader);
+        when(mockGridHeader.getOrderedColumns()).thenReturn(List.of(
+                new Column().setName("col1"),
+                new Column().setName("col2")
+        ));
+        when(mockJobProgressCallback.getJobId()).thenReturn(jobId);
+        when(mockGridReplicaViewManager.getQueryIterator(eq(mockGridHeader), anyList())).thenReturn(mockRowViewIterator);
+        when(mockRowViewIterator.hasNext()).thenReturn(true, false);
+        when(mockRowViewIterator.next()).thenReturn(rowViews.get(0));
+        when(mockCsvWriterProvider.createWriter(any(), any())).thenReturn(mockCsvWriter);
+        when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+        // Call under test
+        exporter.exportGridAsCsv(userInfo, request, mockJobProgressCallback, mockRowViewCallbackHandler);
+
+        ArgumentCaptor<String[]> captor = ArgumentCaptor.forClass(String[].class);
+        verify(mockCsvWriter, times(2)).writeNext(captor.capture());
+        List<String[]> writtenRows = captor.getAllValues();
+        assertArrayEquals(new String[]{"ROW_ID", "ROW_VERSION", "etag", "col1", "col2"}, writtenRows.get(0));
+        assertArrayEquals(new String[]{"1", "2", "etag1", null, "b"}, writtenRows.get(1));
+
+        verifyFileUpload();
+    }
+
+    @Test
+    public void testExportGridAsCsvWithNullValue() throws IOException {
+        rowViews.get(0).getRowObject().getData().setNodes(new ConstantNode[] {
+                new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(100L)).setValue(new ConValue(ConType.NULL, null)),
+                new ConstantNode().setId(new LogicalTimestamp().setReplicaId(100L).setSequenceNumber(101L)).setValue(new ConValue(ConType.STRING, "b"))
+        });
+
+        when(mockGridManager.getGridSession(userInfo, sessionId)).thenReturn(mockGridSession);
+        when(gridReplicaSupport.getGridHeaderOrThrow(mockGridSession)).thenReturn(mockGridHeader);
+        when(mockGridHeader.getOrderedColumns()).thenReturn(List.of(
+                new Column().setName("col1"),
+                new Column().setName("col2")
+        ));
+        when(mockJobProgressCallback.getJobId()).thenReturn(jobId);
+        when(mockGridReplicaViewManager.getQueryIterator(eq(mockGridHeader), anyList())).thenReturn(mockRowViewIterator);
+        when(mockRowViewIterator.hasNext()).thenReturn(true, false);
+        when(mockRowViewIterator.next()).thenReturn(rowViews.get(0));
+        when(mockCsvWriterProvider.createWriter(any(), any())).thenReturn(mockCsvWriter);
+        when(mockFileHandleManager.uploadLocalFile(any())).thenReturn(new S3FileHandle().setId(fileHandleId));
+
+        // Call under test
+        exporter.exportGridAsCsv(userInfo, request, mockJobProgressCallback, mockRowViewCallbackHandler);
+
+        ArgumentCaptor<String[]> captor = ArgumentCaptor.forClass(String[].class);
+        verify(mockCsvWriter, times(2)).writeNext(captor.capture());
+        List<String[]> writtenRows = captor.getAllValues();
+        assertArrayEquals(new String[]{"ROW_ID", "ROW_VERSION", "etag", "col1", "col2"}, writtenRows.get(0));
+        assertArrayEquals(new String[]{"1", "2", "etag1", null, "b"}, writtenRows.get(1));
 
         verifyFileUpload();
     }

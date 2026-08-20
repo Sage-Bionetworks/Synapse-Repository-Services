@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
@@ -79,7 +80,7 @@ public class TableEntityUpdateRequestManagerTest {
 
 	@BeforeEach
 	public void before() throws Exception {
-		userInfo = new UserInfo(false, 2222L);
+		userInfo = new UserInfo(false, 2222L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		tableId = "syn213";
 		idAndVersion = IdAndVersion.parse(tableId);

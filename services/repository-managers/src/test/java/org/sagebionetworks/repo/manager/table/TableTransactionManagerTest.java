@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableTransactionDao;
@@ -46,7 +47,7 @@ public class TableTransactionManagerTest {
 	
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false, 1L);
+		user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		tableId = "123";
 		idAndVersion = IdAndVersion.parse(tableId);
 		transactionId = 456L;

@@ -12,24 +12,26 @@ import org.sagebionetworks.util.ValidateArgument;
 public class GridJsonUtils {
 
     /**
-     * Transforms a list of ordered column names and a list of CRDT ConstantNode values into a JSON object
+     * Transforms a list of ordered column names and a row's CRDT nodes into a JSON object.
+     *
+     * @param orderedColumnNames the column names, in order.
+     * @param nodesByIndex       the row's nodes, indexed by their position in {@code orderedColumnNames}.
+     *                           A column with no node for the row is {@code null} at that index.
+     * @return a JSON object holding one key per column that has a value. A column absent from
+     *         {@code nodesByIndex} (either past the array's length or {@code null}) has no value, and
+     *         the JSON Joy CRDT spec also allows 'undefined' values; both are omitted.
      */
-    public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, List<ConstantNode> rowDataConstantNodes) {
+    public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, ConstantNode[] nodesByIndex) {
         ValidateArgument.required(orderedColumnNames, "orderedColumnNames");
-        ValidateArgument.required(rowDataConstantNodes, "rowDataConstantNodes");
-
-        if (rowDataConstantNodes.isEmpty()) {
-            return new JSONObject();
-        }
+        ValidateArgument.required(nodesByIndex, "nodesByIndex");
 
         JSONObject json = new JSONObject();
-        for (int i = 0; i < orderedColumnNames.size() && i < rowDataConstantNodes.size(); i++) {
-            String col = orderedColumnNames.get(i);
-            if (rowDataConstantNodes.get(i) == null || rowDataConstantNodes.get(i).getConValue() == null || rowDataConstantNodes.get(i).getConValue().isUndefined()) {
-                // The JSON Joy CRDT spec allows 'undefined' values; omit these from the JSON object
+        for (int i = 0; i < orderedColumnNames.size() && i < nodesByIndex.length; i++) {
+            ConstantNode node = nodesByIndex[i];
+            if (node == null || node.getConValue() == null || node.getConValue().isUndefined()) {
                 continue;
             }
-            json.put(col, rowDataConstantNodes.get(i).getConValue().getValue());
+            json.put(orderedColumnNames.get(i), node.getConValue().getValue());
         }
         return json;
     }
@@ -51,7 +53,7 @@ public class GridJsonUtils {
     /**
      * Transforms a list of ordered column names and a map of (columnName, ConValue) pairs into a JSON object
      */
-    public static JSONObject gridRowToJsonObject(List<String> orderedColumnNames, Map<String, ConValue> cells) {
+    public static JSONObject gridCellsToJsonObject(List<String> orderedColumnNames, Map<String, ConValue> cells) {
         ValidateArgument.required(orderedColumnNames, "orderedColumnNames");
         ValidateArgument.required(cells, "cells");
         JSONObject json = new JSONObject();

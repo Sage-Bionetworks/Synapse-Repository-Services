@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.entity.RecordSetManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
@@ -44,7 +45,7 @@ public class RecordSetMetadataProviderTest {
 		recordSet = new RecordSet();
 		recordSet.setId("syn123");
 
-		userInfo = new UserInfo(false, 55L);
+		userInfo = new UserInfo(false, 55L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		path = List.of(
 			new EntityHeader().setId("syn123456").setName("project").setType(Project.class.getName()),

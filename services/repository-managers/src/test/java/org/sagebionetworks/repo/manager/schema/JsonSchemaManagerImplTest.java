@@ -44,6 +44,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -160,11 +161,11 @@ public class JsonSchemaManagerImplTest {
 	public void before() throws JSONObjectAdapterException {
 		managerSpy = Mockito.spy(manager);
 		boolean isAdmin = false;
-		user = new UserInfo(isAdmin, 123L);
+		user = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		isAdmin = true;
-		adminUser = new UserInfo(isAdmin, 456L);
+		adminUser = new UserInfo(isAdmin, 456L, AuthorizationConstants.DEFAULT_REALM_ID);
 
-		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		anonymousUser = new UserInfo(isAdmin, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		anonymousUser.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		now = new Date(1L);
@@ -577,7 +578,7 @@ public class JsonSchemaManagerImplTest {
 	@Test
 	public void testDeleteOrganizationAsAdmin() {
 		boolean isAdmin = true;
-		UserInfo admin = new UserInfo(isAdmin, 123L);
+		UserInfo admin = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		// call under test
 		manager.deleteOrganization(admin, organization.getId());
 		verify(mockAclManager, never()).canAccess(any(UserInfo.class), anyString(), any(ObjectType.class),

@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleArchivalManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.file.FileHandleKeyArchiveResult;
 import org.sagebionetworks.repo.model.file.FileHandleKeysArchiveRequest;
@@ -59,7 +60,7 @@ public class FileHandleKeysArchiveWorkerTest {
 	@Captor
 	private ArgumentCaptor<String> keyCaptor;
 	
-	private UserInfo adminUser = new UserInfo(true);
+	private UserInfo adminUser = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 	
 	@Test
 	public void testRun() throws RecoverableMessageException, Exception {

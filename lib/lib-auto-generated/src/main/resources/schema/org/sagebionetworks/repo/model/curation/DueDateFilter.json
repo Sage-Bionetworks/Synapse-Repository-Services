@@ -1,0 +1,19 @@
+{
+  "description": "An inclusive date range filter on a task's due date. Tasks with no due date are excluded from date range conditions but can be included via 'includeUnset'.",
+  "properties": {
+    "start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional. Include tasks with a due date on or after this timestamp."
+    },
+    "end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional. Include tasks with a due date on or before this timestamp."
+    },
+    "includeUnset": {
+      "type": "boolean",
+      "description": "Optional. When true, tasks with no due date are included in results alongside any tasks matching the date range. Defaults to false."
+    }
+  }
+}

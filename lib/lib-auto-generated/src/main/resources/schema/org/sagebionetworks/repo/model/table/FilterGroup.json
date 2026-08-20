@@ -1,0 +1,33 @@
+{
+	"implements": [{"$ref": "org.sagebionetworks.repo.model.table.QueryFilter"}],
+	"description": "A group of filter conditions combined with a boolean operator. Groups can be nested to form arbitrary boolean expression trees (AND/OR/NOT).",
+	"properties": {
+		"operator": {
+			"type": "string",
+			"description": "The boolean operator used to combine the children of this group.",
+			"name": "BooleanOperator",
+			"id": "org.sagebionetworks.repo.model.table.BooleanOperator",
+			"enum": [
+				{
+					"name": "AND",
+					"description": "All children must match."
+				},
+				{
+					"name": "OR",
+					"description": "At least one child must match."
+				}
+			]
+		},
+		"not": {
+			"type": "boolean",
+			"description": "When true, negates this entire group. When null (default) or false, the group is not negated."
+		},
+		"children": {
+			"type": "array",
+			"description": "The child filters combined by this group's operator. Each child is either a leaf filter (e.g. ColumnSingleValueQueryFilter) or a nested FilterGroup.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.QueryFilter"
+			}
+		}
+	}
+}

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -82,14 +83,12 @@ public class DocuSignTemplateValidatorTest {
 	public void testValidateWithMissingPrincipalInvestigatorTab() {
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 		Signer pi = TestTemplateHelper.findSigner(template, "principal_investigator");
-		Text userName = new Text();
-		userName.setTabLabel("principal_investigator_user_name");
-		pi.getTabs().setTextTabs(List.of(userName));
+		pi.getTabs().setTextTabs(null);
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> DocuSignTemplateValidator.validate(template));
-		assertTrue(ex.getMessage().contains("principal_investigator_institution"));
+		assertTrue(ex.getMessage().contains("principal_investigator_user_name"));
 		assertTrue(ex.getMessage().contains("TEXT"));
 	}
 
@@ -137,7 +136,9 @@ public class DocuSignTemplateValidatorTest {
 		Signer so = TestTemplateHelper.findSigner(template, "signing_official");
 		Text extra = new Text();
 		extra.setTabLabel("some_extra_tab");
-		so.getTabs().setTextTabs(List.of(extra));
+		List<Text> newList = new ArrayList<Text>(so.getTabs().getTextTabs());
+		newList.add(extra);
+		so.getTabs().setTextTabs(newList);
 
 		// call under test
 		assertDoesNotThrow(() -> DocuSignTemplateValidator.validate(template));
@@ -158,6 +159,7 @@ public class DocuSignTemplateValidatorTest {
 
 	@Test
 	public void testTypeForRoleAndLabelWithSigningOfficial() {
+		assertEquals(TabType.TEXT, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_institution"));
 		assertEquals(TabType.FULL_NAME, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_name"));
 		assertEquals(TabType.TITLE, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_title"));
 		assertEquals(TabType.EMAIL_ADDRESS, DocuSignTemplateValidator.typeforRoleAndLabel("signing_official", "signing_official_email"));
@@ -167,7 +169,6 @@ public class DocuSignTemplateValidatorTest {
 
 	@Test
 	public void testTypeForRoleAndLabelWithPrincipalInvestigator() {
-		assertEquals(TabType.TEXT, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_institution"));
 		assertEquals(TabType.FULL_NAME, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_name"));
 		assertEquals(TabType.TITLE, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_title"));
 		assertEquals(TabType.EMAIL_ADDRESS, DocuSignTemplateValidator.typeforRoleAndLabel("principal_investigator", "principal_investigator_email"));

@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.RecordSetSchemaResolver;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -83,7 +84,7 @@ public class RecordSetManagerImplTest {
 		recordSet.setParentId("syn234567");
 		recordSet.setUpsertKey(List.of("a", "b"));
 
-		userInfo = new UserInfo(false, 55L);
+		userInfo = new UserInfo(false, 55L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		Map<String, JsonSchema> properties = new LinkedHashMap<>();
 		properties.put("a", new JsonSchema().setType(Type.integer));

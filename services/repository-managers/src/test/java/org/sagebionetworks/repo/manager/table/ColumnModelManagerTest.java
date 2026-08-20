@@ -27,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -85,7 +86,7 @@ public class ColumnModelManagerTest {
 	
 	@BeforeEach
 	public void before(){
-		user = new UserInfo(false, 123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		tableId = "syn567";
 		idAndVersion = IdAndVersion.parse(tableId);
@@ -479,7 +480,7 @@ public class ColumnModelManagerTest {
 
 	@Test
 	public void testTruncateAllDataUnauthroized(){
-		UserInfo user = new UserInfo(false);
+		UserInfo user = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		assertThrows(UnauthorizedException.class, () -> {
 			columnModelManager.truncateAllColumnData(user);
 		});
@@ -487,7 +488,7 @@ public class ColumnModelManagerTest {
 	
 	@Test
 	public void testTruncateAllDataHappy(){
-		UserInfo user = new UserInfo(true);
+		UserInfo user = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockColumnModelDAO.truncateAllColumnData()).thenReturn(true);
 		assertTrue(columnModelManager.truncateAllColumnData(user));
 	}

@@ -466,9 +466,9 @@ public class GridReplicaValidationManagerImplTest {
 
 		RowView rowView = new RowView().setRowObject(
 				new RowObject()
-						.setData(new RowData().setNodes(List.of(
+						.setData(new RowData().setNodes(new ConstantNode[] {
 								new org.sagebionetworks.repo.model.grid.node.ConstantNode()
-										.setId(newerDataTimestamp))))
+										.setId(newerDataTimestamp) }))
 						.setMetadata(new RowMetadata()
 								.setRowValidation(new RowValidation().setConstantId(validationTimestamp))));
 
@@ -485,9 +485,9 @@ public class GridReplicaValidationManagerImplTest {
 
 		RowView rowView = new RowView().setRowObject(
 				new RowObject()
-						.setData(new RowData().setNodes(List.of(
+						.setData(new RowData().setNodes(new ConstantNode[] {
 								new org.sagebionetworks.repo.model.grid.node.ConstantNode()
-										.setId(olderDataTimestamp))))
+										.setId(olderDataTimestamp) }))
 						.setMetadata(new RowMetadata()
 								.setRowValidation(new RowValidation().setConstantId(validationTimestamp))));
 
@@ -503,9 +503,9 @@ public class GridReplicaValidationManagerImplTest {
 
 		RowView rowView = new RowView().setRowObject(
 				new RowObject()
-						.setData(new RowData().setNodes(List.of(
+						.setData(new RowData().setNodes(new ConstantNode[] {
 								new org.sagebionetworks.repo.model.grid.node.ConstantNode()
-										.setId(null))))
+										.setId(null) }))
 						.setMetadata(new RowMetadata()
 								.setRowValidation(new RowValidation().setConstantId(validationTimestamp))));
 
@@ -611,7 +611,7 @@ public class GridReplicaValidationManagerImplTest {
 		LogicalTimestamp olderDataTimestamp = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(10L);
 		RowView notStaleRow = new RowView().setRowObject(new RowObject()
 				.setData(new RowData().setRowJsonDocument(new JSONObject("{\"key\":\"value\"}"))
-						.setNodes(List.of(new ConstantNode().setId(olderDataTimestamp))))
+						.setNodes(new ConstantNode[] { new ConstantNode().setId(olderDataTimestamp) }))
 				.setMetadata(new RowMetadata().setRowValidation(new RowValidation().setConstantId(validationTimestamp))));
 		// sanity check: this row would be skipped by the data-changed filter
         assertFalse(manager.isDataNewerThanValidationResult(notStaleRow));

@@ -183,7 +183,7 @@ public class DocuSignClientTest {
 				new RoleLabelKey("signing_official", "signing_official_name"), "Dr. Smith",
 				new RoleLabelKey("signing_official", "signing_official_title"), "Director",
 				new RoleLabelKey("signing_official", "signing_official_email"), "so@example.com",
-				new RoleLabelKey("principal_investigator", "principal_investigator_institution"), "MIT"
+				new RoleLabelKey("signing_official", "signing_official_institution"), "MIT"
 		);
 
 		// call under test
@@ -200,11 +200,7 @@ public class DocuSignClientTest {
 		assertEquals("Director", soRole.getTabs().getTitleTabs().get(0).getValue());
 		assertEquals(1, soRole.getTabs().getEmailTabs().size());
 		assertEquals("so@example.com", soRole.getTabs().getEmailTabs().get(0).getValue());
-
-		TemplateRole piRole = roles.stream()
-				.filter(r -> "principal_investigator".equals(r.getRoleName())).findFirst().orElseThrow();
-		assertEquals(1, piRole.getTabs().getTextTabs().size());
-		assertEquals("MIT", piRole.getTabs().getTextTabs().get(0).getValue());
+		assertEquals("MIT", soRole.getTabs().getTextTabs().get(0).getValue());
 	}
 
 	@Test

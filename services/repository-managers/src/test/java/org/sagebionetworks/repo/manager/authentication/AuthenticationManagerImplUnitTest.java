@@ -390,8 +390,7 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test
 	public void testAuthenticatedOn() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(userId);
+		UserInfo userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
 		Date authDate = new Date(123L);
 		
 		when(mockAuthDAO.getAuthenticatedOn(userId)).thenReturn(authDate);
@@ -404,8 +403,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testAuthenticatedOnAnonymous() {
-		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		UserInfo userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		// method under test

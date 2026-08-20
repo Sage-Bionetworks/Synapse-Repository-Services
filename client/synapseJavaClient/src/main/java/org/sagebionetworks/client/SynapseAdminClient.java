@@ -4,6 +4,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -338,5 +339,17 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @param id
 	 */
 	void deleteRealm(String id) throws SynapseException;
+
+	/**
+	 * Administrative service to reset a user's eDUC (electronic Data Use Certificate) signature
+	 * routing quota for an Access Requirement. The user's routing usage for the access requirement is
+	 * deleted, restoring their full quota.
+	 *
+	 * @param accessRequirementId the access requirement the quota is scoped to
+	 * @param userId              the user whose quota should be reset
+	 * @return the resulting signature quota for the user
+	 * @throws SynapseException
+	 */
+	EDucSignatureQuota resetEDucQuota(String accessRequirementId, Long userId) throws SynapseException;
 
 }

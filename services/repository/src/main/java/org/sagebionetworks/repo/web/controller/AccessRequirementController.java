@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequ
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.RequiredScope;
@@ -371,5 +372,25 @@ public class AccessRequirementController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId) {
 		return serviceProvider.getAccessRequirementService().getPermissions(userId, requirementId);
+	}
+
+	/**
+	 * Administrative service to reset a user's eDUC signature routing quota for the given Access
+	 * Requirement. Only be used by a Synapse administrator. The user's routing usage for the access
+	 * requirement is deleted, restoring their full quota.
+	 *
+	 * @param userId        - The ID of the administrator making the request.
+	 * @param requirementId - The ID of the access requirement the quota is scoped to.
+	 * @param targetUserId  - The ID of the user whose quota should be reset.
+	 * @return The resulting signature quota for the target user.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_ACCESS_REQUIREMENT_EDUC_QUOTA_RESET, method = RequestMethod.POST)
+	public @ResponseBody EDucSignatureQuota resetEDucQuota(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestParam(value = "targetUserId") Long targetUserId) {
+		return serviceProvider.getEDucService().resetQuota(userId, requirementId, targetUserId);
 	}
 }

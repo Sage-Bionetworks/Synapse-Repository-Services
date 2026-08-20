@@ -225,7 +225,8 @@ public class MembershipInvitationManagerImplTest {
 
 	@Test
 	public void testValidateForRealmWithWrongInviter() {
-		userInfo.setRealmId("1");
+		userInfo = new UserInfo(false, Long.parseLong(USER_ID), "1");
+		userInfo.setCertified(true);
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
 		when(mockUserGroupDAO.get(Long.parseLong(mis.getTeamId()))).thenReturn(new UserGroup().setRealmId("0"));
 
@@ -237,7 +238,8 @@ public class MembershipInvitationManagerImplTest {
 
 	@Test
 	public void testValidateForEmailInvitationFromNonDefaultRealm() {
-		userInfo.setRealmId("1");
+		userInfo = new UserInfo(false, Long.parseLong(USER_ID), "1");
+		userInfo.setCertified(true);
 		MembershipInvitation mis = createMembershipInvtnSubmission(null);
 		mis.setInviteeId(null);
 		mis.setInviteeEmail("abc@gmail.com");
@@ -673,7 +675,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test
 	public void testSendInvitationEmailToEmailNotCertified() throws Exception {
 		// Remove the certified group
-		userInfo.setGroups(Collections.emptySet());
+		userInfo = new UserInfo(false, Long.parseLong(USER_ID), DEFAULT_REALM_ID, Collections.emptySet());
 		userInfo.setCertified(false);
 		
 		MembershipInvitation mis = createMembershipInvtnSubmissionToEmail(MIS_ID);

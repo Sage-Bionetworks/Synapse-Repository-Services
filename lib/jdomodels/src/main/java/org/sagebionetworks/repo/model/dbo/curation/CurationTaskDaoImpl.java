@@ -258,7 +258,8 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
 
     @Override
     public List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
-            List<TaskState> stateFilter, List<Long> taskIds, long limit, long offset) {
+            List<TaskState> stateFilter, List<Long> taskIds, Date dueDateStart, Date dueDateEnd,
+            boolean includeUnsetDueDate, long limit, long offset) {
         ValidateArgument.requiredNotEmpty(projectIds, "projectIds");
 
         StringBuilder sql = new StringBuilder("SELECT * FROM CURATION_TASK WHERE PROJECT_ID IN (:projectIds)");
@@ -279,6 +280,28 @@ public class CurationTaskDaoImpl implements CurationTaskDao {
         if (taskIds != null && !taskIds.isEmpty()) {
             sql.append(" AND " + COL_CURATION_TASK_ID + " IN (:taskIds)");
             params.addValue("taskIds", taskIds);
+        }
+
+        boolean hasStart = dueDateStart != null;
+        boolean hasEnd = dueDateEnd != null;
+        boolean hasDueDateFilter = hasStart || hasEnd || includeUnsetDueDate;
+        if (hasDueDateFilter) {
+            if (hasStart) params.addValue("dueDateStart", new Timestamp(dueDateStart.getTime()));
+            if (hasEnd) params.addValue("dueDateEnd", new Timestamp(dueDateEnd.getTime()));
+
+            boolean hasRange = hasStart || hasEnd;
+            if (includeUnsetDueDate && hasRange) {
+                sql.append(" AND (DUE_DATE IS NULL OR (");
+                if (hasStart) sql.append("DUE_DATE >= :dueDateStart");
+                if (hasStart && hasEnd) sql.append(" AND ");
+                if (hasEnd) sql.append("DUE_DATE <= :dueDateEnd");
+                sql.append("))");
+            } else if (includeUnsetDueDate) {
+                sql.append(" AND DUE_DATE IS NULL");
+            } else {
+                if (hasStart) sql.append(" AND DUE_DATE >= :dueDateStart");
+                if (hasEnd) sql.append(" AND DUE_DATE <= :dueDateEnd");
+            }
         }
 
         sql.append(" ORDER BY ID LIMIT :limit OFFSET :offset");

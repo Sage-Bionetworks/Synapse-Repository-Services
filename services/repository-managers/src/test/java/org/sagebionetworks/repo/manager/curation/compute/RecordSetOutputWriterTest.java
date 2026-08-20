@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RecordSet;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
@@ -37,7 +38,7 @@ public class RecordSetOutputWriterTest {
 
 	@BeforeEach
 	public void setup() {
-		user = new UserInfo(false, 101L);
+		user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 	}
 
 	@Test

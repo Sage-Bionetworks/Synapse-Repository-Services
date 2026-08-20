@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFil
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.SessionFileMetadata;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
@@ -286,7 +287,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithAuthorizedS3File() throws Exception {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -338,7 +339,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithUnauthorizedFile() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -366,7 +367,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithNonS3File() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -393,7 +394,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithUnsupportedType() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -427,7 +428,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithTooLargeFile() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -461,7 +462,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithNotFoundFile() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
@@ -486,7 +487,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithMixedAuthorization() throws Exception {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		// A batch where the user can download the first file but not the second. Per-file authorization must
@@ -537,7 +538,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithNullSessionPathDerivesFromName() throws Exception {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		// A null session path signals the manager to derive one from the file's own name.
@@ -575,7 +576,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testPushFileHandlesToSessionWithNullSessionPathDisambiguatesCollision() throws Exception {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String sessionId = "session-1";
 
 		// Two attachments with the same file name and no explicit path must land at distinct derived paths.
@@ -621,7 +622,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testGetFileMetadataBatchWithMixedResults() {
-		UserInfo user = new UserInfo(false, 101L);
+		UserInfo user = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		FileHandleAssociation eligible = new FileHandleAssociation().setFileHandleId("1")
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("syn1");
@@ -685,7 +686,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testGetFileFromSessionWithValidFile() {
-		UserInfo user = new UserInfo(false, 123L);
+		UserInfo user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String filePath = "analysis_result.csv";
 		String contentType = "text/csv";
 		String sessionId = "testSession123";
@@ -736,7 +737,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testGetFileFromSessionWithNestedPath() throws Exception {
-		UserInfo user = new UserInfo(false, 123L);
+		UserInfo user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String filePath = "output/subdir/report.json";
 		String contentType = "application/json";
 		String sessionId = "testSession123";
@@ -768,7 +769,7 @@ public class CodeInterpreterFileManagerTest {
 
 	@Test
 	public void testGetFileFromSessionWithPullError() {
-		UserInfo user = new UserInfo(false, 123L);
+		UserInfo user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		String filePath = "result.csv";
 		String contentType = "text/csv";
 		String sessionId = "testSession123";

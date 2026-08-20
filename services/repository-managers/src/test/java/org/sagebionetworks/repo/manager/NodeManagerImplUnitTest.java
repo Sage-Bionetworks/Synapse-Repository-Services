@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.NodeConstants.BOOTSTRAP_NODES;
@@ -131,9 +132,9 @@ public class NodeManagerImplUnitTest {
 	
 	@BeforeEach
 	public void before() throws Exception {
-		mockUserInfo = new UserInfo(false, 101L);
-		
-		anonUserInfo = new UserInfo(false, 102L);
+		mockUserInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		anonUserInfo = new UserInfo(false, 102L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		nodeId = "123";
 		parentId = "456";

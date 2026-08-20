@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableViewManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -55,7 +56,7 @@ public class EntityViewMetadataProviderTest {
 		table.setType(ViewType.file);
 		table.setScopeIds(scopeIds);
 		
-		userInfo = new UserInfo(false, 55L);
+		userInfo = new UserInfo(false, 55L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		scope = provider.createViewScope(table);
 	}

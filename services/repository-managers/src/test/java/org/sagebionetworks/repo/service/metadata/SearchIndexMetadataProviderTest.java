@@ -37,9 +37,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testValidateEntityWithNonSageEmployee() {
-		UserInfo user = new UserInfo(false);
-		user.setId(999L);
-		user.setGroups(Collections.emptySet());
+		UserInfo user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.emptySet());
 
 		SearchIndex entity = new SearchIndex();
 		entity.setDefiningSQL("SELECT * FROM syn123");
@@ -56,9 +54,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testValidateEntityWithSageEmployee() {
-		UserInfo user = new UserInfo(false);
-		user.setId(999L);
-		user.setGroups(Set.of(TeamConstants.SAGE_BIONETWORKS_TEAM_ID));
+		UserInfo user = new UserInfo(false, 999L, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(TeamConstants.SAGE_BIONETWORKS_TEAM_ID));
 
 		SearchIndex entity = new SearchIndex();
 		entity.setDefiningSQL("SELECT * FROM syn123");
@@ -71,8 +67,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testValidateEntityWithAdmin() {
-		UserInfo user = new UserInfo(true);
-		user.setId(1L);
+		UserInfo user = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		SearchIndex entity = new SearchIndex();
 		entity.setDefiningSQL("SELECT * FROM syn456");
@@ -85,9 +80,8 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testValidateEntityWithAnonymousUser() {
-		UserInfo anon = new UserInfo(false);
-		anon.setId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		anon.setGroups(Set.of(anon.getId()));
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anon = new UserInfo(false, anonId, AuthorizationConstants.DEFAULT_REALM_ID, Set.of(anonId));
 
 		SearchIndex entity = new SearchIndex();
 		entity.setDefiningSQL("SELECT * FROM syn123");
@@ -104,8 +98,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testValidateEntityWithUpdateEvent() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		SearchIndex entity = new SearchIndex();
 		entity.setDefiningSQL("SELECT * FROM syn999");
@@ -180,8 +173,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testEntityCreatedDelegatesToRegisterSchema() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SearchIndex entity = new SearchIndex();
 		entity.setId("syn456");
 		entity.setDefiningSQL("SELECT studyName FROM syn123");
@@ -196,8 +188,7 @@ public class SearchIndexMetadataProviderTest {
 
 	@Test
 	public void testEntityUpdatedDelegatesToRegisterSchema() {
-		UserInfo admin = new UserInfo(true);
-		admin.setId(1L);
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		SearchIndex entity = new SearchIndex();
 		entity.setId("syn456");
 		entity.setDefiningSQL("SELECT studyName, 'tag' as tag FROM syn123");

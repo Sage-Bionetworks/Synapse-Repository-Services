@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,6 +24,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.grid.db.GridIndexDao;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.agent.Agent;
+import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.specialist.gridquery.GridQuerySpecialist;
 import org.sagebionetworks.repo.manager.agent.specialist.gridquery.GridQuerySpecialistFactory;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -69,6 +72,7 @@ import org.sagebionetworks.util.JsonEntityUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterProviderImpl;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -187,10 +191,10 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testSelectAll() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Show me up to 10 rows from the grid.", admin, null, gridContext);
+		String response = specialist.chat("Show me up to 10 rows from the grid.", toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -203,11 +207,10 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testSelectByName() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("List only the species and weight for the first 10 rows.", admin, null,
-				gridContext);
+		String response = specialist.chat("List only the species and weight for the first 10 rows.", toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -220,10 +223,10 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testCountStar() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("How many rows are in this grid?", admin, null, gridContext);
+		String response = specialist.chat("How many rows are in this grid?", toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.contains("6") || response.toLowerCase().contains("six"),
@@ -232,11 +235,11 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testInvalidRowsWithValidationMessages() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Which rows have age over 25 and fail schema validation, and why?", admin,
-				null, gridContext);
+		String response = specialist.chat("Which rows have age over 25 and fail schema validation, and why?",
+				toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -248,10 +251,10 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testInFilter() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Show the rows where color is red or green.", admin, null, gridContext);
+		String response = specialist.chat("Show the rows where color is red or green.", toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -265,12 +268,12 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testCountSelectedWithValidationError() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat(
-				"Of the rows I have selected, how many have a validation error mentioning 'expected type'?", admin,
-				null, gridContext);
+				"Of the rows I have selected, how many have a validation error mentioning 'expected type'?",
+				toolContext());
 
 		assertNotNull(response);
 		assertTrue(response.contains("1") || response.toLowerCase().contains("one"),
@@ -279,11 +282,11 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testSelectSelection() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
-		String response = specialist.chat("Show me the values for just the columns I have currently selected.", admin,
-				null, gridContext);
+		String response = specialist.chat("Show me the values for just the columns I have currently selected.",
+				toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -296,11 +299,11 @@ public class GridQuerySpecialistIntegrationTest {
 
 	@Test
 	public void testUndefinedAndNotNull() {
-		GridQuerySpecialist specialist = specialistFactory.create();
+		Agent specialist = specialistFactory.create();
 
 		// call under test
 		String response = specialist.chat("Which rows have no subspecies value set at all but do have a species?",
-				admin, null, gridContext);
+				toolContext());
 
 		assertNotNull(response);
 		String lower = response.toLowerCase();
@@ -308,6 +311,17 @@ public class GridQuerySpecialistIntegrationTest {
 				"Only row a1 has an undefined subspecies with a species set. Got: " + response);
 		assertTrue(!lower.contains("a2"),
 				"Row a2 has a defined subspecies and must not be returned. Got: " + response);
+	}
+
+	/**
+	 * Builds the tool context the caller hands to the specialist: the acting user and the grid session
+	 * context that scopes every query the specialist runs.
+	 */
+	private ToolContext toolContext() {
+		Map<String, Object> context = new HashMap<>();
+		AgentToolContextKey.USER_INFO.put(context, admin);
+		AgentToolContextKey.GRID_SESSION_CONTEXT.put(context, gridContext);
+		return new ToolContext(context);
 	}
 
 	/**

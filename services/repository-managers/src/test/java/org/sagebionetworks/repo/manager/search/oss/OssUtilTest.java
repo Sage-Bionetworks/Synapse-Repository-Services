@@ -30,6 +30,7 @@ import org.opensearch.client.opensearch.core.search.Suggest;
 import org.opensearch.client.opensearch.core.search.TermSuggest;
 import org.opensearch.client.opensearch.core.search.TermSuggestOption;
 import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.Facet;
@@ -127,9 +128,8 @@ public class OssUtilTest {
 
         //searchResponse = new SearchResponse<DocumentFields>();
 
-        userInfo = new UserInfo(false);
         userGroups = List.of(123L, 456L, 789L);
-        userInfo.setGroups(Sets.newLinkedHashSet(userGroups));
+        userInfo = new UserInfo(false, 1L, AuthorizationConstants.DEFAULT_REALM_ID, Sets.newLinkedHashSet(userGroups));
 
         keyRangeList = new ArrayList<>();
         keyRange = new KeyRange();
@@ -225,7 +225,7 @@ public class OssUtilTest {
         SearchRequest expectedRequest = expectedSearchRequestBaseNoQueryTermSet.build();
 
         //call under test
-        SearchRequest request = OssUtil.generateSearchRequest(new UserInfo(true), query.setQueryTerm(q));
+        SearchRequest request = OssUtil.generateSearchRequest(new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID), query.setQueryTerm(q));
         assertEquals(1, request.query().bool().must().size());
         assertEquals(0, request.query().bool().filter().size());
 
@@ -750,7 +750,7 @@ public class OssUtilTest {
         )));
         SuggestionResults suggestionResults = new SuggestionResults().setSuggestions(List.of(suggestionList));
 
-        UserInfo userInfo = new UserInfo(true);
+        UserInfo userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
         //call under test
         SearchRequest request = OssUtil.generateAggregationRequestToLimitAccess(userInfo, suggestionResults);
 

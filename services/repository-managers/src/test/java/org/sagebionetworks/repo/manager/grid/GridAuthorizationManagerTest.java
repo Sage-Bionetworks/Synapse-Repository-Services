@@ -284,8 +284,8 @@ public class GridAuthorizationManagerTest {
 		// call under test
 		UserInfo user = manager.getRowLevelFilterUserInfo(mockUser, gridSessionId);
 		UserInfo expected = UserInfoTestHelper.createUserInfo(false, groupOwnerId);
-		expected.setGroups(Set.of(groupOwnerId, BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(),
-				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		expected.getGroups().add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		expected.getGroups().add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		assertEquals(expected, user);
 	}
 
@@ -342,7 +342,7 @@ public class GridAuthorizationManagerTest {
 
 	@Test
 	public void testValidateGridOwnerWithNonExistentOwnerAsAdmin() {
-		UserInfo admin = new UserInfo(true, 333L);
+		UserInfo admin = new UserInfo(true, 333L, AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserGroupDAO.doesIdExist(0L)).thenReturn(false);
 
 		// call under test
@@ -369,7 +369,7 @@ public class GridAuthorizationManagerTest {
 
 	@Test
 	public void testValidateGridOwnerWithValidOwnerAsAdmin() {
-		UserInfo admin = new UserInfo(true, 333L);
+		UserInfo admin = new UserInfo(true, 333L, AuthorizationConstants.DEFAULT_REALM_ID);
 		Long teamId = 999L;
 		when(mockUserGroupDAO.doesIdExist(teamId)).thenReturn(true);
 

@@ -584,6 +584,19 @@ public class SearchFieldRewriterTest {
 	}
 
 	@Test
+	public void testRewriteRequestFieldsWithMatchPhrasePrefixOnTextColumnLeavesBare() throws IOException {
+		// match_phrase_prefix analyzes its input like match_phrase — it is a match-family
+		// clause, not a term-family one, so it must stay on the bare tokenized text field.
+		// OpenSearch rejects it outright when pointed at a keyword field.
+		JsonNode dsl = parse("{\"match_phrase_prefix\":{\"title\":\"amyl\"}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, ROUTING, Surface.QUERY);
+
+		assertEquals("amyl", dsl.get("match_phrase_prefix").get("100").asText());
+	}
+
+	@Test
 	public void testRewriteRequestFieldsWithRangeOnTextColumnRoutesKeyword() throws IOException {
 		JsonNode dsl = parse("{\"range\":{\"title\":{\"gte\":\"a\",\"lt\":\"m\"}}}");
 
@@ -608,8 +621,7 @@ public class SearchFieldRewriterTest {
 		JsonNode dsl = parse("{"
 				+ "\"a\":{\"prefix\":{\"title\":\"x\"}},"
 				+ "\"b\":{\"wildcard\":{\"title\":\"x*y\"}},"
-				+ "\"c\":{\"fuzzy\":{\"title\":\"x\"}},"
-				+ "\"d\":{\"match_phrase_prefix\":{\"title\":\"x\"}}"
+				+ "\"c\":{\"fuzzy\":{\"title\":\"x\"}}"
 				+ "}");
 
 		// call under test
@@ -618,7 +630,6 @@ public class SearchFieldRewriterTest {
 		assertEquals("x", dsl.get("a").get("prefix").get("100.keyword").asText());
 		assertEquals("x*y", dsl.get("b").get("wildcard").get("100.keyword").asText());
 		assertEquals("x", dsl.get("c").get("fuzzy").get("100.keyword").asText());
-		assertEquals("x", dsl.get("d").get("match_phrase_prefix").get("100.keyword").asText());
 	}
 
 	@Test

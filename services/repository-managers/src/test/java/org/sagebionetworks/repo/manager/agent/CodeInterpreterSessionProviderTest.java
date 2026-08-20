@@ -124,12 +124,16 @@ public class CodeInterpreterSessionProviderTest {
 				.thenReturn(page(null, summary(EXPECTED_NAME, "aws-match")));
 
 		CodeSessionSupplier supplier = provider.lazySupplier(AGENT_SESSION_ID);
-		// Not created until first invoked.
+		// Not created until first invoked; a peek at the memoized id does not resolve it.
+		assertEquals(null, supplier.resolvedSessionIdOrNull());
 		verifyNoInteractions(bedrockAgentCoreClient);
 
 		// call under test
 		assertEquals("aws-match", supplier.getSessionId());
 		assertEquals("aws-match", supplier.getSessionId());
+
+		// Once resolved, the id is visible without re-resolving.
+		assertEquals("aws-match", supplier.resolvedSessionIdOrNull());
 
 		// Memoized: the second call did not re-list.
 		verify(bedrockAgentCoreClient).listCodeInterpreterSessions(any(ListCodeInterpreterSessionsRequest.class));
@@ -145,22 +149,22 @@ public class CodeInterpreterSessionProviderTest {
 	}
 
 	@Test
-	public void testResolveSessionIdWithSupplierPresent() {
+	public void testResolveSessionIdWithLazySupplier() {
 		CodeSessionSupplier supplier = () -> "aws-resolved";
-		ToolContext toolContext = new ToolContext(java.util.Map.of(AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(),
-				supplier, AgentToolContextKey.CODE_SESSION_ID.getKey(), "ignored-legacy-id"));
+		ToolContext toolContext = new ToolContext(
+				java.util.Map.of(AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), supplier));
 
-		// call under test -- supplier takes precedence over the already-resolved id.
+		// call under test -- interactive Curie path: the lazy supplier is invoked to resolve the session.
 		assertEquals("aws-resolved", CodeSessionSupplier.resolveSessionId(toolContext));
 	}
 
 	@Test
-	public void testResolveSessionIdWithResolvedIdOnly() {
-		ToolContext toolContext = new ToolContext(
-				java.util.Map.of(AgentToolContextKey.CODE_SESSION_ID.getKey(), "aws-legacy"));
+	public void testResolveSessionIdWithConstantSupplier() {
+		ToolContext toolContext = new ToolContext(java.util.Map.of(AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(),
+				CodeSessionSupplier.of("aws-started")));
 
-		// call under test -- batch/specialist path: no supplier, fall back to the already-resolved id.
-		assertEquals("aws-legacy", CodeSessionSupplier.resolveSessionId(toolContext));
+		// call under test -- batch/specialist path: a constant supplier over an already-started session.
+		assertEquals("aws-started", CodeSessionSupplier.resolveSessionId(toolContext));
 	}
 
 	@Test

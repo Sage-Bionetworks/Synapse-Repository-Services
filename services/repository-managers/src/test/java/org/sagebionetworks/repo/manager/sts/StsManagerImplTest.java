@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -61,7 +62,7 @@ public class StsManagerImplTest {
 	private static final String OLD_PARENT_ID = "syn4444";
 	private static final long USER_ID = 1234;
 
-	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID);
+	private static final UserInfo USER_INFO = new UserInfo(false, USER_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 	private static final String EXPECTED_STS_SESSION_NAME = "sts-" + USER_ID + "-" + PARENT_ENTITY_ID;
 
 	private static final long STS_STORAGE_LOCATION_ID = 123;

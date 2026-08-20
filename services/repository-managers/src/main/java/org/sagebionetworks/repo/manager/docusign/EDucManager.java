@@ -152,6 +152,52 @@ public class EDucManager {
 		return result;
 	}
 
+	public EDucSignatureQuota getSignatureQuota(UserInfo userInfo, String requestId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(requestId, "requestId");
+
+		RequestInterface request = requestDao.get(requestId);
+
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, request.getCreatedBy())) {
+			throw new UnauthorizedException("Only the request creator or an administrator can view the signature quota.");
+		}
+
+		Long userId = Long.parseLong(request.getCreatedBy());
+		Long arId = Long.parseLong(request.getAccessRequirementId());
+
+		long nowMs = clock.currentTimeMillis();
+		long thirtyDaysAgoMs = nowMs - THIRTY_DAYS_IN_MS;
+
+		long count = eDucQuotaDao.getCount(userId, arId, thirtyDaysAgoMs, nowMs);
+
+		EDucSignatureQuota result = new EDucSignatureQuota();
+		result.setQuota((long) MAX_ENVELOPES_PER_MONTH);
+		result.setRemaining(Math.max(0L, MAX_ENVELOPES_PER_MONTH - count));
+		return result;
+	}
+
+	public EDucSignatureQuota resetQuota(UserInfo userInfo, String accessRequirementId, Long userId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		ValidateArgument.required(userId, "userId");
+
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only an administrator can reset an eDUC quota.");
+		}
+
+		// Validate the access requirement exists (throws NotFoundException otherwise).
+		accessRequirementDao.get(accessRequirementId);
+
+		Long arId = Long.parseLong(accessRequirementId);
+
+		eDucQuotaDao.deleteByUserAndAccessRequirement(userId, arId);
+
+		EDucSignatureQuota result = new EDucSignatureQuota();
+		result.setQuota((long) MAX_ENVELOPES_PER_MONTH);
+		result.setRemaining((long) MAX_ENVELOPES_PER_MONTH);
+		return result;
+	}
+
 	public EDucFileHandleId previewEDuc(UserInfo userInfo, String requestId) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(requestId, "requestId");
@@ -355,12 +401,12 @@ public class EDucManager {
 		addIfPresent(tabValues, "signing_official", "signing_official_name", so.getName());
 		addIfPresent(tabValues, "signing_official", "signing_official_title", so.getTitle());
 		addIfPresent(tabValues, "signing_official", "signing_official_email", so.getInstitutionalEmail());
+		addIfPresent(tabValues, "signing_official", "signing_official_institution", request.getInstitution());
 
 		PrincipalInvestigator pi = request.getPrincipalInvestigator();
 		addIfPresent(tabValues, "principal_investigator", "principal_investigator_name", pi.getName());
 		addIfPresent(tabValues, "principal_investigator", "principal_investigator_title", pi.getTitle());
 		addIfPresent(tabValues, "principal_investigator", "principal_investigator_email", pi.getInstitutionalEmail());
-		addIfPresent(tabValues, "principal_investigator", "principal_investigator_institution", request.getInstitution());
 
 		String piUserName = principalAliasDao.getUserName(Long.parseLong(pi.getUserId()));
 		addIfPresent(tabValues, "principal_investigator", "principal_investigator_user_name", piUserName);

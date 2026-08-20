@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManager;
 import org.sagebionetworks.repo.manager.table.TableUpdateRequestManagerProvider;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -61,8 +62,7 @@ public class TableUpdateRequestWorkerTest {
 
 	@BeforeEach
 	public void before() throws RecoverableMessageException, TableUnavailableException {
-		userInfo = new UserInfo(false);
-		userInfo.setId(987L);
+		userInfo = new UserInfo(false, 987L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		jobId = "123";
 		tableId = "syn123";

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.agent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.feature.Feature;
 import org.sagebionetworks.repo.model.file.FileHandleAssociation;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.ai.chat.model.ToolContext;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,8 +209,19 @@ public class AgentManagerImpl implements AgentManager {
 			List<AgentChatAttachmentStatus> stagedAttachments = attachmentStatuses.stream()
 					.filter(status -> AgentChatAttachmentState.STAGED.equals(status.getStatus()))
 					.collect(Collectors.toList());
-			String curieResponse = curieSupervisorFactory.create().chat(request.getChatText(), stagedAttachments,
-					userInfo, session.getSessionId(), gridContext, traceCallback);
+			// The supervisor keys its durable conversation on the user and chat session, provisions the code
+			// interpreter session lazily, and flows the grid context, trace callback, and staged attachments
+			// through to its specialists. A null trace callback (trace disabled) is simply omitted.
+			Map<String, Object> toolContext = new HashMap<>();
+			AgentToolContextKey.USER_INFO.put(toolContext, userInfo);
+			AgentToolContextKey.CHAT_SESSION_ID.put(toolContext, session.getSessionId());
+			AgentToolContextKey.GRID_SESSION_CONTEXT.put(toolContext, gridContext);
+			AgentToolContextKey.STAGED_ATTACHMENTS.put(toolContext, stagedAttachments);
+			if (traceCallback != null) {
+				AgentToolContextKey.TRACE_CALLBACK.put(toolContext, traceCallback);
+			}
+			String curieResponse = curieSupervisorFactory.create().chat(request.getChatText(),
+					new ToolContext(toolContext));
 			return new AgentChatResponse().setResponseText(curieResponse).setSessionId(request.getSessionId())
 					.setAttachmentStatuses(hasAttachments ? attachmentStatuses : null);
 		}

@@ -17,37 +17,35 @@ import org.sagebionetworks.repo.model.grid.patch.ConValue;
 public class GridJsonUtilsTest {
 
 	// ---------------------------------------------------------------------------
-	// Overload 1: gridRowToJsonObject(List<String>, List<ConstantNode>)
+	// Overload 1: gridRowToJsonObject(List<String>, ConstantNode[])
 	// ---------------------------------------------------------------------------
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndNullColumnNames() {
+	public void testGridRowToJsonObjectWithNodeArrayAndNullColumnNames() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> GridJsonUtils.gridRowToJsonObject(null, List.of()));
+				() -> GridJsonUtils.gridRowToJsonObject(null, new ConstantNode[0]));
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndNullNodes() {
+	public void testGridRowToJsonObjectWithNodeArrayAndNullNodes() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> GridJsonUtils.gridRowToJsonObject(List.of("col"), (List<ConstantNode>) null));
+				() -> GridJsonUtils.gridRowToJsonObject(List.of("col"), (ConstantNode[]) null));
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndEmptyNodes() {
+	public void testGridRowToJsonObjectWithNodeArrayAndEmptyArray() {
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(List.of("col"), List.of());
+		JSONObject result = GridJsonUtils.gridRowToJsonObject(List.of("col"), new ConstantNode[0]);
 
 		assertEquals(0, result.length());
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndDefinedValues() {
+	public void testGridRowToJsonObjectWithNodeArrayAndDefinedValues() {
 		List<String> columns = List.of("name", "age");
-		List<ConstantNode> nodes = List.of(
-				new ConstantNode().setValue("Alice"),
-				new ConstantNode().setValue(42L));
+		ConstantNode[] nodes = { new ConstantNode().setValue("Alice"), new ConstantNode().setValue(42L) };
 
 		// call under test
 		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, nodes);
@@ -57,74 +55,57 @@ public class GridJsonUtilsTest {
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndNullNodeEntry() {
+	public void testGridRowToJsonObjectWithNodeArrayAndNullConValue() {
 		List<String> columns = List.of("a", "b");
-		List<ConstantNode> nodes = new java.util.ArrayList<>();
-		nodes.add(new ConstantNode().setValue("present"));
-		nodes.add(null);
+		ConstantNode[] nodes = { new ConstantNode().setValue("present"), new ConstantNode() }; // getConValue() returns null
 
 		// call under test
 		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, nodes);
 
 		assertEquals("present", result.get("a"));
-		assertTrue(result.isNull("b") || !result.has("b"),
-				"null node should produce no key or JSONObject.NULL");
-	}
-
-	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndNullConValue() {
-		List<String> columns = List.of("a", "b");
-		ConstantNode withValue = new ConstantNode().setValue("hello");
-		ConstantNode withNullConValue = new ConstantNode(); // getConValue() returns null
-
-		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, List.of(withValue, withNullConValue));
-
-		assertEquals("hello", result.get("a"));
 		assertEquals(1, result.length(), "column with null ConValue should be omitted");
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndUndefinedConValue() {
+	public void testGridRowToJsonObjectWithNodeArrayAndUndefinedConValue() {
 		List<String> columns = List.of("a", "b");
-		ConstantNode defined = new ConstantNode().setValue("defined");
-		ConstantNode undefined = new ConstantNode().setValue(new ConValue(ConType.UNDEFINED, null));
+		ConstantNode[] nodes = { new ConstantNode().setValue("defined"),
+				new ConstantNode().setValue(new ConValue(ConType.UNDEFINED, null)) };
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, List.of(defined, undefined));
+		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, nodes);
 
 		assertEquals("defined", result.get("a"));
 		assertEquals(1, result.length(), "undefined ConValue should be omitted");
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndMoreColumnsThanNodes() {
+	public void testGridRowToJsonObjectWithNodeArrayAndMissingEntry() {
 		List<String> columns = List.of("a", "b", "c");
-		List<ConstantNode> nodes = List.of(
-				new ConstantNode().setValue("x"),
-				new ConstantNode().setValue("y"));
+		ConstantNode[] nodes = { new ConstantNode().setValue("x"), null, new ConstantNode().setValue("z") };
+		// index 1 ("b") is null
 
-		// call under test — truncates at shorter list
+
+		// call under test
 		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, nodes);
 
-		assertEquals(2, result.length());
 		assertEquals("x", result.get("a"));
-		assertEquals("y", result.get("b"));
+		assertEquals("z", result.get("c"));
+		assertEquals(2, result.length(), "column with a null entry should be omitted");
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithConstantNodesAndMoreNodesThanColumns() {
-		List<String> columns = List.of("a");
-		List<ConstantNode> nodes = List.of(
-				new ConstantNode().setValue("x"),
-				new ConstantNode().setValue("y"),
-				new ConstantNode().setValue("z"));
+	public void testGridRowToJsonObjectWithNodeArrayShorterThanColumns() {
+		List<String> columns = List.of("a", "b", "c");
+		ConstantNode[] nodes = { new ConstantNode().setValue("x"), new ConstantNode().setValue("y") };
+		// the array has no entry at all for "c"
 
-		// call under test — truncates at shorter list
+		// call under test
 		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, nodes);
 
-		assertEquals(1, result.length());
 		assertEquals("x", result.get("a"));
+		assertEquals("y", result.get("b"));
+		assertEquals(2, result.length(), "column past the end of the array should be omitted");
 	}
 
 	// ---------------------------------------------------------------------------
@@ -197,63 +178,63 @@ public class GridJsonUtilsTest {
 	// ---------------------------------------------------------------------------
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndNullColumnNames() {
+	public void testGridCellsToJsonObjectWithNullColumnNames() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> GridJsonUtils.gridRowToJsonObject(null, Map.of()));
+				() -> GridJsonUtils.gridCellsToJsonObject(null, Map.of()));
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndNullCells() {
+	public void testGridCellsToJsonObjectWithNullCells() {
 		// call under test
 		assertThrows(IllegalArgumentException.class,
-				() -> GridJsonUtils.gridRowToJsonObject(List.of("col"), (Map<String, ConValue>) null));
+				() -> GridJsonUtils.gridCellsToJsonObject(List.of("col"), (Map<String, ConValue>) null));
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndDefinedValues() {
+	public void testGridCellsToJsonObjectWithDefinedValues() {
 		List<String> columns = List.of("name", "age");
 		Map<String, ConValue> cells = Map.of(
 				"name", new ConValue(ConType.STRING, "Bob"),
 				"age", new ConValue(ConType.LONG, 30L));
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, cells);
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(columns, cells);
 
 		assertEquals("Bob", result.get("name"));
 		assertEquals(30L, result.get("age"));
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndNullConValueEntry() {
+	public void testGridCellsToJsonObjectWithNullConValueEntry() {
 		List<String> columns = List.of("a", "b");
 		Map<String, ConValue> cells = new java.util.HashMap<>();
 		cells.put("a", new ConValue(ConType.STRING, "present"));
 		cells.put("b", null); // null ConValue
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, cells);
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(columns, cells);
 
 		assertEquals("present", result.get("a"));
 		assertEquals(1, result.length(), "null ConValue should be omitted");
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndUndefinedConValue() {
+	public void testGridCellsToJsonObjectWithUndefinedConValue() {
 		List<String> columns = List.of("a", "b");
 		Map<String, ConValue> cells = Map.of(
 				"a", new ConValue(ConType.STRING, "defined"),
 				"b", new ConValue(ConType.UNDEFINED, null));
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, cells);
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(columns, cells);
 
 		assertEquals("defined", result.get("a"));
 		assertEquals(1, result.length(), "undefined ConValue should be omitted");
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndMissingColumn() {
+	public void testGridCellsToJsonObjectWithMissingColumn() {
 		List<String> columns = List.of("a", "b", "c");
 		Map<String, ConValue> cells = Map.of(
 				"a", new ConValue(ConType.STRING, "x"),
@@ -261,7 +242,7 @@ public class GridJsonUtilsTest {
 		// "b" is absent from the map
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, cells);
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(columns, cells);
 
 		assertEquals("x", result.get("a"));
 		assertEquals("z", result.get("c"));
@@ -269,7 +250,7 @@ public class GridJsonUtilsTest {
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndColumnOrderFollowsOrderedColumnNames() {
+	public void testGridCellsToJsonObjectWithColumnOrderFollowsOrderedColumnNames() {
 		// JSONObject doesn't guarantee key order, but the output should contain
 		// exactly the columns specified in orderedColumnNames (not extra map keys).
 		List<String> columns = List.of("first", "second");
@@ -279,7 +260,7 @@ public class GridJsonUtilsTest {
 				"extra", new ConValue(ConType.STRING, "should-not-appear"));
 
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(columns, cells);
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(columns, cells);
 
 		assertEquals(2, result.length());
 		assertEquals("1", result.get("first"));
@@ -287,9 +268,9 @@ public class GridJsonUtilsTest {
 	}
 
 	@Test
-	public void testGridRowToJsonObjectWithMapAndEmptyColumnNames() {
+	public void testGridCellsToJsonObjectWithEmptyColumnNames() {
 		// call under test
-		JSONObject result = GridJsonUtils.gridRowToJsonObject(
+		JSONObject result = GridJsonUtils.gridCellsToJsonObject(
 				List.of(), Map.of("ignored", new ConValue(ConType.STRING, "v")));
 
 		assertEquals(0, result.length());

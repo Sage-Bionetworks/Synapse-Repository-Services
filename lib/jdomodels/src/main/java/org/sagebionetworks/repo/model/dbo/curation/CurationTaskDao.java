@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.curation;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -31,7 +32,8 @@ public interface CurationTaskDao {
     void clearActiveSessionId(Long taskId);
 
     List<TaskBundle> getCurationTaskBundles(List<Long> projectIds, List<Long> assigneeIds,
-            List<TaskState> stateFilter, List<Long> taskIds, long limit, long offset);
+            List<TaskState> stateFilter, List<Long> taskIds, Date dueDateStart, Date dueDateEnd,
+            boolean includeUnsetDueDate, long limit, long offset);
 
     Set<Long> getDistinctProjectIds();
 

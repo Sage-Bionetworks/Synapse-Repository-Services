@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.dataaccess.DataAccessAuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -51,7 +52,7 @@ public class ForumManagerImplTest {
 	private final ACCESS_TYPE READ_ACCESS = ACCESS_TYPE.READ;
 	private final AuthorizationStatus SUCCESS = AuthorizationStatus.authorized();
 	private final AuthorizationStatus FAILED = AuthorizationStatus.accessDenied("no reasons");
-	private UserInfo userInfo = new UserInfo(false /*not admin*/);
+	private UserInfo userInfo = new UserInfo(false /*not admin*/, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 	private Forum dto = new Forum();
 
 	@BeforeEach

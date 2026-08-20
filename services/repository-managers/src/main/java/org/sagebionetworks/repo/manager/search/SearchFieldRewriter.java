@@ -40,8 +40,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
  * LINK) are dual-mapped in the index as a tokenized text field under the bare column name
  * and a raw keyword field under {@code {column}.keyword}. Operations that require doc values
  * (aggregations, sort) or exact match against the original value (term / terms / prefix /
- * wildcard / fuzzy / range / match_phrase_prefix) need the {@code .keyword} sub-field; the
- * relevance-scored match-family clauses use the bare tokenized field. The routing is
+ * wildcard / fuzzy / range) need the {@code .keyword} sub-field; the relevance-scored
+ * match-family clauses &mdash; including {@code match_phrase_prefix}, which analyzes its
+ * input like {@code match_phrase} &mdash; use the bare tokenized field. The routing is
  * decided per clause kind via the static maps below and applied in
  * {@link #rewriteFieldRef(String, RoutingContext, RoutingMode)}. Callers who supply
  * {@code .keyword} explicitly are unaffected &mdash; the suffix is detected and preserved.</p>
@@ -190,13 +191,13 @@ final class SearchFieldRewriter {
 			// match-family — bare tokenized text field
 			Map.entry("match", RoutingMode.BARE),
 			Map.entry("match_phrase", RoutingMode.BARE),
+			Map.entry("match_phrase_prefix", RoutingMode.BARE),
 			Map.entry("match_bool_prefix", RoutingMode.BARE),
 			Map.entry("multi_match", RoutingMode.BARE),
 			Map.entry("simple_query_string", RoutingMode.BARE),
 			Map.entry("exists", RoutingMode.BARE),
-			// term-family + range / prefix / wildcard / fuzzy / match_phrase_prefix —
+			// term-family + range / prefix / wildcard / fuzzy —
 			// need the raw keyword sub-field on text columns.
-			Map.entry("match_phrase_prefix", RoutingMode.KEYWORD_FOR_TEXT),
 			Map.entry("term", RoutingMode.KEYWORD_FOR_TEXT),
 			Map.entry("terms", RoutingMode.KEYWORD_FOR_TEXT),
 			Map.entry("range", RoutingMode.KEYWORD_FOR_TEXT),

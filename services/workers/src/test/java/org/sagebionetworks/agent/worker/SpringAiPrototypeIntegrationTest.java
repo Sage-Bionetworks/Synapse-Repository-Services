@@ -20,9 +20,11 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
@@ -170,8 +172,7 @@ public class SpringAiPrototypeIntegrationTest {
 
 	@Test
 	public void testToolContextPropagatesUserInfo() {
-		UserInfo testUser = new UserInfo(false);
-		testUser.setId(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		UserInfo testUser = new UserInfo(false, BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 
 		ProfileTools tools = new ProfileTools();
 
@@ -363,7 +364,7 @@ public class SpringAiPrototypeIntegrationTest {
 		String sessionId = codeInterpreterClient.startSession("runPythonTest" + System.nanoTime());
 		try {
 			ToolContext toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), admin,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 
 			// call under test
 			String result = codeInterpreterTools.runPython(
@@ -382,9 +383,9 @@ public class SpringAiPrototypeIntegrationTest {
 		String sessionB = codeInterpreterClient.startSession("isolationB" + System.nanoTime());
 		try {
 			ToolContext contextA = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), admin,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionA));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionA)));
 			ToolContext contextB = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), admin,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionB));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionB)));
 
 			// Create a file in session A
 			String createResult = codeInterpreterTools.runPython(new RunPythonRequest().setScript(String.join("\n",

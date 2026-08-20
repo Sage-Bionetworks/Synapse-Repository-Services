@@ -6,6 +6,7 @@ import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.model.grid.GridExamples;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,7 @@ public class GridQuerySpecialistFactory {
 		this.renderedSystemPrompt = renderSystemPrompt();
 	}
 
-	public GridQuerySpecialist create() {
+	public Agent create() {
 		return new GridQuerySpecialist(chatModel, stackConfig, gridQueryTools, renderedSystemPrompt);
 	}
 

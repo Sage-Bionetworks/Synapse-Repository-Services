@@ -120,7 +120,7 @@ public class WebhookManagerUnitTest {
 	
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false, 321L);
+		userInfo = new UserInfo(false, 321L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		request = new CreateOrUpdateWebhookRequest()
 			.setObjectType(SynapseObjectType.ENTITY)
@@ -242,7 +242,7 @@ public class WebhookManagerUnitTest {
 	
 	@Test
 	public void testValidateCreateOrUpdateWebhookRequestWithAnonymous() {
-		userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());		
+		userInfo = new UserInfo(false, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		userInfo.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 				
 		assertThrows(UnauthorizedException.class, () -> {			
@@ -411,7 +411,7 @@ public class WebhookManagerUnitTest {
 	
 	@Test	
 	public void testGetWebhookWithForUpdateAndNotCreatorAndAdmin() {
-		userInfo = new UserInfo(true, 123L);
+		userInfo = new UserInfo(true, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		webhook.setCreatedBy("1");
 		

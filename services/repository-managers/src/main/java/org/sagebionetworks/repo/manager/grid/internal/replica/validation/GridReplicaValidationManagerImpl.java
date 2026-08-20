@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.grid.internal.replica.validation;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -296,7 +298,8 @@ public class GridReplicaValidationManagerImpl implements GridReplicaValidationMa
 		}
 
 		// Otherwise, check all of the constant IDs in the validation results.
-		return rowData.getNodes().stream()
+		return Arrays.stream(rowData.getNodes())
+				.filter(Objects::nonNull)
 				.map(ConstantNode::getId)
 				// If any are greater than the current validation timestamp, re-validate.
 				.anyMatch(id -> id != null && id.compareTo(metadata.getRowValidation().getConstantId()) > 0);

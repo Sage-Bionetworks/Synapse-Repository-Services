@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.webhook.WebhookAuthorizationManager.WebhookPermissionCacheKey;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.webhook.SynapseEventType;
@@ -58,7 +59,7 @@ public class WebhookAuthorizationManagerUnitTest {
 	
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false, 123L);
+		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		webhook = new Webhook()
 			.setId("456")
@@ -120,7 +121,7 @@ public class WebhookAuthorizationManagerUnitTest {
 	
 	@Test
 	public void testGetReadAuthorizationStatusWithAdmin() {
-		userInfo = new UserInfo(true, 1L);
+		userInfo = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
 		
 		// Call under test
 		assertEquals(AuthorizationStatus.authorized(), manager.getReadAuthorizationStatus(userInfo, SynapseObjectType.ENTITY, "123"));

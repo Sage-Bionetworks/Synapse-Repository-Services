@@ -150,7 +150,8 @@ public class UserProfileManagerImplUnitTest {
 		callersGroups = Sets.newHashSet(1L, 2L, caller.getId(),
 				BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(),
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
-		caller.setGroups(callersGroups);
+		caller.getGroups().clear();
+		caller.getGroups().addAll(callersGroups);
 		caller.setCertified(true);
 		userToGetForGroups = Sets.newHashSet(4L, 5L, 6L,
 				userToGetFor.getId(),
@@ -331,7 +332,7 @@ public class UserProfileManagerImplUnitTest {
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
 				
 		String ownerId = userInfo.getId().toString();
-		userInfo.setId(-100L);
+		userInfo = UserInfoTestHelper.createUserInfo(false, -100L);
 		
 		UserProfile upClone = userProfileManager.getUserProfile(ownerId);
 		// so we get back the UserProfile for the specified owner...

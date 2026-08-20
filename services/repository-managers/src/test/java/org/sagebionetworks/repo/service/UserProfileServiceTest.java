@@ -271,7 +271,6 @@ public class UserProfileServiceTest {
 		notificationSettingsSignedToken.setHmac("signed");
 		
 		UserInfo userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
-		userInfo.setId(userId);
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(userId.toString());
@@ -320,7 +319,6 @@ public class UserProfileServiceTest {
 	
 	private void mockUserInfo(Long userId, boolean isACTMember, boolean isCertified, Boolean isARReviewer) {
 		UserInfo userInfo = new UserInfo(false, userId, DEFAULT_REALM_ID);
-		userInfo.setGroups(new HashSet<Long>(Arrays.asList(userId)));
 		if (isACTMember) userInfo.getGroups().add(TeamConstants.ACT_TEAM_ID);
 		if (isCertified) userInfo.setCertified(true);
 

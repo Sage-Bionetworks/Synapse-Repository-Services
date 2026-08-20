@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -79,7 +80,7 @@ public class SynapseSchemaBootstrapImplTest {
 	public void before() {
 		bootstrapSpy = Mockito.spy(bootstrap);
 		boolean isAdmin = true;
-		admin = new UserInfo(isAdmin, 123L);
+		admin = new UserInfo(isAdmin, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		organizationName = "org.sagebionetworks";
 		
 		organziation = new Organization();

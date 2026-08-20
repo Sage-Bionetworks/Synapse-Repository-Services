@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -193,8 +194,7 @@ public class SubmissionManagerImplTest {
 		accessorIds = Sets.newHashSet(userId);
 		
 		boolean isAdmin = false;
-		actUser = new UserInfo(isAdmin, 5L);
-		actUser.setGroups(Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
+		actUser = new UserInfo(isAdmin, 5L, AuthorizationConstants.DEFAULT_REALM_ID, Sets.newHashSet(TeamConstants.ACT_TEAM_ID));
 
 		request = new Renewal();
 		request.setId(requestId);

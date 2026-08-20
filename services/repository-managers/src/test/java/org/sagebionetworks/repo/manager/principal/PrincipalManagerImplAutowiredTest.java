@@ -142,7 +142,7 @@ public class PrincipalManagerImplAutowiredTest {
 		profile.setUrl("https://all.about.me");
 		userProfileDAO.update(profile);
 
-		UserInfo adminUserInfo = new UserInfo(true);
+		UserInfo adminUserInfo = new UserInfo(true, AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 
 		// Call under test
 		principalManager.clearPrincipalInformation(adminUserInfo, testUser.getId());

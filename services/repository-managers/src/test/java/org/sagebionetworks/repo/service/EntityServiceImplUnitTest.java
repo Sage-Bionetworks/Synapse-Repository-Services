@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
 import org.sagebionetworks.repo.model.download.ActionRequiredList;
@@ -102,8 +103,7 @@ public class EntityServiceImplUnitTest {
 
 	@BeforeEach
 	public void before() {
-		userInfo = new UserInfo(false);
-		userInfo.setId(PRINCIPAL_ID);
+		userInfo = new UserInfo(false, PRINCIPAL_ID, AuthorizationConstants.DEFAULT_REALM_ID);
 
 		project = new Project();
 		project.setId("syn123");

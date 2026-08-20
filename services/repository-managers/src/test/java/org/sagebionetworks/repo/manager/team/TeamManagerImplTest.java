@@ -705,12 +705,12 @@ public class TeamManagerImplTest {
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, "234", otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 
 		//test member to be added in different realm
-		otherUserInfo.setRealmId("11");
+		otherUserInfo = UserInfoTestHelper.createUserInfo(false, otherPrincipalId, "11");
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 
 		//test user adding member is in different realm
-		otherUserInfo.setRealmId(REALM_ID);
-		userInfo.setRealmId("11");
+		otherUserInfo = UserInfoTestHelper.createUserInfo(false, otherPrincipalId, REALM_ID);
+		userInfo = UserInfoTestHelper.createUserInfo(false, MEMBER_PRINCIPAL_ID_LONG, "11");
 		assertEquals(teamManagerImpl.canAddTeamMember(userInfo, TEAM_ID, otherUserInfo, false), TeamManagerImpl.UNAUTHORIZED_ADD_TEAM_MEMBER_UNMET_REALM);
 	}
 

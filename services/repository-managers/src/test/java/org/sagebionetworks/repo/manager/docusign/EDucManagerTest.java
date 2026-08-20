@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -61,6 +62,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 
 
@@ -103,11 +105,9 @@ public class EDucManagerTest {
 
 		adminUser = new UserInfo(true, 1L, DEFAULT_REALM_ID);
 
-		actUser = new UserInfo(false, 2L, DEFAULT_REALM_ID);
-		actUser.setGroups(new HashSet<>(Collections.singleton(TeamConstants.ACT_TEAM_ID)));
+		actUser = new UserInfo(false, 2L, DEFAULT_REALM_ID, new HashSet<>(Collections.singleton(TeamConstants.ACT_TEAM_ID)));
 
-		regularUser = new UserInfo(false, 3L, DEFAULT_REALM_ID);
-		regularUser.setGroups(new HashSet<>());
+		regularUser = new UserInfo(false, 3L, DEFAULT_REALM_ID, new HashSet<>());
 	}
 
 	private EDucTemplate template(String id) {
@@ -310,11 +310,11 @@ public class EDucManagerTest {
 		assertEquals("Dr. Jones", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_name")));
 		assertEquals("Professor", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_title")));
 		assertEquals("pi@university.edu", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_email")));
-		assertEquals("MIT", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_institution")));
 		assertEquals("drjones", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_user_name")));
 		assertEquals("Jane Admin", tabValues.get(new RoleLabelKey("signing_official", "signing_official_name")));
 		assertEquals("VP Research", tabValues.get(new RoleLabelKey("signing_official", "signing_official_title")));
 		assertEquals("so@university.edu", tabValues.get(new RoleLabelKey("signing_official", "signing_official_email")));
+		assertEquals("MIT", tabValues.get(new RoleLabelKey("signing_official", "signing_official_institution")));
 		assertEquals("creatoruser", tabValues.get(new RoleLabelKey("collaborator_1", "collaborator_1_user_name")));
 		assertEquals("Creator User", tabValues.get(new RoleLabelKey("collaborator_1", "collaborator_1_name")));
 		assertEquals("collab1user", tabValues.get(new RoleLabelKey("collaborator_2", "collaborator_2_user_name")));
@@ -636,6 +636,99 @@ public class EDucManagerTest {
 
 		// createdBy=100, then 301 (deduplicated)
 		assertEquals(List.of("100", "301"), result);
+	}
+
+	@Test
+	public void testGetSignatureQuotaWithCreatorUser() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(3L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(7), result.getRemaining());
+	}
+
+	@Test
+	public void testGetSignatureQuotaClampsRemainingAtZero() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(10L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(0), result.getRemaining());
+	}
+
+	@Test
+	public void testGetSignatureQuotaWithAdminUser() {
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		// the quota is looked up for the request creator (100), not the calling admin (1)
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(3L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(adminUser, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(7), result.getRemaining());
+		verify(mockEDucQuotaDao).getCount(eq(100L), eq(456L), anyLong(), anyLong());
+		verify(mockEDucQuotaDao, never()).getCount(eq(adminUser.getId()), anyLong(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testGetSignatureQuotaWithUnauthorizedUser() {
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.getSignatureQuota(regularUser, "req-1"));
+
+		assertEquals("Only the request creator or an administrator can view the signature quota.", ex.getMessage());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+
+	@Test
+	public void testResetQuotaWithAdminUser() {
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.resetQuota(adminUser, "456", 100L);
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(10), result.getRemaining());
+		verify(mockEDucQuotaDao).deleteByUserAndAccessRequirement(100L, 456L);
+	}
+
+	@Test
+	public void testResetQuotaWithNonExistentAccessRequirement() {
+		when(mockAccessRequirementDao.get("456")).thenThrow(new NotFoundException("does not exist"));
+
+		// call under test
+		assertThrows(NotFoundException.class, () -> eDucManager.resetQuota(adminUser, "456", 100L));
+
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testResetQuotaWithNonAdminUser() {
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.resetQuota(regularUser, "456", 100L));
+
+		assertEquals("Only an administrator can reset an eDUC quota.", ex.getMessage());
+		verifyNoInteractions(mockEDucQuotaDao, mockAccessRequirementDao);
 	}
 
 	// --- getSignatureStatus tests ---

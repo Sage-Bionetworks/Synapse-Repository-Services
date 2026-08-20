@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.manager.message.PrincipalNameProvider;
 import org.sagebionetworks.repo.manager.message.TemplatedMessageSender;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.stack.ProdDetector;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.auth.UserStatusDao;
@@ -96,8 +97,7 @@ public class UserStatusManagerImplUnitTest {
 		when(mockUserStatusDao.getInactiveUsersToWarnBatch(expectedWarningThreshold, expectedDisableThreshold, 500))
 				.thenReturn(List.of(userId1, userId2));
 
-		UserInfo sender = new UserInfo(false);
-		sender.setId(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
+		UserInfo sender = new UserInfo(false, BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId()))
 				.thenReturn(sender);
 
@@ -125,8 +125,7 @@ public class UserStatusManagerImplUnitTest {
 		when(mockUserStatusDao.getInactiveUsersToWarnBatch(expectedWarningThreshold, expectedDisableThreshold, 500))
 				.thenReturn(List.of(userId, bootstrapId));
 
-		UserInfo sender = new UserInfo(false);
-		sender.setId(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
+		UserInfo sender = new UserInfo(false, BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId()))
 				.thenReturn(sender);
 
@@ -154,8 +153,7 @@ public class UserStatusManagerImplUnitTest {
 		when(mockUserStatusDao.getInactiveUsersToWarnBatch(expectedWarningThreshold, expectedDisableThreshold, 500))
 				.thenReturn(List.of(userId1, userId2));
 
-		UserInfo sender = new UserInfo(false);
-		sender.setId(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
+		UserInfo sender = new UserInfo(false, BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		when(mockUserManager.getUserInfo(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId()))
 				.thenReturn(sender);
 
@@ -204,8 +202,7 @@ public class UserStatusManagerImplUnitTest {
 	@Test
 	public void testSendInactivityWarningEmail() {
 		long userId = 42L;
-		UserInfo sender = new UserInfo(false);
-		sender.setId(BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId());
+		UserInfo sender = new UserInfo(false, BOOTSTRAP_PRINCIPAL.DATA_ACCESS_NOTFICATIONS_SENDER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
 		// Build the disable date from a fixed local date so the formatted expiryDate is deterministic
 		Date disableDate = Date.from(LocalDate.of(2026, 6, 19).atStartOfDay(ZoneId.systemDefault()).toInstant());
 		when(mockPrincipalNameProvider.getPrincipalName(userId)).thenReturn("Alice");

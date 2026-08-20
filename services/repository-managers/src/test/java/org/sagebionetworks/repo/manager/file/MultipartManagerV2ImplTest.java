@@ -131,8 +131,7 @@ public class MultipartManagerV2ImplTest {
 
 	@BeforeEach
 	public void before() {
-		user = new UserInfo(false);
-		user.setId(123L);
+		user = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
 		user.setRealmAnonymousUserId(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
@@ -415,7 +414,8 @@ public class MultipartManagerV2ImplTest {
 		boolean forceRestart = false;
 
 		// set the user to anonymous
-		user.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		user = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID);
+		user.setRealmAnonymousUserId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 
 		when(mockRequest.getPartSizeBytes()).thenReturn(partSize);
 

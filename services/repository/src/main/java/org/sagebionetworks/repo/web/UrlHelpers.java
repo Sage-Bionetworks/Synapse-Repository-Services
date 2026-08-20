@@ -612,6 +612,7 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID_SUBJECTS = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID+"/subjects";
 
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
+	public static final String ADMIN_ACCESS_REQUIREMENT_EDUC_QUOTA_RESET = ADMIN + ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/eDucQuota/reset";
 
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
@@ -1185,6 +1186,7 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE = DATA_ACCESS_REQUEST + "/{requestId}/signature";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_STATUS = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/status";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_FILE_HANDLE = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/filehandleId";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_QUOTA = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/quota";
 	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";
 	public static final String DATA_ACCESS_SUBMISSION_ID = DATA_ACCESS_SUBMISSION + "/{submissionId}";
 	public static final String USER_ACCESS_APPROVAL_FOR_SUBMISSION = DATA_ACCESS_SUBMISSION_ID + "/userAccessApproval";

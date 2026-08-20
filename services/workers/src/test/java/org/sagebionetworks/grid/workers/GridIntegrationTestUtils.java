@@ -258,9 +258,19 @@ public class GridIntegrationTestUtils {
 				.map(Column::getVectorIndex).orElseThrow(() -> new IllegalStateException("No column: " + columnName));
 	}
 
-	/** The CRDT cell node for a column in a row, located by the column's vector index. */
+	private int columnPosition(GridHeader header, String columnName) {
+		List<Column> columns = header.getOrderedColumns();
+		for (int i = 0; i < columns.size(); i++) {
+			if (columnName.equals(columns.get(i).getName())) {
+				return i;
+			}
+		}
+		throw new IllegalStateException("No column: " + columnName);
+	}
+
+	/** The CRDT cell node for a column in a row, located by the column's position in the header. */
 	private ConstantNode cellNode(GridHeader header, RowView row, String columnName) {
-		return row.getRowObject().getData().getNodes().get(columnVectorIndex(header, columnName));
+		return row.getRowObject().getData().getNodes()[columnPosition(header, columnName)];
 	}
 
 	/** Find the (current) row whose "a" key column equals the given value. */

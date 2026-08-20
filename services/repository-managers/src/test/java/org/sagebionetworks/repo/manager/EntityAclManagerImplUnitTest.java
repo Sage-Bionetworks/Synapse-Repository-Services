@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.RestrictionInformationRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationResponse;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -99,12 +100,9 @@ public class EntityAclManagerImplUnitTest {
 	@BeforeEach
 	public void setUp() throws Exception {
 		
-		nonCertifiedUserInfo = new UserInfo(false);
-		nonCertifiedUserInfo.setId(765432L);
-		nonCertifiedUserInfo.setGroups(Collections.singleton(9999L));
+		nonCertifiedUserInfo = new UserInfo(false, 765432L, AuthorizationConstants.DEFAULT_REALM_ID, Collections.singleton(9999L));
 
-		certifiedUserInfo = new UserInfo(false);
-		certifiedUserInfo.setId(1234567L);
+		certifiedUserInfo = new UserInfo(false, 1234567L, AuthorizationConstants.DEFAULT_REALM_ID);
 		certifiedUserInfo.setCertified(true);
 
     	userId = 111L;
@@ -133,9 +131,7 @@ public class EntityAclManagerImplUnitTest {
     	dockerRepo.setParentId(folderParentId);
     	dockerRepo.setNodeType(EntityType.dockerrepo);
 
-		anonymousUser = new UserInfo(false);
-		anonymousUser.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		anonymousUser.setGroups(ImmutableSet.of(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		anonymousUser = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId(), AuthorizationConstants.DEFAULT_REALM_ID, ImmutableSet.of(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 
 		mockUsersGroups = Sets.newHashSet(444L,555L);
 		nonvisibleIds = Sets.newHashSet(888L,999L);
