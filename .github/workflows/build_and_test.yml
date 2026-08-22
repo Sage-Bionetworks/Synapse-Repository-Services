@@ -6,6 +6,9 @@
 # These parameters can be overridden with repo's action variables:
 #
 # - USER (the 'user' parameter for the Synapse build): defaults to repo' owner.  Should be alphanumeric only.
+#     When set, a short branch-derived suffix ('dev' on develop, 'rel' otherwise) is appended so that a
+#     develop build and a non-develop build can run concurrently against separate stacks.  The combined
+#     name must remain alphanumeric and short, since it becomes part of AWS resource names.
 # - STACK_BUILDER_REPO_OWNER: defaults to Sage-Bionetworks
 # - STACK_BUILDER_BRANCH: defaults to develop
 # - FULL_BUILD: if true, will do a full build, vs. an abbreviated "feature build"
@@ -21,9 +24,10 @@ on:
   push:
     branches: ['*']
 
-# let only one copy of the workflow run at a time
+# let only two copies of the workflow run at a time: one for develop, one for every other branch
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ (github.ref_name == 'develop') && 'develop' || 'release' }}
+  cancel-in-progress: false
 
 jobs:
   build_and_test:
@@ -45,16 +49,27 @@ jobs:
       - name: Determine Pipeline Parameters
         id: pipeline-params
         run: |
+          # capture the current branch as an environment variable
+          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          # The two concurrency lanes must resolve to distinct user names, since the user
+          # keys every resource the build owns: the session-token secret, the source
+          # bucket, the code pipeline and the stack instance itself.  Keep the suffix
+          # short -- the name ends up embedded in length-limited AWS resource names.
+          if [[ $BRANCH == "develop" ]]; then
+            USER_SUFFIX=dev
+          else
+            USER_SUFFIX=rel
+          fi
           # get the 'user' parameter, either from the repo' env or repo' owner if not set
           if [ ${{ vars.USER }} ]; then
-            USER=${{ vars.USER }}
+            USER=${{ vars.USER }}$USER_SUFFIX
           else
+            # Builds from a fork run under the owner's own account and are effectively
+            # never on develop, so they stay on a single unsuffixed lane.
             alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
             USER=$alpha_only_trunc_repo_name
           fi
           echo "USER=$USER" >> $GITHUB_OUTPUT
-          # capture the current branch as an environment variable
-          BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
           # get repo' and branch specifying the version of the stack builder to use
           if [ ${{ vars.STACK_BUILDER_REPO_OWNER }} ]; then
             STACK_BUILDER_REPO_OWNER=${{ vars.STACK_BUILDER_REPO_OWNER }}
