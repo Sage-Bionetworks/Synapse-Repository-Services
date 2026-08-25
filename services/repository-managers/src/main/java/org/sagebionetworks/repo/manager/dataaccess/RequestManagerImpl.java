@@ -143,6 +143,9 @@ public class RequestManagerImpl implements RequestManager{
 			throws NotFoundException {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		// Verify the access requirement exists; a missing one must be a 404 rather than falling
+		// through to a blank new-request stub.
+		accessRequirementDao.get(accessRequirementId);
 		try {
 			return requestDao.getUserOwnCurrentRequest(accessRequirementId, userInfo.getId().toString());
 		} catch (NotFoundException e) {
@@ -202,7 +205,6 @@ public class RequestManagerImpl implements RequestManager{
 			throws NotFoundException, UnauthorizedException {
 		ValidateArgument.required(userInfo, "userInfo");
 		validateRequest(toUpdate);
-		validateEnvelopeCompletion(toUpdate);
 		validateFileHandleAccess(userInfo, toUpdate);
 
 		RequestInterface original = requestDao.getForUpdate(toUpdate.getId());
@@ -225,6 +227,15 @@ public class RequestManagerImpl implements RequestManager{
 				userInfo.getId().toString(), toUpdate.getAccessRequirementId(),
 				SubmissionState.SUBMITTED),
 				"A submission has been created. User needs to cancel the created submission or wait for an ACT member to review it before create another submission.");
+
+		// The eDUC signature envelope id is managed by the server (set when routing for signature
+		// and cleared when cancelling). Preserve the persisted value so a client editing the
+		// request cannot resurrect or change it from a stale copy. This must happen before
+		// validateEnvelopeCompletion so the envelope-completion check runs against the authoritative
+		// envelope id rather than whatever the client sent.
+		toUpdate.setEDucSignatureEnvelopeId(original.getEDucSignatureEnvelopeId());
+
+		validateEnvelopeCompletion(toUpdate);
 
 		toUpdate = prepareUpdateFields(toUpdate, userInfo.getId().toString());
 		RequestInterface result = requestDao.update(toUpdate);
@@ -298,6 +309,7 @@ public class RequestManagerImpl implements RequestManager{
 		for (RequestUserInfo info : page) {
 			AccessRequestSummary summary = new AccessRequestSummary();
 			summary.setRequestId(info.getRequestId());
+			summary.setAccessRequirementId(info.getAccessRequirementId());
 			summary.setAccessRequirementName(info.getAccessRequirementName());
 			summary.setIsEDuc(info.getEnvelopeId() != null);
 			summary.setSubmittedOn(info.getSubmittedOn());

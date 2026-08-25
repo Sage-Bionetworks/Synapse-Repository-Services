@@ -1174,7 +1174,8 @@ public class StackConfigurationImpl implements StackConfiguration {
 	 * @return the markdown service endpoint
 	 */
 	public String getMarkdownServiceEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.markdown.service.endpoint");
+		String template = configuration.getProperty("org.sagebionetworks.markdown.service.endpoint.template");
+		return String.format(template, configuration.getProperty(StackConstants.STACK_PROPERTY_NAME));
 	}
 
 	/**

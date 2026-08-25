@@ -58,7 +58,7 @@ public class TurnLimitAdvisor implements CallAdvisor {
 	 * reads, delegations, and Python transforms) but far below a runaway loop, so it is a coarse safety
 	 * ceiling rather than a tuning target.
 	 */
-	public static final int DEFAULT_MAX_TURNS = 20;
+	public static final int DEFAULT_MAX_TURNS = 50;
 
 	/**
 	 * Placed after the chat-memory advisor ({@link Advisor#DEFAULT_CHAT_MEMORY_PRECEDENCE_ORDER}) and, by

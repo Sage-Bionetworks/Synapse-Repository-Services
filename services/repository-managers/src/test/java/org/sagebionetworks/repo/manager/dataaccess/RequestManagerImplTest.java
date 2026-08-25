@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -234,6 +236,18 @@ public class RequestManagerImplTest {
 		assertEquals(Request.class.getName(), request.getConcreteType());
 	}
 
+	@Test
+	public void testGetRequestForUpdateWithNonExistentAccessRequirement() {
+		// A nonexistent access requirement must be a 404, not a blank new-request stub.
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenThrow(new NotFoundException(""));
+
+		assertThrows(NotFoundException.class, () -> {
+			manager.getRequestForUpdate(mockUser, accessRequirementId);
+		});
+
+		verifyNoInteractions(mockRequestDao);
+	}
+
 	/**
 	 * For this case the current request is a request (not a renewal).
 	 */
@@ -444,6 +458,81 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+	}
+
+	@Test
+	public void testUpdatePreservesEDucSignatureEnvelopeId() {
+		// The persisted (original) request has an envelope id set by the server.
+		request.setEDucSignatureEnvelopeId("server-managed-envelope");
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		// A stale client copy tries to send a different envelope id.
+		toUpdate.setEDucSignatureEnvelopeId("stale-envelope");
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The server-managed value from the original is preserved, not the client's stale value.
+		assertEquals("server-managed-envelope", captor.getValue().getEDucSignatureEnvelopeId());
+	}
+
+	@Test
+	public void testUpdateValidatesEnvelopeCompletionAgainstServerEnvelopeId() {
+		// The persisted request has an in-flight (not completed) eDUC envelope.
+		request.setEDucSignatureEnvelopeId("server-managed-envelope");
+		EDucSignatureStatus status = new EDucSignatureStatus();
+		status.setDucStatus(EDucStatusEnum.sent);
+		when(mockDocuSignClient.getEnvelopeStatus("server-managed-envelope"))
+				.thenReturn(new EnvelopeStatusResult(status, List.of()));
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+
+		// A stale client omits the envelope id and tries to attach a signed DUC document. The
+		// completion check must run against the server's (in-flight) envelope, not the client's
+		// null, so the update is rejected.
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setEDucSignatureEnvelopeId(null);
+		toUpdate.setDucFileHandleId("777");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.update(mockUser, toUpdate));
+
+		assertEquals("Cannot set ducFileHandleId: the eDUC envelope has not been completed.", ex.getMessage());
+		verify(mockRequestDao, never()).update(any());
+	}
+
+	@Test
+	public void testUpdateDoesNotResurrectClearedEDucSignatureEnvelopeId() {
+		// The persisted (original) request has no envelope id (e.g. signature was cancelled).
+		request.setEDucSignatureEnvelopeId(null);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		// A stale client copy still carries the old envelope id.
+		toUpdate.setEDucSignatureEnvelopeId("stale-envelope");
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The cleared value is not resurrected from the stale client copy.
+		assertNull(captor.getValue().getEDucSignatureEnvelopeId());
 	}
 
 	@Test
@@ -735,6 +824,7 @@ public class RequestManagerImplTest {
 
 		RequestUserInfo info = new RequestUserInfo();
 		info.setRequestId("100");
+		info.setAccessRequirementId("55");
 		info.setAccessRequirementName("AR Name");
 		info.setSubmissionStatus(SubmissionState.APPROVED);
 		info.setEnvelopeId(null);
@@ -751,6 +841,7 @@ public class RequestManagerImplTest {
 		assertEquals(1, result.getResults().size());
 		AccessRequestSummary summary = result.getResults().get(0);
 		assertEquals("100", summary.getRequestId());
+		assertEquals("55", summary.getAccessRequirementId());
 		assertEquals("AR Name", summary.getAccessRequirementName());
 		assertEquals(AccessRequestStatusEnum.approved, summary.getStatus());
 		assertEquals(false, summary.getIsEDuc());

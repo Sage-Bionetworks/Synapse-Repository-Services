@@ -66,7 +66,7 @@ UserInfo userInfo = (UserInfo) AgentToolContextKey.USER_INFO.get(toolContext);
 String sessionId = CodeSessionSupplier.resolveSessionId(toolContext);
 ```
 
-`CodeSessionSupplier.resolveSessionId(...)` invokes the lazy code-session supplier when one is installed (interactive Curie) and otherwise falls back to the already-resolved id under {@code AgentToolContextKey.CODE_SESSION_ID} (batch and delegated-specialist paths).
+`CodeSessionSupplier.resolveSessionId(...)` invokes the `CodeSessionSupplier` installed under `AgentToolContextKey.CODE_SESSION_SUPPLIER` — a lazy, memoizing supplier on the interactive Curie path, or a constant supplier over an already-started session (`CodeSessionSupplier.of(sessionId)`) on the batch and delegated-specialist paths. Never read a session-id key directly; always resolve through this method.
 
 ### `ToolResponse<T>` for structured results with error handling
 

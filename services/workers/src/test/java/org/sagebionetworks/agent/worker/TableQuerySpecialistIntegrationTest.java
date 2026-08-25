@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.specialist.tablequery.TableQuerySpecialistFactory;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableEntityManager;
@@ -112,7 +113,7 @@ public class TableQuerySpecialistIntegrationTest {
 		Map<String, Object> context = new HashMap<>();
 		AgentToolContextKey.USER_INFO.put(context, adminUser);
 		if (sessionId != null) {
-			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
+			AgentToolContextKey.CODE_SESSION_SUPPLIER.put(context, CodeSessionSupplier.of(sessionId));
 		}
 		return new ToolContext(context);
 	}

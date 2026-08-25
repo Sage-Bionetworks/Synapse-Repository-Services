@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.SampleSheetSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.RecordSet;
@@ -94,11 +95,11 @@ public class SampleSheetGenerationSubWorker implements ComputeTaskSubWorker<Samp
 					+ "targetSchemaId={}, sessionId={}", task.getTaskId(), fileViewId, recordSetId, targetSchemaId,
 					sessionId);
 			callback.updateProgress("Running the sample sheet supervisor", 0L, 100L);
-			// The batch path runs against an already-started session, so the id is placed directly under
-			// CODE_SESSION_ID (no lazy supplier) for the supervisor's specialists to resolve.
+			// The batch path runs against an already-started session, so a constant supplier over that
+			// id is installed for the supervisor's specialists to resolve.
 			ToolContext toolContext = new ToolContext(Map.of(
 					AgentToolContextKey.USER_INFO.getKey(), user,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 			String supervisorResponse = supervisorFactory.create()
 					.chat(buildSupervisorMessage(fileViewId, targetSchemaId), toolContext);
 			LOG.info("Sample sheet supervisor for task {} (session {}) returned: {}", task.getTaskId(), sessionId,

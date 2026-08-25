@@ -5,6 +5,10 @@
             "type": "string",
             "description": "Id of the data access request"
         },
+        "accessRequirementId": {
+            "type": "string",
+            "description": "Id of the related access requirement"
+        },
         "accessRequirementName": {
             "type": "string",
             "description": "Name of the related access requirement"

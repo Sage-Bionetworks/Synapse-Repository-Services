@@ -123,6 +123,18 @@ public interface GridDao {
      * @return
      */
     Optional<GridConnectionInfo> getSingletonConnection(String sessionId, EventSource source);
+
+    /**
+     * Get the connection a given user holds for the given session and event source.
+     * Unlike {@link #getSingletonConnection(String, EventSource)} this works for
+     * non-singleton sources, where each user has at most one connection per source.
+     *
+     * @param sessionId
+     * @param userId
+     * @param source
+     * @return
+     */
+    Optional<GridConnectionInfo> getUserConnection(String sessionId, Long userId, EventSource source);
     
 	/**
 	 * Remove an actvie connection.

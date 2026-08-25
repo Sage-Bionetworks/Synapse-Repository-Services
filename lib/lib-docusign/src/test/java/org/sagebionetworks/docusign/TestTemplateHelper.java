@@ -13,7 +13,6 @@ import com.docusign.esign.model.SignHere;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.Text;
-import com.docusign.esign.model.Title;
 
 class TestTemplateHelper {
 
@@ -41,9 +40,6 @@ class TestTemplateHelper {
 		Text institution = new Text();
 		institution.setTabLabel("signing_official_institution");
 		tabs.setTextTabs(List.of(institution));
-		Title title = new Title();
-		title.setTabLabel("signing_official_title");
-		tabs.setTitleTabs(List.of(title));
 		EmailAddress email = new EmailAddress();
 		email.setTabLabel("signing_official_email");
 		tabs.setEmailAddressTabs(List.of(email));
@@ -67,9 +63,6 @@ class TestTemplateHelper {
 		FullName name = new FullName();
 		name.setTabLabel("principal_investigator_name");
 		tabs.setFullNameTabs(List.of(name));
-		Title title = new Title();
-		title.setTabLabel("principal_investigator_title");
-		tabs.setTitleTabs(List.of(title));
 		EmailAddress email = new EmailAddress();
 		email.setTabLabel("principal_investigator_email");
 		tabs.setEmailAddressTabs(List.of(email));

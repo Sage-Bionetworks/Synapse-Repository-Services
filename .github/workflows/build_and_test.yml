@@ -20,13 +20,23 @@ name: main
 on:
   push:
     branches: ['*']
+  pull_request:
+    branches: [develop]
 
-# let only one copy of the workflow run at a time
+# let only one copy of the workflow run at a time; the rest wait their turn in FIFO order
+# instead of being cancelled. Dependabot queues separately so a batch of dependency bumps
+# never holds up a developer's build, and never runs two at once against the shared
+# Dependabot stack
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}${{ github.event.pull_request.user.login == 'dependabot[bot]' && '-dependabot' || '' }}
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   build_and_test:
+    # Pull request runs are reserved for Dependabot's dependency bumps against develop;
+    # every other pull request is already covered by the push trigger on its branch.
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login == 'dependabot[bot]'
     permissions:
       contents: read
       id-token: write
@@ -51,6 +61,10 @@ jobs:
           else
             alpha_only_trunc_repo_name=$(echo "${GITHUB_REPOSITORY_OWNER//[^[:alnum:]]/}" | tr '[:upper:]' '[:lower:]' | cut -c1-7)
             USER=$alpha_only_trunc_repo_name
+          fi
+          # give Dependabot its own stack so its builds never collide with another build
+          if [[ "${{ github.event.pull_request.user.login }}" == "dependabot[bot]" ]]; then
+            USER=${USER}bot
           fi
           echo "USER=$USER" >> $GITHUB_OUTPUT
           # capture the current branch as an environment variable

@@ -17,6 +17,7 @@ import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.specialist.jsonschema.JsonSchemaSpecialistFactory;
 import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -83,7 +84,7 @@ public class JsonSchemaSpecialistIntegrationTest {
 		Map<String, Object> context = new HashMap<>();
 		AgentToolContextKey.USER_INFO.put(context, adminUser);
 		if (sessionId != null) {
-			AgentToolContextKey.CODE_SESSION_ID.put(context, sessionId);
+			AgentToolContextKey.CODE_SESSION_SUPPLIER.put(context, CodeSessionSupplier.of(sessionId));
 		}
 		return new ToolContext(context);
 	}

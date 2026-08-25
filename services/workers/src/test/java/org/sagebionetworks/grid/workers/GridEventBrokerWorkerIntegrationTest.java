@@ -449,7 +449,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 	/**
 	 * Reproduction test for the bug where applySnapshot() calls deleteReplica(), which cascade-deletes
 	 * GRID_REPLICA_MESSAGE (the active message chain). The hub then sends patches from non-INTERNAL replicas
-	 * (e.g. USER_SUPPORT from a CSV import), but the chain is gone so the patches are permanently discarded.
+	 * (e.g. IMPORT from a CSV import), but the chain is gone so the patches are permanently discarded.
 	 * The export then blocks forever because getCurrentClockIfAllPatchesApplied() finds those patches missing.
 	 *
 	 * Without the fix: the export job gets stuck in PROCESSING (RecoverableMessageException loop).
@@ -485,7 +485,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 			return Pair.create(op.isPresent(), null);
 		});
 
-		// Run a CSV import — this creates patches in GRID_PATCH from the USER_SUPPORT replica
+		// Run a CSV import — this creates patches in GRID_PATCH from the IMPORT replica
 		// (a different replica ID than INTERNAL). These patches will be missing from the
 		// snapshot clock, so the hub must send them in the second half of the sync cycle.
 		csvContent = "integer_column,string_column\n4,row_four\n";
@@ -514,11 +514,11 @@ public class GridEventBrokerWorkerIntegrationTest {
 		repositoryMessagePublisher.publishBatchToTopic(ObjectType.GRID_SESSION, List.of(change));
 
 		// The export calls getGridHeaderOrThrow() -> getCurrentClockIfAllPatchesApplied(),
-		// which requires ALL patches (INTERNAL + USER_SUPPORT) to be applied.
-		// Without the fix: applySnapshot() deletes the message chain, the hub's USER_SUPPORT
+		// which requires ALL patches (INTERNAL + IMPORT) to be applied.
+		// Without the fix: applySnapshot() deletes the message chain, the hub's IMPORT
 		// patches are discarded (GridReplicaWorker catches the IllegalArgumentException and
 		// deletes the SQS message), and the export loops forever on RecoverableMessageException.
-		// With the fix: the chain is preserved, USER_SUPPORT patches are applied in the same
+		// With the fix: the chain is preserved, IMPORT patches are applied in the same
 		// sync cycle, and the export succeeds.
 		GridRecordSetExportResponse exportResponse = asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new GridRecordSetExportRequest().setSessionId(session.getSessionId()),
@@ -1372,8 +1372,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 		assertNotNull(importResults);
 
 		// Reproduce PLFM-9571: a team member submits a CSV import for a session created by a different team member.
-		// The USER_SUPPORT connection is created for the session creator, so it would not be found for the importing
-		// user, causing a RecoverableMessageException and an infinite retry loop.
+		// The import publishes under a per-user IMPORT connection, created on first use via
+		// GridManager#getOrCreateUserConnection, so a different importing user is served without error.
 		UserInfo anotherUser = createUser();
 		Team curatorsTeam = teamManager.create(admin, new Team().setName(UUID.randomUUID().toString()));
 		teamManager.addMember(admin, curatorsTeam.getId(), anotherUser);
@@ -1385,7 +1385,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 			a.getResourceAccess().add(createResourceAccess(Long.parseLong(curatorsTeam.getId()), ACCESS_TYPE.UPDATE));
 		});
 
-		// Create a new session owned by the team (admin creates the session, USER_SUPPORT connection for admin)
+		// Create a new session owned by the team (admin creates the session)
 		GridSession teamSession = asynchronousJobWorkerHelper.assertJobResponse(admin,
 				new CreateGridRequest().setRecordSetId(recordSet.getId()).setOwnerPrincipalId(curatorsTeam.getId()),
 				(CreateGridResponse response) -> {

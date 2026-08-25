@@ -3577,7 +3577,6 @@ public interface SynapseClient extends BaseClient {
 	EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException;
 
 	/**
-<<<<<<< HEAD
 	 * Route the eDUC associated with a data access request for electronic signature.
 	 *
 	 * @param requestId the ID of the data access request

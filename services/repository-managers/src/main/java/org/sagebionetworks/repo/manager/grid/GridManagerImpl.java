@@ -74,6 +74,7 @@ import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
 import org.sagebionetworks.repo.model.grid.PatchInfo;
+import org.sagebionetworks.repo.model.grid.RequestOrigin;
 import org.sagebionetworks.repo.model.grid.internal.Connection;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
@@ -830,18 +831,7 @@ public class GridManagerImpl implements GridManager {
 		GridHeader header = gridReplicaViewManager
 				.readHeader(sessionId, internalConnection.getReplicaId(), replicaId)
 				.orElseThrow(() -> new RecoverableMessageException("Grid session does not exist."));
-		GridConnectionInfo publishingConnection = gridDao.getConnection(sessionId, replicaId)
-				.orElseGet(() -> {
-					String connectionId = UUID.randomUUID().toString();
-					gridDao.createConnection(new GridConnectionInfo()
-							.setConnectionId(connectionId)
-							.setSessionId(sessionId)
-							.setReplicaId(replicaId)
-							.setCreatedBy(user.getId())
-							.setSource(EventSource.API));
-					return gridDao.getConnection(sessionId, replicaId)
-							.orElseThrow(() -> new IllegalStateException("Failed to create connection."));
-				});
+		GridConnectionInfo publishingConnection = getOrCreateConnection(sessionId, replicaId, user.getId(),	EventSource.API);
 		// Re-serialize to JSON so that the existing raw-JSON processing logic in
 		// executeGridUpdate can distinguish absent vs. null in LiteralSetValue.value.
 		String updateRequestJson = JDOSecondaryPropertyUtils.createJSONFromObject(request.getUpdateRequest());
@@ -856,4 +846,36 @@ public class GridManagerImpl implements GridManager {
 		return new GridUpdateJobResponse().setUpdateResponse(updateResponse);
 	}
 
+	@WriteTransaction
+	@Override
+	public GridConnectionInfo getOrCreateUserConnection(String sessionId, UserInfo user, EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(user, "user");
+		ValidateArgument.required(source, "source");
+		ValidateArgument.requirement(!source.isSingleton()
+				&& RequestOrigin.USER.equals(source.getRequestOrigin()),
+				"The source must be a non-singleton, user-origin EventSource.");
+		return gridDao.getUserConnection(sessionId, user.getId(), source).orElseGet(() -> {
+			GridReplica replica = gridReplicaConnectionManager.createReplica(user.getId(), sessionId, false, source);
+			return getOrCreateConnection(sessionId, replica.getReplicaId(), user.getId(), source);
+		});
+	}
+
+	GridConnectionInfo getOrCreateConnection(String sessionId, Long replicaId, Long userId,
+			EventSource source) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(replicaId, "replicaId");
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(source, "source");
+		return gridDao.getConnection(sessionId, replicaId).orElseGet(() -> {
+			gridDao.createConnection(new GridConnectionInfo()
+					.setConnectionId(UUID.randomUUID().toString())
+					.setSessionId(sessionId)
+					.setReplicaId(replicaId)
+					.setCreatedBy(userId)
+					.setSource(source));
+			return gridDao.getConnection(sessionId, replicaId)
+					.orElseThrow(() -> new IllegalStateException("Failed to create connection."));
+		});
+	}
 }

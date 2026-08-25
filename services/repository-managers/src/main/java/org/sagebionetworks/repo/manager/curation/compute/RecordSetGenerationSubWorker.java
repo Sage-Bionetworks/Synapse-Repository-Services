@@ -12,6 +12,7 @@ import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.EntityChildrenRequest;
@@ -114,11 +115,11 @@ public class RecordSetGenerationSubWorker implements ComputeTaskSubWorker<Record
 			LOG.info("Starting RecordSet generation for task {}: inputFolderId={}, recordSetId={}, targetSchemaId={}, "
 					+ "sessionId={}", task.getTaskId(), properties.getFolderId(), recordSetId, targetSchemaId, sessionId);
 			callback.updateProgress("Running the RecordSet generation supervisor", 0L, 100L);
-			// The batch path runs against an already-started session, so the id is placed directly under
-			// CODE_SESSION_ID (no lazy supplier) for the supervisor's specialists to resolve.
+			// The batch path runs against an already-started session, so a constant supplier over that
+			// id is installed for the supervisor's specialists to resolve.
 			ToolContext toolContext = new ToolContext(Map.of(
 					AgentToolContextKey.USER_INFO.getKey(), user,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 			String supervisorResponse = supervisorFactory.create().chat(buildSupervisorMessage(properties.getFolderId(),
 					targetSchemaId, properties.getInstructions()), toolContext);
 			LOG.info("RecordSet generation supervisor for task {} (session {}) returned: {}", task.getTaskId(),

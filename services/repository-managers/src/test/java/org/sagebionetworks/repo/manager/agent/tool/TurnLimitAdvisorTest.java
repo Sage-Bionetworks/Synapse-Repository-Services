@@ -170,7 +170,7 @@ public class TurnLimitAdvisorTest {
 	public void testDefaultsAndMetadata() {
 		TurnLimitAdvisor advisor = new TurnLimitAdvisor();
 		assertEquals(TurnLimitAdvisor.DEFAULT_MAX_TURNS, advisor.getMaxTurns());
-		assertEquals(20, advisor.getMaxTurns());
+		assertEquals(50, advisor.getMaxTurns());
 		assertEquals(Advisor.DEFAULT_CHAT_MEMORY_PRECEDENCE_ORDER + 100, advisor.getOrder());
 		assertEquals("Turn Limit Advisor", advisor.getName());
 	}

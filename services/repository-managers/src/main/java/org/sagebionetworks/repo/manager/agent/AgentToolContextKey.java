@@ -16,16 +16,11 @@ public enum AgentToolContextKey {
 	USER_INFO("userInfo"),
 
 	/**
-	 * An already-resolved AWS Bedrock AgentCore code interpreter session id, placed directly by the
-	 * batch sub-workers and by delegated specialists. The interactive Curie path installs a
-	 * {@link #CODE_SESSION_SUPPLIER} instead; {@link CodeSessionSupplier#resolveSessionId(ToolContext)}
-	 * reads from either source.
-	 */
-	CODE_SESSION_ID("codeSessionId"),
-
-	/**
-	 * A {@link CodeSessionSupplier} that lazily creates and memoizes the code interpreter session
-	 * (interactive Curie path).
+	 * A {@link CodeSessionSupplier} for the AWS Bedrock AgentCore code interpreter session the agent's
+	 * tools execute against. The interactive Curie path installs a lazy, memoizing supplier; the batch
+	 * sub-workers and delegated specialists install a constant supplier over an already-started session
+	 * (see {@link CodeSessionSupplier#of(String)}). Tools read it via
+	 * {@link CodeSessionSupplier#resolveSessionId(ToolContext)}.
 	 */
 	CODE_SESSION_SUPPLIER("codeSessionSupplier"),
 
@@ -42,10 +37,10 @@ public enum AgentToolContextKey {
 	TRACE_CALLBACK("agentTraceCallback"),
 
 	/**
-	 * The durable Synapse chat session id of an interactive Curie turn. Distinct from
-	 * {@link #CODE_SESSION_ID} (an AWS code interpreter session): the {@code CurieSupervisor} uses it
-	 * both to derive its cross-machine conversation id and to build the lazy code-session supplier it
-	 * installs under {@link #CODE_SESSION_SUPPLIER}.
+	 * The durable Synapse chat session id of an interactive Curie turn. Distinct from the AWS code
+	 * interpreter session: the {@code CurieSupervisor} uses it both to derive its cross-machine
+	 * conversation id and to build the lazy code-session supplier it installs under
+	 * {@link #CODE_SESSION_SUPPLIER}.
 	 */
 	CHAT_SESSION_ID("chatSessionId"),
 

@@ -78,7 +78,11 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
 			EnvelopeIdsRequest request = new EnvelopeIdsRequest();
 			request.setEnvelopeIds(envelopeIds);
-			EnvelopesInformation info = envelopesApi.listStatus(config.getAccountId(), request);
+			// The status endpoint only reads the envelope ids from the request body when the
+			// envelope_ids query parameter is set to "request_body"; otherwise DocuSign returns 400.
+			EnvelopesApi.ListStatusOptions options = envelopesApi.new ListStatusOptions();
+			options.setEnvelopeIds("request_body");
+			EnvelopesInformation info = envelopesApi.listStatus(config.getAccountId(), request, options);
 			return info.getEnvelopes() != null ? info.getEnvelopes() : Collections.<Envelope>emptyList();
 		});
 	}

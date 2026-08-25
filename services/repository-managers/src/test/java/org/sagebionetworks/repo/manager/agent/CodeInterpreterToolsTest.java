@@ -45,7 +45,7 @@ public class CodeInterpreterToolsTest {
 		String script = "print(2 + 2)";
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(
-				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 
 		when(codeInterpreterClient.executeCode(sessionId, "python", script)).thenReturn(codeExecutionResult);
 		when(codeExecutionResult.isError()).thenReturn(false);
@@ -63,7 +63,7 @@ public class CodeInterpreterToolsTest {
 		String script = "raise ValueError('bad')";
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(
-				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 
 		when(codeInterpreterClient.executeCode(sessionId, "python", script)).thenReturn(codeExecutionResult);
 		when(codeExecutionResult.isError()).thenReturn(true);
@@ -114,7 +114,7 @@ public class CodeInterpreterToolsTest {
 		String script = "print('x' * 20000)";
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(
-				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 
 		String longOutput = "x".repeat(20_000);
 		when(codeInterpreterClient.executeCode(sessionId, "python", script)).thenReturn(codeExecutionResult);
@@ -156,7 +156,7 @@ public class CodeInterpreterToolsTest {
 	public void testRunPythonCallbackWithValidJson() {
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(
-				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 		when(codeInterpreterClient.executeCode(sessionId, "python", "print(2 + 2)")).thenReturn(codeExecutionResult);
 		when(codeExecutionResult.isError()).thenReturn(false);
 		when(codeExecutionResult.textOutput()).thenReturn("4\n");
@@ -172,7 +172,7 @@ public class CodeInterpreterToolsTest {
 	public void testRunPythonCallbackWithUnescapedControlCharacter() {
 		String sessionId = "testSession123";
 		ToolContext toolContext = new ToolContext(
-				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo, AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 		// A raw (unescaped) newline inside the JSON string value is technically invalid JSON, and the
 		// model routinely emits a multi-line script this way. The base normalizes it through the lenient
 		// mapper before parsing, so the newline is preserved in the script rather than costing a round trip.
