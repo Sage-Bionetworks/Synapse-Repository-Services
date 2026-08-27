@@ -351,6 +351,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
+	public void unbindOIDCIdentity(Long userId, OAuthProvider provider) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (userInfo.isUserAnonymous()) {
+			throw new UnauthorizedException("User ID is required.");
+		}
+		userManager.deleteOidcBinding(userInfo.getId(), provider);
+	}
+
+	@Override
 	public LoginResponse login(LoginRequest request, String tokenIssuer) {
 		return authManager.login(request, tokenIssuer);
 	}

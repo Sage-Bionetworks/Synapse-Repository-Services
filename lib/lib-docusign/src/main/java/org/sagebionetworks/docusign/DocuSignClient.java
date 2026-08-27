@@ -380,6 +380,8 @@ public class DocuSignClient {
 				EDucSignerStatus signerStatus = new EDucSignerStatus();
 				signerStatus.setName(signer.getName());
 				signerStatus.setStatus(toEDucSignerStatusEnum(signer.getStatus()));
+				signerStatus.setDeclinedReason(signer.getDeclinedReason());
+				signerStatus.setDeclinedOn(parseDate(signer.getDeclinedDateTime()));
 				signerStatuses.add(signerStatus);
 				signerEmails.add(signer.getEmail());
 			}

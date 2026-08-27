@@ -751,7 +751,37 @@ public class UserManagerImplUnitTest {
 		
 		assertEquals("The binding id is required.", result);
 	}
-	
+
+	@Test
+	public void testDeleteOidcBindingForProvider() {
+		// Call under test
+		userManager.deleteOidcBinding(123L, OAuthProvider.GOOGLE_OAUTH_2_0);
+
+		verify(mockPrincipalOidcDao).deleteBindingForProvider(123L, OAuthProvider.GOOGLE_OAUTH_2_0);
+	}
+
+	@Test
+	public void testDeleteOidcBindingForProviderWithNoUserId() {
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.deleteOidcBinding(null, OAuthProvider.GOOGLE_OAUTH_2_0);
+		}).getMessage();
+
+		assertEquals("The user id is required.", result);
+	}
+
+	@Test
+	public void testDeleteOidcBindingForProviderWithNoProvider() {
+
+		String result = assertThrows(IllegalArgumentException.class, () -> {
+			// Call under test
+			userManager.deleteOidcBinding(123L, null);
+		}).getMessage();
+
+		assertEquals("The provider is required.", result);
+	}
+
 	@Test
 	public void testClearOidcBindings() {
 		userManager.clearOidcBindings(123L);

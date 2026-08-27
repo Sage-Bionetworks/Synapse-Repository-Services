@@ -88,6 +88,16 @@ public interface AuthenticationService {
 	void bindOIDCIdentity(Long userId, OAuthValidationRequest validationRequest);
 
 	/**
+	 * Removes the linked OIDC identity for the given user and provider, undoing
+	 * {@link #bindOIDCIdentity}. Works whether the identity is alias-backed (ORCID or Google) or
+	 * not; the underlying alias, if any, is left in place.
+	 *
+	 * @param userId
+	 * @param provider
+	 */
+	void unbindOIDCIdentity(Long userId, OAuthProvider provider);
+
+	/**
 	 * Authenticates username and password combination
 	 * User can use an authentication receipt from previous login to skip extra security checks
 	 * 

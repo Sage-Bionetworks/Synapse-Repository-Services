@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.educ.EDucTemplate;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 
 import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucSignerStatus;
 import org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 
@@ -299,9 +300,15 @@ public class DocuSignClientTest {
 		signer2.setName("Jane Admin");
 		signer2.setEmail("so@university.edu");
 		signer2.setStatus("sent");
+		Signer signer3 = new Signer();
+		signer3.setName("Carl Collaborator");
+		signer3.setEmail("collab@university.edu");
+		signer3.setStatus("declined");
+		signer3.setDeclinedReason("I do not agree to these terms.");
+		signer3.setDeclinedDateTime("2026-07-03T09:15:00Z");
 
 		Recipients recipients = new Recipients();
-		recipients.setSigners(List.of(signer1, signer2));
+		recipients.setSigners(List.of(signer1, signer2, signer3));
 
 		Envelope envelope = new Envelope();
 		envelope.setStatus("sent");
@@ -317,13 +324,23 @@ public class DocuSignClientTest {
 		assertEquals(EDucStatusEnum.sent, status.getDucStatus());
 		assertNotNull(status.getCreatedOn());
 		assertNotNull(status.getModifiedOn());
-		assertEquals(2, status.getSignerStatus().size());
+		assertEquals(3, status.getSignerStatus().size());
 		assertEquals("Dr. Jones", status.getSignerStatus().get(0).getName());
 		assertEquals(EDucSignerStatusEnum.done, status.getSignerStatus().get(0).getStatus());
+		// A signer who has not declined has no reason or declined date.
+		assertNull(status.getSignerStatus().get(0).getDeclinedReason());
+		assertNull(status.getSignerStatus().get(0).getDeclinedOn());
 		assertEquals("Jane Admin", status.getSignerStatus().get(1).getName());
 		assertEquals(EDucSignerStatusEnum.pending, status.getSignerStatus().get(1).getStatus());
 
-		assertEquals(List.of("pi@university.edu", "so@university.edu"), result.signerEmails());
+		// The declined signer carries the reason and the declined date/time.
+		EDucSignerStatus declined = status.getSignerStatus().get(2);
+		assertEquals("Carl Collaborator", declined.getName());
+		assertEquals(EDucSignerStatusEnum.declined, declined.getStatus());
+		assertEquals("I do not agree to these terms.", declined.getDeclinedReason());
+		assertEquals(Date.from(Instant.parse("2026-07-03T09:15:00Z")), declined.getDeclinedOn());
+
+		assertEquals(List.of("pi@university.edu", "so@university.edu", "collab@university.edu"), result.signerEmails());
 	}
 
 	@Test

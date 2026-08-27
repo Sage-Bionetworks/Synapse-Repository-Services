@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.principal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 import java.util.Optional;
@@ -115,6 +116,36 @@ public class PrincipalOIDCBindingDaoImplTest {
 		assertFalse(dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, subject).isPresent());
 	}
 	
+	@Test
+	public void testDeleteBindingForProvider() {
+
+		// an alias-backed binding for one provider and a non-alias binding (null aliasId) for another
+		dao.bindPrincipalToSubject(alias.getPrincipalId(), alias.getAliasId(), OAuthProvider.GOOGLE_OAUTH_2_0, "google-subject");
+		dao.bindPrincipalToSubject(alias.getPrincipalId(), null, OAuthProvider.SAGE_BIONETWORKS, "sage-subject");
+
+		// Call under test — removes the alias-backed identity
+		int removed = dao.deleteBindingForProvider(alias.getPrincipalId(), OAuthProvider.GOOGLE_OAUTH_2_0);
+
+		assertEquals(1, removed);
+		assertFalse(dao.findBindingForSubject(OAuthProvider.GOOGLE_OAUTH_2_0, "google-subject").isPresent());
+		// the other provider's binding is untouched
+		assertTrue(dao.findBindingForSubject(OAuthProvider.SAGE_BIONETWORKS, "sage-subject").isPresent());
+
+		// Call under test — removes the non-alias identity as well
+		removed = dao.deleteBindingForProvider(alias.getPrincipalId(), OAuthProvider.SAGE_BIONETWORKS);
+
+		assertEquals(1, removed);
+		assertFalse(dao.findBindingForSubject(OAuthProvider.SAGE_BIONETWORKS, "sage-subject").isPresent());
+	}
+
+	@Test
+	public void testDeleteBindingForProviderWithNoBinding() {
+		// Call under test — nothing to remove is not an error
+		int removed = dao.deleteBindingForProvider(alias.getPrincipalId(), OAuthProvider.GOOGLE_OAUTH_2_0);
+
+		assertEquals(0, removed);
+	}
+
 	@Test
 	public void testSetBindingAlias() {
 		String subject = "subject";

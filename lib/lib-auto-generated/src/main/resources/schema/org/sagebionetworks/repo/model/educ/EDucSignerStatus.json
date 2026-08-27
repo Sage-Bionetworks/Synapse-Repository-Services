@@ -12,6 +12,15 @@
         "status": {
             "$ref": "org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum",
             "description": "status of the signer"
+        },
+        "declinedReason": {
+            "type": "string",
+            "description": "The reason the signer gave for declining to sign, if they declined; otherwise null"
+        },
+        "declinedOn": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The date/time the signer declined to sign, if they declined; otherwise null"
         }
     }
 }

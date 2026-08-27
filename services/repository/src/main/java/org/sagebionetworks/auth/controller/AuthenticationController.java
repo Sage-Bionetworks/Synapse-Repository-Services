@@ -362,6 +362,26 @@ public class AuthenticationController {
 			throws Exception {
 		authenticationService.bindOIDCIdentity(userId, request);
 	}
+
+	/**
+	 * Remove the linked OIDC identity for the given identity provider, undoing
+	 * {@link #bindOIDCIdentityToAccount}. This works whether the identity is an alias (an ORCID or
+	 * Google email address) or a non-alias identity; the underlying alias, if any, is left in place.
+	 *
+	 * @param userId
+	 * @param provider the OAuth provider whose linked identity should be removed
+	 * @throws Exception
+	 */
+	@RequiredScope({modify,authorize})
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.AUTH_OAUTH_2_IDENTITY, method = RequestMethod.DELETE)
+	public void unbindOIDCIdentityFromAccount(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = true) String provider)
+			throws Exception {
+		OAuthProvider providerEnum = OAuthProvider.valueOf(provider);
+		authenticationService.unbindOIDCIdentity(userId, providerEnum);
+	}
 	
 	/**
 	 * After a user has been authenticated at an OAuthProvider's web page, the

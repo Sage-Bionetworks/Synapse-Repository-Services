@@ -2107,6 +2107,16 @@ public interface SynapseClient extends BaseClient {
 	void bindOIDCIdentity(OAuthValidationRequest request) throws SynapseException;
 
 	/**
+	 * Remove the linked OIDC identity for the given identity provider, undoing
+	 * {@link #bindOIDCIdentity}. Works whether the identity is an alias (ORCID or Google email) or
+	 * a non-alias identity.
+	 *
+	 * @param provider
+	 * @throws SynapseException
+	 */
+	void unbindOIDCIdentity(OAuthProvider provider) throws SynapseException;
+
+	/**
 	 * Remove an alias associated with an account via the OAuth mechanism.
 	 * 
 	 * @param provider

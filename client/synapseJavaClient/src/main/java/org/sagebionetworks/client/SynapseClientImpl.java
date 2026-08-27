@@ -4673,6 +4673,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public void unbindOIDCIdentity(OAuthProvider provider) throws SynapseException {
+		ValidateArgument.required(provider, "provider");
+		try {
+			String url = AUTH_OAUTH_2_IDENTITY + "?provider=" + URLEncoder.encode(provider.name(), "UTF-8");
+			deleteUri(getAuthEndpoint(), url);
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
 	public void unbindOAuthProvidersUserId(OAuthProvider provider, String alias) throws SynapseException {
 		ValidateArgument.required(provider, "provider");
 		ValidateArgument.required(alias, "alias");
