@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
@@ -269,6 +270,7 @@ public class EDucManager {
 		ValidateArgument.required(pi, "principalInvestigator");
 		ValidateArgument.required(pi.getUserId(), "principalInvestigator.userId");
 		ValidateArgument.requiredNotBlank(pi.getName(), "principalInvestigator.name");
+		ValidateArgument.requiredNotBlank(pi.getInstitutionalEmail(), "principalInvestigator.institutionalEmail");
 
 		SigningOfficial so = request.getSigningOfficial();
 		ValidateArgument.required(so, "signingOfficial");
@@ -452,12 +454,19 @@ public class EDucManager {
 		status.setIncludesRequestChanges(storedHash != null && storedHash.equals(computeEDucContentHash(request)));
 
 		if (status.getSignerStatus() != null) {
+			PrincipalInvestigator pi = request.getPrincipalInvestigator();
 			for (int i = 0; i < status.getSignerStatus().size(); i++) {
 				EDucSignerStatus signerStatus = status.getSignerStatus().get(i);
 				String email = signerEmails.get(i);
-				PrincipalAlias principalAlias = principalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL);
-				if (principalAlias != null) {
-					signerStatus.setUserId(principalAlias.getPrincipalId().toString());
+				// The principal investigator is addressed at their institutional email, which need
+				// not be a Synapse email alias, so take their user ID straight from the request.
+				if (pi != null && Strings.CI.equals(email, pi.getInstitutionalEmail())) {
+					signerStatus.setUserId(pi.getUserId());
+				} else {
+					PrincipalAlias principalAlias = principalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL);
+					if (principalAlias != null) {
+						signerStatus.setUserId(principalAlias.getPrincipalId().toString());
+					}
 				}
 			}
 		}
@@ -558,17 +567,17 @@ public class EDucManager {
 
 	/**
 	 * Builds the map from DocuSign role name to the recipient's email and name. Every role must
-	 * have both before the envelope can be sent. The signing official and principal investigator
-	 * names come from the request (their presence is validated in {@link #createDraftEDuc}). A
-	 * collaborator's name comes from their user profile (first and/or last name) when available,
-	 * otherwise their Synapse user name, which every user is guaranteed to have.
+	 * have both before the envelope can be sent. The signing official's and principal
+	 * investigator's institutional emails and names come from the request (their presence is
+	 * validated in {@link #createDraftEDuc}). A collaborator is addressed at their Synapse
+	 * notification email, and their name comes from their user profile (first and/or last name)
+	 * when available, otherwise their Synapse user name, which every user is guaranteed to have.
 	 */
 	private Map<String, RecipientInfo> buildRecipients(RequestInterface request, List<CollaboratorInfo> collaborators) {
 		Map<String, RecipientInfo> recipients = new LinkedHashMap<>();
 
 		PrincipalInvestigator pi = request.getPrincipalInvestigator();
-		String piEmail = notificationEmailDao.getNotificationEmailForPrincipal(Long.parseLong(pi.getUserId()));
-		recipients.put("principal_investigator", new RecipientInfo(piEmail, pi.getName()));
+		recipients.put("principal_investigator", new RecipientInfo(pi.getInstitutionalEmail(), pi.getName()));
 
 		SigningOfficial so = request.getSigningOfficial();
 		recipients.put("signing_official", new RecipientInfo(so.getInstitutionalEmail(), so.getName()));

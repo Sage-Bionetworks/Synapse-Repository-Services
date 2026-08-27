@@ -50,11 +50,14 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager.TableIdAndType;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModel;
 import org.sagebionetworks.repo.manager.table.metadata.DefaultColumnModelMapper;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProvider;
 import org.sagebionetworks.repo.manager.table.metadata.MetadataIndexProviderFactory;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LimitExceededException;
@@ -66,6 +69,7 @@ import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
+import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
@@ -145,6 +149,8 @@ public class TableManagerSupportTest {
 	@Mock
 	private AuthorizationManager mockAuthorizationManager;
 	@Mock
+	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
 	private ProgressCallback mockCallback;
 	@Mock
 	private AsyncJobProgressCallback mockAsynchCallback;
@@ -172,7 +178,9 @@ public class TableManagerSupportTest {
 	private JdbcTemplate mockJdbcTemplate;
 	@Mock
 	private TableExceptionTranslator mockTableExceptionTranslator;
-	
+	@Mock
+	private DataTypeDao mockDataTypeDao;
+
 	private TableManagerSupportImpl manager;
 	private TableManagerSupportImpl managerSpy;
 	
@@ -218,8 +226,8 @@ public class TableManagerSupportTest {
 		when(mockLoggerProvider.getLogger(any())).thenReturn(mockLogger);
 		manager = new TableManagerSupportImpl(mockTableStatusDAO, mockTimeoutUtils, mockTransactionalMessenger,
 				mockTableConnectionFactory, mockColumnModelManager, mockNodeDao, mockTableTruthDao, mockViewScopeDao,
-				mockWriteReadSemaphore, mockAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
-				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator);
+				mockWriteReadSemaphore, mockAuthorizationManager, mockEntityAuthorizationManager, mockViewSnapshotDao, mockMetadataIndexProviderFactory,
+				mockDefaultColumnModelMapper, mockFileProvider, mockS3Client, mockClock, mockLoggerProvider, mockTableExceptionTranslator, mockDataTypeDao);
 		managerSpy = Mockito.spy(manager);
 			
 		userInfo = new UserInfo(false, 8L, AuthorizationConstants.DEFAULT_REALM_ID);
@@ -704,83 +712,30 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
-	public void testValidateTableReadAccessTableEntityNoDownload(){
+	public void testValidateTableReadAccessWithAuthorized(){
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
+
+		// call under test
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, indexDescription);
+
+		assertEquals(expected, result);
+		// The single queried table is passed as the only node.
+		verify(mockEntityAuthorizationManager).canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(tableId, TableType.table)));
 	}
-	
+
 	@Test
-	public void testValidateTableReadAccessTableEntityNoRead(){
+	public void testValidateTableReadAccessWithDenied(){
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-	}
-	
-	@Test
-	public void testValidateTableReadAccessFileView(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		//  call under test
-		manager.validateTableReadAccess(userInfo, indexDescription);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		//  do not need download for FileView
-		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-	}
-	
-	@Test
-	public void testValidateTableReadAccessFileViewNoRead(){
-		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-	}
+		AuthorizationStatus expected = AuthorizationStatus.accessDenied("nope");
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
 
-	@Test
-	public void testValidateTableReadAccessRecordSet(){
-		IndexDescription indexDescription = new RecordSetIndexDescription(idAndVersion, 1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.authorized());
-		//  call under test
-		manager.validateTableReadAccess(userInfo, indexDescription);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-	}
+		// call under test - the denial is returned, not thrown; the caller decides.
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, indexDescription);
 
-	@Test
-	public void testValidateTableReadAccessRecordSetNoRead(){
-		IndexDescription indexDescription = new RecordSetIndexDescription(idAndVersion, 1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager, never()).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-	}
-
-	@Test
-	public void testValidateTableReadAccessRecordSetNoDownload(){
-		IndexDescription indexDescription = new RecordSetIndexDescription(idAndVersion, 1L);
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationStatus.authorized());
-		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(AuthorizationStatus.accessDenied(""));
-		assertThrows(UnauthorizedException.class, ()->{
-			//  call under test
-			manager.validateTableReadAccess(userInfo, indexDescription);
-		});
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
+		assertEquals(expected, result);
 	}
 
 	@Test
@@ -790,24 +745,39 @@ public class TableManagerSupportTest {
 		IdAndVersion materializedId = IdAndVersion.parse("syn3");
 		IndexDescription tableDescription = new TableIndexDescription(tableId);
 		IndexDescription viewDescription = new ViewIndexDescription(viewId, TableType.entityview, -1L);
-		
+
 		setupLookup(tableDescription, viewDescription);
 		IndexDescription materializedDescription = new MaterializedViewIndexDescription(materializedId,
 				"select * from syn1 union select * from syn2", managerSpy);
-		
-		when(mockAuthorizationManager.canAccess(any(), any(), any(), any())).thenReturn(AuthorizationStatus.authorized());
 
-		//  call under test
-		manager.validateTableReadAccess(userInfo, materializedDescription);
-		
-		// check for the table
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, tableId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
-		verify(mockAuthorizationManager).canAccess(userInfo, viewId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager).canAccess(userInfo, materializedId.getId().toString(), ObjectType.ENTITY, ACCESS_TYPE.READ);
-		verify(mockAuthorizationManager, times(4)).canAccess(any(), any(), any(), any());
+		AuthorizationStatus expected = AuthorizationStatus.authorized();
+		when(mockEntityAuthorizationManager.canQueryTableOrView(any(), any())).thenReturn(expected);
+
+		// call under test
+		AuthorizationStatus result = manager.validateTableReadAccess(userInfo, materializedDescription);
+
+		assertEquals(expected, result);
+		// The whole dependency tree is flattened (depth-first) into a single decision, each
+		// node carrying its own type so the manager can apply the DOWNLOAD requirement.
+		verify(mockEntityAuthorizationManager).canQueryTableOrView(userInfo, List.of(
+				new TableIdAndType(materializedId.getId().toString(), TableType.materializedview),
+				new TableIdAndType(tableId.getId().toString(), TableType.table),
+				new TableIdAndType(viewId.getId().toString(), TableType.entityview)));
 	}
-	
+
+	@Test
+	public void testGetAggregateDataConfiguration(){
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L);
+		when(mockDataTypeDao.getAggregateDataConfiguration(tableId, ObjectType.ENTITY))
+				.thenReturn(Optional.of(configuration));
+
+		// call under test
+		Optional<AggregateDataConfiguration> result = manager.getAggregateDataConfiguration(tableId);
+
+		assertEquals(Optional.of(configuration), result);
+		verify(mockDataTypeDao).getAggregateDataConfiguration(tableId, ObjectType.ENTITY);
+	}
+
 	@Test
 	public void testValidateTableWriteAccessTableEntity(){
 		when(mockAuthorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationStatus.authorized());

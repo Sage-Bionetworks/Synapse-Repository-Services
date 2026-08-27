@@ -738,6 +738,7 @@ public class SqlConstants {
 	public static final String COL_DATA_TYPE_OBJECT_ID 		= "OBJECT_ID";
 	public static final String COL_DATA_TYPE_OBJECT_TYPE 	= "OBJECT_TYPE";
 	public static final String COL_DATA_TYPE_TYPE			= "DATA_TYPE";
+	public static final String COL_DATA_TYPE_AGGREGATE_CONFIGURATION		= "AGGREGATE_DATA_CONFIGURATION";
 	public static final String COL_DATA_TYPE_UPDATED_ON 	= "UPDATED_ON";
 	public static final String COL_DATA_TYPE_UPDATED_BY 	= "UPDATED_BY";
 	public static final String DDL_DATA_TYPE				= "schema/DataType-ddl.sql";

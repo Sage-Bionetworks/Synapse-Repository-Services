@@ -68,8 +68,19 @@ public enum EntityDeciderFunctions implements AccessDecider {
 	 */
 	DENY_IF_NOT_EXEMPT_AND_HAS_UNMET_ACCESS_RESTRICTIONS((c) -> {
 		if (!UserAccessRestrictionUtils.getUsersUnmetAccessRestrictionsForEntity(c.getPermissionsState(), c.getRestrictionStatus()).isEmpty()) {
-			return Optional.of(new UsersEntityAccessInfo(c,
-					AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS)));
+			// Access is denied by an unmet access restriction. When the source is bound to
+			// AGGREGATE_DATA, a non-anonymous user who otherwise holds the DOWNLOAD permission
+			// is blocked only by the restriction, so they remain eligible for aggregate-level
+			// access (row-level data stays denied) — see Cohort Builder. The caller decides
+			// whether to offer the gated aggregate read.
+			boolean aggregateAllowed = DataType.AGGREGATE_DATA.equals(c.getPermissionsState().getDataType())
+					&& c.getPermissionsState().hasDownload()
+					&& !c.getUser().isUserAnonymous();
+			AuthorizationStatus status = aggregateAllowed
+					? AuthorizationStatus.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS,
+							c.getPermissionsState().getEntityIdAsString())
+					: AuthorizationStatus.accessDenied(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS);
+			return Optional.of(new UsersEntityAccessInfo(c, status));
 		} else {
 			return Optional.empty();
 		}

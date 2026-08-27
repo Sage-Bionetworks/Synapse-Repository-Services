@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
 import org.sagebionetworks.repo.model.Count;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
@@ -3833,6 +3834,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	DataTypeResponse changeEntitysDataType(String entityId, DataType newDataType) throws SynapseException;
+
+	/**
+	 * Change the {@link DataType} of the given Entity using a
+	 * {@link ChangeDataTypeRequest}. This form is required to set the
+	 * AGGREGATE_DATA type because it carries the bound
+	 * {@link org.sagebionetworks.repo.model.AggregateDataConfiguration}.
+	 * Note: The caller must be a member of the 'Synapse Access and Compliance Team'
+	 * to change an Entity's data type to OPEN_DATA or AGGREGATE_DATA. The caller
+	 * must be granted the UPDATE permission to change an Entity's data type to any
+	 * other value.
+	 *
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	DataTypeResponse changeEntitysDataType(String entityId, ChangeDataTypeRequest request) throws SynapseException;
 
 	String generateStorageReportAsyncStart(StorageReportType reportType) throws SynapseException;
 

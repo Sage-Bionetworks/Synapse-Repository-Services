@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
@@ -264,7 +263,6 @@ public class EDucManagerTest {
 		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
 		when(mockPrincipalAliasDao.getUserName(301L)).thenReturn("collab1user");
 		when(mockPrincipalAliasDao.getUserName(302L)).thenReturn("collab2user");
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(200L)).thenReturn("pi@synapse.org");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(301L)).thenReturn("c1@example.com");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(302L)).thenReturn("c2@example.com");
@@ -299,10 +297,11 @@ public class EDucManagerTest {
 		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), recipientsCaptor.capture(), tabsCaptor.capture());
 
 		// Collaborators: createdBy=100 first, then 301, 302 from accessorChanges (PI 200 excluded).
-		// Emails come from the notification email DAO; names are PI/SO from the request and
-		// collaborators from their user profile full names.
+		// The PI and SO are addressed at the institutional emails from the request, while
+		// collaborator emails come from the notification email DAO. Names are PI/SO from the
+		// request and collaborators from their user profile full names.
 		Map<String, RecipientInfo> recipients = recipientsCaptor.getValue();
-		assertEquals(new RecipientInfo("pi@synapse.org", "Dr. Jones"), recipients.get("principal_investigator"));
+		assertEquals(new RecipientInfo("pi@university.edu", "Dr. Jones"), recipients.get("principal_investigator"));
 		assertEquals(new RecipientInfo("so@university.edu", "Jane Admin"), recipients.get("signing_official"));
 		assertEquals(new RecipientInfo("creator@example.com", "Creator User"), recipients.get("collaborator_1"));
 		assertEquals(new RecipientInfo("c1@example.com", "Alice Smith"), recipients.get("collaborator_2"));
@@ -322,6 +321,8 @@ public class EDucManagerTest {
 		assertEquals("Alice Smith", tabValues.get(new RoleLabelKey("collaborator_2", "collaborator_2_name")));
 		assertEquals("collab2user", tabValues.get(new RoleLabelKey("collaborator_3", "collaborator_3_user_name")));
 		assertEquals("Bob Brown", tabValues.get(new RoleLabelKey("collaborator_3", "collaborator_3_name")));
+
+		verify(mockNotificationEmailDao, never()).getNotificationEmailForPrincipal(200L);
 	}
 
 	@Test
@@ -509,6 +510,22 @@ public class EDucManagerTest {
 	}
 
 	@Test
+	public void testRouteForSignatureWithNoPIInstitutionalEmail() {
+		Request request = buildValidRequest();
+		request.getPrincipalInvestigator().setInstitutionalEmail(null);
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("principalInvestigator.institutionalEmail is required and must not be the empty string.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
 	public void testRouteForSignatureWithNoSOName() {
 		Request request = buildValidRequest();
 		request.getSigningOfficial().setName(null);
@@ -539,7 +556,6 @@ public class EDucManagerTest {
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
 		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
 		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(200L)).thenReturn("pi@synapse.org");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
 		// the creator's profile has no first/last name
 		when(mockUserProfileDao.get("100")).thenReturn(new UserProfile());
@@ -568,7 +584,6 @@ public class EDucManagerTest {
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
 		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
 		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(200L)).thenReturn("pi@synapse.org");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
 		UserProfile creatorProfile = new UserProfile();
 		creatorProfile.setFirstName("Creator");
@@ -588,6 +603,7 @@ public class EDucManagerTest {
 		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), recipientsCaptor.capture(), any());
 		// PI + SO + createdBy as collaborator_1
 		assertEquals(3, recipientsCaptor.getValue().size());
+		assertEquals("pi@university.edu", recipientsCaptor.getValue().get("principal_investigator").email());
 		assertEquals("creator@example.com", recipientsCaptor.getValue().get("collaborator_1").email());
 	}
 
@@ -822,9 +838,6 @@ public class EDucManagerTest {
 				List.of("pi@university.edu", "so@university.edu"));
 		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
 
-		PrincipalAlias alias1 = new PrincipalAlias();
-		alias1.setPrincipalId(200L);
-		when(mockPrincipalAliasDao.findPrincipalWithAlias("pi@university.edu", AliasType.USER_EMAIL)).thenReturn(alias1);
 		when(mockPrincipalAliasDao.findPrincipalWithAlias("so@university.edu", AliasType.USER_EMAIL)).thenReturn(null);
 		// the stored hash matches the current request content -> changes are applied
 		when(mockRequestDao.getEDucContentHash("req-1")).thenReturn(EDucManager.computeEDucContentHash(request));
@@ -840,10 +853,40 @@ public class EDucManagerTest {
 		assertEquals(2, result.getSignerStatus().size());
 		assertEquals("Dr. Jones", result.getSignerStatus().get(0).getName());
 		assertEquals(EDucSignerStatusEnum.done, result.getSignerStatus().get(0).getStatus());
+		// the PI is matched by their institutional email, so their user ID comes from the request
 		assertEquals("200", result.getSignerStatus().get(0).getUserId());
 		assertEquals("Jane Admin", result.getSignerStatus().get(1).getName());
 		assertEquals(EDucSignerStatusEnum.pending, result.getSignerStatus().get(1).getStatus());
 		assertNull(result.getSignerStatus().get(1).getUserId());
+
+		verify(mockPrincipalAliasDao, never()).findPrincipalWithAlias("pi@university.edu", AliasType.USER_EMAIL);
+	}
+
+	@Test
+	public void testGetSignatureStatusWithPIEmailDifferentCase() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		EDucSignerStatus signerStatus = new EDucSignerStatus();
+		signerStatus.setName("Dr. Jones");
+		signerStatus.setStatus(EDucSignerStatusEnum.done);
+
+		EDucSignatureStatus envelopeStatus = new EDucSignatureStatus();
+		envelopeStatus.setDucStatus(EDucStatusEnum.sent);
+		envelopeStatus.setSignerStatus(List.of(signerStatus));
+
+		// DocuSign may echo the recipient email back with different capitalization
+		EnvelopeStatusResult envelopeResult = new EnvelopeStatusResult(envelopeStatus,
+				List.of("PI@University.EDU"));
+		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
+
+		// call under test
+		EDucSignatureStatus result = eDucManager.getSignatureStatus(user, "req-1");
+
+		assertEquals("200", result.getSignerStatus().get(0).getUserId());
+		verify(mockPrincipalAliasDao, never()).findPrincipalWithAlias("PI@University.EDU", AliasType.USER_EMAIL);
 	}
 
 	@Test

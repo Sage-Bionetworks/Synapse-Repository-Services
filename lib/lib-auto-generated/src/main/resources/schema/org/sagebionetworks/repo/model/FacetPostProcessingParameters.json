@@ -1,0 +1,5 @@
+{
+	"description": "Parameters that tune a FacetPostProcessingAlgorithm. This type is intentionally extensible; algorithm-specific parameters (e.g. rounding interval, noise epsilon) are added by PLFM-9757.",
+	"properties": {
+	}
+}

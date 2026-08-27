@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
@@ -117,11 +118,11 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	private void setupAuthMocks() {
-		// tableManagerSupport.validateTableReadAccess is void; default Mockito behavior does
-		// nothing → pass. getIndexDescription is stubbed in setupHappyPathMocks. Tests that
-		// only need auth to pass without exercising the index-description path stub it here.
+		// Preflight resolves the source IndexDescription and then checks read access. Stub both
+		// so tests that only need auth to pass reach the index-status/query path under test.
 		when(tableManagerSupport.getIndexDescription(SOURCE_ID))
 				.thenReturn(new TableIndexDescription(SOURCE_ID));
+		when(tableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 	}
 
 	private SearchQuery buildBody() {
@@ -309,8 +310,8 @@ public class SearchIndexQueryManagerImplTest {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		TableIndexDescription indexDescription = new TableIndexDescription(SOURCE_ID);
 		when(tableManagerSupport.getIndexDescription(SOURCE_ID)).thenReturn(indexDescription);
-		doThrow(new UnauthorizedException("no access to source"))
-				.when(tableManagerSupport).validateTableReadAccess(user, indexDescription);
+		when(tableManagerSupport.validateTableReadAccess(user, indexDescription))
+				.thenReturn(AuthorizationStatus.accessDenied("no access to source"));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () -> manager.search(user, buildRequest(buildBody())));

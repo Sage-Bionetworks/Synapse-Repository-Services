@@ -121,7 +121,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		// this duplication when row-level filtering lands and unifies the auth gate between the
 		// table-query and search-query paths.
 		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceEntityId);
-		tableManagerSupport.validateTableReadAccess(user, indexDescription);
+		tableManagerSupport.validateTableReadAccess(user, indexDescription).checkAuthorizationOrElseThrow();
 		checkIndexStatus(searchIndexId);
 		return indexDescription;
 	}

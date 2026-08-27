@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -71,6 +74,62 @@ class AuthorizationStatusTest {
 		assertNotEquals(AuthorizationStatus.accessDenied(new IllegalArgumentException("asdf")), AuthorizationStatus.accessDenied(new IllegalArgumentException("qwerty")));
 	}
 	
+	@Test
+	public void testAccessDeniedButAggregateAllowed(){
+		String message = "aggregate only";
+		String aggregateDataSourceId = "syn123";
+
+		// call under test
+		status = AuthorizationStatus.accessDeniedButAggregateAllowed(message, aggregateDataSourceId);
+
+		assertFalse(status.isAuthorized());
+		assertTrue(status.isAggregateAccessAllowed());
+		assertEquals(Optional.of(aggregateDataSourceId), status.getAggregateDataSourceId());
+		assertEquals(message, status.getMessage());
+		assertThrows(UnauthorizedException.class, ()->{
+			status.checkAuthorizationOrElseThrow();
+		});
+	}
+
+	@Test
+	public void testIsAggregateAccessAllowedWithAuthorized(){
+		status = AuthorizationStatus.authorized();
+
+		assertFalse(status.isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testIsAggregateAccessAllowedWithAccessDenied(){
+		status = AuthorizationStatus.accessDenied("nope");
+
+		assertFalse(status.isAggregateAccessAllowed());
+		assertEquals(Optional.empty(), status.getAggregateDataSourceId());
+	}
+
+	@Test
+	public void testEquals_denied_sameMessage_differByAggregateAllowed(){
+		String message = "same message";
+
+		assertNotEquals(AuthorizationStatus.accessDenied(message),
+				AuthorizationStatus.accessDeniedButAggregateAllowed(message, "syn123"));
+	}
+
+	@Test
+	public void testEquals_deniedAggregateAllowed_differBySourceId(){
+		String message = "same message";
+
+		assertNotEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(message, "syn123"),
+				AuthorizationStatus.accessDeniedButAggregateAllowed(message, "syn456"));
+	}
+
+	@Test
+	public void testEquals_deniedAggregateAllowed_sameMessageAndSourceId(){
+		String message = "same message";
+
+		assertEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(message, "syn123"),
+				AuthorizationStatus.accessDeniedButAggregateAllowed(message, "syn123"));
+	}
+
 	@Test
 	public void testIsAuthorizedOrElseGetWithAutorized() {
 		AuthorizationStatus status = AuthorizationStatus.authorized();

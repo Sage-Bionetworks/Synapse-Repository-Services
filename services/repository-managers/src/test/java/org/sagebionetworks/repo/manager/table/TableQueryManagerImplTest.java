@@ -16,7 +16,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COUNT;
@@ -54,7 +53,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
-import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -62,10 +60,12 @@ import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
 import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -81,7 +81,6 @@ import org.sagebionetworks.repo.model.table.ColumnSingleValueQueryFilter;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
@@ -106,6 +105,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
+import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -115,7 +115,6 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
-import org.sagebionetworks.table.cluster.description.TableDependency;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -344,7 +343,9 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryPreflightUnauthroized() throws Exception {
-		doThrow(new UnauthorizedException()).when(mockTableManagerSupport).validateTableReadAccess(any(), any());
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(idAndVersion));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		assertThrows(UnauthorizedException.class, ()->{
@@ -358,6 +359,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -365,6 +367,47 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null, queryOptions);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateAllowed() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		// row-level access is denied only because the source is bound to AGGREGATE_DATA
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, null, queryOptions);
+		assertNotNull(result);
+		assertTrue(result.isAggregateOnly());
+		assertEquals(500L, result.getSuppressionThreshold());
+		verify(mockTableManagerSupport).getAggregateDataConfiguration(tableId);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateDeniedNoConfig() throws Exception {
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(new TableIndexDescription(idAndVersion));
+		// the status reports an aggregate source, but no bound configuration is found, so
+		// the standard denial must be preserved rather than silently allowing the query
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.empty());
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			manager.queryPreflight(user, query, null, queryOptions);
+		});
 	}
 
 	@Test
@@ -594,6 +637,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -616,6 +660,7 @@ public class TableQueryManagerImplTest {
 		
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
@@ -657,6 +702,7 @@ public class TableQueryManagerImplTest {
 		String definingSql = "select * from syn1";
 		IndexDescription virtualTableIndexDescription = new VirtualTableIndexDescription(virtualTableId, definingSql, mockTableManagerSupport);
 		when(mockTableManagerSupport.getIndexDescription(virtualTableId)).thenReturn(virtualTableIndexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		List<ColumnModel> virtualSchema = List.of(new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22"));
 		when(mockTableManagerSupport.getTableSchemaCount(virtualTableId)).thenReturn((long)virtualSchema.size());
 		when(mockTableManagerSupport.getTableSchema(virtualTableId)).thenReturn(virtualSchema);
@@ -792,6 +838,130 @@ public class TableQueryManagerImplTest {
 		assertNotNull(results.getQueryResult().getQueryResults());
 	}
 	
+	@Test
+	public void testExecuteQueryAggregateOnlyBelowThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count query matches 201 rows
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		// aggregate-only forces a count query even though only runQuery was requested
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(500L).build(), queryOptions);
+
+		// call under test
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+		assertEquals(500L, thrown.getSuppressionThreshold());
+		// the row-level query must never run for an aggregate-only query
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyAtThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count query matches 201 rows
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(count).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(results);
+		// a count at the threshold is allowed; rows are suppressed but the count is returned
+		assertEquals(count, results.getQueryCount());
+		assertNull(results.getQueryResult());
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyAboveThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count query matches 201 rows
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(100L).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(results);
+		assertEquals(count, results.getQueryCount());
+		assertNull(results.getQueryResult());
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyEmptyResult() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// an empty result: the count query matches 0 rows
+		RowSet emptyCountRowSet = new RowSet().setRows(List.of(new Row().setValues(List.of("0"))));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(emptyCountRowSet);
+
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(500L).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(results);
+		// a zero-row result is not suppressed even when below the threshold
+		assertEquals(0L, results.getQueryCount());
+		assertNull(results.getQueryResult());
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyMissingThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(null).build(), queryOptions);
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+	}
+
+	@Test
+	public void testQueryAfterAuthorizationAggregateOnly() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateOnly(true).setSuppressionThreshold(100L).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(result);
+		// rows are suppressed, so there is no query result to stamp the etag onto (the etag
+		// block must be null-guarded and not NPE)
+		assertNull(result.getQueryResult());
+		assertEquals(count, result.getQueryCount());
+	}
+
 	@Test
 	public void testExecuteQuery_LastUpdatedOn() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
@@ -1127,6 +1297,7 @@ public class TableQueryManagerImplTest {
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(false).withReturnFacets(false);
@@ -1148,6 +1319,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -1175,6 +1347,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);		
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockTableIndexDAO.query(any())).thenReturn(new RowSet().setRows(rows));
 		
@@ -1252,6 +1425,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -1286,6 +1460,7 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQueryBundleSumFileSizes() throws LockUnavilableException, TableUnavailableException, TableFailedException {
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -1350,6 +1525,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 	
@@ -1374,6 +1550,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		SortItem sort = new SortItem();
@@ -1396,6 +1573,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		Query query = new Query();
@@ -1422,6 +1600,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
@@ -1452,6 +1631,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 
 		Query query = new Query();
@@ -1479,6 +1659,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryPreflightEmptySchema() throws Exception {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
 		Long maxBytesPerPage = null;
@@ -1510,6 +1691,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		setupQueryCallback();
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
@@ -1538,6 +1720,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		setupQueryCallback();
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
@@ -1579,6 +1762,7 @@ public class TableQueryManagerImplTest {
 		
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -1616,6 +1800,7 @@ public class TableQueryManagerImplTest {
 		
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select i0 from "+tableId);
 		request.setSort(null);
@@ -1648,6 +1833,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		setupQueryCallback();
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
@@ -1701,6 +1887,7 @@ public class TableQueryManagerImplTest {
 	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
 		// Return no columns
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql("select * from "+tableId);
 		request.setSort(null);
@@ -1953,6 +2140,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);		
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 		
@@ -1993,6 +2181,7 @@ public class TableQueryManagerImplTest {
 		rows.add(row);
 		// no options
 		queryOptions = new QueryOptions();
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
 		query.setSort(sortList);
@@ -2002,7 +2191,7 @@ public class TableQueryManagerImplTest {
 		// call under test.
 		QueryResultBundle result = manager.querySinglePage(
 				mockProgressCallbackVoid, user, query, queryOptions);
-		
+
 		assertNotNull(result);
 		assertNull(result.getMaxRowsPerPage());
 		assertNull(result.getQueryResult());
@@ -2010,7 +2199,8 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQuerySinglePageWithNoNextPage() throws Exception{		
+	public void testQuerySinglePageWithNoNextPage() throws Exception{
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -2038,6 +2228,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
 		addRowIdAndVersionToRows();
@@ -2063,7 +2254,8 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQuerySinglePageRunQueryTrue() throws Exception{		
+	public void testQuerySinglePageRunQueryTrue() throws Exception{
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -2083,7 +2275,8 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQuerySinglePageRunQueryFalse() throws Exception{		
+	public void testQuerySinglePageRunQueryFalse() throws Exception{
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -2111,6 +2304,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -2148,6 +2342,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		
@@ -2829,6 +3024,7 @@ public class TableQueryManagerImplTest {
 		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
 		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);

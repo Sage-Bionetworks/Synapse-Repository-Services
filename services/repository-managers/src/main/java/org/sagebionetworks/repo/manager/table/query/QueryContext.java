@@ -31,11 +31,13 @@ public class QueryContext {
 	private final Long offset;
 	private final Long limit;
 	private final List<SortItem> sort;
+	private final boolean aggregateOnly;
+	private final Long suppressionThreshold;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
-			Long limit, List<SortItem> sort) {
+			Long limit, List<SortItem> sort, boolean aggregateOnly, Long suppressionThreshold) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -54,6 +56,8 @@ public class QueryContext {
 		this.offset = offset;
 		this.limit = limit;
 		this.sort = sort;
+		this.aggregateOnly = aggregateOnly;
+		this.suppressionThreshold = suppressionThreshold;
 	}
 
 	/**
@@ -144,6 +148,23 @@ public class QueryContext {
 		return sort;
 	}
 
+	/**
+	 * @return True if this query is restricted to aggregate-only reads. When true,
+	 *         no row-level data is returned and a count gate against
+	 *         {@link #getSuppressionThreshold()} is enforced.
+	 */
+	public boolean isAggregateOnly() {
+		return aggregateOnly;
+	}
+
+	/**
+	 * @return The suppression threshold to enforce when {@link #isAggregateOnly()}
+	 *         is true; may be null otherwise.
+	 */
+	public Long getSuppressionThreshold() {
+		return suppressionThreshold;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -163,6 +184,8 @@ public class QueryContext {
 		private Long offset;
 		private Long limit;
 		private List<SortItem> sort;
+		private boolean aggregateOnly;
+		private Long suppressionThreshold;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -269,10 +292,27 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param aggregateOnly True to restrict this query to aggregate-only reads.
+		 */
+		public Builder setAggregateOnly(boolean aggregateOnly) {
+			this.aggregateOnly = aggregateOnly;
+			return this;
+		}
+
+		/**
+		 * @param suppressionThreshold The suppression threshold to enforce when
+		 *                             aggregate-only.
+		 */
+		public Builder setSuppressionThreshold(Long suppressionThreshold) {
+			this.suppressionThreshold = suppressionThreshold;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort);
+					limit, sort, aggregateOnly, suppressionThreshold);
 		}
 
 	}

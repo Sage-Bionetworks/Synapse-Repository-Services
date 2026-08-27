@@ -1,26 +1,32 @@
 package org.sagebionetworks.repo.manager.entity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager.TableIdAndType;
 import org.sagebionetworks.repo.manager.entity.decider.AccessContext;
 import org.sagebionetworks.repo.manager.entity.decider.UsersEntityAccessInfo;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -33,6 +39,7 @@ import org.sagebionetworks.repo.model.ar.UsersRequirementStatus;
 import org.sagebionetworks.repo.model.ar.UsersRestrictionStatus;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.entity.UserEntityPermissionsState;
 import org.sagebionetworks.repo.model.dbo.entity.UsersEntityPermissionsDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FileActionRequired;
@@ -996,6 +1003,232 @@ public class EntityAuthorizationManagerUnitTest {
 	}
 	
 	
+	@Test
+	public void testCanQueryTableOrViewWithNullUser() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityAuthManager.canQueryTableOrView(null, List.of(new TableIdAndType(entityId, TableType.table)));
+		}).getMessage();
+		assertEquals("userInfo is required.", message);
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithNullList() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			entityAuthManager.canQueryTableOrView(userInfo, null);
+		}).getMessage();
+		assertEquals("tableAndDependencies is required.", message);
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithReadDenied() {
+		// The user lacks READ on the single node.
+		permissionsState.withDoesEntityExist(true).withHasRead(false);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.table)));
+
+		assertEquals(AuthorizationStatus
+				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.READ)),
+				status);
+		// A READ denial short-circuits before any DOWNLOAD/restriction lookup.
+		verifyNoInteractions(mockAccessRestrictionStatusDao);
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithDownloadDeniedPlain() {
+		// READ is granted, DOWNLOAD is denied with no aggregate eligibility.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(false);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.table)));
+
+		assertEquals(AuthorizationStatus
+				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD)),
+				status);
+		assertFalse(status.isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithRecordsetDownloadDenied() {
+		// A recordset node enforces DOWNLOAD just like a table node (a view type would pass on
+		// READ alone). Here READ is granted but DOWNLOAD is denied with no aggregate eligibility.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(false);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.recordset)));
+
+		assertEquals(AuthorizationStatus
+				.accessDenied(String.format(ERR_MSG_YOU_LACK_ACCESS_TO_REQUESTED_ENTITY_TEMPLATE, ACCESS_TYPE.DOWNLOAD)),
+				status);
+		assertFalse(status.isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithRecordsetAggregateAllowed() {
+		// A recordset bound to AGGREGATE_DATA keeps the non-anonymous user eligible for a gated
+		// aggregate-only read when DOWNLOAD is blocked solely by an unmet access restriction.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(true)
+				.withDataType(DataType.AGGREGATE_DATA);
+		accessRestrictions.withRestrictionStatus(
+				List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(111L)));
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.recordset)));
+
+		assertEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS,
+				entityId), status);
+		assertTrue(status.isAggregateAccessAllowed());
+		assertEquals(Optional.of(entityId), status.getAggregateDataSourceId());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithDownloadDeniedButAggregateAllowed() {
+		// READ + DOWNLOAD held, but an unmet AR on an AGGREGATE_DATA source keeps the
+		// non-anonymous user eligible for a gated aggregate-only read.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(true)
+				.withDataType(DataType.AGGREGATE_DATA);
+		accessRestrictions.withRestrictionStatus(
+				List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(111L)));
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.table)));
+
+		assertEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS,
+				entityId), status);
+		assertFalse(status.isAuthorized());
+		assertTrue(status.isAggregateAccessAllowed());
+		assertEquals(Optional.of(entityId), status.getAggregateDataSourceId());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithFullAccess() {
+		// READ + DOWNLOAD held with no unmet restrictions grants full row-level access.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(true);
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.table)));
+
+		assertEquals(AuthorizationStatus.authorized(), status);
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithDependencyTreeAggregate() {
+		// A view over an AGGREGATE_DATA source: the view node only requires READ while the
+		// underlying table is aggregate-allowed. The whole query is aggregate-only, and all
+		// per-node decisions must reuse a single batched load.
+		String viewId = "syn456";
+		Long viewIdLong = KeyFactory.stringToKey(viewId);
+		String sourceId = "syn999";
+		Long sourceIdLong = KeyFactory.stringToKey(sourceId);
+
+		UserEntityPermissionsState viewState = new UserEntityPermissionsState(viewIdLong).withDoesEntityExist(true)
+				.withHasRead(true);
+		UserEntityPermissionsState sourceState = new UserEntityPermissionsState(sourceIdLong).withDoesEntityExist(true)
+				.withHasRead(true).withHasDownload(true).withDataType(DataType.AGGREGATE_DATA);
+
+		Map<Long, UserEntityPermissionsState> states = new LinkedHashMap<>();
+		states.put(viewIdLong, viewState);
+		states.put(sourceIdLong, sourceState);
+
+		UsersRestrictionStatus sourceRestriction = new UsersRestrictionStatus().withSubjectId(sourceIdLong)
+				.withUserId(userInfo.getId()).withRestrictionStatus(
+						List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(111L)));
+		Map<Long, UsersRestrictionStatus> restrictions = new LinkedHashMap<>();
+		restrictions.put(viewIdLong, new UsersRestrictionStatus().withSubjectId(viewIdLong).withUserId(userInfo.getId()));
+		restrictions.put(sourceIdLong, sourceRestriction);
+
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(states);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(restrictions);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(viewId, TableType.materializedview), new TableIdAndType(sourceId, TableType.table)));
+
+		assertEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS,
+				sourceId), status);
+		assertEquals(Optional.of(sourceId), status.getAggregateDataSourceId());
+
+		// Each map is loaded exactly once for the whole set of nodes.
+		verify(mockUsersEntityPermissionsDao, times(1)).getEntityPermissionsAsMap(any(), any());
+		verify(mockAccessRestrictionStatusDao, times(1)).getEntityStatusAsMap(any(), any(), any());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithMultipleAggregateSources() {
+		// Two distinct aggregate sources in one query is unsupported: deny the whole query
+		// without aggregate eligibility rather than honoring just one.
+		String firstId = "syn456";
+		Long firstIdLong = KeyFactory.stringToKey(firstId);
+		String secondId = "syn999";
+		Long secondIdLong = KeyFactory.stringToKey(secondId);
+
+		UserEntityPermissionsState firstState = new UserEntityPermissionsState(firstIdLong).withDoesEntityExist(true)
+				.withHasRead(true).withHasDownload(true).withDataType(DataType.AGGREGATE_DATA);
+		UserEntityPermissionsState secondState = new UserEntityPermissionsState(secondIdLong).withDoesEntityExist(true)
+				.withHasRead(true).withHasDownload(true).withDataType(DataType.AGGREGATE_DATA);
+
+		Map<Long, UserEntityPermissionsState> states = new LinkedHashMap<>();
+		states.put(firstIdLong, firstState);
+		states.put(secondIdLong, secondState);
+
+		Map<Long, UsersRestrictionStatus> restrictions = new LinkedHashMap<>();
+		restrictions.put(firstIdLong, new UsersRestrictionStatus().withSubjectId(firstIdLong).withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(111L))));
+		restrictions.put(secondIdLong, new UsersRestrictionStatus().withSubjectId(secondIdLong).withUserId(userInfo.getId())
+				.withRestrictionStatus(List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(222L))));
+
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(states);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(restrictions);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(firstId, TableType.table), new TableIdAndType(secondId, TableType.table)));
+
+		assertEquals(AuthorizationStatus.accessDenied(EntityAuthorizationManagerImpl.ERR_MSG_MULTIPLE_AGGREGATE_SOURCES),
+				status);
+		assertFalse(status.isAggregateAccessAllowed());
+	}
+
+	@Test
+	public void testCanQueryTableOrViewWithRepeatedAggregateSource() {
+		// Two references to the SAME aggregate source (not two distinct sources) must not be
+		// treated as a multi-source conflict: the query stays aggregate-only against that source.
+		permissionsState.withDoesEntityExist(true).withHasRead(true).withHasDownload(true)
+				.withDataType(DataType.AGGREGATE_DATA);
+		accessRestrictions.withRestrictionStatus(
+				List.of(new UsersRequirementStatus().withIsUnmet(true).withRequirementId(111L)));
+		when(mockUsersEntityPermissionsDao.getEntityPermissionsAsMap(any(), any())).thenReturn(mapIdToState);
+		when(mockAccessRestrictionStatusDao.getEntityStatusAsMap(any(), any(), any())).thenReturn(mapIdToAccess);
+
+		// call under test
+		AuthorizationStatus status = entityAuthManager.canQueryTableOrView(userInfo,
+				List.of(new TableIdAndType(entityId, TableType.table), new TableIdAndType(entityId, TableType.table)));
+
+		assertEquals(AuthorizationStatus.accessDeniedButAggregateAllowed(ERR_MSG_THERE_ARE_UNMET_ACCESS_REQUIREMENTS,
+				entityId), status);
+		assertTrue(status.isAggregateAccessAllowed());
+		assertEquals(Optional.of(entityId), status.getAggregateDataSourceId());
+	}
+
 	public UserEntityPermissions createAllFalseUserEntityPermissions() {
 		UserEntityPermissions up =  new UserEntityPermissions();
 		up.setCanAddChild(false);

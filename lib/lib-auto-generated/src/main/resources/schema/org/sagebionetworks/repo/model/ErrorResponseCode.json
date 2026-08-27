@@ -33,6 +33,10 @@
 		{
 			"name": "TWO_FA_ENABLED_REQUIRED",
 			"description": "Two factor authentication must be enabled to perform this operation."
+		},
+		{
+			"name": "BELOW_THRESHOLD",
+			"description": "An aggregate query against a restricted source matched a non-zero number of rows that is below the configured suppression threshold, so the result is suppressed."
 		}
 	]
 }

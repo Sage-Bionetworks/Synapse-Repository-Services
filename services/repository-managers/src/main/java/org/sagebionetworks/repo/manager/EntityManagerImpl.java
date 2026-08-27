@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.schema.JsonSchemaManager;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -589,10 +590,18 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Override
 	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, DataType dataType) {
+		ValidateArgument.required(dataType, "DataType");
+		return changeEntityDataType(userInfo, entityId, new ChangeDataTypeRequest().setDataType(dataType));
+	}
+
+	@Override
+	public DataTypeResponse changeEntityDataType(UserInfo userInfo, String entityId, ChangeDataTypeRequest request) {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(entityId, "id");
-		ValidateArgument.required(dataType, "DataType");
-		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, dataType);
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getDataType(), "request.dataType");
+		return objectTypeManager.changeObjectsDataType(userInfo, entityId, ObjectType.ENTITY, request.getDataType(),
+				request.getAggregateDataConfiguration());
 	}
 
 	@WriteTransaction

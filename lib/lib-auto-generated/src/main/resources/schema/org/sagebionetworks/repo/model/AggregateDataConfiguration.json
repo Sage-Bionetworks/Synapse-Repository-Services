@@ -1,0 +1,14 @@
+{
+	"description": "The configuration the ACT binds to a source when its DataType is AGGREGATE_DATA. It controls the minimum number of matching rows required before an aggregate result is returned and how facet counts are post-processed.",
+	"properties": {
+		"suppressionThreshold": {
+			"type": "integer",
+			"required": true,
+			"description": "The minimum number of matching rows required before an aggregate result is returned. An aggregate query that matches a non-zero row count below this threshold is suppressed. Must be a positive value."
+		},
+		"facetPostProcessingConfig": {
+			"description": "Configuration describing how facet counts are post-processed. Optional.",
+			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingConfig"
+		}
+	}
+}

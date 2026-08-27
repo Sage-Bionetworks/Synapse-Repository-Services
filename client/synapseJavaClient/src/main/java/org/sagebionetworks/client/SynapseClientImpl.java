@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.Challenge;
 import org.sagebionetworks.repo.model.ChallengePagedResults;
 import org.sagebionetworks.repo.model.ChallengeTeam;
 import org.sagebionetworks.repo.model.ChallengeTeamPagedResults;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.Count;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
@@ -5983,6 +5984,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(newDataType, "newDataType");
 		String url = ENTITY + "/" + entityId + "/datatype?type="+newDataType.name();
 		return putJSONEntity(getRepoEndpoint(), url, null, DataTypeResponse.class);
+	}
+
+	@Override
+	public DataTypeResponse changeEntitysDataType(String entityId, ChangeDataTypeRequest request)
+			throws SynapseException {
+		ValidateArgument.required(entityId, "entityId");
+		ValidateArgument.required(request, "request");
+		String url = ENTITY + "/" + entityId + "/datatype";
+		return putJSONEntity(getRepoEndpoint(), url, request, DataTypeResponse.class);
 	}
 
 	@Override

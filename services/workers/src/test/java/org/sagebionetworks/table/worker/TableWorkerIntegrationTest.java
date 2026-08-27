@@ -64,8 +64,10 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -134,6 +136,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TextMatchesMode;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
+import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -2970,9 +2973,96 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		query.setSql(sql);
 		query.setLimit(8L);
-		waitForConsistentQuery(anonymousUser, query, queryOptions, (results) -> {			
+		waitForConsistentQuery(anonymousUser, query, queryOptions, (results) -> {
 			assertNotNull(results);
 		});
+	}
+
+	/**
+	 * PLFM-9756: an authenticated user who has NOT met a table's access requirement can
+	 * still query an AGGREGATE_DATA table for a gated count. The count is returned when it
+	 * is at/above the suppression threshold (with all row data suppressed) and the query
+	 * fails with a typed below-threshold error when the count is non-zero but below it.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_9756AggregateData() throws Exception {
+		// A certified, non-owner user who will query the restricted table.
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		long userId = userManager.createUser(user);
+		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
+		UserInfo notOwner = userManager.getUserInfo(userId);
+		users.add(notOwner);
+
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+
+		// Append a known, non-zero number of rows as the admin so the count is deterministic.
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 4));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		// Grant the non-owner READ and DOWNLOAD on the table.
+		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
+		acl.setId(tableId);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityAclManager.getACL(tableId, adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(notOwner.getId());
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(ra);
+		entityAclManager.updateACL(acl, adminUserInfo);
+
+		// Add a DOWNLOAD access requirement that the non-owner has not met.
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(tableId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Collections.singletonList(rod));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("must agree");
+		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+
+		Query aggregateQuery = new Query();
+		aggregateQuery.setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true);
+
+		// Before the table is aggregate data, the unmet access requirement blocks the query.
+		assertThrows(UnauthorizedException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+
+		// Bind the table as AGGREGATE_DATA with a threshold at/below the row count.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)));
+
+		// The count is over the threshold, so it is returned; the individual rows are suppressed.
+		waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (bundle) -> {
+			assertEquals(4L, bundle.getQueryCount());
+			assertNull(bundle.getQueryResult());
+		});
+
+		// Raise the threshold above the row count: the count is now suppressed and the query
+		// fails with a typed below-threshold error that carries the threshold.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)));
+
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+		assertEquals(10L, thrown.getSuppressionThreshold());
 	}
 
 	/**

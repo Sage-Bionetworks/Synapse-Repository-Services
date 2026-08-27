@@ -1,25 +1,34 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
+import java.util.Optional;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
+import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DataTypeDaoImplTest {
 
@@ -36,7 +45,7 @@ public class DataTypeDaoImplTest {
 	ObjectType objectType;
 	DataType dataType;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		dataTypeDao.truncateAllData();
 		// create a user
@@ -52,7 +61,7 @@ public class DataTypeDaoImplTest {
 		dataType = DataType.OPEN_DATA;
 	}
 
-	@After
+	@AfterEach
 	public void after() {
 		dataTypeDao.truncateAllData();
 	}
@@ -84,35 +93,43 @@ public class DataTypeDaoImplTest {
 		assertNotNull(two);
 		assertEquals(DataType.SENSITIVE_DATA, two.getDataType());
 		assertEquals(userIdTwo.toString(), two.getUpdatedBy());
-		assertNotNull(one.getUpdatedOn().getTime() < two.getUpdatedOn().getTime());
+		assertTrue(one.getUpdatedOn().getTime() < two.getUpdatedOn().getTime());
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testChangeDataTypeNullUserId() {
 		userId = null;
 		// call under test
-		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		});
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testChangeDataTypeNullObjectId() {
 		objectId = null;
 		// call under test
-		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		});
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testChangeDataTypeNullObjectType() {
 		objectType = null;
 		// call under test
-		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		});
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testChangeDataTypeNullDataType() {
 		dataType = null;
 		// call under test
-		dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.changeDataType(userId, objectId, objectType, dataType);
+		});
 	}
 
 	@Test
@@ -123,27 +140,101 @@ public class DataTypeDaoImplTest {
 		DataType resultType = dataTypeDao.getObjectDataType(objectId, objectType);
 		assertEquals(dataType, resultType);
 	}
-	
+
 	@Test
 	public void testGetObjectDataTypeDoesNotExist() {
 		// call under test
 		DataType resultType = dataTypeDao.getObjectDataType(objectId, objectType);
 		assertEquals(DataTypeDaoImpl.DEFAULT_DATA_TYPE, resultType);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testGetObjectDataTypeNullObjectId() {
 		objectId = null;
 		// call under test
-		dataTypeDao.getObjectDataType(objectId, objectType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.getObjectDataType(objectId, objectType);
+		});
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test
 	public void testGetObjectDataTypeNullObjectType() {
 		objectType = null;
 		// call under test
-		dataTypeDao.getObjectDataType(objectId, objectType);
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.getObjectDataType(objectId, objectType);
+		});
 	}
 
+	private AggregateDataConfiguration newAggregateConfiguration() {
+		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
+				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetPostProcessingParameters()));
+	}
+
+	@Test
+	public void testChangeDataTypeWithAggregateData() {
+		AggregateDataConfiguration config = newAggregateConfiguration();
+		// call under test
+		DataTypeResponse response = dataTypeDao.changeDataType(userId, objectId, objectType, DataType.AGGREGATE_DATA,
+				config);
+		assertNotNull(response);
+		assertEquals(DataType.AGGREGATE_DATA, response.getDataType());
+		// the whole configuration must round-trip through the JSON column
+		assertEquals(config, response.getAggregateDataConfiguration());
+	}
+
+	@Test
+	public void testGetAggregateDataConfigurationWithAggregateData() {
+		AggregateDataConfiguration config = newAggregateConfiguration();
+		dataTypeDao.changeDataType(userId, objectId, objectType, DataType.AGGREGATE_DATA, config);
+		// call under test
+		Optional<AggregateDataConfiguration> result = dataTypeDao.getAggregateDataConfiguration(objectId, objectType);
+		assertTrue(result.isPresent());
+		assertEquals(config, result.get());
+	}
+
+	@Test
+	public void testChangeDataTypeFromAggregateClearsConfiguration() {
+		dataTypeDao.changeDataType(userId, objectId, objectType, DataType.AGGREGATE_DATA, newAggregateConfiguration());
+		// call under test: switch back to a non-aggregate type
+		DataTypeResponse response = dataTypeDao.changeDataType(userId, objectId, objectType, DataType.SENSITIVE_DATA);
+		assertNull(response.getAggregateDataConfiguration());
+		assertFalse(dataTypeDao.getAggregateDataConfiguration(objectId, objectType).isPresent());
+	}
+
+	@Test
+	public void testGetAggregateDataConfigurationWithNonAggregateDecoy() {
+		// a non-aggregate row must not report a configuration
+		dataTypeDao.changeDataType(userId, objectId, objectType, DataType.OPEN_DATA);
+		// call under test
+		Optional<AggregateDataConfiguration> result = dataTypeDao.getAggregateDataConfiguration(objectId, objectType);
+		assertFalse(result.isPresent());
+	}
+
+	@Test
+	public void testGetAggregateDataConfigurationDoesNotExist() {
+		// call under test: no row for this object at all
+		Optional<AggregateDataConfiguration> result = dataTypeDao.getAggregateDataConfiguration(objectId, objectType);
+		assertFalse(result.isPresent());
+	}
+
+	@Test
+	public void testGetAggregateDataConfigurationNullObjectId() {
+		objectId = null;
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.getAggregateDataConfiguration(objectId, objectType);
+		});
+	}
+
+	@Test
+	public void testGetAggregateDataConfigurationNullObjectType() {
+		objectType = null;
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> {
+			dataTypeDao.getAggregateDataConfiguration(objectId, objectType);
+		});
+	}
 
 }

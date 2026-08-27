@@ -6,14 +6,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYP
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATA_TYPE;
 
 import java.util.Date;
+import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODataType;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,6 +57,13 @@ public class DataTypeDaoImpl implements DataTypeDao {
 	@Override
 	public DataTypeResponse changeDataType(Long userId, String objectIdString, ObjectType objectType,
 			DataType dataType) {
+		return changeDataType(userId, objectIdString, objectType, dataType, null);
+	}
+
+	@WriteTransaction
+	@Override
+	public DataTypeResponse changeDataType(Long userId, String objectIdString, ObjectType objectType,
+			DataType dataType, AggregateDataConfiguration configuration) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(objectIdString, "objectIdString");
 		ValidateArgument.required(objectType, "objectType");
@@ -66,6 +76,10 @@ public class DataTypeDaoImpl implements DataTypeDao {
 		dbo.setObjectId(objectId);
 		dbo.setObjectType(objectType.name());
 		dbo.setDataType(dataType.name());
+		// The configuration is only persisted for the AGGREGATE_DATA type.
+		if (DataType.AGGREGATE_DATA.equals(dataType)) {
+			dbo.setAggregateDataConfiguration(JDOSecondaryPropertyUtils.createJSONFromObject(configuration));
+		}
 		dbo.setUpdatedBy(userId);
 		dbo.setUpdatedOn(System.currentTimeMillis());
 		dboBasicDao.createNew(dbo);
@@ -92,6 +106,8 @@ public class DataTypeDaoImpl implements DataTypeDao {
 		dto.setObjectId(objectIdString);
 		dto.setObjectType(ObjectType.valueOf(dbo.getObjectType()));
 		dto.setDataType(DataType.valueOf(dbo.getDataType()));
+		dto.setAggregateDataConfiguration(JDOSecondaryPropertyUtils
+				.createObjectFromJSON(AggregateDataConfiguration.class, dbo.getAggregateDataConfiguration()));
 		dto.setUpdatedBy(dbo.getUpdatedBy().toString());
 		dto.setUpdatedOn(new Date(dbo.getUpdatedOn()));
 		return dto;
@@ -112,6 +128,23 @@ public class DataTypeDaoImpl implements DataTypeDao {
 					.valueOf(jdbcTemplate.queryForObject(SQL_SELECT_TYPE, String.class, objectId, objectType.name()));
 		} catch (EmptyResultDataAccessException e) {
 			return DEFAULT_DATA_TYPE;
+		}
+	}
+
+	@Override
+	public Optional<AggregateDataConfiguration> getAggregateDataConfiguration(String objectIdString,
+			ObjectType objectType) {
+		ValidateArgument.required(objectIdString, "objectIdString");
+		ValidateArgument.required(objectType, "objectType");
+		Long objectId = KeyFactory.stringToKey(objectIdString);
+		try {
+			String json = jdbcTemplate.queryForObject(
+					"SELECT AGGREGATE_DATA_CONFIGURATION FROM DATA_TYPE WHERE OBJECT_ID = ? AND OBJECT_TYPE = ?",
+					String.class, objectId, objectType.name());
+			return Optional.ofNullable(
+					JDOSecondaryPropertyUtils.createObjectFromJSON(AggregateDataConfiguration.class, json));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
 		}
 	}
 
