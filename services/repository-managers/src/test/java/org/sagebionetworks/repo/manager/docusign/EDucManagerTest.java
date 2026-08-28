@@ -997,7 +997,7 @@ public class EDucManagerTest {
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Map<RoleLabelKey, String>> tabsCaptor = ArgumentCaptor.forClass(Map.class);
 		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), emailsCaptor.capture(), tabsCaptor.capture());
-		assertEquals("x@y.com", emailsCaptor.getValue().get("principal_investigator"));
+		assertEquals("pi@university.edu", emailsCaptor.getValue().get("principal_investigator"));
 		assertEquals("so@university.edu", emailsCaptor.getValue().get("signing_official"));
 
 		verify(mockRequestDao).setEDucContentHash("req-1", EDucManager.computeEDucContentHash(request));
