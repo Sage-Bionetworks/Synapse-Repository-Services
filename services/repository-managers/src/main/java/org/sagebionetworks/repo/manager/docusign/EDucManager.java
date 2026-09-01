@@ -3,17 +3,20 @@ package org.sagebionetworks.repo.manager.docusign;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeRecipient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.docusign.RecipientInfo;
 import org.sagebionetworks.docusign.RoleLabelKey;
@@ -57,6 +60,8 @@ public class EDucManager {
 	static final int MAX_ENVELOPES_PER_MONTH = 10;
 	static final long THIRTY_DAYS_IN_MS = 30L * 24 * 60 * 60 * 1000;
 	static final int MAX_GLOBAL_ENVELOPES_PER_DAY = 100;
+	// Prefix of the numbered DocuSign roles the template defines for the request's accessors.
+	static final String COLLABORATOR_ROLE_PREFIX = "collaborator_";
 	static final long ONE_DAY_IN_MS = 24L * 60 * 60 * 1000;
 
 	private final DocuSignClient docuSignClient;
@@ -239,7 +244,8 @@ public class EDucManager {
 
 		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
 		String templateId = managedAr.getEDucTemplateId();
-		EDucContent content = buildEDucContent(request);
+		// No envelope exists yet, so the collaborator roles are assigned from scratch.
+		EDucContent content = buildEDucContent(request, List.of());
 
 		String envelopeId = docuSignClient.createEnvelope(templateId, content.recipients(), content.tabValues());
 
@@ -286,13 +292,20 @@ public class EDucManager {
 	private record EDucContent(Map<String, RecipientInfo> recipients, Map<String, String> roleEmails,
 			Map<RoleLabelKey, String> tabValues) {}
 
-	private EDucContent buildEDucContent(RequestInterface request) {
+	/**
+	 * Derives the envelope content from the request.
+	 *
+	 * @param existingRecipients the signers already on the envelope, so that a collaborator keeps
+	 *        the role they were routed with; empty when the envelope has yet to be created
+	 */
+	private EDucContent buildEDucContent(RequestInterface request, List<EnvelopeRecipient> existingRecipients) {
 		List<String> collaboratorUserIds = buildCollaboratorUserIds(request);
 		// Look up each collaborator's profile and user name once and reuse for the recipient
 		// identities, the role emails and the tab values.
 		List<CollaboratorInfo> collaborators = gatherCollaboratorInfos(collaboratorUserIds);
-		Map<String, RecipientInfo> recipients = buildRecipients(request, collaborators);
-		Map<RoleLabelKey, String> tabValues = buildTabValues(request, collaborators);
+		Map<String, CollaboratorInfo> collaboratorsByRole = assignCollaboratorRoles(collaborators, existingRecipients);
+		Map<String, RecipientInfo> recipients = buildRecipients(request, collaboratorsByRole);
+		Map<RoleLabelKey, String> tabValues = buildTabValues(request, collaboratorsByRole);
 
 		Map<String, String> roleEmails = new LinkedHashMap<>();
 		for (Map.Entry<String, RecipientInfo> entry : recipients.entrySet()) {
@@ -330,7 +343,7 @@ public class EDucManager {
 		}
 
 		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
-		EDucContent content = buildEDucContent(request);
+		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
 
 		docuSignClient.correctEnvelope(envelopeId, managedAr.getEDucTemplateId(), content.roleEmails(),
 				content.tabValues());
@@ -554,6 +567,69 @@ public class EDucManager {
 	// user's profile has no first or last name.
 	private record CollaboratorInfo(String userId, String email, String userName, String fullName) {}
 
+	/**
+	 * Assigns each collaborator a numbered collaborator role.
+	 * <p>
+	 * A collaborator already on the envelope keeps the role they were routed with, and the role of
+	 * someone who has already signed is never given to anyone else. Without this, roles were assigned
+	 * by position in the accessor list, so removing or reordering an accessor shifted everyone after
+	 * them onto a different role: a signature could end up attributed to the wrong person, and a
+	 * collaborator whose role was occupied by a completed signer would never be asked to sign at all.
+	 * Remaining collaborators take the lowest roles still free, so routing a request for the first
+	 * time (no existing recipients) assigns them in order from collaborator_1.
+	 */
+	private Map<String, CollaboratorInfo> assignCollaboratorRoles(List<CollaboratorInfo> collaborators,
+			List<EnvelopeRecipient> existingRecipients) {
+		Map<String, CollaboratorInfo> unassigned = new LinkedHashMap<>();
+		for (CollaboratorInfo collaborator : collaborators) {
+			unassigned.put(collaborator.userId(), collaborator);
+		}
+
+		Map<String, CollaboratorInfo> byRole = new LinkedHashMap<>();
+		Set<String> unavailableRoles = new HashSet<>();
+		for (EnvelopeRecipient recipient : existingRecipients) {
+			if (!recipient.roleName().startsWith(COLLABORATOR_ROLE_PREFIX)) {
+				continue;
+			}
+			// An unrecognized address (the user may have changed it since the envelope was routed)
+			// leaves the role free: whoever ends up with it is sent a new invitation, which is
+			// preferable to attributing the role to the wrong person.
+			CollaboratorInfo occupant = unassigned.remove(resolveUserId(recipient.email()));
+			if (occupant != null) {
+				byRole.put(recipient.roleName(), occupant);
+				unavailableRoles.add(recipient.roleName());
+			} else if (recipient.completed()) {
+				// Signed by someone who is no longer a collaborator. The signature stands (DocuSign
+				// does not allow removing it) so the role is retired rather than reused.
+				unavailableRoles.add(recipient.roleName());
+			}
+		}
+
+		int nextIndex = 1;
+		for (CollaboratorInfo collaborator : unassigned.values()) {
+			while (unavailableRoles.contains(collaboratorRole(nextIndex))) {
+				nextIndex++;
+			}
+			String role = collaboratorRole(nextIndex);
+			byRole.put(role, collaborator);
+			unavailableRoles.add(role);
+		}
+		return byRole;
+	}
+
+	// The Synapse user an envelope recipient's address belongs to, or null if it belongs to none.
+	private String resolveUserId(String email) {
+		if (StringUtils.isBlank(email)) {
+			return null;
+		}
+		PrincipalAlias alias = principalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL);
+		return alias == null ? null : alias.getPrincipalId().toString();
+	}
+
+	private static String collaboratorRole(int index) {
+		return COLLABORATOR_ROLE_PREFIX + index;
+	}
+
 	private List<CollaboratorInfo> gatherCollaboratorInfos(List<String> collaboratorUserIds) {
 		List<CollaboratorInfo> collaborators = new ArrayList<>(collaboratorUserIds.size());
 		for (String collabUserId : collaboratorUserIds) {
@@ -575,7 +651,8 @@ public class EDucManager {
 	 * notification email, and their name comes from their user profile (first and/or last name)
 	 * when available, otherwise their Synapse user name, which every user is guaranteed to have.
 	 */
-	private Map<String, RecipientInfo> buildRecipients(RequestInterface request, List<CollaboratorInfo> collaborators) {
+	private Map<String, RecipientInfo> buildRecipients(RequestInterface request,
+			Map<String, CollaboratorInfo> collaboratorsByRole) {
 		Map<String, RecipientInfo> recipients = new LinkedHashMap<>();
 
 		PrincipalInvestigator pi = request.getPrincipalInvestigator();
@@ -584,17 +661,18 @@ public class EDucManager {
 		SigningOfficial so = request.getSigningOfficial();
 		recipients.put("signing_official", new RecipientInfo(so.getInstitutionalEmail(), so.getName()));
 
-		for (int i = 0; i < collaborators.size(); i++) {
-			CollaboratorInfo collaborator = collaborators.get(i);
+		for (Map.Entry<String, CollaboratorInfo> entry : collaboratorsByRole.entrySet()) {
+			CollaboratorInfo collaborator = entry.getValue();
 			String name = StringUtils.isBlank(collaborator.fullName())
 					? collaborator.userName() : collaborator.fullName();
-			recipients.put("collaborator_" + (i + 1), new RecipientInfo(collaborator.email(), name));
+			recipients.put(entry.getKey(), new RecipientInfo(collaborator.email(), name));
 		}
 
 		return recipients;
 	}
 
-	private Map<RoleLabelKey, String> buildTabValues(RequestInterface request, List<CollaboratorInfo> collaborators) {
+	private Map<RoleLabelKey, String> buildTabValues(RequestInterface request,
+			Map<String, CollaboratorInfo> collaboratorsByRole) {
 		Map<RoleLabelKey, String> tabValues = new LinkedHashMap<>();
 
 		SigningOfficial so = request.getSigningOfficial();
@@ -609,9 +687,9 @@ public class EDucManager {
 		String piUserName = principalAliasDao.getUserName(Long.parseLong(pi.getUserId()));
 		addIfPresent(tabValues, "principal_investigator", "principal_investigator_user_name", piUserName);
 
-		for (int i = 0; i < collaborators.size(); i++) {
-			String role = "collaborator_" + (i + 1);
-			CollaboratorInfo collaborator = collaborators.get(i);
+		for (Map.Entry<String, CollaboratorInfo> entry : collaboratorsByRole.entrySet()) {
+			String role = entry.getKey();
+			CollaboratorInfo collaborator = entry.getValue();
 			addIfPresent(tabValues, role, role + "_user_name", collaborator.userName());
 			addIfPresent(tabValues, role, role + "_name", collaborator.fullName());
 		}

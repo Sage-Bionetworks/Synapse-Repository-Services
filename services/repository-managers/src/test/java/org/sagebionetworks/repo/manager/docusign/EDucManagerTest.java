@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.docusign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeRecipient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.docusign.RecipientInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -62,6 +64,7 @@ import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
@@ -977,6 +980,137 @@ public class EDucManagerTest {
 		profile.setFirstName("A");
 		profile.setLastName("B");
 		when(mockUserProfileDao.get(any(String.class))).thenReturn(profile);
+	}
+
+	private static AccessorChange accessorChange(String userId, AccessType type) {
+		AccessorChange change = new AccessorChange();
+		change.setUserId(userId);
+		change.setType(type);
+		return change;
+	}
+
+	private void stubCollaborator(long userId, String email) {
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(userId)).thenReturn(email);
+		when(mockPrincipalAliasDao.getUserName(userId)).thenReturn("user" + userId);
+		UserProfile profile = new UserProfile();
+		profile.setFirstName("First" + userId);
+		profile.setLastName("Last" + userId);
+		when(mockUserProfileDao.get(Long.toString(userId))).thenReturn(profile);
+	}
+
+	// The reverse lookup used to work out which user occupies an existing envelope role.
+	private void stubEmailResolvesToUser(String email, long userId) {
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setPrincipalId(userId);
+		when(mockPrincipalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL)).thenReturn(alias);
+	}
+
+	private Map<String, String> captureCorrectedRoleEmails() {
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Map<String, String>> emailsCaptor = ArgumentCaptor.forClass(Map.class);
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), emailsCaptor.capture(), any());
+		return emailsCaptor.getValue();
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeKeepsRolesWhenAnEarlierAccessorIsRemoved() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		// 301 is no longer an accessor; the creator (100) and 302 remain
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// the envelope was routed with 100, 301 and 302 as collaborator_1, _2 and _3; collaborators
+		// route first, so they have already signed
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("principal_investigator", "pi@university.edu", false),
+				new EnvelopeRecipient("signing_official", "so@university.edu", false),
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true),
+				new EnvelopeRecipient("collaborator_2", "c301@example.com", true),
+				new EnvelopeRecipient("collaborator_3", "c302@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubEmailResolvesToUser("c301@example.com", 301L);
+		stubEmailResolvesToUser("c302@example.com", 302L);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		Map<String, String> roleEmails = captureCorrectedRoleEmails();
+		// 302 keeps collaborator_3 instead of shifting down into the role 301 vacated, so 302's
+		// signature is not reattributed and collaborator_2 is simply left to be removed
+		assertEquals("creator@example.com", roleEmails.get("collaborator_1"));
+		assertEquals("c302@example.com", roleEmails.get("collaborator_3"));
+		assertFalse(roleEmails.containsKey("collaborator_2"));
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeRetiresRoleOfCompletedSignerWhoIsNoLongerAnAccessor() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		// 301 is dropped and 304 is added
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS),
+				accessorChange("304", AccessType.GAIN_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true),
+				new EnvelopeRecipient("collaborator_2", "c301@example.com", true),
+				new EnvelopeRecipient("collaborator_3", "c302@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubEmailResolvesToUser("c301@example.com", 301L);
+		stubEmailResolvesToUser("c302@example.com", 302L);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		stubCollaborator(304L, "c304@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		Map<String, String> roleEmails = captureCorrectedRoleEmails();
+		// 301 signed and is no longer an accessor, so collaborator_2 is retired: the new accessor
+		// takes the next free role rather than inheriting 301's signature
+		assertFalse(roleEmails.containsKey("collaborator_2"));
+		assertEquals("c304@example.com", roleEmails.get("collaborator_4"));
+		assertEquals("creator@example.com", roleEmails.get("collaborator_1"));
+		assertEquals("c302@example.com", roleEmails.get("collaborator_3"));
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeReusesRoleOfUnrecognizedPendingRecipient() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// collaborator_2's address belongs to no Synapse user, and it has not been signed
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", false),
+				new EnvelopeRecipient("collaborator_2", "unknown@example.com", false)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		when(mockPrincipalAliasDao.findPrincipalWithAlias("unknown@example.com", AliasType.USER_EMAIL))
+				.thenReturn(null);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		// nothing is known to be attributed to collaborator_2, so it is free to be reused
+		assertEquals("c302@example.com", captureCorrectedRoleEmails().get("collaborator_2"));
 	}
 
 	@Test

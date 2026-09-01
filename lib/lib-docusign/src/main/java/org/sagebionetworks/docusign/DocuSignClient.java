@@ -119,6 +119,24 @@ public class DocuSignClient {
 	private static final Set<String> COMPLETED_SIGNER_STATUSES = Set.of("completed", "signed");
 
 	/**
+	 * The signers currently on the given envelope, in the order DocuSign reports them. Callers use
+	 * this to work out which template role each person already occupies before deciding how to
+	 * correct the envelope.
+	 */
+	public List<EnvelopeRecipient> getRecipients(String envelopeId) {
+		ValidateArgument.required(envelopeId, "envelopeId");
+		Envelope envelope = envelopesApi.getEnvelope(envelopeId);
+		if (envelope.getRecipients() == null || envelope.getRecipients().getSigners() == null) {
+			return List.of();
+		}
+		List<EnvelopeRecipient> recipients = new ArrayList<>();
+		for (Signer signer : envelope.getRecipients().getSigners()) {
+			recipients.add(new EnvelopeRecipient(signer.getRoleName(), signer.getEmail(), isCompleted(signer)));
+		}
+		return recipients;
+	}
+
+	/**
 	 * Applies new signer emails and tab values to an in-flight (sent or delivered) envelope by
 	 * correcting it: the envelope is placed into the "correct" state (which pauses signing),
 	 * recipients are added, updated, and removed to match the desired content, and the envelope is

@@ -710,6 +710,42 @@ public class DocuSignClientTest {
 	}
 
 	@Test
+	public void testGetRecipients() {
+		Signer pi = existingSigner("1", "principal_investigator", "completed");
+		pi.setEmail("pi@example.com");
+		Signer collaborator = existingSigner("2", "collaborator_1", "sent");
+		collaborator.setEmail("c1@example.com");
+		Recipients recipients = new Recipients();
+		recipients.setSigners(List.of(pi, collaborator));
+		Envelope envelope = new Envelope();
+		envelope.setRecipients(recipients);
+		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(envelope);
+
+		// call under test
+		List<EnvelopeRecipient> result = client.getRecipients("env-1");
+
+		assertEquals(List.of(
+				new EnvelopeRecipient("principal_investigator", "pi@example.com", true),
+				new EnvelopeRecipient("collaborator_1", "c1@example.com", false)), result);
+	}
+
+	@Test
+	public void testGetRecipientsWithNoRecipients() {
+		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(new Envelope());
+
+		// call under test
+		assertEquals(List.of(), client.getRecipients("env-1"));
+	}
+
+	@Test
+	public void testGetRecipientsWithNullEnvelopeId() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.getRecipients(null));
+		assertEquals("envelopeId is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
 	public void testCorrectEnvelopeWithNullEnvelopeId() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> client.correctEnvelope(null, "tpl-1", Map.of(), Map.of()));
