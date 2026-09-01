@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -93,14 +95,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private EntityAuthorizationManager entityAuthorizationManager;
 	private ExecutorService threadPool;
 	private QueryCacheManager queryCacheManager;
+	private FacetPostProcessorProvider facetPostProcessorProvider;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.threadPool = cachedThreadPool;
 		this.queryCacheManager = queryCacheManager;
+		this.facetPostProcessorProvider = facetPostProcessorProvider;
 	}
 	
 	/**
@@ -234,14 +238,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		Optional<AggregateDataConfiguration> aggregateConfiguration = readStatus.isAuthorized()
 				? Optional.empty()
 				: readStatus.getAggregateDataSourceId().flatMap(tableManagerSupport::getAggregateDataConfiguration);
-		AggregateAccessRestriction restriction;
+		AggregateDataConfiguration aggregateDataConfiguration;
 		if (aggregateConfiguration.isPresent()) {
-			restriction = AggregateAccessRestriction.aggregateOnly(aggregateConfiguration.get());
+			// Aggregate-only access: the ACT-bound configuration governs the query. A
+			// request-supplied preview configuration is ignored for these users.
+			aggregateDataConfiguration = aggregateConfiguration.get();
 		} else {
-			// Either fully authorized (no restriction) or denied with no aggregate fallback:
-			// this preserves the standard denial and is a no-op when the read is authorized.
+			// Either fully authorized or denied with no aggregate fallback: this preserves
+			// the standard denial and is a no-op when the read is authorized.
 			readStatus.checkAuthorizationOrElseThrow();
-			restriction = AggregateAccessRestriction.notRestricted();
+			// A full-access data manager may preview exactly what an aggregate-only user
+			// would see by supplying a configuration on the request. Applying it upstream
+			// makes the entire pipeline treat the query identically to a real aggregate-only
+			// read; it can only further restrict the manager's own view, so it is safe.
+			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 		}
 
 		// 3. Get the table's schema count
@@ -271,8 +281,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setOffset(query.getOffset())
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
-			.setAggregateOnly(restriction.isAggregateOnly())
-			.setSuppressionThreshold(restriction.getSuppressionThreshold().orElse(null))
+			.setAggregateDataConfiguration(aggregateDataConfiguration)
 		.build();
 
 		// Aggregate-only queries currently suppress all row data (see executeQuery), so a
@@ -413,16 +422,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			bundle.setQueryCount(count);
 		}
 
-		// run the facet counts if needed. Aggregate-only queries suppress facets for now:
-		// raw facet counts could leak below-threshold values, and the facet
-		// post-processing (rounding/noise) that makes them safe to return arrives in
-		// PLFM-9757. This branch will be re-enabled there to emit post-processed facets.
-		if (options.returnFacets() && !query.isAggregateOnly()) {
-			// use original query instead of queryToRun because need the where clause that
-			// was not modified by any facets
-			List<FacetColumnResult> facetResults = runFacetQueries(
-					query.getFacetQueries().orElseThrow(()-> new IllegalStateException("Expected facet query")), indexDao);
-			bundle.setFacets(facetResults);
+		if (options.returnFacets()) {
+			applyFacets(bundle, query, indexDao);
 		}
 		
 		if(options.runSumFileSizes()) {
@@ -445,9 +446,46 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	/**
+	 * Resolve the facet statistics for the query and set them on the bundle. For a
+	 * full-access read the raw facet results are returned unchanged. For an
+	 * aggregate-only read the facet counts must be obscured before they reach the
+	 * user, so this fails closed: if the configuration required to obscure them is
+	 * missing it throws rather than leak exact counts.
+	 *
+	 * @param bundle   the response to populate.
+	 * @param query    the translated query.
+	 * @param indexDao the connection to the table's index.
+	 */
+	void applyFacets(QueryResultBundle bundle, QueryTranslations query, TableIndexDAO indexDao) {
+		List<FacetColumnResult> facetResults = runFacetQueries(
+				query.getFacetQueries().orElseThrow(() -> new IllegalStateException("Expected a facet query")), indexDao);
+
+		if (query.isAggregateOnly()) {
+			// Fail closed: an aggregate-only query must obscure its facet counts. Missing
+			// post-processing configuration is a data leak, so throw rather than return
+			// exact counts.
+			FacetPostProcessingConfig config = query.getAggregateDataConfiguration()
+					.map(AggregateDataConfiguration::getFacetPostProcessingConfig)
+					.orElseThrow(() -> new IllegalStateException(
+							"An aggregate-only query requires a facet post-processing configuration"));
+			// Range facets expose the exact min/max of the restricted rows, which is not a
+			// count that post-processing can obscure; drop them entirely.
+			facetResults = facetResults.stream().filter(facet -> !(facet instanceof FacetColumnResultRange))
+					.collect(Collectors.toList());
+			facetResults = facetPostProcessorProvider.getProcessor(config.getAlgorithm())
+					.process(facetResults, config.getParameters());
+			bundle.setFacetPostProcessingApplied(true);
+		} else {
+			bundle.setFacetPostProcessingApplied(false);
+		}
+
+		bundle.setFacets(facetResults);
+	}
+
+	/**
 	 * Runs facet queries (enumeration count or range min/max) for all columns in
 	 * queryFacetColumns.
-	 * 
+	 *
 	 * @param originalQuery     the non-transformed query that was submitted by the
 	 *                          user.
 	 * @param queryFacetColumns
@@ -514,7 +552,8 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throws TableUnavailableException, TableFailedException, LockUnavilableException {
 		ValidateArgument.required(queryBundle.getQuery(), "query");
 		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
-		QueryOptions options = new QueryOptions().withMask(queryBundle.getPartMask());
+		QueryOptions options = new QueryOptions().withMask(queryBundle.getPartMask())
+				.withAggregateDataPreview(queryBundle.getAggregateDataPreview());
 		// execute the query
 		return querySinglePage(progressCallback, user, queryBundle.getQuery(),  options);
 	}

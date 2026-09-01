@@ -1,5 +1,10 @@
 {
-	"description": "Parameters that tune a FacetPostProcessingAlgorithm. This type is intentionally extensible; algorithm-specific parameters (e.g. rounding interval, noise epsilon) are added by PLFM-9757.",
+	"description": "Base interface for the parameters that tune a FacetPostProcessingAlgorithm. The concrete type carries the algorithm-specific parameters (e.g. FacetRoundingParameters for ROUNDING, FacetNoiseParameters for NOISE).",
+	"type": "interface",
 	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "The full class name that identifies the concrete parameters type."
+		}
 	}
 }

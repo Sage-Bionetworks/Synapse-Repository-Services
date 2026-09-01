@@ -4010,7 +4010,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		bundleRequest.setEntityId(tableId);
 		bundleRequest.setQuery(query);
 		bundleRequest.setPartMask(queryOptions.getPartMask());
-		
+		bundleRequest.setAggregateDataPreview(queryOptions.getAggregateDataPreview().orElse(null));
+
 		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
 	}
 

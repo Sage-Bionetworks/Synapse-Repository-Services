@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.model.table;
 
+import java.util.Optional;
+
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+
 public class QueryOptions {
 
 	public static final long BUNDLE_MASK_QUERY_RESULTS = 0x1;
@@ -23,7 +27,10 @@ public class QueryOptions {
 	boolean returnLastUpdatedOn;
 	boolean returnCombinedSql;
 	boolean returnActionsRequired;
-	
+	// A transient carrier for a data-manager aggregate-data preview request. It is not part of the
+	// part-mask and is intentionally excluded from equals/hashCode/toString.
+	AggregateDataConfiguration aggregateDataPreview;
+
 	public QueryOptions() {
 		// all default to false
 		this.runQuery = false;
@@ -128,6 +135,15 @@ public class QueryOptions {
 		return this;
 	}
  
+	public Optional<AggregateDataConfiguration> getAggregateDataPreview() {
+		return Optional.ofNullable(aggregateDataPreview);
+	}
+
+	public QueryOptions withAggregateDataPreview(AggregateDataConfiguration aggregateDataPreview) {
+		this.aggregateDataPreview = aggregateDataPreview;
+		return this;
+	}
+
 	public QueryOptions withMask(Long partMaskIn) {
 		final long partMask = partMaskIn != null ? partMaskIn : -1L;// default all.
 		this.runQuery = ((partMask & BUNDLE_MASK_QUERY_RESULTS) != 0);
