@@ -32,6 +32,27 @@ enum TabType {
 			}
 			return false;
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getTextTabs() != null) {
+				for (Text t : tabs.getTextTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getTextTabs() != null) {
+				for (Text t : tabs.getTextTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
+		}
 	},
 	FULL_NAME {
 		@Override
@@ -53,7 +74,28 @@ enum TabType {
 			}
 			return false;
 		}
-	},		
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getFullNameTabs() != null) {
+				for (FullName t : tabs.getFullNameTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getFullNameTabs() != null) {
+				for (FullName t : tabs.getFullNameTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
+		}
+	},
 	TITLE {
 		@Override
 		public void fillInTabValue(Tabs tabs, String label, String value) {
@@ -73,6 +115,27 @@ enum TabType {
 				}
 			}
 			return false;
+		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getTitleTabs() != null) {
+				for (Title t : tabs.getTitleTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getTitleTabs() != null) {
+				for (Title t : tabs.getTitleTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
 		}
 	},
 	EMAIL_ADDRESS {
@@ -95,6 +158,36 @@ enum TabType {
 			}
 			return false;
 		}
+		// A template declares its email tabs as emailAddressTabs, which is where an existing
+		// definition is found and updated. Note that fillInTabValue above instead adds an entry to
+		// emailTabs, which DocuSign treats as a distinct tab type.
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getEmailAddressTabs() != null) {
+				for (EmailAddress t : tabs.getEmailAddressTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getEmailAddressTabs() != null) {
+				for (EmailAddress t : tabs.getEmailAddressTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
+			if (tabs.getEmailTabs() != null) {
+				for (Email t : tabs.getEmailTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
+		}
 	},
 	SIGN_HERE {
 		@Override
@@ -113,6 +206,19 @@ enum TabType {
 			}
 			return false;
 
+		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("Cannot set the value of a SIGN_HERE tab.");
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getSignHereTabs() != null) {
+				for (SignHere t : tabs.getSignHereTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
 		}
 	},
 	DATE_SIGNED {
@@ -133,10 +239,49 @@ enum TabType {
 			return false;
 
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("Cannot set the value of a DATE_SIGNED tab.");
+		}
+		@Override
+		public void clearTabIdentifiers(Tabs tabs) {
+			if (tabs.getDateSignedTabs() != null) {
+				for (DateSigned t : tabs.getDateSignedTabs()) {
+					t.setTabId(null);
+					t.setRecipientId(null);
+				}
+			}
+		}
 	};
-	
+
+	/**
+	 * Adds a new tab of this type carrying the given label and value. The tab has no placement, so
+	 * it is only meaningful where DocuSign resolves the placement from a template by matching the
+	 * label, as it does for the roles of an envelope being created from a template.
+	 */
 	public abstract void fillInTabValue(Tabs tabs, String label, String value);
+
 	public abstract boolean hasTabWithLabel(Tabs tabs, String label);
+
+	/**
+	 * Sets the value of the existing tab of this type carrying the given label, leaving the rest of
+	 * its definition — including its placement — untouched.
+	 *
+	 * @throws IllegalArgumentException if there is no tab of this type with that label
+	 * @throws UnsupportedOperationException if tabs of this type do not carry a value
+	 */
+	public abstract void applyValueToTabWithLabel(Tabs tabs, String label, String value);
+
+	/**
+	 * Clears the tab and recipient IDs of every tab of this type. Both identify a tab within the
+	 * envelope or template it was read from, so they must not be carried over when the definition is
+	 * reused elsewhere; DocuSign assigns new ones.
+	 */
+	public abstract void clearTabIdentifiers(Tabs tabs);
+
+	private static String noSuchTabMessage(TabType type, String label) {
+		return "There is no " + type.name() + " tab labeled '" + label + "'.";
+	}
 }
 
 

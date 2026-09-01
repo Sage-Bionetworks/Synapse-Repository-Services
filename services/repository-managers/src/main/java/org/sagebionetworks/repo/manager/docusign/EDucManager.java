@@ -329,10 +329,11 @@ public class EDucManager {
 			throw new IllegalArgumentException(reason.get());
 		}
 
-		validateEDucRequest(request);
+		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
 		EDucContent content = buildEDucContent(request);
 
-		docuSignClient.correctEnvelope(envelopeId, content.roleEmails(), content.tabValues());
+		docuSignClient.correctEnvelope(envelopeId, managedAr.getEDucTemplateId(), content.roleEmails(),
+				content.tabValues());
 		requestDao.setEDucContentHash(requestId, computeEDucContentHash(request));
 
 		return getSignatureStatus(userInfo, requestId);
@@ -423,6 +424,7 @@ public class EDucManager {
 			}
 		}
 
+		// Note, this string encoding will be 64 bytes long
 		return DigestUtils.sha256Hex(builder.toString());
 	}
 

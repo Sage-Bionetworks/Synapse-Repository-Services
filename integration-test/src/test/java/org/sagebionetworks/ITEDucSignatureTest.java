@@ -15,12 +15,10 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequest;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 
@@ -36,7 +34,6 @@ public class ITEDucSignatureTest {
 	private final SynapseClient synapse;
 
 	private Project project;
-	private ACTAccessRequirement actAR;
 	private ManagedACTAccessRequirement managedAR;
 
 	public ITEDucSignatureTest(SynapseAdminClient adminSynapse, SynapseClient synapse) {
@@ -48,19 +45,11 @@ public class ITEDucSignatureTest {
 	public void before() throws SynapseException {
 		project = synapse.createEntity(new Project());
 
-		actAR = new ACTAccessRequirement();
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(project.getId());
-		rod.setType(RestrictableObjectType.ENTITY);
-		actAR.setSubjectIds(Arrays.asList(rod));
-		actAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		actAR = adminSynapse.createAccessRequirement(actAR);
-
-		AccessRequirementConversionRequest conversionRequest = new AccessRequirementConversionRequest();
-		conversionRequest.setAccessRequirementId(actAR.getId().toString());
-		conversionRequest.setCurrentVersion(actAR.getVersionNumber());
-		conversionRequest.setEtag(actAR.getEtag());
-		managedAR = (ManagedACTAccessRequirement) adminSynapse.convertAccessRequirement(conversionRequest);
+		managedAR = new ManagedACTAccessRequirement()
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor()
+						.setId(project.getId()).setType(RestrictableObjectType.ENTITY)));
+		managedAR = adminSynapse.createAccessRequirement(managedAR);
 	}
 
 	@AfterEach

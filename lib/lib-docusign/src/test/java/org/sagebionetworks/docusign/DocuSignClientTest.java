@@ -17,8 +17,11 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,8 +45,10 @@ import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
+import com.docusign.esign.model.FullName;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
+import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateRole;
 
 @ExtendWith(MockitoExtension.class)
@@ -605,7 +610,10 @@ public class DocuSignClientTest {
 		);
 
 		// call under test
-		client.correctEnvelope("env-1", roleEmails, tabValues);
+		client.correctEnvelope("env-1", "tpl-1", roleEmails, tabValues);
+
+		// no role has to be added back, so the template is not needed
+		verifyNoInteractions(mockDocuSignTemplatesApi);
 
 		InOrder order = inOrder(mockDocuSignEnvelopesApi);
 		order.verify(mockDocuSignEnvelopesApi).getEnvelope("env-1");
@@ -643,6 +651,13 @@ public class DocuSignClientTest {
 		existing.setRecipients(recipients);
 		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
 
+		// the template places collaborator_3's tabs and routes it ahead of the other roles
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(3);
+		Signer templateCollab3 = TestTemplateHelper.findSigner(template, "collaborator_3");
+		templateCollab3.setRoutingOrder("2");
+		placeTab(templateCollab3.getTabs().getFullNameTabs().get(0), "3", "7", "100", "200");
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+
 		// desired: keep PI and collaborator_1, drop collaborator_2, add collaborator_3
 		Map<String, String> roleEmails = Map.of(
 				"principal_investigator", "pi@example.com",
@@ -654,7 +669,7 @@ public class DocuSignClientTest {
 		);
 
 		// call under test
-		client.correctEnvelope("env-1", roleEmails, tabValues);
+		client.correctEnvelope("env-1", "tpl-1", roleEmails, tabValues);
 
 		// collaborator_2 (pending, no longer desired) is deleted
 		ArgumentCaptor<Recipients> deleteCaptor = ArgumentCaptor.forClass(Recipients.class);
@@ -669,10 +684,26 @@ public class DocuSignClientTest {
 		verify(mockDocuSignEnvelopesApi).createRecipients(eq("env-1"), createCaptor.capture(), eq(true));
 		List<Signer> created = createCaptor.getValue().getSigners();
 		assertEquals(1, created.size());
-		assertEquals("collaborator_3", created.get(0).getRoleName());
-		assertEquals("c3@example.com", created.get(0).getEmail());
-		assertEquals("4", created.get(0).getRecipientId());
-		assertEquals("New Collaborator", created.get(0).getName());
+		Signer addedCollaborator = created.get(0);
+		assertEquals("collaborator_3", addedCollaborator.getRoleName());
+		assertEquals("c3@example.com", addedCollaborator.getEmail());
+		assertEquals("4", addedCollaborator.getRecipientId());
+		assertEquals("New Collaborator", addedCollaborator.getName());
+		// the routing order comes from the template, not from the recipient ID
+		assertEquals("2", addedCollaborator.getRoutingOrder());
+
+		// the tabs carry the template's placement, and the signature and date tabs — which never
+		// carry a value — come across too
+		Tabs addedTabs = addedCollaborator.getTabs();
+		FullName addedName = addedTabs.getFullNameTabs().get(0);
+		assertEquals("collaborator_3_name", addedName.getTabLabel());
+		assertEquals("New Collaborator", addedName.getValue());
+		assertEquals("3", addedName.getDocumentId());
+		assertEquals("7", addedName.getPageNumber());
+		assertEquals("100", addedName.getXPosition());
+		assertEquals("200", addedName.getYPosition());
+		assertEquals("collaborator_3_signature", addedTabs.getSignHereTabs().get(0).getTabLabel());
+		assertEquals("collaborator_3_date", addedTabs.getDateSignedTabs().get(0).getTabLabel());
 
 		// no not-yet-signed existing role remains to update (PI and collaborator_1 are completed)
 		verify(mockDocuSignEnvelopesApi, never()).updateRecipients(any(), any(), eq(true));
@@ -681,15 +712,23 @@ public class DocuSignClientTest {
 	@Test
 	public void testCorrectEnvelopeWithNullEnvelopeId() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> client.correctEnvelope(null, Map.of(), Map.of()));
+				() -> client.correctEnvelope(null, "tpl-1", Map.of(), Map.of()));
 		assertEquals("envelopeId is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
+	public void testCorrectEnvelopeWithNullTemplateId() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.correctEnvelope("env-1", null, Map.of(), Map.of()));
+		assertEquals("templateId is required.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignEnvelopesApi);
 	}
 
 	@Test
 	public void testCorrectEnvelopeWithNullRoleEmails() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> client.correctEnvelope("env-1", null, Map.of()));
+				() -> client.correctEnvelope("env-1", "tpl-1", null, Map.of()));
 		assertEquals("roleEmails is required.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignEnvelopesApi);
 	}
@@ -697,7 +736,7 @@ public class DocuSignClientTest {
 	@Test
 	public void testCorrectEnvelopeWithNullTabValues() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> client.correctEnvelope("env-1", Map.of(), null));
+				() -> client.correctEnvelope("env-1", "tpl-1", Map.of(), null));
 		assertEquals("tabValues is required.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignEnvelopesApi);
 	}
@@ -727,16 +766,149 @@ public class DocuSignClientTest {
 		assertEquals("collaborator_2", result.getSigners().get(0).getRoleName());
 	}
 
+	// The template's signer roles, keyed by role name, as DocuSignClient reads them.
+	private static Map<String, Signer> templateSigners(int numCollaborators) {
+		Map<String, Signer> signersByRole = new HashMap<>();
+		for (Signer signer : TestTemplateHelper.buildValidTemplate(numCollaborators)
+				.getRecipients().getSigners()) {
+			signersByRole.put(signer.getRoleName(), signer);
+		}
+		return signersByRole;
+	}
+
+	private static void placeTab(FullName tab, String documentId, String pageNumber, String x, String y) {
+		tab.setDocumentId(documentId);
+		tab.setPageNumber(pageNumber);
+		tab.setXPosition(x);
+		tab.setYPosition(y);
+	}
+
 	@Test
 	public void testBuildNewRecipientsOnlyAddsMissingRoles() {
 		Signer pi = existingSigner("1", "principal_investigator", "sent");
 
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi),
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
 				Map.of("principal_investigator", "pi@example.com", "collaborator_1", "c1@example.com"),
 				Map.of());
 
 		assertEquals(1, result.getSigners().size());
 		assertEquals("collaborator_1", result.getSigners().get(0).getRoleName());
 		assertEquals("2", result.getSigners().get(0).getRecipientId());
+	}
+
+	@Test
+	public void testBuildNewRecipientsTakesRoutingOrderFromTemplate() {
+		// The routing order of an added signer is the template's, not the recipient ID it happens to
+		// be assigned, so a collaborator still routes ahead of the principal investigator and
+		// signing official even though its recipient ID is the highest on the envelope.
+		Signer pi = existingSigner("4", "principal_investigator", "completed");
+		Signer so = existingSigner("5", "signing_official", "sent");
+		Map<String, Signer> templateSigners = templateSigners(1);
+		templateSigners.get("collaborator_1").setRoutingOrder("2");
+		templateSigners.get("principal_investigator").setRoutingOrder("3");
+		templateSigners.get("signing_official").setRoutingOrder("4");
+
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi, so), templateSigners,
+				Map.of("principal_investigator", "pi@example.com", "signing_official", "so@example.com",
+						"collaborator_1", "c1@example.com"),
+				Map.of());
+
+		assertEquals(1, result.getSigners().size());
+		Signer added = result.getSigners().get(0);
+		assertEquals("collaborator_1", added.getRoleName());
+		assertEquals("6", added.getRecipientId());
+		assertEquals("2", added.getRoutingOrder());
+	}
+
+	@Test
+	public void testBuildNewRecipientsWithTemplateRoutingOrderMissing() {
+		// A template role should always carry a routing order; if it does not, the added signer
+		// routes as early as possible rather than after everyone else.
+		Signer pi = existingSigner("4", "principal_investigator", "completed");
+		Map<String, Signer> templateSigners = templateSigners(1);
+		templateSigners.get("collaborator_1").setRoutingOrder(null);
+
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
+				Map.of("collaborator_1", "c1@example.com"), Map.of());
+
+		assertEquals("1", result.getSigners().get(0).getRoutingOrder());
+	}
+
+	@Test
+	public void testBuildNewRecipientsCopiesTabPlacementFromTemplate() {
+		// The envelope recipient's own tabs were deleted along with it, so the template supplies the
+		// placement that a tab needs in order to appear on the document.
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+		Map<String, Signer> templateSigners = templateSigners(1);
+		Tabs templateTabs = templateSigners.get("collaborator_1").getTabs();
+		placeTab(templateTabs.getFullNameTabs().get(0), "2", "5", "42", "84");
+		// the template's own identifiers must not be carried over to the envelope
+		templateTabs.getFullNameTabs().get(0).setTabId("template-tab-id");
+		templateTabs.getSignHereTabs().get(0).setRecipientId("template-recipient-id");
+
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
+				Map.of("collaborator_1", "c1@example.com"),
+				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_name"), "Alice Smith",
+						new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "alice"));
+
+		Tabs tabs = result.getSigners().get(0).getTabs();
+
+		FullName name = tabs.getFullNameTabs().get(0);
+		assertEquals("collaborator_1_name", name.getTabLabel());
+		assertEquals("Alice Smith", name.getValue());
+		assertEquals("2", name.getDocumentId());
+		assertEquals("5", name.getPageNumber());
+		assertEquals("42", name.getXPosition());
+		assertEquals("84", name.getYPosition());
+		assertNull(name.getTabId());
+
+		assertEquals("alice", tabs.getTextTabs().get(0).getValue());
+
+		// the signature and date tabs carry no value and so are absent from tabValues, but must
+		// still reach the recipient or nothing appears on the document for them to sign
+		assertEquals("collaborator_1_signature", tabs.getSignHereTabs().get(0).getTabLabel());
+		assertNull(tabs.getSignHereTabs().get(0).getRecipientId());
+		assertEquals("collaborator_1_date", tabs.getDateSignedTabs().get(0).getTabLabel());
+	}
+
+	@Test
+	public void testBuildNewRecipientsWithRoleMissingFromTemplate() {
+		// the template defines only collaborator_1, so collaborator_2 cannot be placed
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_2", "c2@example.com"), Map.of()));
+
+		assertEquals("The template does not define the role 'collaborator_2'.", ex.getMessage());
+	}
+
+	@Test
+	public void testBuildNewRecipientsRoutesEveryAddedSignerTogether() {
+		// The template gives all collaborators the same routing order, so collaborators added in the
+		// same correction are routed in parallel rather than sequentially.
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+		Map<String, Signer> templateSigners = templateSigners(2);
+		templateSigners.get("collaborator_1").setRoutingOrder("2");
+		templateSigners.get("collaborator_2").setRoutingOrder("2");
+
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
+				Map.of("collaborator_1", "c1@example.com", "collaborator_2", "c2@example.com"),
+				Map.of());
+
+		assertEquals(2, result.getSigners().size());
+		Set<String> recipientIds = new HashSet<>();
+		for (Signer added : result.getSigners()) {
+			assertEquals("2", added.getRoutingOrder());
+			recipientIds.add(added.getRecipientId());
+		}
+		// the recipient IDs remain distinct even though the routing order is shared
+		assertEquals(Set.of("2", "3"), recipientIds);
 	}
 }
