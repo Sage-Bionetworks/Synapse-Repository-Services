@@ -145,14 +145,15 @@ public class DocuSignClient {
 	 * @param envelopeId the ID of the envelope to correct
 	 * @param templateId the ID of the template the envelope was created from, which supplies the tab
 	 *        placements and routing order of any recipient that has to be added back
-	 * @param roleEmails map from role name to the signer's desired email address
+	 * @param recipients map from role name to the signer's desired email and name (both are
+	 *        required for every role, as they are when creating an envelope)
 	 * @param tabValues map from (roleName, tabLabel) to the desired text value to pre-fill
 	 */
-	public void correctEnvelope(String envelopeId, String templateId, Map<String, String> roleEmails,
+	public void correctEnvelope(String envelopeId, String templateId, Map<String, RecipientInfo> recipients,
 			Map<RoleLabelKey, String> tabValues) {
 		ValidateArgument.required(envelopeId, "envelopeId");
 		ValidateArgument.required(templateId, "templateId");
-		ValidateArgument.required(roleEmails, "roleEmails");
+		ValidateArgument.required(recipients, "recipients");
 		ValidateArgument.required(tabValues, "tabValues");
 
 		// Fetch the current recipients to obtain their recipientIds and per-signer status.
@@ -163,18 +164,24 @@ public class DocuSignClient {
 			existingSigners = List.of();
 		}
 
+		// Every change is computed before the envelope is touched, so that a failure to build one
+		// leaves the envelope as it was rather than paused or partially corrected.
+		Recipients toDelete = buildRemovedRecipients(existingSigners, recipients);
+		Recipients toUpdate = buildUpdatedRecipients(existingSigners, recipients, tabValues);
+		Recipients toCreate;
+		if (rolesToAdd(existingSigners, recipients).isEmpty()) {
+			toCreate = toRecipients(List.of());
+		} else {
+			// The template is only needed to define recipients being added back, which most
+			// corrections do not do.
+			toCreate = buildNewRecipients(existingSigners, templateSignersByRole(templateId), recipients,
+					tabValues);
+		}
+
 		// Place the envelope into the "correct" state, which pauses the signing process.
 		Envelope correcting = new Envelope();
 		correcting.setStatus("correct");
 		envelopesApi.updateEnvelope(envelopeId, correcting);
-
-		Recipients toDelete = buildRemovedRecipients(existingSigners, roleEmails);
-		Recipients toUpdate = buildUpdatedRecipients(existingSigners, roleEmails, tabValues);
-		// The template is only needed to define recipients being added back, which most corrections
-		// do not do.
-		Recipients toCreate = rolesToAdd(existingSigners, roleEmails).isEmpty()
-				? toRecipients(List.of())
-				: buildNewRecipients(existingSigners, templateSignersByRole(templateId), roleEmails, tabValues);
 
 		if (hasSigners(toDelete)) {
 			envelopesApi.deleteRecipients(envelopeId, toDelete);
@@ -195,13 +202,14 @@ public class DocuSignClient {
 	}
 
 	// Existing (not-yet-signed) signers whose role is no longer desired are removed.
-	static Recipients buildRemovedRecipients(List<Signer> existingSigners, Map<String, String> roleEmails) {
+	static Recipients buildRemovedRecipients(List<Signer> existingSigners,
+			Map<String, RecipientInfo> recipients) {
 		List<Signer> removed = new ArrayList<>();
 		for (Signer existing : existingSigners) {
 			if (isCompleted(existing)) {
 				continue;
 			}
-			if (!roleEmails.containsKey(existing.getRoleName())) {
+			if (!recipients.containsKey(existing.getRoleName())) {
 				Signer signer = new Signer();
 				signer.setRecipientId(existing.getRecipientId());
 				signer.setRoleName(existing.getRoleName());
@@ -213,26 +221,25 @@ public class DocuSignClient {
 
 	// Existing (not-yet-signed) signers whose role is still desired get their email and tabs re-applied.
 	static Recipients buildUpdatedRecipients(List<Signer> existingSigners,
-			Map<String, String> roleEmails, Map<RoleLabelKey, String> tabValues) {
+			Map<String, RecipientInfo> recipients, Map<RoleLabelKey, String> tabValues) {
 		List<Signer> updated = new ArrayList<>();
 		for (Signer existing : existingSigners) {
 			if (isCompleted(existing)) {
 				continue;
 			}
 			String roleName = existing.getRoleName();
-			if (!roleEmails.containsKey(roleName)) {
+			if (!recipients.containsKey(roleName)) {
 				continue;
 			}
+			RecipientInfo recipient = requireRecipient(recipients, roleName);
 			Signer signer = new Signer();
 			signer.setRecipientId(existing.getRecipientId());
 			signer.setRoleName(roleName);
-			signer.setEmail(roleEmails.get(roleName));
+			signer.setEmail(recipient.email());
+			signer.setName(recipient.name());
 			Tabs tabs = new Tabs();
 			signer.setTabs(tabs);
-			String fullName = fillTabsForRole(roleName, tabs, tabValues);
-			if (fullName != null) {
-				signer.setName(fullName);
-			}
+			fillTabsForRole(roleName, tabs, tabValues);
 			updated.add(signer);
 		}
 		return toRecipients(updated);
@@ -262,7 +269,7 @@ public class DocuSignClient {
 	// Desired roles that are not present on the envelope are added as new recipients, taking their
 	// tab definitions and routing order from the template role of the same name.
 	static Recipients buildNewRecipients(List<Signer> existingSigners,
-			Map<String, Signer> templateSignersByRole, Map<String, String> roleEmails,
+			Map<String, Signer> templateSignersByRole, Map<String, RecipientInfo> recipients,
 			Map<RoleLabelKey, String> tabValues) {
 		int maxRecipientId = 0;
 		for (Signer existing : existingSigners) {
@@ -271,11 +278,12 @@ public class DocuSignClient {
 
 		List<Signer> created = new ArrayList<>();
 		int nextRecipientId = maxRecipientId;
-		for (String roleName : rolesToAdd(existingSigners, roleEmails)) {
+		for (String roleName : rolesToAdd(existingSigners, recipients)) {
 			Signer templateSigner = templateSignersByRole.get(roleName);
 			if (templateSigner == null) {
 				throw new IllegalArgumentException("The template does not define the role '" + roleName + "'.");
 			}
+			RecipientInfo recipient = requireRecipient(recipients, roleName);
 			// The recipient ID only has to be unique within the envelope. The routing order is a
 			// separate concept and comes from the template, so it is not derived from it.
 			nextRecipientId++;
@@ -283,24 +291,23 @@ public class DocuSignClient {
 			signer.setRecipientId(Integer.toString(nextRecipientId));
 			signer.setRoutingOrder(routingOrderOf(templateSigner));
 			signer.setRoleName(roleName);
-			signer.setEmail(roleEmails.get(roleName));
+			signer.setEmail(recipient.email());
+			signer.setName(recipient.name());
 			signer.setTabs(buildTabsFromTemplate(roleName, templateSigner, tabValues));
-			String fullName = fullNameForRole(roleName, tabValues);
-			if (fullName != null) {
-				signer.setName(fullName);
-			}
 			created.add(signer);
 		}
 		return toRecipients(created);
 	}
 
-	// The desired roles that the envelope does not currently have, in the order they were requested.
-	private static Set<String> rolesToAdd(List<Signer> existingSigners, Map<String, String> roleEmails) {
+	// The desired roles that the envelope does not currently have. Iterates in the order the given
+	// recipients map does, so that recipient IDs are assigned deterministically.
+	private static Set<String> rolesToAdd(List<Signer> existingSigners,
+			Map<String, RecipientInfo> recipients) {
 		Set<String> existingRoles = new HashSet<>();
 		for (Signer existing : existingSigners) {
 			existingRoles.add(existing.getRoleName());
 		}
-		Set<String> toAdd = new LinkedHashSet<>(roleEmails.keySet());
+		Set<String> toAdd = new LinkedHashSet<>(recipients.keySet());
 		toAdd.removeAll(existingRoles);
 		return toAdd;
 	}
@@ -339,18 +346,18 @@ public class DocuSignClient {
 		return tabs;
 	}
 
-	// A recipient's name is the value of its FULL_NAME tab, if the role has one.
-	private static String fullNameForRole(String roleName, Map<RoleLabelKey, String> tabValues) {
-		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
-			if (!tabEntry.getKey().roleName().equals(roleName)) {
-				continue;
-			}
-			TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabEntry.getKey().tabLabel());
-			if (TabType.FULL_NAME.equals(type)) {
-				return tabEntry.getValue();
-			}
-		}
-		return null;
+	/**
+	 * The recipient desired for the given role. DocuSign requires every recipient to have both an
+	 * email and a name before an envelope can be sent, so an incomplete role is rejected here, while
+	 * the changes are still being assembled, rather than by DocuSign once some have been applied.
+	 */
+	private static RecipientInfo requireRecipient(Map<String, RecipientInfo> recipients, String roleName) {
+		RecipientInfo recipient = recipients.get(roleName);
+		String email = recipient == null ? null : recipient.email();
+		String name = recipient == null ? null : recipient.name();
+		ValidateArgument.requiredNotBlank(email, "email for role '" + roleName + "'");
+		ValidateArgument.requiredNotBlank(name, "name for role '" + roleName + "'");
+		return recipient;
 	}
 
 	private static boolean isCompleted(Signer signer) {
@@ -408,26 +415,16 @@ public class DocuSignClient {
 	static List<TemplateRole> buildTemplateRoles(Map<String, RecipientInfo> recipients,
 			Map<RoleLabelKey, String> tabValues) {
 		List<TemplateRole> roles = new ArrayList<>();
-		for (Map.Entry<String, RecipientInfo> entry : recipients.entrySet()) {
-			String roleName = entry.getKey();
-			RecipientInfo recipient = entry.getValue();
-
-			// DocuSign requires every recipient to have both an email and a name before the
-			// envelope can be sent. The caller is responsible for supplying both.
-			String email = recipient == null ? null : recipient.email();
-			String name = recipient == null ? null : recipient.name();
-			ValidateArgument.requiredNotBlank(email, "email for role '" + roleName + "'");
-			ValidateArgument.requiredNotBlank(name, "name for role '" + roleName + "'");
+		for (String roleName : recipients.keySet()) {
+			RecipientInfo recipient = requireRecipient(recipients, roleName);
 
 			TemplateRole role = new TemplateRole();
 			role.setRoleName(roleName);
-			role.setEmail(email);
-			role.setName(name);
+			role.setEmail(recipient.email());
+			role.setName(recipient.name());
 
 			Tabs tabs = new Tabs();
 			role.setTabs(tabs);
-			// The recipient name comes from the RecipientInfo above; fill the tabs but ignore the
-			// full-name tab value returned here so it does not override that name.
 			fillTabsForRole(roleName, tabs, tabValues);
 
 			roles.add(role);
@@ -439,20 +436,16 @@ public class DocuSignClient {
 	 * Populates the given {@code tabs} with the values for the given role. Any tab-level
 	 * constraints (e.g. which tabs are locked/read-only for the signer) are defined on the
 	 * template and carried forward by DocuSign, so they are not set here.
-	 *
-	 * @return the value of the role's FULL_NAME tab, if any, so the caller can also set it as the
-	 *         recipient's name; null if the role has no FULL_NAME tab value.
 	 */
-	private static String fillTabsForRole(String roleName, Tabs tabs, Map<RoleLabelKey, String> tabValues) {
+	private static void fillTabsForRole(String roleName, Tabs tabs, Map<RoleLabelKey, String> tabValues) {
 		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
 			if (!tabEntry.getKey().roleName().equals(roleName)) {
 				continue;
 			}
 			String tabLabel = tabEntry.getKey().tabLabel();
 			TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabLabel);
-			type.fillInTabValue(tabs, tabLabel, tabEntry.getValue());
+			type.addTabWithLabel(tabs, tabLabel, tabEntry.getValue());
 		}
-		return fullNameForRole(roleName, tabValues);
 	}
 
 	public void voidEnvelope(String envelopeId, String reason) {

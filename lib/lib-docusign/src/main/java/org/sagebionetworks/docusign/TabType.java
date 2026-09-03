@@ -14,7 +14,7 @@ import com.docusign.esign.model.Title;
 enum TabType {
 	TEXT {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			Text text = new Text();
 			text.setTabLabel(label);
 			text.setValue(value);
@@ -56,7 +56,7 @@ enum TabType {
 	},
 	FULL_NAME {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			FullName fn = new FullName();
 			fn.setTabLabel(label);
 			fn.setValue(value);
@@ -98,7 +98,7 @@ enum TabType {
 	},
 	TITLE {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			Title t = new Title();
 			t.setTabLabel(label);
 			t.setValue(value);
@@ -140,7 +140,7 @@ enum TabType {
 	},
 	EMAIL_ADDRESS {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			Email e = new Email();
 			e.setTabLabel(label);
 			e.setValue(value);
@@ -159,7 +159,7 @@ enum TabType {
 			return false;
 		}
 		// A template declares its email tabs as emailAddressTabs, which is where an existing
-		// definition is found and updated. Note that fillInTabValue above instead adds an entry to
+		// definition is found and updated. Note that addTabWithLabel above instead adds an entry to
 		// emailTabs, which DocuSign treats as a distinct tab type.
 		@Override
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
@@ -191,8 +191,8 @@ enum TabType {
 	},
 	SIGN_HERE {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a SIGN_HERE tab.");
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -209,7 +209,7 @@ enum TabType {
 		}
 		@Override
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a SIGN_HERE tab.");
+			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
 		}
 		@Override
 		public void clearTabIdentifiers(Tabs tabs) {
@@ -223,8 +223,8 @@ enum TabType {
 	},
 	DATE_SIGNED {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a DATE_SIGNED tab.");
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -241,7 +241,7 @@ enum TabType {
 		}
 		@Override
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a DATE_SIGNED tab.");
+			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
 		}
 		@Override
 		public void clearTabIdentifiers(Tabs tabs) {
@@ -259,7 +259,7 @@ enum TabType {
 	 * it is only meaningful where DocuSign resolves the placement from a template by matching the
 	 * label, as it does for the roles of an envelope being created from a template.
 	 */
-	public abstract void fillInTabValue(Tabs tabs, String label, String value);
+	public abstract void addTabWithLabel(Tabs tabs, String label, String value);
 
 	public abstract boolean hasTabWithLabel(Tabs tabs, String label);
 

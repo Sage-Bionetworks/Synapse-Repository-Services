@@ -601,16 +601,16 @@ public class DocuSignClientTest {
 		existing.setRecipients(recipients);
 		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
 
-		Map<String, String> roleEmails = Map.of(
-				"principal_investigator", "pi@example.com",
-				"signing_official", "so-new@example.com"
+		Map<String, RecipientInfo> desiredRecipients = Map.of(
+				"principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
+				"signing_official", new RecipientInfo("so-new@example.com", "Jane Admin")
 		);
 		Map<RoleLabelKey, String> tabValues = Map.of(
 				new RoleLabelKey("signing_official", "signing_official_name"), "Dr. Smith"
 		);
 
 		// call under test
-		client.correctEnvelope("env-1", "tpl-1", roleEmails, tabValues);
+		client.correctEnvelope("env-1", "tpl-1", desiredRecipients, tabValues);
 
 		// no role has to be added back, so the template is not needed
 		verifyNoInteractions(mockDocuSignTemplatesApi);
@@ -659,17 +659,17 @@ public class DocuSignClientTest {
 		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
 
 		// desired: keep PI and collaborator_1, drop collaborator_2, add collaborator_3
-		Map<String, String> roleEmails = Map.of(
-				"principal_investigator", "pi@example.com",
-				"collaborator_1", "c1@example.com",
-				"collaborator_3", "c3@example.com"
+		Map<String, RecipientInfo> desiredRecipients = Map.of(
+				"principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
+				"collaborator_1", new RecipientInfo("c1@example.com", "Collab One"),
+				"collaborator_3", new RecipientInfo("c3@example.com", "New Collaborator")
 		);
 		Map<RoleLabelKey, String> tabValues = Map.of(
 				new RoleLabelKey("collaborator_3", "collaborator_3_name"), "New Collaborator"
 		);
 
 		// call under test
-		client.correctEnvelope("env-1", "tpl-1", roleEmails, tabValues);
+		client.correctEnvelope("env-1", "tpl-1", desiredRecipients, tabValues);
 
 		// collaborator_2 (pending, no longer desired) is deleted
 		ArgumentCaptor<Recipients> deleteCaptor = ArgumentCaptor.forClass(Recipients.class);
@@ -762,10 +762,10 @@ public class DocuSignClientTest {
 	}
 
 	@Test
-	public void testCorrectEnvelopeWithNullRoleEmails() {
+	public void testCorrectEnvelopeWithNullRecipients() {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> client.correctEnvelope("env-1", "tpl-1", null, Map.of()));
-		assertEquals("roleEmails is required.", ex.getMessage());
+		assertEquals("recipients is required.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignEnvelopesApi);
 	}
 
@@ -783,7 +783,8 @@ public class DocuSignClientTest {
 		Signer pending = existingSigner("2", "signing_official", "sent");
 
 		Recipients result = DocuSignClient.buildUpdatedRecipients(List.of(completed, pending),
-				Map.of("principal_investigator", "pi@example.com", "signing_official", "so@example.com"),
+				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
+						"signing_official", new RecipientInfo("so@example.com", "Jane Admin")),
 				Map.of());
 
 		assertEquals(1, result.getSigners().size());
@@ -825,7 +826,8 @@ public class DocuSignClientTest {
 
 		// call under test
 		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
-				Map.of("principal_investigator", "pi@example.com", "collaborator_1", "c1@example.com"),
+				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
+						"collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
 				Map.of());
 
 		assertEquals(1, result.getSigners().size());
@@ -847,8 +849,9 @@ public class DocuSignClientTest {
 
 		// call under test
 		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi, so), templateSigners,
-				Map.of("principal_investigator", "pi@example.com", "signing_official", "so@example.com",
-						"collaborator_1", "c1@example.com"),
+				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
+						"signing_official", new RecipientInfo("so@example.com", "Jane Admin"),
+						"collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
 				Map.of());
 
 		assertEquals(1, result.getSigners().size());
@@ -868,7 +871,7 @@ public class DocuSignClientTest {
 
 		// call under test
 		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
-				Map.of("collaborator_1", "c1@example.com"), Map.of());
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")), Map.of());
 
 		assertEquals("1", result.getSigners().get(0).getRoutingOrder());
 	}
@@ -887,7 +890,7 @@ public class DocuSignClientTest {
 
 		// call under test
 		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
-				Map.of("collaborator_1", "c1@example.com"),
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
 				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_name"), "Alice Smith",
 						new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "alice"));
 
@@ -912,6 +915,59 @@ public class DocuSignClientTest {
 	}
 
 	@Test
+	public void testBuildNewRecipientsWithMissingName() {
+		// DocuSign rejects a recipient without a name, so the role is rejected here instead — while
+		// the changes are still being assembled and none has been applied to the envelope
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of()));
+
+		assertTrue(ex.getMessage().contains("name for role 'collaborator_1'"));
+	}
+
+	@Test
+	public void testBuildNewRecipientsWithMissingEmail() {
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_1", new RecipientInfo(null, "Collab One")), Map.of()));
+
+		assertTrue(ex.getMessage().contains("email for role 'collaborator_1'"));
+	}
+
+	@Test
+	public void testBuildUpdatedRecipientsWithMissingName() {
+		Signer pending = existingSigner("1", "collaborator_1", "sent");
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> DocuSignClient.buildUpdatedRecipients(List.of(pending),
+						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of()));
+
+		assertTrue(ex.getMessage().contains("name for role 'collaborator_1'"));
+	}
+
+	@Test
+	public void testBuildUpdatedRecipientsSetsNameFromRecipientInfo() {
+		// the name is taken from the recipient rather than from the role's full-name tab value, so
+		// that it is present even for a collaborator whose profile has no name
+		Signer pending = existingSigner("1", "collaborator_1", "sent");
+
+		// call under test
+		Recipients result = DocuSignClient.buildUpdatedRecipients(List.of(pending),
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "collab1username")),
+				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "collab1username"));
+
+		assertEquals("collab1username", result.getSigners().get(0).getName());
+		assertEquals("c1@example.com", result.getSigners().get(0).getEmail());
+	}
+
+	@Test
 	public void testBuildNewRecipientsWithRoleMissingFromTemplate() {
 		// the template defines only collaborator_1, so collaborator_2 cannot be placed
 		Signer pi = existingSigner("1", "principal_investigator", "sent");
@@ -919,7 +975,7 @@ public class DocuSignClientTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
-						Map.of("collaborator_2", "c2@example.com"), Map.of()));
+						Map.of("collaborator_2", new RecipientInfo("c2@example.com", "Collab Two")), Map.of()));
 
 		assertEquals("The template does not define the role 'collaborator_2'.", ex.getMessage());
 	}
@@ -935,7 +991,8 @@ public class DocuSignClientTest {
 
 		// call under test
 		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
-				Map.of("collaborator_1", "c1@example.com", "collaborator_2", "c2@example.com"),
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One"),
+						"collaborator_2", new RecipientInfo("c2@example.com", "Collab Two")),
 				Map.of());
 
 		assertEquals(2, result.getSigners().size());

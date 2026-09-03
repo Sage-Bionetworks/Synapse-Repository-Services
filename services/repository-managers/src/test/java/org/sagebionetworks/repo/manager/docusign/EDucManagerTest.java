@@ -1005,11 +1005,11 @@ public class EDucManagerTest {
 		when(mockPrincipalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL)).thenReturn(alias);
 	}
 
-	private Map<String, String> captureCorrectedRoleEmails() {
+	private Map<String, RecipientInfo> captureCorrectedRecipients() {
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Map<String, String>> emailsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), emailsCaptor.capture(), any());
-		return emailsCaptor.getValue();
+		ArgumentCaptor<Map<String, RecipientInfo>> captor = ArgumentCaptor.forClass(Map.class);
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), captor.capture(), any());
+		return captor.getValue();
 	}
 
 	@Test
@@ -1041,12 +1041,12 @@ public class EDucManagerTest {
 		// call under test
 		eDucManager.updateRoutedEnvelope(user, "req-1");
 
-		Map<String, String> roleEmails = captureCorrectedRoleEmails();
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
 		// 302 keeps collaborator_3 instead of shifting down into the role 301 vacated, so 302's
 		// signature is not reattributed and collaborator_2 is simply left to be removed
-		assertEquals("creator@example.com", roleEmails.get("collaborator_1"));
-		assertEquals("c302@example.com", roleEmails.get("collaborator_3"));
-		assertFalse(roleEmails.containsKey("collaborator_2"));
+		assertEquals("creator@example.com", corrected.get("collaborator_1").email());
+		assertEquals("c302@example.com", corrected.get("collaborator_3").email());
+		assertFalse(corrected.containsKey("collaborator_2"));
 	}
 
 	@Test
@@ -1076,13 +1076,42 @@ public class EDucManagerTest {
 		// call under test
 		eDucManager.updateRoutedEnvelope(user, "req-1");
 
-		Map<String, String> roleEmails = captureCorrectedRoleEmails();
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
 		// 301 signed and is no longer an accessor, so collaborator_2 is retired: the new accessor
 		// takes the next free role rather than inheriting 301's signature
-		assertFalse(roleEmails.containsKey("collaborator_2"));
-		assertEquals("c304@example.com", roleEmails.get("collaborator_4"));
-		assertEquals("creator@example.com", roleEmails.get("collaborator_1"));
-		assertEquals("c302@example.com", roleEmails.get("collaborator_3"));
+		assertFalse(corrected.containsKey("collaborator_2"));
+		assertEquals("c304@example.com", corrected.get("collaborator_4").email());
+		assertEquals("creator@example.com", corrected.get("collaborator_1").email());
+		assertEquals("c302@example.com", corrected.get("collaborator_3").email());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeNamesAddedCollaboratorWithNoProfileName() {
+		// DocuSign requires a name for every recipient, so a collaborator whose profile has neither a
+		// first nor a last name falls back to their Synapse user name, as they do when first routed
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.GAIN_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubCollaborator(100L, "creator@example.com");
+		// 302 has no first or last name on their profile
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(302L)).thenReturn("c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(302L)).thenReturn("user302");
+		when(mockUserProfileDao.get("302")).thenReturn(new UserProfile());
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		assertEquals(new RecipientInfo("c302@example.com", "user302"),
+				captureCorrectedRecipients().get("collaborator_2"));
 	}
 
 	@Test
@@ -1110,7 +1139,7 @@ public class EDucManagerTest {
 		eDucManager.updateRoutedEnvelope(user, "req-1");
 
 		// nothing is known to be attributed to collaborator_2, so it is free to be reused
-		assertEquals("c302@example.com", captureCorrectedRoleEmails().get("collaborator_2"));
+		assertEquals("c302@example.com", captureCorrectedRecipients().get("collaborator_2").email());
 	}
 
 	@Test
@@ -1126,13 +1155,11 @@ public class EDucManagerTest {
 		// call under test
 		eDucManager.updateRoutedEnvelope(user, "req-1");
 
-		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Map<String, String>> emailsCaptor = ArgumentCaptor.forClass(Map.class);
-		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Map<RoleLabelKey, String>> tabsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), emailsCaptor.capture(), tabsCaptor.capture());
-		assertEquals("pi@university.edu", emailsCaptor.getValue().get("principal_investigator"));
-		assertEquals("so@university.edu", emailsCaptor.getValue().get("signing_official"));
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
+		assertEquals(new RecipientInfo("pi@university.edu", "Dr. Jones"),
+				corrected.get("principal_investigator"));
+		assertEquals(new RecipientInfo("so@university.edu", "Jane Admin"),
+				corrected.get("signing_official"));
 
 		verify(mockRequestDao).setEDucContentHash("req-1", EDucManager.computeEDucContentHash(request));
 		// no new envelope is created, so there is no quota impact

@@ -286,10 +286,9 @@ public class EDucManager {
 		return managedAr;
 	}
 
-	// The recipient identities, signer emails and tab values derived from a request that define the
-	// eDUC envelope content. recipients (email + name per role) are used when creating an envelope;
-	// roleEmails is used when correcting an in-flight envelope; tabValues are used by both.
-	private record EDucContent(Map<String, RecipientInfo> recipients, Map<String, String> roleEmails,
+	// The recipient identities (email + name per role) and tab values derived from a request that
+	// define the eDUC envelope content, used both when creating an envelope and when correcting one.
+	private record EDucContent(Map<String, RecipientInfo> recipients,
 			Map<RoleLabelKey, String> tabValues) {}
 
 	/**
@@ -307,12 +306,7 @@ public class EDucManager {
 		Map<String, RecipientInfo> recipients = buildRecipients(request, collaboratorsByRole);
 		Map<RoleLabelKey, String> tabValues = buildTabValues(request, collaboratorsByRole);
 
-		Map<String, String> roleEmails = new LinkedHashMap<>();
-		for (Map.Entry<String, RecipientInfo> entry : recipients.entrySet()) {
-			roleEmails.put(entry.getKey(), entry.getValue().email());
-		}
-
-		return new EDucContent(recipients, roleEmails, tabValues);
+		return new EDucContent(recipients, tabValues);
 	}
 
 	/**
@@ -345,7 +339,7 @@ public class EDucManager {
 		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
 		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
 
-		docuSignClient.correctEnvelope(envelopeId, managedAr.getEDucTemplateId(), content.roleEmails(),
+		docuSignClient.correctEnvelope(envelopeId, managedAr.getEDucTemplateId(), content.recipients(),
 				content.tabValues());
 		requestDao.setEDucContentHash(requestId, computeEDucContentHash(request));
 
@@ -577,6 +571,9 @@ public class EDucManager {
 	 * collaborator whose role was occupied by a completed signer would never be asked to sign at all.
 	 * Remaining collaborators take the lowest roles still free, so routing a request for the first
 	 * time (no existing recipients) assigns them in order from collaborator_1.
+	 * 
+	 * @return a map whose key is the role name (the key to a signer in an envelope) and whose value is
+	 * the info about the collaborator assigned to that role (Synapse ID, email, etc.)
 	 */
 	private Map<String, CollaboratorInfo> assignCollaboratorRoles(List<CollaboratorInfo> collaborators,
 			List<EnvelopeRecipient> existingRecipients) {
