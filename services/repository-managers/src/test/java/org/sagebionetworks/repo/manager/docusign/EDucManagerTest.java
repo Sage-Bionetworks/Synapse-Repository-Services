@@ -1008,7 +1008,7 @@ public class EDucManagerTest {
 	private Map<String, RecipientInfo> captureCorrectedRecipients() {
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Map<String, RecipientInfo>> captor = ArgumentCaptor.forClass(Map.class);
-		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), captor.capture(), any());
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), captor.capture(), any());
 		return captor.getValue();
 	}
 
@@ -1179,7 +1179,7 @@ public class EDucManagerTest {
 		// call under test
 		eDucManager.updateRoutedEnvelope(user, "req-1");
 
-		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), any(), any());
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), any(), any());
 	}
 
 	@Test
@@ -1194,7 +1194,7 @@ public class EDucManagerTest {
 		// call under test
 		eDucManager.updateRoutedEnvelope(adminUser, "req-1");
 
-		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), eq("tpl-abc"), any(), any());
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), any(), any());
 	}
 
 	@Test
@@ -1239,7 +1239,7 @@ public class EDucManagerTest {
 				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
 
 		assertEquals("This request has not been routed for signature.", ex.getMessage());
-		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any(), any());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
 		verify(mockRequestDao, never()).setEDucContentHash(any(), any());
 	}
 
@@ -1256,7 +1256,7 @@ public class EDucManagerTest {
 				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
 
 		assertEquals("The eDUC cannot be updated because it has already been completed.", ex.getMessage());
-		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any(), any());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
 	}
 
 	@Test
@@ -1272,7 +1272,7 @@ public class EDucManagerTest {
 				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
 
 		assertEquals("The eDUC cannot be updated because a signer declined to sign.", ex.getMessage());
-		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any(), any());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
 	}
 
 	@Test
@@ -1288,7 +1288,7 @@ public class EDucManagerTest {
 				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
 
 		assertEquals("The eDUC cannot be updated because it has been cancelled.", ex.getMessage());
-		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any(), any());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
 	}
 
 	@Test
@@ -1304,7 +1304,7 @@ public class EDucManagerTest {
 				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
 
 		assertEquals("The eDUC cannot be updated because it is currently being corrected.", ex.getMessage());
-		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any(), any());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
 	}
 
 	@Test

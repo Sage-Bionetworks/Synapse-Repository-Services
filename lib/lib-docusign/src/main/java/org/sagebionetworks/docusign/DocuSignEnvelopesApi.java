@@ -6,6 +6,7 @@ import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.TemplateInformation;
 
 interface DocuSignEnvelopesApi {
 
@@ -18,6 +19,12 @@ interface DocuSignEnvelopesApi {
 	Envelope getEnvelope(String envelopeId);
 
 	List<Envelope> listStatus(List<String> envelopeIds);
+
+	/**
+	 * The templates that were applied to an envelope. An envelope created from a template does not
+	 * carry the template's ID as a field, so this is how the envelope's origin is established.
+	 */
+	TemplateInformation listTemplates(String envelopeId);
 
 	byte[] getDocument(String envelopeId, String documentId);
 

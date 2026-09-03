@@ -3,7 +3,6 @@ package org.sagebionetworks.docusign;
 import org.apache.commons.lang3.Strings;
 
 import com.docusign.esign.model.DateSigned;
-import com.docusign.esign.model.Email;
 import com.docusign.esign.model.EmailAddress;
 import com.docusign.esign.model.FullName;
 import com.docusign.esign.model.SignHere;
@@ -44,15 +43,6 @@ enum TabType {
 			}
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getTextTabs() != null) {
-				for (Text t : tabs.getTextTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
-		}
 	},
 	FULL_NAME {
 		@Override
@@ -85,15 +75,6 @@ enum TabType {
 				}
 			}
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
-		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getFullNameTabs() != null) {
-				for (FullName t : tabs.getFullNameTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
 		}
 	},
 	TITLE {
@@ -128,23 +109,14 @@ enum TabType {
 			}
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getTitleTabs() != null) {
-				for (Title t : tabs.getTitleTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
-		}
 	},
 	EMAIL_ADDRESS {
 		@Override
 		public void addTabWithLabel(Tabs tabs, String label, String value) {
-			Email e = new Email();
+			EmailAddress e = new EmailAddress();
 			e.setTabLabel(label);
 			e.setValue(value);
-			tabs.addEmailTabsItem(e);
+			tabs.addEmailAddressTabsItem(e);
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -158,9 +130,6 @@ enum TabType {
 			}
 			return false;
 		}
-		// A template declares its email tabs as emailAddressTabs, which is where an existing
-		// definition is found and updated. Note that addTabWithLabel above instead adds an entry to
-		// emailTabs, which DocuSign treats as a distinct tab type.
 		@Override
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
 			if (tabs.getEmailAddressTabs() != null) {
@@ -172,21 +141,6 @@ enum TabType {
 				}
 			}
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
-		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getEmailAddressTabs() != null) {
-				for (EmailAddress t : tabs.getEmailAddressTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
-			if (tabs.getEmailTabs() != null) {
-				for (Email t : tabs.getEmailTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
 		}
 	},
 	SIGN_HERE {
@@ -211,15 +165,6 @@ enum TabType {
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
 			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
 		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getSignHereTabs() != null) {
-				for (SignHere t : tabs.getSignHereTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
-		}
 	},
 	DATE_SIGNED {
 		@Override
@@ -243,15 +188,6 @@ enum TabType {
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
 			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
 		}
-		@Override
-		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
-			if (tabs.getDateSignedTabs() != null) {
-				for (DateSigned t : tabs.getDateSignedTabs()) {
-					t.setTabId(null);
-					t.setRecipientId(recipientId);
-				}
-			}
-		}
 	};
 
 	/**
@@ -271,14 +207,6 @@ enum TabType {
 	 * @throws UnsupportedOperationException if tabs of this type do not carry a value
 	 */
 	public abstract void applyValueToTabWithLabel(Tabs tabs, String label, String value);
-
-	/**
-	 * Points every tab of this type at the given recipient and clears its tab ID. A tab definition
-	 * read from a template carries the tab and recipient IDs it had there, neither of which is valid
-	 * in the envelope it is being reused in, so the recipient is restated and the tab ID is left for
-	 * DocuSign to assign.
-	 */
-	public abstract void assignTabsToRecipient(Tabs tabs, String recipientId);
 
 	private static String noSuchTabMessage(TabType type, String label) {
 		return "There is no " + type.name() + " tab labeled '" + label + "'.";

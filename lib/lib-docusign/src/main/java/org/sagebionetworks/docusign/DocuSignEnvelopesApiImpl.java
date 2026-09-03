@@ -13,6 +13,7 @@ import com.docusign.esign.model.EnvelopeIdsRequest;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopesInformation;
 import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.TemplateInformation;
 
 @Service
 class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
@@ -118,6 +119,16 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
 			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
 			return envelopesApi.deleteRecipients(config.getAccountId(), envelopeId, recipients);
+		});
+	}
+
+	@Override
+	public TemplateInformation listTemplates(String envelopeId) {
+		return retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.listTemplates(config.getAccountId(), envelopeId);
 		});
 	}
 

@@ -336,11 +336,12 @@ public class EDucManager {
 			throw new IllegalArgumentException(reason.get());
 		}
 
-		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
+		validateEDucRequest(request);
 		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
 
-		docuSignClient.correctEnvelope(envelopeId, managedAr.getEDucTemplateId(), content.recipients(),
-				content.tabValues());
+		// The template is not named here: a correction has to be placed from the template the
+		// envelope was actually created from, which the client resolves from the envelope itself.
+		docuSignClient.correctEnvelope(envelopeId, content.recipients(), content.tabValues());
 		requestDao.setEDucContentHash(requestId, computeEDucContentHash(request));
 
 		return getSignatureStatus(userInfo, requestId);
