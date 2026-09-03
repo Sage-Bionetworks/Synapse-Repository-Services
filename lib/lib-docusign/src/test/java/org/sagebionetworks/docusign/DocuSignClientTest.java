@@ -884,7 +884,7 @@ public class DocuSignClientTest {
 		Map<String, Signer> templateSigners = templateSigners(1);
 		Tabs templateTabs = templateSigners.get("collaborator_1").getTabs();
 		placeTab(templateTabs.getFullNameTabs().get(0), "2", "5", "42", "84");
-		// the template's own identifiers must not be carried over to the envelope
+		// the template's own identifiers are not valid in the envelope and must not be carried over
 		templateTabs.getFullNameTabs().get(0).setTabId("template-tab-id");
 		templateTabs.getSignHereTabs().get(0).setRecipientId("template-recipient-id");
 
@@ -903,15 +903,18 @@ public class DocuSignClientTest {
 		assertEquals("5", name.getPageNumber());
 		assertEquals("42", name.getXPosition());
 		assertEquals("84", name.getYPosition());
+		// DocuSign assigns the tab ID; every tab points at the recipient being added
 		assertNull(name.getTabId());
+		assertEquals("2", name.getRecipientId());
 
 		assertEquals("alice", tabs.getTextTabs().get(0).getValue());
 
 		// the signature and date tabs carry no value and so are absent from tabValues, but must
 		// still reach the recipient or nothing appears on the document for them to sign
 		assertEquals("collaborator_1_signature", tabs.getSignHereTabs().get(0).getTabLabel());
-		assertNull(tabs.getSignHereTabs().get(0).getRecipientId());
+		assertEquals("2", tabs.getSignHereTabs().get(0).getRecipientId());
 		assertEquals("collaborator_1_date", tabs.getDateSignedTabs().get(0).getTabLabel());
+		assertEquals("2", tabs.getDateSignedTabs().get(0).getRecipientId());
 	}
 
 	@Test

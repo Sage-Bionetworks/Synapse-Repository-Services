@@ -45,11 +45,11 @@ enum TabType {
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getTextTabs() != null) {
 				for (Text t : tabs.getTextTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -87,11 +87,11 @@ enum TabType {
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getFullNameTabs() != null) {
 				for (FullName t : tabs.getFullNameTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -129,11 +129,11 @@ enum TabType {
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getTitleTabs() != null) {
 				for (Title t : tabs.getTitleTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -174,17 +174,17 @@ enum TabType {
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getEmailAddressTabs() != null) {
 				for (EmailAddress t : tabs.getEmailAddressTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 			if (tabs.getEmailTabs() != null) {
 				for (Email t : tabs.getEmailTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -212,11 +212,11 @@ enum TabType {
 			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getSignHereTabs() != null) {
 				for (SignHere t : tabs.getSignHereTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -244,11 +244,11 @@ enum TabType {
 			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
 		}
 		@Override
-		public void clearTabIdentifiers(Tabs tabs) {
+		public void assignTabsToRecipient(Tabs tabs, String recipientId) {
 			if (tabs.getDateSignedTabs() != null) {
 				for (DateSigned t : tabs.getDateSignedTabs()) {
 					t.setTabId(null);
-					t.setRecipientId(null);
+					t.setRecipientId(recipientId);
 				}
 			}
 		}
@@ -273,11 +273,12 @@ enum TabType {
 	public abstract void applyValueToTabWithLabel(Tabs tabs, String label, String value);
 
 	/**
-	 * Clears the tab and recipient IDs of every tab of this type. Both identify a tab within the
-	 * envelope or template it was read from, so they must not be carried over when the definition is
-	 * reused elsewhere; DocuSign assigns new ones.
+	 * Points every tab of this type at the given recipient and clears its tab ID. A tab definition
+	 * read from a template carries the tab and recipient IDs it had there, neither of which is valid
+	 * in the envelope it is being reused in, so the recipient is restated and the tab ID is left for
+	 * DocuSign to assign.
 	 */
-	public abstract void clearTabIdentifiers(Tabs tabs);
+	public abstract void assignTabsToRecipient(Tabs tabs, String recipientId);
 
 	private static String noSuchTabMessage(TabType type, String label) {
 		return "There is no " + type.name() + " tab labeled '" + label + "'.";

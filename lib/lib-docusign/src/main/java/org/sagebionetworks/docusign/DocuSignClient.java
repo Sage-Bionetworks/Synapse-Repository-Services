@@ -287,13 +287,14 @@ public class DocuSignClient {
 			// The recipient ID only has to be unique within the envelope. The routing order is a
 			// separate concept and comes from the template, so it is not derived from it.
 			nextRecipientId++;
+			String recipientId = Integer.toString(nextRecipientId);
 			Signer signer = new Signer();
-			signer.setRecipientId(Integer.toString(nextRecipientId));
+			signer.setRecipientId(recipientId);
 			signer.setRoutingOrder(routingOrderOf(templateSigner));
 			signer.setRoleName(roleName);
 			signer.setEmail(recipient.email());
 			signer.setName(recipient.name());
-			signer.setTabs(buildTabsFromTemplate(roleName, templateSigner, tabValues));
+			signer.setTabs(buildTabsFromTemplate(roleName, recipientId, templateSigner, tabValues));
 			created.add(signer);
 		}
 		return toRecipients(created);
@@ -319,9 +320,10 @@ public class DocuSignClient {
 
 	/**
 	 * Builds the tabs of a recipient being added to an in-flight envelope from the template role's
-	 * tab definitions, with the desired values applied to them.
+	 * tab definitions, pointed at the given recipient of that envelope and with the desired values
+	 * applied to them.
 	 */
-	private static Tabs buildTabsFromTemplate(String roleName, Signer templateSigner,
+	private static Tabs buildTabsFromTemplate(String roleName, String recipientId, Signer templateSigner,
 			Map<RoleLabelKey, String> tabValues) {
 		// A tab only appears on the document if it carries a placement (a document, a page and
 		// coordinates or an anchor), which a tab built from a label and a value alone does not have.
@@ -333,7 +335,7 @@ public class DocuSignClient {
 			return new Tabs();
 		}
 		for (TabType type : TabType.values()) {
-			type.clearTabIdentifiers(tabs);
+			type.assignTabsToRecipient(tabs, recipientId);
 		}
 		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
 			if (!tabEntry.getKey().roleName().equals(roleName)) {
