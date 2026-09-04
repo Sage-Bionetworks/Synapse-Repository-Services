@@ -140,10 +140,14 @@ public class DocuSignClient {
 	}
 
 	/**
-	 * Applies new signer emails and tab values to an in-flight (sent or delivered) envelope by
-	 * correcting it: the envelope is placed into the "correct" state (which pauses signing),
-	 * recipients are added, updated, and removed to match the desired content, and the envelope is
-	 * then re-sent. Recipients who have already signed are left untouched.
+	 * Applies new signer emails and tab values to an in-flight (sent or delivered) envelope by adding,
+	 * updating and removing its recipients to match the desired content. Recipients who have already
+	 * signed are left untouched, and those added or updated are notified.
+	 * <p>
+	 * The envelope is not moved into DocuSign's "correct" state to do this. That state belongs to the
+	 * web console's correction session and can only be entered by the owner of an edit lock, so setting
+	 * it here is refused with {@code EDIT_LOCK_NOT_LOCK_OWNER}; the recipient endpoints modify a sent
+	 * envelope directly and need no lock.
 	 *
 	 * @param envelopeId the ID of the envelope to correct
 	 * @param recipients map from role name to the signer's desired email and name (both are
@@ -165,8 +169,8 @@ public class DocuSignClient {
 		}
 
 		// Every change is computed before the envelope is touched, so that a failure to build one
-		// leaves the envelope as it was rather than paused or partially corrected.
-		
+		// leaves the envelope as it was rather than partially corrected.
+
 		Recipients toDelete = buildRemovedRecipients(existingSigners, recipients);
 		Recipients toUpdate = buildUpdatedRecipients(existingSigners, recipients, tabValues);
 		
@@ -177,11 +181,7 @@ public class DocuSignClient {
 		Recipients toCreate = buildNewRecipients(existingSigners, () -> templateSignersByRole(envelopeId),
 				recipients, tabValues);
 
-		// Place the envelope into the "correct" state, which pauses the signing process.
-		Envelope correcting = new Envelope();
-		correcting.setStatus("correct");
-		envelopesApi.updateEnvelope(envelopeId, correcting);
-
+		// Each call resends to the recipients it touches, so no envelope-level re-send is needed.
 		if (hasSigners(toDelete)) {
 			envelopesApi.deleteRecipients(envelopeId, toDelete);
 		}
@@ -190,14 +190,15 @@ public class DocuSignClient {
 		}
 		if (hasSigners(toCreate)) {
 			envelopesApi.createRecipients(envelopeId, toCreate, true);
+			// Adding a recipient ignores the tabs nested in it — it arrives with none — so each one's
+			// tabs are created in a second request. They are left on the signers above as the record of
+			// what belongs to whom.
+			for (Signer created : toCreate.getSigners()) {
+				if (created.getTabs() != null) {
+					envelopesApi.createTabs(envelopeId, created.getRecipientId(), created.getTabs());
+				}
+			}
 		}
-
-		// Take the envelope out of "correct" and re-send it. "delivered" is a DocuSign-derived
-		// status that cannot be set, so the resume transition is always to "sent"; DocuSign
-		// re-derives "delivered"/"completed" as recipients act.
-		Envelope resending = new Envelope();
-		resending.setStatus("sent");
-		envelopesApi.updateEnvelope(envelopeId, resending);
 	}
 
 	// Existing (not-yet-signed) signers whose role is no longer desired are removed.
@@ -245,8 +246,9 @@ public class DocuSignClient {
 	}
 
 	// Used when a template role carries no routing order of its own. Only collaborators are ever
-	// added (the principal investigator and signing official are always present) and the template
-	// routes collaborators ahead of those two, so the earliest possible order preserves that intent.
+	// added (the principal investigator and signing official are always present), and a template
+	// routes the collaborators together with the principal investigator and ahead of the signing
+	// official, so the earliest possible order preserves that intent.
 	private static final String EARLIEST_ROUTING_ORDER = "1";
 
 	/**

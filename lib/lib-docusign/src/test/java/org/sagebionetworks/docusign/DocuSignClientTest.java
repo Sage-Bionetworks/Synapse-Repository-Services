@@ -622,11 +622,9 @@ public class DocuSignClientTest {
 
 		InOrder order = inOrder(mockDocuSignEnvelopesApi);
 		order.verify(mockDocuSignEnvelopesApi).getEnvelope("env-1");
-		ArgumentCaptor<Envelope> correctCaptor = ArgumentCaptor.forClass(Envelope.class);
-		order.verify(mockDocuSignEnvelopesApi).updateEnvelope(eq("env-1"), correctCaptor.capture());
-		assertEquals("correct", correctCaptor.getValue().getStatus());
 
-		// only the not-yet-signed signing_official is updated (PI is left untouched)
+		// only the not-yet-signed signing_official is updated (PI is left untouched), and the update
+		// resends to it, so the envelope's own status is never touched
 		ArgumentCaptor<Recipients> updateCaptor = ArgumentCaptor.forClass(Recipients.class);
 		order.verify(mockDocuSignEnvelopesApi).updateRecipients(eq("env-1"), updateCaptor.capture(), eq(true));
 		List<Signer> updatedSigners = updateCaptor.getValue().getSigners();
@@ -635,13 +633,14 @@ public class DocuSignClientTest {
 		assertEquals("signing_official", updatedSigners.get(0).getRoleName());
 		assertEquals("so-new@example.com", updatedSigners.get(0).getEmail());
 
-		ArgumentCaptor<Envelope> sendCaptor = ArgumentCaptor.forClass(Envelope.class);
-		order.verify(mockDocuSignEnvelopesApi).updateEnvelope(eq("env-1"), sendCaptor.capture());
-		assertEquals("sent", sendCaptor.getValue().getStatus());
+		// Entering DocuSign's "correct" state requires owning an edit lock and is refused without one,
+		// so a correction must not attempt it.
+		verify(mockDocuSignEnvelopesApi, never()).updateEnvelope(any(), any());
 
 		// nothing to add or remove in this scenario
 		verify(mockDocuSignEnvelopesApi, never()).createRecipients(any(), any(), eq(true));
 		verify(mockDocuSignEnvelopesApi, never()).deleteRecipients(any(), any());
+		verify(mockDocuSignEnvelopesApi, never()).createTabs(any(), any(), any());
 	}
 
 	@Test
@@ -711,6 +710,16 @@ public class DocuSignClientTest {
 		assertEquals("200", addedName.getYPosition());
 		assertEquals("collaborator_3_signature", addedTabs.getSignHereTabs().get(0).getTabLabel());
 		assertEquals("collaborator_3_date", addedTabs.getDateSignedTabs().get(0).getTabLabel());
+
+		// Adding a recipient does not create the tabs nested in it, so they are sent separately,
+		// against the recipient ID the added signer was given.
+		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);
+		verify(mockDocuSignEnvelopesApi).createTabs(eq("env-1"), eq("4"), tabsCaptor.capture());
+		assertEquals(addedTabs, tabsCaptor.getValue());
+
+		InOrder tabOrder = inOrder(mockDocuSignEnvelopesApi);
+		tabOrder.verify(mockDocuSignEnvelopesApi).createRecipients(eq("env-1"), any(), eq(true));
+		tabOrder.verify(mockDocuSignEnvelopesApi).createTabs(eq("env-1"), eq("4"), any());
 
 		// no not-yet-signed existing role remains to update (PI and collaborator_1 are completed)
 		verify(mockDocuSignEnvelopesApi, never()).updateRecipients(any(), any(), eq(true));

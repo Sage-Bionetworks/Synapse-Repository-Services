@@ -6,6 +6,7 @@ import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateInformation;
 
 interface DocuSignEnvelopesApi {
@@ -46,4 +47,10 @@ interface DocuSignEnvelopesApi {
 	 * Remove the given recipients from an envelope.
 	 */
 	void deleteRecipients(String envelopeId, Recipients recipients);
+
+	/**
+	 * Add tabs to a recipient already on an envelope. Adding a recipient does not create the tabs
+	 * nested in it, so they have to be created in their own request.
+	 */
+	void createTabs(String envelopeId, String recipientId, Tabs tabs);
 }
