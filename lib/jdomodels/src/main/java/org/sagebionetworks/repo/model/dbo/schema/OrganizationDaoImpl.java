@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ORGANI
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -28,7 +29,16 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class OrganizationDaoImpl implements OrganizationDao {
 
-	private static final String FK_SCHEMA_TO_ORGANIZATION = "FK_SCHEMA_TO_ORGANIZATION";
+	/**
+	 * Every foreign key that references ORGANIZATION with ON DELETE RESTRICT. Deleting an
+	 * organization that still owns any of these child rows must surface as a bad request rather
+	 * than a raw data integrity failure.
+	 */
+	private static final List<String> ORGANIZATION_CHILD_FKS = List.of("FK_SCHEMA_TO_ORGANIZATION", "SYNSET_ORG_FK",
+			"TA_ORG_FK", "CAO_ORG_FK", "SC_ORG_FK");
+
+	private static final String CHILD_FK_MESSAGE = "All resources defined under an organization must be deleted before the organization can be deleted.";
+
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
@@ -112,11 +122,10 @@ public class OrganizationDaoImpl implements OrganizationDao {
 				throw new NotFoundException("Organization with id: '" + id + "' not found");
 			}
 		} catch (DataIntegrityViolationException e) {
-			if(e.getMessage().contains(FK_SCHEMA_TO_ORGANIZATION)) {
-				throw new IllegalArgumentException(
-						"All schemas defined under an organization must be deleted before the organization can be deleted.",
-						e);
-			}else {
+			String message = Objects.toString(e.getMessage(), "");
+			if (ORGANIZATION_CHILD_FKS.stream().anyMatch(message::contains)) {
+				throw new IllegalArgumentException(CHILD_FK_MESSAGE, e);
+			} else {
 				throw e;
 			}
 		}

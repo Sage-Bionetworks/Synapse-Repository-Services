@@ -336,6 +336,7 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 
 		request.setQuery(query);
 		request.setPartMask(options.getPartMask());
+		request.setAggregateDataPreview(options.getAggregateDataPreview().orElse(null));
 
 		return assertJobResponse(user, request, resultMatcher, maxWaitTime, MAX_QUERY_RETRY).getResponse();
 	}

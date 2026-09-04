@@ -1,0 +1,41 @@
+{
+	"title": "Form Template",
+	"description": "Defines how a referenced JSON Schema is rendered to a requester as a multi-step form. A template is pinned to a single JSON Schema version. Updating a template creates a new version; the schema reference and the steps/fields it contains are immutable per version. Multiple Access Requirements may reference the same template version (N:1).",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.Versionable"
+		}
+	],
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique identifier of this template. Stable across versions."
+		},
+		"name": {
+			"type": "string",
+			"description": "The internal name of this template. Used by ACT to identify and find the template; not displayed to requesters.",
+			"required": true
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time a resource is updated it is used to detect when a client's current representation of a resource is out-of-date."
+		},
+		"schema$id": {
+			"type": "string",
+			"description": "Reference to the registered JSON Schema and version that this template renders. The reference MUST be pinned to a specific version. The schema is the source of truth for property types, validation rules, and which properties are required.",
+			"required": true
+		},
+		"steps": {
+			"type": "array",
+			"description": "Ordered list of steps in the form. Each step renders as a page or section. Order is determined by array position.",
+			"required": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep"
+			}
+		},
+		"deprecated": {
+			"type": "boolean",
+			"description": "Marking a template as deprecated will hide it from search results by default. It does not affect Access Requirements that already reference this template. Default is 'false'."
+		}
+	}
+}

@@ -1,0 +1,21 @@
+{
+	"description": "Contains the name and type of a faceted column and its most frequent values, where each exact value count has been binned by the ROUNDING post-processing algorithm to obscure the exact value.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResult"
+		}
+	],
+	"properties": {
+		"binSize": {
+			"type": "integer",
+			"description": "The bin width applied to every count. A value's exact count lies within [binMin, binMin + binSize - 1]."
+		},
+		"binnedValues": {
+			"description": "The list of binned frequency counts for the most frequent values",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValueCount"
+			}
+		}
+	}
+}

@@ -15,6 +15,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.model.table.QueryOptions.BUNDLE_MASK_QUERY_COLUMN_MODELS;
@@ -62,6 +63,9 @@ import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -84,6 +88,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -154,6 +159,10 @@ public class TableQueryManagerImplTest {
 	private ExecutorService mockThreadPool;
 	@Mock
 	private QueryCacheManager mockQueryCacheManager;
+	@Mock
+	private FacetPostProcessorProvider mockFacetPostProcessorProvider;
+	@Mock
+	private FacetPostProcessor mockFacetPostProcessor;
 	@Mock
 	private RowHandlerProvider mockRowHandlerProvider;
 	@Mock
@@ -849,7 +858,7 @@ public class TableQueryManagerImplTest {
 		// aggregate-only forces a count query even though only runQuery was requested
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(500L).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
 		// call under test
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
@@ -870,7 +879,7 @@ public class TableQueryManagerImplTest {
 
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(count).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(count)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -891,7 +900,7 @@ public class TableQueryManagerImplTest {
 
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(100L).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -912,7 +921,7 @@ public class TableQueryManagerImplTest {
 
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(500L).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
@@ -921,23 +930,6 @@ public class TableQueryManagerImplTest {
 		assertEquals(0L, results.getQueryCount());
 		assertNull(results.getQueryResult());
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
-	}
-
-	@Test
-	public void testExecuteQueryAggregateOnlyMissingThreshold() throws Exception {
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
-
-		queryOptions = new QueryOptions().withRunQuery(true);
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(null).build(), queryOptions);
-
-		// call under test
-		assertThrows(IllegalStateException.class, () -> {
-			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
-		});
 	}
 
 	@Test
@@ -951,7 +943,7 @@ public class TableQueryManagerImplTest {
 
 		queryOptions = new QueryOptions().withRunQuery(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
-				.setAggregateOnly(true).setSuppressionThreshold(100L).build(), queryOptions);
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
 		// call under test
 		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, mockQueryExecutor);
@@ -2765,6 +2757,79 @@ public class TableQueryManagerImplTest {
 
 	}
 	
+	////////////////////////////
+	// applyFacets() Tests
+	////////////////////////////
+	@Test
+	public void testApplyFacetsWithAggregateOnly() {
+		FacetColumnResultValues enumeration = new FacetColumnResultValues().setColumnName("state");
+		FacetColumnResultRange range = new FacetColumnResultRange().setColumnName("age");
+		// the raw facets include a range facet, which must be dropped before post-processing
+		doReturn(new ArrayList<>(List.of(enumeration, range))).when(manager).runFacetQueries(any(), any());
+
+		List<FacetColumnResult> processed = List.of(new FacetColumnResultBinnedValues().setColumnName("state"));
+		FacetRoundingParameters params = new FacetRoundingParameters().setRoundTo(5L);
+		when(mockFacetPostProcessorProvider.getProcessor(FacetPostProcessingAlgorithm.ROUNDING)).thenReturn(mockFacetPostProcessor);
+		ArgumentCaptor<List<FacetColumnResult>> facetsCaptor = ArgumentCaptor.forClass(List.class);
+		when(mockFacetPostProcessor.process(facetsCaptor.capture(), eq(params))).thenReturn(processed);
+
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING).setParameters(params));
+		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
+		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
+		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));
+
+		QueryResultBundle bundle = new QueryResultBundle();
+
+		// call under test
+		manager.applyFacets(bundle, mockQueryTranslations, mockTableIndexDAO);
+
+		assertEquals(processed, bundle.getFacets());
+		assertTrue(bundle.getFacetPostProcessingApplied());
+		// the range facet is dropped, so only the enumeration facet reaches the processor
+		assertEquals(List.of(enumeration), facetsCaptor.getValue());
+	}
+
+	@Test
+	public void testApplyFacetsWithAggregateOnlyNoPostProcessingConfig() {
+		doReturn(new ArrayList<>(List.of(new FacetColumnResultValues()))).when(manager).runFacetQueries(any(), any());
+		// aggregate-only, but the bound configuration carries no facet post-processing config
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L);
+		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
+		when(mockQueryTranslations.isAggregateOnly()).thenReturn(true);
+		when(mockQueryTranslations.getAggregateDataConfiguration()).thenReturn(Optional.of(config));
+
+		QueryResultBundle bundle = new QueryResultBundle();
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> {
+			manager.applyFacets(bundle, mockQueryTranslations, mockTableIndexDAO);
+		});
+		// fail closed: no facets are exposed and the processor is never consulted
+		assertNull(bundle.getFacets());
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
+	@Test
+	public void testApplyFacetsWithFullAccess() {
+		List<FacetColumnResult> raw = new ArrayList<>(
+				List.of(new FacetColumnResultValues().setColumnName("state"), new FacetColumnResultRange().setColumnName("age")));
+		doReturn(raw).when(manager).runFacetQueries(any(), any());
+		when(mockQueryTranslations.getFacetQueries()).thenReturn(Optional.of(Mockito.mock(FacetQueries.class)));
+		when(mockQueryTranslations.isAggregateOnly()).thenReturn(false);
+
+		QueryResultBundle bundle = new QueryResultBundle();
+
+		// call under test
+		manager.applyFacets(bundle, mockQueryTranslations, mockTableIndexDAO);
+
+		// full access returns the raw facets unchanged (range facet retained) and flags no post-processing
+		assertEquals(raw, bundle.getFacets());
+		assertFalse(bundle.getFacetPostProcessingApplied());
+		verifyNoInteractions(mockFacetPostProcessorProvider);
+	}
+
 	@Test
 	public void testRunSumFileSize() throws Exception {
 		List<IdAndVersion> idAndVersionList = Arrays.asList(

@@ -1,0 +1,17 @@
+{
+	"description": "A binned facet value count produced by the ROUNDING post-processing algorithm. The exact count is obscured by reporting only the inclusive lower bound of the bin that contains it.",
+	"properties": {
+		"value": {
+			"type": "string",
+			"description": "The value that is in the column"
+		},
+		"binMin": {
+			"type": "integer",
+			"description": "The inclusive lower bound of the bin that contains the exact count: floor(count / binSize) * binSize. The exact count lies within [binMin, binMin + binSize - 1]."
+		},
+		"isSelected": {
+			"type": "boolean",
+			"description": "whether this facet was selected by the user"
+		}
+	}
+}

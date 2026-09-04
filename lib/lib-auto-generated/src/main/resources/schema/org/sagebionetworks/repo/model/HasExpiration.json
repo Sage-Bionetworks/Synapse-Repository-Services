@@ -1,0 +1,11 @@
+{
+	"title": "Has Expiration",
+	"type": "interface",
+	"description": "Used to describe an access requirement for which AccessApprovals will expire after some duration.",
+	"properties": {
+		"expirationPeriod": {
+			"type": "integer",
+			"description": "After an AccessApproval is granted for this AccessRequirement, it will be expired after expirationPeriod milliseconds. Set this value to 0 to indicate that AccessApproval will never be expired."
+		}
+	}
+}

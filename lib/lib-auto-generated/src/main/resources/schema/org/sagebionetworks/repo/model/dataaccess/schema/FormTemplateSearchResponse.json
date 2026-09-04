@@ -1,0 +1,17 @@
+{
+	"title": "Form Template Search Response",
+	"description": "A response body containing form template search results.",
+	"properties": {
+		"results": {
+			"type": "array",
+			"description": "The matching Form Templates corresponding to the search parameters.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of a particular search query."
+		}
+	}
+}

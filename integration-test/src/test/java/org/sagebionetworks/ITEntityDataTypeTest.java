@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
-import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.Project;
 
 @ExtendWith(ITTestExtension.class)
@@ -79,7 +79,7 @@ public class ITEntityDataTypeTest {
 		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(10L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetPostProcessingParameters()));
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 		ChangeDataTypeRequest request = new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
 				.setAggregateDataConfiguration(configuration);
 		// call under test

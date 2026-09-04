@@ -1,0 +1,28 @@
+{
+	"title": "JSON Schema Access Requirement",
+	"description": "A Synapse 'Access Control Team' controlled Access Requirement, a 'tier 3' Access Requirement. In addition to the functionality provided by the Managed ACT Access Requirement, this Access Requirement type also supports collecting information described by a JSON Schema and rendered using a FormTemplate. The data contract (JSON Schema) is resolved transitively through the referenced FormTemplate.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.ACTAccessRequirementInterface"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasAccessorRequirement"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasExpiration"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasDataUseCertificate"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement"
+		}
+	],
+	"properties": {
+		"formTemplateRef": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference",
+			"description": "Reference to the FormTemplate version used to render the form for this AR. The template's pinned schema is the AR's data contract. Multiple ARs may reference the same FormTemplate version.",
+			"required": true
+		}
+	}
+}

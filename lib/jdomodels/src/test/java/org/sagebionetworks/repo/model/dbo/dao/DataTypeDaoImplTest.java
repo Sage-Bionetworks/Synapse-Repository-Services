@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
 import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
-import org.sagebionetworks.repo.model.FacetPostProcessingParameters;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -169,7 +169,7 @@ public class DataTypeDaoImplTest {
 	private AggregateDataConfiguration newAggregateConfiguration() {
 		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
 				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
-						.setParameters(new FacetPostProcessingParameters()));
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 	}
 
 	@Test

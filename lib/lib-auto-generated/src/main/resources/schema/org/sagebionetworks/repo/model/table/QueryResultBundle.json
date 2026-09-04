@@ -58,6 +58,10 @@
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.download.ActionRequiredCount"
 			}
+		},
+		"facetPostProcessingApplied": {
+			"type": "boolean",
+			"description": "True when a facet post-processing algorithm (e.g. rounding or noise) was applied to the returned facets, indicating the facet counts are approximate. Absent or false when the facet counts are exact."
 		}
 	}
 }

@@ -78,6 +78,10 @@
 		"eDucSignatureEnvelopeId": {
 			"type": "string",
 			"description": "The envelope ID for the routed eDUC signature document."
+		},
+		"schemaData": {
+			"type": "object",
+			"description": "Request data that was provided using the associated JSON Schema. Unvalidated while the request is a draft; validated against the schema referenced by the Access Requirement when a Submission is created."
 		}
 	}
 }

@@ -1,0 +1,44 @@
+{
+	"title": "Form Template Field",
+	"description": "A single field slot in a form template step. Maps a JSON pointer in the referenced schema to a UI definition. Validation that the slot resolves to a real leaf property in the schema, that the slot's UI definition is compatible with the property's type/format, and that no two slots in the template share a schemaPath, is performed when the template is created or updated.",
+	"properties": {
+		"schemaPath": {
+			"type": "string",
+			"description": "JSON pointer (RFC 6901) into the template's referenced schema, identifying the leaf property this slot renders. Example: '/institution'. The pointer is resolved against the schema with '$ref's expanded.",
+			"required": true
+		},
+		"uiDefinition": {
+			"type": "object",
+			"description": "Defines the appearance of this slot in the form UI. Defined by <a href=\"https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema\">react-jsonschema-form</a>.",
+			"required": true
+		},
+		"submissionContext": {
+			"type": "string",
+			"name": "SubmissionContext",
+			"id": "org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext",
+			"description": "Controls whether this slot appears (and the underlying schema property is collected) for an initial REQUEST, a RENEWAL, or both. Default is 'ALWAYS'. The schema's 'required' declaration only binds for contexts in which the property is included; if a required property is excluded for the active context, it is treated as not required.",
+			"enum": [
+				{
+					"name": "ALWAYS",
+					"description": "The slot is included for both an initial request and a renewal."
+				},
+				{
+					"name": "REQUEST_ONLY",
+					"description": "The slot is included only for an initial request."
+				},
+				{
+					"name": "RENEWAL_ONLY",
+					"description": "The slot is included only for a renewal."
+				}
+			]
+		},
+		"templateFileHandleId": {
+			"type": "string",
+			"description": "A Synapse FileHandle ID used to download a template file for this slot. Intended only for slots whose target schema property uses the 'synapse-filehandle-id' format. The file can be downloaded using FileHandleAssociateType.AccessRequirementAttachment."
+		},
+		"isPublic": {
+			"type": "boolean",
+			"description": "When true, responses to this field will be publicly viewable after approval. Default is false."
+		}
+	}
+}

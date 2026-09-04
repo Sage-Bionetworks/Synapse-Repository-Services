@@ -1,0 +1,25 @@
+{
+	"title": "Public Submission Info",
+	"description": "Publicly-disclosable information from a single approved submission. Contains only values whose FormTemplateField was marked isPublic as of the FormTemplate version this submission was made against (snapshot semantics: later changes to a template's isPublic flags do not retroactively affect this submission). Sensitive information such as accessorChanges is never included.",
+	"properties": {
+		"templateRef": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference",
+			"description": "The FormTemplate id and version this submission was made against. Used to locate the applicable bundle in templateBundles.",
+			"required": true
+		},
+		"publicValues": {
+			"type": "object",
+			"description": "A sparse map of the submission's public answers. Keys are top-level property names (schema paths) that were marked isPublic; values are the submitter's answers for those properties. Non-public properties are omitted entirely.",
+			"required": true
+		},
+		"submittedBy": {
+			"type": "string",
+			"description": "The ID of the user that submitted this submission."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date the submission was last modified."
+		}
+	}
+}

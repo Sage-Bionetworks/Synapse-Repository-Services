@@ -1,0 +1,23 @@
+{
+	"title": "Form Template Step",
+	"description": "A logical grouping of fields rendered as a single page or section in a multi-step form. Steps are part of the FormTemplate version; changes to a step's title, description, or contained fields produce a new template version.",
+	"properties": {
+		"title": {
+			"type": "string",
+			"description": "Display title shown to the user (e.g., 'Institutional Information').",
+			"required": true
+		},
+		"description": {
+			"type": "string",
+			"description": "Instructions shown at the top of the page/section."
+		},
+		"fields": {
+			"type": "array",
+			"description": "Ordered list of field slots within this step. Each slot binds a JSON pointer in the schema to a UI definition.",
+			"required": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField"
+			}
+		}
+	}
+}

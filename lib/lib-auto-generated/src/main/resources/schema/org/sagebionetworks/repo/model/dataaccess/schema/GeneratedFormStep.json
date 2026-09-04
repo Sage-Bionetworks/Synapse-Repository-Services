@@ -1,0 +1,16 @@
+{
+	"title": "Generated Form Step",
+	"description": "The schema information used to render a single step of a form. The jsonSchema validates the slice of submission data corresponding to that step's fields.",
+	"properties": {
+		"jsonSchema": {
+			"$ref": "org.sagebionetworks.repo.model.schema.JsonSchema",
+			"description": "The slice of the template's referenced schema covering the properties targeted by this step's field slots, with '$ref's expanded and 'required' declarations preserved.",
+			"required": true
+		},
+		"uiSchema": {
+			"type": "object",
+			"description": "The UI Schema describing how this step's properties are rendered. Defined by <a href=\"https://rjsf-team.github.io/react-jsonschema-form/docs/api-reference/uiSchema\">react-jsonschema-form</a>.",
+			"required": true
+		}
+	}
+}

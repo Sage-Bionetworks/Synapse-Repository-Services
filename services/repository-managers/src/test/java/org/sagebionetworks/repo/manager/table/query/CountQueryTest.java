@@ -252,4 +252,50 @@ public class CountQueryTest {
 		verify(schemaProvider).getColumnModel("33");
 		verify(schemaProvider, times(2)).getColumnModel(any());
 	}
+
+	@Test
+	public void testCountQueryWithForceRowCount() {
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		// A query with a select list, grouping, ordering and pagination: forceRowCount must
+		// ignore all of them and produce a plain COUNT(*) of the matched rows (cohort size).
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+		builder.setStartingSql("select two, count(*) from " + tableId
+				+ " where ROW_BENEFACTOR IN (11,22) group by two order by two desc limit 5 offset 3");
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion, true);
+
+		String sql = "SELECT COUNT(*) FROM T123_4 WHERE ROW_BENEFACTOR IN ( :b0, :b1 )";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		expectedParmeters.put("b0", 11L);
+		expectedParmeters.put("b1", 22L);
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		// pagination is dropped by a forced row count
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
+	}
+
+	@Test
+	public void testCountQueryWithForceRowCountOnAggregateQuery() {
+		when(schemaProvider.getTableSchema(any())).thenReturn(schema);
+		builder.setAdditionalFilters(null);
+		builder.setSelectedFacets(null);
+		// An aggregate query that cannot be counted (see testCountQueryWithAggregateQuery)
+		// still yields a cohort COUNT(*) when a row count is forced.
+		builder.setStartingSql("select count(*) from " + tableId);
+
+		QueryContext expantion = builder.build();
+		// call under test
+		CountQuery count = new CountQuery(expantion, true);
+
+		String sql = "SELECT COUNT(*) FROM T123_4";
+		Map<String, Object> expectedParmeters = new HashMap<>();
+		assertEquals(Optional.of(new BasicQuery(sql, expectedParmeters)), count.getCountQuery());
+		assertNull(count.getOriginalPagination());
+		assertEquals("syn123.4", count.getSingleTableId());
+		assertEquals("28f357124582b207be1bbb3e5dbca0dd", count.getTableHash());
+	}
 }
