@@ -47,10 +47,10 @@ import com.docusign.esign.model.TemplateSummary;
  * <pre>
  * MVN="mvn -o test -pl lib/lib-docusign -Djacoco.skip=true \
  *      -Ddocusign.live=true \
- *      -Ddocusign.live.templateId=4d402940-9918-8474-80bc-1f62ec9d01fd \
- *      -Ddocusign.live.pi.email=bruce.hoff+pi@sagebase.org \
- *      -Ddocusign.live.so.email=bruce.hoff+so@sagebase.org \
- *      -Ddocusign.live.collaborator.email=bruce.hoff+c1@sagebase.org"
+ *      -Ddocusign.live.templateId=<template-id> \
+ *      -Ddocusign.live.pi.email=name+pi@sagebase.org \
+ *      -Ddocusign.live.so.email=name+so@sagebase.org \
+ *      -Ddocusign.live.collaborator.email=name+c1@sagebase.org"
  *
  * $MVN -Dtest=DocuSignLiveTest#step0_validateTemplate
  * $MVN -Dtest=DocuSignLiveTest#step1_createDraft
