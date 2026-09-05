@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.manager.oauth.AliasAndType;
 import org.sagebionetworks.repo.manager.oauth.OAuthManager;
 import org.sagebionetworks.repo.manager.oauth.OIDCTokenManager;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.manager.oauth.ProvidedUserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.RealmDao;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.TermsOfServiceInfo;
@@ -133,7 +135,7 @@ public class AuthenticationServiceImplTest {
 			.setAccessToken(ACCESS_TOKEN)
 			.setTermsOfServiceVersion("1.0.0");
 		
-		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(new ValidatedAccessToken(""+userId, null));
 		
 		// method under test
 		service.signTermsOfService(request);
@@ -148,7 +150,7 @@ public class AuthenticationServiceImplTest {
 			.setAccessToken(ACCESS_TOKEN)
 			.setTermsOfServiceVersion(null);
 		
-		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(ACCESS_TOKEN)).thenReturn(new ValidatedAccessToken(""+userId, null));
 		
 		// method under test
 		service.signTermsOfService(request);
@@ -221,7 +223,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -234,7 +236,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -260,7 +263,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -275,7 +278,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -302,7 +306,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -318,7 +322,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 		verify(mockUserManager).setOidcBindingAlias(oidcBinding, alias);
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -373,7 +378,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAcceptsTermsOfUse(true);
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.validateOAuthAuthenticationCodeAndLogin(request, ISSUER);
@@ -383,7 +388,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -422,7 +428,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).deleteOidcBinding(oidcBinding.getBindingId());
 		verify(mockUserManager).bindUserToOidcSubject(alias, OAuthProvider.GOOGLE_OAUTH_2_0, "abcd");
 		verifyNoMoreInteractions(mockUserManager);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -446,7 +453,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -460,7 +467,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByUsernameOrEmail(info.getUsersVerifiedEmail());
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -485,7 +493,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -499,7 +507,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupOidcBindingBySubject(request.getProvider(), info.getSubject());
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -526,7 +535,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
 		when(mockRealmDao.getRealmIdForIdentityProvider(any())).thenReturn(Optional.of(DEFAULT_REALM_ID));
@@ -541,7 +550,8 @@ public class AuthenticationServiceImplTest {
 		verify(mockUserManager).lookupUserByUsernameOrEmail("first.last@domain.com");
 		verify(mockUserManager).lookupUserByAliasType(AliasType.USER_ORCID, "alias");
 		verify(mockUserManager).bindUserToOidcSubject(alias, request.getProvider(), info.getSubject());
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test
@@ -599,7 +609,7 @@ public class AuthenticationServiceImplTest {
 		authMgrLoginResponse.setAccessToken(ACCESS_TOKEN);
 		authMgrLoginResponse.setAuthenticationReceipt("authentication-receipt");
 		
-		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any())).thenReturn(authMgrLoginResponse);
+		when(mockAuthenticationManager.loginWithNoPasswordCheck(anyLong(), any(), any())).thenReturn(authMgrLoginResponse);
 		
 		//call under test
 		LoginResponse result = service.createAccountViaOauth(request, ISSUER);
@@ -615,7 +625,8 @@ public class AuthenticationServiceImplTest {
 		
 		verify(mockOAuthManager).validateUserWithProvider(request.getProvider(), request.getAuthenticationCode(), request.getRedirectUrl());
 		verify(mockUserManager).createUser(expectedUser);
-		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER);
+		verify(mockAuthenticationManager).loginWithNoPasswordCheck(userId, ISSUER,
+				new OAuthIdentityProvider().setProvider(request.getProvider()));
 	}
 	
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
@@ -62,13 +63,15 @@ public interface AuthenticationManager {
 	 * 
 	 * @param principalId
 	 * @param tokenIssuer
+	 * @param identityProvider the provider that authenticated the user, recorded in the access token
 	 * @return
 	 * @throws TwoFactorAuthRequiredException If the user has 2FA enabled
 	 */
-	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer);
+	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer, IdentityProvider identityProvider);
 	
 	/**
-	 * Bypass password and 2fa check and just create a login response for the user
+	 * Bypass password and 2fa check and just create a login response for the user. Only an
+	 * administrator reaches this, so the access token records Synapse as the identity provider.
 	 * 
 	 * @param principalId
 	 * @return

@@ -20,6 +20,7 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -73,12 +74,15 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
+		String identityProvider = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
+					ValidatedAccessToken validatedAccessToken = oidcManager.validateAccessToken(accessToken);
+					userId = Long.parseLong(validatedAccessToken.userId());
+					identityProvider = validatedAccessToken.identityProvider();
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
@@ -114,6 +118,13 @@ public class AuthenticationFilter implements Filter {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
+			// Always discarded before being set, so that a caller cannot supply their own value the way
+			// they cannot supply their own userId. Left absent rather than empty when nothing
+			// authenticated the caller, so that a controller binding it sees null, not a blank name.
+			modParams.remove(AuthorizationConstants.IDENTITY_PROVIDER_PARAM);
+			if (identityProvider != null) {
+				modParams.put(AuthorizationConstants.IDENTITY_PROVIDER_PARAM, new String[] { identityProvider });
+			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
