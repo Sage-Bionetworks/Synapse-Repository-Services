@@ -10,7 +10,8 @@ public enum AccessRequirementType {
 	SELF_SIGNED(SelfSignAccessRequirement.class, RestrictionLevel.RESTRICTED_BY_TERMS_OF_USE, /* ATC */false, /* ToU */true, /* Lock */false),
 	ATC(ACTAccessRequirement.class, RestrictionLevel.CONTROLLED_BY_ACT, /* ATC */true, /* ToU */false, /* Lock */false),
 	MANAGED_ATC(ManagedACTAccessRequirement.class, RestrictionLevel.CONTROLLED_BY_ACT, /* ATC */ true, /* ToU */false,/* Lock */false),
-	LOCK(LockAccessRequirement.class, RestrictionLevel.CONTROLLED_BY_ACT, /* ATC */false, /* ToU */false,/* Lock */true);
+	LOCK(LockAccessRequirement.class, RestrictionLevel.CONTROLLED_BY_ACT, /* ATC */false, /* ToU */false,/* Lock */true),
+	CONDITIONAL(ConditionalAccessRequirement.class, RestrictionLevel.CONTROLLED_BY_ACT, /* ATC */true, /* ToU */false,/* Lock */false);
 
 	private Class<? extends AccessRequirement> clazz;
 	private RestrictionLevel restrictionLevel;

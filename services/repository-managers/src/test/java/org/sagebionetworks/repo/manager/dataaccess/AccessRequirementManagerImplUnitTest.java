@@ -52,6 +52,11 @@ import org.sagebionetworks.repo.manager.UserInfoTestHelper;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirementCondition;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
+import org.sagebionetworks.repo.model.IdentityProviderCondition;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
@@ -1206,6 +1211,40 @@ public class AccessRequirementManagerImplUnitTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+
+	private static ConditionalAccessRequirement conditionalAr(AccessRequirementCondition condition) {
+		return (ConditionalAccessRequirement) new ConditionalAccessRequirement().setCondition(condition)
+				.setAccessType(ACCESS_TYPE.DOWNLOAD)
+				.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor().setId("syn987")
+						.setType(RestrictableObjectType.ENTITY)));
+	}
+
+	@Test
+	public void testValidateAccessRequirementForConditionalAccessRequirement() {
+		AccessRequirement ar = conditionalAr(new IdentityProviderCondition()
+				.setIdentityProviders(Arrays.asList(new OAuthIdentityProvider().setProvider(OAuthProvider.ORCID))));
+
+		// call under test
+		AccessRequirementManagerImpl.validateAccessRequirement(ar);
+	}
+
+	@Test
+	public void testValidateAccessRequirementForConditionalAccessRequirementWithNoCondition() {
+		AccessRequirement ar = conditionalAr(null);
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> AccessRequirementManagerImpl.validateAccessRequirement(ar));
+	}
+
+	@Test
+	public void testValidateAccessRequirementForConditionalAccessRequirementWithNoProviders() {
+		// A condition with nothing to match could never be satisfied, leaving the requirement permanently
+		// unmet, so it is rejected at creation rather than accepted and left to deny everyone.
+		AccessRequirement ar = conditionalAr(new IdentityProviderCondition().setIdentityProviders(Arrays.asList()));
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> AccessRequirementManagerImpl.validateAccessRequirement(ar));
 	}
 
 	@Test

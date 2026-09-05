@@ -1,0 +1,18 @@
+{
+	"title": "Identity Provider Condition",
+	"description": "Satisfied when the identity provider that authenticated the caller is one of those listed.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirementCondition"
+		}
+	],
+	"properties": {
+		"identityProviders": {
+			"type": "array",
+			"description": "The identity providers that satisfy this condition. At least one is required.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider"
+			}
+		}
+	}
+}

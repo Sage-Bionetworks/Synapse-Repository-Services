@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.ConditionalAccessRequirementResolver;
 import org.sagebionetworks.repo.manager.entity.EntityStateProvider;
 import org.sagebionetworks.repo.manager.entity.LazyEntityStateProvider;
 import org.sagebionetworks.repo.manager.util.UserAccessRestrictionUtils;
@@ -39,6 +40,9 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 
 	@Autowired
 	private EntityAuthorizationManager entityAuthorizationManager;
+
+	@Autowired
+	private ConditionalAccessRequirementResolver conditionalAccessRequirementResolver;
 	
 	@Override
 	public RestrictionInformationResponse getRestrictionInformation(UserInfo userInfo,
@@ -82,7 +86,8 @@ public class RestrictionInformationManagerImpl implements RestrictionInformation
 	RestrictionInformationBatchResponse getEntityRestrictionInformationBatchResponse(UserInfo userInfo, RestrictionInformationBatchRequest request) {
 		List<Long> objectIds = KeyFactory.stringToKey(request.getObjectIds());
 		
-		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao, usersEntityPermissionsDao, userInfo, objectIds);
+		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao, usersEntityPermissionsDao,
+				conditionalAccessRequirementResolver, userInfo, objectIds);
 		
 		List<RestrictionInformationResponse> restrictionList = objectIds.stream().map( objectId -> {
 			UsersRestrictionStatus restrictionStatus = stateProvider.getRestrictionStatus(objectId);

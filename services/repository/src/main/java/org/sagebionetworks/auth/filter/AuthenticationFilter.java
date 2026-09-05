@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -112,6 +113,9 @@ public class AuthenticationFilter implements Filter {
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
+		// Likewise the identity provider, which UserInfo picks up as it is built so that an
+		// authorization decision anywhere in this request can see how the caller authenticated.
+		IdentityProviderThreadLocal.setThreadsIdentityProvider(identityProvider);
 		
 		// Pass the request along, including the user Id and access token
 		try {
@@ -135,6 +139,7 @@ public class AuthenticationFilter implements Filter {
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
+			IdentityProviderThreadLocal.clearThreadsIdentityProvider();
 		}
 	}
 

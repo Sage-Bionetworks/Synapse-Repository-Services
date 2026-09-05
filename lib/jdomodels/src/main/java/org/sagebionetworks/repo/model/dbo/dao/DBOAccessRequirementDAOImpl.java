@@ -258,7 +258,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	 * @param requirementIds
 	 * @return
 	 */
-	private List<AccessRequirement> getAccessRequirements(List<Long> requirementIds) {
+	@Override
+	public List<AccessRequirement> getAccessRequirements(List<Long> requirementIds) {
 		if (requirementIds.isEmpty()) {
 			return new LinkedList<>();
 		}

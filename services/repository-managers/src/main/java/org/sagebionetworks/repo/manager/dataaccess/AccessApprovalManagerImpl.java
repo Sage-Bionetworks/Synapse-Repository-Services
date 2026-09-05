@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -113,8 +114,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		ValidateArgument.required(accessApproval.getRequirementId(), "accessRequirementId");
 		AccessRequirement ar = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
 
+		// A conditional requirement is met by satisfying its condition, so an approval against one would
+		// have no effect and must not be created.
 		ValidateArgument.requirement(!(ar instanceof LockAccessRequirement)
-				&& !(ar instanceof PostMessageContentAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
+				&& !(ar instanceof PostMessageContentAccessRequirement)
+				&& !(ar instanceof ConditionalAccessRequirement), "Cannot apply an approval to a "+ar.getConcreteType());
 		if (ar instanceof SelfSignAccessRequirementInterface) {
 			accessApproval.setAccessorId(userInfo.getId().toString());
 		} else if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
