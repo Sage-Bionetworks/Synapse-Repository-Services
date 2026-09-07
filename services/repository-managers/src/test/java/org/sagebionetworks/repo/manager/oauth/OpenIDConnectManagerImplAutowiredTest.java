@@ -363,11 +363,13 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	@Test
 	public void testValidatePersonalAccessToken() {
-		// Issue a PAT to the user
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, null).getToken();
+		// Issue a PAT to the user, recording the provider that authenticated the session creating it. This
+		// signs and parses a real JWT, so it shows the claim surviving the round trip.
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, "ORCID").getToken();
 
 		// method under test
-		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));
+		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), "ORCID"),
+				openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token
 		Claims claims = oidcTokenManager.parseJWT(token).getBody();
