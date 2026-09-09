@@ -196,7 +196,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("false", requestCaptor.getValue().getParameter(AuthorizationConstants.ANONYMOUS_PARAM));
-		assertEquals("ORCID", requestCaptor.getValue().getParameter(AuthorizationConstants.IDENTITY_PROVIDER_PARAM));
+		assertEquals("ORCID", requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 		assertEquals(AuthenticationMethod.BEARERTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
@@ -220,14 +220,13 @@ public class AuthenticationFilterTest {
 	}
 
 	@Test
-	public void noExternalIdentityProviderParameter() throws Exception {
-		Map<String, String[]> requestParams = new HashMap<String, String[]>();
+	public void noExternalIdentityProviderHeader() throws Exception {
 		// user is trying to 'sneak in' an identity provider
-		requestParams.put(AuthorizationConstants.IDENTITY_PROVIDER_PARAM, new String[] {"SYNAPSE"});
-		when(mockHttpRequest.getParameterMap()).thenReturn(requestParams);
+		List<String> headerNames = new java.util.ArrayList<>(HEADER_NAMES);
+		headerNames.add(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
-		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(headerNames));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
 		// the token itself names no identity provider
 		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, null));
@@ -238,8 +237,8 @@ public class AuthenticationFilterTest {
 
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 
-		// the supplied value has been discarded rather than passed through to the controllers
-		assertNull(requestCaptor.getValue().getParameter(AuthorizationConstants.IDENTITY_PROVIDER_PARAM));
+		// stripped along with the other authorization headers, rather than passed to the controllers
+		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
 	}
 
 	@Test
