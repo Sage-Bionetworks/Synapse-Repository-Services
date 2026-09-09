@@ -432,7 +432,7 @@ public class DocuSignClient {
 		}
 		List<Signer> unused = new ArrayList<>();
 		for (Signer signer : envelope.getRecipients().getSigners()) {
-			boolean isCollaborator = DocuSignTemplateValidator.collaboratorIndex(signer.getRoleName()) > 0;
+			boolean isCollaborator = EDucTemplateRoles.isCollaborator(signer.getRoleName());
 			boolean hasNoEmail = signer.getEmail() == null || signer.getEmail().isBlank();
 			if (isCollaborator && hasNoEmail) {
 				Signer toRemove = new Signer();

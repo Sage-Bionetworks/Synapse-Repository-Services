@@ -371,6 +371,8 @@ public class EDucManagerTest {
 		request.setEDucSignatureEnvelopeId("existing-env");
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
+		// a draft envelope has not gone out for signature, so routing may still send it
+		stubEnvelopeStatus("existing-env", EDucStatusEnum.draft);
 		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
 		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
@@ -381,6 +383,105 @@ public class EDucManagerTest {
 		verify(mockDocuSignClient).sendEnvelope("existing-env");
 		assertEquals(Long.valueOf(10), result.getQuota());
 		assertEquals(Long.valueOf(9), result.getRemaining());
+	}
+
+	@Test
+	public void testRouteForSignatureWithAlreadySentEnvelope() {
+		// Routing a second time would re-send the envelope without rebuilding the request's content,
+		// so any accessor added or removed since it was routed would silently not be included.
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		// the refusal costs the caller nothing: no quota is consumed and the envelope is left alone
+		verifyNoInteractions(mockEDucQuotaDao);
+		verify(mockClock, never()).currentTimeMillis();
+		// and the request is not recorded as having been applied to the envelope
+		verify(mockRequestDao, never()).setEDucContentHash(any(), any());
+	}
+
+	@Test
+	public void testRouteForSignatureWithDeliveredEnvelope() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.delivered);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithCompletedEnvelope() {
+		// A terminal envelope cannot be corrected either, so the caller is given that reason rather
+		// than being pointed at an update that would refuse them in turn.
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.completed);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " The eDUC cannot be updated because it has already been completed.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithVoidedEnvelope() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.voided);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " The eDUC cannot be updated because it has been cancelled.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithAlreadySentEnvelopeAndAdminUser() {
+		// An administrator routes on the creator's behalf and is held to the same rule
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo admin = new UserInfo(true, 999L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(admin, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
 	}
 
 	@Test

@@ -494,6 +494,9 @@ public class DataAccessController {
 
 	/**
 	 * Route the eDUC associated with a data access request for electronic signature.
+	 * <p>
+	 * An eDUC may only be routed once. Changes made to the request after it has been routed are
+	 * applied to the eDUC already out for signature, not by routing again.
 	 *
 	 * @param userId    - The ID of the user who is making the request.
 	 * @param requestId - The ID of the data access request.

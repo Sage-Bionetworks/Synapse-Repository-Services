@@ -9,6 +9,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACC
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_USER_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_USER_USER_ID;
@@ -87,8 +88,11 @@ public class DBORequestDAOImpl implements RequestDAO {
 			+ " FROM " + TABLE_DATA_ACCESS_REQUEST
 			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
 
+	// The etag is rotated with the hash so the row is seen to have changed: migration between stacks
+	// detects changed rows by etag alone, so a hash written without a new etag would never migrate.
 	public static final String SQL_SET_CONTENT_HASH = "UPDATE " + TABLE_DATA_ACCESS_REQUEST
 			+ " SET " + COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH + " = ?"
+			+ ", " + COL_DATA_ACCESS_REQUEST_ETAG + " = UUID()"
 			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
 
 	public static final String SQL_GET_FOR_UPDATE = SQL_GET_BY_ID + " FOR UPDATE";

@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.docusign.esign.model.EnvelopeTemplate;
@@ -16,27 +14,26 @@ import com.docusign.esign.model.Tabs;
 
 class DocuSignTemplateValidator {
 
-	private static final String SIGNING_OFFICIAL = "signing_official";
-	private static final String PRINCIPAL_INVESTIGATOR = "principal_investigator";
-	private static final Pattern COLLABORATOR_PATTERN = Pattern.compile("collaborator_(\\d+)");
-	private static final int MAX_COLLABORATORS = 98;
+	// Named locally only to keep the declarations below readable; EDucTemplateRoles owns the values.
+	private static final String SIGNING_OFFICIAL = EDucTemplateRoles.SIGNING_OFFICIAL;
+	private static final String PRINCIPAL_INVESTIGATOR = EDucTemplateRoles.PRINCIPAL_INVESTIGATOR;
 
 	record RequiredTab(String label, TabType type) {}
 
 	static final List<RequiredTab> SIGNING_OFFICIAL_TABS = List.of(
-			new RequiredTab("signing_official_institution", TabType.TEXT),
-			new RequiredTab("signing_official_name", TabType.FULL_NAME),
-			new RequiredTab("signing_official_email", TabType.EMAIL_ADDRESS),
-			new RequiredTab("signing_official_signature", TabType.SIGN_HERE),
-			new RequiredTab("signing_official_date", TabType.DATE_SIGNED)
+			new RequiredTab(EDucTemplateRoles.institutionTab(SIGNING_OFFICIAL), TabType.TEXT),
+			new RequiredTab(EDucTemplateRoles.nameTab(SIGNING_OFFICIAL), TabType.FULL_NAME),
+			new RequiredTab(EDucTemplateRoles.emailTab(SIGNING_OFFICIAL), TabType.EMAIL_ADDRESS),
+			new RequiredTab(EDucTemplateRoles.signatureTab(SIGNING_OFFICIAL), TabType.SIGN_HERE),
+			new RequiredTab(EDucTemplateRoles.dateTab(SIGNING_OFFICIAL), TabType.DATE_SIGNED)
 	);
 
 	static final List<RequiredTab> PRINCIPAL_INVESTIGATOR_TABS = List.of(
-			new RequiredTab("principal_investigator_name", TabType.FULL_NAME),
-			new RequiredTab("principal_investigator_email", TabType.EMAIL_ADDRESS),
-			new RequiredTab("principal_investigator_user_name", TabType.TEXT),
-			new RequiredTab("principal_investigator_signature", TabType.SIGN_HERE),
-			new RequiredTab("principal_investigator_date", TabType.DATE_SIGNED)
+			new RequiredTab(EDucTemplateRoles.nameTab(PRINCIPAL_INVESTIGATOR), TabType.FULL_NAME),
+			new RequiredTab(EDucTemplateRoles.emailTab(PRINCIPAL_INVESTIGATOR), TabType.EMAIL_ADDRESS),
+			new RequiredTab(EDucTemplateRoles.userNameTab(PRINCIPAL_INVESTIGATOR), TabType.TEXT),
+			new RequiredTab(EDucTemplateRoles.signatureTab(PRINCIPAL_INVESTIGATOR), TabType.SIGN_HERE),
+			new RequiredTab(EDucTemplateRoles.dateTab(PRINCIPAL_INVESTIGATOR), TabType.DATE_SIGNED)
 	);
 	
 	static TabType typeforRoleAndLabel(String roleName, String label) {
@@ -46,7 +43,7 @@ class DocuSignTemplateValidator {
 			requiredTabsForRole = SIGNING_OFFICIAL_TABS;
 		} else if (PRINCIPAL_INVESTIGATOR.equals(roleName)) {
 			requiredTabsForRole = PRINCIPAL_INVESTIGATOR_TABS;
-		} else if ((collaboratorIndex=collaboratorIndex(roleName))>0) {
+		} else if ((collaboratorIndex=EDucTemplateRoles.collaboratorIndex(roleName))>0) {
 			requiredTabsForRole =requiredCollaboratorTabs(collaboratorIndex);
 		} else {
 			throw new IllegalArgumentException("Unexpected roleName "+roleName);
@@ -96,25 +93,11 @@ class DocuSignTemplateValidator {
 		}
 	}
 
-	
-	/**
-	 * 
-	 * @param roleName role name of the collaborator
-	 * @return the index of the collaborator or -1 if not a collaborator
-	 */
-	static int collaboratorIndex(String roleName) {
-		Matcher matcher = COLLABORATOR_PATTERN.matcher(roleName);
-		if (matcher.matches()) {
-			return Integer.parseInt(matcher.group(1));
-		} else {
-			return -1;
-		}
-	}
 
 	private static void validateCollaborators(Map<String, Signer> signersByRole) {
 		TreeMap<Integer, Signer> collaborators = new TreeMap<>();
 		for (Map.Entry<String, Signer> entry : signersByRole.entrySet()) {
-			int collaboratorIndex = collaboratorIndex(entry.getKey());
+			int collaboratorIndex = EDucTemplateRoles.collaboratorIndex(entry.getKey());
 			if (collaboratorIndex>0) {
 				collaborators.put(collaboratorIndex, entry.getValue());
 			}
@@ -125,28 +108,28 @@ class DocuSignTemplateValidator {
 		}
 
 		int maxIndex = collaborators.lastKey();
-		if (maxIndex > MAX_COLLABORATORS) {
+		if (maxIndex > EDucTemplateRoles.MAX_COLLABORATORS) {
 			throw new IllegalArgumentException(
-					"Collaborator index " + maxIndex + " exceeds maximum of " + MAX_COLLABORATORS + ".");
+					"Collaborator index " + maxIndex + " exceeds maximum of " + EDucTemplateRoles.MAX_COLLABORATORS + ".");
 		}
 
 		for (int i = 1; i <= maxIndex; i++) {
 			if (!collaborators.containsKey(i)) {
 				throw new IllegalArgumentException(
-						"Collaborator roles are not sequential: missing collaborator_" + i + ".");
+						"Collaborator roles are not sequential: missing " + EDucTemplateRoles.collaborator(i) + ".");
 			}
 			Signer signer = collaborators.get(i);
-			validateTabs("collaborator_" + i, signer.getTabs(), requiredCollaboratorTabs(i));
+			validateTabs(EDucTemplateRoles.collaborator(i), signer.getTabs(), requiredCollaboratorTabs(i));
 		}
 	}
 
 	static List<RequiredTab> requiredCollaboratorTabs(int index) {
-		String prefix = "collaborator_" + index + "_";
+		String role = EDucTemplateRoles.collaborator(index);
 		return List.of(
-				new RequiredTab(prefix + "user_name", TabType.TEXT),
-				new RequiredTab(prefix + "name", TabType.FULL_NAME),
-				new RequiredTab(prefix + "signature", TabType.SIGN_HERE),
-				new RequiredTab(prefix + "date", TabType.DATE_SIGNED)
+				new RequiredTab(EDucTemplateRoles.userNameTab(role), TabType.TEXT),
+				new RequiredTab(EDucTemplateRoles.nameTab(role), TabType.FULL_NAME),
+				new RequiredTab(EDucTemplateRoles.signatureTab(role), TabType.SIGN_HERE),
+				new RequiredTab(EDucTemplateRoles.dateTab(role), TabType.DATE_SIGNED)
 		);
 	}
 }

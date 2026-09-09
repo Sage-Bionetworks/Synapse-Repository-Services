@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.dataaccess;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -228,6 +229,34 @@ public class DBORequestDAOImplTest {
 		// can be cleared
 		requestDao.setEDucContentHash(created.getId(), null);
 		assertNull(requestDao.getEDucContentHash(created.getId()));
+	}
+
+	@Test
+	public void testSetEDucContentHashChangesEtag() {
+		// Migration between stacks detects a changed row by comparing etags, so writing the hash has
+		// to rotate the etag or the change would never migrate from production to staging.
+		Request dto = RequestTestUtils.createNewRequest();
+		dto.setAccessRequirementId(accessRequirement.getId().toString());
+		dto.setResearchProjectId(researchProject.getId());
+		dto.setCreatedBy(individualGroup.getId());
+		dto.setModifiedBy(individualGroup.getId());
+		dto.setAccessorChanges(null);
+		Request created = requestDao.create(dto);
+		toDelete = created.getId();
+		String etagAtCreate = created.getEtag();
+
+		// call under test
+		requestDao.setEDucContentHash(created.getId(), "hash-at-route");
+
+		String etagAfterFirstHash = requestDao.get(created.getId()).getEtag();
+		assertNotEquals(etagAtCreate, etagAfterFirstHash);
+
+		// call under test — correcting the envelope records a new hash, which must be visible too
+		requestDao.setEDucContentHash(created.getId(), "hash-at-correction");
+
+		String etagAfterSecondHash = requestDao.get(created.getId()).getEtag();
+		assertNotEquals(etagAfterFirstHash, etagAfterSecondHash);
+		assertEquals("hash-at-correction", requestDao.getEDucContentHash(created.getId()));
 	}
 
 	@Test

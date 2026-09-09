@@ -70,6 +70,9 @@ public interface RequestDAO {
 	 * signature envelope. This is a server-managed value that is not part of the request DTO, so
 	 * it is not affected by a user editing their request. It is updated only when an envelope is
 	 * routed or corrected.
+	 * <p>
+	 * The request's etag is rotated, so a client holding the previous etag must re-fetch the request
+	 * before updating it.
 	 *
 	 * @param requestId the request whose hash to set
 	 * @param hash the content hash, or null to clear it
