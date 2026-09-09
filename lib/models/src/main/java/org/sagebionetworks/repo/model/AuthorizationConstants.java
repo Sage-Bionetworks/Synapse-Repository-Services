@@ -96,12 +96,13 @@ public class AuthorizationConstants {
 	public static final String ANONYMOUS_PARAM = "anonymous";
 	
 	/**
-	 * Request parameter naming the identity provider that authenticated the caller, taken from the
-	 * access token by the same request pre-processing filter that sets {@link #USER_ID_PARAM}. Absent
-	 * when nothing authenticated the caller, as for an anonymous request, and absent on tokens issued
-	 * before the provider was recorded.
+	 * A header naming the identity provider that authenticated the caller, taken from the access token
+	 * and injected by the Authentication filter. Like the other authorization headers it is stripped
+	 * from the incoming request before being set, so a caller cannot supply their own. Absent when
+	 * nothing authenticated the caller, as for an anonymous request, and absent on tokens issued before
+	 * the provider was recorded.
 	 */
-	public static final String IDENTITY_PROVIDER_PARAM = "identityProvider";
+	public static final String SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME = "identityProvider";
 	
 	/**
 	 * The name of the client make the REST call. For a few calls, behavior will change depending on domain (at the

@@ -115,6 +115,17 @@ public class HttpAuthUtil {
 	}
 
 	/**
+	 * Sets the name of the identity provider that authenticated the caller. Left unset when nothing
+	 * authenticated them, so that a controller binding the header sees null rather than a blank name.
+	 */
+	public static void setIdentityProvider(Map<String, String[]> headers, String identityProvider) {
+		if (identityProvider != null) {
+			headers.put(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME,
+					new String[] {identityProvider});
+		}
+	}
+
+	/**
 	 * Sets the given service name as the value of the special synapse header service name
 	 * 
 	 * @param headers
@@ -130,7 +141,8 @@ public class HttpAuthUtil {
 					AuthorizationConstants.SESSION_TOKEN_PARAM.toLowerCase(),
 					AuthorizationConstants.OAUTH_VERIFIED_CLIENT_ID_HEADER.toLowerCase(),
 					AuthorizationConstants.SYNAPSE_HEADER_SERVICE_NAME.toLowerCase(),
-					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase()
+					AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME.toLowerCase(),
+					AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME.toLowerCase()
 			});
 	
 	/*

@@ -118,18 +118,14 @@ public class AuthenticationFilter implements Filter {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
-			// Always discarded before being set, so that a caller cannot supply their own value the way
-			// they cannot supply their own userId. Left absent rather than empty when nothing
-			// authenticated the caller, so that a controller binding it sees null, not a blank name.
-			modParams.remove(AuthorizationConstants.IDENTITY_PROVIDER_PARAM);
-			if (identityProvider != null) {
-				modParams.put(AuthorizationConstants.IDENTITY_PROVIDER_PARAM, new String[] { identityProvider });
-			}
+			// Any authorization header the caller supplied is discarded here, so those set below cannot
+			// be forged.
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
 			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
+			HttpAuthUtil.setIdentityProvider(modHeaders, identityProvider);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
