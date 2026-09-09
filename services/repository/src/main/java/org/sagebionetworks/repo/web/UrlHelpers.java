@@ -614,6 +614,11 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT_VERSION = ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/version";
 	public static final String ADMIN_ACCESS_REQUIREMENT_EDUC_QUOTA_RESET = ADMIN + ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID + "/eDucQuota/reset";
 
+	public static final String FORM_TEMPLATE = ACCESS_REQUIREMENT + "/formTemplate";
+	public static final String FORM_TEMPLATE_ID = FORM_TEMPLATE + "/{templateId}";
+	public static final String FORM_TEMPLATE_VERSION = FORM_TEMPLATE_ID + "/version/{versionNumber}";
+	public static final String FORM_TEMPLATE_SEARCH = FORM_TEMPLATE + "/search";
+
 	public static final String ACCESS_APPROVAL = "/accessApproval";
 	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";

@@ -95,7 +95,8 @@ public enum IdType {
 	SEARCH_CONFIGURATION_ID(null),
 	SEARCH_CONFIG_BINDING_ID(null),
 	SYNONYM_SET_ID(null),
-	EDUC_QUOTA_ID(null)
+	EDUC_QUOTA_ID(null),
+	FORM_TEMPLATE_ID(null)
 	;
 
 	Long startingId;

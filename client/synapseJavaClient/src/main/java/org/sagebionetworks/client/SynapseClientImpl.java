@@ -159,6 +159,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
@@ -599,6 +602,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String USER_GROUP_HEADER_BY_ALIAS = "/userGroupHeaders/aliases";
 
 	private static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	private static final String FORM_TEMPLATE = ACCESS_REQUIREMENT + "/formTemplate";
 
 	private static final String ACCESS_APPROVAL = "/accessApproval";
 
@@ -6397,6 +6401,39 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), ACCESS_REQUIREMENT + "/search", request, AccessRequirementSearchResponse.class);
+	}
+
+	@Override
+	public FormTemplate createFormTemplate(FormTemplate template) throws SynapseException {
+		ValidateArgument.required(template, "template");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE, template, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate createFormTemplateVersion(FormTemplate template) throws SynapseException {
+		ValidateArgument.required(template, "template");
+		ValidateArgument.required(template.getId(), "template.id");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + template.getId(), template, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate getFormTemplate(String templateId) throws SynapseException {
+		ValidateArgument.required(templateId, "templateId");
+		return getJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + templateId, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate getFormTemplateVersion(String templateId, Long versionNumber) throws SynapseException {
+		ValidateArgument.required(templateId, "templateId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		return getJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + templateId + "/version/" + versionNumber,
+				FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/search", request, FormTemplateSearchResponse.class);
 	}
 
 	@Override

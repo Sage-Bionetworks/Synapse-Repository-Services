@@ -130,6 +130,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
@@ -4389,6 +4392,52 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	AccessRequirementSearchResponse searchAccessRequirements(AccessRequirementSearchRequest request) throws SynapseException;
+
+	/**
+	 * Create a form template. Only the ACT may create a form template.
+	 *
+	 * @param template
+	 * @return The first version of the new template.
+	 * @throws SynapseException
+	 */
+	FormTemplate createFormTemplate(FormTemplate template) throws SynapseException;
+
+	/**
+	 * Publish a new version of an existing form template. Only the ACT may update a form template.
+	 *
+	 * @param template The new body of the template, carrying the etag of the template as last read.
+	 * @return The new version of the template.
+	 * @throws SynapseException
+	 */
+	FormTemplate createFormTemplateVersion(FormTemplate template) throws SynapseException;
+
+	/**
+	 * Get the latest version of a form template.
+	 *
+	 * @param templateId
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplate getFormTemplate(String templateId) throws SynapseException;
+
+	/**
+	 * Get a specific version of a form template.
+	 *
+	 * @param templateId
+	 * @param versionNumber
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplate getFormTemplateVersion(String templateId, Long versionNumber) throws SynapseException;
+
+	/**
+	 * Search the latest version of each form template matching the criteria in the given request.
+	 *
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException;
 
 	/**
 	 * Get the derived annotation keys for the given entity ID.

@@ -559,6 +559,14 @@
 			"description": "Users associated with a data access request (creator, PI, collaborators)"
 		},
 		{
+			"name": "FORM_TEMPLATE",
+			"description": "Templates that describe how a JSON Schema is rendered as a multi-step data access request form"
+		},
+		{
+			"name": "FORM_TEMPLATE_REVISION",
+			"description": "An immutable version of a form template"
+		},
+		{
 			"name": "CHANGE",
 			"description": "A record of a change event in the system, used for migration tracking."
 		}
