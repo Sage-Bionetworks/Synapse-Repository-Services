@@ -5,6 +5,7 @@ import static org.sagebionetworks.repo.model.oauth.OAuthScope.view;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchRequest;
 import org.sagebionetworks.repo.model.RestrictionInformationBatchResponse;
@@ -493,6 +494,9 @@ public class DataAccessController {
 
 	/**
 	 * Route the eDUC associated with a data access request for electronic signature.
+	 * <p>
+	 * An eDUC may only be routed once. Changes made to the request after it has been routed are
+	 * applied to the eDUC already out for signature, not by routing again.
 	 *
 	 * @param userId    - The ID of the user who is making the request.
 	 * @param requestId - The ID of the data access request.
@@ -539,6 +543,43 @@ public class DataAccessController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requestId) {
 		return serviceProvider.getEDucService().getSignatureStatus(userId, requestId);
+	}
+
+	/**
+	 * Apply the current content of a data access request (signers and field values) to its
+	 * already-routed eDUC signature envelope. This does not create a new envelope, so it has no
+	 * impact on the user's signature quota. If the request has not been routed for signature, or
+	 * the envelope's current status does not allow an update, an HTTP 400 is returned with the
+	 * reason.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return The updated signature status of the envelope.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE, method = RequestMethod.PUT)
+	public @ResponseBody EDucSignatureStatus updateRoutedSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return serviceProvider.getEDucService().updateRoutedEnvelope(userId, requestId);
+	}
+
+	/**
+	 * Determine whether the current content of a data access request could be applied to its
+	 * routed eDUC signature envelope, i.e. whether a PUT to the signature endpoint would succeed.
+	 *
+	 * @param userId    - The ID of the user who is making the request.
+	 * @param requestId - The ID of the data access request.
+	 * @return true if the update could be applied, false if attempting it would fail.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.DATA_ACCESS_REQUEST_ID_SIGNATURE_PRECHECK, method = RequestMethod.GET)
+	public @ResponseBody BooleanResult canUpdateRoutedSignature(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requestId) {
+		return new BooleanResult(serviceProvider.getEDucService().canUpdateRoutedEnvelope(userId, requestId));
 	}
 
 	/**

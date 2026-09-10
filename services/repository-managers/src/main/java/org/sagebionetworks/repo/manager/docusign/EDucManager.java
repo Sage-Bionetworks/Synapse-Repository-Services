@@ -3,15 +3,21 @@ package org.sagebionetworks.repo.manager.docusign;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.http.entity.ContentType;
 import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EDucTemplateRoles;
+import org.sagebionetworks.docusign.EnvelopeRecipient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
 import org.sagebionetworks.docusign.RecipientInfo;
 import org.sagebionetworks.docusign.RoleLabelKey;
@@ -36,6 +42,7 @@ import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.educ.EDucFileHandleId;
 import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucSignerStatus;
+import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
 import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.educ.EDucTemplateValidationResult;
@@ -122,6 +129,9 @@ public class EDucManager {
 			throw new UnauthorizedException("Only the request creator or an administrator can route for signature.");
 		}
 
+		// Checked ahead of the quota so that a refused call costs the user nothing.
+		validateNotAlreadyRouted(request);
+
 		Long userId = userInfo.getId();
 		Long arId = Long.parseLong(request.getAccessRequirementId());
 
@@ -147,6 +157,7 @@ public class EDucManager {
 		docuSignClient.sendEnvelope(envelopeId);
 
 		eDucQuotaDao.create(userId, arId, envelopeId);
+		requestDao.setEDucContentHash(requestId, computeEDucContentHash(request));
 
 		EDucSignatureQuota result = new EDucSignatureQuota();
 		result.setQuota((long) MAX_ENVELOPES_PER_MONTH);
@@ -227,12 +238,60 @@ public class EDucManager {
 		}
 	}
 
+	/**
+	 * Guards {@link #routeForSignature} against being called a second time for an envelope that has
+	 * already gone out for signature.
+	 * <p>
+	 * Routing reuses an existing envelope when one is found, which is what lets a draft (built by
+	 * {@link #previewEDuc}) be sent. Once the envelope is out for signature that reuse is no longer
+	 * meaningful: the request's current content is never rebuilt, so routing again would re-send an
+	 * envelope that does not contain the caller's latest changes while still consuming a quota slot
+	 * and recording the content as applied. Changes to a routed envelope belong to
+	 * {@link #updateRoutedEnvelope}, which corrects it in place.
+	 *
+	 * @throws IllegalArgumentException (HTTP 400) if the envelope exists and is past draft
+	 */
+	private void validateNotAlreadyRouted(RequestInterface request) {
+		String envelopeId = request.getEDucSignatureEnvelopeId();
+		if (envelopeId == null) {
+			return;
+		}
+		EnvelopeStatusResult statusResult = docuSignClient.getEnvelopeStatus(envelopeId);
+		if (EDucStatusEnum.draft.equals(statusResult.status().getDucStatus())) {
+			return;
+		}
+		// A terminal envelope cannot be corrected either, so the caller is told why rather than being
+		// sent to an update that would refuse them in turn.
+		String remedy = reasonUpdateNotPossible(envelopeId, statusResult)
+				.orElse("Update the routed eDUC to apply changes to it.");
+		throw new IllegalArgumentException("This eDUC has already been routed for signature. " + remedy);
+	}
+
 	RequestInterface createDraftEDuc(RequestInterface request) {
 		// if an envelope already exists then there's nothing more to do
 		if (request.getEDucSignatureEnvelopeId() != null) {
 			return request;
 		}
 
+		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
+		String templateId = managedAr.getEDucTemplateId();
+		// No envelope exists yet, so the collaborator roles are assigned from scratch.
+		EDucContent content = buildEDucContent(request, List.of());
+
+		String envelopeId = docuSignClient.createEnvelope(templateId, content.recipients(), content.tabValues());
+
+		request.setEDucSignatureEnvelopeId(envelopeId);
+		requestDao.update(request);
+		return request;
+	}
+
+	/**
+	 * Validates that the request's access requirement supports an eDUC and that the request has
+	 * the principal investigator and signing official needed to build the envelope.
+	 *
+	 * @return the ManagedACTAccessRequirement (which carries the eDUC template ID)
+	 */
+	private ManagedACTAccessRequirement validateEDucRequest(RequestInterface request) {
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
 		if (!(ar instanceof ManagedACTAccessRequirement managedAr)) {
 			throw new IllegalArgumentException("The access requirement is not a ManagedACTAccessRequirement.");
@@ -240,9 +299,7 @@ public class EDucManager {
 		if (!Boolean.TRUE.equals(managedAr.getIsDUCRequired())) {
 			throw new IllegalArgumentException("The access requirement does not require a DUC.");
 		}
-
-		String templateId = managedAr.getEDucTemplateId();
-		if (StringUtils.isBlank(templateId)) {
+		if (StringUtils.isBlank(managedAr.getEDucTemplateId())) {
 			throw new IllegalArgumentException("The access requirement does not have an eDUC template ID configured.");
 		}
 
@@ -257,18 +314,157 @@ public class EDucManager {
 		ValidateArgument.required(so.getInstitutionalEmail(), "signingOfficial.institutionalEmail");
 		ValidateArgument.requiredNotBlank(so.getName(), "signingOfficial.name");
 
+		return managedAr;
+	}
+
+	// The recipient identities (email + name per role) and tab values derived from a request that
+	// define the eDUC envelope content, used both when creating an envelope and when correcting one.
+	private record EDucContent(Map<String, RecipientInfo> recipients,
+			Map<RoleLabelKey, String> tabValues) {}
+
+	/**
+	 * Derives the envelope content from the request.
+	 *
+	 * @param existingRecipients the signers already on the envelope, so that a collaborator keeps
+	 *        the role they were routed with; empty when the envelope has yet to be created
+	 */
+	private EDucContent buildEDucContent(RequestInterface request, List<EnvelopeRecipient> existingRecipients) {
 		List<String> collaboratorUserIds = buildCollaboratorUserIds(request);
-		// Look up each collaborator's profile and user name once and reuse for both the recipient
-		// identities and the tab values.
+		// Look up each collaborator's profile and user name once and reuse for the recipient
+		// identities, the role emails and the tab values.
 		List<CollaboratorInfo> collaborators = gatherCollaboratorInfos(collaboratorUserIds);
-		Map<String, RecipientInfo> recipients = buildRecipients(request, collaborators);
-		Map<RoleLabelKey, String> tabValues = buildTabValues(request, collaborators);
+		Map<String, CollaboratorInfo> collaboratorsByRole = assignCollaboratorRoles(collaborators, existingRecipients);
+		Map<String, RecipientInfo> recipients = buildRecipients(request, collaboratorsByRole);
+		Map<RoleLabelKey, String> tabValues = buildTabValues(request, collaboratorsByRole);
 
-		String envelopeId = docuSignClient.createEnvelope(templateId, recipients, tabValues);
+		return new EDucContent(recipients, tabValues);
+	}
 
-		request.setEDucSignatureEnvelopeId(envelopeId);
-		requestDao.update(request);
-		return request;
+	/**
+	 * Apply the current content of the request (signers and tab values) to the already-routed
+	 * eDUC envelope. The envelope is corrected in place (no new envelope is created, so there is
+	 * no quota impact). If the request has not been routed for signature, or the envelope's status
+	 * does not allow an update, an {@link IllegalArgumentException} is thrown (HTTP 400) with a
+	 * reason.
+	 *
+	 * @return the signature status of the envelope after the update
+	 */
+	public EDucSignatureStatus updateRoutedEnvelope(UserInfo userInfo, String requestId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(requestId, "requestId");
+
+		RequestInterface request = requestDao.get(requestId);
+
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, request.getCreatedBy())) {
+			throw new UnauthorizedException("Only the request creator or an administrator can update the signature.");
+		}
+
+		String envelopeId = request.getEDucSignatureEnvelopeId();
+		EnvelopeStatusResult statusResult = envelopeId == null ? null : docuSignClient.getEnvelopeStatus(envelopeId);
+
+		Optional<String> reason = reasonUpdateNotPossible(envelopeId, statusResult);
+		if (reason.isPresent()) {
+			throw new IllegalArgumentException(reason.get());
+		}
+
+		validateEDucRequest(request);
+		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
+
+		// The template is not named here: a correction has to be placed from the template the
+		// envelope was actually created from, which the client resolves from the envelope itself.
+		docuSignClient.correctEnvelope(envelopeId, content.recipients(), content.tabValues());
+		requestDao.setEDucContentHash(requestId, computeEDucContentHash(request));
+
+		return getSignatureStatus(userInfo, requestId);
+	}
+
+	/**
+	 * Determine whether the current content of the request could be applied to its routed eDUC
+	 * envelope (i.e. whether {@link #updateRoutedEnvelope} would succeed rather than return a 400).
+	 *
+	 * @return true if an update is possible, false otherwise
+	 */
+	public boolean canUpdateRoutedEnvelopePrecheck(UserInfo userInfo, String requestId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(requestId, "requestId");
+
+		RequestInterface request = requestDao.get(requestId);
+
+		if (!AuthorizationUtils.isUserCreatorOrAdmin(userInfo, request.getCreatedBy())) {
+			throw new UnauthorizedException("Only the request creator or an administrator can check update status.");
+		}
+
+		String envelopeId = request.getEDucSignatureEnvelopeId();
+		EnvelopeStatusResult statusResult = envelopeId == null ? null : docuSignClient.getEnvelopeStatus(envelopeId);
+
+		return reasonUpdateNotPossible(envelopeId, statusResult).isEmpty();
+	}
+
+	/**
+	 * Shared updatability logic used by both {@link #updateRoutedEnvelope} and
+	 * {@link #canUpdateRoutedEnvelopePrecheck}.
+	 *
+	 * @return {@link Optional#empty()} if an update is possible, otherwise a human-readable reason
+	 *         why the update is not possible.
+	 */
+	Optional<String> reasonUpdateNotPossible(String envelopeId, EnvelopeStatusResult statusResult) {
+		if (envelopeId == null) {
+			return Optional.of("This request has not been routed for signature.");
+		}
+		EDucStatusEnum status = statusResult.status().getDucStatus();
+		if (EDucStatusEnum.draft.equals(status)) {
+			return Optional.of("This request has not been routed for signature.");
+		}
+		if (EDucStatusEnum.sent.equals(status) || EDucStatusEnum.delivered.equals(status)) {
+			return Optional.empty();
+		}
+		return Optional.of(switch (status) {
+			case completed -> "The eDUC cannot be updated because it has already been completed.";
+			case declined -> "The eDUC cannot be updated because a signer declined to sign.";
+			case voided -> "The eDUC cannot be updated because it has been cancelled.";
+			case correct -> "The eDUC cannot be updated because it is currently being corrected.";
+			default -> "The eDUC cannot be updated in its current status: " + status + ".";
+		});
+	}
+
+	/**
+	 * Computes a stable hash of the request fields that determine the eDUC envelope content. This
+	 * is recorded whenever the envelope is routed or corrected, so that a later change to any of
+	 * these fields can be detected (see {@link #getSignatureStatus} setting includesRequestChanges).
+	 */
+	static String computeEDucContentHash(RequestInterface request) {
+		StringBuilder builder = new StringBuilder();
+		builder.append("createdBy=").append(request.getCreatedBy()).append('\n');
+		builder.append("institution=").append(request.getInstitution()).append('\n');
+
+		PrincipalInvestigator pi = request.getPrincipalInvestigator();
+		if (pi != null) {
+			builder.append("pi.userId=").append(pi.getUserId()).append('\n');
+			builder.append("pi.name=").append(pi.getName()).append('\n');
+			builder.append("pi.email=").append(pi.getInstitutionalEmail()).append('\n');
+		}
+
+		SigningOfficial so = request.getSigningOfficial();
+		if (so != null) {
+			builder.append("so.name=").append(so.getName()).append('\n');
+			builder.append("so.email=").append(so.getInstitutionalEmail()).append('\n');
+		}
+
+		// Collaborators drive the envelope's recipient set, keyed by userId + change type. The
+		// list order is significant because it determines the collaborator_N role assignment.
+		List<AccessorChange> accessorChanges = request.getAccessorChanges();
+		if (accessorChanges != null) {
+			for (AccessorChange change : accessorChanges) {
+				if (AccessType.GAIN_ACCESS.equals(change.getType())
+						|| AccessType.RENEW_ACCESS.equals(change.getType())) {
+					builder.append("accessor=").append(change.getUserId())
+							.append(':').append(change.getType()).append('\n');
+				}
+			}
+		}
+
+		// Note, this string encoding will be 64 bytes long
+		return DigestUtils.sha256Hex(builder.toString());
 	}
 
 	public EDucSignatureStatus getSignatureStatus(UserInfo userInfo, String requestId) {
@@ -291,9 +487,12 @@ public class EDucManager {
 		List<String> signerEmails = result.signerEmails();
 
 		status.setDataAccessRequestId(requestId);
-		// TODO PLFM-9657 will set the following to show whether
-		// changes to the request have been applied to the routed document
-		status.setIncludesRequestChanges(true);
+		// The routed document reflects the current request content only if the content hash
+		// recorded at the last route/correct still matches the request's current content. A user
+		// editing their request changes the content (but not the server-managed hash), which flips
+		// this to false until the envelope is corrected.
+		String storedHash = requestDao.getEDucContentHash(requestId);
+		status.setIncludesRequestChanges(storedHash != null && storedHash.equals(computeEDucContentHash(request)));
 
 		if (status.getSignerStatus() != null) {
 			PrincipalInvestigator pi = request.getPrincipalInvestigator();
@@ -394,6 +593,68 @@ public class EDucManager {
 	// user's profile has no first or last name.
 	private record CollaboratorInfo(String userId, String email, String userName, String fullName) {}
 
+	/**
+	 * Assigns each collaborator a numbered collaborator role.
+	 * <p>
+	 * A collaborator already on the envelope keeps the role they were routed with, and the role of
+	 * someone who has already signed is never given to anyone else. Without this, roles were assigned
+	 * by position in the accessor list, so removing or reordering an accessor shifted everyone after
+	 * them onto a different role: a signature could end up attributed to the wrong person, and a
+	 * collaborator whose role was occupied by a completed signer would never be asked to sign at all.
+	 * Remaining collaborators take the lowest roles still free, so routing a request for the first
+	 * time (no existing recipients) assigns them in order from collaborator_1.
+	 * 
+	 * @return a map whose key is the role name (the key to a signer in an envelope) and whose value is
+	 * the info about the collaborator assigned to that role (Synapse ID, email, etc.)
+	 */
+	private Map<String, CollaboratorInfo> assignCollaboratorRoles(List<CollaboratorInfo> collaborators,
+			List<EnvelopeRecipient> existingRecipients) {
+		Map<String, CollaboratorInfo> unassigned = new LinkedHashMap<>();
+		for (CollaboratorInfo collaborator : collaborators) {
+			unassigned.put(collaborator.userId(), collaborator);
+		}
+
+		Map<String, CollaboratorInfo> byRole = new LinkedHashMap<>();
+		Set<String> unavailableRoles = new HashSet<>();
+		for (EnvelopeRecipient recipient : existingRecipients) {
+			if (!EDucTemplateRoles.isCollaborator(recipient.roleName())) {
+				continue;
+			}
+			// An unrecognized address (the user may have changed it since the envelope was routed)
+			// leaves the role free: whoever ends up with it is sent a new invitation, which is
+			// preferable to attributing the role to the wrong person.
+			CollaboratorInfo occupant = unassigned.remove(resolveUserId(recipient.email()));
+			if (occupant != null) {
+				byRole.put(recipient.roleName(), occupant);
+				unavailableRoles.add(recipient.roleName());
+			} else if (recipient.completed()) {
+				// Signed by someone who is no longer a collaborator. The signature stands (DocuSign
+				// does not allow removing it) so the role is retired rather than reused.
+				unavailableRoles.add(recipient.roleName());
+			}
+		}
+
+		int nextIndex = 1;
+		for (CollaboratorInfo collaborator : unassigned.values()) {
+			while (unavailableRoles.contains(EDucTemplateRoles.collaborator(nextIndex))) {
+				nextIndex++;
+			}
+			String role = EDucTemplateRoles.collaborator(nextIndex);
+			byRole.put(role, collaborator);
+			unavailableRoles.add(role);
+		}
+		return byRole;
+	}
+
+	// The Synapse user an envelope recipient's address belongs to, or null if it belongs to none.
+	private String resolveUserId(String email) {
+		if (StringUtils.isBlank(email)) {
+			return null;
+		}
+		PrincipalAlias alias = principalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL);
+		return alias == null ? null : alias.getPrincipalId().toString();
+	}
+
 	private List<CollaboratorInfo> gatherCollaboratorInfos(List<String> collaboratorUserIds) {
 		List<CollaboratorInfo> collaborators = new ArrayList<>(collaboratorUserIds.size());
 		for (String collabUserId : collaboratorUserIds) {
@@ -415,45 +676,53 @@ public class EDucManager {
 	 * notification email, and their name comes from their user profile (first and/or last name)
 	 * when available, otherwise their Synapse user name, which every user is guaranteed to have.
 	 */
-	private Map<String, RecipientInfo> buildRecipients(RequestInterface request, List<CollaboratorInfo> collaborators) {
+	private Map<String, RecipientInfo> buildRecipients(RequestInterface request,
+			Map<String, CollaboratorInfo> collaboratorsByRole) {
 		Map<String, RecipientInfo> recipients = new LinkedHashMap<>();
 
 		PrincipalInvestigator pi = request.getPrincipalInvestigator();
-		recipients.put("principal_investigator", new RecipientInfo(pi.getInstitutionalEmail(), pi.getName()));
+		recipients.put(EDucTemplateRoles.PRINCIPAL_INVESTIGATOR,
+				new RecipientInfo(pi.getInstitutionalEmail(), pi.getName()));
 
 		SigningOfficial so = request.getSigningOfficial();
-		recipients.put("signing_official", new RecipientInfo(so.getInstitutionalEmail(), so.getName()));
+		recipients.put(EDucTemplateRoles.SIGNING_OFFICIAL,
+				new RecipientInfo(so.getInstitutionalEmail(), so.getName()));
 
-		for (int i = 0; i < collaborators.size(); i++) {
-			CollaboratorInfo collaborator = collaborators.get(i);
+		for (Map.Entry<String, CollaboratorInfo> entry : collaboratorsByRole.entrySet()) {
+			CollaboratorInfo collaborator = entry.getValue();
 			String name = StringUtils.isBlank(collaborator.fullName())
 					? collaborator.userName() : collaborator.fullName();
-			recipients.put("collaborator_" + (i + 1), new RecipientInfo(collaborator.email(), name));
+			recipients.put(entry.getKey(), new RecipientInfo(collaborator.email(), name));
 		}
 
 		return recipients;
 	}
 
-	private Map<RoleLabelKey, String> buildTabValues(RequestInterface request, List<CollaboratorInfo> collaborators) {
+	private Map<RoleLabelKey, String> buildTabValues(RequestInterface request,
+			Map<String, CollaboratorInfo> collaboratorsByRole) {
 		Map<RoleLabelKey, String> tabValues = new LinkedHashMap<>();
 
+		String signingOfficialRole = EDucTemplateRoles.SIGNING_OFFICIAL;
 		SigningOfficial so = request.getSigningOfficial();
-		addIfPresent(tabValues, "signing_official", "signing_official_name", so.getName());
-		addIfPresent(tabValues, "signing_official", "signing_official_email", so.getInstitutionalEmail());
-		addIfPresent(tabValues, "signing_official", "signing_official_institution", request.getInstitution());
+		addIfPresent(tabValues, signingOfficialRole, EDucTemplateRoles.nameTab(signingOfficialRole), so.getName());
+		addIfPresent(tabValues, signingOfficialRole, EDucTemplateRoles.emailTab(signingOfficialRole),
+				so.getInstitutionalEmail());
+		addIfPresent(tabValues, signingOfficialRole, EDucTemplateRoles.institutionTab(signingOfficialRole),
+				request.getInstitution());
 
+		String piRole = EDucTemplateRoles.PRINCIPAL_INVESTIGATOR;
 		PrincipalInvestigator pi = request.getPrincipalInvestigator();
-		addIfPresent(tabValues, "principal_investigator", "principal_investigator_name", pi.getName());
-		addIfPresent(tabValues, "principal_investigator", "principal_investigator_email", pi.getInstitutionalEmail());
+		addIfPresent(tabValues, piRole, EDucTemplateRoles.nameTab(piRole), pi.getName());
+		addIfPresent(tabValues, piRole, EDucTemplateRoles.emailTab(piRole), pi.getInstitutionalEmail());
 
 		String piUserName = principalAliasDao.getUserName(Long.parseLong(pi.getUserId()));
-		addIfPresent(tabValues, "principal_investigator", "principal_investigator_user_name", piUserName);
+		addIfPresent(tabValues, piRole, EDucTemplateRoles.userNameTab(piRole), piUserName);
 
-		for (int i = 0; i < collaborators.size(); i++) {
-			String role = "collaborator_" + (i + 1);
-			CollaboratorInfo collaborator = collaborators.get(i);
-			addIfPresent(tabValues, role, role + "_user_name", collaborator.userName());
-			addIfPresent(tabValues, role, role + "_name", collaborator.fullName());
+		for (Map.Entry<String, CollaboratorInfo> entry : collaboratorsByRole.entrySet()) {
+			String role = entry.getKey();
+			CollaboratorInfo collaborator = entry.getValue();
+			addIfPresent(tabValues, role, EDucTemplateRoles.userNameTab(role), collaborator.userName());
+			addIfPresent(tabValues, role, EDucTemplateRoles.nameTab(role), collaborator.fullName());
 		}
 
 		return tabValues;

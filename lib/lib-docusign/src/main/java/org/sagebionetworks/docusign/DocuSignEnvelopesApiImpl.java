@@ -13,6 +13,8 @@ import com.docusign.esign.model.EnvelopeIdsRequest;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopesInformation;
 import com.docusign.esign.model.Recipients;
+import com.docusign.esign.model.Tabs;
+import com.docusign.esign.model.TemplateInformation;
 
 @Service
 class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
@@ -88,12 +90,56 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 	}
 
 	@Override
+	public void updateRecipients(String envelopeId, Recipients recipients, boolean resend) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			EnvelopesApi.UpdateRecipientsOptions options = envelopesApi.new UpdateRecipientsOptions();
+			options.setResendEnvelope(Boolean.toString(resend));
+			return envelopesApi.updateRecipients(config.getAccountId(), envelopeId, recipients, options);
+		});
+	}
+
+	@Override
+	public void createRecipients(String envelopeId, Recipients recipients, boolean resend) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			EnvelopesApi.CreateRecipientOptions options = envelopesApi.new CreateRecipientOptions();
+			options.setResendEnvelope(Boolean.toString(resend));
+			return envelopesApi.createRecipient(config.getAccountId(), envelopeId, recipients, options);
+		});
+	}
+
+	@Override
 	public void deleteRecipients(String envelopeId, Recipients recipients) {
 		retryHelper.executeWithRetry(accessToken -> {
 			ApiClient apiClient = new ApiClient(config.getBasePath());
 			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
 			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
 			return envelopesApi.deleteRecipients(config.getAccountId(), envelopeId, recipients);
+		});
+	}
+
+	@Override
+	public void createTabs(String envelopeId, String recipientId, Tabs tabs) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.createTabs(config.getAccountId(), envelopeId, recipientId, tabs);
+		});
+	}
+
+	@Override
+	public TemplateInformation listTemplates(String envelopeId) {
+		return retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.listTemplates(config.getAccountId(), envelopeId);
 		});
 	}
 

@@ -1185,6 +1185,7 @@ public class UrlHelpers {
 	public static final String DATA_ACCESS_REQUEST_ID_PREVIEW = DATA_ACCESS_REQUEST + "/{requestId}/preview";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE = DATA_ACCESS_REQUEST + "/{requestId}/signature";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_STATUS = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/status";
+	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_PRECHECK = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/precheck";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_FILE_HANDLE = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/filehandleId";
 	public static final String DATA_ACCESS_REQUEST_ID_SIGNATURE_QUOTA = DATA_ACCESS_REQUEST_ID_SIGNATURE + "/quota";
 	public static final String DATA_ACCESS_SUBMISSION = "/dataAccessSubmission";

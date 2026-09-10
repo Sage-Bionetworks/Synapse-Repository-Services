@@ -66,6 +66,27 @@ public interface RequestDAO {
 	String getAccessRequirementId(String requestId);
 
 	/**
+	 * Set the hash of the eDUC-relevant request content that was last applied to the routed
+	 * signature envelope. This is a server-managed value that is not part of the request DTO, so
+	 * it is not affected by a user editing their request. It is updated only when an envelope is
+	 * routed or corrected.
+	 * <p>
+	 * The request's etag is rotated, so a client holding the previous etag must re-fetch the request
+	 * before updating it.
+	 *
+	 * @param requestId the request whose hash to set
+	 * @param hash the content hash, or null to clear it
+	 */
+	void setEDucContentHash(String requestId, String hash);
+
+	/**
+	 * @param requestId
+	 * @return The hash of the eDUC-relevant request content last applied to the routed envelope,
+	 *         or null if none has been recorded.
+	 */
+	String getEDucContentHash(String requestId);
+
+	/**
 	 * Returns requests associated with the given user (as creator, PI, or collaborator).
 	 */
 	List<RequestUserInfo> getUserRequests(Long userId, long limit, long offset, AccessRequestSortField sortBy, SortDirection sortDirection);
