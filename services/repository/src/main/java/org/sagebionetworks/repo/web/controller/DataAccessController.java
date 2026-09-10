@@ -122,9 +122,12 @@ public class DataAccessController {
 
 	/**
 	 * List data access requests associated with the current user.
+	 * <p>
+	 * The results may optionally be filtered to requests that do or do not use the eDUC flow, and
+	 * to a single access requirement. The two filters are independent.
 	 *
 	 * @param userId  - The ID of the user who is making the request.
-	 * @param request - Pagination parameters.
+	 * @param request - Pagination, sorting and filter parameters.
 	 * @return A paginated list of access request summaries.
 	 */
 	@RequiredScope({view})

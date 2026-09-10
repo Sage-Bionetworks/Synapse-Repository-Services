@@ -530,11 +530,15 @@ public class DocuSignClient {
 		return new EnvelopeStatusResult(status, signerEmails);
 	}
 
+	/**
+	 * The status of each of the given envelopes, with recipients populated so that the callers can
+	 * count how many signatures an envelope has requested and acquired.
+	 */
 	public List<Envelope> listEnvelopeStatuses(List<String> envelopeIds) {
 		if (Collections.isEmpty(envelopeIds)) {
 			return List.of();
 		}
-		return envelopesApi.listStatus(envelopeIds);
+		return envelopesApi.listStatusChanges(envelopeIds);
 	}
 
 	public byte[] getDocument(String envelopeId) {

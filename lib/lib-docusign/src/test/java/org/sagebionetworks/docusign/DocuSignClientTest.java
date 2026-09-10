@@ -556,7 +556,7 @@ public class DocuSignClientTest {
 		Envelope env2 = new Envelope();
 		env2.setEnvelopeId("env-2");
 		env2.setStatus("completed");
-		when(mockDocuSignEnvelopesApi.listStatus(List.of("env-1", "env-2")))
+		when(mockDocuSignEnvelopesApi.listStatusChanges(List.of("env-1", "env-2")))
 				.thenReturn(List.of(env1, env2));
 
 		// call under test
@@ -567,6 +567,29 @@ public class DocuSignClientTest {
 		assertEquals("sent", result.get(0).getStatus());
 		assertEquals("env-2", result.get(1).getEnvelopeId());
 		assertEquals("completed", result.get(1).getStatus());
+	}
+
+	@Test
+	public void testListEnvelopeStatusesReturnsRecipients() {
+		// The signature counts in a request listing are derived from the recipients, so an envelope
+		// has to come back with them populated. Only DocuSign can prove it actually does — see the
+		// corresponding step in DocuSignLiveTest — but this pins the shape the caller depends on.
+		Signer signer = new Signer();
+		signer.setRoleName("collaborator_1");
+		signer.setStatus("completed");
+		Recipients recipients = new Recipients();
+		recipients.setSigners(List.of(signer));
+		Envelope env = new Envelope();
+		env.setEnvelopeId("env-1");
+		env.setStatus("sent");
+		env.setRecipients(recipients);
+		when(mockDocuSignEnvelopesApi.listStatusChanges(List.of("env-1"))).thenReturn(List.of(env));
+
+		// call under test
+		List<Envelope> result = client.listEnvelopeStatuses(List.of("env-1"));
+
+		assertEquals(1, result.get(0).getRecipients().getSigners().size());
+		assertEquals("completed", result.get(0).getRecipients().getSigners().get(0).getStatus());
 	}
 
 	@Test
