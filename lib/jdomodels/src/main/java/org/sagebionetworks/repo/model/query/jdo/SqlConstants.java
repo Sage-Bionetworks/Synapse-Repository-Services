@@ -1370,7 +1370,15 @@ public class SqlConstants {
 	public static final String COL_AGENT_REG_CREATED_ON = 		"CREATED_ON";
 	public static final String COL_AGENT_REG_TYPE =		 		"AGENT_TYPE";
 	public static final String DDL_AGENT_REGISTRATION =			"schema/agent/Agent-Registration-ddl.sql";
-	
+
+	public static final String TABLE_AGENT_REG_ACT_SETTINGS =			"AGENT_REGISTRATION_ACT_SETTINGS";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_REGISTRATION_ID =	"REGISTRATION_ID";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_ETAG =		"ETAG";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_ON =	"MODIFIED_ON";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_BY =	"MODIFIED_BY";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_SETTINGS =	"SETTINGS";
+	public static final String DDL_AGENT_REGISTRATION_ACT_SETTINGS =	"schema/agent/Agent-Registration-Act-Settings-ddl.sql";
+
 	// Projects storage limit tables
 	public static final String TABLE_PROJECT_STORAGE_DATA = 				"PROJECT_STORAGE_DATA";
 	public static final String COL_PROJECT_STORAGE_DATA_PROJECT_ID = 		"PROJECT_ID";
