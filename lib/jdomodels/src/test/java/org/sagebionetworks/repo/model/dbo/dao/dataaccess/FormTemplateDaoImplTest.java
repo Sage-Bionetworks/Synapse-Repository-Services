@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.json.JSONObject;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -194,6 +196,11 @@ public class FormTemplateDaoImplTest {
 		List<FormTemplate> secondPage = formTemplateDao.searchLatestVersions(null, false, 2L, 2L);
 
 		assertEquals(List.of(adOne.getId(), adTwo.getId()), secondPage.stream().map(FormTemplate::getId).toList());
+
+		// call under test
+		List<FormTemplate> noMatch = formTemplateDao.searchLatestVersions("XY Standard DAR", false, 10L, 0L);
+
+		assertEquals(List.of(), noMatch);
 	}
 
 	@Test
@@ -227,12 +234,15 @@ public class FormTemplateDaoImplTest {
 	}
 
 	/**
-	 * The uiDefinition of a field is an arbitrary JSON object which does not compare by value, so
-	 * the templates are compared by their serialized form.
+	 * The uiDefinition of a field is an arbitrary JSON object that compares by identity, so the
+	 * templates are compared as JSON documents. MySQL normalizes a JSON column by sorting the keys of
+	 * every object, so the comparison must ignore key order.
 	 */
 	private static void assertTemplateEquals(FormTemplate expected, FormTemplate actual) {
-		assertEquals(JDOSecondaryPropertyUtils.createJSONFromObject(expected),
-				JDOSecondaryPropertyUtils.createJSONFromObject(actual));
+		JSONObject expectedJson = JDOSecondaryPropertyUtils.createJSONObjectForEntity(expected);
+		JSONObject actualJson = JDOSecondaryPropertyUtils.createJSONObjectForEntity(actual);
+
+		assertTrue(expectedJson.similar(actualJson), () -> "expected: " + expectedJson + " but was: " + actualJson);
 	}
 
 	private static FormTemplate newTemplate(String name) {
@@ -242,7 +252,7 @@ public class FormTemplateDaoImplTest {
 						new FormTemplateStep().setTitle("Project").setDescription("Tell us about the project")
 								.setFields(List.of(new FormTemplateField().setSchemaPath("/projectLead")
 										.setSubmissionContext(SubmissionContext.ALWAYS).setIsPublic(true)
-										.setUiDefinition(uiDefinition("{\"ui:autofocus\":true}")))),
+										.setUiDefinition(uiDefinition("{\"ui:widget\":\"textarea\",\"ui:autofocus\":true,\"ui:options\":{\"rows\":5}}")))),
 						new FormTemplateStep().setTitle("Approvals")
 								.setFields(List.of(new FormTemplateField().setSchemaPath("/irbApproval")
 										.setSubmissionContext(SubmissionContext.REQUEST_ONLY).setIsPublic(false)

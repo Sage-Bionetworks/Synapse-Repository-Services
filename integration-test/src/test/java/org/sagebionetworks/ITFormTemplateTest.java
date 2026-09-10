@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.json.JSONObject;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
@@ -166,13 +168,16 @@ public class ITFormTemplateTest {
 	}
 
 	/**
-	 * The uiDefinition of a field is an arbitrary JSON object which does not compare by value, so the
-	 * templates are compared by their serialized form.
+	 * The uiDefinition of a field is an arbitrary JSON object that compares by identity, so the
+	 * templates are compared as JSON documents. A template is stored in a JSON column, which MySQL
+	 * normalizes by sorting the keys of every object, so the comparison must ignore key order.
 	 */
 	private static void assertTemplateEquals(FormTemplate expected, FormTemplate actual)
 			throws JSONObjectAdapterException {
-		assertEquals(EntityFactory.createJSONStringForEntity(expected),
-				EntityFactory.createJSONStringForEntity(actual));
+		JSONObject expectedJson = EntityFactory.createJSONObjectForEntity(expected);
+		JSONObject actualJson = EntityFactory.createJSONObjectForEntity(actual);
+
+		assertTrue(expectedJson.similar(actualJson), () -> "expected: " + expectedJson + " but was: " + actualJson);
 	}
 
 	private void deleteSchemaAndOrganization() throws SynapseException {

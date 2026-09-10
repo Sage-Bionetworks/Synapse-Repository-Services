@@ -228,11 +228,23 @@ public class FormTemplateValidator {
 		return Optional.ofNullable(root.getDefinitions().get(reference.substring(LOCAL_REF_PREFIX.length())));
 	}
 
+	/**
+	 * Renders a top level property name as the RFC 6901 pointer that addresses it, so that a name
+	 * containing the pointer delimiters can still be compared against the schemaPath of a field. The
+	 * property named 'a/b' is addressed by the pointer '/a~1b'.
+	 */
 	private static String asJsonPointer(String propertyName) {
+		// '~' is escaped before '/' because escaping '/' introduces a '~' that must be left alone.
 		return "/" + propertyName.replace("~", "~0").replace("/", "~1");
 	}
 
+	/**
+	 * Recovers the property name that a single token of an RFC 6901 pointer addresses. The token
+	 * '~01' addresses the property named '~1'.
+	 */
 	private static String unescapeJsonPointerToken(String token) {
+		// '~1' is unescaped before '~0' because doing it the other way round would reduce the '~01'
+		// that encodes a literal '~1' to a '/'.
 		return token.replace("~1", "/").replace("~0", "~");
 	}
 }

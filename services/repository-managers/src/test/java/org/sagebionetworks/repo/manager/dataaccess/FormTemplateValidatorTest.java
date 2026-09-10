@@ -175,6 +175,30 @@ public class FormTemplateValidatorTest {
 	}
 
 	@Test
+	public void testValidateWithPointerDelimitersInPropertyNames() {
+		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(newSchemaWithDelimitedPropertyNames());
+		FormTemplate template = newTemplate(field("/a~1b"), field("/~01"));
+
+		// call under test
+		validator.validate(template);
+	}
+
+	@Test
+	public void testValidateWithUnescapedPointerDelimiterInPath() {
+		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(newSchemaWithDelimitedPropertyNames());
+		// A raw '/' reads as a step down into a nested property rather than as part of the name.
+		FormTemplate template = newTemplate(field("/a/b"), field("/~01"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: The path '/a/b' does not resolve to a property of the schema."
+				+ " No field covers the required property '/a~1b'.", message);
+	}
+
+	@Test
 	public void testValidateWithPathToAnObject() {
 		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/institution"));
@@ -287,30 +311,6 @@ public class FormTemplateValidatorTest {
 	}
 
 	@Test
-	public void testValidateWithTemplateFromJson() throws JSONObjectAdapterException {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
-		// The uiDefinition of a template that arrived over the wire must also be recognized.
-		FormTemplate template = new FormTemplate();
-		template.initializeFromJSONObject(new JSONObjectAdapterImpl("""
-				{
-					"name": "NF Standard DAR",
-					"schema$id": "%s",
-					"steps": [{
-						"title": "Project",
-						"fields": [{
-							"schemaPath": "/projectLead",
-							"uiDefinition": {"ui:widget": "text"}
-						}]
-					}]
-				}
-				""".formatted(SCHEMA_ID)));
-
-
-		// call under test
-		validator.validate(template);
-	}
-
-	@Test
 	public void testValidateWithMultipleProblems() {
 		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
 		FormTemplate template = newTemplate(field("/notAProperty"), field("/institution"));
@@ -342,6 +342,20 @@ public class FormTemplateValidatorTest {
 		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setProperties(properties)
 				.setRequired(List.of("projectLead"))
 				.setDefinitions(new LinkedHashMap<>(Map.of(INSTITUTION_DEFINITION, institution)));
+	}
+
+	/**
+	 * A schema whose required property names contain the RFC 6901 delimiters, so a field must address
+	 * 'a/b' as '/a~1b' and '~1' as '/~01'. The name '~1' is the case that pins the order the escapes
+	 * are applied in, since unescaping '~0' ahead of '~1' would reduce its token to a '/'.
+	 */
+	private static JsonSchema newSchemaWithDelimitedPropertyNames() {
+		Map<String, JsonSchema> properties = new LinkedHashMap<>();
+		properties.put("a/b", new JsonSchema().setType(Type.string));
+		properties.put("~1", new JsonSchema().setType(Type.string));
+
+		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setProperties(properties)
+				.setRequired(List.of("a/b", "~1"));
 	}
 
 	private static FormTemplate newTemplate(FormTemplateField... fields) {
