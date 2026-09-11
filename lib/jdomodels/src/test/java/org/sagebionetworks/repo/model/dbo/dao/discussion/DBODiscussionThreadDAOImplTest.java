@@ -19,11 +19,24 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.annotation.Resource;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.dao.ConcurrencyFailureException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
@@ -88,6 +101,11 @@ public class DBODiscussionThreadDAOImplTest {
 	private RequestDAO requestDao;
 	@Autowired
 	private SubmissionDAO submissionDao;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	@Resource(name = "txManager")
+	private PlatformTransactionManager transactionManager;
 
 	private Long userId = null;
 	private Long userId2 = null;
@@ -1095,5 +1113,76 @@ public class DBODiscussionThreadDAOImplTest {
 	public void testGetSubmissionIdForNonExistingThread() {
 		// call under test
 		assertFalse(threadDao.getSubmissionIdForThread("999999").isPresent());
+	}
+
+	/**
+	 * The two writes in updateThreadView (INSERT IGNORE INTO DISCUSSION_THREAD_VIEW
+	 * then UPDATE DISCUSSION_THREAD SET ETAG) take an FK-induced shared lock on the
+	 * parent thread row before upgrading to an exclusive lock; concurrent callers
+	 * therefore deadlock on the upgrade. Each iteration deletes the prior view row
+	 * so the INSERT IGNORE actually inserts and the FK shared lock is taken.
+	 * ConcurrencyFailureException covers both DeadlockLoserDataAccessException
+	 * (deadlock victim) and CannotAcquireLockException (lock-wait timeout).
+	 */
+	@Test
+	public void testUpdateThreadViewWithConcurrentCallers() throws Exception {
+		final int iterations = 200;
+
+		UserGroup other = new UserGroup();
+		other.setIsIndividual(true);
+		other.setRealmId(AuthorizationConstants.DEFAULT_REALM_ID);
+		Long secondUserId = userGroupDAO.create(other);
+
+		try {
+			threadDao.createThread(forumId, threadId.toString(), "deadlock-title",
+					"deadlock-key-" + UUID.randomUUID(), userId);
+
+			ExecutorService pool = Executors.newFixedThreadPool(2);
+			try {
+				CountDownLatch start = new CountDownLatch(1);
+				AtomicInteger deadlocks = new AtomicInteger();
+
+				// call under test
+				Future<?> fa = pool.submit(buildUpdateThreadViewLoop(start, userId, iterations, deadlocks));
+				Future<?> fb = pool.submit(buildUpdateThreadViewLoop(start, secondUserId, iterations, deadlocks));
+
+				start.countDown();
+
+				fa.get(2, TimeUnit.MINUTES);
+				fb.get(2, TimeUnit.MINUTES);
+
+				if (deadlocks.get() > 0) {
+					org.junit.Assert.fail("Observed " + deadlocks.get() + " deadlocks across "
+							+ (iterations * 2) + " concurrent updateThreadView calls; "
+							+ "updateThreadView is not safe under concurrency.");
+				}
+			} finally {
+				pool.shutdownNow();
+			}
+		} finally {
+			userGroupDAO.delete(secondUserId.toString());
+		}
+	}
+
+	private Runnable buildUpdateThreadViewLoop(CountDownLatch start, Long viewerId, int iterations,
+			AtomicInteger deadlocks) {
+		final TransactionTemplate tx = new TransactionTemplate(transactionManager,
+				new DefaultTransactionDefinition());
+		return () -> {
+			try {
+				start.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return;
+			}
+			for (int i = 0; i < iterations; i++) {
+				jdbcTemplate.update("DELETE FROM DISCUSSION_THREAD_VIEW WHERE THREAD_ID = ?", threadId);
+				try {
+					tx.executeWithoutResult(status -> threadDao.updateThreadView(threadId, viewerId));
+				} catch (ConcurrencyFailureException e) {
+					deadlocks.incrementAndGet();
+				}
+			}
+		};
 	}
 }
