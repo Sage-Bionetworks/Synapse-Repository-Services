@@ -1602,6 +1602,26 @@ public class SqlConstants {
 	public static final String COL_EDUC_QUOTA_ENVELOPE_ID				= "ENVELOPE_ID";
 	public static final String DDL_EDUC_QUOTA							= "schema/EDucQuota-ddl.sql";
 
+	// FORM_TEMPLATE
+	public static final String TABLE_FORM_TEMPLATE						= "FORM_TEMPLATE";
+	public static final String COL_FORM_TEMPLATE_ID						= "ID";
+	public static final String COL_FORM_TEMPLATE_ETAG					= "ETAG";
+	public static final String COL_FORM_TEMPLATE_NAME					= "NAME";
+	public static final String COL_FORM_TEMPLATE_CURRENT_REV_NUM		= "CURRENT_REV_NUM";
+	public static final String COL_FORM_TEMPLATE_CREATED_BY				= "CREATED_BY";
+	public static final String COL_FORM_TEMPLATE_CREATED_ON				= "CREATED_ON";
+	public static final String DDL_FORM_TEMPLATE						= "schema/FormTemplate-ddl.sql";
+
+	// FORM_TEMPLATE_REVISION
+	public static final String TABLE_FORM_TEMPLATE_REVISION				= "FORM_TEMPLATE_REVISION";
+	public static final String COL_FORM_TEMPLATE_REVISION_OWNER_ID		= "OWNER_ID";
+	public static final String COL_FORM_TEMPLATE_REVISION_NUMBER		= "NUMBER";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String COL_FORM_TEMPLATE_REVISION_DEPRECATED		= "DEPRECATED";
+	public static final String COL_FORM_TEMPLATE_REVISION_TEMPLATE_JSON	= "TEMPLATE_JSON";
+	public static final String DDL_FORM_TEMPLATE_REVISION				= "schema/FormTemplateRevision-ddl.sql";
+
 	/**
 	 * Function names:
 	 */

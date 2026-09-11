@@ -21,6 +21,9 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementConversionRequ
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -392,5 +395,99 @@ public class AccessRequirementController {
 			@PathVariable String requirementId,
 			@RequestParam(value = "targetUserId") Long targetUserId) {
 		return serviceProvider.getEDucService().resetQuota(userId, requirementId, targetUserId);
+	}
+
+	/**
+	 * Create a form template, which describes how a JSON Schema is presented to a user as a
+	 * multi-step data access request form. The template is bound to one exact version of a
+	 * registered JSON Schema, and every property that schema requires must be presented by exactly
+	 * one field of the template.
+	 * <p>
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * </p>
+	 *
+	 * @param userId   - The ID of the user making the request.
+	 * @param template - The template to create.
+	 * @return The first version of the new template.
+	 * @throws UnauthorizedException If the user is not a member of the ACT.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE, method = RequestMethod.POST)
+	public @ResponseBody FormTemplate createFormTemplate(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody FormTemplate template) {
+		return serviceProvider.getFormTemplateService().create(userId, template);
+	}
+
+	/**
+	 * Publish a new version of a form template. Each version of a template is immutable, so the
+	 * access requirements that reference an existing version continue to present that version.
+	 * <p>
+	 * This service may only be used by the Synapse Access and Compliance Team.
+	 * </p>
+	 *
+	 * @param userId     - The ID of the user making the request.
+	 * @param templateId - The ID of the template to add a version to.
+	 * @param template   - The body of the new version, carrying the etag of the template as last read.
+	 * @return The new version of the template.
+	 * @throws NotFoundException          If a template with the given id does not exist.
+	 * @throws UnauthorizedException      If the user is not a member of the ACT.
+	 * @throws ConflictingUpdateException If the template was updated since the given etag was read.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE_ID, method = RequestMethod.POST)
+	public @ResponseBody FormTemplate createFormTemplateVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String templateId,
+			@RequestBody FormTemplate template) {
+		return serviceProvider.getFormTemplateService().createNewVersion(userId, template.setId(templateId));
+	}
+
+	/**
+	 * Get the latest version of a form template.
+	 *
+	 * @param templateId - The ID of the template.
+	 * @return The latest version of the template.
+	 * @throws NotFoundException If a template with the given id does not exist.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE_ID, method = RequestMethod.GET)
+	public @ResponseBody FormTemplate getFormTemplate(@PathVariable String templateId) {
+		return serviceProvider.getFormTemplateService().getLatestVersion(templateId);
+	}
+
+	/**
+	 * Get a specific version of a form template.
+	 *
+	 * @param templateId    - The ID of the template.
+	 * @param versionNumber - The number of the version to get.
+	 * @return The requested version of the template.
+	 * @throws NotFoundException If the template or the version does not exist.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE_VERSION, method = RequestMethod.GET)
+	public @ResponseBody FormTemplate getFormTemplateVersion(
+			@PathVariable String templateId,
+			@PathVariable Long versionNumber) {
+		return serviceProvider.getFormTemplateService().getVersion(templateId, versionNumber);
+	}
+
+	/**
+	 * Search the latest version of each form template. Deprecated templates are excluded unless the
+	 * request asks for them.
+	 *
+	 * @param request - The search criteria.
+	 * @return A single page of matching templates.
+	 */
+	@RequiredScope({view})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.FORM_TEMPLATE_SEARCH, method = RequestMethod.POST)
+	public @ResponseBody FormTemplateSearchResponse searchFormTemplates(
+			@RequestBody FormTemplateSearchRequest request) {
+		return serviceProvider.getFormTemplateService().search(request);
 	}
 }
