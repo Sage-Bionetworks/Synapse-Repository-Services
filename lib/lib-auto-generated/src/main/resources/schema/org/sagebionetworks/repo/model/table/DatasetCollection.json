@@ -7,7 +7,7 @@
 	],
 	"properties": {
 		"items": {
-			"description": "The flat list of dataset entity references that define this collection.  Limit: 30K items.",
+			"description": "The flat list of dataset entity references that define this collection.  Each item may pin a specific version of a dataset, or omit the version number to automatically reference the latest version of the dataset.  Limit: 30K items.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.EntityRef"
