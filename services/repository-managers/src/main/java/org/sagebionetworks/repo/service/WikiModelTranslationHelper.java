@@ -27,7 +27,9 @@ import org.sagebionetworks.utils.ContentTypeUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 /**
  * Utility for converting between the WikiPage and V2WikiPage models.
@@ -118,11 +120,11 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(from.getMarkdownFileHandleId());
 		// Retrieve uploaded markdown
-		S3Object s3Object = s3Client.getObject(markdownHandle.getBucketName(), markdownHandle.getKey());
-		String contentTypeString = s3Object.getObjectMetadata().getContentType();
-		Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(contentTypeString);
-		
-		try (InputStream in = s3Object.getObjectContent()) {
+		GetObjectRequest request = GetObjectRequest.builder().bucket(markdownHandle.getBucketName())
+				.key(markdownHandle.getKey()).build();
+
+		try (ResponseInputStream<GetObjectResponse> in = s3Client.getObjectV2(request)) {
+			Charset charset = ContentTypeUtil.getCharsetFromContentTypeString(in.response().contentType());
 			// Read the file as a string
 			String markdownString = FileUtils.readStreamAsString(in, charset, /*gunzip*/true);
 			wiki.setMarkdown(markdownString);
