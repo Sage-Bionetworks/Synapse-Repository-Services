@@ -63,6 +63,7 @@ import com.docusign.esign.model.TemplateSummary;
  * $MVN -Dtest=DocuSignLiveTest#step7_verifyAfterCorrection
  * # --- optionally sign as the collaborator and the signing official ---
  * $MVN -Dtest=DocuSignLiveTest#step8_downloadCertificate
+ * $MVN -Dtest=DocuSignLiveTest#step9_verifyListReturnsRecipients
  * $MVN -Dtest=DocuSignLiveTest#stepReset_voidAndClearState
  * </pre>
  *
@@ -356,6 +357,40 @@ public class DocuSignLiveTest {
 		print("wrote", out.toAbsolutePath().toString());
 		System.out.println("Read the signing order on the certificate: a collaborator added after the"
 				+ " signing official countersigned appears after them, despite routing order 1.");
+	}
+
+	/**
+	 * The signature counts on a request listing are derived from each envelope's recipients, so a bulk
+	 * envelope read has to return them. DocuSign's status endpoint does not: it answers with a
+	 * status-only projection in which the recipient list is always null, which left the counts silently
+	 * absent from every listed request. This is the step that catches that, since no mock can.
+	 */
+	@Test
+	public void step9_verifyListReturnsRecipients() {
+		String envelopeId = state("envelopeId");
+
+		// call under test — the same call the request listing makes
+		List<Envelope> envelopes = client.listEnvelopeStatuses(List.of(envelopeId));
+
+		verdict("the requested envelope came back", envelopes.size() == 1);
+		if (envelopes.size() != 1) {
+			return;
+		}
+		Envelope envelope = envelopes.get(0);
+		print("status", envelope.getStatus());
+		verdict("the envelope carries its recipients, so signatures can be counted",
+				envelope.getRecipients() != null && envelope.getRecipients().getSigners() != null
+						&& !envelope.getRecipients().getSigners().isEmpty());
+		System.out.println("  (a FAIL here means the bulk read has reverted to DocuSign's status"
+				+ " endpoint, which cannot return recipients)");
+		if (envelope.getRecipients() != null && envelope.getRecipients().getSigners() != null) {
+			printRecipients("as reported by the bulk read", envelope);
+			long acquired = envelope.getRecipients().getSigners().stream()
+					.filter(DocuSignLiveTest::isCompleted)
+					.count();
+			print("signaturesRequested", Integer.toString(envelope.getRecipients().getSigners().size()));
+			print("signaturesAcquired", Long.toString(acquired));
+		}
 	}
 
 	/**

@@ -19,7 +19,14 @@ interface DocuSignEnvelopesApi {
 
 	Envelope getEnvelope(String envelopeId);
 
-	List<Envelope> listStatus(List<String> envelopeIds);
+	/**
+	 * The given envelopes, each with its recipients populated.
+	 * <p>
+	 * This deliberately uses DocuSign's envelope listing rather than its status endpoint. The status
+	 * endpoint returns a status-only projection: it has no way to ask for recipients, so every
+	 * envelope it returns has a null recipient list and a signature count cannot be derived from it.
+	 */
+	List<Envelope> listStatusChanges(List<String> envelopeIds);
 
 	/**
 	 * The templates that were applied to an envelope. An envelope created from a template does not

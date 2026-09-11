@@ -229,11 +229,28 @@ public class DBORequestDAOImpl implements RequestDAO {
 	}
 
 	@Override
-	public List<RequestUserInfo> getUserRequests(Long userId, long limit, long offset,
-			AccessRequestSortField sortBy, SortDirection sortDirection) {
-		String orderBy = toOrderByClause(sortBy, sortDirection);
-		String sql = SQL_GET_USER_REQUESTS_BASE + orderBy + " LIMIT ? OFFSET ?";
-		return jdbcTemplate.query(sql, USER_REQUEST_MAPPER, userId, limit, offset);
+	public List<RequestUserInfo> getUserRequests(Long userId, Boolean isEDuc, Long accessRequirementId, long limit,
+			long offset, AccessRequestSortField sortBy, SortDirection sortDirection) {
+		StringBuilder sql = new StringBuilder(SQL_GET_USER_REQUESTS_BASE);
+		List<Object> parameters = new ArrayList<>();
+		parameters.add(userId);
+
+		// Filtering here rather than over the returned page keeps the page size and the next-page
+		// token counting only the rows the caller asked for.
+		if (isEDuc != null) {
+			// A request is an eDUC once it has an envelope, which is how the summary reports it.
+			sql.append(" AND r.").append(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID)
+					.append(isEDuc ? " IS NOT NULL" : " IS NULL");
+		}
+		if (accessRequirementId != null) {
+			sql.append(" AND r.").append(COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID).append(" = ?");
+			parameters.add(accessRequirementId);
+		}
+
+		sql.append(toOrderByClause(sortBy, sortDirection)).append(" LIMIT ? OFFSET ?");
+		parameters.add(limit);
+		parameters.add(offset);
+		return jdbcTemplate.query(sql.toString(), USER_REQUEST_MAPPER, parameters.toArray());
 	}
 
 	static String toOrderByClause(AccessRequestSortField sortBy, SortDirection sortDirection) {

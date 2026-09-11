@@ -88,8 +88,16 @@ public interface RequestDAO {
 
 	/**
 	 * Returns requests associated with the given user (as creator, PI, or collaborator).
+	 * <p>
+	 * The two filters are independent; each is applied only when it is provided.
+	 *
+	 * @param isEDuc when true, limits the results to requests that have a DUC envelope; when false,
+	 *        to those that do not; when null, requests are returned regardless
+	 * @param accessRequirementId when non-null, limits the results to requests for that access
+	 *        requirement
 	 */
-	List<RequestUserInfo> getUserRequests(Long userId, long limit, long offset, AccessRequestSortField sortBy, SortDirection sortDirection);
+	List<RequestUserInfo> getUserRequests(Long userId, Boolean isEDuc, Long accessRequirementId, long limit,
+			long offset, AccessRequestSortField sortBy, SortDirection sortDirection);
 
 	// For testing
 
