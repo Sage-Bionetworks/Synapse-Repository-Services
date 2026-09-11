@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -149,7 +150,8 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 			throw new IllegalStateException("New user must be created in the default Synapse realm not in realm "+userInfo.getRealmId());
 		}
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
+		// The account was created with a password in the default Synapse realm, so Synapse is the provider
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, new SynapseIdentityProvider());
 	}
 
 	@Override

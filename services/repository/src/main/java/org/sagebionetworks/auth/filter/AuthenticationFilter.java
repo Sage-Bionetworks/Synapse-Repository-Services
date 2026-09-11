@@ -20,6 +20,7 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -73,12 +74,15 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
+		String identityProvider = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
+					ValidatedAccessToken validatedAccessToken = oidcManager.validateAccessToken(accessToken);
+					userId = Long.parseLong(validatedAccessToken.userId());
+					identityProvider = validatedAccessToken.identityProvider();
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
@@ -114,11 +118,14 @@ public class AuthenticationFilter implements Filter {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
+			// Any authorization header the caller supplied is discarded here, so those set below cannot
+			// be forged.
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
 			}
 			HttpAuthUtil.setAuthenticationMethod(modHeaders, authenticationMethod);
+			HttpAuthUtil.setIdentityProvider(modHeaders, identityProvider);
 			HttpServletRequest modRqst = new ModHttpServletRequest(req, modHeaders, modParams);
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {

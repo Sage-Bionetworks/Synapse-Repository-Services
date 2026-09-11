@@ -36,6 +36,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -182,7 +183,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
 		// by default the mocked oidcTokenHelper.validateJWT(bearerToken) won't throw any exception, so the token is deemed valid
 		
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
@@ -195,6 +196,7 @@ public class AuthenticationFilterTest {
 		
 		assertEquals(""+userId, requestCaptor.getValue().getParameter(AuthorizationConstants.USER_ID_PARAM));
 		assertEquals("false", requestCaptor.getValue().getParameter(AuthorizationConstants.ANONYMOUS_PARAM));
+		assertEquals("ORCID", requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
 		assertEquals("Bearer "+BEARER_TOKEN, requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME));
 		assertEquals(AuthenticationMethod.BEARERTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
@@ -203,7 +205,7 @@ public class AuthenticationFilterTest {
 	public void testFilter_AccessTokenPassedAsSessionToken() throws Exception {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(BEARER_TOKEN);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(Collections.singletonList("sessionToken")));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 		
 		// method under test
@@ -218,6 +220,28 @@ public class AuthenticationFilterTest {
 	}
 
 	@Test
+	public void noExternalIdentityProviderHeader() throws Exception {
+		// user is trying to 'sneak in' an identity provider
+		List<String> headerNames = new java.util.ArrayList<>(HEADER_NAMES);
+		headerNames.add(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
+		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
+		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(headerNames));
+		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
+		// the token itself names no identity provider
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, null));
+		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty());
+
+		// method under test
+		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+
+		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
+
+		// stripped along with the other authorization headers, rather than passed to the controllers
+		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
+	}
+
+	@Test
 	public void noExternalUserIdParameter() throws Exception {
 		Map<String, String[]> requestParams = new HashMap<String, String[]>();
 		 // user is trying to 'sneak in' a validated userId
@@ -227,7 +251,7 @@ public class AuthenticationFilterTest {
 		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
 		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(HEADER_NAMES));
 		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
-		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(""+userId);
+		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, "ORCID"));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty()); // userId is not anonymous
 
 		// method under test

@@ -60,7 +60,8 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
+	public OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims,
+			String identityProvider) {
 		String userId = userInfo.getId().toString();
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
@@ -87,6 +88,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		tokenMetadata.setClientId(clientId);
 		tokenMetadata.setScopes(scopes);
 		tokenMetadata.setClaims(claims);
+		tokenMetadata.setIdentityProvider(identityProvider);
 		tokenMetadata.setName(UUID.randomUUID().toString());
 		tokenMetadata.setLastUsed(clock.now());
 		tokenMetadata.setAuthorizedOn(clock.now());

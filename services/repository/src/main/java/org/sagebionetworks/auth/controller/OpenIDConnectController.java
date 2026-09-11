@@ -366,9 +366,10 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OAuthAuthorizationResponse authorizeClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME, required = false) String identityProvider,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest);
+		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest, identityProvider);
 	}
 	
 	/**
