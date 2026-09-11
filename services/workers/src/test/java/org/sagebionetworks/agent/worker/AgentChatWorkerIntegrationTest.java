@@ -205,6 +205,30 @@ public class AgentChatWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testGetFunctionInformation() throws AssertionError, AsynchJobFailedException {
+
+		AgentSession session = agentService.createSession(admin.getId(),
+				new CreateAgentSessionRequest().setAgentAccessLevel(AgentAccessLevel.READ_YOUR_PRIVATE_DATA));
+
+		assertNotNull(session);
+
+		String chatRequest = "what functions are available to you?";
+
+		//call under test
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new AgentChatRequest().setSessionId(session.getSessionId()).setChatText(chatRequest),
+				(AgentChatResponse response) -> {
+					assertNotNull(response);
+					assertEquals(session.getSessionId(), response.getSessionId());
+					assertTrue(response.getResponseText().contains("search"));
+					assertTrue(response.getResponseText().contains("get_description"));
+					assertTrue(response.getResponseText().contains("get_entity_metadata"));
+					assertTrue(response.getResponseText().contains("get_entity_children"));
+				}, MAX_WAIT_MS).getResponse();
+
+	}
+
+	@Test
 	public void testGetFolderAndFileEntityChildren() throws AssertionError, AsynchJobFailedException, IOException {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName(UUID.randomUUID().toString()),
 				null);
