@@ -479,6 +479,10 @@
 			"description": "Agent registration information."
 		},
 		{
+			"name": "AGENT_REGISTRATION_ACT_SETTINGS",
+			"description": "ACT-managed settings for an agent registration."
+		},
+		{
 			"name": "AGENT_SESSION",
 			"description": "Table that stores user's agent sessions"
 		},

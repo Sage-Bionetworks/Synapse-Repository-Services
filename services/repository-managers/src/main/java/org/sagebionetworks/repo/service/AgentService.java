@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.service;
 
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -21,5 +23,10 @@ public interface AgentService {
 	AgentRegistration createOrGetAgentRegistration(Long userId, AgentRegistrationRequest request);
 
 	AgentRegistration getAgentRegistration(Long userId, String agentRegistrationId);
+
+	AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(Long userId,
+			AgentRegistrationActSettingsRequest request);
+
+	AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(Long userId, String agentRegistrationId);
 
 }

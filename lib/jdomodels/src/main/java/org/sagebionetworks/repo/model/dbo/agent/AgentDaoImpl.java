@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.agent;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_ACT_SETTINGS_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_ACT_SETTINGS_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_ACT_SETTINGS_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_ACT_SETTINGS_REGISTRATION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_ACT_SETTINGS_SETTINGS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_AWS_AGENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_AWS_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_AGENT_REG_CREATED_ON;
@@ -24,8 +29,11 @@ import jakarta.annotation.PostConstruct;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -66,6 +74,16 @@ public class AgentDaoImpl implements AgentDao {
 				.setAwsAliasId(rs.getString(COL_AGENT_REG_AWS_ALIAS_ID))
 				.setRegisteredOn(rs.getTimestamp(COL_AGENT_REG_CREATED_ON))
 				.setType(AgentType.valueOf(rs.getString(COL_AGENT_REG_TYPE)));
+	};
+
+	private final RowMapper<AgentRegistrationActSettingsBundle> ACT_SETTINGS_MAPPER = (ResultSet rs, int rowNum) -> {
+		return new AgentRegistrationActSettingsBundle()
+				.setAgentRegistrationId(Long.toString(rs.getLong(COL_AGENT_REG_ACT_SETTINGS_REGISTRATION_ID)))
+				.setEtag(rs.getString(COL_AGENT_REG_ACT_SETTINGS_ETAG))
+				.setModifiedOn(rs.getTimestamp(COL_AGENT_REG_ACT_SETTINGS_MODIFIED_ON))
+				.setModifiedBy(Long.toString(rs.getLong(COL_AGENT_REG_ACT_SETTINGS_MODIFIED_BY)))
+				.setSettings(JsonEntityUtils.fromJsonString(rs.getString(COL_AGENT_REG_ACT_SETTINGS_SETTINGS),
+						AgentRegistrationActSettings.class));
 	};
 
 	@Autowired
@@ -125,8 +143,55 @@ public class AgentDaoImpl implements AgentDao {
 	@WriteTransaction
 	@Override
 	public void truncateAll() {
+		jdbcTemplate.update("DELETE FROM AGENT_REGISTRATION_ACT_SETTINGS WHERE REGISTRATION_ID > -1");
 		jdbcTemplate.update("DELETE FROM AGENT_REGISTRATION WHERE REGISTRATION_ID > 1");
 		jdbcTemplate.update("DELETE FROM AGENT_SESSION WHERE ID > 0");
+	}
+
+	@WriteTransaction
+	@Override
+	public AgentRegistrationActSettingsBundle setAgentRegistrationActSettings(String registrationId, Long modifiedBy,
+			String etag, AgentRegistrationActSettings settings) {
+		ValidateArgument.required(registrationId, "registrationId");
+		ValidateArgument.required(modifiedBy, "modifiedBy");
+		ValidateArgument.required(settings, "settings");
+		long registrationIdLong = Long.parseLong(registrationId);
+		// Optimistic concurrency control: when settings already exist the caller must present the current etag.
+		getCurrentSettingsEtagForUpdate(registrationIdLong).ifPresent(currentEtag -> {
+			if (!currentEtag.equals(etag)) {
+				throw new ConflictingUpdateException("The settings for agent registration '" + registrationId
+						+ "' have changed since they were last read. Please fetch the latest settings and try again.");
+			}
+		});
+		String settingsJson = JsonEntityUtils.toJsonString(settings);
+		jdbcTemplate.update(
+				"INSERT INTO AGENT_REGISTRATION_ACT_SETTINGS (REGISTRATION_ID, ETAG, MODIFIED_ON, MODIFIED_BY, SETTINGS)"
+						+ " VALUES (?, UUID(), NOW(3), ?, ?)"
+						+ " ON DUPLICATE KEY UPDATE ETAG = UUID(), MODIFIED_ON = NOW(3), MODIFIED_BY = ?, SETTINGS = ?",
+				registrationIdLong, modifiedBy, settingsJson, modifiedBy, settingsJson);
+		return getAgentRegistrationActSettings(registrationId).get();
+	}
+
+	private Optional<String> getCurrentSettingsEtagForUpdate(long registrationIdLong) {
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT ETAG FROM AGENT_REGISTRATION_ACT_SETTINGS WHERE REGISTRATION_ID = ? FOR UPDATE", String.class,
+					registrationIdLong));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+	}
+
+	@Override
+	public Optional<AgentRegistrationActSettingsBundle> getAgentRegistrationActSettings(String registrationId) {
+		ValidateArgument.required(registrationId, "registrationId");
+		try {
+			return Optional.of(jdbcTemplate.queryForObject(
+					"SELECT * FROM AGENT_REGISTRATION_ACT_SETTINGS WHERE REGISTRATION_ID = ?", ACT_SETTINGS_MAPPER,
+					Long.parseLong(registrationId)));
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
 	}
 
 	@NewWriteTransaction

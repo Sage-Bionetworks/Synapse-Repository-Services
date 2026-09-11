@@ -105,6 +105,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -6562,7 +6564,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(registrationId, "registrationId");
 		return getJSONEntity(getRepoEndpoint(), "/agent/registration/"+registrationId, AgentRegistration.class);
 	}
-	
+
+	@Override
+	public AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(
+			AgentRegistrationActSettingsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAgentRegistrationId(), "request.agentRegistrationId");
+		return putJSONEntity(getRepoEndpoint(),
+				"/agent/registration/" + request.getAgentRegistrationId() + "/actSettings", request,
+				AgentRegistrationActSettingsBundle.class);
+	}
+
+	@Override
+	public AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(String registrationId)
+			throws SynapseException {
+		ValidateArgument.required(registrationId, "registrationId");
+		return getJSONEntity(getRepoEndpoint(), "/agent/registration/" + registrationId + "/actSettings",
+				AgentRegistrationActSettingsBundle.class);
+	}
+
 	@Override
 	public ProjectStorageUsage getProjectStorageUsage(String projectId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/project/" + projectId + "/storage/usage", ProjectStorageUsage.class);
