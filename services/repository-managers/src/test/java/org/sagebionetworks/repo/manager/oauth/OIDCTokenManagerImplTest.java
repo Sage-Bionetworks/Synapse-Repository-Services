@@ -145,7 +145,7 @@ public class OIDCTokenManagerImplTest {
 			return jwtBuilder.createSignedJWT(claims);});
 	
 		String oidcToken = oidcTokenManager.createOIDCIdToken(ISSUER, 
-				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
+				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, null, USER_CLAIMS);
 		Claims claims = jwtParser.parseClaimsJws(oidcToken).getBody();
 		assertEquals(TEAM_IDS, claims.get(OIDCClaimName.team.name()));
 		assertEquals("User", claims.get(OIDCClaimName.given_name.name(), String.class));
@@ -273,7 +273,7 @@ public class OIDCTokenManagerImplTest {
 				ONE_DAY_MILLIS,
 				AUTH_TIME,
 				REFRESH_TOKEN_ID,
-				TOKEN_ID,
+				TOKEN_ID, null,
 				grantedScopes,
 				expectedClaims);
 		
@@ -328,7 +328,7 @@ public class OIDCTokenManagerImplTest {
 				ONE_DAY_MILLIS,
 				AUTH_TIME,
 				REFRESH_TOKEN_ID,
-				TOKEN_ID,
+				TOKEN_ID, null,
 				grantedScopes,
 				expectedClaims,
 				persistToken);
@@ -356,7 +356,7 @@ public class OIDCTokenManagerImplTest {
 			return jwtBuilder.createSignedJWT(claims);});
 	
 		String oidcToken = oidcTokenManager.createOIDCIdToken("https://repo-prod.prod.sagebase.org/auth/v1", 
-				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, USER_CLAIMS);
+				SUBJECT_ID, CLIENT_ID, NOW, NONCE, AUTH_TIME, TOKEN_ID, null, USER_CLAIMS);
 		oidcTokenManager.validateJWT(oidcToken);
 	}
 	
@@ -398,7 +398,7 @@ public class OIDCTokenManagerImplTest {
 		Long principalId = 101L;
 		
 		// method under test
-		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, ISSUER);
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, ISSUER, null);
 		
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		
@@ -459,7 +459,7 @@ public class OIDCTokenManagerImplTest {
 		// method under test
 		String accessToken = oidcTokenManager.createPersonalAccessToken(
 				ISSUER,
-				personalAccessTokenRecord);
+				personalAccessTokenRecord, null);
 
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		// here we just check that the 'access' claim has been added
@@ -474,6 +474,91 @@ public class OIDCTokenManagerImplTest {
 		verifyNoMoreInteractions(mockAccessTokenDao);
 	}
 	
+	@Test
+	public void testCreateClientTotalAccessTokenWithIdentityProvider() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		// method under test
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(101L, ISSUER, "ORCID");
+
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		assertEquals("ORCID", claims.get(OIDCClaimName.identity_provider.name(), String.class));
+	}
+
+	@Test
+	public void testCreateClientTotalAccessTokenWithNoIdentityProvider() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		// method under test — as for an anonymous access token
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(101L, ISSUER, null);
+
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		// absent rather than present and naming nothing
+		assertFalse(claims.containsKey(OIDCClaimName.identity_provider.name()));
+	}
+
+	@Test
+	public void testCreateOIDCaccessTokenWithIdentityProvider() {
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		// method under test
+		String accessToken = oidcTokenManager.createOIDCaccessToken(USER_ID, ISSUER, SUBJECT_ID, CLIENT_ID, NOW,
+				ONE_DAY_MILLIS, AUTH_TIME, REFRESH_TOKEN_ID, TOKEN_ID, "GOOGLE_OAUTH_2_0",
+				Collections.singletonList(OAuthScope.openid), Collections.emptyMap());
+
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		assertEquals("GOOGLE_OAUTH_2_0", claims.get(OIDCClaimName.identity_provider.name(), String.class));
+	}
+
+	@Test
+	public void testCreateOIDCIdTokenWithIdentityProvider() {
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		// method under test
+		String idToken = oidcTokenManager.createOIDCIdToken(ISSUER, SUBJECT_ID, CLIENT_ID, NOW, null, AUTH_TIME,
+				TOKEN_ID, "NIH_RESEARCHER_AUTH_SERVICE", Collections.emptyMap());
+
+		Claims claims = jwtParser.parseClaimsJws(idToken).getBody();
+		assertEquals("NIH_RESEARCHER_AUTH_SERVICE", claims.get(OIDCClaimName.identity_provider.name(), String.class));
+	}
+
+	@Test
+	public void testCreatePersonalAccessTokenWithIdentityProvider() {
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		AccessTokenRecord record = new AccessTokenRecord();
+		record.setId("1234");
+		record.setCreatedOn(new Date());
+		record.setScopes(Collections.singletonList(OAuthScope.openid));
+		record.setUserInfoClaims(Collections.emptyMap());
+
+		// method under test — the provider that authenticated the session creating the token
+		String accessToken = oidcTokenManager.createPersonalAccessToken(ISSUER, record, "SYNAPSE");
+
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		assertEquals("SYNAPSE", claims.get(OIDCClaimName.identity_provider.name(), String.class));
+	}
+
+	@Test
+	public void testCreateInternalTotalAccessTokenHasNoIdentityProvider() {
+		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
+		when(mockJwtBuilder.createSignedJWT(any())).thenAnswer(invocation ->
+			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
+
+		// method under test — nothing authenticated to obtain this token
+		String accessToken = oidcTokenManager.createInternalTotalAccessToken(101L);
+
+		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
+		assertFalse(claims.containsKey(OIDCClaimName.identity_provider.name()));
+	}
+
 	@Test
 	public void testIsOIDCAccessTokenExists() {
 		// Call under test
@@ -500,7 +585,7 @@ public class OIDCTokenManagerImplTest {
 		
 		when(mockClock.currentTimeMillis()).thenReturn(System.currentTimeMillis());
 		
-		String token = oidcTokenManager.createClientTotalAccessToken(USER_ID, ISSUER);
+		String token = oidcTokenManager.createClientTotalAccessToken(USER_ID, ISSUER, null);
 		String tokenId = oidcTokenManager.parseJWT(token).getBody().getId();
 		
 		// Call under test

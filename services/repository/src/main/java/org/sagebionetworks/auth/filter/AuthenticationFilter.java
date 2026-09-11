@@ -20,8 +20,10 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.authutil.ModHttpServletRequest;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
+import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.IdentityProviderThreadLocal;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -73,12 +75,15 @@ public class AuthenticationFilter implements Filter {
 		}
 		
 		Long userId = null;
+		String identityProvider = null;
 		boolean isAnonymous = false;
 
 			if (!isTokenEmptyOrNull(accessToken)) {
 				try {
 					// validate token and get userid parameter
-					userId = Long.parseLong(oidcManager.validateAccessToken(accessToken));
+					ValidatedAccessToken validatedAccessToken = oidcManager.validateAccessToken(accessToken);
+					userId = Long.parseLong(validatedAccessToken.userId());
+					identityProvider = validatedAccessToken.identityProvider();
 					if (authenticationMethod == null) { // accessToken came in as sessionToken
 						authenticationMethod = AuthenticationMethod.BEARERTOKEN;
 					}
@@ -108,12 +113,22 @@ public class AuthenticationFilter implements Filter {
 
 		// Put the userId on thread local, so this thread always knows who is calling
 		currentUserIdThreadLocal.set(userId);
+		// Likewise the identity provider, which UserInfo picks up as it is built so that an
+		// authorization decision anywhere in this request can see how the caller authenticated.
+		IdentityProviderThreadLocal.setThreadsIdentityProvider(identityProvider);
 		
 		// Pass the request along, including the user Id and access token
 		try {
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
 			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 			modParams.put(AuthorizationConstants.ANONYMOUS_PARAM, new String[] { ""+isAnonymous });
+			// Always discarded before being set, so that a caller cannot supply their own value the way
+			// they cannot supply their own userId. Left absent rather than empty when nothing
+			// authenticated the caller, so that a controller binding it sees null, not a blank name.
+			modParams.remove(AuthorizationConstants.IDENTITY_PROVIDER_PARAM);
+			if (identityProvider != null) {
+				modParams.put(AuthorizationConstants.IDENTITY_PROVIDER_PARAM, new String[] { identityProvider });
+			}
 			Map<String, String[]> modHeaders = HttpAuthUtil.filterAuthorizationHeaders(req);
 			if (accessToken!=null) {
 				HttpAuthUtil.setBearerTokenHeader(modHeaders, accessToken);
@@ -124,6 +139,7 @@ public class AuthenticationFilter implements Filter {
 		} finally {
 			// not strictly necessary, but just in case
 			currentUserIdThreadLocal.set(null);
+			IdentityProviderThreadLocal.clearThreadsIdentityProvider();
 		}
 	}
 

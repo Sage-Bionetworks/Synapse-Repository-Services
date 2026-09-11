@@ -34,12 +34,16 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 
 	private final AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private final UsersEntityPermissionsDao usersEntityPermissionsDao;
+	private final ConditionalAccessRequirementResolver conditionalAccessRequirementResolver;
 
 	@Autowired
-	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao, UsersEntityPermissionsDao usersEntityPermissionsDao) {
+	public EntityAuthorizationManagerImpl(AccessRestrictionStatusDao accessRestrictionStatusDao,
+			UsersEntityPermissionsDao usersEntityPermissionsDao,
+			ConditionalAccessRequirementResolver conditionalAccessRequirementResolver) {
 		super();
 		this.accessRestrictionStatusDao = accessRestrictionStatusDao;
 		this.usersEntityPermissionsDao = usersEntityPermissionsDao;
+		this.conditionalAccessRequirementResolver = conditionalAccessRequirementResolver;
 	}
 
 	@Override
@@ -52,7 +56,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 			throw new IllegalArgumentException("At least one ACCESS_TYPE must be provided");
 		}
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+				usersEntityPermissionsDao, conditionalAccessRequirementResolver, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		AuthorizationStatus lastResult = null;
 		for (ACCESS_TYPE accessType : accessTypes) {
 			lastResult = EntityAuthorizationUtils.determineAccess(userInfo, KeyFactory.stringToKey(entityId), stateProvider, accessType)
@@ -90,7 +94,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException {
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+				usersEntityPermissionsDao, conditionalAccessRequirementResolver, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 
 		return EntityAuthorizationUtils.getUserPermissionsForEntity(userInfo, entityId, stateProvider);
 	}
@@ -108,7 +112,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		ValidateArgument.required(accessType, "accessType");
 
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-				usersEntityPermissionsDao, userInfo, entityIds);
+				usersEntityPermissionsDao, conditionalAccessRequirementResolver, userInfo, entityIds);
 		return entityIds.stream().map(id -> EntityAuthorizationUtils.determineAccess(userInfo, id, stateProvider, accessType))
 				.collect(Collectors.toList());
 	}
@@ -116,7 +120,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 	@Override
 	public AuthorizationStatus canDeleteACL(UserInfo userInfo, String entityId) {
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-				usersEntityPermissionsDao, userInfo, KeyFactory.stringToKeySingletonList(entityId));
+				usersEntityPermissionsDao, conditionalAccessRequirementResolver, userInfo, KeyFactory.stringToKeySingletonList(entityId));
 		return EntityAuthorizationUtils.determineCanDeleteACL(userInfo, stateProvider.getPermissionsState(KeyFactory.stringToKey(entityId)))
 				.getAuthorizationStatus();
 	}
@@ -175,7 +179,7 @@ public class EntityAuthorizationManagerImpl implements EntityAuthorizationManage
 		List<Long> entityIds = tableAndDependencies.stream().map(node -> KeyFactory.stringToKey(node.tableId()))
 				.collect(Collectors.toList());
 		EntityStateProvider stateProvider = new LazyEntityStateProvider(accessRestrictionStatusDao,
-				usersEntityPermissionsDao, userInfo, entityIds);
+				usersEntityPermissionsDao, conditionalAccessRequirementResolver, userInfo, entityIds);
 
 		// Every node requires READ. A table/recordset node also requires DOWNLOAD for
 		// row-level data. When DOWNLOAD is denied only because a node is AGGREGATE_DATA

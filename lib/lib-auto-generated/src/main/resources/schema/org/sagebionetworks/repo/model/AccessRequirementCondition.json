@@ -1,0 +1,11 @@
+{
+	"title": "Access Requirement Condition",
+	"type": "interface",
+	"description": "A condition that, when satisfied by the caller, meets a ConditionalAccessRequirement without any AccessApproval. Conditions are evaluated per request, so the same user may satisfy a condition in one session and not in another.",
+	"properties": {
+		"concreteType": {
+			"type": "string",
+			"description": "Indicates which implementation of AccessRequirementCondition the object represents."
+		}
+	}
+}

@@ -12,6 +12,10 @@
 		},
 		"context": {
 			"$ref": "org.sagebionetworks.repo.model.auth.TwoFactorAuthTokenContext"
+		},
+		"identityProvider": {
+			"$ref": "org.sagebionetworks.repo.model.auth.IdentityProvider",
+			"description": "The identity provider that authenticated the login attempt requiring the second factor. Absent when the token was issued for a context other than authentication."
 		}
 	}
 }

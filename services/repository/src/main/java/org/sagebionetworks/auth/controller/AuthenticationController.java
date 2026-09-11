@@ -455,12 +455,14 @@ public class AuthenticationController {
 	@RequestMapping(value = UrlHelpers.AUTH_PERSONAL_ACCESS_TOKEN, method = RequestMethod.POST)
 	public @ResponseBody AccessTokenGenerationResponse createPersonalAccessToken(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = AuthorizationConstants.IDENTITY_PROVIDER_PARAM, required = false) String identityProvider,
 			@RequestHeader(value = AuthorizationConstants.SYNAPSE_AUTHORIZATION_HEADER_NAME, required=false) String authorizationHeader,
 			@RequestBody(required=true) AccessTokenGenerationRequest request,
 			UriComponentsBuilder uriComponentsBuilder
 	) {
 		String accessToken = HttpAuthUtil.getBearerTokenFromAuthorizationHeader(authorizationHeader);
-		return authenticationService.createPersonalAccessToken(userId, accessToken, request, EndpointHelper.getEndpoint(uriComponentsBuilder));
+		return authenticationService.createPersonalAccessToken(userId, accessToken, request,
+				EndpointHelper.getEndpoint(uriComponentsBuilder), identityProvider);
 	}
 
 	/**

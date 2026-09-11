@@ -29,9 +29,12 @@ public interface OAuthRefreshTokenManager {
 	 * @param claims the OIDC claims that have been granted to the client. the {@link OIDCClaimsRequest} object also
 	 *                 specifies when that information is contained in the OIDC id_token, or returned when the client
 	 *                 makes a request at the userinfo endpoint
+	 * @param identityProvider the name of the identity provider that authenticated the user, recorded so
+	 *                 that every access token later issued from this refresh token can carry it
 	 * @return a generated refresh token, and the refresh token's unique ID.
 	 */
-	OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims);
+	OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims,
+			String identityProvider);
 
 	/**
 	 * Rotates a refresh token, returning the new token and its metadata.

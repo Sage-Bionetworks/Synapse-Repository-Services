@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.BatchAccessApprovalInfoRequest;
 import org.sagebionetworks.repo.model.BatchAccessApprovalInfoResponse;
 import org.sagebionetworks.repo.model.CertifiedUsersDAO;
 import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -442,6 +443,19 @@ public class AccessApprovalManagerImplUnitTest {
 		accessApproval.setRequirementId(1L);
 		accessApproval.setAccessorId("2");
 		when(mockAccessRequirementDAO.get("1")).thenReturn(new LockAccessRequirement());
+		assertThrows(IllegalArgumentException.class, () -> {
+			manager.createAccessApproval(userInfo, accessApproval);
+		});
+	}
+
+	@Test
+	public void testCreateAccessApprovalForConditionalAR() {
+		// A conditional requirement is met by satisfying its condition, so an approval against one would
+		// have no effect and must be rejected rather than silently stored.
+		AccessApproval accessApproval = new AccessApproval();
+		accessApproval.setRequirementId(1L);
+		accessApproval.setAccessorId("2");
+		when(mockAccessRequirementDAO.get("1")).thenReturn(new ConditionalAccessRequirement());
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.createAccessApproval(userInfo, accessApproval);
 		});

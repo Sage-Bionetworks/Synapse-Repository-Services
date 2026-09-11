@@ -53,6 +53,16 @@
 			"description": "OIDC Claims that this refresh token grants access to"
 		},
 
+		"identityProvider": {
+			"type": "string",
+			"description": "Name of the identity provider that authenticated the user when this refresh token was issued, either SYNAPSE or an OAuthProvider. Absent for tokens issued before this was recorded.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
 		"authorizedOn": {
 			"type": "string",
 			"format": "date-time",

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.RealmDao;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderUtils;
 import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
 import org.sagebionetworks.repo.model.auth.Realm;
 import org.sagebionetworks.repo.model.auth.RealmIdList;
@@ -64,8 +65,6 @@ public class RealmDaoImpl implements RealmDao {
 	}
 	
 	private Map<String,Long> principalIdToRealmPrincipalDboId;
-	
-	private static final String SYNAPSE_IDENTITY_PROVIDER = "SYNAPSE";
 	
 	private static final String DEFAULT_REALM_NAME = "SYNAPSE";
 	
@@ -116,13 +115,7 @@ public class RealmDaoImpl implements RealmDao {
 	}
 	
 	static String identityProviderName(IdentityProvider idp) {
-		if (idp instanceof SynapseIdentityProvider) {
-			return SYNAPSE_IDENTITY_PROVIDER;
-		} else if (idp instanceof OAuthIdentityProvider) {
-			return ((OAuthIdentityProvider)idp).getProvider().name();
-		} else {
-			throw new IllegalArgumentException("Unexpected type "+idp.getClass().getName());
-		}
+		return IdentityProviderUtils.toName(idp);
 	}
 	
 	static List<DBORealmIdentityProvider> copyRealmToRealmIdps(Realm realm) {
@@ -141,13 +134,7 @@ public class RealmDaoImpl implements RealmDao {
 	static void copyRealmIdpsToRealm(List<DBORealmIdentityProvider> dboList, Realm realm) {
 		List<IdentityProvider> dtoList = new ArrayList<IdentityProvider>();
 		for (DBORealmIdentityProvider dbo : dboList) {
-			if (SYNAPSE_IDENTITY_PROVIDER.equals(dbo.getIdentityProvider())) {
-				dtoList.add(new SynapseIdentityProvider());
-			} else {
-				OAuthIdentityProvider dto = new OAuthIdentityProvider();
-				dto.setProvider(OAuthProvider.valueOf(dbo.getIdentityProvider()));
-				dtoList.add(dto);
-			}
+			dtoList.add(IdentityProviderUtils.fromName(dbo.getIdentityProvider()));
 		}
 		realm.setIdentityProvider(dtoList);
 	}

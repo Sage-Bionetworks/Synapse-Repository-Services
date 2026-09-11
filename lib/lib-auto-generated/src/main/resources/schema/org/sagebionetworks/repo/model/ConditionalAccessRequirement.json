@@ -1,0 +1,15 @@
+{
+	"title": "Conditional Access Requirement",
+	"description": "An Access Requirement that is met when the caller satisfies its condition, rather than by the creation of an AccessApproval. Since a condition is evaluated against the request that presents it, access may be granted in one session and denied in another.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.ACTAccessRequirementInterface"
+		}
+	],
+	"properties": {
+		"condition": {
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirementCondition",
+			"description": "The condition that must be satisfied for this requirement to be met."
+		}
+	}
+}

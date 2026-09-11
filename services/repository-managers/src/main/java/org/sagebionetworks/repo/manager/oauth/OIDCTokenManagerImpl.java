@@ -74,6 +74,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			String nonce, 
 			Date authTime,
 			String tokenId,
+			String identityProvider,
 			Map<OIDCClaimName,Object> userInfo) {
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
@@ -93,6 +94,8 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN);
 
+		addIdentityProvider(claims, identityProvider);
+
 		if (nonce!=null) claims.put(NONCE, nonce);
 
 		return jwtBuilder.createSignedJWT(claims);
@@ -108,6 +111,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			Date authTime,
 			String refreshTokenId,
 			String accessTokenId,
+			String identityProvider,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims,
 			boolean persistToken) {
@@ -126,6 +130,8 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			.setSubject(subject);
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
+
+		addIdentityProvider(claims, identityProvider);
 
 		if (refreshTokenId!=null) {
 			claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
@@ -158,21 +164,24 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			Date authTime,
 			String refreshTokenId,
 			String accessTokenId,
+			String identityProvider,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
 		boolean persistToken = true;
 		
-		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, scopes, oidcClaims, persistToken);
+		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, identityProvider, scopes, oidcClaims, persistToken);
 	}
 
 	@Override
-	public String createPersonalAccessToken(String issuer, AccessTokenRecord record) {
+	public String createPersonalAccessToken(String issuer, AccessTokenRecord record, String identityProvider) {
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 
 		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertKeysToEnums(record.getUserInfoClaims(), OIDCClaimName.class), claims);
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN);
+
+		addIdentityProvider(claims, identityProvider);
 
 		claims.setIssuer(issuer)
 				.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)
@@ -194,22 +203,34 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		// This is a token used internally created ad-hoc and not returned to the user
 		boolean persistToken = false;
+		String identityProvider = null; // nothing authenticated to obtain this token
 		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
-				null, tokenId, allScopes, Collections.emptyMap(), persistToken);
+				null, tokenId, identityProvider, allScopes, Collections.emptyMap(), persistToken);
 	}
 
 	@Override
 	@WriteTransaction
-	public String createClientTotalAccessToken(final Long principalId, final String issuer) {
+	public String createClientTotalAccessToken(final Long principalId, final String issuer, final String identityProvider) {
 		String subject = principalId.toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
 		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
-				null, tokenId, allScopes, Collections.emptyMap());
+				null, tokenId, identityProvider, allScopes, Collections.emptyMap());
 	}
 	
+	/**
+	 * Records which identity provider authenticated, when one did. A token obtained without any
+	 * identity provider — an anonymous access token, or one created for internal use — carries no such
+	 * claim rather than a claim naming nothing.
+	 */
+	private static void addIdentityProvider(ClaimsWithAuthTime claims, String identityProvider) {
+		if (identityProvider != null) {
+			claims.put(OIDCClaimName.identity_provider.name(), identityProvider);
+		}
+	}
+
 	@Override
 	public String createWebhookMessageToken(String issuer, String messageId, String messageMd5, String webhookOwnerId, int expirationInSeconds) {
 		Date now = clock.now();
