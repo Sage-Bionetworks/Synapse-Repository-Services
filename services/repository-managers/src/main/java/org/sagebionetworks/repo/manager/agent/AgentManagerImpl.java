@@ -34,6 +34,9 @@ import org.sagebionetworks.repo.model.agent.AgentChatAttachmentStatus;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -136,8 +139,19 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(userInfo, "userInfo");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getAgentAccessLevel(), "request.agentAccessLevel");
-		// only authenticated users can start a chat session.
-		AuthorizationUtils.disallowAnonymous(userInfo);
+		// Anonymous users may only start a session against a registration that the ACT has explicitly opened to
+		// anonymous chat, and such a session is always forced to public access.
+		if (userInfo.isUserAnonymous()) {
+			String registrationId = request.getAgentRegistrationId();
+			if (StringUtils.isBlank(registrationId)) {
+				throw new UnauthorizedException("Must login to perform this action");
+			}
+			if (!isAnonymousChatAllowed(registrationId)) {
+				throw new UnauthorizedException("This agent is not available to anonymous users.");
+			}
+			// Anonymous users have no private data; never grant more than public access.
+			request.setAgentAccessLevel(AgentAccessLevel.PUBLICLY_ACCESSIBLE);
+		}
 		SessionContext context = request.getSessionContext() != null
 				? contextValidator.validate(userInfo, request.getSessionContext())
 				: null;
@@ -562,6 +576,47 @@ public class AgentManagerImpl implements AgentManager {
 		ValidateArgument.required(agentRegistrationId, "agentRegistrationId");
 		AuthorizationUtils.disallowAnonymous(userInfo);
 		return getAgentRegistration(agentRegistrationId);
+	}
+
+	@WriteTransaction
+	@Override
+	public AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(UserInfo userInfo,
+			AgentRegistrationActSettingsRequest request) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAgentRegistrationId(), "request.agentRegistrationId");
+		ValidateArgument.required(request.getSettings(), "request.settings");
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only members of the ACT may modify agent registration settings.");
+		}
+		// Confirm the registration exists (throws IllegalArgumentException if it does not).
+		getAgentRegistration(request.getAgentRegistrationId());
+		return agentDao.setAgentRegistrationActSettings(request.getAgentRegistrationId(), userInfo.getId(),
+				request.getEtag(), request.getSettings());
+	}
+
+	@Override
+	public AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(UserInfo userInfo,
+			String agentRegistrationId) {
+		ValidateArgument.required(userInfo, "userInfo");
+		ValidateArgument.required(agentRegistrationId, "agentRegistrationId");
+		if (!AuthorizationUtils.isACTTeamMemberOrAdmin(userInfo)) {
+			throw new UnauthorizedException("Only members of the ACT may read agent registration settings.");
+		}
+		// Confirm the registration exists (throws IllegalArgumentException if it does not).
+		getAgentRegistration(agentRegistrationId);
+		return agentDao.getAgentRegistrationActSettings(agentRegistrationId)
+				.orElseGet(() -> new AgentRegistrationActSettingsBundle().setAgentRegistrationId(agentRegistrationId)
+						.setSettings(new AgentRegistrationActSettings()));
+	}
+
+	/**
+	 * Whether the ACT has opened the given registration to anonymous chat sessions.
+	 */
+	boolean isAnonymousChatAllowed(String registrationId) {
+		return agentDao.getAgentRegistrationActSettings(registrationId)
+				.map(bundle -> Boolean.TRUE.equals(bundle.getSettings().getAllowAnonymousChatSession()))
+				.orElse(false);
 	}
 
 	public static class AgentResponse {

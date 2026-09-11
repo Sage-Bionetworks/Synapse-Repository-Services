@@ -83,6 +83,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -4726,7 +4728,29 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	AgentRegistration getAgentRegistration(String registrationId) throws SynapseException;
-	
+
+	/**
+	 * Create or update the ACT-managed settings for an agent registration. Only members of the ACT (or an
+	 * administrator) may make this change.
+	 *
+	 * @param request The settings to store, including the target agentRegistrationId and, for updates, the
+	 *                current etag.
+	 * @return The stored settings along with their metadata.
+	 * @throws SynapseException
+	 */
+	AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(AgentRegistrationActSettingsRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the ACT-managed settings for an agent registration. Only members of the ACT (or an administrator) may
+	 * read these settings.
+	 *
+	 * @param registrationId The ID of the agent registration.
+	 * @return The stored settings along with their metadata.
+	 * @throws SynapseException
+	 */
+	AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(String registrationId) throws SynapseException;
+
 	/**
 	 * @param projectId
 	 * @return The storage usage and limits information for the project with the given id

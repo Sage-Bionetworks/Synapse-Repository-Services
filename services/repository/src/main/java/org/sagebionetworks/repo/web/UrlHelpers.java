@@ -440,6 +440,7 @@ public class UrlHelpers {
 	public static final String AGENT_CHAT_TRACE = AGENT_CHAT +"/trace/{jobId}";
 	public static final String AGENT_REGISTRATION = AGENT+"/registration";
 	public static final String AGENT_REGISTRATION_ID = AGENT_REGISTRATION+"/{agentRegistrationId}";
+	public static final String AGENT_REGISTRATION_ACT_SETTINGS = AGENT_REGISTRATION_ID+"/actSettings";
 	
 	
 	public static final String GRID = "/grid";

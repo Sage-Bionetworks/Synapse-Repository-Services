@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -237,5 +239,47 @@ public class AgentController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String agentRegistrationId) {
 		return agentService.getAgentRegistration(userId, agentRegistrationId);
+	}
+
+	/**
+	 * Create or update the ACT-managed settings for an agent registration. These settings currently control
+	 * whether anonymous users may start a chat session with the registered agent.
+	 * </p>
+	 * Only members of the Synapse Access and Compliance Team (ACT) may make this change. To update existing
+	 * settings, the request must include the current etag; the update will fail with a 409 conflict if the etag
+	 * does not match the current value.
+	 *
+	 * @param userId
+	 * @param agentRegistrationId The Synapse issued agent registration id.
+	 * @param request
+	 * @return
+	 */
+	@RequiredScope({ view, modify })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.AGENT_REGISTRATION_ACT_SETTINGS }, method = RequestMethod.PUT)
+	public @ResponseBody AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String agentRegistrationId, @RequestBody AgentRegistrationActSettingsRequest request) {
+		ValidateArgument.required(request, "request");
+		request.setAgentRegistrationId(agentRegistrationId);
+		return agentService.updateAgentRegistrationActSettings(userId, request);
+	}
+
+	/**
+	 * Get the ACT-managed settings for an agent registration.
+	 * </p>
+	 * Only members of the Synapse Access and Compliance Team (ACT) may read these settings.
+	 *
+	 * @param userId
+	 * @param agentRegistrationId The Synapse issued agent registration id.
+	 * @return
+	 */
+	@RequiredScope({ view })
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.AGENT_REGISTRATION_ACT_SETTINGS }, method = RequestMethod.GET)
+	public @ResponseBody AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String agentRegistrationId) {
+		return agentService.getAgentRegistrationActSettings(userId, agentRegistrationId);
 	}
 }
