@@ -24,6 +24,13 @@ import org.sagebionetworks.util.ValidateArgument;
 
 public class ObjectSchemaUtils {
 	/**
+	 * Maps the id of a schema to the nearest enclosing {@code $recursiveAnchor} schema it was reached
+	 * through, for schemas that do not carry a {@code $recursiveAnchor} of their own. Populated by
+	 * {@link #getConcreteClasses(Iterator)}; used to resolve {@code $recursiveRef} on such schemas.
+	 */
+	final Map<String, ObjectSchema> anchorMap = new HashMap<>();
+
+	/**
 	 * Generates a mapping of class id to an ObjectSchema that represents that
 	 * class. Starts out with all of the concrete classes found in `autoGen`
 	 * 
@@ -37,7 +44,7 @@ public class ObjectSchemaUtils {
 		while (concreteClassNames.hasNext()) {
 			String className = concreteClassNames.next();
 			ObjectSchema schema = SchemaUtils.getSchema(className);
-			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema);
+			SchemaUtils.recursiveAddTypes(classNameToObjectSchema, className, schema, anchorMap, null);
 		}
 		return classNameToObjectSchema;
 	}
@@ -253,7 +260,7 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
 		if (isSelfReferencing(property)) {
-			return generateReferenceSchema(schemaId);
+			return generateReferenceSchema(resolveSelfReferenceId(schemaId));
 		}
 		return translateObjectSchemaPropertyToJsonSchema(property, schemaId);
 	}
@@ -269,10 +276,23 @@ public class ObjectSchemaUtils {
 		ValidateArgument.required(schema, "schema");
 		ValidateArgument.required(property, "property");
 		ValidateArgument.required(schemaId, "schemaId");
-		String referenceId = isSelfReferencing(property) ? schemaId : property.getId();
+		String referenceId = isSelfReferencing(property) ? resolveSelfReferenceId(schemaId) : property.getId();
 		if (referenceId != null) {
 			schema.set$ref(getPathInComponents(referenceId));
 		}
+	}
+
+	/**
+	 * Resolves the id a {@code $recursiveRef: "#"} on schemaId should point to. A schema with no
+	 * {@code $recursiveAnchor} of its own resolves its self-references to the enclosing anchor
+	 * recorded in {@link #anchorMap}, rather than to schemaId itself.
+	 *
+	 * @param schemaId the id of the schema currently being translated
+	 * @return the id the self-reference should point to
+	 */
+	String resolveSelfReferenceId(String schemaId) {
+		ObjectSchema anchor = anchorMap.get(schemaId);
+		return anchor != null ? anchor.getId() : schemaId;
 	}
 	
 	/**
