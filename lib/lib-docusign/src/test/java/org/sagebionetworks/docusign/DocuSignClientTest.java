@@ -200,7 +200,7 @@ public class DocuSignClientTest {
 		);
 
 		// call under test
-		List<TemplateRole> roles = DocuSignClient.buildTemplateRoles(recipients, tabValues);
+		List<TemplateRole> roles = DocuSignClient.buildTemplateRoles(recipients, tabValues, layout(0));
 
 		assertEquals(2, roles.size());
 		TemplateRole soRole = roles.stream()
@@ -231,7 +231,7 @@ public class DocuSignClientTest {
 		Map<RoleLabelKey, String> tabValues = Map.of();
 
 		// call under test
-		List<TemplateRole> roles = DocuSignClient.buildTemplateRoles(recipients, tabValues);
+		List<TemplateRole> roles = DocuSignClient.buildTemplateRoles(recipients, tabValues, layout(1));
 
 		for (TemplateRole role : roles) {
 			assertEquals(recipients.get(role.getRoleName()).name(), role.getName());
@@ -247,7 +247,7 @@ public class DocuSignClientTest {
 
 		// call under test — a role with no name is rejected
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignClient.buildTemplateRoles(recipients, tabValues));
+				() -> DocuSignClient.buildTemplateRoles(recipients, tabValues, layout(0)));
 		assertTrue(ex.getMessage().contains("name for role 'signing_official'"));
 	}
 
@@ -259,7 +259,7 @@ public class DocuSignClientTest {
 
 		// call under test — a role with no email is rejected
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> DocuSignClient.buildTemplateRoles(recipients, tabValues));
+				() -> DocuSignClient.buildTemplateRoles(recipients, tabValues, layout(0)));
 		assertTrue(ex.getMessage().contains("email for role 'signing_official'"));
 	}
 
@@ -629,6 +629,13 @@ public class DocuSignClientTest {
 		existing.setRecipients(recipients);
 		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
 
+		// The template records which type it gave each tab, and a value written under the wrong type is
+		// silently dropped by DocuSign, so it is read for every correction — not only for those that have
+		// to add a role back.
+		stubEnvelopeTemplate("env-1", "tpl-1");
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1"))
+				.thenReturn(TestTemplateHelper.buildValidTemplate(0));
+
 		Map<String, RecipientInfo> desiredRecipients = Map.of(
 				"principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
 				"signing_official", new RecipientInfo("so-new@example.com", "Jane Admin")
@@ -639,9 +646,6 @@ public class DocuSignClientTest {
 
 		// call under test
 		client.correctEnvelope("env-1", desiredRecipients, tabValues);
-
-		// no role has to be added back, so the template is not needed
-		verifyNoInteractions(mockDocuSignTemplatesApi);
 
 		InOrder order = inOrder(mockDocuSignEnvelopesApi);
 		order.verify(mockDocuSignEnvelopesApi).getEnvelope("env-1");
@@ -872,7 +876,7 @@ public class DocuSignClientTest {
 		Recipients result = DocuSignClient.buildUpdatedRecipients(List.of(completed, pending),
 				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
 						"signing_official", new RecipientInfo("so@example.com", "Jane Admin")),
-				Map.of());
+				Map.of(), layout(0));
 
 		assertEquals(1, result.getSigners().size());
 		assertEquals("signing_official", result.getSigners().get(0).getRoleName());
@@ -888,6 +892,199 @@ public class DocuSignClientTest {
 
 		assertEquals(1, result.getSigners().size());
 		assertEquals("collaborator_2", result.getSigners().get(0).getRoleName());
+	}
+
+	@Test
+	public void testCreateEnvelopeWithNameDeclaredAsTextTab() {
+		// The template, not the label, decides the type: DocuSign matches a supplied tab to the template by
+		// type as well as by label, so a value sent under the wrong type is silently dropped.
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		TestTemplateHelper.useTabType(template, "signing_official", "signing_official_name", TabType.TEXT);
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+		EnvelopeSummary summary = new EnvelopeSummary();
+		summary.setEnvelopeId("env-123");
+		when(mockDocuSignEnvelopesApi.createEnvelope(any())).thenReturn(summary);
+
+		// call under test
+		client.createEnvelope("tpl-1",
+				Map.of("signing_official", new RecipientInfo("so@example.com", "Dr. Smith")),
+				Map.of(new RoleLabelKey("signing_official", "signing_official_name"), "Dr. Smith"));
+
+		ArgumentCaptor<EnvelopeDefinition> captor = ArgumentCaptor.forClass(EnvelopeDefinition.class);
+		verify(mockDocuSignEnvelopesApi).createEnvelope(captor.capture());
+		Tabs soTabs = captor.getValue().getTemplateRoles().get(0).getTabs();
+		assertNull(soTabs.getFullNameTabs());
+		assertEquals(1, soTabs.getTextTabs().size());
+		assertEquals("signing_official_name", soTabs.getTextTabs().get(0).getTabLabel());
+		assertEquals("Dr. Smith", soTabs.getTextTabs().get(0).getValue());
+	}
+
+	@Test
+	public void testCreateEnvelopeWithSenderFieldInheritedFromTemplate() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				documentTabs);
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+		when(mockDocuSignTemplatesApi.getDocumentTabs("tpl-1", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(documentTabs);
+		EnvelopeSummary summary = new EnvelopeSummary();
+		summary.setEnvelopeId("env-123");
+		when(mockDocuSignEnvelopesApi.createEnvelope(any())).thenReturn(summary);
+		// The envelope inherited the template's sender field, so it only needs its value set.
+		Tabs envelopeTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.addSenderField(envelopeTabs, "signing_official_institution");
+		envelopeTabs.getPrefillTabs().getTextTabs().get(0).setTabId("envelope-tab-1");
+		when(mockDocuSignEnvelopesApi.getDocumentTabs("env-123", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(envelopeTabs);
+
+		// call under test
+		client.createEnvelope("tpl-1",
+				Map.of("signing_official", new RecipientInfo("so@example.com", "Dr. Smith")),
+				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "MIT"));
+
+		// A sender field belongs to no recipient, so its value cannot travel in the template roles.
+		ArgumentCaptor<EnvelopeDefinition> definitionCaptor = ArgumentCaptor.forClass(EnvelopeDefinition.class);
+		verify(mockDocuSignEnvelopesApi).createEnvelope(definitionCaptor.capture());
+		assertNull(definitionCaptor.getValue().getTemplateRoles().get(0).getTabs().getTextTabs());
+
+		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);
+		verify(mockDocuSignEnvelopesApi).updateDocumentTabs(eq("env-123"),
+				eq(TestTemplateHelper.DOCUMENT_ID), tabsCaptor.capture());
+		List<com.docusign.esign.model.Text> written = tabsCaptor.getValue().getPrefillTabs().getTextTabs();
+		assertEquals(1, written.size());
+		assertEquals("MIT", written.get(0).getValue());
+		// The envelope's own tab is updated, so its identity and inherited placement are preserved.
+		assertEquals("envelope-tab-1", written.get(0).getTabId());
+		verify(mockDocuSignEnvelopesApi, never()).createDocumentTabs(any(), any(), any());
+	}
+
+	@Test
+	public void testCreateEnvelopeWithSenderFieldNotInheritedFromTemplate() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				documentTabs);
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+		when(mockDocuSignTemplatesApi.getDocumentTabs("tpl-1", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(documentTabs);
+		EnvelopeSummary summary = new EnvelopeSummary();
+		summary.setEnvelopeId("env-123");
+		when(mockDocuSignEnvelopesApi.createEnvelope(any())).thenReturn(summary);
+		// The envelope came across without the template's sender field.
+		when(mockDocuSignEnvelopesApi.getDocumentTabs("env-123", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(TestTemplateHelper.emptyDocumentTabs());
+
+		// call under test
+		client.createEnvelope("tpl-1",
+				Map.of("signing_official", new RecipientInfo("so@example.com", "Dr. Smith")),
+				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "MIT"));
+
+		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);
+		verify(mockDocuSignEnvelopesApi).createDocumentTabs(eq("env-123"),
+				eq(TestTemplateHelper.DOCUMENT_ID), tabsCaptor.capture());
+		com.docusign.esign.model.Text created = tabsCaptor.getValue().getPrefillTabs().getTextTabs().get(0);
+		assertEquals("signing_official_institution", created.getTabLabel());
+		assertEquals("MIT", created.getValue());
+		// A tab only appears on the document if it carries the template's placement.
+		assertEquals("1", created.getPageNumber());
+		assertEquals("100", created.getXPosition());
+		assertEquals("200", created.getYPosition());
+		// DocuSign assigns the envelope's own tab ID, so the template's must not be carried over.
+		assertNull(created.getTabId());
+		verify(mockDocuSignEnvelopesApi, never()).updateDocumentTabs(any(), any(), any());
+	}
+
+	@Test
+	public void testCreateEnvelopeWithSenderFieldAlreadyHoldingTheValue() {
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				documentTabs);
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+		when(mockDocuSignTemplatesApi.getDocumentTabs("tpl-1", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(documentTabs);
+		EnvelopeSummary summary = new EnvelopeSummary();
+		summary.setEnvelopeId("env-123");
+		when(mockDocuSignEnvelopesApi.createEnvelope(any())).thenReturn(summary);
+		Tabs envelopeTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.addSenderField(envelopeTabs, "signing_official_institution");
+		envelopeTabs.getPrefillTabs().getTextTabs().get(0).setValue("MIT");
+		when(mockDocuSignEnvelopesApi.getDocumentTabs("env-123", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(envelopeTabs);
+
+		// call under test
+		client.createEnvelope("tpl-1",
+				Map.of("signing_official", new RecipientInfo("so@example.com", "Dr. Smith")),
+				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "MIT"));
+
+		// Nothing is written when the value is already there, so no request can be refused for having
+		// changed a sender field too late.
+		verify(mockDocuSignEnvelopesApi, never()).updateDocumentTabs(any(), any(), any());
+		verify(mockDocuSignEnvelopesApi, never()).createDocumentTabs(any(), any(), any());
+	}
+
+	@Test
+	public void testRefreshSenderFieldsUpdatesAChangedValue() {
+		stubEnvelopeTemplate("env-1", "tpl-1");
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
+		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.useSenderField(template, "signing_official", "signing_official_institution",
+				documentTabs);
+		when(mockDocuSignTemplatesApi.getTemplate("tpl-1")).thenReturn(template);
+		when(mockDocuSignTemplatesApi.getDocumentTabs("tpl-1", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(documentTabs);
+		Tabs envelopeTabs = TestTemplateHelper.emptyDocumentTabs();
+		TestTemplateHelper.addSenderField(envelopeTabs, "signing_official_institution");
+		envelopeTabs.getPrefillTabs().getTextTabs().get(0).setValue("Old Institution");
+		when(mockDocuSignEnvelopesApi.getDocumentTabs("env-1", TestTemplateHelper.DOCUMENT_ID))
+				.thenReturn(envelopeTabs);
+
+		// call under test
+		client.refreshSenderFields("env-1",
+				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "New Institution"));
+
+		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);
+		verify(mockDocuSignEnvelopesApi).updateDocumentTabs(eq("env-1"),
+				eq(TestTemplateHelper.DOCUMENT_ID), tabsCaptor.capture());
+		assertEquals("New Institution",
+				tabsCaptor.getValue().getPrefillTabs().getTextTabs().get(0).getValue());
+	}
+
+	@Test
+	public void testBuildNewRecipientsWithNameDeclaredAsTextTab() {
+		// A correction copies the template's tab definitions, so the value has to be applied to whichever
+		// type the template actually declared the label under.
+		Signer pi = existingSigner("1", "principal_investigator", "sent");
+		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(1);
+		TestTemplateHelper.useTabType(template, "collaborator_1", "collaborator_1_name", TabType.TEXT);
+		Map<String, Signer> templateSigners = new HashMap<>();
+		for (Signer signer : template.getRecipients().getSigners()) {
+			templateSigners.put(signer.getRoleName(), signer);
+		}
+
+		// call under test
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
+				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_name"), "Alice Smith"),
+				layoutOf(template));
+
+		Tabs tabs = result.getSigners().get(0).getTabs();
+		assertEquals("Alice Smith", tabs.getTextTabs().stream()
+				.filter(t -> "collaborator_1_name".equals(t.getTabLabel()))
+				.findFirst().orElseThrow().getValue());
+		assertTrue(tabs.getFullNameTabs().stream()
+				.noneMatch(t -> "collaborator_1_name".equals(t.getTabLabel())));
+	}
+
+	// Where each value belongs, as validating the given template reports it.
+	private static EDucTemplateLayout layoutOf(EnvelopeTemplate template, Tabs... documentTabs) {
+		return DocuSignTemplateValidator.validate(template, List.of(documentTabs));
+	}
+
+	// The layout of a template that gives every field the first type allowed for it.
+	private static EDucTemplateLayout layout(int numCollaborators) {
+		return layoutOf(TestTemplateHelper.buildValidTemplate(numCollaborators));
 	}
 
 	// The template's signer roles, keyed by role name, as DocuSignClient reads them.
@@ -912,10 +1109,10 @@ public class DocuSignClientTest {
 		Signer pi = existingSigner("1", "principal_investigator", "sent");
 
 		// call under test
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners(1),
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
 				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
 						"collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
-				Map.of());
+				Map.of(), layout(1));
 
 		assertEquals(1, result.getSigners().size());
 		assertEquals("collaborator_1", result.getSigners().get(0).getRoleName());
@@ -935,11 +1132,11 @@ public class DocuSignClientTest {
 		templateSigners.get("signing_official").setRoutingOrder("4");
 
 		// call under test
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi, so), () -> templateSigners,
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi, so), templateSigners,
 				Map.of("principal_investigator", new RecipientInfo("pi@example.com", "Dr. Jones"),
 						"signing_official", new RecipientInfo("so@example.com", "Jane Admin"),
 						"collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
-				Map.of());
+				Map.of(), layout(1));
 
 		assertEquals(1, result.getSigners().size());
 		Signer added = result.getSigners().get(0);
@@ -957,8 +1154,9 @@ public class DocuSignClientTest {
 		templateSigners.get("collaborator_1").setRoutingOrder(null);
 
 		// call under test
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners,
-				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")), Map.of());
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
+				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")), Map.of(),
+				layout(1));
 
 		assertEquals("1", result.getSigners().get(0).getRoutingOrder());
 	}
@@ -976,10 +1174,11 @@ public class DocuSignClientTest {
 		templateTabs.getSignHereTabs().get(0).setRecipientId("template-recipient-id");
 
 		// call under test
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners,
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
 				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One")),
 				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_name"), "Alice Smith",
-						new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "alice"));
+						new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "alice"),
+				layout(1));
 
 		Tabs tabs = result.getSigners().get(0).getTabs();
 
@@ -1012,8 +1211,9 @@ public class DocuSignClientTest {
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
-				() -> DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners(1),
-						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of()));
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of(),
+						layout(1)));
 
 		assertTrue(ex.getMessage().contains("name for role 'collaborator_1'"));
 	}
@@ -1024,8 +1224,9 @@ public class DocuSignClientTest {
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
-				() -> DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners(1),
-						Map.of("collaborator_1", new RecipientInfo(null, "Collab One")), Map.of()));
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_1", new RecipientInfo(null, "Collab One")), Map.of(),
+						layout(1)));
 
 		assertTrue(ex.getMessage().contains("email for role 'collaborator_1'"));
 	}
@@ -1037,7 +1238,8 @@ public class DocuSignClientTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> DocuSignClient.buildUpdatedRecipients(List.of(pending),
-						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of()));
+						Map.of("collaborator_1", new RecipientInfo("c1@example.com", null)), Map.of(),
+						layout(1)));
 
 		assertTrue(ex.getMessage().contains("name for role 'collaborator_1'"));
 	}
@@ -1051,7 +1253,8 @@ public class DocuSignClientTest {
 		// call under test
 		Recipients result = DocuSignClient.buildUpdatedRecipients(List.of(pending),
 				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "collab1username")),
-				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "collab1username"));
+				Map.of(new RoleLabelKey("collaborator_1", "collaborator_1_user_name"), "collab1username"),
+				layout(1));
 
 		assertEquals("collab1username", result.getSigners().get(0).getName());
 		assertEquals("c1@example.com", result.getSigners().get(0).getEmail());
@@ -1064,8 +1267,9 @@ public class DocuSignClientTest {
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
-				() -> DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners(1),
-						Map.of("collaborator_2", new RecipientInfo("c2@example.com", "Collab Two")), Map.of()));
+				() -> DocuSignClient.buildNewRecipients(List.of(pi), templateSigners(1),
+						Map.of("collaborator_2", new RecipientInfo("c2@example.com", "Collab Two")), Map.of(),
+						layout(1)));
 
 		assertEquals("The template does not define the role 'collaborator_2'.", ex.getMessage());
 	}
@@ -1080,10 +1284,10 @@ public class DocuSignClientTest {
 		templateSigners.get("collaborator_2").setRoutingOrder("2");
 
 		// call under test
-		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), () -> templateSigners,
+		Recipients result = DocuSignClient.buildNewRecipients(List.of(pi), templateSigners,
 				Map.of("collaborator_1", new RecipientInfo("c1@example.com", "Collab One"),
 						"collaborator_2", new RecipientInfo("c2@example.com", "Collab Two")),
-				Map.of());
+				Map.of(), layout(2));
 
 		assertEquals(2, result.getSigners().size());
 		Set<String> recipientIds = new HashSet<>();
