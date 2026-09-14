@@ -88,8 +88,8 @@ public class RecordSetSchemaResolver {
 
 	/**
 	 * Infer the schema from the CSV file and reconcile it with the RecordSet's bound
-	 * JSON Schema, upgrading scalar columns to list types where the JSON Schema
-	 * declares an array.
+	 * JSON Schema, re-typing each inferred column to the type its JSON Schema
+	 * property declares.
 	 *
 	 * @param entityId      the RecordSet entity id, used to look up the bound schema
 	 * @param fileHandle    the CSV data file handle
