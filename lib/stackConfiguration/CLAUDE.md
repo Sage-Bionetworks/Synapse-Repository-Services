@@ -23,6 +23,32 @@ Two factories coexist while the codebase migrates from AWS SDK v1 to v2:
 
 **New AWS clients should use `AwsClientFactoryV2` (v2).** When a subsystem still needs a v1 client, reuse the adapter rather than constructing a parallel credential chain.
 
+### S3 object access — `aws/v2/S3ObjectStore`
+
+S3 has a narrowed facade rather than a client-shaped one. `S3ObjectStore` (impl
+`S3ObjectStoreImpl`, built by `AwsClientFactoryV2.createS3ObjectStore()`) covers only object
+access: get/put/delete, object info, object tags, pre-signed downloads, and the two
+bucket-location questions callers actually ask (`verifyBucketAccess`, `isSameRegion`).
+
+- **No SDK type appears in its signatures.** Values cross the seam as `S3ObjectInfo`,
+  `S3WriteOptions`, `S3ObjectTag`, `S3ResponseHeaders`, `S3StorageClass`, `S3CannedAcl` — all in
+  the same package, all carrying only what Synapse uses. Extend those types rather than exposing
+  an SDK enum or model class through the facade.
+- **Everything else uses a raw `S3Client` at its consumer** — multipart, bucket administration,
+  CORS, `restoreObject`, listing. A consumer holding both the facade and a raw `S3Client` is the
+  intended shape, not a smell.
+- **Bucket failures become `org.sagebionetworks.aws.CannotDetermineBucketLocationException`**,
+  which several consumers catch for control flow. The translation predicate is
+  `S3ObjectStoreImpl.isBucketAccessFailure`; every other `S3Exception` propagates.
+- **Region resolution lives here, only because pre-signing needs it.** The client is
+  `crossRegionAccessEnabled`, so it finds a bucket's region itself; a `S3Presigner` cannot, since
+  signing is local computation. The facade resolves bucket regions with a cached `headBucket`
+  probe and builds one presigner per region.
+
+This module compiles with `<release>8</release>` for SWC compatibility, so **no Java 9+ language
+or library features here** — the value types above are immutable classes with builders, not
+records.
+
 ## Constraints
 
 - **No secrets in code or config committed here** — property *names* only; values come from the deployed stack.
