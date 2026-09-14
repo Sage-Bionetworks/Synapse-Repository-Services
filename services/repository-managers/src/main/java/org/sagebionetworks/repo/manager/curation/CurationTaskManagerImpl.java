@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.curation.CurationTask;
 import org.sagebionetworks.repo.model.curation.CurationTaskProperties;
@@ -45,14 +46,16 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
     private final AuthorizationManager authorizationManager;
     private final AccessControlListManager aclManager;
     private final EntityManager entityManager;
+    private final UserGroupDAO userGroupDao;
 
     @Autowired
     public CurationTaskManagerImpl(CurationTaskDao curationTaskDao, AuthorizationManager authorizationManager,
-            AccessControlListManager aclManager, EntityManager entityManager) {
+            AccessControlListManager aclManager, EntityManager entityManager, UserGroupDAO userGroupDao) {
         this.curationTaskDao = curationTaskDao;
         this.authorizationManager = authorizationManager;
         this.aclManager = aclManager;
         this.entityManager = entityManager;
+        this.userGroupDao = userGroupDao;
     }
 
     @Override
@@ -245,6 +248,8 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
         ValidateArgument.required(task.getDataType(), "dataType");
         ValidateArgument.required(task.getTaskProperties(), "taskProperties");
 
+        validateRequestReferences(task);
+
         if (task.getTaskProperties() instanceof FileBasedMetadataTaskProperties) {
             FileBasedMetadataTaskProperties fileBasedMetadataTaskProperties = (FileBasedMetadataTaskProperties) task.getTaskProperties();
             ValidateArgument.required(fileBasedMetadataTaskProperties.getFileViewId(), "fileViewId");
@@ -289,6 +294,27 @@ public class CurationTaskManagerImpl implements CurationTaskManager {
                     RecordBasedMetadataTaskProperties.class, task.getProjectId());
         } else {
             throw new IllegalArgumentException("Unknown CurationTaskProperties concreteType: " + task.getTaskProperties().getConcreteType());
+        }
+    }
+
+    /**
+     * Validates the identifiers a request points at outside of its own payload. Each reference is
+     * checked here so that a bad identifier is reported as a client error rather than surfacing as
+     * a foreign key violation from the database.
+     */
+    private void validateRequestReferences(CurationTask task) {
+        validatePrincipalExists(task.getAssigneePrincipalId(), "assigneePrincipalId");
+    }
+
+    /**
+     * Validates that the given principal, when supplied, identifies an existing user or team.
+     */
+    private void validatePrincipalExists(String principalId, String fieldName) {
+        if (principalId == null) {
+            return;
+        }
+        if (!userGroupDao.doesIdExist(Long.parseLong(principalId))) {
+            throw new IllegalArgumentException(String.format("The %s '%s' does not exist.", fieldName, principalId));
         }
     }
 
