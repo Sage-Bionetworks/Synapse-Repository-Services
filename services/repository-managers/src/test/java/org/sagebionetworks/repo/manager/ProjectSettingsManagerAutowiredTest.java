@@ -105,9 +105,7 @@ public class ProjectSettingsManagerAutowiredTest {
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey("key" + UUID.randomUUID());
 		
-		if (! s3Client.doesBucketExist(externalS3LocationSetting.getBucket())) {
-			s3Client.createBucket(externalS3LocationSetting.getBucket());
-		}
+		S3TestUtils.createBucketIfMissing(externalS3LocationSetting.getBucket());
 
 		ObjectMetadata metadata = new ObjectMetadata();
 		metadata.setContentLength(username.length());
