@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.admin.ExpireQuarantinedEmailRequest;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.migration.IdGeneratorExport;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.service.ServiceProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -475,6 +477,33 @@ public class AdministrationController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable("id") Long id) {
 		serviceProvider.getAdministrationService().disable2FaForUser(userId, id);
+	}
+
+	/**
+	 * Makes the given email address the notification email of the target user, binding the address to that user
+	 * first if they do not already own it. Used to recover an account when the user no longer has access to the
+	 * mailbox that the password reset link would be sent to; the user drives the normal password reset afterwards.
+	 * <p>
+	 * The address is bound without the usual email validation flow, so the administrator must verify the user's
+	 * identity out-of-band before invoking. Idempotent.
+	 * <p>
+	 * Setting removePreviousNotificationEmail also unbinds the previous address from the account, which removes the
+	 * OAuth provider bindings attached to that specific address and therefore disables federated sign-in through
+	 * those providers. Bindings held against an ORCID or OpenID alias are unaffected.
+	 *
+	 * @param userId Must be an administrator.
+	 * @param id The id of the user whose notification email should be changed.
+	 * @param request The new address, and whether to unbind the previous one.
+	 * @return The resulting notification email.
+	 */
+	@RequiredScope({view, modify})
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_USER_NOTIFICATION_EMAIL, method = RequestMethod.PUT)
+	public @ResponseBody NotificationEmail updateUserNotificationEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable("id") Long id,
+			@RequestBody UpdateNotificationEmailRequest request) {
+		return serviceProvider.getPrincipalService().updateNotificationEmailForUser(userId, id, request);
 	}
 
 }

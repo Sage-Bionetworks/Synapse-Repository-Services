@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -24,6 +25,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -231,16 +233,54 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 
 	@Override
 	public NotificationEmail getNotificationEmail(UserInfo userInfo) throws NotFoundException {
-		String email= notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
-		NotificationEmail dto = new NotificationEmail();
-		dto.setEmail(email);
-		
-		// Includes the quarantine status if the email is in quarantine (and the quarantine is not expired)
-		emailQuarantineDao.getQuarantinedEmail(email).ifPresent( quarantinedEmail -> {
-			dto.setQuarantineStatus(mapQuarantineStatus(quarantinedEmail));
-		});
-		
-		return dto;
+		return getNotificationEmailDto(userInfo.getId());
+	}
+
+	@WriteTransaction
+	@Override
+	public NotificationEmail updateNotificationEmailForUser(UserInfo userInfo, Long principalId, UpdateNotificationEmailRequest request) {
+		UserInfo.validateUserInfo(userInfo);
+		if (!userInfo.isAdmin()) {
+			throw new UnauthorizedException("Only admins may change the notification email of another user");
+		}
+		ValidateArgument.required(principalId, "principalId");
+		ValidateArgument.required(request, "request");
+		ValidateArgument.requiredNotBlank(request.getEmail(), "request.email");
+
+		// A password reset, the reason this override exists, is only possible in the default realm.
+		UserInfo targetUserInfo = userManager.getUserInfo(principalId);
+		if (!AuthorizationConstants.DEFAULT_REALM_ID.equals(targetUserInfo.getRealmId())) {
+			throw new IllegalArgumentException("Cannot set user email for realm " + targetUserInfo.getRealmId());
+		}
+
+		Optional<PrincipalAlias> previousAlias = findNotificationAlias(principalId);
+
+		// Binding validates the address format, and fails if another principal already owns it. When the target
+		// already owns it the existing row is reused, which is what makes a repeat call a no-op.
+		PrincipalAlias newAlias = new PrincipalAlias();
+		newAlias.setPrincipalId(principalId);
+		newAlias.setAlias(request.getEmail());
+		newAlias.setType(AliasType.USER_EMAIL);
+		newAlias = principalAliasDAO.bindAliasToPrincipal(newAlias);
+
+		// NotificationEmailDAO.update is a bare UPDATE ... WHERE PRINCIPAL_ID = ?, so it silently does nothing for a
+		// principal that has no row yet.
+		if (previousAlias.isPresent()) {
+			notificationEmailDao.update(newAlias);
+		} else {
+			notificationEmailDao.create(newAlias);
+		}
+
+		// NOTIFICATION_EMAIL.ALIAS_ID cascades on delete, so the old alias can only go after the repoint. Comparing
+		// alias ids rather than addresses is what makes a repeat call safe: alias uniqueness ignores case and
+		// punctuation, so an address that differs from the previous one only in those respects resolves to the same
+		// row, and unbinding it would leave the account with no notification email at all.
+		if (Boolean.TRUE.equals(request.getRemovePreviousNotificationEmail()) && previousAlias.isPresent()
+				&& !previousAlias.get().getAliasId().equals(newAlias.getAliasId())) {
+			principalAliasDAO.removeAliasFromPrincipal(principalId, previousAlias.get().getAliasId());
+		}
+
+		return getNotificationEmailDto(principalId);
 	}
 
 	@Override
@@ -332,6 +372,34 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		}
 		
 		return quarantineStatus;
+	}
+
+	private NotificationEmail getNotificationEmailDto(Long principalId) throws NotFoundException {
+		String email = notificationEmailDao.getNotificationEmailForPrincipal(principalId);
+		NotificationEmail dto = new NotificationEmail();
+		dto.setEmail(email);
+
+		// Includes the quarantine status if the email is in quarantine (and the quarantine is not expired)
+		emailQuarantineDao.getQuarantinedEmail(email).ifPresent( quarantinedEmail -> {
+			dto.setQuarantineStatus(mapQuarantineStatus(quarantinedEmail));
+		});
+
+		return dto;
+	}
+
+	/**
+	 * The current notification email of a principal, empty when the principal has no notification email row.
+	 */
+	private Optional<PrincipalAlias> findNotificationAlias(Long principalId) {
+		String email;
+		try {
+			email = notificationEmailDao.getNotificationEmailForPrincipal(principalId);
+		} catch (NotFoundException e) {
+			return Optional.empty();
+		}
+		// Only a missing row is tolerated. The DAO yields the alias display value, so the alias lookup is an exact
+		// match by construction, and a miss means the two tables disagree rather than that there is nothing to find.
+		return Optional.of(findAliasForEmail(principalId, email));
 	}
 
 	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
