@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -61,6 +62,7 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -268,18 +270,24 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			addRowLevelFilter(user, qs, types);
 		}
 
-		// 5. When an aggregate-only source defines quasi-identifier (QID) columns and this
-		// request asks for rows, enforce the count-only QID restriction now and capture which
-		// output columns are protected participant counts. A violation withholds the rows via
-		// a RowSuppressionException; a request that does not ask for rows degrades to the
-		// aggregate-only response (gated count + obscured facets) and imposes no restriction.
+		// 5. When this request asks for rows against an aggregate-only source, decide whether any
+		// row-level results may be returned. A request that does not ask for rows always degrades to
+		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
 		List<Integer> protectedCountColumnIndexes = Collections.emptyList();
-		if (options.runQuery() && aggregateDataConfiguration != null
-				&& aggregateDataConfiguration.getQuasiIdentifierColumnNames() != null
-				&& !aggregateDataConfiguration.getQuasiIdentifierColumnNames().isEmpty()) {
+		if (options.runQuery() && aggregateDataConfiguration != null) {
+			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
+			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
+				// The source defines no quasi-identifier columns, so it can never return row-level
+				// results. Reject the row request explicitly rather than silently degrading to the
+				// aggregate-only response, mirroring the QID-misuse rejection below.
+				throw new RowSuppressionException(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS);
+			}
+			// The source defines quasi-identifier (QID) columns: enforce the count-only QID
+			// restriction and capture which output columns are protected participant counts. A
+			// violation withholds the rows via a RowSuppressionException.
 			List<ColumnModel> sourceSchema = tableManagerSupport.getTableSchema(idAndVersion);
 			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model,
-					aggregateDataConfiguration.getQuasiIdentifierColumnNames(), sourceSchema);
+					quasiIdentifierColumnNames, sourceSchema);
 		}
 
 		QueryContext expansion = QueryContext.builder()
@@ -428,19 +436,22 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 		// run the actual query if needed.
 		if (options.runQuery()) {
-			if (!query.isAggregateOnly() || query.isRowReturningAggregate()) {
-				// Either full read access, or an aggregate-only source that defines quasi-identifier
-				// columns and passed the count-only QID validation in pre-flight. In the latter case
-				// cell-level k-anonymity has already been pushed into the executed SQL, so the rows
-				// returned here are already suppressed regardless of whether they were materialized or
-				// streamed.
-				RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
-				QueryResult queryResult = new QueryResult();
-				queryResult.setQueryResults(rowSet);
-				bundle.setQueryResult(queryResult);
+			// Pre-flight rejects a row request against an aggregate-only source that defines no
+			// quasi-identifier columns (RowSuppressionException), so reaching here with runQuery
+			// always means rows may be returned: either full read access, or an aggregate-only source
+			// that defines quasi-identifier columns and passed the count-only QID validation. In the
+			// latter case cell-level k-anonymity has already been pushed into the executed SQL, so the
+			// rows returned here are already suppressed regardless of whether they were materialized or
+			// streamed. Reaching this point without either condition would silently drop the row
+			// request, so fail loudly instead.
+			if (query.isAggregateOnly() && !query.isRowReturningAggregate()) {
+				throw new IllegalStateException(
+						"A row request against an aggregate-only source without quasi-identifier columns must be rejected during pre-flight");
 			}
-			// Otherwise this is a plain aggregate-only read (no QID columns): no row-level data is
-			// returned, only the gated count and obscured facets below.
+			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
+			QueryResult queryResult = new QueryResult();
+			queryResult.setQueryResults(rowSet);
+			bundle.setQueryResult(queryResult);
 		}
 
 		if (options.returnFacets()) {

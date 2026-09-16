@@ -65,8 +65,9 @@ public class ObjectTypeManagerImplTest {
 	}
 
 	private AggregateDataConfiguration newAggregateConfiguration() {
-		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
-				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
+		return new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setFacetPostProcessingConfig(
+						new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
 	}
 
 	/**

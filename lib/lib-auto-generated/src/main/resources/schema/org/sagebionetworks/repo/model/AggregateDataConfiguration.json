@@ -8,8 +8,7 @@
 		},
 		"quasiIdentifierColumnNames": {
 			"type": "array",
-			"required": true,
-			"description": "The names of the columns of the source that are quasi-identifiers (QIDs), including any direct participant identifier. Each name must match an actual column name of the source; at query time, if any configured QID name does not match a column of the source, an exception is thrown. A QID column may only appear in a query as the argument of a COUNT (or COUNT DISTINCT) or in a WHERE clause. Any other use (bare projection, a non-count aggregate, GROUP BY, ORDER BY, SELECT DISTINCT, or an arithmetic/string expression) is permitted only for the aggregate-only response (the gated total count and obscured facet statistics); a query that both uses a QID in one of those ways and requests row results is rejected with an error identifying the offending use.",
+			"description": "The names of the columns of the source that are quasi-identifiers (QIDs), including any direct participant identifier. Optional: when omitted, the source is restricted to aggregate-only reads (no row-level data is ever returned, and the total count is gated against the suppression threshold). When provided, the source additionally allows row-returning aggregate queries with cell-level k-anonymity applied. Each name must match an actual column name of the source; at query time, if any configured QID name does not match a column of the source, an exception is thrown. A QID column may only appear in a query as the argument of a COUNT (or COUNT DISTINCT) or in a WHERE clause. Any other use (bare projection, a non-count aggregate, GROUP BY, ORDER BY, SELECT DISTINCT, or an arithmetic/string expression) is permitted only for the aggregate-only response (the gated total count and obscured facet statistics); a query that both uses a QID in one of those ways and requests row results is rejected with an error identifying the offending use.",
 			"items": {
 				"type": "string"
 			}

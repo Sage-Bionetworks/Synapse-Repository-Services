@@ -99,6 +99,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -112,6 +113,7 @@ import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
@@ -393,13 +395,38 @@ public class TableQueryManagerImplTest {
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
+		// The source defines no quasi-identifiers, so only the aggregate-only response is available:
+		// request the gated count rather than rows to avoid the row-suppression rejection.
+		QueryOptions options = new QueryOptions().withRunCount(true);
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, null, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, null, options);
 		assertNotNull(result);
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
 		verify(mockTableManagerSupport).getAggregateDataConfiguration(tableId);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateNoQuasiIdentifiersAndRunQuery() throws Exception {
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		// the bound configuration defines no quasi-identifier columns
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test: a row request against a source with no quasi-identifiers is rejected
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, null, options);
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, thrown.getReasonCode());
 	}
 
 	@Test
@@ -855,8 +882,8 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		// aggregate-only forces a count query even though only runQuery was requested
-		queryOptions = new QueryOptions().withRunQuery(true);
+		// a count is requested against an aggregate-only source with no quasi-identifiers
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
@@ -877,7 +904,7 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(count)).build(), queryOptions);
 
@@ -898,7 +925,7 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
@@ -919,7 +946,7 @@ public class TableQueryManagerImplTest {
 		RowSet emptyCountRowSet = new RowSet().setRows(List.of(new Row().setValues(List.of("0"))));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(emptyCountRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
@@ -929,6 +956,28 @@ public class TableQueryManagerImplTest {
 		// a zero-row result is not suppressed even when below the threshold
 		assertEquals(0L, results.getQueryCount());
 		assertNull(results.getQueryResult());
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryAggregateOnlyRunQueryWithoutQuasiIdentifiers() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count is above the threshold, so the count gate passes and control reaches the row block
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		// A row request against an aggregate-only source with no quasi-identifiers must be rejected in
+		// pre-flight; if it ever reaches executeQuery the invariant guard fails loudly rather than
+		// silently dropping the row request.
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
 		verify(mockQueryExecutor, never()).executeQuery(any(), any());
 	}
 
@@ -1021,7 +1070,7 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 

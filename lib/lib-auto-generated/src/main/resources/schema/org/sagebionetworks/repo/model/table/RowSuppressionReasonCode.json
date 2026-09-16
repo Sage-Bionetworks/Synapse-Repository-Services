@@ -4,6 +4,10 @@
 	"type": "string",
 	"enum": [
 		{
+			"name": "NO_QUASI_IDENTIFIERS",
+			"description": "The aggregate-only source defines no quasi-identifier columns, so it never returns row-level results; any query that requests rows is rejected."
+		},
+		{
 			"name": "QID_PROJECTED",
 			"description": "A quasi-identifier column is projected in the select list as more than the argument of a COUNT (e.g. selected directly or via 'select *')."
 		},

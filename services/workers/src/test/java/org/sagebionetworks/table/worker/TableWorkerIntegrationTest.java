@@ -130,6 +130,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -144,6 +145,7 @@ import org.sagebionetworks.repo.model.table.TextMatchesMode;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -3051,8 +3053,18 @@ public class TableWorkerIntegrationTest {
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)));
 
-		// The count is over the threshold, so it is returned; the individual rows are suppressed.
-		waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (bundle) -> {
+		// The source defines no quasi-identifier columns, so it can never return row-level results:
+		// a request for rows is rejected rather than silently returning only the count.
+		RowSuppressionException suppressed = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, suppressed.getReasonCode());
+
+		// Requesting only the count returns it because it is over the threshold.
+		QueryOptions countOnly = new QueryOptions().withRunCount(true);
+		waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (bundle) -> {
 			assertEquals(4L, bundle.getQueryCount());
 			assertNull(bundle.getQueryResult());
 		});
@@ -3064,7 +3076,7 @@ public class TableWorkerIntegrationTest {
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)));
 
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (response) -> {
 				fail("Should not have received a result");
 			});
 		});
