@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.entity.ConditionalAccessRequirementResolver;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -59,6 +60,8 @@ public class RestrictionInformationManagerImplUnitTest {
 	private UsersEntityPermissionsDao mockUsersEntityPermissionsDao;
 	@Mock
 	private EntityAuthorizationManager mockEntityAuthorizationManager;
+	@Mock
+	private ConditionalAccessRequirementResolver mockConditionalAccessRequirementResolver;
 	@Mock
 	private UserEntityPermissions mockUserEntityPermissions;
 

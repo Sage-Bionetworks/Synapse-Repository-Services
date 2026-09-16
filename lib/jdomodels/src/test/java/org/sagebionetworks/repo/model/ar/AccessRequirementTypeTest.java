@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictionLevel;
@@ -75,6 +76,18 @@ public class AccessRequirementTypeTest {
 		assertFalse(type.hasLock());
 	}
 	
+	@Test
+	public void testConditional() {
+		// The DAO looks every restriction row's concrete type up here, so an unregistered type would fail
+		// every restriction read touching such a requirement, not only a download.
+		AccessRequirementType type = AccessRequirementType.lookupClassName(ConditionalAccessRequirement.class.getName());
+		assertEquals(AccessRequirementType.CONDITIONAL, type);
+		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, type.getRestrictionLevel());
+		assertTrue(type.hasACT());
+		assertFalse(type.hasToU());
+		assertFalse(type.hasLock());
+	}
+
 	@Test
 	public void testLock() {
 		AccessRequirementType type = AccessRequirementType.lookupClassName(LockAccessRequirement.class.getName());

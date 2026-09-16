@@ -19,16 +19,20 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 
 	private AccessRestrictionStatusDao accessRestrictionStatusDao;
 	private UsersEntityPermissionsDao usersEntityPermissionsDao;
+	private ConditionalAccessRequirementResolver conditionalAccessRequirementResolver;
 	private List<Long> entityIds;
 	private UserInfo userInfo;
 	private Map<Long, UserEntityPermissionsState> userEntityPermissionsState;
 	private Map<Long, UsersRestrictionStatus> usersRestrictionStatus;
 
 	public LazyEntityStateProvider(AccessRestrictionStatusDao accessRestrictionStatusDao,
-			UsersEntityPermissionsDao usersEntityPermissionsDao, UserInfo userInfo, List<Long> entityIds) {
+			UsersEntityPermissionsDao usersEntityPermissionsDao,
+			ConditionalAccessRequirementResolver conditionalAccessRequirementResolver, UserInfo userInfo,
+			List<Long> entityIds) {
 		super();
 		this.accessRestrictionStatusDao = accessRestrictionStatusDao;
 		this.usersEntityPermissionsDao = usersEntityPermissionsDao;
+		this.conditionalAccessRequirementResolver = conditionalAccessRequirementResolver;
 		this.entityIds = entityIds;
 		this.userInfo = userInfo;
 	}
@@ -46,6 +50,10 @@ public class LazyEntityStateProvider implements EntityStateProvider {
 	public UsersRestrictionStatus getRestrictionStatus(Long entityId) {
 		if (usersRestrictionStatus == null) {
 			usersRestrictionStatus = accessRestrictionStatusDao.getEntityStatusAsMap(entityIds, userInfo.getId(), userInfo.getGroups());
+			// The query reports a conditional requirement as unmet, since it is not met by an approval it
+			// could find. Resolving here, once for the whole batch, means every caller sees the
+			// requirement as met when this caller has satisfied its condition.
+			conditionalAccessRequirementResolver.resolveUnmetConditions(userInfo, usersRestrictionStatus);
 		}
 		return usersRestrictionStatus.get(entityId);
 	}

@@ -35,6 +35,11 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
+import org.sagebionetworks.repo.model.IdentityProviderCondition;
+import org.sagebionetworks.repo.model.auth.OAuthIdentityProvider;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
+import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -510,6 +515,37 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	// create name
 	
+	@Test
+	public void testCreateConditionalAccessRequirementRoundTripsItsCondition() {
+		// The condition is carried in the requirement's serialized field, which is why it needs no column
+		// of its own. If that stopped holding, the condition would come back null and every caller would
+		// be silently denied.
+		ConditionalAccessRequirement ar = new ConditionalAccessRequirement();
+		ar.setCreatedBy(individualGroup.getId());
+		ar.setCreatedOn(new Date());
+		ar.setModifiedBy(individualGroup.getId());
+		ar.setModifiedOn(new Date());
+		ar.setEtag("10");
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setVersionNumber(1L);
+		ar.setSubjectIds(Arrays.asList(AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId())));
+		ar.setCondition(new IdentityProviderCondition().setIdentityProviders(
+				Arrays.asList(new SynapseIdentityProvider(),
+						new OAuthIdentityProvider().setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE))));
+
+		// call under test
+		ConditionalAccessRequirement created = (ConditionalAccessRequirement) accessRequirementDAO.create(ar);
+
+		ConditionalAccessRequirement fetched = (ConditionalAccessRequirement) accessRequirementDAO
+				.get(created.getId().toString());
+		assertEquals(created, fetched);
+
+		IdentityProviderCondition condition = (IdentityProviderCondition) fetched.getCondition();
+		assertEquals(Arrays.asList(new SynapseIdentityProvider(),
+				new OAuthIdentityProvider().setProvider(OAuthProvider.NIH_RESEARCHER_AUTH_SERVICE)),
+				condition.getIdentityProviders());
+	}
+
 	@Test
 	public void testCreateAccessRequirmentWithNullDescriptionAndNullName() {
 		TermsOfUseAccessRequirement ar = newEntityAccessRequirement(individualGroup, node, "foo");

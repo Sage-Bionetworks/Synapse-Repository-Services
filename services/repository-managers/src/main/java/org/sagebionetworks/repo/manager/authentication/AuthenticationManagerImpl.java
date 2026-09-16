@@ -23,8 +23,11 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderUtils;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -191,7 +194,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		// See https://sagebionetworks.jira.com/browse/PLFM-8273, when the user updates the user password we need to make sure that
 		// the 2nd factor is used to perform the operations if enabled.
 		if (user.hasTwoFactorAuthEnabled()) {
-			throw new TwoFactorAuthRequiredException(user.getId(), twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.PASSWORD_CHANGE));
+			throw new TwoFactorAuthRequiredException(user.getId(),
+					twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.PASSWORD_CHANGE, null));
 		}
 	}
 	
@@ -226,42 +230,50 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new UnauthorizedException("Cannot log in using a password.  Use the designated identity provider instead.");
 		}
 		
-		return loginWithNoPasswordCheckInternal(user, tokenIssuer);
+		// Synapse itself verified the password
+		return loginWithNoPasswordCheckInternal(user, tokenIssuer, new SynapseIdentityProvider());
 	}
 
 	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer) {
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer, IdentityProvider identityProvider) {
 		UserInfo user = userManager.getUserInfo(principalId);
-		return loginWithNoPasswordCheckInternal(user, issuer);
+		return loginWithNoPasswordCheckInternal(user, issuer, identityProvider);
 	}
 	
-	private LoginResponse loginWithNoPasswordCheckInternal(UserInfo user, String issuer) {
+	private LoginResponse loginWithNoPasswordCheckInternal(UserInfo user, String issuer, IdentityProvider identityProvider) {
 		long principalId = user.getId();
 		if (user.hasTwoFactorAuthEnabled()) {
-			throw new TwoFactorAuthRequiredException(principalId, twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION));
+			// The access token is not issued until the second factor is supplied, so the 2FA token carries
+			// the provider that authenticated this attempt through to loginWith2Fa.
+			throw new TwoFactorAuthRequiredException(principalId,
+					twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, identityProvider));
 		}
 		
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProvider);
 	}
 	
 	@Override
 	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer) {
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
+		// Only an administrator reaches this, and it is Synapse that authorized them to do so.
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, new SynapseIdentityProvider());
 	}
 	
 	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
 		UserInfo user = userManager.getUserInfo(request.getUserId());
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer);
+		IdentityProvider identityProvider = twoFaManager.getIdentityProviderFrom2FaToken(request.getTwoFaToken());
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProvider);
 	}
 	
 	@Override
 	public AccessTokenResponse getAnonymousAccessToken(String realmId, String issuer) {
 		RealmPrincipal realmPrincipals = realmDao.getRealmPrincipals(realmId);
 		String principalId = realmPrincipals.getAnonymousUser();
-		// this is the same type of token created at log-in, except it's for the 'anonymous' user
-		String accessToken = oidcTokenManager.createClientTotalAccessToken(Long.parseLong(principalId), issuer);
+		// this is the same type of token created at log-in, except it's for the 'anonymous' user, whom no
+		// identity provider authenticated
+		String identityProvider = null;
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(Long.parseLong(principalId), issuer, identityProvider);
 		AccessTokenResponse response = new AccessTokenResponse();
 		response.setAccessToken(accessToken);
 		return response;
@@ -398,12 +410,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 	}
 
-	LoginResponse getLoginResponseAfterSuccessfulAuthentication(UserInfo userInfo, String issuer) {
+	LoginResponse getLoginResponseAfterSuccessfulAuthentication(UserInfo userInfo, String issuer,
+			IdentityProvider identityProvider) {
 		long principalId = userInfo.getId();
 		validateAccountStatus(principalId);
 		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
-		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer);
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer,
+				IdentityProviderUtils.toName(identityProvider));
 		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(userInfo);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfService, newAuthenticationReceipt);

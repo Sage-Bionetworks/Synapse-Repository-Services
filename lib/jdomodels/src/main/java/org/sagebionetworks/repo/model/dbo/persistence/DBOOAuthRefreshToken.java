@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_RE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_IDENTITY_PROVIDER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OAUTH_REFRESH_TOKEN_SCOPES_JSON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_OAUTH_REFRESH_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_OAUTH_REFRESH_TOKEN;
@@ -49,6 +50,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 	private String scopesJson;
 	private byte[] claims;
 	private String claimsJson;
+	private String identityProvider;
 	private Timestamp createdOn;
 	private Timestamp modifiedOn;
 	private Timestamp lastUsed;
@@ -62,6 +64,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 			new FieldColumn("clientId", COL_OAUTH_REFRESH_TOKEN_CLIENT_ID),
 			new FieldColumn("scopesJson", COL_OAUTH_REFRESH_TOKEN_SCOPES_JSON),
 			new FieldColumn("claimsJson", COL_OAUTH_REFRESH_TOKEN_CLAIMS_JSON),
+			new FieldColumn("identityProvider", COL_OAUTH_REFRESH_TOKEN_IDENTITY_PROVIDER),
 			new FieldColumn("createdOn", COL_OAUTH_REFRESH_TOKEN_CREATED_ON),
 			new FieldColumn("modifiedOn", COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON),
 			new FieldColumn("lastUsed", COL_OAUTH_REFRESH_TOKEN_LAST_USED),
@@ -77,6 +80,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		token.setClientId(rs.getLong(COL_OAUTH_REFRESH_TOKEN_CLIENT_ID));
 		token.setScopesJson(rs.getString(COL_OAUTH_REFRESH_TOKEN_SCOPES_JSON));
 		token.setClaimsJson(rs.getString(COL_OAUTH_REFRESH_TOKEN_CLAIMS_JSON));
+		token.setIdentityProvider(rs.getString(COL_OAUTH_REFRESH_TOKEN_IDENTITY_PROVIDER));
 		token.setCreatedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_CREATED_ON));
 		token.setModifiedOn(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_MODIFIED_ON));
 		token.setLastUsed(rs.getTimestamp(COL_OAUTH_REFRESH_TOKEN_LAST_USED));
@@ -213,6 +217,14 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		this.scopesJson = scopesJson;
 	}
 
+	public String getIdentityProvider() {
+		return identityProvider;
+	}
+
+	public void setIdentityProvider(String identityProvider) {
+		this.identityProvider = identityProvider;
+	}
+
 	public String getClaimsJson() {
 		return claimsJson;
 	}
@@ -235,8 +247,8 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		int result = 1;
 		result = prime * result + Arrays.hashCode(claims);
 		result = prime * result + Arrays.hashCode(scopes);
-		result = prime * result + Objects.hash(claimsJson, clientId, createdOn, etag, id, lastUsed, modifiedOn, name,
-				principalId, scopesJson, tokenHash);
+		result = prime * result + Objects.hash(claimsJson, clientId, createdOn, etag, id, identityProvider, lastUsed,
+				modifiedOn, name, principalId, scopesJson, tokenHash);
 		return result;
 	}
 
@@ -252,6 +264,7 @@ public class DBOOAuthRefreshToken implements MigratableDatabaseObject<DBOOAuthRe
 		return Arrays.equals(claims, other.claims) && Objects.equals(claimsJson, other.claimsJson)
 				&& Objects.equals(clientId, other.clientId) && Objects.equals(createdOn, other.createdOn)
 				&& Objects.equals(etag, other.etag) && Objects.equals(id, other.id)
+				&& Objects.equals(identityProvider, other.identityProvider)
 				&& Objects.equals(lastUsed, other.lastUsed) && Objects.equals(modifiedOn, other.modifiedOn)
 				&& Objects.equals(name, other.name) && Objects.equals(principalId, other.principalId)
 				&& Arrays.equals(scopes, other.scopes) && Objects.equals(scopesJson, other.scopesJson)

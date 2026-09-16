@@ -31,6 +31,14 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	AccessRequirement get(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * The current version of each of the given access requirements.
+	 *
+	 * @param requirementIds
+	 * @return one entry per requirement found; a requirement that does not exist is simply absent
+	 */
+	List<AccessRequirement> getAccessRequirements(List<Long> requirementIds);
 	
 	/**
 	 * 

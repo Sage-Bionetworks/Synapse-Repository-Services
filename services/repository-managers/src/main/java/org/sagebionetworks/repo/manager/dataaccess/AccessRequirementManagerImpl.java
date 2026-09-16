@@ -32,6 +32,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.AccessRequirementCondition;
+import org.sagebionetworks.repo.model.ConditionalAccessRequirement;
+import org.sagebionetworks.repo.model.IdentityProviderCondition;
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderUtils;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -153,6 +158,29 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			if (expirationPeriod != null && !expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
 				ValidateArgument.requirement(expirationPeriod > DEFAULT_EXPIRATION_PERIOD, "When supplied, the expiration period should be greater than " + DEFAULT_EXPIRATION_PERIOD);
 			}
+		}
+		
+		if (ar instanceof ConditionalAccessRequirement conditionalAr) {
+			validateCondition(conditionalAr.getCondition());
+		}
+	}
+
+	/**
+	 * A condition with nothing to match can never be satisfied, which would make the requirement
+	 * permanently unmet, so an incomplete condition is rejected rather than accepted and left to fail.
+	 */
+	static void validateCondition(AccessRequirementCondition condition) {
+		ValidateArgument.required(condition, "ConditionalAccessRequirement.condition");
+		if (condition instanceof IdentityProviderCondition identityProviderCondition) {
+			ValidateArgument.requiredNotEmpty(identityProviderCondition.getIdentityProviders(),
+					"IdentityProviderCondition.identityProviders");
+			for (IdentityProvider identityProvider : identityProviderCondition.getIdentityProviders()) {
+				// Throws if the provider is of an unrecognized type, so a condition that could never be
+				// matched cannot be stored.
+				IdentityProviderUtils.toName(identityProvider);
+			}
+		} else {
+			throw new IllegalArgumentException("Unsupported condition type: " + condition.getConcreteType());
 		}
 	}
 

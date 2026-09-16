@@ -28,7 +28,7 @@ public interface OpenIDConnectManager {
 	 * @param authorizationRequest
 	 * @return
 	 */
-	OAuthAuthorizationResponse authorizeClient(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
+	OAuthAuthorizationResponse authorizeClient(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest, String identityProvider);
 	
 	/**
 	 * Obtain an access token, and conditionally an ID token and/or refresh token using an authorization code
@@ -56,7 +56,7 @@ public interface OpenIDConnectManager {
 	 * @return the user ID of the Synapse user referred to by the access token
 	 * @throws UnauthorizedException if an associated refresh token is expired
 	 */
-	String validateAccessToken(String accessToken) throws UnauthorizedException;
+	ValidatedAccessToken validateAccessToken(String accessToken) throws UnauthorizedException;
 
 	/**
 	 * Return true iff the specified user has already granted consent for the given client, socpe and claims
