@@ -216,6 +216,25 @@ public class SearchFieldRewriterTest {
 	}
 
 	@Test
+	public void testRewriteRequestFieldsWithQueryStringFieldsAndDefaultField() throws IOException {
+		JsonNode dsl = parse("{\"query_string\":{\"query\":\"title: hello\","
+				+ "\"fields\":[\"title^3\",\"ghost\"],"
+				+ "\"default_field\":\"name\"}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY);
+
+		JsonNode qs = dsl.get("query_string");
+		assertEquals("100^3", qs.get("fields").get(0).asText());
+		// Unknown name passes through unchanged.
+		assertEquals("ghost", qs.get("fields").get(1).asText());
+		// default_field is rewritten name -> id.
+		assertEquals("101", qs.get("default_field").asText());
+		// The embedded field reference inside the query text is NOT rewritten (known limitation).
+		assertEquals("title: hello", qs.get("query").asText());
+	}
+
+	@Test
 	public void testRewriteRequestFieldsWithDeepNesting() throws IOException {
 		JsonNode dsl = parse("{\"bool\":{"
 				+ "\"must\":[{\"match\":{\"field\":\"title\",\"query\":\"a\"}}],"
