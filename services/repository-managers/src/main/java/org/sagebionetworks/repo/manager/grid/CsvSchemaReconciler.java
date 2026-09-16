@@ -7,25 +7,28 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
 import org.sagebionetworks.repo.model.schema.Type;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
 
 /**
- * Reconciles CSV-inferred column types with the bound JSON schema on a
- * RecordSet. CSV inference only sees the rows of a single file, so it can land
- * on a type that is more specific than the type the schema declares (e.g.
- * ENTITYID for a property defined as a string). Where the two disagree the
- * schema wins:
+ * Determines how the values of a CSV are read into a grid, by reconciling the
+ * types inferred from the CSV data with the bound JSON schema. Inference only
+ * sees the rows of a single file, so it can land on a type that is more specific
+ * than the type the schema declares (e.g. ENTITYID for a property defined as a
+ * string). Where the two disagree the schema wins:
  * - A property of {@code "type": "array"} upgrades the column to the list
  *   equivalent of its element type (e.g. STRING to STRING_LIST).
  * - A property of {@code "type": "string"} replaces an inferred ENTITYID,
- *   INTEGER or other non-text type with STRING or MEDIUMTEXT.
+ *   INTEGER or other non-text type with STRING.
  * - A property of {@code "type": "integer"} replaces an inferred
  *   ENTITYID with INTEGER.
  * A column that does not match a top-level schema property keeps its inferred
  * type.
+ * The result describes the shape of the data only. The limits a Synapse table
+ * index imposes on a column type (such as the maximum size of a STRING) are not
+ * considered here; a caller that also makes the CSV queryable through the table
+ * services is responsible for capping the result to what that index can store.
  */
 public class CsvSchemaReconciler {
 
@@ -106,18 +109,14 @@ public class CsvSchemaReconciler {
 
 	/**
 	 * A string property replaces any inferred type that is more specific than text.
-	 * A {@code maxLength} within the size a STRING column allows becomes a sized
-	 * STRING, everything else is unbounded and becomes MEDIUMTEXT.
+	 * The declared {@code maxLength} rides along as the column size, unset when the
+	 * property does not bound its length.
 	 */
 	private static void applyStringType(ColumnModel column, Long maxLength) {
 		if (TEXT_COLUMN_TYPES.contains(column.getColumnType())) {
 			return;
 		}
-		if (maxLength != null && maxLength >= 1 && maxLength <= ColumnConstants.MAX_ALLOWED_STRING_SIZE) {
-			column.setColumnType(ColumnType.STRING).setMaximumSize(maxLength);
-		} else {
-			column.setColumnType(ColumnType.MEDIUMTEXT).setMaximumSize(null);
-		}
+		column.setColumnType(ColumnType.STRING).setMaximumSize(maxLength);
 	}
 
 	/**

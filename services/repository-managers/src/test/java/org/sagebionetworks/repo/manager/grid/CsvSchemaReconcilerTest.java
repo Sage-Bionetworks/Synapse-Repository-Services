@@ -11,7 +11,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Type;
-import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 
@@ -146,7 +145,8 @@ public class CsvSchemaReconcilerTest {
 		));
 		// call under test
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
-		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.MEDIUMTEXT), csvSchema.get(0));
+		// an unbounded string has no size to carry over
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING), csvSchema.get(0));
 	}
 
 	@Test
@@ -164,17 +164,18 @@ public class CsvSchemaReconcilerTest {
 	}
 
 	@Test
-	public void testReconcileWithEntityIdToStringSchemaWithMaxLengthOverStringLimit() {
+	public void testReconcileWithEntityIdToStringSchemaWithLargeMaxLength() {
 		List<ColumnModel> csvSchema = Arrays.asList(
 				new ColumnModel().setName("col1").setColumnType(ColumnType.ENTITYID)
 		);
 		JsonSchema validationSchema = new JsonSchema().setProperties(Collections.singletonMap(
-				"col1", new JsonSchema().setType(Type.string)
-						.setMaxLength(ColumnConstants.MAX_ALLOWED_STRING_SIZE + 1)
+				"col1", new JsonSchema().setType(Type.string).setMaxLength(5000L)
 		));
 		// call under test
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
-		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.MEDIUMTEXT), csvSchema.get(0));
+		// the size a table index allows for a STRING is not a concern of the reconciler
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING).setMaximumSize(5000L),
+				csvSchema.get(0));
 	}
 
 	@Test
@@ -214,7 +215,7 @@ public class CsvSchemaReconcilerTest {
 		));
 		// call under test
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
-		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.MEDIUMTEXT), csvSchema.get(0));
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING), csvSchema.get(0));
 	}
 
 	@Test
@@ -284,6 +285,19 @@ public class CsvSchemaReconcilerTest {
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
 		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING_LIST).setMaximumSize(64L),
 				csvSchema.get(0));
+	}
+
+	@Test
+	public void testReconcileWithEntityIdToArrayOfUnboundedStringSchema() {
+		List<ColumnModel> csvSchema = Arrays.asList(
+				new ColumnModel().setName("col1").setColumnType(ColumnType.ENTITYID)
+		);
+		JsonSchema validationSchema = new JsonSchema().setProperties(Collections.singletonMap(
+				"col1", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))
+		));
+		// call under test
+		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING_LIST), csvSchema.get(0));
 	}
 
 	@Test
