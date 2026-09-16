@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.authentication;
 
+import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
@@ -60,7 +61,13 @@ public interface TwoFactorAuthManager {
 	 * @param context The context within which the token is generated
 	 * @return Base64 encoded token that can be used to perform operations with 2FA, restricted to the given set of OTP code types
 	 */
-	String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context);
+	String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, IdentityProvider identityProvider);
+
+	/**
+	 * The identity provider recorded in the given 2FA token when it was generated, or null if none was.
+	 * The token is signed, so callers that have validated it can trust the value.
+	 */
+	IdentityProvider getIdentityProviderFrom2FaToken(String encodedToken);
 	
 	/**
 	 * @param user

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Date;
 
+import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.authentication.TwoFactorAuthManager;
@@ -208,7 +209,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 					.setState(VerificationStateEnum.APPROVED));
 		}
 		
-		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null);
+		// The user is created with a password in Synapse, so Synapse is the provider
+		return authManager.loginWithNoPasswordCheck(createdUser.getId(), null, new SynapseIdentityProvider());
 	}
 	
 	@Override

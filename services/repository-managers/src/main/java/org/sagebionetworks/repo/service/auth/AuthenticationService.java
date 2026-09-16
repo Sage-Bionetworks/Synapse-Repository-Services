@@ -121,7 +121,8 @@ public interface AuthenticationService {
 	 * @param oauthEndpoint
 	 * @return
 	 */
-	AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint);
+	AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
+			String identityProvider);
 
 	/**
 	 * Retrieves the list of issued personal access token records (both active and expired tokens) for the requesting user.

@@ -137,7 +137,7 @@ public interface OpenIDConnectService {
 	 * @param authorizationRequest
 	 * @return authorization code
 	 */
-	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest);
+	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest, String identityProvider);
 	
 	/**
 	 * 

@@ -105,7 +105,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		oauthClient = oauthClientManager.createOpenIDConnectClient(userInfo, toCreate);
 		assertNotNull(oauthClient.getClient_id());
 	
-		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null, null);
 	}
 
 	@AfterEach
@@ -156,7 +156,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// method under test
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest);
+				authorizeClient(userInfo, authorizationRequest, null);
 
 		assertNotNull(authResponse.getAccess_code());
 
@@ -189,7 +189,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest);
+				authorizeClient(userInfo, authorizationRequest, null);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -234,7 +234,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest);
+				authorizeClient(userInfo, authorizationRequest, null);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -260,7 +260,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 		OIDCAuthorizationRequest authorizationRequest = new OIDCAuthorizationRequest();
 		authorizationRequest.setClientId(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID);
 
-		assertThrows(OAuthBadRequestException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest));
+		assertThrows(OAuthBadRequestException.class, () -> openIDConnectManager.authorizeClient(userInfo, authorizationRequest, null));
 	}
 
 	@Test
@@ -291,7 +291,7 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 		// tested in testAuthorizationCodeRoundTrip
 		OAuthAuthorizationResponse authResponse = openIDConnectManager.
-				authorizeClient(userInfo, authorizationRequest);
+				authorizeClient(userInfo, authorizationRequest, null);
 
 		// tested in testAuthorizationCodeRoundTrip
 		OIDCTokenResponse tokenResponse =
@@ -363,11 +363,13 @@ public class OpenIDConnectManagerImplAutowiredTest {
 
 	@Test
 	public void testValidatePersonalAccessToken() {
-		// Issue a PAT to the user
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
+		// Issue a PAT to the user, recording the provider that authenticated the session creating it. This
+		// signs and parses a real JWT, so it shows the claim surviving the round trip.
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, "ORCID").getToken();
 
 		// method under test
-		assertEquals(userInfo.getId().toString(), openIDConnectManager.validateAccessToken(token));
+		assertEquals(new ValidatedAccessToken(userInfo.getId().toString(), "ORCID"),
+				openIDConnectManager.validateAccessToken(token));
 
 		// Revoke the token
 		Claims claims = oidcTokenManager.parseJWT(token).getBody();
