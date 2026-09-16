@@ -353,9 +353,14 @@ public class DBODiscussionThreadDAOImpl implements DiscussionThreadDAO {
 	@WriteTransaction
 	@Override
 	public void updateThreadView(long threadId, long userId) {
-		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, threadId, userId);
+		// Update the parent DISCUSSION_THREAD row first so this transaction takes an
+		// exclusive (X) lock directly. If we INSERTed into the child DISCUSSION_THREAD_VIEW
+		// first, the FK check would take a shared (S) lock on the parent row, and a
+		// concurrent caller doing the same would also hold S; both would then try to
+		// upgrade to X for this UPDATE, producing an S->X deadlock on DISCUSSION_THREAD.
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(SQL_UPDATE_THREAD_ETAG, etag, threadId);
+		jdbcTemplate.update(SQL_UPDATE_THREAD_VIEW_TABLE, threadId, userId);
 	}
 
 	@Override
