@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
@@ -267,6 +268,20 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			addRowLevelFilter(user, qs, types);
 		}
 
+		// 5. When an aggregate-only source defines quasi-identifier (QID) columns and this
+		// request asks for rows, enforce the count-only QID restriction now and capture which
+		// output columns are protected participant counts. A violation withholds the rows via
+		// a RowSuppressionException; a request that does not ask for rows degrades to the
+		// aggregate-only response (gated count + obscured facets) and imposes no restriction.
+		List<Integer> protectedCountColumnIndexes = Collections.emptyList();
+		if (options.runQuery() && aggregateDataConfiguration != null
+				&& aggregateDataConfiguration.getQuasiIdentifierColumnNames() != null
+				&& !aggregateDataConfiguration.getQuasiIdentifierColumnNames().isEmpty()) {
+			List<ColumnModel> sourceSchema = tableManagerSupport.getTableSchema(idAndVersion);
+			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model,
+					aggregateDataConfiguration.getQuasiIdentifierColumnNames(), sourceSchema);
+		}
+
 		QueryContext expansion = QueryContext.builder()
 			.setStartingSql(preprocessedModel.toSql())
 			.setUserId(user.getId())
@@ -282,13 +297,9 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
+			.setProtectedCountColumnIndexes(protectedCountColumnIndexes)
 		.build();
 
-		// Aggregate-only queries currently suppress all row data (see executeQuery), so a
-		// restricted row-level column in the outer SELECT leaks nothing here. The structural
-		// column restriction (reject a bare row-level source column, allowing only aggregate
-		// expressions and GROUP BY keys) becomes load-bearing in PLFM-9757, where aggregate
-		// result rows are actually returned; it is deferred to that ticket.
 		return new QueryTranslations(expansion, options);
 	}
 
@@ -394,17 +405,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
 		}
 
-		// run the actual query if needed. Aggregate-only queries never return rows.
-		if (options.runQuery() && !query.isAggregateOnly()) {
-			// run the query
-			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
-			QueryResult queryResult = new QueryResult();
-			queryResult.setQueryResults(rowSet);
-			bundle.setQueryResult(queryResult);
-		}
-
-		// run the count query if needed. An aggregate-only query always runs the count
-		// to enforce the suppression gate against the number of matched rows.
+		// Run the count first. An aggregate-only query always runs the count to enforce the
+		// suppression gate against the number of matched rows. That gate must run before the main
+		// query so that a below-threshold cohort withholds its rows without first computing them
+		// (and, on the streaming path, emitting them to the row handler) only to discard the work.
 		if (options.runCount() || query.isAggregateOnly()) {
 			// count requested.
 			Long count = runCountQuery(query.getCountQuery().orElseThrow(()-> new IllegalStateException("Expected a count query")), indexDao);
@@ -420,6 +424,23 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				}
 			}
 			bundle.setQueryCount(count);
+		}
+
+		// run the actual query if needed.
+		if (options.runQuery()) {
+			if (!query.isAggregateOnly() || query.isRowReturningAggregate()) {
+				// Either full read access, or an aggregate-only source that defines quasi-identifier
+				// columns and passed the count-only QID validation in pre-flight. In the latter case
+				// cell-level k-anonymity has already been pushed into the executed SQL, so the rows
+				// returned here are already suppressed regardless of whether they were materialized or
+				// streamed.
+				RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
+				QueryResult queryResult = new QueryResult();
+				queryResult.setQueryResults(rowSet);
+				bundle.setQueryResult(queryResult);
+			}
+			// Otherwise this is a plain aggregate-only read (no QID columns): no row-level data is
+			// returned, only the gated count and obscured facets below.
 		}
 
 		if (options.returnFacets()) {

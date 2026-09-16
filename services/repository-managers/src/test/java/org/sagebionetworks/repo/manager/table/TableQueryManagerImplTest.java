@@ -933,6 +933,86 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testExecuteQueryRowReturningAggregate() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the aggregate-only gate still runs a count against the cohort size
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		// the row-returning aggregate executes the main query; suppression is already in the SQL
+		when(mockQueryExecutor.executeQuery(any(), any())).thenReturn(rowSet);
+
+		// A source that defines quasi-identifier columns turns an aggregate-only read into a
+		// row-returning aggregate: rows are returned once each protected count has been suppressed.
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(results);
+		// rows are returned (already suppressed in SQL) and the gated cohort count is included
+		assertNotNull(results.getQueryResult());
+		assertEquals(rowSet, results.getQueryResult().getQueryResults());
+		assertEquals(count, results.getQueryCount());
+		verify(mockQueryExecutor).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryRowReturningAggregateBelowThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count query matches 201 rows, which is below the threshold
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+		assertEquals(500L, thrown.getSuppressionThreshold());
+		// the gate runs before the main query, so a below-threshold cohort never materializes rows
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryRowReturningAggregateStreaming() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the aggregate-only gate still runs a count against the cohort size
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		// streaming pushes each already-suppressed row through the handler
+		setupQueryCallback();
+
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions,
+				new StreamingQueryExecutor(mockRowHandler));
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertEquals(count, results.getQueryCount());
+		// every row is streamed to the handler
+		verify(mockTableIndexDAO).queryAsStream(any(QueryTranslator.class), any(RowHandler.class));
+	}
+
+	@Test
 	public void testQueryAfterAuthorizationAggregateOnly() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();

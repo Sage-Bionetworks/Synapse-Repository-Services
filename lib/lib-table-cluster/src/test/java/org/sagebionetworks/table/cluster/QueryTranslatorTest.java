@@ -25,6 +25,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -538,6 +539,53 @@ public class QueryTranslatorTest {
 				Lists.newArrayList(TableModelUtils.createSelectColumn("MIN(foo)", ColumnType.STRING, null),
 						TableModelUtils.createSelectColumn("MAX(bar)", ColumnType.STRING, null)),
 				translator.getSelectColumns());
+	}
+
+	@Test
+	public void testBuildWithCountSuppressionMask() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				List.of(1));
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+
+		assertEquals(
+				"SELECT _C111_, CASE WHEN COUNT(_C333_) > 0 AND COUNT(_C333_) < 5 THEN -1 ELSE COUNT(_C333_) END FROM T123 GROUP BY _C111_",
+				translator.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithCountSuppressionExclude() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		CountSuppressionSpec spec = new CountSuppressionSpec(AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+				List.of(1));
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).countSuppressionSpec(spec).build();
+
+		assertEquals(
+				"SELECT _C111_, COUNT(_C333_) FROM T123 GROUP BY _C111_ HAVING (COUNT(_C333_) = 0 OR COUNT(_C333_) >= 5)",
+				translator.getOutputSQL());
+	}
+
+	@Test
+	public void testBuildWithoutCountSuppressionSpec() throws ParseException {
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(tableSchema);
+		setupGetColumns(columnNameToModelMap.get("foo"));
+
+		QueryTranslator translator = QueryTranslator
+				.builder("select foo, count(bar) from syn123 group by foo", mockSchemaProvider, userId)
+				.indexDescription(new TableIndexDescription(idAndVersion)).build();
+
+		// Without a suppression spec the counts are returned unchanged.
+		assertEquals("SELECT _C111_, COUNT(_C333_) FROM T123 GROUP BY _C111_", translator.getOutputSQL());
 	}
 
 	@Test

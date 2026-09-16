@@ -1,0 +1,31 @@
+{
+	"description": "A machine-readable code explaining why the row results of a query against an aggregate-only source were withheld. When such a query requests row results, it is rejected with this code rather than returning rows.",
+	"name": "RowSuppressionReasonCode",
+	"type": "string",
+	"enum": [
+		{
+			"name": "QID_PROJECTED",
+			"description": "A quasi-identifier column is projected in the select list as more than the argument of a COUNT (e.g. selected directly or via 'select *')."
+		},
+		{
+			"name": "QID_IN_NON_COUNT_AGGREGATE",
+			"description": "A quasi-identifier column is used as the argument of an aggregate function other than COUNT (e.g. MAX, MIN, SUM, AVG, GROUP_CONCAT)."
+		},
+		{
+			"name": "QID_IN_GROUP_BY",
+			"description": "A quasi-identifier column appears in a GROUP BY clause."
+		},
+		{
+			"name": "QID_IN_ORDER_BY",
+			"description": "A quasi-identifier column appears in an ORDER BY clause."
+		},
+		{
+			"name": "QID_IN_SELECT_DISTINCT",
+			"description": "A quasi-identifier column appears in a SELECT DISTINCT clause."
+		},
+		{
+			"name": "QID_IN_EXPRESSION",
+			"description": "A quasi-identifier column is used within an arithmetic or string expression."
+		}
+	]
+}
