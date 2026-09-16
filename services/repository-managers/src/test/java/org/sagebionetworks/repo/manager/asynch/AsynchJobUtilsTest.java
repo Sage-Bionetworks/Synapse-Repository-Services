@@ -75,7 +75,7 @@ public class AsynchJobUtilsTest {
 		jobStatus.setException(exception.getClass().getName());
 		jobStatus.setErrorDetails(exception.getMessage());
 		jobStatus.setErrorMessage(exception.getMessage());
-		IllegalArgumentException result = assertThrows(IllegalArgumentException.class, ()->{
+		AsynchJobFailedException result = assertThrows(AsynchJobFailedException.class, ()->{
 			// call under test
 			AsynchJobUtils.throwExceptionIfFailed(jobStatus);
 		});
