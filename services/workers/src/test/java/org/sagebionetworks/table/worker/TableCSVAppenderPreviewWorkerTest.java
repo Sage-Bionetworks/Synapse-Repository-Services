@@ -24,9 +24,10 @@ import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.progress.ProgressListener;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 /**
  * Unit test for TableCSVAppenderPreviewWorker.
@@ -42,37 +43,34 @@ public class TableCSVAppenderPreviewWorkerTest {
 	@Mock
 	private AsyncJobProgressCallback mockJobCallback;
 	@Mock
-	private S3Object mockS3Ojbect;
-	@Mock
-	private S3ObjectInputStream mockInputStream;	
-	
+	private ResponseInputStream<GetObjectResponse> mockObjectStream;
+
 	@InjectMocks
 	private TableCSVAppenderPreviewWorker worker;
-	
+
 
 	private UploadToTablePreviewRequest request;
 	private S3FileHandle fileHandle;
-	private ObjectMetadata fileMetadata;
+	private HeadObjectResponse fileMetadata;
 
 	private UserInfo userInfo;
 
 	@BeforeEach
 	public void before() throws JSONObjectAdapterException{
-		
+
 		request = new UploadToTablePreviewRequest();
 		request.setUploadFileHandleId("fileHandleId");
 
 		userInfo = new UserInfo(false, 123L, AuthorizationConstants.DEFAULT_REALM_ID);
-		
+
 		fileHandle = new S3FileHandle();
 		fileHandle.setBucketName("bucketName");
 		fileHandle.setKey("key");
 		when(mockFileHandleManager.getRawFileHandle(any(UserInfo.class), anyString())).thenReturn(fileHandle);
-		
-		fileMetadata = new ObjectMetadata();
-		when(mockS3Client.getObjectMetadata(anyString(), anyString())).thenReturn(fileMetadata);
-		when(mockS3Client.getObject(anyString(), anyString())).thenReturn(mockS3Ojbect);
-		when(mockS3Ojbect.getObjectContent()).thenReturn(mockInputStream);
+
+		fileMetadata = HeadObjectResponse.builder().contentLength(1024L).build();
+		when(mockS3Client.getObjectMetadataV2(anyString(), anyString())).thenReturn(fileMetadata);
+		when(mockS3Client.getObjectV2(any(GetObjectRequest.class))).thenReturn(mockObjectStream);
 	}
 	
 	@Test

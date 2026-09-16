@@ -25,8 +25,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -85,12 +85,12 @@ public class LogCollateIntegrationTest {
 		String singleKey = null;
 		long start = System.currentTimeMillis();
 		do{
-			ObjectListing listing = logDAO.listAllStackInstanceLogs(null);
+			ListObjectsV2Response listing = logDAO.listAllStackInstanceLogs(null);
 			// Find all the keys for this test
 			List<String> allKeys = new LinkedList<String>();
-			for(S3ObjectSummary sum: listing.getObjectSummaries()){
-				if(sum.getKey().contains(type)){
-					allKeys.add(sum.getKey());
+			for(S3Object sum: listing.contents()){
+				if(sum.key().contains(type)){
+					allKeys.add(sum.key());
 				}
 			}
 			if(allKeys.size() == 1){

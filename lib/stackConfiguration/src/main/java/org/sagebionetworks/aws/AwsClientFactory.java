@@ -3,6 +3,8 @@ package org.sagebionetworks.aws;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
+
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.athena.AmazonAthena;
 import com.amazonaws.services.athena.AmazonAthenaClientBuilder;
@@ -57,7 +59,7 @@ public class AwsClientFactory {
 			AmazonS3 amazonS3 = builder.build();
 			regionSpecificS3Clients.put(getS3RegionForAWSRegions(region), amazonS3);
 		}
-		return new SynapseS3ClientImpl(regionSpecificS3Clients);
+		return new SynapseS3ClientImpl(regionSpecificS3Clients, AwsClientFactoryV2.createS3ClientProvider());
 	}
 
 	/**

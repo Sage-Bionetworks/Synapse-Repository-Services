@@ -39,13 +39,17 @@ import java.net.URL;
 import java.util.List;
 
 /*
- * 
+ *
  * This is a facade for AmazonS3 (Amazon's S3 Client), exposing just the methods used by Synapse
- * and, in each method, doing the job of figuring out which region the given bucket is in, 
+ * and, in each method, doing the job of figuring out which region the given bucket is in,
  * so that the S3 Client for that region is used.
- * 
+ *
+ * The methods declared here are backed by AWS SDK v1. Each has a v2-typed sibling inherited from
+ * SynapseS3ClientV2; callers migrate to those siblings one at a time and the v1 methods below are
+ * removed once the last caller is gone (PLFM-9749).
+ *
  */
-public interface SynapseS3Client {
+public interface SynapseS3Client extends SynapseS3ClientV2 {
 	ObjectMetadata getObjectMetadata(String bucketName, String key) throws SdkClientException, AmazonServiceException;
 
 	void deleteObject(String bucketName, String key) throws SdkClientException, AmazonServiceException;
