@@ -136,6 +136,28 @@ public class GA4GHPassportClaimProviderTest {
 	}
 
 	@Test
+	public void testGetVisaForAccessRequirementJsonSchemaApproved() {
+		long now = System.currentTimeMillis();
+		when(clock.currentTimeMillis()).thenReturn(now);
+		// method under test
+		GA4GHVisa actual =
+				claimProvider.getVisaForAccessRequirement(
+				ACCESS_REQUIREMENT_ID, "org.sagebionetworks.repo.model.JsonSchemaAccessRequirement", AUTH_ENDPOINT);
+		GA4GHVisa expected = createGA4GHVisa(now, GA4GHByType.dac, GA4GHVisaType.ControlledAccessGrants);
+		assertEquals(expected, actual);
+	}
+
+	@Test
+	public void testGetVisaForAccessRequirementWithUnsupportedType() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// method under test
+			claimProvider.getVisaForAccessRequirement(
+				ACCESS_REQUIREMENT_ID, "org.sagebionetworks.repo.model.TermsOfUseAccessRequirement", AUTH_ENDPOINT);
+		}).getMessage();
+		assertEquals("Unexpected AccessRequirement type: org.sagebionetworks.repo.model.TermsOfUseAccessRequirement", message);
+	}
+
+	@Test
 	public void testClaim() {
 		/*
 		 * Since we mock stack configuration we have to reintroduce a (valid, though NOT production)

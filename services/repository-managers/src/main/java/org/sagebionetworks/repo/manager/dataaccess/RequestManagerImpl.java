@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestStatusEnum;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.HasExpiration;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -72,8 +72,8 @@ public class RequestManagerImpl implements RequestManager{
 		validateEnvelopeCompletion(toCreate);
 		validateFileHandleAccess(userInfo, toCreate);
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
-				"A Request can only associate with an ManagedACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof HasExpiration,
+				"A Request can only associate with a managed access requirement.");
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
 		return result;
