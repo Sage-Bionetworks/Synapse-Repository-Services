@@ -255,7 +255,7 @@ public class ITJsonSchemaAccessRequirementTest {
 
 	private JsonSchemaAccessRequirement newAccessRequirement(String templateId, Long templateVersionNumber) {
 		return new JsonSchemaAccessRequirement().setAccessType(ACCESS_TYPE.DOWNLOAD)
-				.setName(namePrefix + " access requirement")
+				.setName("AR " + UUID.randomUUID())
 				.setSubjectIds(List.of(new RestrictableObjectDescriptor().setId(project.getId())
 						.setType(RestrictableObjectType.ENTITY)))
 				.setFormTemplateRef(reference(templateId, templateVersionNumber));
