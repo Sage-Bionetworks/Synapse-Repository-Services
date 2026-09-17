@@ -104,7 +104,8 @@ public class ITJsonSchemaAccessRequirementTest {
 
 		assertNotNull(created.getId());
 		assertNotNull(created.getEtag());
-		assertEquals(1L, created.getVersionNumber().longValue());
+		// An access requirement is versioned from zero, unlike the form template it points at
+		assertEquals(0L, created.getVersionNumber().longValue());
 		assertEquals(ACCESS_TYPE.DOWNLOAD, created.getAccessType());
 		assertEquals(reference(template.getId(), 1L), created.getFormTemplateRef());
 		// The defaults are the ones shared with the managed ACT requirement type
@@ -128,7 +129,7 @@ public class ITJsonSchemaAccessRequirementTest {
 		// call under test
 		JsonSchemaAccessRequirement updated = adminSynapse.updateAccessRequirement(created);
 
-		assertEquals(2L, updated.getVersionNumber().longValue());
+		assertEquals(1L, updated.getVersionNumber().longValue());
 		assertEquals(reference(template.getId(), 2L), updated.getFormTemplateRef());
 
 		// call under test
