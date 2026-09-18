@@ -48,6 +48,9 @@ import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.HighlighterType;
 import org.opensearch.client.opensearch.core.search.Rescore;
 import org.opensearch.client.opensearch.core.search.RescoreQuery;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.ObjectSchemaImpl;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -1684,6 +1687,25 @@ public class SearchDslValidatorTest {
 						"{\"bool\":{\"must\":[{\"bool\":{\"must\":[{\"term\":{\"s\":{\"value\":{\"bad\":1}}}}]}}]}}"),
 						null, null));
 		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
+	}
+
+	@Test
+	public void testWalkOpaqueLeavesWithUnregisteredNewOpaqueLeafRejectsNonScalar() throws Exception {
+		// The core PLFM-9714 guarantee: a schema position that is not, and has never been, in
+		// OPAQUE_LEAF_EXCEPTIONS is still scalar-enforced with no code change, because it is
+		// discovered structurally rather than by a hand-maintained list. Built from a synthetic
+		// schema so this holds regardless of what the real dsl.Query / dsl.Aggregation schemas
+		// happen to contain today.
+		ObjectSchema synthetic = new ObjectSchemaImpl(new JSONObjectAdapterImpl(
+				"{\"name\":\"SyntheticClause\",\"type\":\"object\","
+						+ "\"properties\":{\"brand_new_field\":{\"type\":\"object\"}}}"));
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(synthetic,
+				MAPPER.readTree("{\"brand_new_field\":\"scalar\"}"), null, null));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.walkOpaqueLeaves(synthetic,
+						MAPPER.readTree("{\"brand_new_field\":{\"unexpected\":\"shape\"}}"), null, null));
+		assertTrue(ex.getMessage().contains("SyntheticClause#brand_new_field"));
 	}
 
 	// ---------- checkOpaqueLeaf ----------

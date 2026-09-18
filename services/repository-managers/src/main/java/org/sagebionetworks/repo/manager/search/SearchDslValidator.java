@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -428,52 +432,52 @@ final class SearchDslValidator {
 	}
 
 	/**
-	 * Enumerate every opaque-leaf key reachable from {@code schema}, for
+	 * Enumerate every opaque-leaf key reachable from {@code rootSchema}, for
 	 * {@code SearchDslOpaqueLeafCoverageTest} to compare against a frozen list &mdash; the build-time
 	 * guard that {@link #OPAQUE_LEAF_EXCEPTIONS} stays in lock-step with the schema. This mirrors
-	 * {@link #walkOpaqueLeaves}'s structural rules but walks the schema alone, with no JSON data to
-	 * bound recursion, so a {@code $recursiveRef} is only followed once per anchor on a given path
-	 * (an {@code onPath} guard) rather than relying on the data running out.
+	 * {@link #walkOpaqueLeaves}'s structural rules but walks the schema alone (an explicit worklist,
+	 * since there is no JSON data to bound recursion) and follows a given {@code $recursiveRef}
+	 * anchor only once ever &mdash; re-expanding it again would only rediscover the same keys.
 	 */
-	static Set<String> collectOpaqueLeafKeys(ObjectSchema schema) {
-		Set<String> keys = new java.util.LinkedHashSet<>();
-		collectOpaqueLeafKeys(schema, null, null, keys, new java.util.HashSet<>());
+	static Set<String> collectOpaqueLeafKeys(ObjectSchema rootSchema) {
+		record Item(ObjectSchema schema, String label, ObjectSchema recursiveAnchor) {
+		}
+		Set<String> keys = new LinkedHashSet<>();
+		Set<ObjectSchema> visitedAnchors = new HashSet<>();
+		Deque<Item> worklist = new ArrayDeque<>(List.of(new Item(rootSchema, null, null)));
+		while (!worklist.isEmpty()) {
+			Item item = worklist.pop();
+			ObjectSchema schema = item.schema();
+			if (schema == null) {
+				continue;
+			}
+			ObjectSchema recursiveAnchor = Boolean.TRUE.equals(schema.get$recursiveAnchor())
+					? schema : item.recursiveAnchor();
+			if ("#".equals(schema.get$recursiveRef())) {
+				if (visitedAnchors.add(recursiveAnchor)) {
+					worklist.push(new Item(recursiveAnchor, item.label(), recursiveAnchor));
+				}
+				continue;
+			}
+			TYPE type = schema.getType();
+			if (type == TYPE.OBJECT) {
+				Map<String, ObjectSchema> properties = schema.getProperties();
+				if (properties == null || properties.isEmpty()) {
+					keys.add(item.label());
+					continue;
+				}
+				String enclosingName = schema.getName();
+				for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
+					worklist.push(new Item(property.getValue(), enclosingName + "#" + property.getKey(),
+							recursiveAnchor));
+				}
+			} else if (type == TYPE.MAP) {
+				worklist.push(new Item(schema.getValue(), item.label(), recursiveAnchor));
+			} else if (type == TYPE.ARRAY) {
+				worklist.push(new Item(schema.getItems(), item.label() + "[]", recursiveAnchor));
+			}
+		}
 		return keys;
-	}
-
-	private static void collectOpaqueLeafKeys(ObjectSchema schema, String label, ObjectSchema recursiveAnchor,
-			Set<String> keys, Set<ObjectSchema> onPath) {
-		if (schema == null) {
-			return;
-		}
-		if (Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
-			recursiveAnchor = schema;
-		}
-		if ("#".equals(schema.get$recursiveRef())) {
-			if (!onPath.add(recursiveAnchor)) {
-				return;
-			}
-			collectOpaqueLeafKeys(recursiveAnchor, label, recursiveAnchor, keys, onPath);
-			onPath.remove(recursiveAnchor);
-			return;
-		}
-		TYPE type = schema.getType();
-		if (type == TYPE.OBJECT) {
-			Map<String, ObjectSchema> properties = schema.getProperties();
-			if (properties == null || properties.isEmpty()) {
-				keys.add(label);
-				return;
-			}
-			String enclosingName = schema.getName();
-			for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
-				collectOpaqueLeafKeys(property.getValue(), enclosingName + "#" + property.getKey(),
-						recursiveAnchor, keys, onPath);
-			}
-		} else if (type == TYPE.MAP) {
-			collectOpaqueLeafKeys(schema.getValue(), label, recursiveAnchor, keys, onPath);
-		} else if (type == TYPE.ARRAY) {
-			collectOpaqueLeafKeys(schema.getItems(), label + "[]", recursiveAnchor, keys, onPath);
-		}
 	}
 
 	static boolean isScalar(JsonNode node) {
