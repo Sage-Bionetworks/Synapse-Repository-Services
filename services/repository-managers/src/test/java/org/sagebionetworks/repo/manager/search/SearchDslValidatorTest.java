@@ -1267,7 +1267,7 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateQueryLeafShapes("{\"match\":{\"title\":{\"query\":{\"nested\":\"obj\"}}}}"));
-		assertTrue(ex.getMessage().contains("match['title'].'query'"));
+		assertTrue(ex.getMessage().contains("MatchFieldOptions#query"));
 		assertTrue(ex.getMessage().contains("an object"));
 	}
 
@@ -1276,7 +1276,7 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateQueryLeafShapes("{\"match\":{\"title\":{\"query\":[1,2,3]}}}"));
-		assertTrue(ex.getMessage().contains("match['title'].'query'"));
+		assertTrue(ex.getMessage().contains("MatchFieldOptions#query"));
 		assertTrue(ex.getMessage().contains("an array"));
 	}
 
@@ -1300,7 +1300,7 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateQueryLeafShapes("{\"term\":{\"status\":{\"value\":{\"bad\":1}}}}"));
-		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
 	@Test
@@ -1315,7 +1315,7 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateQueryLeafShapes("{\"range\":{\"age\":{\"gte\":{\"nested\":\"obj\"}}}}"));
-		assertTrue(ex.getMessage().contains("range['age'].'gte'"));
+		assertTrue(ex.getMessage().contains("RangeFieldOptions#gte"));
 		assertTrue(ex.getMessage().contains("an object"));
 	}
 
@@ -1338,7 +1338,7 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateQueryLeafShapes("{\"terms\":{\"tags\":[\"a\",{\"nested\":1}]}}"));
-		assertTrue(ex.getMessage().contains("terms['tags'][1]"));
+		assertTrue(ex.getMessage().contains("Query#terms['tags'][1]"));
 	}
 
 	@Test
@@ -1354,7 +1354,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateQueryLeafShapes(
 						"{\"multi_match\":{\"query\":{\"bad\":1},\"fields\":[\"title\"]}}"));
-		assertTrue(ex.getMessage().contains("multi_match.query"));
+		assertTrue(ex.getMessage().contains("MultiMatchQuery#query"));
 	}
 
 	@Test
@@ -1363,7 +1363,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateQueryLeafShapes(
 						"{\"multi_match\":{\"query\":\"x\",\"fields\":[\"title\",{\"bad\":1}]}}"));
-		assertTrue(ex.getMessage().contains("multi_match.fields[1]"));
+		assertTrue(ex.getMessage().contains("MultiMatchQuery#fields[]"));
 	}
 
 	@Test
@@ -1372,7 +1372,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateQueryLeafShapes(
 						"{\"simple_query_string\":{\"query\":\"x\",\"fields\":[{\"bad\":1}]}}"));
-		assertTrue(ex.getMessage().contains("simple_query_string.fields[0]"));
+		assertTrue(ex.getMessage().contains("SimpleQueryStringQuery#fields[]"));
 	}
 
 	@Test
@@ -1381,7 +1381,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateQueryLeafShapes(
 						"{\"bool\":{\"should\":[],\"minimum_should_match\":{\"bad\":1}}}"));
-		assertTrue(ex.getMessage().contains("bool.minimum_should_match"));
+		assertTrue(ex.getMessage().contains("BoolQuery#minimum_should_match"));
 	}
 
 	@Test
@@ -1392,7 +1392,7 @@ public class SearchDslValidatorTest {
 				() -> validateQueryLeafShapes(
 						"{\"bool\":{\"filter\":[{\"match_all\":{}},"
 								+ "{\"range\":{\"age\":{\"gte\":{\"deep\":\"obj\"}}}}]}}"));
-		assertTrue(ex.getMessage().contains("range['age'].'gte'"));
+		assertTrue(ex.getMessage().contains("RangeFieldOptions#gte"));
 	}
 
 	@Test
@@ -1445,7 +1445,7 @@ public class SearchDslValidatorTest {
 				() -> validateAggregationLeafShapes(
 						"{\"by_age\":{\"histogram\":{\"field\":\"age\","
 								+ "\"extended_bounds\":{\"min\":0,\"max\":{\"bad\":1}}}}}"));
-		assertTrue(ex.getMessage().contains("histogram.extended_bounds.max"));
+		assertTrue(ex.getMessage().contains("ExtendedBounds#max"));
 	}
 
 	@Test
@@ -1455,7 +1455,7 @@ public class SearchDslValidatorTest {
 				() -> validateAggregationLeafShapes(
 						"{\"buckets\":{\"range\":{\"field\":\"age\","
 								+ "\"ranges\":[{\"from\":0,\"to\":10},{\"from\":{\"bad\":1},\"to\":20}]}}}"));
-		assertTrue(ex.getMessage().contains("range.ranges[1].from"));
+		assertTrue(ex.getMessage().contains("AggregationRange#from"));
 	}
 
 	@Test
@@ -1471,7 +1471,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateAggregationLeafShapes(
 						"{\"a\":{\"terms\":{\"field\":\"f\",\"include\":{\"bad\":1}}}}"));
-		assertTrue(ex.getMessage().contains("terms aggregation 'include'"));
+		assertTrue(ex.getMessage().contains("TermsAggregation#include"));
 	}
 
 	@Test
@@ -1494,7 +1494,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateAggregationLeafShapes(
 						"{\"a\":{\"avg\":{\"field\":\"f\",\"missing\":{\"bad\":1}}}}"));
-		assertTrue(ex.getMessage().contains("avg aggregation 'missing'"));
+		assertTrue(ex.getMessage().contains("AvgAggregation#missing"));
 	}
 
 	@Test
@@ -1512,7 +1512,7 @@ public class SearchDslValidatorTest {
 						"{\"outer\":{\"terms\":{\"field\":\"f\"},"
 								+ "\"aggregations\":{\"inner\":{\"histogram\":{\"field\":\"age\","
 								+ "\"extended_bounds\":{\"min\":{\"bad\":1},\"max\":10}}}}}}"));
-		assertTrue(ex.getMessage().contains("histogram.extended_bounds.min"));
+		assertTrue(ex.getMessage().contains("ExtendedBounds#min"));
 	}
 
 	@Test
@@ -1524,7 +1524,7 @@ public class SearchDslValidatorTest {
 				() -> validateAggregationLeafShapes(
 						"{\"a\":{\"filter\":{\"term\":{\"status\":{\"value\":{\"bad\":1}}}},"
 								+ "\"aggregations\":{\"inner\":{\"terms\":{\"field\":\"f\"}}}}}"));
-		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
 	@Test
@@ -1536,19 +1536,21 @@ public class SearchDslValidatorTest {
 						"{\"a\":{\"filters\":{\"filters\":{"
 								+ "\"ok\":{\"term\":{\"status\":{\"value\":\"y\"}}},"
 								+ "\"bad\":{\"term\":{\"status\":{\"value\":{\"nested\":1}}}}}}}}"));
-		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
 	@Test
 	public void testValidateAggregationLeafShapesWithFiltersArrayObjectQueryValueRejected() throws Exception {
-		// The array (non-keyed) filters form is gated the same way.
+		// The keyed filters form is gated the same way; the array form is no longer expressible by
+		// the FiltersAggregation schema (filters is a name-keyed map of Query), so this exercises a
+		// second keyed entry rather than an array.
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> validateAggregationLeafShapes(
-						"{\"a\":{\"filters\":{\"filters\":["
-								+ "{\"term\":{\"status\":{\"value\":\"y\"}}},"
-								+ "{\"term\":{\"status\":{\"value\":{\"nested\":1}}}}]}}}"));
-		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+						"{\"a\":{\"filters\":{\"filters\":{"
+								+ "\"ok\":{\"term\":{\"status\":{\"value\":\"y\"}}},"
+								+ "\"also_bad\":{\"term\":{\"status\":{\"value\":{\"nested\":1}}}}}}}}"));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
 	// -----------------------------------------------------------------------------
@@ -1580,7 +1582,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateHighlightQueryLeafShapes(
 						"{\"highlight_query\":{\"match\":{\"title\":{\"query\":{\"bad\":1}}}}}"));
-		assertTrue(ex.getMessage().contains("match['title'].'query'"));
+		assertTrue(ex.getMessage().contains("MatchFieldOptions#query"));
 	}
 
 	@Test
@@ -1590,7 +1592,7 @@ public class SearchDslValidatorTest {
 				// call under test
 				() -> validateHighlightQueryLeafShapes(
 						"{\"fields\":{\"title\":{\"highlight_query\":{\"term\":{\"status\":{\"value\":{\"bad\":1}}}}}}}"));
-		assertTrue(ex.getMessage().contains("term['status'].'value'"));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
 	// -----------------------------------------------------------------------------
@@ -1640,176 +1642,104 @@ public class SearchDslValidatorTest {
 	// Leaf-shape helpers — direct per-branch coverage
 	// -----------------------------------------------------------------------------
 
-	// ---------- validateQueryLeafShapesInArray ----------
+	// ---------- walkOpaqueLeaves ----------
 
 	@Test
-	public void testValidateQueryLeafShapesInArrayWithNullReturns() {
-		// call under test — null array is a no-op.
-		assertDoesNotThrow(() -> SearchDslValidator.validateQueryLeafShapesInArray(null));
+	public void testWalkOpaqueLeavesWithNullSchemaOrNodeReturns() throws Exception {
+		// call under test — either argument absent is a no-op.
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(null, MAPPER.readTree("{}"), null, null));
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(
+				SearchDslValidator.QUERY_SCHEMA, null, null, null));
 	}
 
 	@Test
-	public void testValidateQueryLeafShapesInArrayWithNonArrayReturns() throws Exception {
-		// call under test — a non-array node is left for the deserializer.
-		assertDoesNotThrow(() -> SearchDslValidator.validateQueryLeafShapesInArray(
-				MAPPER.readTree("{\"not\":\"an array\"}")));
+	public void testWalkOpaqueLeavesWithMapNonObjectNodeReturns() throws Exception {
+		// call under test — a scalar where the `match` map is expected is left for the deserializer.
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(
+				SearchDslValidator.QUERY_SCHEMA, MAPPER.readTree("{\"match\":\"scalar\"}"), null, null));
 	}
 
 	@Test
-	public void testValidateQueryLeafShapesInArrayWithElementsRecurses() throws Exception {
-		// call under test — recurses into each element; a bad shape in any element is rejected.
+	public void testWalkOpaqueLeavesWithArrayNonArrayNodeReturns() throws Exception {
+		// call under test — a scalar where the `bool.must` array is expected is left for the
+		// deserializer.
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(
+				SearchDslValidator.QUERY_SCHEMA, MAPPER.readTree("{\"bool\":{\"must\":\"scalar\"}}"), null, null));
+	}
+
+	@Test
+	public void testWalkOpaqueLeavesWithObjectNonObjectNodeReturns() throws Exception {
+		// call under test — a scalar where the `match.title` options object is expected is left for
+		// the deserializer (the shorthand {"match":{"col":"x"}} form).
+		assertDoesNotThrow(() -> SearchDslValidator.walkOpaqueLeaves(
+				SearchDslValidator.QUERY_SCHEMA, MAPPER.readTree("{\"match\":{\"title\":\"amyloid\"}}"), null, null));
+	}
+
+	@Test
+	public void testWalkOpaqueLeavesWithRecursiveRefFollowsAnchor() throws Exception {
+		// call under test — bool.must[*] is a $recursiveRef back to the Query root; a bad shape
+		// several levels deep through it must still be reached.
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchDslValidator.validateQueryLeafShapesInArray(MAPPER.readTree(
-						"[{\"match_all\":{}},{\"term\":{\"s\":{\"value\":{\"bad\":1}}}}]")));
-		assertTrue(ex.getMessage().contains("term['s'].'value'"));
+				() -> SearchDslValidator.walkOpaqueLeaves(SearchDslValidator.QUERY_SCHEMA, MAPPER.readTree(
+						"{\"bool\":{\"must\":[{\"bool\":{\"must\":[{\"term\":{\"s\":{\"value\":{\"bad\":1}}}}]}}]}}"),
+						null, null));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"));
 	}
 
-	// ---------- validateFieldKeyedScalarOptions ----------
+	// ---------- checkOpaqueLeaf ----------
 
 	@Test
-	public void testValidateFieldKeyedScalarOptionsWithAbsentClauseKindReturns() throws Exception {
-		// call under test — the named clause kind is absent (map == null), a no-op.
-		assertDoesNotThrow(() -> SearchDslValidator.validateFieldKeyedScalarOptions(
-				MAPPER.readTree("{\"other\":{}}"), "match", "query"));
-	}
-
-	@Test
-	public void testValidateFieldKeyedScalarOptionsWithNonObjectClauseKindReturns() throws Exception {
-		// call under test — the clause kind value is not an object, left for the deserializer.
-		assertDoesNotThrow(() -> SearchDslValidator.validateFieldKeyedScalarOptions(
-				MAPPER.readTree("{\"match\":\"scalar\"}"), "match", "query"));
+	public void testCheckOpaqueLeafWithNullOrNullNodeReturns() throws Exception {
+		// call under test — an absent leaf value is a no-op regardless of its exception shape.
+		assertDoesNotThrow(() -> SearchDslValidator.checkOpaqueLeaf(null, "Query#terms"));
+		assertDoesNotThrow(() -> SearchDslValidator.checkOpaqueLeaf(MAPPER.readTree("null"), "Query#terms"));
 	}
 
 	@Test
-	public void testValidateFieldKeyedScalarOptionsWithShorthandScalarColumnSkipped() throws Exception {
-		// call under test — the {"match":{"col":"x"}} shorthand (column value is a scalar, not an
-		// options object) is acceptable and skipped.
-		assertDoesNotThrow(() -> SearchDslValidator.validateFieldKeyedScalarOptions(
-				MAPPER.readTree("{\"match\":{\"title\":\"amyloid\"}}"), "match", "query"));
+	public void testCheckOpaqueLeafWithSkipShapeAcceptsAnyValue() throws Exception {
+		// TermsAggregation#order is registered SKIP — even a value that would fail every other shape
+		// (an array of objects) passes untouched.
+		assertDoesNotThrow(() -> SearchDslValidator.checkOpaqueLeaf(
+				MAPPER.readTree("[{\"_count\":\"desc\"},{\"_key\":\"asc\"}]"), "TermsAggregation#order"));
 	}
 
 	@Test
-	public void testValidateFieldKeyedScalarOptionsWithObjectOptionRejected() throws Exception {
+	public void testCheckOpaqueLeafWithUnregisteredLabelDefaultsToScalar() throws Exception {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.validateFieldKeyedScalarOptions(
-						MAPPER.readTree("{\"match\":{\"title\":{\"query\":{\"bad\":1}}}}"),
-						"match", "query"));
-		assertTrue(ex.getMessage().contains("match['title'].'query'"));
+				// call under test — a label with no exception entry requires a plain scalar.
+				() -> SearchDslValidator.checkOpaqueLeaf(MAPPER.readTree("{\"bad\":1}"), "MatchFieldOptions#query"));
+		assertTrue(ex.getMessage().contains("MatchFieldOptions#query"));
 	}
 
-	// ---------- validateSingleAggregationLeafShapes ----------
+	// ---------- requireScalarArrayKeyed (via Query#terms) ----------
 
 	@Test
-	public void testValidateSingleAggregationLeafShapesWithNullReturns() {
-		// call under test — null aggregation is a no-op.
-		assertDoesNotThrow(() -> SearchDslValidator.validateSingleAggregationLeafShapes(null));
-	}
-
-	@Test
-	public void testValidateSingleAggregationLeafShapesWithNonObjectReturns() throws Exception {
-		// call under test — a non-object aggregation node is left for the deserializer.
-		assertDoesNotThrow(() -> SearchDslValidator.validateSingleAggregationLeafShapes(
-				MAPPER.readTree("\"scalar\"")));
-	}
-
-	@Test
-	public void testValidateSingleAggregationLeafShapesWithBadMissingRejected() throws Exception {
+	public void testCheckOpaqueLeafWithScalarArrayKeyedNonObjectRejected() throws Exception {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.validateSingleAggregationLeafShapes(
-						MAPPER.readTree("{\"sum\":{\"field\":\"f\",\"missing\":{\"bad\":1}}}")));
-		assertTrue(ex.getMessage().contains("sum aggregation 'missing'"));
-	}
-
-	// ---------- checkBoundsShape ----------
-
-	@Test
-	public void testCheckBoundsShapeWithNonObjectReturns() throws Exception {
-		// call under test — a missing/non-object aggregation body short-circuits.
-		assertDoesNotThrow(() -> SearchDslValidator.checkBoundsShape(
-				MAPPER.readTree("{}").path("histogram"), "histogram"));
+				// call under test — terms must itself be an object (field-keyed), not e.g. an array.
+				() -> SearchDslValidator.checkOpaqueLeaf(MAPPER.readTree("[1,2,3]"), "Query#terms"));
+		assertTrue(ex.getMessage().contains("Query#terms"));
 	}
 
 	@Test
-	public void testCheckBoundsShapeWithHardBoundsObjectMaxRejected() throws Exception {
-		// Exercises the hard_bounds branch (the extended_bounds branch is covered via the agg facade).
+	public void testCheckOpaqueLeafWithScalarArrayKeyedScalarSiblingRejected() throws Exception {
+		// A non-array entry (e.g. `boost`) must itself be a scalar.
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
-				() -> SearchDslValidator.checkBoundsShape(
-						MAPPER.readTree("{\"hard_bounds\":{\"min\":0,\"max\":{\"bad\":1}}}"), "histogram"));
-		assertTrue(ex.getMessage().contains("histogram.hard_bounds.max"));
+				() -> SearchDslValidator.checkOpaqueLeaf(
+						MAPPER.readTree("{\"tags\":[\"a\",\"b\"],\"boost\":{\"bad\":1}}"), "Query#terms"));
+		assertTrue(ex.getMessage().contains("Query#terms['boost']"));
 	}
 
-	// ---------- checkMinMax ----------
+	// ---------- collectOpaqueLeafKeys ----------
 
 	@Test
-	public void testCheckMinMaxWithNullReturns() {
-		// call under test — absent bounds is a no-op.
-		assertDoesNotThrow(() -> SearchDslValidator.checkMinMax(null, "histogram.extended_bounds"));
-	}
-
-	@Test
-	public void testCheckMinMaxWithNonObjectReturns() throws Exception {
-		// call under test — a scalar where the bounds object is expected is left alone.
-		assertDoesNotThrow(() -> SearchDslValidator.checkMinMax(
-				MAPPER.readTree("5"), "histogram.extended_bounds"));
-	}
-
-	@Test
-	public void testCheckMinMaxWithScalarMinAndMaxAccepted() throws Exception {
-		// call under test — both scalar bounds pass.
-		assertDoesNotThrow(() -> SearchDslValidator.checkMinMax(
-				MAPPER.readTree("{\"min\":0,\"max\":100}"), "histogram.extended_bounds"));
-	}
-
-	@Test
-	public void testCheckMinMaxWithObjectMinRejected() throws Exception {
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.checkMinMax(
-						MAPPER.readTree("{\"min\":{\"bad\":1},\"max\":100}"), "histogram.extended_bounds"));
-		assertTrue(ex.getMessage().contains("histogram.extended_bounds.min"));
-	}
-
-	// ---------- checkRangesShape ----------
-
-	@Test
-	public void testCheckRangesShapeWithNonObjectReturns() throws Exception {
-		// call under test — a missing/non-object aggregation body short-circuits.
-		assertDoesNotThrow(() -> SearchDslValidator.checkRangesShape(
-				MAPPER.readTree("{}").path("range"), "range"));
-	}
-
-	@Test
-	public void testCheckRangesShapeWithAbsentRangesReturns() throws Exception {
-		// call under test — no `ranges` key is a no-op.
-		assertDoesNotThrow(() -> SearchDslValidator.checkRangesShape(
-				MAPPER.readTree("{\"field\":\"f\"}"), "range"));
-	}
-
-	@Test
-	public void testCheckRangesShapeWithNonArrayRangesReturns() throws Exception {
-		// call under test — a non-array `ranges` value is left for the deserializer.
-		assertDoesNotThrow(() -> SearchDslValidator.checkRangesShape(
-				MAPPER.readTree("{\"ranges\":\"nope\"}"), "range"));
-	}
-
-	@Test
-	public void testCheckRangesShapeWithNonObjectRangeElementSkipped() throws Exception {
-		// call under test — a non-object element in the ranges array is skipped (left for the
-		// deserializer), not treated as a from/to-bearing object.
-		assertDoesNotThrow(() -> SearchDslValidator.checkRangesShape(
-				MAPPER.readTree("{\"ranges\":[\"scalar\",{\"from\":0,\"to\":10}]}"), "range"));
-	}
-
-	@Test
-	public void testCheckRangesShapeWithObjectToBoundRejected() throws Exception {
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.checkRangesShape(
-						MAPPER.readTree("{\"ranges\":[{\"from\":0,\"to\":{\"bad\":1}}]}"), "range"));
-		assertTrue(ex.getMessage().contains("range.ranges[0].to"));
+	public void testCollectOpaqueLeafKeysWithQuerySchemaMatchesKnownSet() {
+		// The build-time coverage guard (SearchDslOpaqueLeafCoverageTest) owns the frozen assertion;
+		// this only checks that discovery terminates and finds the two leaves exercised above.
+		java.util.Set<String> keys = SearchDslValidator.collectOpaqueLeafKeys(SearchDslValidator.QUERY_SCHEMA);
+		assertTrue(keys.contains("Query#terms"));
+		assertTrue(keys.contains("MatchFieldOptions#query"));
 	}
 
 	// ---------- isScalar ----------

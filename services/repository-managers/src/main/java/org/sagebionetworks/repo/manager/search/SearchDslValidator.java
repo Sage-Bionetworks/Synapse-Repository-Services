@@ -37,6 +37,9 @@ import org.opensearch.client.opensearch.core.search.Highlight;
 import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.HighlighterType;
 import org.opensearch.client.opensearch.core.search.Rescore;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -229,101 +232,77 @@ final class SearchDslValidator {
 	}
 
 	// --------------------------------------------------------------
-	// Opaque leaf-value shape checks (raw JsonNode).
+	// Opaque leaf-value shape checks (raw JsonNode, schema-guided).
 	//
 	// A number of DSL leaf slots are schema-typed as an opaque "object" because their
 	// value is polymorphic at the JSON level (a number, a string, a date string, a
 	// boolean, or an array of those). The typed OpenSearch deserializer constrains some
 	// of them but lets others through as arbitrary JSON (e.g. a `range` bound is carried
 	// as JsonData, which accepts a nested object or array). These checks run on the clean
-	// JsonNode before deserialization and reject anything that isn't the expected shape:
-	// a single scalar where one value is expected, an array of scalars where a value list
-	// is expected. They do NOT check the value against the target column's type — number,
-	// string, and date all collapse to "scalar" here.
+	// JsonNode before deserialization and reject anything that isn't the expected shape.
+	//
+	// The set of opaque leaves to check is derived from the generated dsl.Query / dsl.Aggregation
+	// schema itself (walkOpaqueLeaves), not hand-maintained: every "type":"object" schema position
+	// with no declared properties is an opaque leaf and defaults to requiring a scalar value. A
+	// leaf whose real shape is legitimately non-scalar — or checked elsewhere, on the typed object
+	// after deserialization — is an explicit, reviewed entry in OPAQUE_LEAF_EXCEPTIONS. Adding a new
+	// opaque schema property therefore needs no code change here to be scalar-enforced; it only
+	// needs an entry if it is NOT a plain scalar. SearchDslOpaqueLeafCoverageTest fails the build if
+	// a new opaque leaf appears without an explicit accounting either way, by asserting the schema's
+	// full discovered set against a frozen list.
 	// --------------------------------------------------------------
+
+	/** Non-default shape for an opaque leaf; anything absent from {@link #OPAQUE_LEAF_EXCEPTIONS} is a plain scalar. */
+	private enum OpaqueLeafShape {
+		/** A field-keyed object whose entries are scalar arrays, with scalar siblings (e.g. {@code boost}). */
+		SCALAR_ARRAY_KEYED,
+		/** A single scalar, or an array of scalars. */
+		SCALAR_OR_SCALAR_ARRAY,
+		/** Shape is constrained elsewhere (a typed enum on the deserialized object) — not checked here. */
+		SKIP
+	}
+
+	/**
+	 * The complete, reviewed set of opaque leaves whose shape is not a plain scalar, keyed by
+	 * {@code "<enclosingSchemaName>#<propertyName>"} (an opaque array item is keyed with a trailing
+	 * {@code "[]"}). {@code TermsAggregation#order} / {@code HistogramAggregation#order} /
+	 * {@code DateHistogramAggregation#order} are the typed {@code {metric: "asc"|"desc"}} sort spec,
+	 * not arbitrary JSON, so the deserializer constrains them and they need no shape check here.
+	 */
+	private static final Map<String, OpaqueLeafShape> OPAQUE_LEAF_EXCEPTIONS = Map.of(
+			"Query#terms", OpaqueLeafShape.SCALAR_ARRAY_KEYED,
+			"TermsAggregation#order", OpaqueLeafShape.SKIP,
+			"TermsAggregation#include", OpaqueLeafShape.SCALAR_OR_SCALAR_ARRAY,
+			"TermsAggregation#exclude", OpaqueLeafShape.SCALAR_OR_SCALAR_ARRAY,
+			"HistogramAggregation#order", OpaqueLeafShape.SKIP,
+			"DateHistogramAggregation#order", OpaqueLeafShape.SKIP);
+
+	static final ObjectSchema QUERY_SCHEMA =
+			SchemaCache.getSchema(org.sagebionetworks.repo.model.search.dsl.Query.class);
+	static final ObjectSchema AGGREGATION_SCHEMA =
+			SchemaCache.getSchema(org.sagebionetworks.repo.model.search.dsl.Aggregation.class);
 
 	/**
 	 * Validate the opaque leaf-value shapes of a query-DSL subtree (one {@link Query}
-	 * clause, as the caller wrote it). Recurses through the compound clauses and checks the
-	 * opaque scalar / scalar-array slots on each leaf clause. Slots that are genuinely
-	 * free-form (none in the query DSL) are left alone; missing or null slots are ignored.
+	 * clause, as the caller wrote it), walking it against the generated {@code dsl.Query} schema.
 	 */
 	static void validateQueryLeafShapes(JsonNode clause) {
-		if (clause == null || !clause.isObject()) {
-			return;
-		}
-		// Field-keyed leaf clauses: map of column name to its per-field options object. The
-		// opaque option keys inside each value must be scalars.
-		validateFieldKeyedScalarOptions(clause, "match", "query", "minimum_should_match", "fuzziness");
-		validateFieldKeyedScalarOptions(clause, "match_phrase", "query");
-		validateFieldKeyedScalarOptions(clause, "match_phrase_prefix", "query");
-		validateFieldKeyedScalarOptions(clause, "match_bool_prefix", "query", "minimum_should_match", "fuzziness");
-		validateFieldKeyedScalarOptions(clause, "term", "value");
-		validateFieldKeyedScalarOptions(clause, "range", "gte", "gt", "lte", "lt");
-		validateFieldKeyedScalarOptions(clause, "prefix", "value");
-		validateFieldKeyedScalarOptions(clause, "wildcard", "value", "wildcard");
-		validateFieldKeyedScalarOptions(clause, "fuzzy", "value", "fuzziness");
-
-		// terms: field-keyed object whose column entry is an array of scalars; boost / _name
-		// siblings are scalars.
-		JsonNode terms = clause.get("terms");
-		if (terms != null && terms.isObject()) {
-			Iterator<Map.Entry<String, JsonNode>> entries = terms.fields();
-			while (entries.hasNext()) {
-				Map.Entry<String, JsonNode> entry = entries.next();
-				JsonNode value = entry.getValue();
-				if (value.isArray()) {
-					requireScalarArray(value, "terms['" + entry.getKey() + "']");
-				}
-			}
-		}
-
-		// multi_match / simple_query_string carry their references in an explicit "fields"
-		// array and (multi_match) an opaque "query" / "minimum_should_match" / "fuzziness".
-		JsonNode multiMatch = clause.get("multi_match");
-		if (multiMatch != null && multiMatch.isObject()) {
-			requireScalar(multiMatch.get("query"), "multi_match.query");
-			requireScalarArray(multiMatch.get("fields"), "multi_match.fields");
-			requireScalar(multiMatch.get("minimum_should_match"), "multi_match.minimum_should_match");
-			requireScalar(multiMatch.get("fuzziness"), "multi_match.fuzziness");
-		}
-		JsonNode simpleQueryString = clause.get("simple_query_string");
-		if (simpleQueryString != null && simpleQueryString.isObject()) {
-			requireScalarArray(simpleQueryString.get("fields"), "simple_query_string.fields");
-			requireScalar(simpleQueryString.get("minimum_should_match"),
-					"simple_query_string.minimum_should_match");
-		}
-
-		// Compound clauses: validate the opaque slot then recurse into nested query clauses.
-		JsonNode bool = clause.get("bool");
-		if (bool != null && bool.isObject()) {
-			requireScalar(bool.get("minimum_should_match"), "bool.minimum_should_match");
-			validateQueryLeafShapesInArray(bool.get("must"));
-			validateQueryLeafShapesInArray(bool.get("should"));
-			validateQueryLeafShapesInArray(bool.get("must_not"));
-			validateQueryLeafShapesInArray(bool.get("filter"));
-		}
-		JsonNode disMax = clause.get("dis_max");
-		if (disMax != null && disMax.isObject()) {
-			validateQueryLeafShapesInArray(disMax.get("queries"));
-		}
-		JsonNode constantScore = clause.get("constant_score");
-		if (constantScore != null && constantScore.isObject()) {
-			validateQueryLeafShapes(constantScore.get("filter"));
-		}
-		JsonNode boosting = clause.get("boosting");
-		if (boosting != null && boosting.isObject()) {
-			validateQueryLeafShapes(boosting.get("positive"));
-			validateQueryLeafShapes(boosting.get("negative"));
-		}
+		walkOpaqueLeaves(QUERY_SCHEMA, clause, null, null);
 	}
 
-	static void validateQueryLeafShapesInArray(JsonNode array) {
-		if (array == null || !array.isArray()) {
+	/**
+	 * Validate the opaque leaf-value shapes of an aggregations map (aggregation name to
+	 * aggregation object, as the caller wrote it), walking each entry against the generated
+	 * {@code dsl.Aggregation} schema. Sub-aggregations, and the {@code filter} / {@code filters}
+	 * query bodies, are reached by the same walk because the schema itself is recursive there.
+	 */
+	static void validateAggregationLeafShapes(JsonNode aggregationsMap) {
+		if (aggregationsMap == null || !aggregationsMap.isObject()) {
 			return;
 		}
-		for (JsonNode element : array) {
-			validateQueryLeafShapes(element);
+		Iterator<Map.Entry<String, JsonNode>> entries = aggregationsMap.fields();
+		while (entries.hasNext()) {
+			walkOpaqueLeaves(AGGREGATION_SCHEMA, entries.next().getValue(), null, null);
 		}
 	}
 
@@ -349,127 +328,151 @@ final class SearchDslValidator {
 	}
 
 	/**
-	 * For a field-keyed leaf clause ({@code match}, {@code term}, {@code range}, ...) whose
-	 * value is a map of column name to its per-field options object, require each of the
-	 * listed opaque option keys to be a scalar when present.
+	 * Walk {@code node} against {@code schema}, checking every opaque leaf's shape (an OBJECT
+	 * schema position with no declared properties). Recurses through OBJECT (declared properties),
+	 * MAP ({@link ObjectSchema#getValue()} against every entry), and ARRAY
+	 * ({@link ObjectSchema#getItems()} against every element). A {@code $recursiveRef} follows back
+	 * to {@code recursiveAnchor} &mdash; the nearest enclosing {@code $recursiveAnchor} schema, i.e.
+	 * how the generated schema expresses a clause nesting another clause of the same kind.
+	 * {@code label} is the exception-map key to use if this exact position turns out to be a leaf;
+	 * it is recomputed from {@link ObjectSchema#getName()} whenever a schema has properties of its
+	 * own, so nested leaves are always keyed relative to their immediate enclosing schema.
 	 */
-	static void validateFieldKeyedScalarOptions(JsonNode clause, String clauseKind,
-			String... scalarOptionKeys) {
-		JsonNode map = clause.get(clauseKind);
-		if (map == null || !map.isObject()) {
+	static void walkOpaqueLeaves(ObjectSchema schema, JsonNode node, String label, ObjectSchema recursiveAnchor) {
+		if (schema == null || node == null || node.isNull()) {
 			return;
 		}
-		Iterator<Map.Entry<String, JsonNode>> columns = map.fields();
-		while (columns.hasNext()) {
-			Map.Entry<String, JsonNode> column = columns.next();
-			JsonNode options = column.getValue();
-			if (!options.isObject()) {
-				// Shorthand scalar form ({"match":{"col":"x"}}) is acceptable; anything else is
-				// left for the typed deserializer to reject.
-				continue;
+		if (Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
+			recursiveAnchor = schema;
+		}
+		if ("#".equals(schema.get$recursiveRef())) {
+			walkOpaqueLeaves(recursiveAnchor, node, label, recursiveAnchor);
+			return;
+		}
+		TYPE type = schema.getType();
+		if (type == TYPE.OBJECT) {
+			Map<String, ObjectSchema> properties = schema.getProperties();
+			if (properties == null || properties.isEmpty()) {
+				checkOpaqueLeaf(node, label);
+				return;
 			}
-			for (String key : scalarOptionKeys) {
-				requireScalar(options.get(key),
-						clauseKind + "['" + column.getKey() + "'].'" + key + "'");
+			if (!node.isObject()) {
+				return;
 			}
+			String enclosingName = schema.getName();
+			for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
+				JsonNode child = node.get(property.getKey());
+				if (child != null) {
+					walkOpaqueLeaves(property.getValue(), child, enclosingName + "#" + property.getKey(),
+							recursiveAnchor);
+				}
+			}
+		} else if (type == TYPE.MAP) {
+			if (!node.isObject()) {
+				return;
+			}
+			Iterator<Map.Entry<String, JsonNode>> entries = node.fields();
+			while (entries.hasNext()) {
+				walkOpaqueLeaves(schema.getValue(), entries.next().getValue(), label, recursiveAnchor);
+			}
+		} else if (type == TYPE.ARRAY) {
+			if (!node.isArray()) {
+				return;
+			}
+			for (JsonNode element : node) {
+				walkOpaqueLeaves(schema.getItems(), element, label + "[]", recursiveAnchor);
+			}
+		}
+		// Scalar-typed (STRING / NUMBER / INTEGER / BOOLEAN) schema positions are not opaque leaves;
+		// nothing to check.
+	}
+
+	static void checkOpaqueLeaf(JsonNode value, String label) {
+		if (value == null || value.isNull()) {
+			return;
+		}
+		switch (OPAQUE_LEAF_EXCEPTIONS.getOrDefault(label, null)) {
+		case SCALAR_OR_SCALAR_ARRAY:
+			requireScalarOrScalarArray(value, label);
+			break;
+		case SCALAR_ARRAY_KEYED:
+			requireScalarArrayKeyed(value, label);
+			break;
+		case SKIP:
+			break;
+		case null:
+			requireScalar(value, label);
+			break;
 		}
 	}
 
 	/**
-	 * Validate the opaque leaf-value shapes of an aggregations map (aggregation name to
-	 * aggregation object, as the caller wrote it). Recurses into sub-aggregations.
+	 * A field-keyed opaque object ({@code Query#terms}: {@code {"<column>": [v1, v2], "boost": 1.0}})
+	 * &mdash; every entry is either a scalar array (a column's value list) or a bare scalar (a
+	 * sibling option like {@code boost} / {@code _name}).
 	 */
-	static void validateAggregationLeafShapes(JsonNode aggregationsMap) {
-		if (aggregationsMap == null || !aggregationsMap.isObject()) {
-			return;
+	private static void requireScalarArrayKeyed(JsonNode value, String label) {
+		if (!value.isObject()) {
+			throw new IllegalArgumentException(label + " must be an object, not " + describeShape(value));
 		}
-		Iterator<Map.Entry<String, JsonNode>> entries = aggregationsMap.fields();
+		Iterator<Map.Entry<String, JsonNode>> entries = value.fields();
 		while (entries.hasNext()) {
-			validateSingleAggregationLeafShapes(entries.next().getValue());
+			Map.Entry<String, JsonNode> entry = entries.next();
+			String entryLabel = label + "['" + entry.getKey() + "']";
+			if (entry.getValue().isArray()) {
+				requireScalarArray(entry.getValue(), entryLabel);
+			} else {
+				requireScalar(entry.getValue(), entryLabel);
+			}
 		}
 	}
 
 	/**
-	 * Aggregation kinds carrying the opaque {@code missing} value-substitution option (the
-	 * {@code MissingValueOption} schema interface): the metric aggregations plus {@code terms}.
-	 * The {@code missing} <i>aggregation kind</i> is unrelated and not in this set.
+	 * Enumerate every opaque-leaf key reachable from {@code schema}, for
+	 * {@code SearchDslOpaqueLeafCoverageTest} to compare against a frozen list &mdash; the build-time
+	 * guard that {@link #OPAQUE_LEAF_EXCEPTIONS} stays in lock-step with the schema. This mirrors
+	 * {@link #walkOpaqueLeaves}'s structural rules but walks the schema alone, with no JSON data to
+	 * bound recursion, so a {@code $recursiveRef} is only followed once per anchor on a given path
+	 * (an {@code onPath} guard) rather than relying on the data running out.
 	 */
-	private static final Set<String> AGG_KINDS_WITH_MISSING_OPTION = Set.of(
-			"terms", "min", "max", "sum", "avg", "stats", "extended_stats",
-			"value_count", "cardinality");
-
-	static void validateSingleAggregationLeafShapes(JsonNode aggregation) {
-		if (aggregation == null || !aggregation.isObject()) {
-			return;
-		}
-		// `missing` is an opaque scalar substitution value on the metric aggregations and terms.
-		for (String aggKind : AGG_KINDS_WITH_MISSING_OPTION) {
-			JsonNode body = aggregation.get(aggKind);
-			if (body != null && body.isObject()) {
-				requireScalar(body.get("missing"), aggKind + " aggregation 'missing'");
-			}
-		}
-		JsonNode terms = aggregation.get("terms");
-		if (terms != null && terms.isObject()) {
-			// include / exclude are a regex string or an array of exact values. `order` is the
-			// typed {metric: "asc"|"desc"} sort spec (a SortOrder enum value), not arbitrary JSON,
-			// so the deserializer constrains it and it needs no shape check here.
-			requireScalarOrScalarArray(terms.get("include"), "terms aggregation 'include'");
-			requireScalarOrScalarArray(terms.get("exclude"), "terms aggregation 'exclude'");
-		}
-		checkBoundsShape(aggregation.path("histogram"), "histogram");
-		checkBoundsShape(aggregation.path("date_histogram"), "date_histogram");
-		checkRangesShape(aggregation.path("range"), "range");
-		checkRangesShape(aggregation.path("date_range"), "date_range");
-
-		// `filter` / `filters` bodies are full query subtrees; their opaque leaf slots must pass the
-		// same shape gate as the top-level query (mirrors how a highlight_query body is gated).
-		JsonNode filter = aggregation.get("filter");
-		if (filter != null && filter.isObject()) {
-			validateQueryLeafShapes(filter);
-		}
-		// The filters slot is either a keyed object (name to query) or an array of queries; iterating
-		// a JsonNode yields the map values in the first case and the elements in the second.
-		JsonNode filters = aggregation.path("filters").get("filters");
-		if (filters != null) {
-			for (JsonNode query : filters) {
-				validateQueryLeafShapes(query);
-			}
-		}
-
-		validateAggregationLeafShapes(aggregation.get("aggregations"));
+	static Set<String> collectOpaqueLeafKeys(ObjectSchema schema) {
+		Set<String> keys = new java.util.LinkedHashSet<>();
+		collectOpaqueLeafKeys(schema, null, null, keys, new java.util.HashSet<>());
+		return keys;
 	}
 
-	static void checkBoundsShape(JsonNode aggregationBody, String aggType) {
-		if (!aggregationBody.isObject()) {
+	private static void collectOpaqueLeafKeys(ObjectSchema schema, String label, ObjectSchema recursiveAnchor,
+			Set<String> keys, Set<ObjectSchema> onPath) {
+		if (schema == null) {
 			return;
 		}
-		checkMinMax(aggregationBody.get("extended_bounds"), aggType + ".extended_bounds");
-		checkMinMax(aggregationBody.get("hard_bounds"), aggType + ".hard_bounds");
-	}
-
-	static void checkMinMax(JsonNode bounds, String label) {
-		if (bounds == null || !bounds.isObject()) {
-			return;
+		if (Boolean.TRUE.equals(schema.get$recursiveAnchor())) {
+			recursiveAnchor = schema;
 		}
-		requireScalar(bounds.get("min"), label + ".min");
-		requireScalar(bounds.get("max"), label + ".max");
-	}
-
-	static void checkRangesShape(JsonNode aggregationBody, String aggType) {
-		if (!aggregationBody.isObject()) {
-			return;
-		}
-		JsonNode ranges = aggregationBody.get("ranges");
-		if (ranges == null || !ranges.isArray()) {
-			return;
-		}
-		for (int i = 0; i < ranges.size(); i++) {
-			JsonNode range = ranges.get(i);
-			if (range.isObject()) {
-				requireScalar(range.get("from"), aggType + ".ranges[" + i + "].from");
-				requireScalar(range.get("to"), aggType + ".ranges[" + i + "].to");
+		if ("#".equals(schema.get$recursiveRef())) {
+			if (!onPath.add(recursiveAnchor)) {
+				return;
 			}
+			collectOpaqueLeafKeys(recursiveAnchor, label, recursiveAnchor, keys, onPath);
+			onPath.remove(recursiveAnchor);
+			return;
+		}
+		TYPE type = schema.getType();
+		if (type == TYPE.OBJECT) {
+			Map<String, ObjectSchema> properties = schema.getProperties();
+			if (properties == null || properties.isEmpty()) {
+				keys.add(label);
+				return;
+			}
+			String enclosingName = schema.getName();
+			for (Map.Entry<String, ObjectSchema> property : properties.entrySet()) {
+				collectOpaqueLeafKeys(property.getValue(), enclosingName + "#" + property.getKey(),
+						recursiveAnchor, keys, onPath);
+			}
+		} else if (type == TYPE.MAP) {
+			collectOpaqueLeafKeys(schema.getValue(), label, recursiveAnchor, keys, onPath);
+		} else if (type == TYPE.ARRAY) {
+			collectOpaqueLeafKeys(schema.getItems(), label + "[]", recursiveAnchor, keys, onPath);
 		}
 	}
 
