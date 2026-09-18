@@ -172,8 +172,6 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
 		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
@@ -186,6 +184,10 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getTableSchema(IdAndVersion.parse("syn789")))
 				.thenReturn(Collections.singletonList(nameCol));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(nameCol);
+		// buildIndex derives its document schema from its own translation of the defining SQL,
+		// persisting each selected column through createColumnModel.
+		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName()))))
+				.thenReturn(nameCol);
 	}
 
 	/**
@@ -201,8 +203,6 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
 		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
@@ -224,6 +224,10 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getTableSchema(IdAndVersion.parse("syn789")))
 				.thenReturn(Collections.singletonList(nameCol));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(nameCol);
+		// buildIndex derives its document schema from its own translation of the defining SQL,
+		// persisting each selected column through createColumnModel.
+		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName()))))
+				.thenReturn(nameCol);
 	}
 
 	@Test
@@ -316,6 +320,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// SQS retries the message — by then the winning delete is done and the retry
 		// either no-ops the delete (index_not_found) or proceeds normally.
 		stubHappyPathThroughCreateIndex();
+		stubSchemaProviderForTranslator();
 		ErrorCause cause = ErrorCause.of(b -> b
 				.type("status_exception")
 				.reason("Deletion failed for indices [search-index-syn456] due to concurrent deletes, please try again"));
@@ -352,8 +357,6 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
 				.thenReturn(SOURCE_INDEX_DESCRIPTION);
@@ -383,8 +386,6 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
 				.thenReturn(SOURCE_INDEX_DESCRIPTION);
@@ -557,9 +558,8 @@ public class SearchIndexLifecycleManagerImplTest {
 		// waitForIndexWritable exhausts its retry budget and throws RecoverableMessageException.
 		// That must propagate out of buildIndex unchanged and NOT flip the SearchIndex to FAILED —
 		// the build will succeed on a later SQS retry.
-		// waitForIndexWritable runs before the translator is built, so SchemaProvider stubs are
-		// not needed.
 		stubHappyPathThroughCreateIndex();
+		stubSchemaProviderForTranslator();
 		RecoverableMessageException probeFailed = new RecoverableMessageException(
 				"AOSS index search-index-" + ENTITY_ID + " did not accept writes within the retry budget");
 		doThrow(probeFailed).when(openSearchManager).waitForIndexWritable("search-index-" + ENTITY_ID + "-a");
@@ -589,7 +589,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col2.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(col1, col2);
 		SearchIndexRowHandler handler =
-				new SearchIndexRowHandler("test-index", columns, openSearchManager);
+				new SearchIndexRowHandler("test-index", columns, 0, openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -613,7 +613,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col2.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(col1, col2);
 		SearchIndexRowHandler handler =
-				new SearchIndexRowHandler("test-index", columns, openSearchManager);
+				new SearchIndexRowHandler("test-index", columns, 0, openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -637,7 +637,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col.setId("100");
 		col.setColumnType(ColumnType.STRING);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), openSearchManager);
+				"test-index", Collections.singletonList(col), 0, openSearchManager);
 
 		// 3 rows — well under the 1000 batch size
 		for (long i = 1; i <= 3; i++) {
@@ -659,7 +659,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		SelectColumn col = new SelectColumn();
 		col.setId("100");
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), openSearchManager);
+				"test-index", Collections.singletonList(col), 0, openSearchManager);
 
 		// call under test
 		handler.close();
@@ -683,7 +683,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		realIdCol.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(nullIdCol, realIdCol);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", columns, openSearchManager);
+				"test-index", columns, 0, openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -711,7 +711,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// 1500 rows → BATCH_SIZE is 1000 → first flush happens at row 1000, second on close().
 		SelectColumn col = new SelectColumn().setId("col-1").setName("title").setColumnType(ColumnType.STRING);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"search-index-syn1", Collections.singletonList(col), openSearchManager);
+				"search-index-syn1", Collections.singletonList(col), 0, openSearchManager);
 
 		for (int i = 0; i < 1500; i++) {
 			Row row = new Row().setRowId((long) i).setVersionNumber(1L)
@@ -731,7 +731,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// A view exposes its single benefactor through Row.getBenefactorId() and keys the
 		// document by ROW_ID (it appends no positional benefactor columns).
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), openSearchManager);
+				"test-index", Collections.singletonList(col), 0, openSearchManager);
 
 		Row row = new Row().setRowId(42L).setVersionNumber(1L).setBenefactorId(99L)
 				.setValues(Collections.singletonList("hello"));
@@ -757,7 +757,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// trailing positional values; the handler is told how many via its positional count
 		// (the value QueryTranslator reports). The document is keyed by ROW_ID.
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), openSearchManager);
+				"test-index", Collections.singletonList(col), 2, openSearchManager);
 
 		// values = [ title, benefactor_0, benefactor_1 ]
 		Row row = new Row().setRowId(7L).setVersionNumber(1L)
@@ -775,6 +775,47 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(11L, doc.get("_benefactor_0"));
 		assertEquals(22L, doc.get("_benefactor_1"));
 		assertEquals("7", op.index().id());
+	}
+
+	@Test
+	public void testRowHandlerNextRowWithTooManyValuesThrows() throws IOException {
+		// PLFM-9714: a row wider than the declared document + benefactor columns means the
+		// document schema and the streamed values disagree. Reading the surplus value as a
+		// trailing benefactor would index every row under an ACL benefactor it does not belong
+		// to whenever that value happens to parse as a long, so the handler fails closed.
+		SelectColumn col = new SelectColumn().setId("100").setName("title").setColumnType(ColumnType.STRING);
+		SearchIndexRowHandler handler = new SearchIndexRowHandler(
+				"test-index", Collections.singletonList(col), 0, openSearchManager);
+
+		Row row = new Row().setRowId(7L).setVersionNumber(1L)
+				.setValues(Arrays.asList("hello", "1500"));
+
+		// call under test
+		IllegalStateException e = assertThrows(IllegalStateException.class, () -> handler.nextRow(row));
+
+		assertEquals("Expected 1 values per row (1 document columns and 0 benefactor columns)"
+				+ " but the source query returned 2.", e.getMessage());
+		handler.close();
+		verify(openSearchManager, never()).bulkIndex(any(), any());
+	}
+
+	@Test
+	public void testRowHandlerNextRowWithTooFewValuesThrows() throws IOException {
+		SelectColumn title = new SelectColumn().setId("100").setName("title").setColumnType(ColumnType.STRING);
+		SelectColumn tags = new SelectColumn().setId("101").setName("tags").setColumnType(ColumnType.STRING_LIST);
+		SearchIndexRowHandler handler = new SearchIndexRowHandler(
+				"test-index", Arrays.asList(title, tags), 1, openSearchManager);
+
+		Row row = new Row().setRowId(7L).setVersionNumber(1L)
+				.setValues(Arrays.asList("hello", "[\"a\"]"));
+
+		// call under test
+		IllegalStateException e = assertThrows(IllegalStateException.class, () -> handler.nextRow(row));
+
+		assertEquals("Expected 3 values per row (2 document columns and 1 benefactor columns)"
+				+ " but the source query returned 2.", e.getMessage());
+		handler.close();
+		verify(openSearchManager, never()).bulkIndex(any(), any());
 	}
 
 	// -------- resolveAnalyzers --------
@@ -832,7 +873,7 @@ public class SearchIndexLifecycleManagerImplTest {
 	@Test
 	public void testConvertForDocumentWithNullReturnsNull() {
 		// call under test
-		assertNull(SearchIndexLifecycleManagerImpl.convertForDocument(null, ColumnType.STRING));
+		assertNull(SearchIndexLifecycleManagerImpl.convertForDocument("aCol", null, ColumnType.STRING));
 	}
 
 	@ParameterizedTest
@@ -840,7 +881,7 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testConvertForDocumentBareStringTypesPassThrough(ColumnType type) {
 		// call under test — bare-string types short-circuit to raw String pass-through so
 		// AOSS doesn't receive a JSON-parsed value (which would be malformed for text fields).
-		assertEquals("alpha", SearchIndexLifecycleManagerImpl.convertForDocument("alpha", type));
+		assertEquals("alpha", SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "alpha", type));
 	}
 
 	@ParameterizedTest
@@ -848,13 +889,13 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testConvertForDocumentKeywordIdTypesPassThrough(ColumnType type) {
 		// call under test — KEYWORD-category ID types are stored as raw strings in AOSS;
 		// LONG-category IDs (FILEHANDLEID, EVALUATIONID) go through the JSON parse branch.
-		assertEquals("syn123", SearchIndexLifecycleManagerImpl.convertForDocument("syn123", type));
+		assertEquals("syn123", SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "syn123", type));
 	}
 
 	@Test
 	public void testConvertForDocumentWithIntegerParsesAsLong() {
 		// call under test — INTEGER serializes to JSON number; Jackson surfaces it as Integer/Long.
-		Object result = SearchIndexLifecycleManagerImpl.convertForDocument("42", ColumnType.INTEGER);
+		Object result = SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "42", ColumnType.INTEGER);
 
 		assertEquals(42, ((Number) result).intValue());
 	}
@@ -862,7 +903,7 @@ public class SearchIndexLifecycleManagerImplTest {
 	@Test
 	public void testConvertForDocumentWithDoubleParsesAsDouble() {
 		// call under test
-		Object result = SearchIndexLifecycleManagerImpl.convertForDocument("3.14", ColumnType.DOUBLE);
+		Object result = SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "3.14", ColumnType.DOUBLE);
 
 		assertEquals(3.14d, ((Number) result).doubleValue(), 1e-9);
 	}
@@ -870,14 +911,14 @@ public class SearchIndexLifecycleManagerImplTest {
 	@Test
 	public void testConvertForDocumentWithBooleanParses() {
 		// call under test
-		assertEquals(Boolean.TRUE, SearchIndexLifecycleManagerImpl.convertForDocument("true", ColumnType.BOOLEAN));
+		assertEquals(Boolean.TRUE, SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "true", ColumnType.BOOLEAN));
 	}
 
 	@Test
 	public void testConvertForDocumentWithStringListParsesAsJsonArray() {
 		// call under test — STRING_LIST stored as a JSON array string; AOSS expects a real list.
 		Object result = SearchIndexLifecycleManagerImpl.convertForDocument(
-				"[\"a\",\"b\"]", ColumnType.STRING_LIST);
+				"aCol", "[\"a\",\"b\"]", ColumnType.STRING_LIST);
 
 		assertTrue(result instanceof List, "Expected a List, got " + result.getClass());
 		assertEquals(Arrays.asList("a", "b"), result);
@@ -888,7 +929,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// call under test — ENTITYID_LIST also goes through JSON parse despite the underlying
 		// type mapping being KEYWORD (the list branch wins over the keyword short-circuit).
 		Object result = SearchIndexLifecycleManagerImpl.convertForDocument(
-				"[\"syn1\",\"syn2\"]", ColumnType.ENTITYID_LIST);
+				"aCol", "[\"syn1\",\"syn2\"]", ColumnType.ENTITYID_LIST);
 
 		assertEquals(Arrays.asList("syn1", "syn2"), result);
 	}
@@ -897,7 +938,7 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testConvertForDocumentWithJsonTypeParsesAsMap() {
 		// call under test — JSON column round-trips as a Map; AOSS stores it as a dynamic object.
 		Object result = SearchIndexLifecycleManagerImpl.convertForDocument(
-				"{\"foo\":\"bar\"}", ColumnType.JSON);
+				"aCol", "{\"foo\":\"bar\"}", ColumnType.JSON);
 
 		assertTrue(result instanceof Map);
 		assertEquals("bar", ((Map<?, ?>) result).get("foo"));
@@ -908,10 +949,13 @@ public class SearchIndexLifecycleManagerImplTest {
 		// call under test — a malformed JSON list value must throw IllegalArgumentException
 		// so the build is recorded as FAILED with a clear message (not a silent doc-level error).
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SearchIndexLifecycleManagerImpl.convertForDocument("[not-json", ColumnType.STRING_LIST));
+				() -> SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "[not-json", ColumnType.STRING_LIST));
 
-		assertTrue(e.getMessage().contains("STRING_LIST"),
-				"Exception must mention the column type: " + e.getMessage());
+		// The message is surfaced verbatim to users through SearchIndexStatus.errorMessage, so it
+		// must name the column — the type alone leaves an operator unable to tell which column
+		// produced a value of the wrong shape.
+		assertEquals("Failed to convert value of column 'aCol' for type STRING_LIST: [not-json",
+				e.getMessage());
 	}
 
 	// -------- collectAndLoadAnalyzers (package-private) --------
@@ -981,43 +1025,39 @@ public class SearchIndexLifecycleManagerImplTest {
 	// -------- buildIndex — additional branch coverage --------
 
 	@Test
-	public void testHandleCreateThrowsWhenSchemaIsNull() throws Exception {
-		// getTableSchema returns null — buildIndex throws "no bound schema", caught
-		// by the outer Throwable handler and recorded as FAILED.
-		stubBuildLock();
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
-		when(entityManager.getEntityWithoutAuthorization(any(), any()))
-				.thenReturn(new SearchIndex().setDefiningSQL(DEFINING_SQL).setParentId("syn100"));
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID))).thenReturn(null);
+	public void testHandleCreateWithSchemaDerivedFromDefiningSqlAndReboundAfterSwap() throws Exception {
+		// PLFM-9714: the document schema comes from this build's own translation of the defining
+		// SQL, never from the schema a previous registration bound to the entity. The source's
+		// schema evolves independently of the SearchIndex and only the source becoming AVAILABLE
+		// drives the rebuild, so a bound schema can describe a shape the source no longer has.
+		// The refreshed schema is bound after the alias swap, so the query path always describes
+		// the index the alias actually serves.
+		stubHappyPathThroughStream();
 
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
-		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
-		verify(statusDao, atLeastOnce()).createOrUpdate(captor.capture());
-		assertTrue(captor.getAllValues().stream()
-				.anyMatch(s -> s.getState() == SearchIndexState.FAILED
-						&& s.getErrorMessage() != null
-						&& s.getErrorMessage().contains("no bound schema")));
+		verify(tableManagerSupport, never()).getTableSchema(IdAndVersion.parse(ENTITY_ID));
+		verify(columnModelManager).createColumnModel(argThat(cm -> "name".equals(cm.getName())));
+		InOrder order = inOrder(openSearchManager, columnModelManager);
+		order.verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
+				eq("search-index-" + ENTITY_ID + "-a"), eq(Optional.empty()));
+		order.verify(columnModelManager).bindColumnsToVersionOfObject(
+				eq(Collections.singletonList("100")), eq(IdAndVersion.parse(ENTITY_ID)));
 	}
 
 	@Test
-	public void testHandleCreateThrowsWhenSchemaIsEmpty() throws Exception {
-		// Empty schema also flows to FAILED via the outer Throwable handler.
-		stubBuildLock();
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
-		when(entityManager.getEntityWithoutAuthorization(any(), any()))
-				.thenReturn(new SearchIndex().setDefiningSQL(DEFINING_SQL).setParentId("syn100"));
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.emptyList());
+	public void testHandleCreateWithFailedBuildDoesNotRebindSchema() throws Exception {
+		// A build that dies before the swap must leave the bound schema alone — it still
+		// describes the index the alias points at.
+		stubHappyPathThroughStream();
+		doThrow(new RuntimeException("stream blew up")).when(indexDao).queryAsStream(any(), any());
 
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
-		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
-		verify(statusDao, atLeastOnce()).createOrUpdate(captor.capture());
-		assertTrue(captor.getAllValues().stream()
-				.anyMatch(s -> s.getState() == SearchIndexState.FAILED));
+		verify(openSearchManager, never()).swapAlias(any(), any(), any());
+		verify(columnModelManager, never()).bindColumnsToVersionOfObject(anyList(), any());
 	}
 
 	@Test
@@ -1763,8 +1803,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(statusDao.getState(KeyFactory.stringToKey(ENTITY_ID)))
 				.thenReturn(Optional.of(SearchIndexState.WAITING_FOR_SOURCE));
 		when(entityManager.getEntityWithoutAuthorization(eq(ENTITY_ID), eq(SearchIndex.class))).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
 		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
@@ -1776,6 +1814,10 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getTableSchema(IdAndVersion.parse("syn789")))
 				.thenReturn(Collections.singletonList(nameCol));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(nameCol);
+		// buildIndex derives its document schema from its own translation of the defining SQL,
+		// persisting each selected column through createColumnModel.
+		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName()))))
+				.thenReturn(nameCol);
 
 		// call under test
 		manager.rebuildIfStale(progressCallback, ENTITY_ID);
@@ -1847,8 +1889,6 @@ public class SearchIndexLifecycleManagerImplTest {
 				.thenReturn(Optional.of(SearchIndexState.ACTIVE));
 		when(connectionFactory.getConnection(IdAndVersion.parse("syn789"))).thenReturn(indexDao);
 		when(entityManager.getEntityWithoutAuthorization(eq(ENTITY_ID), eq(SearchIndex.class))).thenReturn(searchIndex);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(ENTITY_ID)))
-				.thenReturn(Collections.singletonList(nameCol));
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID))
 				.thenReturn(Optional.of("search-index-" + ENTITY_ID + "-a"));
@@ -1860,6 +1900,10 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getTableSchema(IdAndVersion.parse("syn789")))
 				.thenReturn(Collections.singletonList(nameCol));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(nameCol);
+		// buildIndex derives its document schema from its own translation of the defining SQL,
+		// persisting each selected column through createColumnModel.
+		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName()))))
+				.thenReturn(nameCol);
 
 		// call under test
 		manager.rebuildIfStale(progressCallback, ENTITY_ID);
@@ -1965,6 +2009,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// A rebuild (getAliasTarget present) that fails after slot selection still writes FAILED
 		// uniformly, cleans up only the slot it was building into, and never swaps the alias.
 		stubHappyPathThroughCreateIndex();
+		stubSchemaProviderForTranslator();
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID))
 				.thenReturn(Optional.of("search-index-" + ENTITY_ID + "-a"));
 		doThrow(new RuntimeException("shard allocation failed"))
