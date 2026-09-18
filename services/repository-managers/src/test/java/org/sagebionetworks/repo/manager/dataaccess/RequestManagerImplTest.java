@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -185,6 +186,18 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirement() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, createNewRequest()));
+
+		verify(mockRequestDao).create(any(Request.class));
 	}
 
 	@Test

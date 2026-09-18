@@ -15,7 +15,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -56,6 +55,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -1194,7 +1194,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
 		
 		// Call under test
-		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		Optional<AccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
 		
 		assertTrue(result.isPresent());
 		assertEquals(accessRequirement, result.get());
@@ -1204,6 +1204,22 @@ public class AccessApprovalNotificationManagerUnitTest {
 	}
 	
 	@Test
+	public void testGetManagedAccessRequirementWithJsonSchemaAR() {
+
+		AccessRequirement accessRequirement = new JsonSchemaAccessRequirement().setAccessType(ACCESS_TYPE.DOWNLOAD);
+		Long requirementId = 1L;
+
+		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
+
+		// Call under test
+		Optional<AccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+
+		assertEquals(Optional.of(accessRequirement), result);
+
+		verify(mockAccessRequirementDao).get(requirementId.toString());
+	}
+
+	@Test
 	public void testGetManagedAccessRequirementWithNotManaged() {
 		
 		AccessRequirement accessRequirement = mockAccessRequirement;
@@ -1212,7 +1228,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
 		
 		// Call under test
-		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		Optional<AccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
 		
 		assertFalse(result.isPresent());
 		
@@ -1231,7 +1247,7 @@ public class AccessApprovalNotificationManagerUnitTest {
 		when(mockAccessRequirementDao.get(any())).thenReturn(accessRequirement);
 		
 		// Call under test
-		Optional<ManagedACTAccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
+		Optional<AccessRequirement> result = manager.getManagedAccessRequirement(requirementId);
 		
 		assertFalse(result.isPresent());
 		
