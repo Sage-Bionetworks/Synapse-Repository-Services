@@ -785,7 +785,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 		for (ColumnModel column : columns) {
 			ColumnType type = column.getColumnType();
 			RoundTripCase rtc = casesByType.get(type);
-			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(rtc.raw, type);
+			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(
+					column.getName(), rtc.raw, type);
 			assertEquals(rtc.expected, converted,
 					"convertForDocument produced unexpected value for " + type);
 			doc.put(column.getId(), converted);

@@ -122,7 +122,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * OpenSearch client serializes as the right JSON type. Returning the raw String for
 	 * non-string columns causes AOSS to reject the doc.
 	 */
-	static Object convertForDocument(String value, ColumnType type) {
+	static Object convertForDocument(String columnName, String value, ColumnType type) {
 		if (value == null) {
 			return null;
 		}
@@ -138,8 +138,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		try {
 			return SEARCH_DOC_MAPPER.readValue(value, Object.class);
 		} catch (IOException e) {
-			throw new IllegalArgumentException(
-					"Failed to convert column value for type " + type + ": " + value, e);
+			throw new IllegalArgumentException("Failed to convert value of column '" + columnName
+					+ "' for type " + type + ": " + value, e);
 		}
 	}
 
@@ -298,16 +298,6 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// path is qname-only — no more inline branches.
 			Map<String, TextAnalyzer> inlineAnalyzers = materializeInlineAnalyzerSlots(config, overrides);
 
-			// Bound schema order must match the streamed row values' order positionally — the
-			// SearchIndexRowHandler relies on this alignment to map the leading row values to
-			// document columns (and treat any trailing values as benefactor columns).
-			List<ColumnModel> selectedColumns = tableManagerSupport.getTableSchema(IdAndVersion.parse(entityId));
-			if (selectedColumns == null || selectedColumns.isEmpty()) {
-				throw new IllegalStateException("SearchIndex " + entityId
-						+ " has no bound schema — update the entity to re-register.");
-			}
-			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
-
 			IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSQL).get(0);
 			IndexDescription sourceIndexDescription = tableManagerSupport.getIndexDescription(sourceId);
 			TableIndexDAO indexDao = connectionFactory.getConnection(sourceId);
@@ -342,6 +332,31 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 						"Search index would exceed maximum of " + MAX_ROWS
 								+ " rows. Row count: " + rowCount);
 			}
+
+			// SqlContext.query (not build) emits the select against the source's materialized
+			// index table; build context is rejected by table and view sources (only a
+			// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
+			// source row without authorization and is served to many users through per-row
+			// benefactor filtering, so there is no single current user to bind.
+			QueryTranslator base = QueryTranslator.builder()
+					.sql(definingSQL)
+					.schemaProvider(tableManagerSupport)
+					.sqlContext(SqlContext.query)
+					.indexDescription(sourceIndexDescription)
+					.build();
+
+			// The document schema is derived from this build's own translation of the defining SQL,
+			// never read back from the previously bound schema. The source's schema evolves
+			// independently of this entity (a column added, removed, or retyped on the source), and
+			// only the source becoming AVAILABLE again drives the rebuild — nothing re-registers this
+			// entity. Reading a schema bound by an earlier registration would pair stale column
+			// types and ordering with freshly translated row values, which the positional zip in
+			// SearchIndexRowHandler silently misreads. The refreshed schema is bound to the entity
+			// once the build succeeds, mirroring how a materialized view rebinds after its swap.
+			List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
+					.map(columnModelManager::createColumnModel)
+					.collect(Collectors.toList());
+			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
 
 			Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
 					config, overrides, selectedColumns);
@@ -387,30 +402,33 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// succeeds so the bulk stream below does not race against index_not_found_exception.
 			openSearchManager.waitForIndexWritable(physicalSlot);
 
-			// SqlContext.query (not build) emits the select against the source's materialized
-			// index table; build context is rejected by table and view sources (only a
-			// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
-			// source row without authorization and is served to many users through per-row
-			// benefactor filtering, so there is no single current user to bind.
-			QueryTranslator base = QueryTranslator.builder()
-					.sql(definingSQL)
-					.schemaProvider(tableManagerSupport)
-					.sqlContext(SqlContext.query)
-					.indexDescription(sourceIndexDescription)
-					.build();
 			// Splice the source's per-dependency benefactor columns into the select so the handler can
 			// read them as trailing row values.
 			TranslatedQuery query = buildWithBenefactorColumns(base, sourceIndexDescription);
+			// Only a materialized view carries its benefactors as spliced trailing values; a view's
+			// single benefactor arrives by name on the Row and a table has none. The difference
+			// between the spliced header count and the document-column count is therefore the exact
+			// number of trailing values the handler must read as benefactors.
+			int trailingBenefactorColumns = query.getSelectColumns().size() - selectColumns.size();
 			// queryAsStream does not close the handler; the try-with-resources flushes the final
 			// partial batch.
 			try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-					physicalSlot, selectColumns, openSearchManager)) {
+					physicalSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
 				indexDao.queryAsStream(query, handler);
 			}
 
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
 			openSearchManager.swapAlias(aliasName, physicalSlot, oldTarget);
+
+			// Publish the schema this build actually indexed against, now that the alias serves it.
+			// The query path reads the bound schema to map document field IDs back to user-facing
+			// column names, so it must describe the live index and not the previous one. Binding
+			// only after the swap keeps a failed build from replacing the schema that still
+			// describes the index the alias points at.
+			columnModelManager.bindColumnsToVersionOfObject(
+					selectedColumns.stream().map(ColumnModel::getId).collect(Collectors.toList()),
+					IdAndVersion.parse(entityId));
 
 			// The old index is no longer reachable via the alias; delete it now rather than waiting
 			// for the next rebuild's idle-slot cleanup, so an entity that is never rebuilt again does
@@ -817,13 +835,16 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 		private final String indexName;
 		private final List<SelectColumn> columns;
+		private final int trailingBenefactorColumns;
 		private final OpenSearchManager client;
 		private final List<BulkOperation> batch = new ArrayList<>();
 		private long totalRows = 0;
 
-		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, OpenSearchManager client) {
+		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, int trailingBenefactorColumns,
+				OpenSearchManager client) {
 			this.indexName = indexName;
 			this.columns = columns;
+			this.trailingBenefactorColumns = trailingBenefactorColumns;
 			this.client = client;
 		}
 
@@ -837,16 +858,22 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			doc.put("_row_id", row.getRowId());
 			doc.put("_row_version", row.getVersionNumber());
 			List<String> values = row.getValues();
-			// The bound schema (columns) defines the document columns; they are the leading
-			// values of the row. Any trailing values are the benefactor columns the translator
-			// appended to the select (one per source dependency, in getBenefactors() order).
-			// This relies on the invariant that the translated select's document-column count
-			// equals the bound-schema width, since both derive from the same defining SQL.
-			for (int i = 0; i < columns.size() && i < values.size(); i++) {
+			// The document columns are the leading values and the benefactor columns are exactly
+			// the declared number of trailing values. Both counts are supplied by the caller rather
+			// than inferred from the row width: a row wider than expected would otherwise shift
+			// document values into the _benefactor_N slots that carry the query-time ACL filter,
+			// indexing every row under a benefactor it does not belong to.
+			int expectedValues = columns.size() + trailingBenefactorColumns;
+			if (values.size() != expectedValues) {
+				throw new IllegalStateException("Expected " + expectedValues + " values per row ("
+						+ columns.size() + " document columns and " + trailingBenefactorColumns
+						+ " benefactor columns) but the source query returned " + values.size() + ".");
+			}
+			for (int i = 0; i < columns.size(); i++) {
 				String value = values.get(i);
 				if (value != null) {
 					SelectColumn column = columns.get(i);
-					doc.put(column.getId(), convertForDocument(value, column.getColumnType()));
+					doc.put(column.getId(), convertForDocument(column.getName(), value, column.getColumnType()));
 				}
 			}
 			// Write one _benefactor_N field per source dependency, in the same order the
@@ -854,7 +881,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// as trailing row values; a view exposes its single benefactor through the by-name
 			// scalar Row.benefactorId (nothing trails values). A plain table has no benefactor
 			// and leaves both empty.
-			if (values.size() > columns.size()) {
+			if (trailingBenefactorColumns > 0) {
 				for (int i = columns.size(); i < values.size(); i++) {
 					String value = values.get(i);
 					if (value != null) {
