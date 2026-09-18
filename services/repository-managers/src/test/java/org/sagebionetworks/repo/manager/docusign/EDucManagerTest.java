@@ -1691,6 +1691,9 @@ public class EDucManagerTest {
 		Request request = buildValidRequest();
 		request.setEDucSignatureEnvelopeId("env-existing");
 		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		stubEnvelopeStatus("env-existing", EDucStatusEnum.draft);
 		when(mockDocuSignClient.getDocument("env-existing")).thenReturn(new byte[]{4, 5});
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("fh-existing");
@@ -1701,7 +1704,34 @@ public class EDucManagerTest {
 		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
 
 		assertEquals("fh-existing", result.getFileHandleId());
+		// The draft is reused rather than rebuilt, so its sender fields are what would otherwise show the
+		// values the request had when the draft was first created.
+		verify(mockDocuSignClient).refreshSenderFields(eq("env-existing"), any());
+		verify(mockDocuSignClient, never()).createEnvelope(any(), any(), any());
 		verify(mockDocuSignClient).getDocument("env-existing");
+	}
+
+	@Test
+	public void testPreviewEDucWithAlreadyRoutedEnvelope() throws Exception {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-sent");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-sent", EDucStatusEnum.sent);
+		when(mockDocuSignClient.getDocument("env-sent")).thenReturn(new byte[]{6, 7});
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setId("fh-sent");
+		when(mockFileHandleManager.createFileFromByteArray(any(), any(), any(), any(), any(), any()))
+				.thenReturn(fileHandle);
+
+		// call under test
+		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
+
+		assertEquals("fh-sent", result.getFileHandleId());
+		// A routed envelope's sender fields can no longer be set, so the routed document is returned as it
+		// stands rather than an attempt being made to change it.
+		verify(mockDocuSignClient, never()).refreshSenderFields(any(), any());
+		verify(mockDocuSignClient).getDocument("env-sent");
 	}
 
 	@Test

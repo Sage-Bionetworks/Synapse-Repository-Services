@@ -22,6 +22,7 @@ import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.docusign.esign.api.EnvelopesApi;
 import com.docusign.esign.client.ApiClient;
+import com.docusign.esign.model.Document;
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.LockInformation;
 import com.docusign.esign.model.Recipients;
@@ -29,6 +30,7 @@ import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateInformation;
 import com.docusign.esign.model.TemplateSummary;
+import com.docusign.esign.model.Text;
 
 /**
  * A manual harness for exercising envelope correction against a live DocuSign account, one step at a
@@ -65,6 +67,19 @@ import com.docusign.esign.model.TemplateSummary;
  * $MVN -Dtest=DocuSignLiveTest#step8_downloadCertificate
  * $MVN -Dtest=DocuSignLiveTest#step9_verifyListReturnsRecipients
  * $MVN -Dtest=DocuSignLiveTest#stepReset_voidAndClearState
+ * </pre>
+ *
+ * The {@code stepSf*} steps are a second, independent sequence covering sender fields (also called
+ * prefill tabs), which belong to a document rather than to a recipient. They need their own template,
+ * one that declares at least one of the eDUC fields as a sender field:
+ *
+ * <pre>
+ * $MVN -Dtest=DocuSignLiveTest#stepDiag_showTemplateDocumentTabs \
+ *      -Ddocusign.live.templateId=&lt;sender-field-template-id&gt;
+ * $MVN -Dtest=DocuSignLiveTest#stepSf1_createDraftWithSenderFields \
+ *      -Ddocusign.live.senderFieldTemplateId=&lt;sender-field-template-id&gt;
+ * $MVN -Dtest=DocuSignLiveTest#stepSf2_downloadDraftPreview
+ * $MVN -Dtest=DocuSignLiveTest#stepSf3_changeSenderFieldAfterSending
  * </pre>
  *
  * The template needs exactly three roles — {@code principal_investigator}, {@code signing_official}
@@ -303,6 +318,30 @@ public class DocuSignLiveTest {
 		}
 	}
 
+	/**
+	 * What the template declares at the document level, which is where a sender field lives. A sender
+	 * field belongs to no recipient, so it appears nowhere in {@link #stepDiag_showTemplateTabs}.
+	 * <p>
+	 * This also settles how they have to be read: if the "from getTemplate" line is empty while the "from
+	 * getDocumentTabs" line is not, then widening {@code getTemplate}'s include list is not enough and the
+	 * per-document call is doing the work.
+	 */
+	@Test
+	public void stepDiag_showTemplateDocumentTabs() {
+		String templateId = required("docusign.live.templateId");
+		List<Document> documents = templatesApi.getTemplate(templateId).getDocuments();
+		if (documents == null || documents.isEmpty()) {
+			print("documents reported by getTemplate", "<none>");
+			return;
+		}
+		for (Document document : documents) {
+			System.out.println("\n--- document " + document.getDocumentId() + " ---");
+			System.out.println("from getTemplate    : " + describeSenderFields(document.getTabs()));
+			System.out.println("from getDocumentTabs: "
+					+ describeSenderFields(templatesApi.getDocumentTabs(templateId, document.getDocumentId())));
+		}
+	}
+
 	@Test
 	public void step7_verifyAfterCorrection() {
 		Envelope envelope = readEnvelopeWithTabs();
@@ -397,6 +436,103 @@ public class DocuSignLiveTest {
 	 * Abandons the envelope in progress and forgets it, so that a run can be started over from step 1.
 	 * Voiding is skipped if the envelope has already reached a state that cannot be voided.
 	 */
+	/**
+	 * Creates a draft from a template that declares sender fields, which is the whole of the production
+	 * path for them: {@code createEnvelope} writes their values itself once the draft exists, because a
+	 * sender field belongs to no recipient and so cannot travel in the envelope's template roles.
+	 * <p>
+	 * Requires a template whose {@code signing_official_institution} (or any other field allowed to be one)
+	 * is authored as a sender field. Pass it as {@code -Ddocusign.live.senderFieldTemplateId}.
+	 */
+	@Test
+	public void stepSf1_createDraftWithSenderFields() {
+		String templateId = required("docusign.live.senderFieldTemplateId");
+		String envelopeId = client.createEnvelope(templateId, desiredRecipients(), desiredTabValues());
+		putState("senderFieldEnvelopeId", envelopeId);
+		putState("senderFieldTemplateId", templateId);
+		print("draft envelope", envelopeId);
+
+		reportEnvelopeSenderFields(envelopeId, templateId);
+		System.out.println("\nA value against each sender field means the document tabs endpoint accepts"
+				+ " prefillTabs, despite the API reference limiting it to smartSection and polyLineOverlay"
+				+ " tabs. Nothing against them means that limit is real and the values have to be supplied"
+				+ " another way — most likely composite templates at creation time.");
+	}
+
+	/**
+	 * The draft's rendered document. A sender field is resolved by the sender, so its value should appear
+	 * here; a recipient's own tabs are not resolved until signing, so theirs should not. That difference is
+	 * the reason for preferring sender fields in a template — it is what makes a preview show the data.
+	 */
+	@Test
+	public void stepSf2_downloadDraftPreview() throws IOException {
+		byte[] preview = envelopesApi.getDocument(state("senderFieldEnvelopeId"), "combined");
+		Path out = Paths.get("target", "docusign-live-test-sender-field-preview.pdf");
+		Files.write(out, preview);
+		print("wrote", out.toAbsolutePath().toString());
+		System.out.println("Open it: the sender fields should be filled in, and the recipients' own name"
+				+ " and email tabs should be blank.");
+	}
+
+	/**
+	 * Whether a sender field can still be set once the envelope is out for signature. DocuSign documents
+	 * that it cannot be, once a recipient has acted, without a correction session — and this client never
+	 * enters DocuSign's "correct" state, because that needs an edit lock it does not hold. If this step
+	 * fails, {@code reasonUpdateNotPossible} has to refuse an update that would change a sender field.
+	 */
+	@Test
+	public void stepSf3_changeSenderFieldAfterSending() {
+		String envelopeId = state("senderFieldEnvelopeId");
+		client.sendEnvelope(envelopeId);
+		print("sent", envelopeId);
+
+		Map<RoleLabelKey, String> changed = new LinkedHashMap<>(desiredTabValues());
+		changed.put(new RoleLabelKey(SO, SO + "_institution"), "Changed After Sending");
+		try {
+			// call under test
+			client.refreshSenderFields(envelopeId, changed);
+			System.out.println("changing a sender field on a sent envelope was accepted");
+			reportEnvelopeSenderFields(envelopeId, state("senderFieldTemplateId"));
+			verdict("the new value is on the envelope", describeSenderFields(
+					envelopesApi.getDocumentTabs(envelopeId, "1")).contains("Changed After Sending"));
+		} catch (RuntimeException e) {
+			System.out.println("changing a sender field on a sent envelope was refused:");
+			System.out.println("  " + e.getMessage());
+		}
+	}
+
+	// Every sender field the envelope holds, alongside the ones its template declares, so that a value
+	// missing from the envelope can be told apart from one the template never declared.
+	private void reportEnvelopeSenderFields(String envelopeId, String templateId) {
+		List<Document> documents = templatesApi.getTemplate(templateId).getDocuments();
+		if (documents == null) {
+			return;
+		}
+		for (Document document : documents) {
+			String documentId = document.getDocumentId();
+			System.out.println("\n--- document " + documentId + " ---");
+			System.out.println("template declares: "
+					+ describeSenderFields(templatesApi.getDocumentTabs(templateId, documentId)));
+			System.out.println("envelope holds   : "
+					+ describeSenderFields(envelopesApi.getDocumentTabs(envelopeId, documentId)));
+		}
+	}
+
+	// label=value pairs for the sender fields in the given tabs, or a note that there are none.
+	private static String describeSenderFields(Tabs tabs) {
+		if (tabs == null || tabs.getPrefillTabs() == null || tabs.getPrefillTabs().getTextTabs() == null
+				|| tabs.getPrefillTabs().getTextTabs().isEmpty()) {
+			return "<no sender fields>";
+		}
+		List<String> described = new ArrayList<>();
+		for (Text tab : tabs.getPrefillTabs().getTextTabs()) {
+			described.add(tab.getTabLabel() + "=" + tab.getValue()
+					+ " [doc " + tab.getDocumentId() + " page " + tab.getPageNumber()
+					+ " at " + tab.getXPosition() + "," + tab.getYPosition() + "]");
+		}
+		return String.join("; ", described);
+	}
+
 	@Test
 	public void stepReset_voidAndClearState() {
 		try {
