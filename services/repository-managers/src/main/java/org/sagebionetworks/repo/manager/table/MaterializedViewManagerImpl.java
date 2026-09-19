@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,6 +12,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.InvalidStatusTokenException;
 import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao.DependentObject;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
@@ -24,6 +27,7 @@ import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescri
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.model.QueryExpression;
 import org.sagebionetworks.table.query.model.SqlContext;
+import org.sagebionetworks.util.PaginationIterator;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingCallable;
@@ -41,6 +45,8 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	public static final String DEFAULT_ETAG = "DEFAULT";
 
 	private static final String OBJECT_TYPE = ObjectType.MATERIALIZED_VIEW.name();
+
+	private static final long DEPENDENTS_PAGE_SIZE = 1000;
 
 	final private ColumnModelManager columModelManager;
 	final private TableManagerSupport tableManagerSupport;
@@ -100,10 +106,46 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 		
 		bindSchemaToView(idAndVersion, query);
-		
+
 		tableManagerSupport.setTableToProcessingAndTriggerUpdate(idAndVersion);
+
+		// The rebuild above replaces this view's rows from its new definition. Every materialized view
+		// that transitively depends on this one still holds rows derived from the previous definition, so
+		// it must be forced to rebuild as well. Doing this synchronously (within this write transaction)
+		// closes the window in which a dependent would otherwise remain queryable against stale rows that
+		// no longer match its current authorization graph (PLFM-9977).
+		invalidateDependentMaterializedViews(idAndVersion);
 	}
-	
+
+	/**
+	 * Set every materialized view that transitively depends on the updated view to PROCESSING and
+	 * trigger its rebuild, so none of them can be queried against stale rows until fully rebuilt.
+	 */
+	void invalidateDependentMaterializedViews(IdAndVersion updatedView) {
+		Set<IdAndVersion> visited = new HashSet<>();
+		visited.add(updatedView);
+
+		Deque<IdAndVersion> toProcess = new ArrayDeque<>();
+		toProcess.add(updatedView);
+
+		while (!toProcess.isEmpty()) {
+			IdAndVersion source = toProcess.poll();
+
+			PaginationIterator<DependentObject> dependents = new PaginationIterator<>(
+					(limit, offset) -> definingSqlDependencyDao.getDependentsPage(source, limit, offset),
+					DEPENDENTS_PAGE_SIZE);
+
+			dependents.forEachRemaining(dependent -> {
+				// Only materialized views can be a source for a further materialized view, so the
+				// transitive walk follows materialized view dependents only.
+				if (OBJECT_TYPE.equals(dependent.objectType()) && visited.add(dependent.objectId())) {
+					tableManagerSupport.setTableToProcessingAndTriggerUpdate(dependent.objectId());
+					toProcess.add(dependent.objectId());
+				}
+			});
+		}
+	}
+
 	/**
 	 * Extract the schema from the defining query and bind the results to the provided materialized view.
 	 * 
