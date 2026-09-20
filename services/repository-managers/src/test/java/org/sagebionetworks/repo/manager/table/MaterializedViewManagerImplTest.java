@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.DefiningSqlDependencyDao.DependentObject;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
@@ -299,6 +300,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
@@ -324,6 +326,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -349,6 +352,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -370,12 +374,14 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123";
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
 		verify(mockDefiningSqlDependencyDao).getSourceTables(idAndVersion);
+		verify(mockDefiningSqlDependencyDao).getDependentsPage(idAndVersion, 1000L, 0L);
 		verifyNoMoreInteractions(mockDefiningSqlDependencyDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -392,6 +398,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -416,6 +423,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -441,6 +449,7 @@ public class MaterializedViewManagerImplTest {
 		Set<IdAndVersion> expectedSources = ImmutableSet.of(IdAndVersion.parse("syn123"), IdAndVersion.parse("syn456"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -463,12 +472,14 @@ public class MaterializedViewManagerImplTest {
 		String sql = "SELECT * FROM syn123 JOIN syn456";
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
 		managerSpy.registerSourceTables(idAndVersion, sql);
 
 		verify(mockDefiningSqlDependencyDao).getSourceTables(idAndVersion);
+		verify(mockDefiningSqlDependencyDao).getDependentsPage(idAndVersion, 1000L, 0L);
 		verifyNoMoreInteractions(mockDefiningSqlDependencyDao);
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
@@ -489,6 +500,7 @@ public class MaterializedViewManagerImplTest {
 				IdAndVersion.parse("syn456"));
 
 		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(currentSourceTables);
+		when(mockDefiningSqlDependencyDao.getDependentsPage(any(), anyLong(), anyLong())).thenReturn(Collections.emptyList());
 		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
 
 		// Call under test
@@ -500,6 +512,38 @@ public class MaterializedViewManagerImplTest {
 		verify(managerSpy).bindSchemaToView(eq(idAndVersion), any(QueryExpression.class));
 		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
 
+	}
+
+	@Test
+	public void testRegisterSourceTablesInvalidatesTransitiveMaterializedViewDependents() {
+
+		// A stale materialized view built from this view's previous definition must not remain
+		// queryable, and neither must any view built transitively from it (PLFM-9977).
+		IdAndVersion directDependent = IdAndVersion.parse("syn200");
+		IdAndVersion searchIndexDependent = IdAndVersion.parse("syn300");
+		IdAndVersion transitiveDependent = IdAndVersion.parse("syn400");
+
+		String sql = "SELECT * FROM syn123";
+
+		when(mockDefiningSqlDependencyDao.getSourceTables(any())).thenReturn(Collections.emptySet());
+		when(mockDefiningSqlDependencyDao.getDependentsPage(eq(idAndVersion), anyLong(), anyLong())).thenReturn(List.of(
+				new DependentObject(directDependent, ObjectType.MATERIALIZED_VIEW.name()),
+				new DependentObject(searchIndexDependent, ObjectType.SEARCH_INDEX.name())));
+		when(mockDefiningSqlDependencyDao.getDependentsPage(eq(directDependent), anyLong(), anyLong())).thenReturn(List.of(
+				new DependentObject(transitiveDependent, ObjectType.MATERIALIZED_VIEW.name())));
+		when(mockDefiningSqlDependencyDao.getDependentsPage(eq(transitiveDependent), anyLong(), anyLong())).thenReturn(Collections.emptyList());
+		doNothing().when(managerSpy).bindSchemaToView(any(), any(QueryExpression.class));
+
+		// Call under test
+		managerSpy.registerSourceTables(idAndVersion, sql);
+
+		// The updated view and every transitive materialized view dependent are set to processing.
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(idAndVersion);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(directDependent);
+		verify(mockTableManagerSupport).setTableToProcessingAndTriggerUpdate(transitiveDependent);
+		// A search index dependent is not a materialized view, so it is neither invalidated nor walked.
+		verify(mockTableManagerSupport, never()).setTableToProcessingAndTriggerUpdate(searchIndexDependent);
+		verify(mockDefiningSqlDependencyDao, never()).getDependentsPage(eq(searchIndexDependent), anyLong(), anyLong());
 	}
 
 	@Test
