@@ -1,0 +1,24 @@
+{
+	"description": "The provenance of a single output column of a defining-SQL object: its derivation kind and the immediate source column(s) it derives from.",
+	"properties": {
+		"outputColumnId": {
+			"type": "string",
+			"description": "The ColumnModel id of the output column this entry describes."
+		},
+		"derivationKind": {
+			"description": "How the output column derives from its input(s).",
+			"$ref": "org.sagebionetworks.repo.model.table.DerivationKind"
+		},
+		"setFunctionType": {
+			"type": "string",
+			"description": "The set function applied, present only when the derivationKind is AGGREGATE. Carries the name of the SQL set function (e.g. COUNT, MAX, SUM), which lets a policy layer distinguish a protected count from other aggregates."
+		},
+		"inputs": {
+			"type": "array",
+			"description": "The immediate source column(s) this output column derives from. Empty for a LITERAL. May contain multiple entries for a JOIN, a multi-input expression (e.g. concat), or a UNION (the union of the inputs from every branch).",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SourceColumnReference"
+			}
+		}
+	}
+}

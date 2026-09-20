@@ -1,0 +1,23 @@
+{
+	"description": "Describes how an output column of a defining-SQL object derives from its immediate input column(s). Used by column provenance to classify a column so a policy layer (e.g. quasi-identifier enforcement) can reason about it without re-translating SQL.",
+	"name": "DerivationKind",
+	"type": "string",
+	"enum": [
+		{
+			"name": "IDENTITY",
+			"description": "A bare column reference or a pure alias: the output value is exactly the input value."
+		},
+		{
+			"name": "AGGREGATE",
+			"description": "A set function over the input (e.g. COUNT, MAX, SUM). The specific SetFunctionType is carried separately."
+		},
+		{
+			"name": "EXPRESSION",
+			"description": "An arithmetic, string, CASE, CAST, or other non-aggregate function over one or more inputs."
+		},
+		{
+			"name": "LITERAL",
+			"description": "A constant value with no input columns."
+		}
+	]
+}

@@ -1,0 +1,20 @@
+{
+	"description": "The complete column-level lineage of a defining-SQL object (MaterializedView, VirtualTable, SearchIndex). Records, for each output column, how it derives from the columns of the object's immediate sources. Expressed only against immediate sources; transitive resolution composes across documents. Computed from the defining SQL and bound schema and cached; it is fully derivable and is not migrated between stacks.",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The id of the object this provenance describes, e.g. 'syn123'."
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The version of the object this provenance describes. Null when the provenance is for the current (unversioned) schema."
+		},
+		"columns": {
+			"type": "array",
+			"description": "One entry per output column of the object, in select-list order.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnProvenanceEntry"
+			}
+		}
+	}
+}

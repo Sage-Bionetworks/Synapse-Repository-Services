@@ -46,16 +46,19 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private DefiningSqlDependencyDao definingSqlDependencyDao;
+	final private ColumnProvenanceManager columnProvenanceManager;
 
 	@Autowired
 	public MaterializedViewManagerImpl(ColumnModelManager columModelManager,
 			TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory,
-			DefiningSqlDependencyDao definingSqlDependencyDao) {
+			DefiningSqlDependencyDao definingSqlDependencyDao,
+			ColumnProvenanceManager columnProvenanceManager) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
+		this.columnProvenanceManager = columnProvenanceManager;
 	}
 
 	@Override

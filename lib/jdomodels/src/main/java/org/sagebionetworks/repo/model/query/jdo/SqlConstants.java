@@ -199,7 +199,14 @@ public class SqlConstants {
 	public static final String COL_DERIVED_ANNOTATIONS_KEYS	= "ANNO_KEYS";
 	public static final String COL_DERIVED_ANNOTATIONS_ANNOS	= "ANNOTATIONS";
 	public static final String DDL_FILE_DERIVED_ANNOTATIONS	= "schema/DerivedAnnotations-ddl.sql";
-	
+
+	// Column provenance (derived, non-migrated cache of column-level lineage for defining-SQL objects)
+	public static final String TABLE_COLUMN_PROVENANCE			= "COLUMN_PROVENANCE";
+	public static final String COL_COLUMN_PROVENANCE_OBJECT_ID	= "OBJECT_ID";
+	public static final String COL_COLUMN_PROVENANCE_OBJECT_VERSION	= "OBJECT_VERSION";
+	public static final String COL_COLUMN_PROVENANCE_JSON		= "PROVENANCE_JSON";
+	public static final String DDL_FILE_COLUMN_PROVENANCE		= "schema/ColumnProvenance-ddl.sql";
+
 	// The Project Stats table
 	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
 	public static final String COL_PROJECT_STAT_ID				= "ID";
