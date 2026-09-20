@@ -173,7 +173,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			.map(c -> columModelManager.createColumnModel(c).getId())
 			.collect(Collectors.toList());
 		
-		columModelManager.bindColumnsToVersionOfObject(schemaIds, idAndVersion);
+		columnProvenanceManager.bindSchemaAndInvalidate(schemaIds, idAndVersion);
 	}
 
 	@Override

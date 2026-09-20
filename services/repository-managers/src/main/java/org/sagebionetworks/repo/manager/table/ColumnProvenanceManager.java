@@ -9,10 +9,12 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.table.ColumnProvenanceDao;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnProvenance;
 import org.sagebionetworks.repo.model.table.ColumnProvenanceEntry;
 import org.sagebionetworks.repo.model.table.DerivationKind;
 import org.sagebionetworks.repo.model.table.SourceColumnReference;
+import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
@@ -74,6 +76,21 @@ public class ColumnProvenanceManager {
 	}
 
 	/**
+	 * Bind the given output schema to a defining-SQL object and discard any cached provenance in one
+	 * step. This is the single entry point every defining-SQL entity (MaterializedView, VirtualTable,
+	 * SearchIndex) uses to (re)bind its schema, so that a new entity type cannot bind a schema and then
+	 * forget to invalidate the now-stale lineage.
+	 *
+	 * @param schemaIds the ordered output column ids to bind.
+	 * @param object    the object version being (re)bound.
+	 */
+	@WriteTransaction
+	public void bindSchemaAndInvalidate(List<String> schemaIds, IdAndVersion object) {
+		columnModelManager.bindColumnsToVersionOfObject(schemaIds, object);
+		invalidate(object);
+	}
+
+	/**
 	 * Discard any cached provenance for the object so it is recomputed on the next read. Called when
 	 * the object's schema is re-bound, since an in-place redefinition can change the lineage.
 	 *
@@ -89,12 +106,32 @@ public class ColumnProvenanceManager {
 	 * column id (both are in select-list order).
 	 */
 	ColumnProvenance computeColumnProvenance(IdAndVersion object, String definingSql) {
-		List<ColumnProvenanceEntry> entries = computeEntries(definingSql);
-		List<String> outputColumnIds = columnModelManager.getColumnIdsForTable(object);
-		int columnCount = Math.min(entries.size(), outputColumnIds.size());
-		List<ColumnProvenanceEntry> columns = new ArrayList<>(columnCount);
-		for (int i = 0; i < columnCount; i++) {
-			columns.add(entries.get(i).setOutputColumnId(outputColumnIds.get(i)));
+		List<ComputedColumn> computed = computeColumns(definingSql);
+		List<ColumnModel> boundColumns = columnModelManager.getTableSchema(object);
+		// Each computed column is paired with the object's bound output column at the same select-list
+		// position: both the computed columns and the bound schema are in select-list order (bound
+		// columns by ordinal, computed columns by walk order, with 'select *' expanded here exactly as
+		// at bind time). Position - not name - is the pairing key, because output names need not be
+		// unique (e.g. 'select foo, foo'). The bound schema was itself created from getSchemaOfSelect at
+		// bind time, so as a defence-in-depth invariant we also confirm the bound column name still
+		// equals the name the defining SQL produces at each position. A count or name divergence means
+		// the bound schema and the defining SQL have drifted out of sync - a corrupted system invariant,
+		// not a bad request - so fail loudly with an IllegalStateException (HTTP 500) rather than
+		// attribute the wrong lineage to a column.
+		if (computed.size() != boundColumns.size()) {
+			throw new IllegalStateException("Expected " + boundColumns.size()
+					+ " bound columns to match the defining SQL of " + object + " but computed " + computed.size());
+		}
+		List<ColumnProvenanceEntry> columns = new ArrayList<>(computed.size());
+		for (int i = 0; i < computed.size(); i++) {
+			ColumnModel boundColumn = boundColumns.get(i);
+			String computedName = computed.get(i).outputName();
+			if (!boundColumn.getName().equals(computedName)) {
+				throw new IllegalStateException("The bound schema of " + object
+						+ " is out of sync with its defining SQL at column " + i + ": bound column '"
+						+ boundColumn.getName() + "' but the defining SQL produced '" + computedName + "'");
+			}
+			columns.add(computed.get(i).entry().setOutputColumnId(boundColumn.getId()));
 		}
 		return new ColumnProvenance()
 				.setObjectId("syn" + object.getId())
@@ -108,6 +145,15 @@ public class ColumnProvenanceManager {
 	 * null; it is assigned by the caller from the bound schema.
 	 */
 	List<ColumnProvenanceEntry> computeEntries(String definingSql) {
+		return computeColumns(definingSql).stream().map(ComputedColumn::entry).collect(Collectors.toList());
+	}
+
+	/**
+	 * Compute the ordered output columns of the defining SQL, each carrying both its provenance entry
+	 * and the output name the SQL produces (1:1 and in the same order as
+	 * {@link SQLTranslatorUtils#getSchemaOfSelect}, so the caller can align them to the bound schema).
+	 */
+	List<ComputedColumn> computeColumns(String definingSql) {
 		QueryExpression model;
 		try {
 			model = new TableQueryParser(definingSql).queryExpression();
@@ -118,23 +164,25 @@ public class ColumnProvenanceManager {
 		SQLTranslatorUtils.translateDefiningClause(model);
 
 		// Each QuerySpecification is one part; a UNION contributes multiple parts of equal width.
-		List<List<ColumnProvenanceEntry>> perPart = model.stream(QuerySpecification.class)
-				.map(this::computeEntriesForPart).collect(Collectors.toList());
+		List<List<ComputedColumn>> perPart = model.stream(QuerySpecification.class)
+				.map(this::computeColumnsForPart).collect(Collectors.toList());
 		return mergeParts(perPart);
 	}
 
 	/**
-	 * Compute the provenance of a single query part, resolving each output column's source-column
-	 * inputs against the part's tables.
+	 * Compute the output columns of a single query part, resolving each output column's source-column
+	 * inputs against the part's tables and capturing the name the SQL produces for it.
 	 */
-	private List<ColumnProvenanceEntry> computeEntriesForPart(QuerySpecification part) {
+	private List<ComputedColumn> computeColumnsForPart(QuerySpecification part) {
 		TableAndColumnMapper mapper = new TableAndColumnMapper(part, tableManagerSupport);
 		// A 'select *' carries no explicit columns, so expand it into one column per source column -
 		// exactly as QueryTranslator does - before deriving an entry per output column.
 		if (Boolean.TRUE.equals(part.getSelectList().getAsterisk())) {
 			part.replaceSelectList(mapper.buildSelectAllColumns(), null);
 		}
-		return part.getSelectList().getColumns().stream().map(column -> computeEntry(column, mapper))
+		return part.getSelectList().getColumns().stream()
+				.map(column -> new ComputedColumn(SQLTranslatorUtils.getSelectColumns(column, mapper).getName(),
+						computeEntry(column, mapper)))
 				.collect(Collectors.toList());
 	}
 
@@ -199,17 +247,17 @@ public class ColumnProvenanceManager {
 	 * dominates an identity. Parts that do not share the first part's width (for example the inner query
 	 * of a common table expression) are ignored, matching {@link SQLTranslatorUtils#createSchemaOfSelect}.
 	 */
-	static List<ColumnProvenanceEntry> mergeParts(List<List<ColumnProvenanceEntry>> perPart) {
-		List<ColumnProvenanceEntry> first = perPart.get(0);
+	static List<ComputedColumn> mergeParts(List<List<ComputedColumn>> perPart) {
+		List<ComputedColumn> first = perPart.get(0);
 		if (perPart.size() < 2 || perPart.stream().skip(1).anyMatch(part -> part.size() != first.size())) {
 			return first;
 		}
-		List<ColumnProvenanceEntry> merged = new ArrayList<>(first.size());
+		List<ComputedColumn> merged = new ArrayList<>(first.size());
 		for (int column = 0; column < first.size(); column++) {
 			ColumnProvenanceEntry result = new ColumnProvenanceEntry().setDerivationKind(DerivationKind.IDENTITY);
 			LinkedHashSet<SourceColumnReference> inputs = new LinkedHashSet<>();
-			for (List<ColumnProvenanceEntry> part : perPart) {
-				ColumnProvenanceEntry branch = part.get(column);
+			for (List<ComputedColumn> part : perPart) {
+				ColumnProvenanceEntry branch = part.get(column).entry();
 				inputs.addAll(branch.getInputs());
 				if (result.getDerivationKind() == DerivationKind.IDENTITY
 						&& branch.getDerivationKind() != DerivationKind.IDENTITY) {
@@ -217,9 +265,17 @@ public class ColumnProvenanceManager {
 					result.setSetFunctionType(branch.getSetFunctionType());
 				}
 			}
-			merged.add(result.setInputs(new ArrayList<>(inputs)));
+			// The output name of a UNION is the first branch's name, matching getSchemaOfSelect.
+			merged.add(new ComputedColumn(first.get(column).outputName(), result.setInputs(new ArrayList<>(inputs))));
 		}
 		return merged;
+	}
+
+	/**
+	 * One output column of the defining SQL: its provenance entry together with the name the SQL
+	 * produces for it, so the caller can both align to and validate against the bound schema.
+	 */
+	record ComputedColumn(String outputName, ColumnProvenanceEntry entry) {
 	}
 
 }

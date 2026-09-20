@@ -21,6 +21,7 @@ import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.ColumnProvenanceManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -155,6 +156,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final WriteReadSemaphore writeReadSemaphore;
 	private final StackConfiguration stackConfiguration;
 	private final DefiningSqlDependencyDao definingSqlDependencyDao;
+	private final ColumnProvenanceManager columnProvenanceManager;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
@@ -166,7 +168,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			ColumnModelManager columnModelManager,
 			WriteReadSemaphore writeReadSemaphore,
 			StackConfiguration stackConfiguration,
-			DefiningSqlDependencyDao definingSqlDependencyDao) {
+			DefiningSqlDependencyDao definingSqlDependencyDao,
+			ColumnProvenanceManager columnProvenanceManager) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
@@ -179,6 +182,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.writeReadSemaphore = writeReadSemaphore;
 		this.stackConfiguration = stackConfiguration;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
+		this.columnProvenanceManager = columnProvenanceManager;
 	}
 
 	@Override
@@ -216,7 +220,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
 				.map(c -> columnModelManager.createColumnModel(c).getId())
 				.collect(Collectors.toList());
-		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
+		columnProvenanceManager.bindSchemaAndInvalidate(schemaIds, searchIndexId);
 		// Record the source -> SearchIndex edge so a source table/view that becomes AVAILABLE can
 		// reverse-look-up which SearchIndex(es) depend on it and enqueue their rebuild.
 		definingSqlDependencyDao.setSourceTable(searchIndexId, OBJECT_TYPE, sourceId);

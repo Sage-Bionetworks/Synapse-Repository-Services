@@ -89,6 +89,9 @@ public class MaterializedViewManagerImplTest {
 	@Mock
 	private DefiningSqlDependencyDao mockDefiningSqlDependencyDao;
 
+	@Mock
+	private ColumnProvenanceManager mockColumnProvenanceManager;
+
 	@InjectMocks
 	private MaterializedViewManagerImpl manager;
 	
@@ -636,7 +639,7 @@ public class MaterializedViewManagerImplTest {
 				.createColumnModel(new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER).setId(null));
 		verify(mockColumnModelManager).createColumnModel(
 				new ColumnModel().setName("bar").setColumnType(ColumnType.STRING).setMaximumSize(50L).setId(null));
-		verify(mockColumnModelManager).bindColumnsToVersionOfObject(Arrays.asList("333", "444"), idAndVersion);
+		verify(mockColumnProvenanceManager).bindSchemaAndInvalidate(Arrays.asList("333", "444"), idAndVersion);
 		verify(mockTableManagerSupport).getIndexDescription(IdAndVersion.parse("syn1"));
 		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
