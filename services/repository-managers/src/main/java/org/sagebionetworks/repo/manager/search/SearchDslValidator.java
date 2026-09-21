@@ -32,6 +32,7 @@ import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
 import org.opensearch.client.opensearch._types.query_dsl.PrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
+import org.opensearch.client.opensearch._types.query_dsl.QueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.SimpleQueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
@@ -56,7 +57,8 @@ import com.fasterxml.jackson.databind.JsonNode;
  * {@link Rescore}). Each {@code validate*} method walks its typed object and enforces the numeric
  * caps that need typed accessors and prevent a request from expanding into an unbounded shape inside
  * AOSS: query depth and clause count, aggregation depth and count, value-array length,
- * prefix-expansion, histogram bucket bound, cardinality precision, and the leading-wildcard rejection.
+ * prefix-expansion, regex automaton size, histogram bucket bound, cardinality precision, and the
+ * leading-wildcard rejection.
  *
  * <p>This is the defense-in-depth layer behind the typed POJO's structural allowlist. Each
  * {@code walk*} switch has a throwing {@code default}, so a query / aggregation kind that the
@@ -129,6 +131,14 @@ final class SearchDslValidator {
 	 */
 	static final int MAX_PREFIX_EXPANSIONS = 50;
 
+	/**
+	 * Maximum {@code max_determinized_states} on a {@code query_string} clause &mdash; the number of
+	 * automaton states a {@code /regex/} term may compile to. Lucene's own default is 10000; a caller
+	 * may lower it but not raise it, because {@code allow_leading_wildcard} does not apply to regular
+	 * expressions and a permissive pattern examines every term in the index.
+	 */
+	static final int MAX_DETERMINIZED_STATES = 10000;
+
 	// --------------------------------------------------------------
 	// Kind allowlists.
 	// --------------------------------------------------------------
@@ -146,7 +156,7 @@ final class SearchDslValidator {
 			Query.Kind.MatchPhrasePrefix, Query.Kind.MatchBoolPrefix,
 			Query.Kind.Term, Query.Kind.Terms, Query.Kind.Range, Query.Kind.Exists,
 			Query.Kind.Prefix, Query.Kind.Wildcard, Query.Kind.Fuzzy,
-			Query.Kind.SimpleQueryString, Query.Kind.MatchAll,
+			Query.Kind.SimpleQueryString, Query.Kind.QueryString, Query.Kind.MatchAll,
 			// compound
 			Query.Kind.Bool, Query.Kind.DisMax, Query.Kind.ConstantScore, Query.Kind.Boosting);
 
@@ -724,6 +734,9 @@ final class SearchDslValidator {
 		case SimpleQueryString:
 			validateSimpleQueryString(query.simpleQueryString());
 			break;
+		case QueryString:
+			validateQueryString(query.queryString());
+			break;
 		case Fuzzy:
 			validateFuzzyMaxExpansions(query.fuzzy());
 			break;
@@ -833,9 +846,9 @@ final class SearchDslValidator {
 	}
 
 	/**
-	 * {@code simple_query_string}: cap {@code fields} length, reject a leading wildcard in
-	 * {@code query} when {@code analyze_wildcard} is true (otherwise the leading wildcard
-	 * wouldn't actually be evaluated as one). The mini-DSL inside {@code query} is otherwise
+	 * {@code simple_query_string}: cap {@code fields} length and the fuzzy expansion, reject a
+	 * leading wildcard in {@code query} when {@code analyze_wildcard} is true (otherwise the leading
+	 * wildcard wouldn't actually be evaluated as one). The mini-DSL inside {@code query} is otherwise
 	 * passed through &mdash; AOSS request timeouts bound the worst case.
 	 */
 	static void validateSimpleQueryString(SimpleQueryStringQuery sq) {
@@ -844,6 +857,7 @@ final class SearchDslValidator {
 			throw new IllegalArgumentException("simple_query_string.fields has " + fields.size()
 					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
 		}
+		checkMaxExpansions(sq.fuzzyMaxExpansions(), "simple_query_string");
 		if (Boolean.TRUE.equals(sq.analyzeWildcard())) {
 			String pattern = sq.query();
 			if (!pattern.isEmpty()) {
@@ -854,6 +868,27 @@ final class SearchDslValidator {
 									+ "with analyze_wildcard=true (forces a full index scan)");
 				}
 			}
+		}
+	}
+
+	/**
+	 * {@code query_string}: cap {@code fields} length, the fuzzy expansion, and the automaton size a
+	 * {@code /regex/} term may compile to. The expression inside {@code query} is checked by
+	 * {@link SearchFieldRewriter} as it resolves the column references embedded in it &mdash; that is
+	 * where this clause's leading-wildcard rejection lives, since only a scan of the expression knows
+	 * where a term begins.
+	 */
+	static void validateQueryString(QueryStringQuery qs) {
+		List<String> fields = qs.fields();
+		if (fields.size() > MAX_VALUES_PER_CLAUSE) {
+			throw new IllegalArgumentException("query_string.fields has " + fields.size()
+					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
+		}
+		checkMaxExpansions(qs.fuzzyMaxExpansions(), "query_string");
+		Integer determinizedStates = qs.maxDeterminizedStates();
+		if (determinizedStates != null && determinizedStates > MAX_DETERMINIZED_STATES) {
+			throw new IllegalArgumentException("query_string.max_determinized_states is "
+					+ determinizedStates + "; max is " + MAX_DETERMINIZED_STATES);
 		}
 	}
 

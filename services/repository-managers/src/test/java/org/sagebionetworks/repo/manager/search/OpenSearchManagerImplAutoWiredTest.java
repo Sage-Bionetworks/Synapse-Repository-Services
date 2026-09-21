@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.search.dsl.MatchPhraseFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.MultiMatchQuery;
 import org.sagebionetworks.repo.model.search.dsl.PrefixFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.Query;
+import org.sagebionetworks.repo.model.search.dsl.QueryStringQuery;
 import org.sagebionetworks.repo.model.search.dsl.RangeFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.Rescore;
 import org.sagebionetworks.repo.model.search.dsl.RescoreQuery;
@@ -1234,6 +1235,9 @@ public class OpenSearchManagerImplAutoWiredTest {
 		queries.put(Kind.SimpleQueryString,
 				() -> queryBody(new Query().setSimple_query_string(
 						new SimpleQueryStringQuery().setQuery("amyloid"))));
+		queries.put(Kind.QueryString,
+				() -> queryBody(new Query().setQuery_string(
+						new QueryStringQuery().setQuery("title: amyloid"))));
 		queries.put(Kind.MatchAll,
 				() -> matchAllBody());
 		queries.put(Kind.Bool,
@@ -1273,6 +1277,45 @@ public class OpenSearchManagerImplAutoWiredTest {
 		expected.remove(Kind.MatchPhrasePrefix);
 		assertEquals(expected, covered,
 				"every allowlisted query kind (except MatchPhrasePrefix) must appear in this round-trip");
+	}
+
+	/**
+	 * A {@code query_string} expression names its columns inside the Lucene syntax &mdash; as a
+	 * field prefix and as the argument of {@code _exists_} &mdash; while the index maps each column
+	 * under its column id. An unresolved name reaches a field the mapping does not have, which AOSS
+	 * answers with zero hits and HTTP 200 rather than an error, so these assertions are on the
+	 * matched rows: a search that merely succeeds proves nothing about the rewrite.
+	 */
+	@Test
+	public void testSearchWithQueryStringColumnNamesInExpression() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+		openSearchManager.waitForIndexWritable(indexName);
+
+		openSearchManager.bulkIndex(indexName, List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L,
+						"1", "amyloid plaques", "2", "2024")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L,
+						"1", "tau tangles", "2", "2023"))));
+		waitForSearch(matchAllBody(), columns, 2);
+
+		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS);
+
+		// call under test
+		SearchQueryResults byFieldPrefix = waitForSearchHits(queryBody(new Query().setQuery_string(
+				new QueryStringQuery().setQuery("title: amyloid AND year: 2024"))), columns, parts, 1);
+		assertEquals(List.of(1L), byFieldPrefix.getHits().stream()
+				.map(SearchHit::getRowId).collect(Collectors.toList()));
+
+		// call under test
+		SearchQueryResults byExists = waitForSearchHits(queryBody(new Query().setQuery_string(
+				new QueryStringQuery().setQuery("_exists_: year AND NOT title: amyloid"))),
+				columns, parts, 1);
+		assertEquals(List.of(2L), byExists.getHits().stream()
+				.map(SearchHit::getRowId).collect(Collectors.toList()));
 	}
 
 	/**

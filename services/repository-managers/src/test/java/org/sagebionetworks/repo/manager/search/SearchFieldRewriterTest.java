@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -35,6 +36,7 @@ public class SearchFieldRewriterTest {
 		NAME_TO_ID.put("title", "100");
 		NAME_TO_ID.put("name", "101");
 		NAME_TO_ID.put("count", "102");
+		NAME_TO_ID.put("article title", "103");
 	}
 
 	/** Name-only routing context: maps via NAME_TO_ID, reports every column as non-text so
@@ -1270,5 +1272,271 @@ public class SearchFieldRewriterTest {
 		// call under test
 		assertEquals("999.keyword",
 				SearchFieldRewriter.rewriteIdRefStrippingKeyword("999.keyword", REVERSE));
+	}
+
+	// ---------- rewriteQueryStringExpression ----------
+
+	private static String rewriteExpression(String expression) {
+		return SearchFieldRewriter.rewriteQueryStringExpression(expression, NAME_ONLY);
+	}
+
+	private static String assertExpressionRejected(String expression) {
+		return assertThrows(IllegalArgumentException.class, () -> rewriteExpression(expression)).getMessage();
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithFieldPrefix() {
+		// call under test
+		assertEquals("100: wind", rewriteExpression("title: wind"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithNoFieldPrefix() {
+		// call under test
+		assertEquals("wind AND film", rewriteExpression("wind AND film"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithMultiplePrefixesAndOperators() {
+		// call under test
+		assertEquals("100: ((gone AND wind) OR wind) AND NOT 101: turbines",
+				rewriteExpression("title: ((gone AND wind) OR wind) AND NOT name: turbines"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithNoSpaceAfterColon() {
+		// call under test
+		assertEquals("100:wind 101:gone", rewriteExpression("title:wind name:gone"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithKeywordSubField() {
+		// An explicitly requested sub-field is preserved through the rewrite.
+		// call under test
+		assertEquals("100.keyword: wind", rewriteExpression("title.keyword: wind"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithEscapedSpaceInColumnName() {
+		// A reserved character in a column name is backslash-escaped, and the escape is what the
+		// lookup has to see through.
+		// call under test
+		assertEquals("103: wind", rewriteExpression("article\\ title: wind"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithBoostOnGroup() {
+		// call under test
+		assertEquals("100:(wind rises)^2", rewriteExpression("title:(wind rises)^2"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithFuzzyAndProximity() {
+		// call under test
+		assertEquals("100: rise~1 101: \"wind gone\"~4",
+				rewriteExpression("title: rise~1 name: \"wind gone\"~4"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithColonInsideQuotedPhrase() {
+		// A quoted phrase is literal; the ':' inside it is not a field separator.
+		// call under test
+		assertEquals("100: \"a:b\"", rewriteExpression("title: \"a:b\""));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithRegexLiteral() {
+		// call under test
+		assertEquals("100: /w[a-z]nd/", rewriteExpression("title: /w[a-z]nd/"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithRange() {
+		// A bracketed range is copied verbatim — including the '*' unbounded marker, which is not a
+		// leading wildcard.
+		// call under test
+		assertEquals("102: [1 TO *]", rewriteExpression("count: [1 TO *]"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExclusiveRange() {
+		// call under test
+		assertEquals("101: {* TO Bates}", rewriteExpression("name: {* TO Bates}"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithComparisonOperators() {
+		// call under test
+		assertEquals("102: (>=1 AND <=15)", rewriteExpression("count: (>=1 AND <=15)"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithRequiredAndProhibitedTerms() {
+		// call under test
+		assertEquals("100: (gone +wind -turbines)",
+				rewriteExpression("title: (gone +wind -turbines)"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithTrailingWildcard() {
+		// A trailing wildcard only expands forward through the term dictionary, so it is allowed.
+		// call under test
+		assertEquals("100: hist*", rewriteExpression("title: hist*"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithEscapedWildcardInValue() {
+		// An escaped '*' is a literal character in the term, not a wildcard.
+		// call under test
+		assertEquals("100: 2\\*3", rewriteExpression("title: 2\\*3"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExistsPseudoField() {
+		// _exists_ is not a column: its argument is the column reference.
+		// call under test
+		assertEquals("_exists_: 100", rewriteExpression("_exists_: title"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExistsPseudoFieldInsideGroup() {
+		// call under test
+		assertEquals("(_exists_:101 OR 100: wind)", rewriteExpression("(_exists_:name OR title: wind)"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExistsUnknownColumnRejected() {
+		String message = assertExpressionRejected("_exists_: ghost");
+		assertTrue(message.contains("_exists_"));
+		assertTrue(message.contains("ghost"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithUnknownColumnRejected() {
+		// An unmapped field is not an error to OpenSearch — it silently matches nothing — so the
+		// rewriter has to be the one that rejects it.
+		String message = assertExpressionRejected("ghost: wind");
+		assertTrue(message.contains("unknown column"));
+		assertTrue(message.contains("ghost"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithUnescapedSpaceInColumnName() {
+		// Without the escape the name splits at the space exactly as OpenSearch would parse it: a
+		// bare 'article' term followed by a prefix on the column named 'title'.
+		// call under test
+		assertEquals("article 100: wind", rewriteExpression("article title: wind"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithLeadingWildcardRejected() {
+		String message = assertExpressionRejected("title: *cal");
+		assertTrue(message.contains("leading wildcard"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithLeadingQuestionMarkRejected() {
+		String message = assertExpressionRejected("title: ?ind");
+		assertTrue(message.contains("leading wildcard"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithLeadingWildcardAfterProhibitOperator() {
+		// The '-' is an operator, so the term it negates still starts with the wildcard.
+		String message = assertExpressionRejected("title: -*cal");
+		assertTrue(message.contains("leading wildcard"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithWildcardFieldNameRejected() {
+		// Synapse index fields carry no sub-fields beyond .keyword, so a 'title.*' prefix resolves to
+		// nothing.
+		String message = assertExpressionRejected("title.\\*: rise");
+		assertTrue(message.contains("wildcard field name"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithNestedFieldPrefixInGroupRejected() {
+		String message = assertExpressionRejected("title: (gone OR name: x)");
+		assertTrue(message.contains("nests a field prefix"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithSiblingPrefixesInSharedGroup() {
+		// The group is not scoped by a field prefix, so the prefixes inside it are the caller's own.
+		// call under test
+		assertEquals("(100: gone OR 101: x)", rewriteExpression("(title: gone OR name: x)"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithColonAndNoFieldNameRejected() {
+		String message = assertExpressionRejected(": wind");
+		assertTrue(message.contains("no field name"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithUnterminatedQuoteRejected() {
+		String message = assertExpressionRejected("title: \"wind rises");
+		assertTrue(message.contains("unterminated"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithUnterminatedRangeRejected() {
+		String message = assertExpressionRejected("count: [1 TO 15");
+		assertTrue(message.contains("unterminated"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithEmptyExpression() {
+		// call under test
+		assertEquals("", rewriteExpression(""));
+	}
+
+	// ---------- rewriteQueryStringClause ----------
+
+	@Test
+	public void testRewriteRequestFieldsWithQueryStringClause() throws IOException {
+		JsonNode dsl = parse("{\"query_string\":{\"query\":\"title: wind OR name: gone\","
+				+ "\"fields\":[\"title^2\",\"name\"],\"default_field\":\"count\"}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY);
+
+		ObjectNode clause = (ObjectNode) dsl.get("query_string");
+		assertEquals("100: wind OR 101: gone", clause.get("query").asText());
+		assertEquals("100^2", clause.get("fields").get(0).asText());
+		assertEquals("101", clause.get("fields").get(1).asText());
+		assertEquals("102", clause.get("default_field").asText());
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithQueryStringUnknownFieldsEntryRejected() throws IOException {
+		JsonNode dsl = parse("{\"query_string\":{\"query\":\"wind\",\"fields\":[\"ghost\"]}}");
+
+		String message = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY)).getMessage();
+		assertTrue(message.contains("query_string.fields"));
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithQueryStringUnknownDefaultFieldRejected() throws IOException {
+		JsonNode dsl = parse("{\"query_string\":{\"query\":\"wind\",\"default_field\":\"ghost\"}}");
+
+		String message = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY)).getMessage();
+		assertTrue(message.contains("query_string.default_field"));
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithQueryStringNestedInBool() throws IOException {
+		JsonNode dsl = parse("{\"bool\":{\"must\":[{\"query_string\":{\"query\":\"title: wind\"}}]}}");
+
+		// call under test
+		SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY);
+
+		assertEquals("100: wind",
+				dsl.get("bool").get("must").get(0).get("query_string").get("query").asText());
 	}
 }

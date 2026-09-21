@@ -20,6 +20,10 @@ The API accepts an opaque OpenSearch query DSL (typed passthrough POJOs generate
 
 **Opaque leaf-value shapes are schema-guided, not hand-maintained.** A number of DSL slots (`match.<col>.query`, `range.<col>.gte`, the aggregation `missing` substitution, ...) are schema-typed as a bare `"type":"object"` because their value is polymorphic. `SearchDslValidator.walkOpaqueLeaves` discovers every such leaf by walking the `dsl.Query` / `dsl.Aggregation` effective schema (`SchemaCache`/`ObjectSchema`) rather than a hand-picked list, and requires a scalar value by default. A leaf whose real shape is legitimately non-scalar, or checked elsewhere on the typed object, is an explicit entry in `OPAQUE_LEAF_EXCEPTIONS`. `SearchDslOpaqueLeafCoverageTest` fails the build if the schema's discovered opaque-leaf set drifts from a frozen list, forcing a conscious decision on any newly added opaque property.
 
+**A clause that carries column references inside a string expression is validated in `SearchFieldRewriter`, not `SearchDslValidator`.**
+`query_string` names its columns inside the Lucene `query` text, so `SearchFieldRewriter.rewriteQueryStringClause` tokenizes that expression to substitute column ids, and that tokenizer is consequently where the clause's unknown-column and leading-wildcard rejections live.
+An in-expression name that resolves to nothing must be rejected rather than passed through: OpenSearch answers an unmapped field with zero hits and HTTP 200, so passing it through returns a silent wrong answer instead of surfacing the typo.
+
 ## Anti-Patterns — Do NOT
 
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).

@@ -242,6 +242,53 @@ public class SearchDslValidatorTest {
 		SearchDslValidator.validateQuery(q, false);
 	}
 
+	@Test
+	public void testValidateQueryWithSimpleQueryStringFuzzyMaxExpansionsAboveCap() {
+		Query q = Query.of(b -> b.simpleQueryString(s -> s.query("x")
+				.fuzzyMaxExpansions(SearchDslValidator.MAX_PREFIX_EXPANSIONS + 1)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("simple_query_string"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringFieldsAtCap() {
+		List<String> fields = new ArrayList<>();
+		for (int i = 0; i <= SearchDslValidator.MAX_VALUES_PER_CLAUSE; i++) {
+			fields.add("f" + i);
+		}
+		Query q = Query.of(b -> b.queryString(s -> s.query("x").fields(fields)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("query_string.fields"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringFuzzyMaxExpansionsAboveCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("x")
+				.fuzzyMaxExpansions(SearchDslValidator.MAX_PREFIX_EXPANSIONS + 1)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("query_string"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringMaxDeterminizedStatesAboveCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("/.*d/")
+				.maxDeterminizedStates(SearchDslValidator.MAX_DETERMINIZED_STATES + 1)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("max_determinized_states"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringMaxDeterminizedStatesAtCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("/.*d/")
+				.maxDeterminizedStates(SearchDslValidator.MAX_DETERMINIZED_STATES)));
+		// call under test — must not throw
+		SearchDslValidator.validateQuery(q, false);
+	}
+
 	// -----------------------------------------------------------------------------
 	// Autocomplete top-level narrowing
 	// -----------------------------------------------------------------------------
@@ -736,6 +783,7 @@ public class SearchDslValidatorTest {
 		leaves.add(Query.of(b -> b.wildcard(w -> w.field("f").value("x"))));
 		leaves.add(Query.of(b -> b.fuzzy(f -> f.field("f").value(FieldValue.of("x")))));
 		leaves.add(Query.of(b -> b.simpleQueryString(s -> s.query("x"))));
+		leaves.add(Query.of(b -> b.queryString(s -> s.query("x"))));
 		leaves.add(Query.of(b -> b.matchAll(m -> m)));
 
 		// Compounds wrap a different leaf each so all four compound branches run.

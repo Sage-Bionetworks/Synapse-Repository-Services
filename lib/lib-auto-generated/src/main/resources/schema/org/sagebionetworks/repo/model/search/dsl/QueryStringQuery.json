@@ -1,0 +1,92 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause &mdash; the full Lucene query syntax (field prefixes, <code>AND</code>/<code>OR</code>/<code>NOT</code>, grouping, ranges, <code>~</code> fuzziness, <code>^</code> boosts, <code>/regex/</code>). Column names used as field prefixes inside <code>query</code> are resolved against the index schema; an unresolvable name is rejected. A leading <code>*</code> or <code>?</code> on a term is rejected (it forces a full index scan).",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MinimumShouldMatchOption" }
+	],
+	"properties": {
+		"query": {
+			"type": "string",
+			"description": "Required. The query-string expression."
+		},
+		"fields": {
+			"type": "array",
+			"description": "Optional. The columns to search. Each entry may carry a <code>^boost</code> suffix (e.g. <code>title^2</code>). Defaults to <code>default_field</code>.",
+			"items": {
+				"type": "object"
+			}
+		},
+		"default_field": {
+			"type": "string",
+			"description": "Optional. The column searched by terms that carry no field prefix."
+		},
+		"default_operator": {
+			"type": "string",
+			"description": "Optional. Boolean logic used between terms when no explicit operator is given: <code>or</code> (default) or <code>and</code>."
+		},
+		"type": {
+			"type": "string",
+			"description": "Optional. How the per-field matches are combined when <code>fields</code> lists more than one column: <code>best_fields</code> (default), <code>most_fields</code>, <code>cross_fields</code>, <code>phrase</code>, <code>phrase_prefix</code>, or <code>bool_prefix</code>."
+		},
+		"analyzer": {
+			"type": "string",
+			"description": "Optional. Analyzer used to tokenize the query text. Defaults to each field's search analyzer."
+		},
+		"quote_analyzer": {
+			"type": "string",
+			"description": "Optional. Analyzer used to tokenize the quoted (exact-phrase) portions of the query."
+		},
+		"analyze_wildcard": {
+			"type": "boolean",
+			"description": "Optional. Whether to analyze wildcard terms. Default <code>false</code>."
+		},
+		"auto_generate_synonyms_phrase_query": {
+			"type": "boolean",
+			"description": "Optional. Whether to auto-generate phrase queries for multi-term synonyms. Default <code>true</code>."
+		},
+		"enable_position_increments": {
+			"type": "boolean",
+			"description": "Optional. Whether positions are incremented for removed stop words. Default <code>true</code>."
+		},
+		"fuzziness": {
+			"type": "string",
+			"description": "Optional. Default allowed <a href=\"https://docs.opensearch.org/latest/query-dsl/term/fuzzy/\">edit distance</a> for <code>~</code> terms: an integer or <code>AUTO</code>."
+		},
+		"fuzzy_max_expansions": {
+			"type": "integer",
+			"description": "Optional. Maximum number of terms a fuzzy expansion will generate. Default <code>50</code>."
+		},
+		"fuzzy_prefix_length": {
+			"type": "integer",
+			"description": "Optional. Number of leading characters left unchanged when fuzzy matching."
+		},
+		"fuzzy_transpositions": {
+			"type": "boolean",
+			"description": "Optional. Whether to count transpositions (ab &rarr; ba) as a single edit. Default <code>true</code>."
+		},
+		"lenient": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, format-based errors are ignored."
+		},
+		"max_determinized_states": {
+			"type": "integer",
+			"description": "Optional. Maximum number of automaton states a <code>/regex/</code> term may compile to."
+		},
+		"phrase_slop": {
+			"type": "number",
+			"description": "Optional. Number of positions allowed between matching terms of a quoted phrase. Default <code>0</code>."
+		},
+		"quote_field_suffix": {
+			"type": "string",
+			"description": "Optional. Suffix appended to field names for quoted (exact-phrase) portions of the query."
+		},
+		"rewrite": {
+			"type": "string",
+			"description": "Optional. How the multi-term query is rewritten internally."
+		},
+		"time_zone": {
+			"type": "string",
+			"description": "Optional. Time zone (e.g. <code>-08:00</code> or <code>America/Los_Angeles</code>) used to interpret dates in range expressions."
+		}
+	}
+}
