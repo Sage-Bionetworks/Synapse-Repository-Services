@@ -1,0 +1,17 @@
+{
+	"description": "A reference to a single input column of an immediate source of a defining-SQL object. Identity is by ColumnModel id (not name) so the reference survives rename, 'select *', JOIN name collisions, and expression wrapping. Modeled with primitive fields to keep the schema schema-to-pojo friendly.",
+	"properties": {
+		"sourceObjectId": {
+			"type": "string",
+			"description": "The id of the immediate source object (table/view) this input column comes from, e.g. 'syn123'."
+		},
+		"sourceVersionNumber": {
+			"type": "integer",
+			"description": "The version of the source object, present only when the defining SQL pinned the source at a specific version. When null the reference is to the current version of the source."
+		},
+		"sourceColumnId": {
+			"type": "string",
+			"description": "The ColumnModel id of the input column on the source object."
+		}
+	}
+}

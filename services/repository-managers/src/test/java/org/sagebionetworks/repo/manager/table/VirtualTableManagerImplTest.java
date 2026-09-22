@@ -41,6 +41,8 @@ public class VirtualTableManagerImplTest {
 	private TableManagerSupport mockTableManagerSupport;
 	@Mock
 	private IndexDescription mockIndexDescription;
+	@Mock
+	private ColumnProvenanceManager mockColumnProvenanceManager;
 
 
 	@Test
@@ -340,7 +342,7 @@ public class VirtualTableManagerImplTest {
 		// call under test
 		manager.registerDefiningSql(id, sql);
 
-		verify(mockColumnModelManager).bindColumnsToVersionOfObject(List.of("99"), id);
+		verify(mockColumnProvenanceManager).bindSchemaAndInvalidate(List.of("99"), id);
 		verify(mockColumnModelManager)
 				.createColumnModel(new ColumnModel().setName("foo").setId(null).setColumnType(ColumnType.INTEGER));
 	}

@@ -23,10 +23,13 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 
 	private final ColumnModelManager columModelManager;
 	private final TableManagerSupport tableManagerSupport;
+	private final ColumnProvenanceManager columnProvenanceManager;
 
-	public VirtualTableManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport) {
+	public VirtualTableManagerImpl(ColumnModelManager columModelManager, TableManagerSupport tableManagerSupport,
+			ColumnProvenanceManager columnProvenanceManager) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
+		this.columnProvenanceManager = columnProvenanceManager;
 	}
 
 	@Override
@@ -83,7 +86,7 @@ public class VirtualTableManagerImpl implements VirtualTableManager {
 		List<String> schemaIds = validateSqlAndGetSchema(definingSQL).stream()
 				.map(c -> columModelManager.createColumnModel(c).getId()).collect(Collectors.toList());
 
-		columModelManager.bindColumnsToVersionOfObject(schemaIds, id);
+		columnProvenanceManager.bindSchemaAndInvalidate(schemaIds, id);
 	}
 
 }

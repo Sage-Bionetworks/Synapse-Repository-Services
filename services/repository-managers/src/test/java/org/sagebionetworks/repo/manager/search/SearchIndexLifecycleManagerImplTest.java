@@ -46,6 +46,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManagerImpl.SearchIndexRowHandler;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.ColumnProvenanceManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -138,6 +139,8 @@ public class SearchIndexLifecycleManagerImplTest {
 	private StackConfiguration stackConfiguration;
 	@Mock
 	private DefiningSqlDependencyDao definingSqlDependencyDao;
+	@Mock
+	private ColumnProvenanceManager columnProvenanceManager;
 
 	@InjectMocks
 	private SearchIndexLifecycleManagerImpl manager;
@@ -1563,7 +1566,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertTrue(ex.getMessage().contains("cannot include a group by clause"),
 				"expected the aggregation guard message, got: " + ex.getMessage());
 		// Guard fires before any schema is bound.
-		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
+		verify(columnProvenanceManager, never()).bindSchemaAndInvalidate(any(), any());
 	}
 
 	@Test
@@ -1583,7 +1586,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// call under test — must not throw.
 		manager.registerSchema(searchIndexId, "SELECT foo, COUNT(*) FROM syn789 GROUP BY foo");
 
-		verify(columnModelManager).bindColumnsToVersionOfObject(any(), eq(searchIndexId));
+		verify(columnProvenanceManager).bindSchemaAndInvalidate(any(), eq(searchIndexId));
 		// The source -> SearchIndex edge is recorded so a later source-availability event finds it.
 		verify(definingSqlDependencyDao).setSourceTable(searchIndexId, ObjectType.SEARCH_INDEX.name(), sourceId);
 	}
@@ -1604,7 +1607,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertTrue(ex.getMessage().contains("cannot reference a virtual table"),
 				"expected the virtual-table guard message, got: " + ex.getMessage());
 		// Guard fires before any schema is bound or dependency edge recorded.
-		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
+		verify(columnProvenanceManager, never()).bindSchemaAndInvalidate(any(), any());
 		verify(definingSqlDependencyDao, never()).setSourceTable(any(), any(), any());
 	}
 
