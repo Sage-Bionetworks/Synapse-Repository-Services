@@ -349,6 +349,17 @@ public class JsonSchemaManagerImplTest {
 	}
 
 	@Test
+	public void testProcessAndValidateOrganizationNameContainsUnderscore() {
+		// An underscore is not part of the grammar's token set, so it fails lexically. That used to
+		// escape as a 500 rather than a 400 (PLFM-9941).
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			JsonSchemaManagerImpl.processAndValidateOrganizationName(user, "abc_defg");
+		}).getMessage();
+		assertTrue(message.startsWith("Invalid 'organizationName'"));
+	}
+
+	@Test
 	public void testCreateOrganziation() {
 		when(mockOrganizationDao.createOrganization(createOrganizationRequest.getOrganizationName(), user.getId()))
 				.thenReturn(organization);
@@ -1607,6 +1618,19 @@ public class JsonSchemaManagerImplTest {
 		assertThrows(IllegalArgumentException.class, () -> {
 			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
 		});
+	}
+
+	@Test
+	public void testBindSchemaToObjectWithUnsupportedCharacterIn$id() {
+		// An unsupported character fails lexically, which used to escape as a 500 (PLFM-9941).
+		String $id = organizationName + "-" + schemaName + "_suffix";
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.bindSchemaToObject(adminUser.getId(), $id, objectId, objectType, enableDerived);
+		}).getMessage();
+		assertTrue(message.startsWith("Invalid '$id'"));
+		verify(mockSchemaDao, never()).getSchemaId(any(), any());
+		verify(mockSchemaDao, never()).bindSchemaToObject(any());
 	}
 
 	@Test
