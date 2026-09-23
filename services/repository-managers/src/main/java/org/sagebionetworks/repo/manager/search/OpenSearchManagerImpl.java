@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.*;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
@@ -41,6 +42,8 @@ import org.opensearch.client.opensearch.indices.AnalyzeRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
@@ -53,6 +56,9 @@ import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -143,6 +149,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static long SENTINEL_CLEANUP_INITIAL_BACKOFF_MS = 1000L;
 
 	static final String READINESS_PROBE_DOC_ID = "__readiness_probe__";
+
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores its as-built
+	 * {@link IndexAuthorizationSnapshot}, serialized as a JSON string.
+	 */
+	static final String AUTHORIZATION_SNAPSHOT_META_KEY = "authorizationSnapshot";
 
 	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
@@ -582,6 +594,68 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			throw e;
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to resolve alias: " + aliasName, e);
+		}
+	}
+
+	@Override
+	public Optional<LiveIndex> getLiveIndex(String alias) {
+		ValidateArgument.required(alias, "alias");
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(GET_ALIAS_MAX_RETRIES,
+					GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+				try {
+					// Keyed by the physical index(es) the alias resolves to.
+					GetMappingResponse response = openSearchClient.indices().getMapping(req -> req.index(alias));
+					Map<String, IndexMappingRecord> targets = response.result();
+					if (targets.isEmpty()) {
+						return Optional.<LiveIndex>empty();
+					}
+					if (targets.size() > 1) {
+						throw new IllegalStateException("Alias " + alias
+								+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
+					}
+					Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
+					return readAuthorizationSnapshot(target.getKey(), target.getValue())
+							.map(snapshot -> new LiveIndex(target.getKey(), snapshot));
+				} catch (OpenSearchException e) {
+					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
+						return Optional.<LiveIndex>empty();
+					}
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to resolve alias: " + alias
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to resolve alias: " + alias, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to resolve alias: " + alias, e);
+		}
+	}
+
+	private static Optional<IndexAuthorizationSnapshot> readAuthorizationSnapshot(String physicalIndex,
+			IndexMappingRecord mapping) {
+		if (mapping.mappings() == null) {
+			return Optional.empty();
+		}
+		JsonData value = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
+		if (value == null) {
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(EntityFactory.createEntityFromJSONString(value.to(String.class),
+					IndexAuthorizationSnapshot.class));
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException("Index " + physicalIndex + " has an unreadable "
+					+ AUTHORIZATION_SNAPSHOT_META_KEY + " in its mapping _meta", e);
 		}
 	}
 

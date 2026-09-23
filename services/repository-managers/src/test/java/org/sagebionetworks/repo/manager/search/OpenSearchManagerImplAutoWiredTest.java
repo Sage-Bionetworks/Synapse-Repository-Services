@@ -28,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.client.json.JsonData;
+import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.query_dsl.Query.Kind;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
@@ -70,8 +72,11 @@ import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -103,6 +108,10 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 	@Autowired
 	private TextAnalyzerBootstrap textAnalyzerBootstrap;
+
+	@Autowired
+	@Qualifier("searchIndexManagedClient")
+	private OpenSearchClient openSearchClient;
 
 	private String indexName;
 	/** SynonymSet ids created during a test, removed in @AfterEach so each run is hermetic. */
@@ -172,6 +181,27 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		// call under test — deleteIndex on a name that never existed must not throw
 		openSearchManager.deleteIndex("nonexistent-index-" + UUID.randomUUID());
+	}
+
+	@Test
+	public void testGetLiveIndexWithSnapshotInMeta() throws Exception {
+		IndexAuthorizationSnapshot snapshot = OpenSearchManagerImplTest.createAuthorizationSnapshot();
+		String snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		String alias = indexName + "-alias";
+		openSearchClient.indices().create(req -> req.index(indexName)
+				.mappings(m -> m.meta(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson))));
+		openSearchManager.swapAlias(alias, indexName, Optional.empty());
+
+		// call under test
+		Optional<OpenSearchManager.LiveIndex> result = openSearchManager.getLiveIndex(alias);
+
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex(indexName, snapshot)), result);
+	}
+
+	@Test
+	public void testGetLiveIndexWithMissingAlias() {
+		// call under test
+		assertEquals(Optional.empty(), openSearchManager.getLiveIndex(indexName + "-alias"));
 	}
 
 	@Test
