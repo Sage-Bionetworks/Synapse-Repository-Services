@@ -52,16 +52,19 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 	final private TableManagerSupport tableManagerSupport;
 	final private TableIndexConnectionFactory connectionFactory;
 	final private DefiningSqlDependencyDao definingSqlDependencyDao;
+	final private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	@Autowired
 	public MaterializedViewManagerImpl(ColumnModelManager columModelManager,
 			TableManagerSupport tableManagerSupport,
 			TableIndexConnectionFactory connectionFactory,
-			DefiningSqlDependencyDao definingSqlDependencyDao) {
+			DefiningSqlDependencyDao definingSqlDependencyDao,
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
 		this.columModelManager = columModelManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.connectionFactory = connectionFactory;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 
 	@Override
@@ -353,10 +356,16 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription(), schema, isSearchEnabled);
 		
 		Long viewVersion = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
-		
+
 		// Now build the secondary indicies
 		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
-		
+
+		// Capture the as-built authorization snapshot keyed by the id this build targets - the temporary
+		// id on the shadow-rebuild path, the real id in place - so it rides the same atomic swap as the
+		// index it describes and later drift in current truth cannot authorize access to these bytes.
+		indexManager.saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
+				definingSql.getIndexDescription(), definingSql.getInputSql(), viewSchema));
+
 		// both the version and schema MD5 are used to determine if the view is up-to-date.
 		// The schema MD5 is already set when resetting the index
 		indexManager.setIndexVersion(idAndVersion, viewVersion);

@@ -1,0 +1,31 @@
+{
+	"description": "A serialized, authorization-relevant projection of a runtime org.sagebionetworks.table.cluster.description.IndexDescription, captured as-built at index build time: the object's id and version, its table type, the benefactor columns baked into its index, and its flattened transitive dependencies. It is reconstituted at query time so the transitive-dependency ACL check and the benefactor row-level filter run against as-built state through the same authorization code path used for current-truth state. Only the queried object's own benefactors drive the row-level filter, and the ACL check flattens the dependency tree anyway, so dependencies are stored pre-flattened (each a childless node carrying only id, version, and type). It intentionally omits everything IndexDescription needs only for SQL generation (create/update SQL, query preprocessing, columns-to-add, change numbers), which authorization never consults.",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The id of this table/view (e.g. 'syn123')."
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The pinned version of this table/view, or null when not version-pinned."
+		},
+		"tableType": {
+			"type": "string",
+			"description": "The org.sagebionetworks.repo.model.dao.table.TableType of this object, by enum name (e.g. 'materializedview')."
+		},
+		"benefactors": {
+			"type": "array",
+			"description": "The benefactor columns baked into this object's built index for row-level READ authorization. Empty when the object has no benefactor columns.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.BenefactorColumn"
+			}
+		},
+		"dependencies": {
+			"type": "array",
+			"description": "The flattened transitive closure of the objects this index was built from. Reconstituting the queried object with these as its (childless) dependencies reproduces the exact node set the transitive READ authorization check evaluates.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SourceDependency"
+			}
+		}
+	}
+}
