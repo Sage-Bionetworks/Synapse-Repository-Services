@@ -1,0 +1,16 @@
+{
+	"title": "Generate Data Access Schema From Access Requirement",
+	"description": "Request body to generate the JSON Schema and UI Schema for a form. Intended to support data requesters in the data access request flow.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.GenerateDataAccessSchemaRequestInterface"
+		}
+	],
+	"properties": {
+		"accessRequirement": {
+			"$ref": "org.sagebionetworks.repo.model.AccessRequirementReference",
+			"description": "The AR ID and version number used to generate a schema to describe a data access request.",
+			"required": true
+		}
+	}
+}

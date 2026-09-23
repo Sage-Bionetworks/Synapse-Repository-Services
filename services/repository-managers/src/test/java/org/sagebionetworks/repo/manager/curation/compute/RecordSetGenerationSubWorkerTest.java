@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.RecordSetGenerationSupervisorFactory;
 import org.sagebionetworks.repo.manager.config.ManagerConfiguration;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
@@ -133,7 +134,7 @@ public class RecordSetGenerationSubWorkerTest {
 		assertTrue(message.contains("<instructions>"), "Got: " + message);
 		assertTrue(message.contains("sample = file name without extension"), "Got: " + message);
 		assertEquals(user, AgentToolContextKey.USER_INFO.get(contextCaptor.getValue()));
-		assertEquals("session-1", AgentToolContextKey.CODE_SESSION_ID.get(contextCaptor.getValue()));
+		assertEquals("session-1", CodeSessionSupplier.resolveSessionId(contextCaptor.getValue()));
 
 		// The generated CSV is handed to the shared writer to store as a new RecordSet version.
 		verify(recordSetOutputWriter).storeCsvAsNewRecordSetVersion(user, "syn300", "999");

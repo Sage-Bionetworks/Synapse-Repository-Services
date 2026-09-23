@@ -36,6 +36,13 @@ class DocuSignApiRetryHelper {
 		if (code == 401) {
 			return new DocuSignUnauthorizedException("DocuSign rejected the access token.", e);
 		}
-		return new IllegalStateException("DocuSign API error " + code + ".", e);
+		// The response body carries DocuSign's errorCode and message (e.g. why a send failed);
+		// include it so the cause is visible in logs and the surfaced error rather than a bare code.
+		String responseBody = e.getResponseBody();
+		String message = "DocuSign API error " + code + ".";
+		if (responseBody != null && !responseBody.isBlank()) {
+			message += " " + responseBody;
+		}
+		return new IllegalStateException(message, e);
 	}
 }

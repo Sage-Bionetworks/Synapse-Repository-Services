@@ -641,7 +641,7 @@ public class EntityManagerImplUnitTest {
 		DataType dataType = DataType.SENSITIVE_DATA;
 		// call under test
 		entityManager.changeEntityDataType(mockUser, entityId, dataType);
-		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType);
+		verify(mockObjectTypeManger).changeObjectsDataType(mockUser, entityId, ObjectType.ENTITY, dataType, null);
 	}
 
 	@Test

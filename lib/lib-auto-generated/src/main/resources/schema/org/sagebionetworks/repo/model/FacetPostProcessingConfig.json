@@ -1,0 +1,13 @@
+{
+	"description": "Configuration describing how facet counts are post-processed for an aggregate-only query.",
+	"properties": {
+		"algorithm": {
+			"description": "The algorithm applied to facet counts.",
+			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm"
+		},
+		"parameters": {
+			"description": "Parameters that tune the selected algorithm.",
+			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingParameters"
+		}
+	}
+}

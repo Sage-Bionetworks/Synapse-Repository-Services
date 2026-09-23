@@ -103,10 +103,20 @@ public interface UserManager {
 	
 	/**
 	 * Deletes the oidc binding with the given id
-	 * 
+	 *
 	 * @param userId
 	 */
 	void deleteOidcBinding(Long bindingId);
+
+	/**
+	 * Removes the oidc binding(s) for the given user and provider. This unlinks the identity
+	 * whether it is alias-backed (e.g. ORCID or Google) or not; the underlying PrincipalAlias, if
+	 * any, is left in place.
+	 *
+	 * @param userId
+	 * @param provider
+	 */
+	void deleteOidcBinding(Long userId, OAuthProvider provider);
 	
 	/**
 	 * Removes all the oidc bindings for the given user

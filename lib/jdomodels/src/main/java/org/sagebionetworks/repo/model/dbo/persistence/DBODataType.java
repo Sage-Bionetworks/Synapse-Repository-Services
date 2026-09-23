@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_AGGREGATE_CONFIGURATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_UPDATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_TYPE_UPDATED_ON;
@@ -27,6 +28,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 	private Long objectId;
 	private String objectType;
 	private String dataType;
+	private String aggregateDataConfiguration;
 	private Long updatedBy;
 	private Long updatedOn;
 
@@ -35,6 +37,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 			new FieldColumn("objectId", COL_DATA_TYPE_OBJECT_ID).withIsPrimaryKey(true),
 			new FieldColumn("objectType", COL_DATA_TYPE_OBJECT_TYPE).withIsPrimaryKey(true),
 			new FieldColumn("dataType", COL_DATA_TYPE_TYPE),
+			new FieldColumn("aggregateDataConfiguration", COL_DATA_TYPE_AGGREGATE_CONFIGURATION),
 			new FieldColumn("updatedBy", COL_DATA_TYPE_UPDATED_BY),
 			new FieldColumn("updatedOn", COL_DATA_TYPE_UPDATED_ON), };
 
@@ -70,6 +73,14 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 		this.dataType = dataType;
 	}
 
+	public String getAggregateDataConfiguration() {
+		return aggregateDataConfiguration;
+	}
+
+	public void setAggregateDataConfiguration(String aggregateDataConfiguration) {
+		this.aggregateDataConfiguration = aggregateDataConfiguration;
+	}
+
 	public Long getUpdatedBy() {
 		return updatedBy;
 	}
@@ -97,6 +108,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 				dbo.setObjectId(rs.getLong(COL_DATA_TYPE_OBJECT_ID));
 				dbo.setObjectType(rs.getString(COL_DATA_TYPE_OBJECT_TYPE));
 				dbo.setDataType(rs.getString(COL_DATA_TYPE_TYPE));
+				dbo.setAggregateDataConfiguration(rs.getString(COL_DATA_TYPE_AGGREGATE_CONFIGURATION));
 				dbo.setUpdatedBy(rs.getLong(COL_DATA_TYPE_UPDATED_BY));
 				dbo.setUpdatedOn(rs.getLong(COL_DATA_TYPE_UPDATED_ON));
 				return dbo;
@@ -150,7 +162,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(dataType, id, objectId, objectType, updatedBy, updatedOn);
+		return Objects.hash(aggregateDataConfiguration, dataType, id, objectId, objectType, updatedBy, updatedOn);
 	}
 
 	@Override
@@ -162,7 +174,8 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 		if (getClass() != obj.getClass())
 			return false;
 		DBODataType other = (DBODataType) obj;
-		return Objects.equals(dataType, other.dataType) && Objects.equals(id, other.id)
+		return Objects.equals(aggregateDataConfiguration, other.aggregateDataConfiguration)
+				&& Objects.equals(dataType, other.dataType) && Objects.equals(id, other.id)
 				&& Objects.equals(objectId, other.objectId) && Objects.equals(objectType, other.objectType)
 				&& Objects.equals(updatedBy, other.updatedBy) && Objects.equals(updatedOn, other.updatedOn);
 	}
@@ -170,6 +183,7 @@ public class DBODataType implements MigratableDatabaseObject<DBODataType, DBODat
 	@Override
 	public String toString() {
 		return "DBODataType [id=" + id + ", objectId=" + objectId + ", objectType=" + objectType + ", dataType="
-				+ dataType + ", updatedBy=" + updatedBy + ", updatedOn=" + updatedOn + "]";
+				+ dataType + ", aggregateDataConfiguration=" + aggregateDataConfiguration + ", updatedBy=" + updatedBy
+				+ ", updatedOn=" + updatedOn + "]";
 	}
 }

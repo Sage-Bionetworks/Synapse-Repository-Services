@@ -1,0 +1,26 @@
+{
+	"title": "Public Submission Info Page",
+	"description": "A single page of publicly-disclosable information from approved submissions. Field definitions are deduplicated by FormTemplate version (templateBundles) since many submissions typically share few template versions; each result row carries only its public values plus a reference to the applicable bundle.",
+	"properties": {
+		"templateBundles": {
+			"type": "array",
+			"description": "The form schema/UI bundles for each distinct FormTemplate version referenced by the results on this page. One entry per distinct template version. A result row is joined to its bundle by matching templateRef.",
+			"required": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.PublicSubmissionTemplateBundle"
+			}
+		},
+		"results": {
+			"type": "array",
+			"description": "The public submission info rows for this page.",
+			"required": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.PublicSubmissionInfo"
+			}
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of a particular list request."
+		}
+	}
+}

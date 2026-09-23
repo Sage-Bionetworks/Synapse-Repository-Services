@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.specialist.ToolResponse;
 import org.sagebionetworks.repo.manager.agent.tool.JSONEntityTool;
@@ -195,7 +196,7 @@ public class TableQueryTools extends JSONEntityToolBase {
 	}
 
 	private String extractSessionId(ToolContext toolContext) {
-		return (String) AgentToolContextKey.CODE_SESSION_ID.get(toolContext);
+		return CodeSessionSupplier.resolveSessionId(toolContext);
 	}
 
 	static String escapeCsvField(String field) {

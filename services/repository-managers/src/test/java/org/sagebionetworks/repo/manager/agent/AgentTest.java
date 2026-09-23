@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.manager.agent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Set;
+import java.util.function.Consumer;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -29,6 +32,14 @@ public class AgentTest {
 	private ChatResponse chatResponse;
 
 	private ToolContext context = new ToolContext(java.util.Map.of());
+
+	@BeforeEach
+	public void before() {
+		// chat() attaches the turn-limit advisors and seeds the counter on the spec before calling it; the
+		// spec is a builder, so return it from advisors(...) so the chain reaches call(). The advisor wiring
+		// itself is exercised against a real ChatClient in AgentTurnLimitWiringTest.
+		when(requestSpec.advisors(any(Consumer.class))).thenReturn(requestSpec);
+	}
 
 	/**
 	 * Minimal {@link Agent} of the given type whose only job is to hand back the mocked request spec, so

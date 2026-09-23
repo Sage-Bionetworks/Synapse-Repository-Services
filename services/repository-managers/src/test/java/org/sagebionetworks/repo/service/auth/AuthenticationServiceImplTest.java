@@ -856,9 +856,32 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.getUserInfo(principalId)).thenReturn(userInfo);
 		
 		service.unbindExternalID(principalId, OAuthProvider.ORCID, aliasName);
-		
+
 		verify(mockOAuthManager).getAliasTypeForProvider(OAuthProvider.ORCID);
 		verify(mockUserManager).unbindAlias(aliasName, AliasType.USER_ORCID, principalId);
+	}
+
+	@Test
+	public void testUnbindOIDCIdentity() {
+		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
+
+		// Call under test
+		service.unbindOIDCIdentity(userId, OAuthProvider.ORCID);
+
+		verify(mockUserManager).deleteOidcBinding(userInfo.getId(), OAuthProvider.ORCID);
+	}
+
+	@Test
+	public void testUnbindOIDCIdentityWithAnonymous() {
+		Long anonId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
+		UserInfo anonUserInfo = new UserInfo(false, anonId, "0");
+		anonUserInfo.setRealmAnonymousUserId(anonId);
+		when(mockUserManager.getUserInfo(anonId)).thenReturn(anonUserInfo);
+
+		// Call under test
+		assertThrows(UnauthorizedException.class, () -> service.unbindOIDCIdentity(anonId, OAuthProvider.ORCID));
+
+		verify(mockUserManager, never()).deleteOidcBinding(any(), any());
 	}
 	
 	@Test

@@ -1,29 +1,33 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
+import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dbo.dao.DataTypeDao;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ObjectTypeManagerImplTest {
 
 	@Mock
@@ -35,22 +39,17 @@ public class ObjectTypeManagerImplTest {
 	@InjectMocks
 	ObjectTypeManagerImpl manager;
 
+	@Mock
+	AuthorizationStatus mockAuthStatus;
+
 	UserInfo userInfo;
 	String objectId;
 	ObjectType objectType;
 	DataType dataType;
-	@Mock
-	AuthorizationStatus mockAuthStatus;
 	DataTypeResponse defaultResponse;
 
-	@Before
+	@BeforeEach
 	public void before() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(false);
-		boolean isAuthorized = true;
-		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
-		when(mockAuthorizationManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class),
-				any(ACCESS_TYPE.class))).thenReturn(mockAuthStatus);
-
 		boolean isAdmin = false;
 		Long userId = 123L;
 		userInfo = new UserInfo(isAdmin, userId, AuthorizationConstants.DEFAULT_REALM_ID);
@@ -63,84 +62,258 @@ public class ObjectTypeManagerImplTest {
 		defaultResponse.setObjectType(objectType);
 		defaultResponse.setUpdatedBy(userId.toString());
 		defaultResponse.setDataType(dataType);
+	}
+
+	private AggregateDataConfiguration newAggregateConfiguration() {
+		return new AggregateDataConfiguration().setSuppressionThreshold(10L).setFacetPostProcessingConfig(
+				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
+	}
+
+	/**
+	 * Must have the UPDATE permission to set an Object's type to SENSITIVE_DATA.
+	 */
+	@Test
+	public void testChangeObjectsDataTypeWithSensitive() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE))
+				.thenReturn(mockAuthStatus);
+		when(mockAuthStatus.isAuthorized()).thenReturn(true);
 		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
-				any(DataType.class))).thenReturn(defaultResponse);
-	}
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
 
-	/**
-	 * Must have update the UPDATE permission to set an Object's type to
-	 * DataType.SENSITIVE_DATA
-	 */
-	@Test
-	public void testChangeObjectsDataTypeSensitive() {
 		// call under test
-		DataTypeResponse returnedResponse = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
-		assertEquals(defaultResponse, returnedResponse);
-		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType);
+		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
+
+		assertEquals(defaultResponse, result);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, null);
 		verify(mockAuthorizationManager).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE);
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(any(UserInfo.class));
 	}
 
 	@Test
-	public void testChangeObjectsDataTypeSensitiveUnauthroized() {
-		boolean isAuthorized = false;
-		when(mockAuthStatus.isAuthorized()).thenReturn(isAuthorized);
-		try {
+	public void testChangeObjectsDataTypeWithSensitiveUnauthorized() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		when(mockAuthorizationManager.canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE))
+				.thenReturn(mockAuthStatus);
+		when(mockAuthStatus.isAuthorized()).thenReturn(false);
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
 			// call under test
 			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
-			fail();
-		} catch (UnauthorizedException e) {
-			// expected;
-		}
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class), any(DataType.class));
-		verify(mockAuthorizationManager).canAccess(userInfo, objectId, objectType, ACCESS_TYPE.UPDATE);
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(any(UserInfo.class));
+		}).getMessage();
+
+		assertEquals("Must have UPDATE permission to change an object's DataType to : SENSITIVE_DATA", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
 	}
-	
+
 	/**
-	 * Must be an ACT member to set an Object's type to DataType.OPEN_DATA
+	 * Must be an ACT member to set an Object's type to OPEN_DATA.
 	 */
 	@Test
-	public void testChangeObjectsDataTypeOpenAsACT() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(true);
+	public void testChangeObjectsDataTypeWithOpenAsACT() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
 		dataType = DataType.OPEN_DATA;
+
 		// call under test
-		DataTypeResponse returnedResponse = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
-		assertEquals(defaultResponse, returnedResponse);
-		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType);
-		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class));
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
+		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
+
+		assertEquals(defaultResponse, result);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, null);
+		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class),
+				any(ObjectType.class), any(ACCESS_TYPE.class));
 	}
-	
+
+	@Test
+	public void testChangeObjectsDataTypeWithOpenUnauthorized() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		dataType = DataType.OPEN_DATA;
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
+		}).getMessage();
+
+		assertEquals(
+				"Must be a member of the 'Synapse Access and Compliance Team' to change an object's DataType to: OPEN_DATA",
+				message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class),
+				any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+
 	/**
-	 * Must be an ACT member to set an Object's type to DataType.OPEN_DATA
+	 * An ACT member can set AGGREGATE_DATA with a valid configuration, which is
+	 * forwarded to the DAO.
 	 */
 	@Test
-	public void testChangeObjectsDataTypeSensitiveAsACT() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(true);
+	public void testChangeObjectsDataTypeWithAggregateAsACT() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = newAggregateConfiguration();
+
+		// call under test
+		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+
+		assertEquals(defaultResponse, result);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, config);
+		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class),
+				any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+
+	/**
+	 * The facet configuration is optional; a valid threshold alone is sufficient.
+	 */
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateWithoutFacetConfig() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L);
+
+		// call under test
+		DataTypeResponse result = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+
+		assertEquals(defaultResponse, result);
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, config);
+	}
+
+	/**
+	 * A non-ACT member cannot set AGGREGATE_DATA even with the UPDATE permission.
+	 */
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateNonACT() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(false);
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = newAggregateConfiguration();
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals(
+				"Must be a member of the 'Synapse Access and Compliance Team' to change an object's DataType to: AGGREGATE_DATA",
+				message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class),
+				any(ObjectType.class), any(ACCESS_TYPE.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateNullConfig() {
+		dataType = DataType.AGGREGATE_DATA;
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, null);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration is required.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateNullThreshold() {
+		dataType = DataType.AGGREGATE_DATA;
+		// the threshold is left unset (null)
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setFacetPostProcessingConfig(
+				new FacetPostProcessingConfig().setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.suppressionThreshold is required.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateZeroThreshold() {
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = newAggregateConfiguration().setSuppressionThreshold(0L);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.suppressionThreshold must be greater than zero.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateNegativeThreshold() {
+		dataType = DataType.AGGREGATE_DATA;
+		AggregateDataConfiguration config = newAggregateConfiguration().setSuppressionThreshold(-1L);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.suppressionThreshold must be greater than zero.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithAggregateFacetConfigMissingAlgorithm() {
+		dataType = DataType.AGGREGATE_DATA;
+		// facet config present but the algorithm is null
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(10L)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig());
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("aggregateDataConfiguration.facetPostProcessingConfig.algorithm is required.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	@Test
+	public void testChangeObjectsDataTypeWithNonAggregateAndConfig() {
 		dataType = DataType.SENSITIVE_DATA;
-		// call under test
-		DataTypeResponse returnedResponse = manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
-		assertEquals(defaultResponse, returnedResponse);
-		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType);
-		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class));
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
-	}
-	
-	@Test
-	public void testChangeObjectsDataTypeOpenUnauthroized() {
-		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(any(UserInfo.class))).thenReturn(false);
-		dataType = DataType.OPEN_DATA;
-		try {
+		// a configuration is not allowed for a non-aggregate type
+		AggregateDataConfiguration config = newAggregateConfiguration();
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
-			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
-			fail();
-		} catch (UnauthorizedException e) {
-			// expected;
-		}
-		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class), any(DataType.class));
-		verify(mockAuthorizationManager, never()).canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class));
-		verify(mockAuthorizationManager).isACTTeamMemberOrAdmin(userInfo);
+			manager.changeObjectsDataType(userInfo, objectId, objectType, dataType, config);
+		}).getMessage();
+
+		assertEquals("An aggregateDataConfiguration can only be provided for the AGGREGATE_DATA DataType.", message);
+		verify(mockDataTypeDao, never()).changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class));
+	}
+
+	/**
+	 * The 4-arg overload must delegate to the DAO with a null configuration.
+	 */
+	@Test
+	public void testChangeObjectsDataTypeFourArgDelegatesWithNullConfig() {
+		when(mockAuthorizationManager.isACTTeamMemberOrAdmin(userInfo)).thenReturn(true);
+		when(mockDataTypeDao.changeDataType(any(Long.class), any(String.class), any(ObjectType.class),
+				any(DataType.class), nullable(AggregateDataConfiguration.class))).thenReturn(defaultResponse);
+		dataType = DataType.OPEN_DATA;
+
+		// call under test
+		manager.changeObjectsDataType(userInfo, objectId, objectType, dataType);
+
+		verify(mockDataTypeDao).changeDataType(userInfo.getId(), objectId, objectType, dataType, null);
 	}
 
 }

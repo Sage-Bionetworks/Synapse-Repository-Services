@@ -149,6 +149,19 @@ public interface GridManager extends PatchStore, SnapshotStore {
 	Optional<GridConnectionInfo> getSingletonConnection(String sessionId, EventSource source);
 
 	/**
+	 * Get the connection the given user holds for the given session and source,
+	 * creating both the replica and its connection when absent. The source must be a
+	 * non-singleton, user-origin source so the replica id lands in the client range
+	 * and writes through it carry user attribution.
+	 *
+	 * @param sessionId
+	 * @param user
+	 * @param source
+	 * @return
+	 */
+	GridConnectionInfo getOrCreateUserConnection(String sessionId, UserInfo user, EventSource source);
+
+	/**
 	 * Save a patch.
 	 * 
 	 * @param context

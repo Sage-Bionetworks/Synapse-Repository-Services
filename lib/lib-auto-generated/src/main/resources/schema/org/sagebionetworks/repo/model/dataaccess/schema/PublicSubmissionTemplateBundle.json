@@ -1,0 +1,16 @@
+{
+	"title": "Public Submission Template Bundle",
+	"description": "The rendered form schema and UI Schema for a single FormTemplate version, reused across all result rows that were submitted against that version. Reuses the same GenerateDataAccessSchemaResponse shape returned by the schema generation service so clients can render public submission info through the identical path as the live form. Includes definitions for all fields (both public and private); privacy is enforced solely by which values appear in each row's publicValues.",
+	"properties": {
+		"templateRef": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference",
+			"description": "The FormTemplate id and version this bundle describes.",
+			"required": true
+		},
+		"generatedSchema": {
+			"$ref": "org.sagebionetworks.repo.model.dataaccess.schema.GenerateDataAccessSchemaResponse",
+			"description": "The per-step (jsonSchema, uiSchema) bundle for this template version. The server performs no label/title computation; enum and oneOf label resolution is the client's responsibility.",
+			"required": true
+		}
+	}
+}

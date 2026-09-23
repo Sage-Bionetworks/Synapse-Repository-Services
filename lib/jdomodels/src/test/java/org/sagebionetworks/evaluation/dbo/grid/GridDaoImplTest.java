@@ -394,6 +394,33 @@ public class GridDaoImplTest {
 	}
 
 	@Test
+	public void testGetUserConnection() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridReplica adminReplica = dao.createReplica(adminUserId, session.getSessionId(), isAgent, EventSource.IMPORT);
+		GridReplica otherReplica = dao.createReplica(otherUser, session.getSessionId(), isAgent, EventSource.IMPORT);
+
+		GridConnectionInfo adminInfo = new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(adminUserId).setReplicaId(adminReplica.getReplicaId()).setSessionId(session.getSessionId())
+				.setSource(EventSource.IMPORT);
+		GridConnectionInfo otherInfo = new GridConnectionInfo().setConnectionId(UUID.randomUUID().toString())
+				.setCreatedBy(otherUser).setReplicaId(otherReplica.getReplicaId()).setSessionId(session.getSessionId())
+				.setSource(EventSource.IMPORT);
+		dao.createConnection(adminInfo);
+		dao.createConnection(otherInfo);
+
+		GridConnectionInfo expectedAdmin = dao.getConnection(adminInfo.getConnectionId()).get();
+		GridConnectionInfo expectedOther = dao.getConnection(otherInfo.getConnectionId()).get();
+
+		// call under test - each user's lookup returns only their own connection
+		assertEquals(Optional.of(expectedAdmin),
+				dao.getUserConnection(session.getSessionId(), adminUserId, EventSource.IMPORT));
+		assertEquals(Optional.of(expectedOther),
+				dao.getUserConnection(session.getSessionId(), otherUser, EventSource.IMPORT));
+		// call under test - a user with no connection for this source
+		assertEquals(Optional.empty(), dao.getUserConnection(session.getSessionId(), teamId, EventSource.IMPORT));
+	}
+
+	@Test
 	public void testSavePatch() {
 		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
 		LogicalTimestamp patchId = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(11L);

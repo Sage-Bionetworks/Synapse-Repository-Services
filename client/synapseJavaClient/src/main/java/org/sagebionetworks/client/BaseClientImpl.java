@@ -27,6 +27,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseServiceUnavailable;
 import org.sagebionetworks.client.exceptions.SynapseTooManyRequestsException;
@@ -81,6 +82,9 @@ public class BaseClientImpl implements BaseClient {
 	private static final String AUTHENTICATED_ON = "/authenticatedOn";
 
 	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
+
+	// S3 error code (in the response body) that a pre-signed download can return transiently. See PLFM-9913.
+	private static final String S3_ACCESS_DENIED_CODE = "AccessDenied";
 
 	private SimpleHttpClient simpleHttpClient;
 
@@ -450,10 +454,8 @@ public class BaseClientImpl implements BaseClient {
 		try {
 			// step 1: get redirect URL
 			String redirUrl = getStringDirect(url, "");
-			// step 2: download file
-			SimpleHttpRequest request = new SimpleHttpRequest();
-			request.setUri(redirUrl);
-			SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
+			// step 2: download the file bytes from the (S3) pre-signed URL
+			SimpleHttpResponse response = downloadFileWithRetryOnTransientAccessDenied(redirUrl, destinationFile);
 			ClientUtils.convertResponseBodyToJSONAndThrowException(response);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
@@ -472,6 +474,48 @@ public class BaseClientImpl implements BaseClient {
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	/**
+	 * Fetch the file bytes from the given pre-signed URL, retrying with exponential backoff on a
+	 * transient S3 {@code AccessDenied} (HTTP 403). Returns the (final) response so the caller can
+	 * apply the normal status/md5/charset handling; any non-retryable response is returned as-is.
+	 *
+	 * @param presignedUrl the pre-signed download URL resolved in step 1
+	 * @param destinationFile the file the bytes are written to (overwritten on each attempt)
+	 */
+	private SimpleHttpResponse downloadFileWithRetryOnTransientAccessDenied(final String presignedUrl,
+			final File destinationFile) throws SynapseException, IOException {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<SimpleHttpResponse>() {
+				@Override
+				public SimpleHttpResponse call() throws Exception {
+					// Reuse the SAME pre-signed URL on every attempt. A steady clock skew (or a
+					// just-rotated temporary credential) makes S3 return AccessDenied until its clock
+					// advances past the URL's X-Amz-Date / IAM propagates the token; re-signing would
+					// only re-stamp a future X-Amz-Date and never recover. See PLFM-9913.
+					SimpleHttpRequest request = new SimpleHttpRequest();
+					request.setUri(presignedUrl);
+					SimpleHttpResponse response = simpleHttpClient.getFile(request, destinationFile);
+					if (isTransientS3AccessDenied(response)) {
+						throw new RetryException(new SynapseForbiddenException(response.getContent()));
+					}
+					return response;
+				}
+			});
+		} catch (RetryException e) {
+			throw (SynapseException) e.getCause();
+		} catch (SynapseException | IOException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SynapseClientException("Failed to download file.", e);
+		}
+	}
+
+	private static boolean isTransientS3AccessDenied(SimpleHttpResponse response) {
+		return response.getStatusCode() == HttpStatus.SC_FORBIDDEN
+				&& response.getContent() != null
+				&& response.getContent().contains(S3_ACCESS_DENIED_CODE);
 	}
 
 	//================================================================================

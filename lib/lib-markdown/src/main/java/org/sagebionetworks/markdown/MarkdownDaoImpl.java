@@ -2,7 +2,6 @@ package org.sagebionetworks.markdown;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class MarkdownDaoImpl implements MarkdownDao{
 
@@ -11,16 +10,16 @@ public class MarkdownDaoImpl implements MarkdownDao{
 	public static final String RESULT = "result";
 	public static final String BASE_URL = "baseURL";
 
-	@Autowired
-	MarkdownClient markdownClient;
-	String synapseBaseUrl;
+	private final MarkdownClient markdownClient;
+	private final String synapseBaseUrl;
+
+	public MarkdownDaoImpl(MarkdownClient markdownClient, String synapseBaseUrl) {
+		this.markdownClient = markdownClient;
+		this.synapseBaseUrl = synapseBaseUrl;
+	}
 
 	public String getSynapseBaseUrl() {
 		return synapseBaseUrl;
-	}
-
-	public void setSynapseBaseUrl(String synapseBaseUrl) {
-		this.synapseBaseUrl = synapseBaseUrl;
 	}
 
 	@Override

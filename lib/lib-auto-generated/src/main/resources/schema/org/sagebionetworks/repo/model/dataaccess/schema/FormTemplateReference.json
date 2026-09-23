@@ -1,0 +1,16 @@
+{
+	"title": "Form Template Reference",
+	"description": "Used to reference a specific FormTemplate id and version.",
+	"properties": {
+		"templateId": {
+			"type": "string",
+			"description": "The unique identifier of the form template.",
+			"required": true
+		},
+		"templateVersionNumber": {
+			"type": "integer",
+			"description": "The version number of the form template.",
+			"required": true
+		}
+	}
+}

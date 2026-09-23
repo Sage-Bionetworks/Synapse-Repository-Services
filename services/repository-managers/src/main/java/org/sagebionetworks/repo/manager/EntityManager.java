@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.schema.JsonSubject;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -466,13 +467,25 @@ public interface EntityManager {
 
 	/**
 	 * Change the given entity's {@link DataType}
-	 * 
+	 *
 	 * @param userInfo
 	 * @param id
 	 * @param dataType
 	 * @return
 	 */
 	DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, DataType dataType);
+
+	/**
+	 * Change the given entity's {@link DataType}, optionally binding an
+	 * {@link org.sagebionetworks.repo.model.AggregateDataConfiguration} carried by
+	 * the request.
+	 *
+	 * @param userInfo
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	DataTypeResponse changeEntityDataType(UserInfo userInfo, String id, ChangeDataTypeRequest request);
 
 	/**
 	 * Bind a JSON schema to an Entity and sends a notification message to trigger revalidation

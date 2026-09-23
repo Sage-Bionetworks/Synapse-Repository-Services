@@ -3,8 +3,10 @@ package org.sagebionetworks.grid.workers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +29,8 @@ import org.sagebionetworks.repo.model.grid.CreateGridRequest;
 import org.sagebionetworks.repo.model.grid.CreateGridResponse;
 import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.GridConnectionInfo;
+import org.sagebionetworks.repo.model.grid.GridCsvImportRequest;
+import org.sagebionetworks.repo.model.grid.GridCsvImportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.SyncType;
@@ -38,7 +42,12 @@ import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.service.EntityService;
+
+import au.com.bytecode.opencsv.CSVReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -256,6 +265,106 @@ public class GridRecordSetSynchronizationIntegrationTest {
 		assertTrue(pushed.getVersionNumber() > v2, "PULL_PUSH should create a new RecordSet version");
 		GridSession synced = gridManager.getGridSession(admin, session.getSessionId());
 		assertEquals(pushed.getVersionNumber(), synced.getSourceEntityVersionNumber());
+	}
+
+	/**
+	 * Regression test for PLFM-9880: importing a CSV added internal-replica-attributed
+	 * data that a subsequent PULL_PUSH synchronization would revert.
+	 * The import must attribute its writes to the importing user so the imported rows are
+	 * treated as user changes and survive the sync.
+	 */
+	@Test
+	public void testSynchronizeRecordSetPullPushAfterCsvImport() throws Exception {
+		// v1: columns a (key) and b.
+		RecordSet recordSet = createRecordSet(uploadCsv("""
+				a,b
+				1,one
+				2,two
+				"""));
+		long v1 = recordSet.getVersionNumber();
+
+		// Create a grid from the RecordSet and wait for the internal replica to populate.
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new CreateGridRequest().setOwnerPrincipalId(admin.getId().toString())
+						.setRecordSetId(recordSet.getId()),
+				(CreateGridResponse response) -> {
+					assertNotNull(response.getGridSession());
+				}, MAX_WAIT_MS).getResponse().getGridSession();
+		assertNotNull(session);
+
+		GridConnectionInfo internalCon = asynchronousJobWorkerHelper.getInternalGridConnection(session.getSessionId(),
+				MAX_WAIT_MS);
+		gridTestUtils.waitForRows(session.getSessionId(), internalCon.getReplicaId(), Map.of(
+				"1", Map.of("b", "one"),
+				"2", Map.of("b", "two")));
+
+		// Import a CSV that exercises both loss paths in one job: an update to a row
+		// that already exists in the RecordSet (1), and a brand-new row (3).
+		String importFileHandleId = uploadCsv("""
+				a,b
+				1,one-imported
+				3,three
+				""");
+
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new GridCsvImportRequest().setSessionId(session.getSessionId()).setFileHandleId(importFileHandleId)
+						.setCsvDescriptor(new CsvTableDescriptor().setIsFirstLineHeader(true))
+						.setSchema(List.of(
+								new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
+								new ColumnModel().setName("b").setColumnType(ColumnType.STRING))),
+				(GridCsvImportResponse r) -> {
+					assertEquals(2L, r.getTotalCount());
+					assertEquals(1L, r.getUpdatedCount());
+					assertEquals(1L, r.getCreatedCount());
+				}, MAX_WAIT_MS);
+
+		// the import landed in the grid
+		gridTestUtils.waitForRows(session.getSessionId(), internalCon.getReplicaId(), Map.of(
+				"1", Map.of("b", "one-imported"),
+				"2", Map.of("b", "two"),
+				"3", Map.of("b", "three")));
+
+		// the imported cell is attributed to the importing user
+		gridTestUtils.waitForCellAttribution(session.getSessionId(), internalCon.getReplicaId(), "1", "b", true);
+
+		// call under test — PULL_PUSH must keep the import instead of reverting it
+		asynchronousJobWorkerHelper.assertJobResponse(admin,
+				new SynchronizeGridRequest().setGridSessionId(session.getSessionId()).setSyncType(SyncType.PULL_PUSH),
+				(r) -> {
+				}, MAX_WAIT_MS);
+
+		// the imported row (3) and imported cell (1.b) both survive the sync
+		gridTestUtils.waitForRows(session.getSessionId(), internalCon.getReplicaId(), Map.of(
+				"1", Map.of("b", "one-imported"),
+				"2", Map.of("b", "two"),
+				"3", Map.of("b", "three")));
+
+		// the push reached the RecordSet as a new version
+		RecordSet pushed = entityService.getEntity(admin.getId(), recordSet.getId(), RecordSet.class);
+		assertTrue(pushed.getVersionNumber() > v1, "PULL_PUSH should create a new RecordSet version");
+
+		String csv = asynchronousJobWorkerHelper.downloadFileHandleFromS3(pushed.getDataFileHandleId());
+		assertEquals(Map.of("1", "one-imported", "2", "two", "3", "three"), parseCsvColumns(csv, "a", "b"));
+	}
+
+	/**
+	 * Parses a CSV's header row to locate {@code keyColumn} and {@code valueColumn},
+	 * then returns a map from every data row's key value to its value column,
+	 * immune to the exporter's column ordering and quoting.
+	 */
+	private Map<String, String> parseCsvColumns(String csv, String keyColumn, String valueColumn)
+			throws IOException {
+		try (CSVReader reader = new CSVReader(new StringReader(csv))) {
+			List<String> header = List.of(reader.readNext());
+			int keyIndex = header.indexOf(keyColumn);
+			int valueIndex = header.indexOf(valueColumn);
+			Map<String, String> result = new LinkedHashMap<>();
+			String[] row;
+			while ((row = reader.readNext()) != null) {
+				result.put(row[keyIndex], row[valueIndex]);
+			}
+			return result;
+		}
 	}
 
 	/**

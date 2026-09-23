@@ -7,6 +7,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DataTypeResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -659,13 +660,25 @@ public interface EntityService {
 
 	/**
 	 * Change an Entity's {@link DataType}
-	 * 
+	 *
 	 * @param userId
 	 * @param id
 	 * @param dataType
 	 * @return
 	 */
 	DataTypeResponse changeEntityDataType(Long userId, String id, DataType dataType);
+
+	/**
+	 * Change an Entity's {@link DataType}, optionally binding an
+	 * {@link org.sagebionetworks.repo.model.AggregateDataConfiguration} carried by
+	 * the request.
+	 *
+	 * @param userId
+	 * @param id
+	 * @param request
+	 * @return
+	 */
+	DataTypeResponse changeEntityDataType(Long userId, String id, ChangeDataTypeRequest request);
 
 	/** Gets the temporary S3 credentials from STS for the given entity. */
 	StsCredentials getTemporaryCredentialsForEntity(Long userId, String entityId, StsPermission permission);

@@ -133,6 +133,46 @@ public class EDucQuotaDaoImplTest {
 	}
 
 	@Test
+	public void testDeleteByUserAndAccessRequirement() {
+		Long userId = Long.parseLong(user.getId());
+
+		// A second access requirement to verify the delete is scoped to the given AR
+		ManagedACTAccessRequirement ar2 = new ManagedACTAccessRequirement();
+		ar2.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar2.setCreatedBy(user.getId());
+		ar2.setCreatedOn(new Date());
+		ar2.setModifiedBy(user.getId());
+		ar2.setModifiedOn(new Date());
+		RestrictableObjectDescriptor rod2 = new RestrictableObjectDescriptor();
+		rod2.setId("syn456");
+		rod2.setType(RestrictableObjectType.ENTITY);
+		ar2.setSubjectIds(Collections.singletonList(rod2));
+		Long accessRequirementId2 = accessRequirementDao.create(ar2).getId();
+
+		eDucQuotaDao.create(userId, accessRequirementId, "env-r1");
+		eDucQuotaDao.create(userId, accessRequirementId, "env-r2");
+		eDucQuotaDao.create(userId, accessRequirementId2, "env-r3");
+
+		// call under test
+		int deleted = eDucQuotaDao.deleteByUserAndAccessRequirement(userId, accessRequirementId);
+
+		assertEquals(2, deleted);
+		assertEquals(0L, eDucQuotaDao.getCount(userId, accessRequirementId, 0L, Long.MAX_VALUE));
+		// the other access requirement's records are untouched
+		assertEquals(1L, eDucQuotaDao.getCount(userId, accessRequirementId2, 0L, Long.MAX_VALUE));
+	}
+
+	@Test
+	public void testDeleteByUserAndAccessRequirementWithNoRecords() {
+		Long userId = Long.parseLong(user.getId());
+
+		// call under test — nothing to delete
+		int deleted = eDucQuotaDao.deleteByUserAndAccessRequirement(userId, accessRequirementId);
+
+		assertEquals(0, deleted);
+	}
+
+	@Test
 	public void testGetGlobalCount() {
 		Long userId = Long.parseLong(user.getId());
 		eDucQuotaDao.create(userId, accessRequirementId, "env-g1");

@@ -352,8 +352,17 @@ public class UserManagerImpl implements UserManager {
 	@WriteTransaction
 	public void deleteOidcBinding(Long bindingId) {
 		ValidateArgument.required(bindingId, "The binding id");
-		
+
 		principalOidcBindingDao.deleteBinding(bindingId);
+	}
+
+	@Override
+	@WriteTransaction
+	public void deleteOidcBinding(Long userId, OAuthProvider provider) {
+		ValidateArgument.required(userId, "The user id");
+		ValidateArgument.required(provider, "The provider");
+
+		principalOidcBindingDao.deleteBindingForProvider(userId, provider);
 	}
 	
 	@Override

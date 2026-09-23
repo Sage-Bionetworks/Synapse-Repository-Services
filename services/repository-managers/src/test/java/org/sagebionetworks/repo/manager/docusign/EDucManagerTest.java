@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.docusign;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -9,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -28,7 +31,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.docusign.DocuSignClient;
+import org.sagebionetworks.docusign.EnvelopeRecipient;
 import org.sagebionetworks.docusign.EnvelopeStatusResult;
+import org.sagebionetworks.docusign.RecipientInfo;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.educ.EDucFileHandleId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -39,6 +44,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucTemplateValidationResult;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -61,6 +67,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 
 
@@ -210,12 +217,10 @@ public class EDucManagerTest {
 		PrincipalInvestigator pi = new PrincipalInvestigator();
 		pi.setUserId("200");
 		pi.setName("Dr. Jones");
-		pi.setTitle("Professor");
 		pi.setInstitutionalEmail("pi@university.edu");
 
 		SigningOfficial so = new SigningOfficial();
 		so.setName("Jane Admin");
-		so.setTitle("VP Research");
 		so.setInstitutionalEmail("so@university.edu");
 
 		AccessorChange collab1 = new AccessorChange();
@@ -262,7 +267,6 @@ public class EDucManagerTest {
 		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
 		when(mockPrincipalAliasDao.getUserName(301L)).thenReturn("collab1user");
 		when(mockPrincipalAliasDao.getUserName(302L)).thenReturn("collab2user");
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(200L)).thenReturn("pi@synapse.org");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(301L)).thenReturn("c1@example.com");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(302L)).thenReturn("c2@example.com");
@@ -288,37 +292,79 @@ public class EDucManagerTest {
 		assertEquals(Long.valueOf(9), result.getRemaining());
 
 		verify(mockEDucQuotaDao).create(eq(100L), anyLong(), eq("env-xyz"));
+		verify(mockRequestDao).setEDucContentHash("req-1", EDucManager.computeEDucContentHash(request));
 
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Map<String, String>> emailsCaptor = ArgumentCaptor.forClass(Map.class);
+		ArgumentCaptor<Map<String, RecipientInfo>> recipientsCaptor = ArgumentCaptor.forClass(Map.class);
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Map<RoleLabelKey, String>> tabsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), emailsCaptor.capture(), tabsCaptor.capture());
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), recipientsCaptor.capture(), tabsCaptor.capture());
 
-		// Collaborators: createdBy=100 first, then 301, 302 from accessorChanges (PI 200 excluded)
-		Map<String, String> roleEmails = emailsCaptor.getValue();
-		assertEquals("pi@synapse.org", roleEmails.get("principal_investigator"));
-		assertEquals("so@university.edu", roleEmails.get("signing_official"));
-		assertEquals("creator@example.com", roleEmails.get("collaborator_1"));
-		assertEquals("c1@example.com", roleEmails.get("collaborator_2"));
-		assertEquals("c2@example.com", roleEmails.get("collaborator_3"));
-		assertEquals(5, roleEmails.size());
+		// Collaborators: createdBy=100 first, then 301, 302 from accessorChanges (PI 200 excluded).
+		// The PI and SO are addressed at the institutional emails from the request, while
+		// collaborator emails come from the notification email DAO. Names are PI/SO from the
+		// request and collaborators from their user profile full names.
+		Map<String, RecipientInfo> recipients = recipientsCaptor.getValue();
+		assertEquals(new RecipientInfo("pi@university.edu", "Dr. Jones"), recipients.get("principal_investigator"));
+		assertEquals(new RecipientInfo("so@university.edu", "Jane Admin"), recipients.get("signing_official"));
+		assertEquals(new RecipientInfo("creator@example.com", "Creator User"), recipients.get("collaborator_1"));
+		assertEquals(new RecipientInfo("c1@example.com", "Alice Smith"), recipients.get("collaborator_2"));
+		assertEquals(new RecipientInfo("c2@example.com", "Bob Brown"), recipients.get("collaborator_3"));
+		assertEquals(5, recipients.size());
 
 		Map<RoleLabelKey, String> tabValues = tabsCaptor.getValue();
 		assertEquals("Dr. Jones", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_name")));
-		assertEquals("Professor", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_title")));
 		assertEquals("pi@university.edu", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_email")));
-		assertEquals("MIT", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_institution")));
 		assertEquals("drjones", tabValues.get(new RoleLabelKey("principal_investigator", "principal_investigator_user_name")));
 		assertEquals("Jane Admin", tabValues.get(new RoleLabelKey("signing_official", "signing_official_name")));
-		assertEquals("VP Research", tabValues.get(new RoleLabelKey("signing_official", "signing_official_title")));
 		assertEquals("so@university.edu", tabValues.get(new RoleLabelKey("signing_official", "signing_official_email")));
+		assertEquals("MIT", tabValues.get(new RoleLabelKey("signing_official", "signing_official_institution")));
 		assertEquals("creatoruser", tabValues.get(new RoleLabelKey("collaborator_1", "collaborator_1_user_name")));
 		assertEquals("Creator User", tabValues.get(new RoleLabelKey("collaborator_1", "collaborator_1_name")));
 		assertEquals("collab1user", tabValues.get(new RoleLabelKey("collaborator_2", "collaborator_2_user_name")));
 		assertEquals("Alice Smith", tabValues.get(new RoleLabelKey("collaborator_2", "collaborator_2_name")));
 		assertEquals("collab2user", tabValues.get(new RoleLabelKey("collaborator_3", "collaborator_3_user_name")));
 		assertEquals("Bob Brown", tabValues.get(new RoleLabelKey("collaborator_3", "collaborator_3_name")));
+
+		verify(mockNotificationEmailDao, never()).getNotificationEmailForPrincipal(200L);
+	}
+
+	@Test
+	public void testRouteForSignatureWithJsonSchemaAccessRequirement() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		// The creator is the only collaborator, so the envelope is kept minimal
+		request.setAccessorChanges(List.of());
+
+		JsonSchemaAccessRequirement ar = new JsonSchemaAccessRequirement();
+		ar.setId(1L);
+		ar.setIsDUCRequired(true);
+		ar.setEDucTemplateId("tpl-abc");
+
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(ar);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
+		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
+		UserProfile creatorProfile = new UserProfile();
+		creatorProfile.setFirstName("Creator");
+		creatorProfile.setLastName("User");
+		when(mockUserProfileDao.get("100")).thenReturn(creatorProfile);
+		when(mockDocuSignClient.createEnvelope(eq("tpl-abc"), any(), any())).thenReturn("env-xyz");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.routeForSignature(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(9), result.getRemaining());
+
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), any(), any());
+		verify(mockDocuSignClient).sendEnvelope("env-xyz");
+		verify(mockEDucQuotaDao).create(eq(100L), anyLong(), eq("env-xyz"));
 	}
 
 	@Test
@@ -364,6 +410,8 @@ public class EDucManagerTest {
 		request.setEDucSignatureEnvelopeId("existing-env");
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
+		// a draft envelope has not gone out for signature, so routing may still send it
+		stubEnvelopeStatus("existing-env", EDucStatusEnum.draft);
 		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
 		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
@@ -377,7 +425,106 @@ public class EDucManagerTest {
 	}
 
 	@Test
-	public void testRouteForSignatureWithNonManagedACTRequirement() {
+	public void testRouteForSignatureWithAlreadySentEnvelope() {
+		// Routing a second time would re-send the envelope without rebuilding the request's content,
+		// so any accessor added or removed since it was routed would silently not be included.
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		// the refusal costs the caller nothing: no quota is consumed and the envelope is left alone
+		verifyNoInteractions(mockEDucQuotaDao);
+		verify(mockClock, never()).currentTimeMillis();
+		// and the request is not recorded as having been applied to the envelope
+		verify(mockRequestDao, never()).setEDucContentHash(any(), any());
+	}
+
+	@Test
+	public void testRouteForSignatureWithDeliveredEnvelope() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.delivered);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithCompletedEnvelope() {
+		// A terminal envelope cannot be corrected either, so the caller is given that reason rather
+		// than being pointed at an update that would refuse them in turn.
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.completed);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " The eDUC cannot be updated because it has already been completed.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithVoidedEnvelope() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.voided);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " The eDUC cannot be updated because it has been cancelled.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithAlreadySentEnvelopeAndAdminUser() {
+		// An administrator routes on the creator's behalf and is held to the same rule
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		UserInfo admin = new UserInfo(true, 999L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(admin, "req-1"));
+
+		assertEquals("This eDUC has already been routed for signature."
+				+ " Update the routed eDUC to apply changes to it.", ex.getMessage());
+		verify(mockDocuSignClient, never()).sendEnvelope(any());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testRouteForSignatureWithRequirementNotSupportingDUC() {
 		Request request = buildValidRequest();
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
@@ -387,7 +534,7 @@ public class EDucManagerTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> eDucManager.routeForSignature(user, "req-1"));
 
-		assertEquals("The access requirement is not a ManagedACTAccessRequirement.", ex.getMessage());
+		assertEquals("The access requirement does not support a Data Use Certificate.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignClient);
 	}
 
@@ -490,6 +637,85 @@ public class EDucManagerTest {
 	}
 
 	@Test
+	public void testRouteForSignatureWithNoPIName() {
+		Request request = buildValidRequest();
+		request.getPrincipalInvestigator().setName(null);
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("principalInvestigator.name is required and must not be the empty string.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testRouteForSignatureWithNoPIInstitutionalEmail() {
+		Request request = buildValidRequest();
+		request.getPrincipalInvestigator().setInstitutionalEmail(null);
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("principalInvestigator.institutionalEmail is required and must not be the empty string.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testRouteForSignatureWithNoSOName() {
+		Request request = buildValidRequest();
+		request.getSigningOfficial().setName(null);
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.routeForSignature(user, "req-1"));
+
+		assertEquals("signingOfficial.name is required and must not be the empty string.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testRouteForSignatureCollaboratorNameFallsBackToUserName() {
+		// A collaborator whose user profile has no name should have its name default to the
+		// Synapse user name.
+		Request request = buildValidRequest();
+		// keep only the creator as collaborator to simplify the assertions
+		request.setAccessorChanges(Collections.emptyList());
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
+		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
+		// the creator's profile has no first/last name
+		when(mockUserProfileDao.get("100")).thenReturn(new UserProfile());
+		when(mockDocuSignClient.createEnvelope(eq("tpl-abc"), any(), any())).thenReturn("env-fallback");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+
+		// call under test
+		eDucManager.routeForSignature(user, "req-1");
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Map<String, RecipientInfo>> recipientsCaptor = ArgumentCaptor.forClass(Map.class);
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), recipientsCaptor.capture(), any());
+		// name falls back to the Synapse user name when the profile has no first/last name
+		assertEquals("creatoruser", recipientsCaptor.getValue().get("collaborator_1").name());
+	}
+
+	@Test
 	public void testRouteForSignatureWithNoAccessorChanges() {
 		Request request = buildValidRequest();
 		request.setAccessorChanges(Collections.emptyList());
@@ -501,7 +727,6 @@ public class EDucManagerTest {
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
 		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
 		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
-		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(200L)).thenReturn("pi@synapse.org");
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
 		UserProfile creatorProfile = new UserProfile();
 		creatorProfile.setFirstName("Creator");
@@ -517,11 +742,12 @@ public class EDucManagerTest {
 		assertEquals(Long.valueOf(9), result.getRemaining());
 
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Map<String, String>> emailsCaptor = ArgumentCaptor.forClass(Map.class);
-		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), emailsCaptor.capture(), any());
+		ArgumentCaptor<Map<String, RecipientInfo>> recipientsCaptor = ArgumentCaptor.forClass(Map.class);
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), recipientsCaptor.capture(), any());
 		// PI + SO + createdBy as collaborator_1
-		assertEquals(3, emailsCaptor.getValue().size());
-		assertEquals("creator@example.com", emailsCaptor.getValue().get("collaborator_1"));
+		assertEquals(3, recipientsCaptor.getValue().size());
+		assertEquals("pi@university.edu", recipientsCaptor.getValue().get("principal_investigator").email());
+		assertEquals("creator@example.com", recipientsCaptor.getValue().get("collaborator_1").email());
 	}
 
 	@Test
@@ -636,6 +862,99 @@ public class EDucManagerTest {
 		assertEquals(List.of("100", "301"), result);
 	}
 
+	@Test
+	public void testGetSignatureQuotaWithCreatorUser() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(3L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(7), result.getRemaining());
+	}
+
+	@Test
+	public void testGetSignatureQuotaClampsRemainingAtZero() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(10L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(0), result.getRemaining());
+	}
+
+	@Test
+	public void testGetSignatureQuotaWithAdminUser() {
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		// the quota is looked up for the request creator (100), not the calling admin (1)
+		when(mockEDucQuotaDao.getCount(eq(100L), eq(456L), anyLong(), anyLong())).thenReturn(3L);
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.getSignatureQuota(adminUser, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(7), result.getRemaining());
+		verify(mockEDucQuotaDao).getCount(eq(100L), eq(456L), anyLong(), anyLong());
+		verify(mockEDucQuotaDao, never()).getCount(eq(adminUser.getId()), anyLong(), anyLong(), anyLong());
+	}
+
+	@Test
+	public void testGetSignatureQuotaWithUnauthorizedUser() {
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.getSignatureQuota(regularUser, "req-1"));
+
+		assertEquals("Only the request creator or an administrator can view the signature quota.", ex.getMessage());
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+
+	@Test
+	public void testResetQuotaWithAdminUser() {
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.resetQuota(adminUser, "456", 100L);
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(10), result.getRemaining());
+		verify(mockEDucQuotaDao).deleteByUserAndAccessRequirement(100L, 456L);
+	}
+
+	@Test
+	public void testResetQuotaWithNonExistentAccessRequirement() {
+		when(mockAccessRequirementDao.get("456")).thenThrow(new NotFoundException("does not exist"));
+
+		// call under test
+		assertThrows(NotFoundException.class, () -> eDucManager.resetQuota(adminUser, "456", 100L));
+
+		verifyNoInteractions(mockEDucQuotaDao);
+	}
+
+	@Test
+	public void testResetQuotaWithNonAdminUser() {
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.resetQuota(regularUser, "456", 100L));
+
+		assertEquals("Only an administrator can reset an eDUC quota.", ex.getMessage());
+		verifyNoInteractions(mockEDucQuotaDao, mockAccessRequirementDao);
+	}
+
 	// --- getSignatureStatus tests ---
 
 	@Test
@@ -662,10 +981,9 @@ public class EDucManagerTest {
 				List.of("pi@university.edu", "so@university.edu"));
 		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
 
-		PrincipalAlias alias1 = new PrincipalAlias();
-		alias1.setPrincipalId(200L);
-		when(mockPrincipalAliasDao.findPrincipalWithAlias("pi@university.edu", AliasType.USER_EMAIL)).thenReturn(alias1);
 		when(mockPrincipalAliasDao.findPrincipalWithAlias("so@university.edu", AliasType.USER_EMAIL)).thenReturn(null);
+		// the stored hash matches the current request content -> changes are applied
+		when(mockRequestDao.getEDucContentHash("req-1")).thenReturn(EDucManager.computeEDucContentHash(request));
 
 		// call under test
 		EDucSignatureStatus result = eDucManager.getSignatureStatus(user, "req-1");
@@ -674,13 +992,86 @@ public class EDucManagerTest {
 		assertEquals(EDucStatusEnum.sent, result.getDucStatus());
 		assertNotNull(result.getCreatedOn());
 		assertNotNull(result.getModifiedOn());
+		assertEquals(Boolean.TRUE, result.getIncludesRequestChanges());
 		assertEquals(2, result.getSignerStatus().size());
 		assertEquals("Dr. Jones", result.getSignerStatus().get(0).getName());
 		assertEquals(EDucSignerStatusEnum.done, result.getSignerStatus().get(0).getStatus());
+		// the PI is matched by their institutional email, so their user ID comes from the request
 		assertEquals("200", result.getSignerStatus().get(0).getUserId());
 		assertEquals("Jane Admin", result.getSignerStatus().get(1).getName());
 		assertEquals(EDucSignerStatusEnum.pending, result.getSignerStatus().get(1).getStatus());
 		assertNull(result.getSignerStatus().get(1).getUserId());
+
+		verify(mockPrincipalAliasDao, never()).findPrincipalWithAlias("pi@university.edu", AliasType.USER_EMAIL);
+	}
+
+	@Test
+	public void testGetSignatureStatusWithPIEmailDifferentCase() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		EDucSignerStatus signerStatus = new EDucSignerStatus();
+		signerStatus.setName("Dr. Jones");
+		signerStatus.setStatus(EDucSignerStatusEnum.done);
+
+		EDucSignatureStatus envelopeStatus = new EDucSignatureStatus();
+		envelopeStatus.setDucStatus(EDucStatusEnum.sent);
+		envelopeStatus.setSignerStatus(List.of(signerStatus));
+
+		// DocuSign may echo the recipient email back with different capitalization
+		EnvelopeStatusResult envelopeResult = new EnvelopeStatusResult(envelopeStatus,
+				List.of("PI@University.EDU"));
+		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
+
+		// call under test
+		EDucSignatureStatus result = eDucManager.getSignatureStatus(user, "req-1");
+
+		assertEquals("200", result.getSignerStatus().get(0).getUserId());
+		verify(mockPrincipalAliasDao, never()).findPrincipalWithAlias("PI@University.EDU", AliasType.USER_EMAIL);
+	}
+
+	@Test
+	public void testGetSignatureStatusWithUnappliedChanges() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		EDucSignatureStatus envelopeStatus = new EDucSignatureStatus();
+		envelopeStatus.setDucStatus(EDucStatusEnum.sent);
+		envelopeStatus.setSignerStatus(List.of());
+		EnvelopeStatusResult envelopeResult = new EnvelopeStatusResult(envelopeStatus, List.of());
+		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
+		// the stored hash reflects older content -> the request has unapplied changes
+		when(mockRequestDao.getEDucContentHash("req-1")).thenReturn("stale-hash");
+
+		// call under test
+		EDucSignatureStatus result = eDucManager.getSignatureStatus(user, "req-1");
+
+		assertEquals(Boolean.FALSE, result.getIncludesRequestChanges());
+	}
+
+	@Test
+	public void testGetSignatureStatusWithNoStoredHash() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		EDucSignatureStatus envelopeStatus = new EDucSignatureStatus();
+		envelopeStatus.setDucStatus(EDucStatusEnum.sent);
+		envelopeStatus.setSignerStatus(List.of());
+		EnvelopeStatusResult envelopeResult = new EnvelopeStatusResult(envelopeStatus, List.of());
+		when(mockDocuSignClient.getEnvelopeStatus("env-123")).thenReturn(envelopeResult);
+		// no hash recorded (e.g. routed before this feature) -> treated as not-applied
+		when(mockRequestDao.getEDucContentHash("req-1")).thenReturn(null);
+
+		// call under test
+		EDucSignatureStatus result = eDucManager.getSignatureStatus(user, "req-1");
+
+		assertEquals(Boolean.FALSE, result.getIncludesRequestChanges());
 	}
 
 	@Test
@@ -710,6 +1101,454 @@ public class EDucManagerTest {
 
 		assertEquals("This request does not have a routed DUC.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	// --- updateRoutedEnvelope / precheck tests ---
+
+	private void stubEnvelopeStatus(String envelopeId, EDucStatusEnum ducStatus) {
+		EDucSignatureStatus envelopeStatus = new EDucSignatureStatus();
+		envelopeStatus.setDucStatus(ducStatus);
+		envelopeStatus.setSignerStatus(List.of());
+		when(mockDocuSignClient.getEnvelopeStatus(envelopeId))
+				.thenReturn(new EnvelopeStatusResult(envelopeStatus, List.of()));
+	}
+
+	private void stubContentBuildingDaos() {
+		when(mockPrincipalAliasDao.getUserName(any(Long.class))).thenReturn("someuser");
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(any(Long.class))).thenReturn("x@y.com");
+		UserProfile profile = new UserProfile();
+		profile.setFirstName("A");
+		profile.setLastName("B");
+		when(mockUserProfileDao.get(any(String.class))).thenReturn(profile);
+	}
+
+	private static AccessorChange accessorChange(String userId, AccessType type) {
+		AccessorChange change = new AccessorChange();
+		change.setUserId(userId);
+		change.setType(type);
+		return change;
+	}
+
+	private void stubCollaborator(long userId, String email) {
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(userId)).thenReturn(email);
+		when(mockPrincipalAliasDao.getUserName(userId)).thenReturn("user" + userId);
+		UserProfile profile = new UserProfile();
+		profile.setFirstName("First" + userId);
+		profile.setLastName("Last" + userId);
+		when(mockUserProfileDao.get(Long.toString(userId))).thenReturn(profile);
+	}
+
+	// The reverse lookup used to work out which user occupies an existing envelope role.
+	private void stubEmailResolvesToUser(String email, long userId) {
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setPrincipalId(userId);
+		when(mockPrincipalAliasDao.findPrincipalWithAlias(email, AliasType.USER_EMAIL)).thenReturn(alias);
+	}
+
+	private Map<String, RecipientInfo> captureCorrectedRecipients() {
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Map<String, RecipientInfo>> captor = ArgumentCaptor.forClass(Map.class);
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), captor.capture(), any());
+		return captor.getValue();
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeKeepsRolesWhenAnEarlierAccessorIsRemoved() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		// 301 is no longer an accessor; the creator (100) and 302 remain
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// the envelope was routed with 100, 301 and 302 as collaborator_1, _2 and _3; collaborators
+		// route first, so they have already signed
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("principal_investigator", "pi@university.edu", false),
+				new EnvelopeRecipient("signing_official", "so@university.edu", false),
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true),
+				new EnvelopeRecipient("collaborator_2", "c301@example.com", true),
+				new EnvelopeRecipient("collaborator_3", "c302@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubEmailResolvesToUser("c301@example.com", 301L);
+		stubEmailResolvesToUser("c302@example.com", 302L);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
+		// 302 keeps collaborator_3 instead of shifting down into the role 301 vacated, so 302's
+		// signature is not reattributed and collaborator_2 is simply left to be removed
+		assertEquals("creator@example.com", corrected.get("collaborator_1").email());
+		assertEquals("c302@example.com", corrected.get("collaborator_3").email());
+		assertFalse(corrected.containsKey("collaborator_2"));
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeRetiresRoleOfCompletedSignerWhoIsNoLongerAnAccessor() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		// 301 is dropped and 304 is added
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS),
+				accessorChange("304", AccessType.GAIN_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true),
+				new EnvelopeRecipient("collaborator_2", "c301@example.com", true),
+				new EnvelopeRecipient("collaborator_3", "c302@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubEmailResolvesToUser("c301@example.com", 301L);
+		stubEmailResolvesToUser("c302@example.com", 302L);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		stubCollaborator(304L, "c304@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
+		// 301 signed and is no longer an accessor, so collaborator_2 is retired: the new accessor
+		// takes the next free role rather than inheriting 301's signature
+		assertFalse(corrected.containsKey("collaborator_2"));
+		assertEquals("c304@example.com", corrected.get("collaborator_4").email());
+		assertEquals("creator@example.com", corrected.get("collaborator_1").email());
+		assertEquals("c302@example.com", corrected.get("collaborator_3").email());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeNamesAddedCollaboratorWithNoProfileName() {
+		// DocuSign requires a name for every recipient, so a collaborator whose profile has neither a
+		// first nor a last name falls back to their Synapse user name, as they do when first routed
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.GAIN_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", true)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		stubCollaborator(100L, "creator@example.com");
+		// 302 has no first or last name on their profile
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(302L)).thenReturn("c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(302L)).thenReturn("user302");
+		when(mockUserProfileDao.get("302")).thenReturn(new UserProfile());
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		assertEquals(new RecipientInfo("c302@example.com", "user302"),
+				captureCorrectedRecipients().get("collaborator_2"));
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeReusesRoleOfUnrecognizedPendingRecipient() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		request.setAccessorChanges(List.of(accessorChange("302", AccessType.RENEW_ACCESS)));
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// collaborator_2's address belongs to no Synapse user, and it has not been signed
+		when(mockDocuSignClient.getRecipients("env-123")).thenReturn(List.of(
+				new EnvelopeRecipient("collaborator_1", "creator@example.com", false),
+				new EnvelopeRecipient("collaborator_2", "unknown@example.com", false)));
+		stubEmailResolvesToUser("creator@example.com", 100L);
+		when(mockPrincipalAliasDao.findPrincipalWithAlias("unknown@example.com", AliasType.USER_EMAIL))
+				.thenReturn(null);
+		stubCollaborator(100L, "creator@example.com");
+		stubCollaborator(302L, "c302@example.com");
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		// nothing is known to be attributed to collaborator_2, so it is free to be reused
+		assertEquals("c302@example.com", captureCorrectedRecipients().get("collaborator_2").email());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeSuccess() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+		stubContentBuildingDaos();
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		Map<String, RecipientInfo> corrected = captureCorrectedRecipients();
+		assertEquals(new RecipientInfo("pi@university.edu", "Dr. Jones"),
+				corrected.get("principal_investigator"));
+		assertEquals(new RecipientInfo("so@university.edu", "Jane Admin"),
+				corrected.get("signing_official"));
+
+		verify(mockRequestDao).setEDucContentHash("req-1", EDucManager.computeEDucContentHash(request));
+		// no new envelope is created, so there is no quota impact
+		verify(mockEDucQuotaDao, never()).create(anyLong(), anyLong(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithDelivered() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.delivered);
+		stubContentBuildingDaos();
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(user, "req-1");
+
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithAdminUser() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+		stubContentBuildingDaos();
+
+		// call under test
+		eDucManager.updateRoutedEnvelope(adminUser, "req-1");
+
+		verify(mockDocuSignClient).correctEnvelope(eq("env-123"), any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithUnauthorizedUser() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.updateRoutedEnvelope(regularUser, "req-1"));
+
+		assertEquals("Only the request creator or an administrator can update the signature.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithNoEnvelope() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId(null);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("This request has not been routed for signature.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithDraftStatus() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.draft);
+
+		// call under test — an envelope that was only drafted (e.g. from preview) was never routed
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("This request has not been routed for signature.", ex.getMessage());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
+		verify(mockRequestDao, never()).setEDucContentHash(any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithCompletedStatus() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.completed);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("The eDUC cannot be updated because it has already been completed.", ex.getMessage());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithDeclinedStatus() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.declined);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("The eDUC cannot be updated because a signer declined to sign.", ex.getMessage());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithVoidedStatus() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.voided);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("The eDUC cannot be updated because it has been cancelled.", ex.getMessage());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
+	}
+
+	@Test
+	public void testUpdateRoutedEnvelopeWithCorrectStatus() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.correct);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> eDucManager.updateRoutedEnvelope(user, "req-1"));
+
+		assertEquals("The eDUC cannot be updated because it is currently being corrected.", ex.getMessage());
+		verify(mockDocuSignClient, never()).correctEnvelope(any(), any(), any());
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithSent() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.sent);
+
+		// call under test
+		assertEquals(true, eDucManager.canUpdateRoutedEnvelopePrecheck(user, "req-1"));
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithDelivered() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.delivered);
+
+		// call under test
+		assertEquals(true, eDucManager.canUpdateRoutedEnvelopePrecheck(user, "req-1"));
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithNoEnvelope() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId(null);
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		assertEquals(false, eDucManager.canUpdateRoutedEnvelopePrecheck(user, "req-1"));
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithDraft() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.draft);
+
+		// call under test
+		assertEquals(false, eDucManager.canUpdateRoutedEnvelopePrecheck(user, "req-1"));
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithCompleted() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		stubEnvelopeStatus("env-123", EDucStatusEnum.completed);
+
+		// call under test
+		assertEquals(false, eDucManager.canUpdateRoutedEnvelopePrecheck(user, "req-1"));
+	}
+
+	@Test
+	public void testCanUpdateRoutedEnvelopePrecheckWithUnauthorizedUser() {
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-123");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+
+		// call under test
+		UnauthorizedException ex = assertThrows(UnauthorizedException.class,
+				() -> eDucManager.canUpdateRoutedEnvelopePrecheck(regularUser, "req-1"));
+
+		assertEquals("Only the request creator or an administrator can check update status.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignClient);
+	}
+
+	@Test
+	public void testComputeEDucContentHashIsDeterministic() {
+		Request request = buildValidRequest();
+
+		String hash1 = EDucManager.computeEDucContentHash(request);
+		String hash2 = EDucManager.computeEDucContentHash(buildValidRequest());
+
+		assertEquals(hash1, hash2);
+	}
+
+	@Test
+	public void testComputeEDucContentHashChangesWithContent() {
+		Request request = buildValidRequest();
+		String original = EDucManager.computeEDucContentHash(request);
+
+		// change the signing official's email
+		request.getSigningOfficial().setInstitutionalEmail("changed@university.edu");
+		assertNotEquals(original, EDucManager.computeEDucContentHash(request));
+
+		// adding a collaborator also changes the hash
+		Request withCollaborator = buildValidRequest();
+		AccessorChange added = new AccessorChange();
+		added.setUserId("999");
+		added.setType(AccessType.GAIN_ACCESS);
+		List<AccessorChange> changes = new ArrayList<>(withCollaborator.getAccessorChanges());
+		changes.add(added);
+		withCollaborator.setAccessorChanges(changes);
+		assertNotEquals(original, EDucManager.computeEDucContentHash(withCollaborator));
 	}
 
 	// --- cancelSignature tests ---

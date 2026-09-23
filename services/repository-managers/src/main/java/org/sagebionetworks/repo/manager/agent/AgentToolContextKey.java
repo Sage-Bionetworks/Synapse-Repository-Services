@@ -16,16 +16,11 @@ public enum AgentToolContextKey {
 	USER_INFO("userInfo"),
 
 	/**
-	 * An already-resolved AWS Bedrock AgentCore code interpreter session id, placed directly by the
-	 * batch sub-workers and by delegated specialists. The interactive Curie path installs a
-	 * {@link #CODE_SESSION_SUPPLIER} instead; {@link CodeSessionSupplier#resolveSessionId(ToolContext)}
-	 * reads from either source.
-	 */
-	CODE_SESSION_ID("codeSessionId"),
-
-	/**
-	 * A {@link CodeSessionSupplier} that lazily creates and memoizes the code interpreter session
-	 * (interactive Curie path).
+	 * A {@link CodeSessionSupplier} for the AWS Bedrock AgentCore code interpreter session the agent's
+	 * tools execute against. The interactive Curie path installs a lazy, memoizing supplier; the batch
+	 * sub-workers and delegated specialists install a constant supplier over an already-started session
+	 * (see {@link CodeSessionSupplier#of(String)}). Tools read it via
+	 * {@link CodeSessionSupplier#resolveSessionId(ToolContext)}.
 	 */
 	CODE_SESSION_SUPPLIER("codeSessionSupplier"),
 
@@ -42,10 +37,10 @@ public enum AgentToolContextKey {
 	TRACE_CALLBACK("agentTraceCallback"),
 
 	/**
-	 * The durable Synapse chat session id of an interactive Curie turn. Distinct from
-	 * {@link #CODE_SESSION_ID} (an AWS code interpreter session): the {@code CurieSupervisor} uses it
-	 * both to derive its cross-machine conversation id and to build the lazy code-session supplier it
-	 * installs under {@link #CODE_SESSION_SUPPLIER}.
+	 * The durable Synapse chat session id of an interactive Curie turn. Distinct from the AWS code
+	 * interpreter session: the {@code CurieSupervisor} uses it both to derive its cross-machine
+	 * conversation id and to build the lazy code-session supplier it installs under
+	 * {@link #CODE_SESSION_SUPPLIER}.
 	 */
 	CHAT_SESSION_ID("chatSessionId"),
 
@@ -54,7 +49,16 @@ public enum AgentToolContextKey {
 	 * successfully staged into the shared code interpreter session for the current Curie turn. The
 	 * {@code CurieSupervisor} reads it to prepend a description of those files to the user message.
 	 */
-	STAGED_ATTACHMENTS("stagedAttachments");
+	STAGED_ATTACHMENTS("stagedAttachments"),
+
+	/**
+	 * A per-{@code chat()} turn counter ({@link java.util.concurrent.atomic.AtomicInteger}) seeded into the
+	 * advisor context by {@code Agent.chat()} before the tool-calling loop starts and read by
+	 * {@link org.sagebionetworks.repo.manager.agent.tool.TurnLimitAdvisor} to bound the number of model
+	 * turns a single chat may take (PLFM-9881). Carried in the same context map as the tool keys, so it is
+	 * centralized here to avoid colliding with them.
+	 */
+	TURN_COUNT("turnCount");
 
 	private final String key;
 

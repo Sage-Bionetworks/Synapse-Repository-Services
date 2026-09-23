@@ -3,7 +3,6 @@ package org.sagebionetworks.docusign;
 import org.apache.commons.lang3.Strings;
 
 import com.docusign.esign.model.DateSigned;
-import com.docusign.esign.model.Email;
 import com.docusign.esign.model.EmailAddress;
 import com.docusign.esign.model.FullName;
 import com.docusign.esign.model.SignHere;
@@ -14,7 +13,7 @@ import com.docusign.esign.model.Title;
 enum TabType {
 	TEXT {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			Text text = new Text();
 			text.setTabLabel(label);
 			text.setValue(value);
@@ -32,10 +31,22 @@ enum TabType {
 			}
 			return false;
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getTextTabs() != null) {
+				for (Text t : tabs.getTextTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
 	},
 	FULL_NAME {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			FullName fn = new FullName();
 			fn.setTabLabel(label);
 			fn.setValue(value);
@@ -53,10 +64,22 @@ enum TabType {
 			}
 			return false;
 		}
-	},		
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getFullNameTabs() != null) {
+				for (FullName t : tabs.getFullNameTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+	},
 	TITLE {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
 			Title t = new Title();
 			t.setTabLabel(label);
 			t.setValue(value);
@@ -74,14 +97,26 @@ enum TabType {
 			}
 			return false;
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getTitleTabs() != null) {
+				for (Title t : tabs.getTitleTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
 	},
 	EMAIL_ADDRESS {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
-			Email e = new Email();
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			EmailAddress e = new EmailAddress();
 			e.setTabLabel(label);
 			e.setValue(value);
-			tabs.addEmailTabsItem(e);
+			tabs.addEmailAddressTabsItem(e);
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -95,11 +130,23 @@ enum TabType {
 			}
 			return false;
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getEmailAddressTabs() != null) {
+				for (EmailAddress t : tabs.getEmailAddressTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
 	},
 	SIGN_HERE {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a SIGN_HERE tab.");
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -114,11 +161,15 @@ enum TabType {
 			return false;
 
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A SIGN_HERE tab does not carry a value.");
+		}
 	},
 	DATE_SIGNED {
 		@Override
-		public void fillInTabValue(Tabs tabs, String label, String value) {
-			throw new UnsupportedOperationException("Cannot set the value of a DATE_SIGNED tab.");
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
 		}
 		@Override
 		public boolean hasTabWithLabel(Tabs tabs, String label) {
@@ -133,10 +184,33 @@ enum TabType {
 			return false;
 
 		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A DATE_SIGNED tab does not carry a value.");
+		}
 	};
-	
-	public abstract void fillInTabValue(Tabs tabs, String label, String value);
+
+	/**
+	 * Adds a new tab of this type carrying the given label and value. The tab has no placement, so
+	 * it is only meaningful where DocuSign resolves the placement from a template by matching the
+	 * label, as it does for the roles of an envelope being created from a template.
+	 */
+	public abstract void addTabWithLabel(Tabs tabs, String label, String value);
+
 	public abstract boolean hasTabWithLabel(Tabs tabs, String label);
+
+	/**
+	 * Sets the value of the existing tab of this type carrying the given label, leaving the rest of
+	 * its definition — including its placement — untouched.
+	 *
+	 * @throws IllegalArgumentException if there is no tab of this type with that label
+	 * @throws UnsupportedOperationException if tabs of this type do not carry a value
+	 */
+	public abstract void applyValueToTabWithLabel(Tabs tabs, String label, String value);
+
+	private static String noSuchTabMessage(TabType type, String label) {
+		return "There is no " + type.name() + " tab labeled '" + label + "'.";
+	}
 }
 
 

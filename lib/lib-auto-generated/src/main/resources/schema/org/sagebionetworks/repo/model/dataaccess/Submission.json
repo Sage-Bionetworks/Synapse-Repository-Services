@@ -93,6 +93,10 @@
 		"subjectType":{
 			"$ref":"org.sagebionetworks.repo.model.RestrictableObjectType",
 			"description": "The type of the subject user interested in. This information will be used to help user navigate back to where they were to continue their work."
+		},
+		"schemaData": {
+			"type": "object",
+			"description": "Additional data provided by the submitter, validated against the JSON Schema referenced by the AR version recorded on this submission. Property keys correspond to top-level property names defined in that schema."
 		}
 	}
 }

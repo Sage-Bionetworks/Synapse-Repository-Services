@@ -738,6 +738,7 @@ public class SqlConstants {
 	public static final String COL_DATA_TYPE_OBJECT_ID 		= "OBJECT_ID";
 	public static final String COL_DATA_TYPE_OBJECT_TYPE 	= "OBJECT_TYPE";
 	public static final String COL_DATA_TYPE_TYPE			= "DATA_TYPE";
+	public static final String COL_DATA_TYPE_AGGREGATE_CONFIGURATION		= "AGGREGATE_DATA_CONFIGURATION";
 	public static final String COL_DATA_TYPE_UPDATED_ON 	= "UPDATED_ON";
 	public static final String COL_DATA_TYPE_UPDATED_BY 	= "UPDATED_BY";
 	public static final String DDL_DATA_TYPE				= "schema/DataType-ddl.sql";
@@ -1068,6 +1069,7 @@ public class SqlConstants {
 	public static final String COL_DATA_ACCESS_REQUEST_ETAG = 						"ETAG";
 	public static final String COL_DATA_ACCESS_REQUEST_REQUEST_SERIALIZED = 		"REQUEST_SERIALIZED";
 	public static final String COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID =		"EDUC_ENVELOPE_ID";
+	public static final String COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH =		"EDUC_CONTENT_HASH";
 
 	// DataAccessRequestUser
 	public static final String DDL_DATA_ACCESS_REQUEST_USER =					"schema/DataAccessRequestUser-ddl.sql";
@@ -1369,7 +1371,15 @@ public class SqlConstants {
 	public static final String COL_AGENT_REG_CREATED_ON = 		"CREATED_ON";
 	public static final String COL_AGENT_REG_TYPE =		 		"AGENT_TYPE";
 	public static final String DDL_AGENT_REGISTRATION =			"schema/agent/Agent-Registration-ddl.sql";
-	
+
+	public static final String TABLE_AGENT_REG_ACT_SETTINGS =			"AGENT_REGISTRATION_ACT_SETTINGS";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_REGISTRATION_ID =	"REGISTRATION_ID";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_ETAG =		"ETAG";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_ON =	"MODIFIED_ON";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_MODIFIED_BY =	"MODIFIED_BY";
+	public static final String COL_AGENT_REG_ACT_SETTINGS_SETTINGS =	"SETTINGS";
+	public static final String DDL_AGENT_REGISTRATION_ACT_SETTINGS =	"schema/agent/Agent-Registration-Act-Settings-ddl.sql";
+
 	// Projects storage limit tables
 	public static final String TABLE_PROJECT_STORAGE_DATA = 				"PROJECT_STORAGE_DATA";
 	public static final String COL_PROJECT_STORAGE_DATA_PROJECT_ID = 		"PROJECT_ID";
@@ -1599,6 +1609,26 @@ public class SqlConstants {
 	public static final String COL_EDUC_QUOTA_CREATED_ON				= "CREATED_ON";
 	public static final String COL_EDUC_QUOTA_ENVELOPE_ID				= "ENVELOPE_ID";
 	public static final String DDL_EDUC_QUOTA							= "schema/EDucQuota-ddl.sql";
+
+	// FORM_TEMPLATE
+	public static final String TABLE_FORM_TEMPLATE						= "FORM_TEMPLATE";
+	public static final String COL_FORM_TEMPLATE_ID						= "ID";
+	public static final String COL_FORM_TEMPLATE_ETAG					= "ETAG";
+	public static final String COL_FORM_TEMPLATE_NAME					= "NAME";
+	public static final String COL_FORM_TEMPLATE_CURRENT_REV_NUM		= "CURRENT_REV_NUM";
+	public static final String COL_FORM_TEMPLATE_CREATED_BY				= "CREATED_BY";
+	public static final String COL_FORM_TEMPLATE_CREATED_ON				= "CREATED_ON";
+	public static final String DDL_FORM_TEMPLATE						= "schema/FormTemplate-ddl.sql";
+
+	// FORM_TEMPLATE_REVISION
+	public static final String TABLE_FORM_TEMPLATE_REVISION				= "FORM_TEMPLATE_REVISION";
+	public static final String COL_FORM_TEMPLATE_REVISION_OWNER_ID		= "OWNER_ID";
+	public static final String COL_FORM_TEMPLATE_REVISION_NUMBER		= "NUMBER";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String COL_FORM_TEMPLATE_REVISION_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String COL_FORM_TEMPLATE_REVISION_DEPRECATED		= "DEPRECATED";
+	public static final String COL_FORM_TEMPLATE_REVISION_TEMPLATE_JSON	= "TEMPLATE_JSON";
+	public static final String DDL_FORM_TEMPLATE_REVISION				= "schema/FormTemplateRevision-ddl.sql";
 
 	/**
 	 * Function names:

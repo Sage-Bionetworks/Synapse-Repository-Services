@@ -6,6 +6,7 @@ import java.util.StringJoiner;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.agent.GridAgentSessionContext;
 import org.springframework.ai.chat.model.ToolContext;
@@ -102,6 +103,12 @@ public class LoggingToolCallback implements ToolCallback {
 		if (value instanceof GridAgentSessionContext gridContext) {
 			return "gridSessionId=" + gridContext.getGridSessionId() + ",usersReplicaId="
 					+ gridContext.getUsersReplicaId();
+		}
+		// Read the memoized id only — never resolve, which would force the lazy code session to be
+		// created just to log it. The id appears once an earlier tool in the turn has resolved it.
+		if (value instanceof CodeSessionSupplier supplier) {
+			String resolved = supplier.resolvedSessionIdOrNull();
+			return resolved != null ? resolved : "codeSessionSupplier(unresolved)";
 		}
 		if (value instanceof String stringValue) {
 			return stringValue;

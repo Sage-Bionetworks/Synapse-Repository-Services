@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.specialist.entitymetadata.EntityMetadataSpecialistFactory;
 import org.sagebionetworks.repo.manager.agent.specialist.filesummary.FileSummarySpecialistFactory;
 import org.sagebionetworks.repo.manager.agent.specialist.gridmetadata.GridMetadataSpecialistFactory;
@@ -78,7 +79,7 @@ public class SupervisorToolsTest {
 		gridContext = new GridAgentSessionContext().setGridSessionId("grid-1").setUsersReplicaId(1L)
 				.setAgentsReplicaId(2L);
 		toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
-				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123",
+				AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of("session-123"),
 				AgentToolContextKey.GRID_SESSION_CONTEXT.getKey(), gridContext));
 	}
 

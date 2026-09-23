@@ -314,9 +314,16 @@ public class IT990AuthenticationController {
 	 */
 	@Test
 	public void testUnbindExternalId() throws SynapseException {
-		assertThrows(SynapseNotFoundException.class, () -> {			
+		assertThrows(SynapseNotFoundException.class, () -> {
 			synapseClient.unbindOAuthProvidersUserId(OAuthProvider.ORCID, "http://orcid.org/1234-5678-9876-5432");
 		});
+	}
+
+	@Test
+	public void testUnbindOIDCIdentity() throws SynapseException {
+		// The test user has no ORCID identity bound, so removing it is a no-op that succeeds.
+		// This verifies the DELETE /oauth2/identity endpoint is wired end-to-end.
+		synapseClient.unbindOIDCIdentity(OAuthProvider.ORCID);
 	}
 	
 	// Test to reproduce: https://sagebionetworks.jira.com/browse/PLFM-7248

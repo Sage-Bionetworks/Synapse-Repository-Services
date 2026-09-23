@@ -6,11 +6,13 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableSnapshot;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
@@ -271,16 +273,43 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 			throws Exception;
 
 	/**
-	 * Validate the user has read access to the given table.
-	 * 
+	 * Determine if the user can read the given table/view and all of its
+	 * dependencies. Follows the standard authorization pattern: the result is
+	 * returned rather than thrown, so each caller decides what to do with it.
+	 * <p>
+	 * The returned {@link AuthorizationStatus} is the combined decision over the
+	 * whole dependency tree:
+	 * <ul>
+	 * <li>{@link AuthorizationStatus#isAuthorized()} — the user may read row-level
+	 * data; callers proceed with a normal query.</li>
+	 * <li>Denied but {@link AuthorizationStatus#getAggregateDataSourceId()} present —
+	 * the user is blocked from row-level data only because a source is bound to
+	 * {@code AGGREGATE_DATA} (has READ, holds DOWNLOAD, but has unmet access
+	 * restrictions, and is not anonymous). A caller that can enforce the
+	 * aggregate-only contract loads that source's configuration (see
+	 * {@link #getAggregateDataConfiguration(String)}); a caller that cannot simply
+	 * calls {@link AuthorizationStatus#checkAuthorizationOrElseThrow()}.</li>
+	 * <li>Denied with no aggregate source — the user cannot read the table/view at
+	 * all.</li>
+	 * </ul>
+	 *
 	 * @param userInfo
-	 * @param tableId
-	 * @throws UnauthorizedException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
+	 * @param indexDescription
+	 * @return the combined read-access decision over the table/view and its
+	 *         dependencies.
 	 */
-	void validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription)
-			throws UnauthorizedException, DatastoreException, NotFoundException;
+	AuthorizationStatus validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription);
+
+	/**
+	 * Load the {@link AggregateDataConfiguration} bound to the given entity, if it is
+	 * classified as {@code AGGREGATE_DATA}. Callers use this after
+	 * {@link #validateTableReadAccess(UserInfo, IndexDescription)} reports an
+	 * aggregate data source id to enforce the aggregate-only contract.
+	 *
+	 * @param objectId the id of the entity carrying the aggregate configuration.
+	 * @return the bound configuration, or empty if the entity is not aggregate data.
+	 */
+	Optional<AggregateDataConfiguration> getAggregateDataConfiguration(String objectId);
 
 	/**
 	 * Validate the user has write access to the given table.

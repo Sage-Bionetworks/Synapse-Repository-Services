@@ -76,6 +76,17 @@ public class EDucQuotaDaoImpl implements EDucQuotaDao {
 		jdbcTemplate.update("DELETE FROM " + TABLE_EDUC_QUOTA + " WHERE " + COL_EDUC_QUOTA_ID + " = ?", id);
 	}
 
+	@WriteTransaction
+	@Override
+	public int deleteByUserAndAccessRequirement(Long userId, Long accessRequirementId) {
+		ValidateArgument.required(userId, "userId");
+		ValidateArgument.required(accessRequirementId, "accessRequirementId");
+		return jdbcTemplate.update("DELETE FROM " + TABLE_EDUC_QUOTA
+				+ " WHERE " + COL_EDUC_QUOTA_USER_ID + " = ?"
+				+ " AND " + COL_EDUC_QUOTA_ACCESS_REQUIREMENT_ID + " = ?",
+				userId, accessRequirementId);
+	}
+
 	@Override
 	public void truncateAll() {
 		jdbcTemplate.update("DELETE FROM " + TABLE_EDUC_QUOTA + " WHERE " + COL_EDUC_QUOTA_ID + " > -1");

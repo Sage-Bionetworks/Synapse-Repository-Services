@@ -2468,6 +2468,58 @@ public class GridManagerUnitTest {
 		});
 	}
 
+	// ─── getOrCreateUserConnection ─────────────────────────────────────────────
+
+	@Test
+	public void testGetOrCreateUserConnectionWithExistingConnection() {
+		when(mockUser.getId()).thenReturn(userId);
+		GridConnectionInfo existing = new GridConnectionInfo().setReplicaId(replicaId).setConnectionId("import-conn");
+		when(mockGridDao.getUserConnection(gridSessionId, userId, EventSource.IMPORT)).thenReturn(Optional.of(existing));
+
+		// call under test
+		GridConnectionInfo result = gridManager.getOrCreateUserConnection(gridSessionId, mockUser, EventSource.IMPORT);
+
+		assertEquals(existing, result);
+		verify(mockGridReplicaConnectionManager, never()).createReplica(any(), any(), anyBoolean(), any());
+		verify(mockGridDao, never()).createConnection(any());
+	}
+
+	@Test
+	public void testGetOrCreateUserConnectionCreatesReplicaAndConnectionWhenAbsent() {
+		when(mockUser.getId()).thenReturn(userId);
+		GridReplica newReplica = new GridReplica().setReplicaId(replicaId);
+		GridConnectionInfo created = new GridConnectionInfo().setReplicaId(replicaId).setConnectionId("import-conn");
+		when(mockGridDao.getUserConnection(gridSessionId, userId, EventSource.IMPORT)).thenReturn(Optional.empty());
+		when(mockGridReplicaConnectionManager.createReplica(userId, gridSessionId, false, EventSource.IMPORT))
+				.thenReturn(newReplica);
+		when(mockGridDao.getConnection(gridSessionId, replicaId))
+				.thenReturn(Optional.empty())
+				.thenReturn(Optional.of(created));
+
+		// call under test
+		GridConnectionInfo result = gridManager.getOrCreateUserConnection(gridSessionId, mockUser, EventSource.IMPORT);
+
+		assertEquals(created, result);
+		ArgumentCaptor<GridConnectionInfo> connCaptor = ArgumentCaptor.forClass(GridConnectionInfo.class);
+		verify(mockGridDao).createConnection(connCaptor.capture());
+		assertEquals(EventSource.IMPORT, connCaptor.getValue().getSource());
+		assertEquals(gridSessionId, connCaptor.getValue().getSessionId());
+		assertEquals(replicaId, connCaptor.getValue().getReplicaId());
+		assertEquals(userId, connCaptor.getValue().getCreatedBy());
+	}
+
+	@ParameterizedTest
+	@EnumSource(value = EventSource.class, names = { "WEBSOCKET", "AGENT", "API", "IMPORT" }, mode = EnumSource.Mode.EXCLUDE)
+	public void testGetOrCreateUserConnectionRejectsSingletonOrServiceSource(EventSource source) {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			gridManager.getOrCreateUserConnection(gridSessionId, mockUser, source);
+		}).getMessage();
+
+		assertEquals("The source must be a non-singleton, user-origin EventSource.", message);
+		verifyNoMoreInteractions(mockGridDao, mockGridReplicaConnectionManager);
+	}
+
 	@Test
 	public void testUpdateSessionBenefactorIdsDelegatesToDaoAndEvicts() {
 		Set<Long> benefactorIds = Set.of(111L, 222L);

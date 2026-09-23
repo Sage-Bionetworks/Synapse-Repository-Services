@@ -37,6 +37,17 @@ public class EDucService {
 		return eDucManager.routeForSignature(userInfo, requestId);
 	}
 
+	public EDucSignatureQuota getSignatureQuota(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.getSignatureQuota(userInfo, requestId);
+	}
+
+	public EDucSignatureQuota resetQuota(Long userId, String accessRequirementId, Long targetUserId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		UserInfo targetUserInfo = userManager.getUserInfo(targetUserId);
+		return eDucManager.resetQuota(userInfo, accessRequirementId, targetUserInfo.getId());
+	}
+
 	public EDucFileHandleId previewEDuc(Long userId, String requestId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return eDucManager.previewEDuc(userInfo, requestId);
@@ -45,6 +56,16 @@ public class EDucService {
 	public EDucSignatureStatus getSignatureStatus(Long userId, String requestId) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return eDucManager.getSignatureStatus(userInfo, requestId);
+	}
+
+	public EDucSignatureStatus updateRoutedEnvelope(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.updateRoutedEnvelope(userInfo, requestId);
+	}
+
+	public boolean canUpdateRoutedEnvelope(Long userId, String requestId) {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return eDucManager.canUpdateRoutedEnvelopePrecheck(userInfo, requestId);
 	}
 
 	public void cancelSignature(Long userId, String requestId) {

@@ -1,0 +1,14 @@
+{
+	"description": "Request to change the DataType of an object.",
+	"properties": {
+		"dataType": {
+			"description": "The DataType to assign to the object.",
+			"required": true,
+			"$ref": "org.sagebionetworks.repo.model.DataType"
+		},
+		"aggregateDataConfiguration": {
+			"description": "The aggregate-data configuration to bind to the object. Required when dataType is AGGREGATE_DATA and must be null for any other DataType.",
+			"$ref": "org.sagebionetworks.repo.model.AggregateDataConfiguration"
+		}
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"description": "Parameters for the NOISE facet post-processing algorithm.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.FacetPostProcessingParameters"
+		}
+	],
+	"properties": {
+		"epsilon": {
+			"type": "number",
+			"description": "The differential-privacy budget used to derive the Laplace scale (1/epsilon). Lower values add more noise. Must be a positive value."
+		}
+	}
+}

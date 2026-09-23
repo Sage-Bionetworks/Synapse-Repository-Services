@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFailureCode;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager.PushFileRequest;
@@ -74,7 +75,7 @@ public class EntityMetadataSpecialistToolsTest {
 		userInfo = new UserInfo(false, 101L, AuthorizationConstants.DEFAULT_REALM_ID);
 		toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo));
 		toolContextWithSession = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), userInfo,
-				AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123"));
+				AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of("session-123")));
 	}
 
 	private ToolCallback callback(String name) {
@@ -367,7 +368,8 @@ public class EntityMetadataSpecialistToolsTest {
 
 	@Test
 	public void testAddFilesToSessionWithNoUserInfo() {
-		ToolContext noUserContext = new ToolContext(Map.of(AgentToolContextKey.CODE_SESSION_ID.getKey(), "session-123"));
+		ToolContext noUserContext = new ToolContext(
+				Map.of(AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of("session-123")));
 		FileHandleAssociation association = new FileHandleAssociation().setFileHandleId("222")
 				.setAssociateObjectType(FileHandleAssociateType.FileEntity).setAssociateObjectId("syn123");
 

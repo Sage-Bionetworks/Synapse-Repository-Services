@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterTools;
 import org.sagebionetworks.repo.manager.agent.specialist.filesummary.FileSummarySpecialistFactory;
@@ -58,7 +59,7 @@ public class FileSummarySpecialistIntegrationTest {
 	 */
 	private ToolContext toolContext(String sessionId) {
 		return new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), adminUser,
-				AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+				AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 	}
 
 	/**
@@ -231,7 +232,7 @@ public class FileSummarySpecialistIntegrationTest {
 		try {
 			// call under test — the real Spring AI tool-callback path, including the arguments JSON parse.
 			ToolContext toolContext = new ToolContext(Map.of(AgentToolContextKey.USER_INFO.getKey(), adminUser,
-					AgentToolContextKey.CODE_SESSION_ID.getKey(), sessionId));
+					AgentToolContextKey.CODE_SESSION_SUPPLIER.getKey(), CodeSessionSupplier.of(sessionId)));
 			String toolResult = runPython.call(toolArguments, toolContext);
 
 			assertNotNull(toolResult);

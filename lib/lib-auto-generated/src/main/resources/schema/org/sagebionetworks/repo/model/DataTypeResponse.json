@@ -21,6 +21,10 @@
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object's DataType was last updated."
+		},
+		"aggregateDataConfiguration": {
+			"description": "The bound aggregate-data configuration. Present only when dataType is AGGREGATE_DATA.",
+			"$ref": "org.sagebionetworks.repo.model.AggregateDataConfiguration"
 		}
 	}
 }

@@ -38,6 +38,7 @@ import org.sagebionetworks.avro.pfb.model.Metadata;
 import org.sagebionetworks.aws.v2.AwsCredentialsProviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
+import org.sagebionetworks.markdown.MarkdownClientConfiguration;
 import org.sagebionetworks.repo.manager.agent.AgentClientProvider;
 import org.sagebionetworks.repo.manager.authentication.TotpManager;
 import org.sagebionetworks.repo.manager.file.FileHandleAssociationProvider;
@@ -86,6 +87,7 @@ import org.sagebionetworks.workers.util.semaphore.WriteReadSemaphoreImpl;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.quartz.SimpleTriggerFactoryBean;
@@ -135,6 +137,7 @@ import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider
 import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 
 @Configuration
+@Import(MarkdownClientConfiguration.class)
 public class ManagerConfiguration {
 
 	private static final String VELOCITY_RESOURCE_LOADERS = "classpath,file";

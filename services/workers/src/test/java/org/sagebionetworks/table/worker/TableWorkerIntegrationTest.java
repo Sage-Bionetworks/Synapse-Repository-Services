@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -64,10 +65,16 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ChangeDataTypeRequest;
 import org.sagebionetworks.repo.model.DataType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FacetNoiseParameters;
+import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
+import org.sagebionetworks.repo.model.FacetRoundingParameters;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -102,6 +109,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnRangeRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
+import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValueCount;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
@@ -134,6 +142,7 @@ import org.sagebionetworks.repo.model.table.TableUpdateResponse;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TextMatchesMode;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
+import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -2970,8 +2979,285 @@ public class TableWorkerIntegrationTest {
 		String sql = "select row_id from " + tableId;
 		query.setSql(sql);
 		query.setLimit(8L);
-		waitForConsistentQuery(anonymousUser, query, queryOptions, (results) -> {			
+		waitForConsistentQuery(anonymousUser, query, queryOptions, (results) -> {
 			assertNotNull(results);
+		});
+	}
+
+	/**
+	 * PLFM-9756: an authenticated user who has NOT met a table's access requirement can
+	 * still query an AGGREGATE_DATA table for a gated count. The count is returned when it
+	 * is at/above the suppression threshold (with all row data suppressed) and the query
+	 * fails with a typed below-threshold error when the count is non-zero but below it.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_9756AggregateData() throws Exception {
+		// A certified, non-owner user who will query the restricted table.
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		long userId = userManager.createUser(user);
+		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
+		UserInfo notOwner = userManager.getUserInfo(userId);
+		users.add(notOwner);
+
+		createSchemaOneOfEachType();
+		createTableWithSchema();
+
+		// Append a known, non-zero number of rows as the admin so the count is deterministic.
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 4));
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		// Grant the non-owner READ and DOWNLOAD on the table.
+		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
+		acl.setId(tableId);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityAclManager.getACL(tableId, adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(notOwner.getId());
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(ra);
+		entityAclManager.updateACL(acl, adminUserInfo);
+
+		// Add a DOWNLOAD access requirement that the non-owner has not met.
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(tableId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Collections.singletonList(rod));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("must agree");
+		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+
+		Query aggregateQuery = new Query();
+		aggregateQuery.setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true).withRunCount(true);
+
+		// Before the table is aggregate data, the unmet access requirement blocks the query.
+		assertThrows(UnauthorizedException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+
+		// Bind the table as AGGREGATE_DATA with a threshold at/below the row count.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)));
+
+		// The count is over the threshold, so it is returned; the individual rows are suppressed.
+		waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (bundle) -> {
+			assertEquals(4L, bundle.getQueryCount());
+			assertNull(bundle.getQueryResult());
+		});
+
+		// Raise the threshold above the row count: the count is now suppressed and the query
+		// fails with a typed below-threshold error that carries the threshold.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)));
+
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+		assertEquals(10L, thrown.getSuppressionThreshold());
+	}
+
+	/**
+	 * Build a two-column table with a controlled facet distribution: an enumeration column "state"
+	 * (7 rows with value "a", 3 rows with value "b") and a range column "age". This yields
+	 * deterministic enumeration counts that make the post-processed bins/noise predictable.
+	 *
+	 * @throws Exception
+	 */
+	private void setupFacetPostProcessingTable() throws Exception {
+		ColumnModel state = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("state").setColumnType(ColumnType.STRING).setMaximumSize(50L)
+						.setFacetType(FacetType.enumeration));
+		ColumnModel age = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("age").setColumnType(ColumnType.INTEGER).setFacetType(FacetType.range));
+		schema = Lists.newArrayList(state, age);
+		createTableWithSchema();
+
+		List<Row> rows = new ArrayList<>();
+		for (int i = 0; i < 7; i++) {
+			rows.add(new Row().setValues(Lists.newArrayList("a", Integer.toString(20 + i))));
+		}
+		for (int i = 0; i < 3; i++) {
+			rows.add(new Row().setValues(Lists.newArrayList("b", Integer.toString(40 + i))));
+		}
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(TableModelUtils.getSelectColumns(schema));
+		rowSet.setTableId(tableId);
+		appendRows(adminUserInfo, tableId, rowSet, mockProgressCallback);
+
+		waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, 10L, (r) -> assertNotNull(r));
+	}
+
+	private static FacetColumnResult findFacet(List<FacetColumnResult> facets, String columnName) {
+		return facets.stream().filter(f -> columnName.equals(f.getColumnName())).findFirst()
+				.orElseThrow(() -> new AssertionError("No facet for column " + columnName));
+	}
+
+	/**
+	 * PLFM-9757: a full-access data manager can preview exactly what an aggregate-only user would
+	 * see by supplying an {@link AggregateDataConfiguration} on the request. The preview is applied
+	 * upstream, so the whole pipeline treats the query identically to a real aggregate-only read:
+	 * the rows are suppressed, the range facet is dropped, and the enumeration counts are obscured
+	 * by the requested algorithm.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_9757FacetPostProcessingPreview() throws Exception {
+		setupFacetPostProcessingTable();
+
+		Query query = new Query().setSql("select * from " + tableId);
+
+		// ROUNDING preview: rows are suppressed, the range facet is dropped and the enumeration
+		// counts are floored into bins.
+		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
+
+		waitForConsistentQueryBundle(adminUserInfo, query,
+				new QueryOptions().withRunQuery(true).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
+			// The preview behaves exactly like an aggregate-only read: rows are suppressed.
+			assertNull(bundle.getQueryResult());
+			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
+			List<FacetColumnResult> facets = bundle.getFacets();
+			// Range facets expose exact extremes of the restricted rows and are dropped.
+			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(facets, "state");
+			assertEquals(5L, binned.getBinSize());
+			Map<String, Long> binMinByValue = new HashMap<>();
+			binned.getBinnedValues().forEach(value -> binMinByValue.put(value.getValue(), value.getBinMin()));
+			// binMin = floor(count / roundTo) * roundTo: count 7 -> 5, count 3 -> 0.
+			assertEquals(5L, binMinByValue.get("a"));
+			assertEquals(0L, binMinByValue.get("b"));
+		});
+
+		// NOISE preview: counts are perturbed but reuse the standard values result and clamp to zero.
+		AggregateDataConfiguration noise = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+						.setAlgorithm(FacetPostProcessingAlgorithm.NOISE)
+						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)));
+
+		waitForConsistentQueryBundle(adminUserInfo, query,
+				new QueryOptions().withRunQuery(true).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
+			assertNull(bundle.getQueryResult());
+			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
+			List<FacetColumnResult> facets = bundle.getFacets();
+			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+			FacetColumnResultValues values = (FacetColumnResultValues) findFacet(facets, "state");
+			assertEquals(2, values.getFacetValues().size());
+			values.getFacetValues().forEach(value ->
+					assertTrue(value.getCount() >= 0, "a noised count must never be negative"));
+		});
+
+		// No preview: a full-access read returns the rows and the raw exact counts, and the flag is false.
+		waitForConsistentQueryBundle(adminUserInfo, query,
+				new QueryOptions().withRunQuery(true).withReturnFacets(true), (bundle) -> {
+			assertNotNull(bundle.getQueryResult());
+			assertEquals(Boolean.FALSE, bundle.getFacetPostProcessingApplied());
+			List<FacetColumnResult> facets = bundle.getFacets();
+			assertTrue(facets.stream().anyMatch(facet -> facet instanceof FacetColumnResultRange));
+			FacetColumnResultValues values = (FacetColumnResultValues) findFacet(facets, "state");
+			Map<String, Long> countByValue = new HashMap<>();
+			values.getFacetValues().forEach(value -> countByValue.put(value.getValue(), value.getCount()));
+			assertEquals(7L, countByValue.get("a"));
+			assertEquals(3L, countByValue.get("b"));
+		});
+	}
+
+	/**
+	 * PLFM-9757: an aggregate-only user (denied row-level access, downgraded by an AGGREGATE_DATA
+	 * binding) receives obscured facet counts. This also verifies the security invariant that the
+	 * feature fails closed: when the binding carries no facet post-processing configuration the
+	 * facet query must error rather than leak the exact counts.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_9757FacetPostProcessingAggregateOnly() throws Exception {
+		// A certified, non-owner user who will query the restricted table.
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		long userId = userManager.createUser(user);
+		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
+		UserInfo notOwner = userManager.getUserInfo(userId);
+		users.add(notOwner);
+
+		setupFacetPostProcessingTable();
+
+		// Grant the non-owner READ and DOWNLOAD on the table.
+		AccessControlList acl = entityAclManager.getACL(projectId, adminUserInfo);
+		acl.setId(tableId);
+		entityAclManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityAclManager.getACL(tableId, adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(notOwner.getId());
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.DOWNLOAD, ACCESS_TYPE.READ));
+		acl.getResourceAccess().add(ra);
+		entityAclManager.updateACL(acl, adminUserInfo);
+
+		// Add a DOWNLOAD access requirement that the non-owner has not met.
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(tableId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Collections.singletonList(rod));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("must agree");
+		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+
+		Query query = new Query().setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true).withReturnFacets(true);
+
+		// Fail closed: bound as AGGREGATE_DATA with NO facet post-processing configuration, an
+		// aggregate-only facet query must not leak the exact counts, so it errors instead.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)));
+
+		assertThrows(IllegalStateException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, query, options, (response) -> {
+				fail("An aggregate-only facet query without a post-processing configuration must not return facets");
+			});
+		});
+
+		// Bind a ROUNDING configuration: the aggregate-only user now receives obscured, binned counts.
+		entityManager.changeEntityDataType(adminUserInfo, tableId,
+				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
+						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(5L)
+								.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
+										.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
+										.setParameters(new FacetRoundingParameters().setRoundTo(5L)))));
+
+		waitForConsistentQueryBundle(notOwner, query, options, (bundle) -> {
+			// Rows are suppressed and the enumeration counts are obscured.
+			assertNull(bundle.getQueryResult());
+			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
+			List<FacetColumnResult> facets = bundle.getFacets();
+			assertTrue(facets.stream().noneMatch(facet -> facet instanceof FacetColumnResultRange));
+			FacetColumnResultBinnedValues binned = (FacetColumnResultBinnedValues) findFacet(facets, "state");
+			assertEquals(5L, binned.getBinSize());
+			Map<String, Long> binMinByValue = new HashMap<>();
+			binned.getBinnedValues().forEach(value -> binMinByValue.put(value.getValue(), value.getBinMin()));
+			assertEquals(5L, binMinByValue.get("a"));
+			assertEquals(0L, binMinByValue.get("b"));
 		});
 	}
 

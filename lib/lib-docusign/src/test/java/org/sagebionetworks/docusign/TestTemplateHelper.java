@@ -13,7 +13,6 @@ import com.docusign.esign.model.SignHere;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.Text;
-import com.docusign.esign.model.Title;
 
 class TestTemplateHelper {
 
@@ -38,9 +37,9 @@ class TestTemplateHelper {
 		FullName name = new FullName();
 		name.setTabLabel("signing_official_name");
 		tabs.setFullNameTabs(List.of(name));
-		Title title = new Title();
-		title.setTabLabel("signing_official_title");
-		tabs.setTitleTabs(List.of(title));
+		Text institution = new Text();
+		institution.setTabLabel("signing_official_institution");
+		tabs.setTextTabs(List.of(institution));
 		EmailAddress email = new EmailAddress();
 		email.setTabLabel("signing_official_email");
 		tabs.setEmailAddressTabs(List.of(email));
@@ -58,17 +57,12 @@ class TestTemplateHelper {
 		Signer signer = new Signer();
 		signer.setRoleName("principal_investigator");
 		Tabs tabs = new Tabs();
-		Text institution = new Text();
-		institution.setTabLabel("principal_investigator_institution");
 		Text userName = new Text();
 		userName.setTabLabel("principal_investigator_user_name");
-		tabs.setTextTabs(Arrays.asList(institution, userName));
+		tabs.setTextTabs(List.of(userName));
 		FullName name = new FullName();
 		name.setTabLabel("principal_investigator_name");
 		tabs.setFullNameTabs(List.of(name));
-		Title title = new Title();
-		title.setTabLabel("principal_investigator_title");
-		tabs.setTitleTabs(List.of(title));
 		EmailAddress email = new EmailAddress();
 		email.setTabLabel("principal_investigator_email");
 		tabs.setEmailAddressTabs(List.of(email));

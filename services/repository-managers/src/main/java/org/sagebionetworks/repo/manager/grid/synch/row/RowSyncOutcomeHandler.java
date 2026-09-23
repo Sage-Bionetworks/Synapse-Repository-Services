@@ -132,6 +132,8 @@ public class RowSyncOutcomeHandler implements SyncOutcomeHandler<RowCopyItem, Ro
 	@Override
 	public void onDeletedFromSource(RowCopyItem copyItem) {
 		// Row was deleted from the source - remove it from the grid.
+		log.warn("Removing grid row from session: {} because it has no source row and no user attribution. rgaNodeId: {}",
+				copyHandler.getHeader().getSessionId(), copyItem.getRgaNodeId());
 		intendedChangePublisher.publish(new DeleteArrayNodeChange(rowsArrayId, copyItem.getRgaNodeId()));
 	}
 

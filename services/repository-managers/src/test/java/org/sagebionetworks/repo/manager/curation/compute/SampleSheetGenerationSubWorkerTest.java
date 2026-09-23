@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.agent.Agent;
 import org.sagebionetworks.repo.manager.agent.AgentToolContextKey;
 import org.sagebionetworks.repo.manager.agent.CodeInterpreterFileManager;
+import org.sagebionetworks.repo.manager.agent.CodeSessionSupplier;
 import org.sagebionetworks.repo.manager.agent.supervisor.SampleSheetSupervisorFactory;
 import org.sagebionetworks.repo.manager.curation.CurationTaskManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -110,7 +111,7 @@ public class SampleSheetGenerationSubWorkerTest {
 		assertTrue(messageCaptor.getValue().contains("inputFileViewId: syn100"), "Got: " + messageCaptor.getValue());
 		assertTrue(messageCaptor.getValue().contains("targetSchemaId: my.org-Sheet-1.0.0"), "Got: " + messageCaptor.getValue());
 		assertEquals(user, AgentToolContextKey.USER_INFO.get(contextCaptor.getValue()));
-		assertEquals("session-1", AgentToolContextKey.CODE_SESSION_ID.get(contextCaptor.getValue()));
+		assertEquals("session-1", CodeSessionSupplier.resolveSessionId(contextCaptor.getValue()));
 
 		// The generated CSV is handed to the shared writer to store as a new RecordSet version.
 		verify(recordSetOutputWriter).storeCsvAsNewRecordSetVersion(user, "syn300", "999");

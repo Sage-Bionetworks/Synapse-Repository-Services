@@ -92,6 +92,16 @@ public class PrincipalOIDCBindingDaoImpl implements PrincipalOIDCBindingDao {
 	
 	@Override
 	@WriteTransaction
+	public int deleteBindingForProvider(Long principalId, OAuthProvider provider) {
+		String sql = "DELETE FROM " + TABLE_PRINCIPAL_OIDC_BINDING
+				+ " WHERE " + COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID + "=?"
+				+ " AND " + COL_PRINCIPAL_OIDC_BINDING_PROVIDER + "=?";
+
+		return jdbcTemplate.update(sql, principalId, provider.name());
+	}
+
+	@Override
+	@WriteTransaction
 	public void clearBindings(Long principalId) {
 		String sql = "DELETE FROM " +TABLE_PRINCIPAL_OIDC_BINDING + " WHERE " + COL_PRINCIPAL_OIDC_BINDING_PRINCIPAL_ID + "=?";
 		

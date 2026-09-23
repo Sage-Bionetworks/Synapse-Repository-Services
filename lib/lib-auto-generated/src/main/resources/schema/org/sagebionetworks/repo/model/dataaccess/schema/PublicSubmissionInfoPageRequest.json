@@ -1,0 +1,15 @@
+{
+	"title": "Public Submission Info Page Request",
+	"description": "A request body to list publicly-disclosable information from approved submissions for a JsonSchemaAccessRequirement. Only fields whose FormTemplateField is marked isPublic (as of the FormTemplate version each submission was made against) are returned.",
+	"properties": {
+		"accessRequirementId": {
+			"type": "string",
+			"description": "The ID of the JsonSchemaAccessRequirement whose approved submissions should be listed.",
+			"required": true
+		},
+		"nextPageToken": {
+			"type": "string",
+			"description": "A token used to get the next page of a particular list request."
+		}
+	}
+}
