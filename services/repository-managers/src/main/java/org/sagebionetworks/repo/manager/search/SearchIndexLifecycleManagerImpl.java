@@ -40,8 +40,14 @@ import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
 import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
+import org.sagebionetworks.repo.model.semaphore.LockContext;
+import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -50,9 +56,9 @@ import org.sagebionetworks.repo.transactions.WriteTransaction;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.TranslatedQuery;
-import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -337,102 +343,24 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 								+ " rows. Row count: " + rowCount);
 			}
 
-			// SqlContext.query (not build) emits the select against the source's materialized
-			// index table; build context is rejected by table and view sources (only a
-			// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
-			// source row without authorization and is served to many users through per-row
-			// benefactor filtering, so there is no single current user to bind.
-			QueryTranslator base = QueryTranslator.builder()
-					.sql(definingSQL)
-					.schemaProvider(tableManagerSupport)
-					.sqlContext(SqlContext.query)
-					.indexDescription(sourceIndexDescription)
-					.build();
+			// The build streams into the physical slot the alias is NOT currently serving, so the live
+			// index keeps answering queries throughout.
+			String idleSlot = getIdlePhysicalSlot(entityId, oldTarget);
+			physicalSlot = idleSlot;
 
-			// The document schema is derived from this build's own translation of the defining SQL,
-			// never read back from the previously bound schema. The source's schema evolves
-			// independently of this entity (a column added, removed, or retyped on the source), and
-			// only the source becoming AVAILABLE again drives the rebuild — nothing re-registers this
-			// entity. Reading a schema bound by an earlier registration would pair stale column
-			// types and ordering with freshly translated row values, which the positional zip in
-			// SearchIndexRowHandler silently misreads. The refreshed schema is bound to the entity
-			// once the build succeeds, mirroring how a materialized view rebinds after its swap.
-			List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
-					.map(columnModelManager::createColumnModel)
-					.collect(Collectors.toList());
-			List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
-
-			Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
-					config, overrides, selectedColumns);
-			// Synthetic inline analyzers join the loaded set; downstream code treats them
-			// identically to DAO-loaded TextAnalyzers.
-			analyzers.putAll(inlineAnalyzers);
-			String defaultAnalyzer = config != null ? SearchOpaqueJsonUtil.readRef(config.getDefaultAnalyzer()) : null;
-
-			// Pre-flight: every default / override analyzer qname must resolve to a loaded
-			// TextAnalyzer. A miss throws IllegalArgumentException — caught below and surfaced
-			// via SearchIndexStatus.errorMessage.
-			validateReferencedResources(defaultAnalyzer, overrides, analyzers);
-
-			// Parse each analyzer's settings JSON and resolve all $ref entries to SynonymSet
-			// definitions. The resolved value is the typed IndexSettingsAnalysis the
-			// OpenSearchManager merges into the index's settings.analysis block. SynonymSet
-			// qname existence is validated lazily here — a missing target raises
-			// IllegalArgumentException via SearchOpaqueJsonUtil.
-			Map<String, IndexSettingsAnalysis> resolvedAnalyzers = resolveAnalyzers(analyzers);
-
-			int benefactorCount = sourceIndexDescription.getBenefactors().size();
-
-			// Size the index from the source table's on-disk bytes. The source is a conservative
-			// upper bound for the derived index, so this never under-shards. Replicas are
-			// stack-coupled: the single-node dev domain cannot allocate a replica (it would sit
-			// UNASSIGNED), so dev uses 0; prod uses 1 for HA and read scaling.
-			Long dataSizeBytes = indexDao.getDataSizeBytesForTable(sourceId);
-			int numberOfShards = computeShardCount(dataSizeBytes);
-			int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
-
-			// Build into the physical slot the alias is NOT currently serving, so the live index keeps
-			// answering queries throughout. createIndex is delete-then-create on the fixed slot name, so
-			// any orphan left in the idle slot by a previously-failed build is overwritten here.
-			physicalSlot = getIdlePhysicalSlot(entityId, oldTarget);
-			openSearchManager.deleteIndex(physicalSlot);
-			openSearchManager.createIndex(physicalSlot, selectedColumns,
-					defaultAnalyzer,
-					overrides, resolvedAnalyzers,
-					benefactorCount, numberOfShards, numberOfReplicas);
-
-			// AOSS acknowledges createIndex and returns an already-queryable index before its
-			// shards are actually ready to accept writes. Block until a real sentinel write
-			// succeeds so the bulk stream below does not race against index_not_found_exception.
-			openSearchManager.waitForIndexWritable(physicalSlot);
-
-			// Splice the source's per-dependency benefactor columns into the select so the handler can
-			// read them as trailing row values.
-			TranslatedQuery query = buildWithBenefactorColumns(base, sourceIndexDescription);
-			// Only a materialized view carries its benefactors as spliced trailing values; a view's
-			// single benefactor arrives by name on the Row and a table has none. The difference
-			// between the spliced header count and the document-column count is therefore the exact
-			// number of trailing values the handler must read as benefactors.
-			int trailingBenefactorColumns = query.getSelectColumns().size() - selectColumns.size();
-			// queryAsStream does not close the handler; the try-with-resources flushes the final
-			// partial batch.
-			try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-					physicalSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
-				indexDao.queryAsStream(query, handler);
-			}
+			// A non-exclusive lock on the direct source holds its index stable from reading its as-built
+			// snapshot through the end of row streaming, so the snapshot describes the rows streamed.
+			tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
+					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
+					(ProgressCallback callback) -> {
+						streamIntoIdleSlot(idleSlot, searchIndex, sourceId, sourceIndexDescription, indexDao,
+								config, overrides, inlineAnalyzers);
+						return null;
+					}, sourceId);
 
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
 			openSearchManager.swapAlias(aliasName, physicalSlot, oldTarget);
-
-			// Publish the schema this build actually indexed against, now that the alias serves it.
-			// The query path reads the bound schema to map document field IDs back to user-facing
-			// column names, so it must describe the live index and not the previous one. Binding
-			// only after the swap keeps a failed build from replacing the schema that still
-			// describes the index the alias points at.
-			columnModelManager.bindColumnsToVersionOfObject(
-					selectedColumns.stream().map(ColumnModel::getId).collect(Collectors.toList()),
-					IdAndVersion.parse(entityId));
 
 			// The old index is no longer reachable via the alias; delete it now rather than waiting
 			// for the next rebuild's idle-slot cleanup, so an entity that is never rebuilt again does
@@ -497,6 +425,145 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				}
 			}
 		}
+	}
+
+	/**
+	 * Create the idle physical slot and stream every source row into it. The source's as-built
+	 * {@link IndexAuthorizationSnapshot} is the single source of truth for the build: it supplies the
+	 * source schema the defining SQL is translated against, the benefactor columns spliced into the
+	 * streamed rows, and the dependency closure checked for AGGREGATE_DATA. The SearchIndex's own
+	 * snapshot, derived from it, is stored in the new slot's mapping metadata. Caller holds a
+	 * non-exclusive lock on the source.
+	 *
+	 * @throws RecoverableMessageException when the source has no as-built snapshot yet.
+	 * @throws IllegalArgumentException    when the source or any of its dependencies is AGGREGATE_DATA.
+	 */
+	private void streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
+			IndexDescription sourceIndexDescription, TableIndexDAO indexDao, SearchConfiguration config,
+			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers) throws Exception {
+		String definingSQL = searchIndex.getDefiningSQL();
+		IndexAuthorizationSnapshot sourceSnapshot = indexAuthorizationSnapshotManager.getAuthorizationSnapshot(sourceId)
+				.orElseThrow(() -> new RecoverableMessageException("Search index source " + sourceId
+						+ " has no as-built authorization snapshot yet"));
+
+		// SqlContext.query (not build) emits the select against the source's materialized
+		// index table; build context is rejected by table and view sources (only a
+		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
+		// source row without authorization and is served to many users through per-row
+		// benefactor filtering, so there is no single current user to bind. The live index
+		// description is used only to generate the SQL.
+		SchemaProvider schemaProvider = snapshotSchemaProvider(sourceId, sourceSnapshot);
+		QueryTranslator base = QueryTranslator.builder()
+				.sql(definingSQL)
+				.schemaProvider(schemaProvider)
+				.sqlContext(SqlContext.query)
+				.indexDescription(sourceIndexDescription)
+				.build();
+
+		List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
+				.map(columnModelManager::createColumnModel)
+				.collect(Collectors.toList());
+		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
+
+		IndexAuthorizationSnapshot snapshot = indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(
+				sourceSnapshot, definingSQL, selectedColumns, schemaProvider);
+		IndexDescriptionSnapshot indexDescription = snapshot.getIndexDescription();
+		// Rows of an AGGREGATE_DATA object may only be released as aggregates, which a per-row
+		// search document cannot honor.
+		List<String> closure = new ArrayList<>();
+		closure.add(indexDescription.getObjectId());
+		indexDescription.getDependencies().forEach(dependency -> closure.add(dependency.getObjectId()));
+		for (String objectId : closure) {
+			if (tableManagerSupport.getAggregateDataConfiguration(objectId).isPresent()) {
+				throw new IllegalArgumentException("Search index source " + sourceId
+						+ " depends on AGGREGATE_DATA object " + objectId);
+			}
+		}
+
+		Map<String, TextAnalyzer> analyzers = collectAndLoadAnalyzers(
+				config, overrides, selectedColumns);
+		// Synthetic inline analyzers join the loaded set; downstream code treats them
+		// identically to DAO-loaded TextAnalyzers.
+		analyzers.putAll(inlineAnalyzers);
+		String defaultAnalyzer = config != null ? SearchOpaqueJsonUtil.readRef(config.getDefaultAnalyzer()) : null;
+
+		// Pre-flight: every default / override analyzer qname must resolve to a loaded
+		// TextAnalyzer. A miss throws IllegalArgumentException — caught below and surfaced
+		// via SearchIndexStatus.errorMessage.
+		validateReferencedResources(defaultAnalyzer, overrides, analyzers);
+
+		// Parse each analyzer's settings JSON and resolve all $ref entries to SynonymSet
+		// definitions. The resolved value is the typed IndexSettingsAnalysis the
+		// OpenSearchManager merges into the index's settings.analysis block. SynonymSet
+		// qname existence is validated lazily here — a missing target raises
+		// IllegalArgumentException via SearchOpaqueJsonUtil.
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = resolveAnalyzers(analyzers);
+
+		// Size the index from the source table's on-disk bytes. The source is a conservative
+		// upper bound for the derived index, so this never under-shards. Replicas are
+		// stack-coupled: the single-node dev domain cannot allocate a replica (it would sit
+		// UNASSIGNED), so dev uses 0; prod uses 1 for HA and read scaling.
+		Long dataSizeBytes = indexDao.getDataSizeBytesForTable(sourceId);
+		int numberOfShards = computeShardCount(dataSizeBytes);
+		int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
+
+		// createIndex is delete-then-create on the fixed slot name, so any orphan left in the idle
+		// slot by a previously-failed build is overwritten here.
+		openSearchManager.deleteIndex(idleSlot);
+		openSearchManager.createIndex(idleSlot, selectedColumns,
+				defaultAnalyzer,
+				overrides, resolvedAnalyzers,
+				indexDescription.getBenefactors().size(), numberOfShards, numberOfReplicas, snapshot);
+
+		// AOSS acknowledges createIndex and returns an already-queryable index before its
+		// shards are actually ready to accept writes. Block until a real sentinel write
+		// succeeds so the bulk stream below does not race against index_not_found_exception.
+		openSearchManager.waitForIndexWritable(idleSlot);
+
+		// Splice the source's per-dependency benefactor columns into the select so the handler can
+		// read them as trailing row values.
+		TranslatedQuery query = buildWithBenefactorColumns(base, indexDescription);
+		// Only a materialized view carries its benefactors as spliced trailing values; a view's
+		// single benefactor arrives by name on the Row and a table has none. The difference
+		// between the spliced header count and the document-column count is therefore the exact
+		// number of trailing values the handler must read as benefactors.
+		int trailingBenefactorColumns = query.getSelectColumns().size() - selectColumns.size();
+		// queryAsStream does not close the handler; the try-with-resources flushes the final
+		// partial batch.
+		try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
+				idleSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
+			indexDao.queryAsStream(query, handler);
+		}
+	}
+
+	/**
+	 * A {@link SchemaProvider} that resolves the source's schema from its as-built snapshot (the
+	 * snapshot's output column ids, in order) and delegates every other lookup to
+	 * {@link TableManagerSupport}.
+	 */
+	private SchemaProvider snapshotSchemaProvider(IdAndVersion sourceId, IndexAuthorizationSnapshot sourceSnapshot) {
+		List<String> sourceColumnIds = sourceSnapshot.getColumnLineage().stream()
+				.map(ColumnLineageEntry::getOutputColumnId)
+				.collect(Collectors.toList());
+		return new SchemaProvider() {
+			@Override
+			public TableType getTableType(IdAndVersion tableId) {
+				return tableManagerSupport.getTableType(tableId);
+			}
+
+			@Override
+			public List<ColumnModel> getTableSchema(IdAndVersion tableId) {
+				if (sourceId.equals(tableId)) {
+					return columnModelManager.getAndValidateColumnModels(sourceColumnIds);
+				}
+				return tableManagerSupport.getTableSchema(tableId);
+			}
+
+			@Override
+			public ColumnModel getColumnModel(String id) {
+				return tableManagerSupport.getColumnModel(id);
+			}
+		};
 	}
 
 	@Override
@@ -737,7 +804,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	/**
 	 * Splice the source index's physical benefactor columns into the base query so the streamed rows
-	 * carry one benefactor value per source dependency (in {@link IndexDescription#getBenefactors()}
+	 * carry one benefactor value per source dependency (in {@link IndexDescriptionSnapshot#getBenefactors()}
 	 * order).
 	 * <p>
 	 * The columns must land <em>before</em> the trailing by-name metadata columns ({@code ROW_ID,
@@ -754,17 +821,17 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * none, so for any non-materialized-view source the base query is returned unchanged.
 	 *
 	 * @param base   a query-context {@link QueryTranslator} built from the source's defining SQL.
-	 * @param source the source's {@link IndexDescription}.
+	 * @param source the source's as-built {@link IndexDescriptionSnapshot}.
 	 * @return a {@link TranslatedQuery} ready to stream through {@code TableIndexDAO.queryAsStream}.
 	 */
-	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescription source) {
-		if (!TableType.materializedview.equals(source.getTableType())) {
+	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescriptionSnapshot source) {
+		if (!TableType.materializedview.name().equals(source.getTableType())) {
 			return CachedQueryRequest.clone(base);
 		}
 
 		List<String> benefactorColumnNames = new ArrayList<>();
-		for (BenefactorDescription desc : source.getBenefactors()) {
-			benefactorColumnNames.add(desc.getBenefactorColumnName());
+		for (BenefactorColumn benefactor : source.getBenefactors()) {
+			benefactorColumnNames.add(benefactor.getBenefactorColumnName());
 		}
 		if (benefactorColumnNames.isEmpty()) {
 			return CachedQueryRequest.clone(base);

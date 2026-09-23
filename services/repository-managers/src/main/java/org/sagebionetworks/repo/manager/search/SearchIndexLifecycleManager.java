@@ -13,8 +13,8 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
  * {@code SearchIndex} entity. Implementations serialize work per entity via a
  * cluster-wide write lock, resolve the effective {@code SearchConfiguration}, validate
  * referenced analyzer / synonym qnames, build the index, stream rows from the source
- * table as the realm's anonymous user (so {@code addRowLevelFilter} enforces benefactor
- * ACLs and only publicly-visible rows reach AOSS), and persist final state into
+ * table without authorization (each row carries its benefactors, which the query path
+ * filters on per user), and persist final state into
  * {@code SEARCH_INDEX_STATUS}. Transient failures propagate so the worker can translate
  * them to {@code RecoverableMessageException}; permanent failures are recorded as
  * FAILED with a truncated error message.

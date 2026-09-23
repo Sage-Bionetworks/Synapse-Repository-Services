@@ -841,7 +841,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -905,7 +905,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -954,7 +954,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -984,7 +984,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1006,7 +1006,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
 
 		assertEquals(Optional.empty(), result);
 	}
@@ -1022,7 +1022,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals("Search index " + indexName + " creation was not acknowledged.",
 				ex.getMessage());
@@ -1039,7 +1039,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
@@ -1056,7 +1056,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1076,7 +1076,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1102,10 +1102,37 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — must not throw on the duplicate name key
 		Optional<String> result = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient).create(argThat((CreateIndexRequest req) -> indexName.equals(req.index())));
+	}
+
+	@Test
+	public void testCreateIndexWithSnapshotInMeta() throws Exception {
+		String indexName = "search-index-syn1";
+		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, snapshot);
+
+		JsonData meta = requestCaptor.getValue().mappings().meta().get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY);
+		assertEquals(EntityFactory.createJSONStringForEntity(snapshot), meta.to(String.class));
+	}
+
+	@Test
+	public void testCreateIndexWithNullSnapshotThrows() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.createIndex("search-index-syn1",
+				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, null));
+
+		verifyNoMoreInteractions(openSearchClient);
 	}
 
 	@Test
@@ -1129,7 +1156,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — 3 shards, 1 replica
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 3, 1);
+				Collections.emptyList(), resolvedAnalyzers, 0, 3, 1, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();

@@ -224,8 +224,16 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas) {
+			int benefactorCount, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
+		ValidateArgument.required(snapshot, "snapshot");
+		String snapshotJson;
+		try {
+			snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("Failed to serialize the authorization snapshot for index " + indexName, e);
+		}
 
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
@@ -243,6 +251,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				.mappings(m -> {
 					buildMappings(m, columns, defaultAnalyzer,
 							overrideMap, resolvedAnalyzers, benefactorCount);
+					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
 					return m;
 				})
 		);

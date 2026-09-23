@@ -54,13 +54,18 @@ public interface OpenSearchManager {
 	 *                                 time from the source table's data size.
 	 * @param numberOfReplicas         The number of replica shards for the index (1 on prod, 0 on the
 	 *                                 single-node dev domain).
+	 * @param snapshot                 The as-built {@link IndexAuthorizationSnapshot} the index is built
+	 *                                 with. Stored in the index's mapping {@code _meta} so
+	 *                                 {@link #getLiveIndex(String)} can read it back alongside the
+	 *                                 physical index it describes. Required.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas);
+			int benefactorCount, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot);
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.
