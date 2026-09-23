@@ -10,6 +10,9 @@ import javax.sql.DataSource;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -93,6 +96,50 @@ public class SearchIndexStatusDaoImpl implements SearchIndexStatusDao {
 				"SELECT COUNT(*) FROM SEARCH_INDEX_STATUS WHERE SEARCH_INDEX_ID = ?",
 				Long.class, searchIndexId);
 		return count > 0;
+	}
+
+	@Override
+	public void saveSnapshot(Long searchIndexId, IndexAuthorizationSnapshot snapshot) {
+		ValidateArgument.required(searchIndexId, "searchIndexId");
+		ValidateArgument.required(snapshot, "snapshot");
+		try {
+			String json = EntityFactory.createJSONStringForEntity(snapshot);
+			// The status row always exists by capture time (CREATING/ACTIVE was written earlier), so the
+			// UPDATE branch fires and only the snapshot column changes; a first-build insert defends the
+			// unexpected case without disturbing the lifecycle state.
+			template.update(
+					"INSERT INTO SEARCH_INDEX_STATUS"
+					+ "  (SEARCH_INDEX_ID, STATE, CHANGED_ON, SNAPSHOT_JSON)"
+					+ " VALUES"
+					+ "  (?, 'CREATING', NOW(3), ?) AS new"
+					+ " ON DUPLICATE KEY UPDATE"
+					+ "  SNAPSHOT_JSON = new.SNAPSHOT_JSON",
+					searchIndexId, json);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
+	public Optional<IndexAuthorizationSnapshot> getSnapshot(Long searchIndexId) {
+		ValidateArgument.required(searchIndexId, "searchIndexId");
+		String json;
+		try {
+			json = template.queryForObject(
+					"SELECT SNAPSHOT_JSON FROM SEARCH_INDEX_STATUS WHERE SEARCH_INDEX_ID = ?",
+					String.class, searchIndexId);
+		} catch (EmptyResultDataAccessException e) {
+			return Optional.empty();
+		}
+		if (json == null) {
+			// The status row exists but no snapshot has been captured for this index.
+			return Optional.empty();
+		}
+		try {
+			return Optional.of(EntityFactory.createEntityFromJSONString(json, IndexAuthorizationSnapshot.class));
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override
