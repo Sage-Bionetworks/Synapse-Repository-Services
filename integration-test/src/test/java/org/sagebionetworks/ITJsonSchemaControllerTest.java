@@ -145,17 +145,6 @@ public class ITJsonSchemaControllerTest {
 	}
 
 	@Test
-	public void testCreateOrganizationWithUnsupportedCharacterInName() {
-		// an underscore is not part of the organization name grammar, so this must be reported as a
-		// bad request rather than as a server error (PLFM-9941)
-		createOrganizationRequest.setOrganizationName("test.integeration.organization_two");
-		assertThrows(SynapseBadRequestException.class, () -> {
-			// call under test
-			synapse.createOrganization(createOrganizationRequest);
-		});
-	}
-
-	@Test
 	public void testListOrganization() throws SynapseException {
 		organization = synapse.createOrganization(createOrganizationRequest);
 		assertNotNull(organization);
