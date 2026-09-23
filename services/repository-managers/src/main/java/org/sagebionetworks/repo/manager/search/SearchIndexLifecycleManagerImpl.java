@@ -421,15 +421,6 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				indexDao.queryAsStream(query, handler);
 			}
 
-			// Capture the as-built authorization snapshot before the alias swap makes this index live, so
-			// a reader authorizes against the same as-built state the served bytes reflect and later drift
-			// in current truth cannot authorize access to these bytes. A SearchIndex has no IndexDescription
-			// of its own; it is authorized entirely through its source's, so the snapshot projects the
-			// source (its benefactor columns and transitive dependencies) and records the defining SQL's
-			// per-column lineage back to the source columns.
-			statusDao.saveSnapshot(KeyFactory.stringToKey(entityId), indexAuthorizationSnapshotManager
-					.buildSnapshot(sourceIndexDescription, definingSQL, selectedColumns));
-
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
 			openSearchManager.swapAlias(aliasName, physicalSlot, oldTarget);

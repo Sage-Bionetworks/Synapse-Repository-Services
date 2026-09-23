@@ -69,7 +69,6 @@ import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -235,9 +234,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		// The happy path completes buildIndex and streams rows via indexDao.queryAsStream,
 		// writing ACTIVE status at the end.
 		stubHappyPathThroughStream();
-		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot().setObjectId(ENTITY_ID);
-		when(indexAuthorizationSnapshotManager.buildSnapshot(eq(SOURCE_INDEX_DESCRIPTION), eq(DEFINING_SQL), anyList()))
-				.thenReturn(snapshot);
 
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
@@ -247,13 +243,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(statusDao, times(2)).createOrUpdate(captor.capture());
 		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
 		assertEquals(SearchIndexState.ACTIVE, captor.getAllValues().get(1).getState());
-		// The as-built snapshot is captured against the source's index description and persisted before the
-		// alias swap makes the freshly-built index live.
-		InOrder order = inOrder(indexAuthorizationSnapshotManager, statusDao, openSearchManager);
-		order.verify(indexAuthorizationSnapshotManager).buildSnapshot(eq(SOURCE_INDEX_DESCRIPTION), eq(DEFINING_SQL),
-				anyList());
-		order.verify(statusDao).saveSnapshot(KeyFactory.stringToKey(ENTITY_ID), snapshot);
-		order.verify(openSearchManager).swapAlias(any(), any(), any());
 	}
 
 	@Test
