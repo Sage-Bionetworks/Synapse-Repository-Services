@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -33,16 +35,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.opensearch._types.ErrorResponse;
+import org.opensearch.client.opensearch._types.OpenSearchException;
 import org.opensearch.client.opensearch.core.search.SourceFilter;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager.TableIdAndType;
 import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
-import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
@@ -59,14 +67,17 @@ import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
-import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 
 /**
@@ -82,15 +93,19 @@ public class SearchIndexQueryManagerImplTest {
 	@Mock
 	private EntityManager entityManager;
 	@Mock
+	private EntityAuthorizationManager entityAuthorizationManager;
+	@Mock
+	private ColumnModelManager columnModelManager;
+	@Mock
 	private ConnectionFactory connectionFactory;
 	@Mock
 	private OpenSearchManager openSearchManager;
 	@Mock
-	private TableManagerSupport tableManagerSupport;
-	@Mock
 	private TableQueryManager tableQueryManager;
 	@Mock
 	private SearchIndexStatusDao searchIndexStatusDao;
+	@Mock
+	private TableIndexDAO tableIndexDao;
 
 	@InjectMocks
 	private SearchIndexQueryManagerImpl manager;
@@ -98,7 +113,10 @@ public class SearchIndexQueryManagerImplTest {
 	private UserInfo user;
 
 	private static final String SEARCH_INDEX_ID = "1";
-	private static final IdAndVersion SOURCE_ID = IdAndVersion.parse("syn456");
+	private static final String ALIAS = "search-index-1";
+	private static final String PHYSICAL_INDEX = "search-index-1-a";
+	private static final String NEXT_PHYSICAL_INDEX = "search-index-1-b";
+	private static final IdAndVersion MATERIALIZED_VIEW_ID = IdAndVersion.parse("syn456.3");
 	private static final String NAME_COLUMN_ID = "111";
 	private static final String DESC_COLUMN_ID = "222";
 	private static final String NAME_COLUMN = "name";
@@ -117,12 +135,105 @@ public class SearchIndexQueryManagerImplTest {
 		return si;
 	}
 
-	private void setupAuthMocks() {
-		// Preflight resolves the source IndexDescription and then checks read access. Stub both
-		// so tests that only need auth to pass reach the index-status/query path under test.
-		when(tableManagerSupport.getIndexDescription(SOURCE_ID))
-				.thenReturn(new TableIndexDescription(SOURCE_ID));
-		when(tableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+	/** A snapshot rooted at the benefactor-less table syn456, indexing {@code columnIds}. */
+	private static IndexAuthorizationSnapshot tableSnapshot(String... columnIds) {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId("syn456")
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn456")
+						.setTableType(TableType.table.name())
+						.setBenefactors(Collections.emptyList())
+						.setDependencies(Collections.emptyList()))
+				.setColumnLineage(lineage(columnIds));
+	}
+
+	/**
+	 * A snapshot rooted at materialized view syn456.3 over two benefactor-bearing dependencies,
+	 * indexing {@link #NAME_COLUMN_ID} and {@link #DESC_COLUMN_ID}.
+	 */
+	private static IndexAuthorizationSnapshot materializedViewSnapshot() {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId("syn456")
+				.setVersionNumber(3L)
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn456")
+						.setVersionNumber(3L)
+						.setTableType(TableType.materializedview.name())
+						.setBenefactors(Arrays.asList(
+								new BenefactorColumn().setBenefactorColumnName("ROW_BENEFACTOR_A0")
+										.setBenefactorType(ObjectType.ENTITY.name()),
+								new BenefactorColumn().setBenefactorColumnName("ROW_BENEFACTOR_A1")
+										.setBenefactorType(ObjectType.ENTITY.name())))
+						.setDependencies(Arrays.asList(
+								new SourceDependency().setObjectId("syn10").setTableType(TableType.table.name()),
+								new SourceDependency().setObjectId("syn20").setVersionNumber(2L)
+										.setTableType(TableType.entityview.name()))))
+				.setColumnLineage(lineage(NAME_COLUMN_ID, DESC_COLUMN_ID));
+	}
+
+	private static final List<TableIdAndType> TABLE_NODES = List.of(new TableIdAndType("456", TableType.table));
+
+	private static final List<TableIdAndType> MATERIALIZED_VIEW_NODES = List.of(
+			new TableIdAndType("456", TableType.materializedview),
+			new TableIdAndType("10", TableType.table),
+			new TableIdAndType("20", TableType.entityview));
+
+	private static final List<BenefactorDescription> MATERIALIZED_VIEW_BENEFACTORS = List.of(
+			new BenefactorDescription("ROW_BENEFACTOR_A0", ObjectType.ENTITY),
+			new BenefactorDescription("ROW_BENEFACTOR_A1", ObjectType.ENTITY));
+
+	private static List<ColumnLineageEntry> lineage(String... columnIds) {
+		return Arrays.stream(columnIds).map(id -> new ColumnLineageEntry().setOutputColumnId(id))
+				.collect(Collectors.toList());
+	}
+
+	private static List<ColumnModel> schema() {
+		return Arrays.asList(
+				TableModelTestUtils.createColumn(Long.parseLong(NAME_COLUMN_ID), NAME_COLUMN, ColumnType.STRING),
+				TableModelTestUtils.createColumn(Long.parseLong(DESC_COLUMN_ID), DESC_COLUMN, ColumnType.STRING));
+	}
+
+	private void setupActiveStatus() {
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
+		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(
+				new SearchIndexStatus().setSearchIndexId(SEARCH_INDEX_ID).setState(SearchIndexState.ACTIVE)));
+	}
+
+	/**
+	 * Stubs the materialized-view snapshot path end to end short of the OpenSearch query: the
+	 * live index resolves to {@code physicalIndex}, the user may query every snapshot node, and
+	 * the user can read benefactors 10 (column 0) and 20 (column 1).
+	 */
+	private List<ColumnModel> setupMaterializedViewMocks(String physicalIndex) {
+		List<ColumnModel> schema = schema();
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
+				new OpenSearchManager.LiveIndex(physicalIndex, materializedViewSnapshot())));
+		when(entityAuthorizationManager.canQueryTableOrView(user, MATERIALIZED_VIEW_NODES))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
+		when(connectionFactory.getConnection(MATERIALIZED_VIEW_ID)).thenReturn(tableIndexDao);
+		when(tableQueryManager.computeAccessibleBenefactors(user, MATERIALIZED_VIEW_ID, MATERIALIZED_VIEW_BENEFACTORS,
+				tableIndexDao, ACCESS_TYPE.READ)).thenReturn(List.of(
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A0", Set.of(10L, -1L)),
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A1", Set.of(20L, -1L))));
+		return schema;
+	}
+
+	/** Field name and long terms of each {@code terms} access filter, in order. */
+	private static List<Map.Entry<String, Set<Long>>> describeFilters(
+			List<org.opensearch.client.opensearch._types.query_dsl.Query> filters) {
+		return filters.stream().map(q -> Map.entry(q.terms().field(), q.terms().terms().value().stream()
+				.map(v -> v.longValue()).collect(Collectors.toSet()))).collect(Collectors.toList());
+	}
+
+	private static final List<Map.Entry<String, Set<Long>>> MATERIALIZED_VIEW_FILTERS = List.of(
+			Map.entry("_benefactor_0", Set.of(10L, -1L)),
+			Map.entry("_benefactor_1", Set.of(20L, -1L)));
+
+	private static OpenSearchException indexNotFound() {
+		return new OpenSearchException(ErrorResponse.of(b -> b.status(404)
+				.error(c -> c.type("index_not_found_exception").reason("no such index"))));
 	}
 
 	private SearchQuery buildBody() {
@@ -194,14 +305,12 @@ public class SearchIndexQueryManagerImplTest {
 	 * names/IDs.
 	 */
 	private List<ColumnModel> setupHappyPathMocks() {
-		List<ColumnModel> schema = Arrays.asList(
-				TableModelTestUtils.createColumn(Long.parseLong(NAME_COLUMN_ID), NAME_COLUMN, ColumnType.STRING),
-				TableModelTestUtils.createColumn(Long.parseLong(DESC_COLUMN_ID), DESC_COLUMN, ColumnType.STRING));
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
-		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(
-				new SearchIndexStatus().setSearchIndexId(SEARCH_INDEX_ID).setState(SearchIndexState.ACTIVE)));
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(SEARCH_INDEX_ID)))
-				.thenReturn(schema);
+		List<ColumnModel> schema = schema();
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+		when(entityAuthorizationManager.canQueryTableOrView(user, TABLE_NODES)).thenReturn(AuthorizationStatus.authorized());
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		return schema;
 	}
 
@@ -234,7 +343,7 @@ public class SearchIndexQueryManagerImplTest {
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		ArgumentCaptor<List<ColumnModel>> columnsCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(List.class);
 		verify(openSearchManager).search(
-				eq("search-index-1"),
+				eq(PHYSICAL_INDEX),
 				bodyCaptor.capture(),
 				columnsCaptor.capture(),
 				eq(expectedParts),
@@ -253,7 +362,7 @@ public class SearchIndexQueryManagerImplTest {
 		@SuppressWarnings({"unchecked", "rawtypes"})
 		ArgumentCaptor<List<ColumnModel>> columnsCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(List.class);
 		verify(openSearchManager).autocomplete(
-				eq("search-index-1"),
+				eq(PHYSICAL_INDEX),
 				bodyCaptor.capture(),
 				columnsCaptor.capture(),
 				eq(expectedParts),
@@ -273,7 +382,7 @@ public class SearchIndexQueryManagerImplTest {
 	private void stubOpenSearchSearchReturns(Set<SearchQueryPart> expectedOptions,
 			List<String> expectedColumnNames, SearchQueryResults returnValue) {
 		when(openSearchManager.search(
-				eq("search-index-1"),
+				eq(PHYSICAL_INDEX),
 				argThat(b -> b != null && b.getQuery() != null),
 				argThat(cols -> cols != null && expectedColumnNames.equals(
 						cols.stream().map(ColumnModel::getName).collect(Collectors.toList()))),
@@ -286,7 +395,7 @@ public class SearchIndexQueryManagerImplTest {
 	private void stubOpenSearchAutocompleteReturns(Set<SearchQueryPart> expectedOptions,
 			List<String> expectedColumnNames, SearchQueryResults returnValue) {
 		when(openSearchManager.autocomplete(
-				eq("search-index-1"),
+				eq(PHYSICAL_INDEX),
 				argThat(b -> b != null && b.getQuery() != null),
 				argThat(cols -> cols != null && expectedColumnNames.equals(
 						cols.stream().map(ColumnModel::getName).collect(Collectors.toList()))),
@@ -305,24 +414,196 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithNoReadOnSourceTable() {
-		SearchIndex si = setupSearchIndex();
-		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		TableIndexDescription indexDescription = new TableIndexDescription(SOURCE_ID);
-		when(tableManagerSupport.getIndexDescription(SOURCE_ID)).thenReturn(indexDescription);
-		when(tableManagerSupport.validateTableReadAccess(user, indexDescription))
+	public void testSearchWithNoReadOnSnapshotSource() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot())));
+		when(entityAuthorizationManager.canQueryTableOrView(user, MATERIALIZED_VIEW_NODES))
 				.thenReturn(AuthorizationStatus.accessDenied("no access to source"));
 
 		// call under test
 		assertThrows(UnauthorizedException.class, () -> manager.search(user, buildRequest(buildBody())));
-		verifyNoMoreInteractions(connectionFactory, openSearchManager);
+
+		verify(openSearchManager).getLiveIndex(ALIAS);
+		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(connectionFactory, searchIndexStatusDao, columnModelManager, tableQueryManager);
+	}
+
+	@Test
+	public void testSearchWithLiveIndexAndFailedStatus() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot())));
+		when(entityAuthorizationManager.canQueryTableOrView(user, MATERIALIZED_VIEW_NODES))
+				.thenReturn(AuthorizationStatus.authorized());
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
+		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(new SearchIndexStatus()
+				.setSearchIndexId(SEARCH_INDEX_ID)
+				.setState(SearchIndexState.FAILED)
+				.setErrorMessage("Column 'bogus_col' does not exist.")));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.search(user, buildRequest(buildBody())));
+
+		assertEquals("Search index build failed: Column 'bogus_col' does not exist."
+				+ " Delete or update the SearchIndex to trigger a rebuild.", ex.getMessage());
+		verify(openSearchManager).getLiveIndex(ALIAS);
+		verifyNoMoreInteractions(openSearchManager);
+		verify(connectionFactory, never()).getConnection(MATERIALIZED_VIEW_ID);
+		verifyNoInteractions(columnModelManager, tableQueryManager);
+	}
+
+	@Test
+	public void testSearchWithNoLiveIndexAndActiveStatus() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.empty());
+
+		// call under test
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> manager.search(user, buildRequest(buildBody())));
+
+		assertEquals("Search index is still building. Please try again later.", ex.getMessage());
+		verify(openSearchManager).getLiveIndex(ALIAS);
+		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(entityAuthorizationManager, columnModelManager, tableQueryManager);
+	}
+
+	@Test
+	public void testSearchWithMaterializedViewSnapshot() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		List<ColumnModel> schema = setupMaterializedViewMocks(PHYSICAL_INDEX);
+		SearchQueryResults raw = buildRawResults();
+		SearchQuery body = buildBody();
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		ArgumentCaptor<List<org.opensearch.client.opensearch._types.query_dsl.Query>> filtersCaptor =
+				(ArgumentCaptor) ArgumentCaptor.forClass(List.class);
+		when(openSearchManager.search(eq(PHYSICAL_INDEX), eq(body), eq(schema),
+				eq(EnumSet.of(SearchQueryPart.HITS)), filtersCaptor.capture())).thenReturn(raw);
+
+		// call under test
+		SearchQueryResults results = manager.search(user, buildRequest(body));
+
+		assertEquals(new SearchQueryResults().setOffset(raw.getOffset()).setHits(raw.getHits()), results);
+		assertEquals(MATERIALIZED_VIEW_FILTERS, describeFilters(filtersCaptor.getValue()));
+	}
+
+	@Test
+	public void testAutocompleteWithMaterializedViewSnapshot() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		List<ColumnModel> schema = setupMaterializedViewMocks(PHYSICAL_INDEX);
+		SearchQueryResults raw = buildRawResults();
+		SearchAutocompleteRequest request = buildAutocompleteRequest();
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		ArgumentCaptor<List<org.opensearch.client.opensearch._types.query_dsl.Query>> filtersCaptor =
+				(ArgumentCaptor) ArgumentCaptor.forClass(List.class);
+		when(openSearchManager.autocomplete(eq(PHYSICAL_INDEX), eq(request.getSearchQuery()), eq(schema),
+				eq(EnumSet.of(SearchQueryPart.HITS)), filtersCaptor.capture())).thenReturn(raw);
+
+		// call under test
+		SearchQueryResults results = manager.autocomplete(user, request);
+
+		assertEquals(new SearchQueryResults().setOffset(raw.getOffset()).setHits(raw.getHits()), results);
+		assertEquals(MATERIALIZED_VIEW_FILTERS, describeFilters(filtersCaptor.getValue()));
+	}
+
+	@Test
+	public void testSearchWithPhysicalIndexDeletedAfterResolve() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		List<ColumnModel> schema = schema();
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID))));
+		when(entityAuthorizationManager.canQueryTableOrView(user, TABLE_NODES)).thenReturn(AuthorizationStatus.authorized());
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID))).thenReturn(schema.subList(0, 1));
+		SearchQuery body = buildBody();
+		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS);
+		when(openSearchManager.search(PHYSICAL_INDEX, body, schema, parts, Collections.emptyList()))
+				.thenThrow(new IllegalStateException("Search index is still building. Please try again later.",
+						indexNotFound()));
+		SearchQueryResults raw = buildRawResults();
+		when(openSearchManager.search(NEXT_PHYSICAL_INDEX, body, schema.subList(0, 1), parts, Collections.emptyList()))
+				.thenReturn(raw);
+
+		// call under test
+		SearchQueryResults results = manager.search(user, buildRequest(body));
+
+		assertEquals(new SearchQueryResults().setOffset(raw.getOffset()).setHits(raw.getHits()), results);
+		verify(openSearchManager, times(2)).getLiveIndex(ALIAS);
+		verify(entityAuthorizationManager, times(2)).canQueryTableOrView(user, TABLE_NODES);
+	}
+
+	@Test
+	public void testSearchWithPhysicalIndexDeletedTwice() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		setupHappyPathMocks();
+		SearchQuery body = buildBody();
+		IllegalStateException notFound = new IllegalStateException(
+				"Search index is still building. Please try again later.", indexNotFound());
+		when(openSearchManager.search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
+				Collections.emptyList())).thenThrow(notFound);
+
+		// call under test
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> manager.search(user, buildRequest(body)));
+
+		assertEquals(notFound, ex);
+		verify(openSearchManager, times(2)).getLiveIndex(ALIAS);
+		verify(openSearchManager, times(2)).search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
+				Collections.emptyList());
+	}
+
+	@Test
+	public void testSearchWithIllegalStateNotCausedByMissingIndex() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		setupHappyPathMocks();
+		SearchQuery body = buildBody();
+		IllegalStateException other = new IllegalStateException("something else");
+		when(openSearchManager.search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
+				Collections.emptyList())).thenThrow(other);
+
+		// call under test
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> manager.search(user, buildRequest(body)));
+
+		assertEquals(other, ex);
+		verify(openSearchManager).getLiveIndex(ALIAS);
+	}
+
+	@Test
+	public void testAutocompleteWithPhysicalIndexDeletedAfterResolve() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		List<ColumnModel> schema = schema();
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+		when(entityAuthorizationManager.canQueryTableOrView(user, TABLE_NODES)).thenReturn(AuthorizationStatus.authorized());
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
+		SearchAutocompleteRequest request = buildAutocompleteRequest();
+		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS);
+		when(openSearchManager.autocomplete(PHYSICAL_INDEX, request.getSearchQuery(), schema, parts, Collections.emptyList()))
+				.thenThrow(new IllegalStateException("Search index is still building. Please try again later.",
+						indexNotFound()));
+		SearchQueryResults raw = buildRawResults();
+		when(openSearchManager.autocomplete(NEXT_PHYSICAL_INDEX, request.getSearchQuery(), schema, parts,
+				Collections.emptyList())).thenReturn(raw);
+
+		// call under test
+		SearchQueryResults results = manager.autocomplete(user, request);
+
+		assertEquals(new SearchQueryResults().setOffset(raw.getOffset()).setHits(raw.getHits()), results);
+		verify(openSearchManager, times(2)).getLiveIndex(ALIAS);
 	}
 
 	@Test
 	public void testSearchWithCreatingStatus() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.empty());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
 		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(
 				new SearchIndexStatus().setSearchIndexId(SEARCH_INDEX_ID).setState(SearchIndexState.CREATING)));
@@ -330,14 +611,16 @@ public class SearchIndexQueryManagerImplTest {
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.search(user, buildRequest(buildBody())));
 		assertTrue(ex.getMessage().contains("still building"));
+		verify(openSearchManager).getLiveIndex(ALIAS);
 		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(entityAuthorizationManager);
 	}
 
 	@Test
 	public void testSearchWithFailedStatusIncludesStoredErrorMessage() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.empty());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
 		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(new SearchIndexStatus()
 				.setSearchIndexId(SEARCH_INDEX_ID)
@@ -352,14 +635,16 @@ public class SearchIndexQueryManagerImplTest {
 		assertTrue(ex.getMessage().contains("Column 'bogus_col' does not exist."),
 				"Expected the stored error message to be forwarded to the user: " + ex.getMessage());
 		assertTrue(ex.getMessage().contains("Delete or update the SearchIndex"));
+		verify(openSearchManager).getLiveIndex(ALIAS);
 		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(entityAuthorizationManager);
 	}
 
 	@Test
 	public void testSearchWithFailedStatusAndMissingErrorMessage() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.empty());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
 		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(new SearchIndexStatus()
 				.setSearchIndexId(SEARCH_INDEX_ID)
@@ -370,28 +655,31 @@ public class SearchIndexQueryManagerImplTest {
 				() -> manager.search(user, buildRequest(buildBody())));
 
 		assertTrue(ex.getMessage().contains("Delete or update the SearchIndex"));
+		verify(openSearchManager).getLiveIndex(ALIAS);
 		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(entityAuthorizationManager);
 	}
 
 	@Test
 	public void testSearchWithMissingStatus() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.empty());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
 		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.empty());
 
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.search(user, buildRequest(buildBody())));
 		assertTrue(ex.getMessage().contains("still building"));
+		verify(openSearchManager).getLiveIndex(ALIAS);
 		verifyNoMoreInteractions(openSearchManager);
+		verifyNoInteractions(entityAuthorizationManager);
 	}
 
 	@Test
 	public void testSearchWithActiveStatus() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS),
@@ -422,7 +710,6 @@ public class SearchIndexQueryManagerImplTest {
 		// opaque body unchanged.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchAutocompleteReturns(
 				EnumSet.of(SearchQueryPart.HITS),
@@ -450,7 +737,6 @@ public class SearchIndexQueryManagerImplTest {
 		// Caller supplies _source.includes inside the body; the manager forwards it unchanged.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchAutocompleteReturns(
 				EnumSet.of(SearchQueryPart.HITS),
@@ -563,31 +849,18 @@ public class SearchIndexQueryManagerImplTest {
 	// --- buildQueryMetadata ---
 
 	@Test
-	public void testBuildQueryMetadataThrowsWhenNoSchemaBound() {
-		IdAndVersion id = IdAndVersion.parse("syn123");
-		when(tableManagerSupport.getTableSchema(id)).thenReturn(Collections.emptyList());
-
-		// call under test
-		IllegalStateException e = assertThrows(IllegalStateException.class,
-				() -> manager.buildQueryMetadata(id));
-
-		assertTrue(e.getMessage().contains("no bound schema"),
-				"Exception must hint at the recovery path: " + e.getMessage());
-	}
-
-	@Test
-	public void testBuildQueryMetadataReturnsParallelLists() {
-		IdAndVersion id = IdAndVersion.parse("syn123");
+	public void testBuildQueryMetadataWithColumnLineage() {
 		List<ColumnModel> columns = Arrays.asList(
-				new ColumnModel().setId("col-1").setName("title").setColumnType(ColumnType.STRING),
-				new ColumnModel().setId("col-2").setName("year").setColumnType(ColumnType.INTEGER));
-		when(tableManagerSupport.getTableSchema(id)).thenReturn(columns);
+				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
+		when(columnModelManager.getAndValidateColumnModels(List.of("2", "1"))).thenReturn(columns);
 
 		// call under test
-		SearchIndexQueryManagerImpl.QueryMetadata metadata = manager.buildQueryMetadata(id);
+		SearchIndexQueryManagerImpl.QueryMetadata metadata = manager.buildQueryMetadata(lineage("2", "1"));
 
 		assertEquals(columns, metadata.getColumns());
-		assertEquals(2, metadata.getSelectColumns().size());
+		assertEquals(List.of("year", "title"), metadata.getSelectColumns().stream()
+				.map(SelectColumn::getName).collect(Collectors.toList()));
 	}
 
 	// --- responseParts: resolveRequestedParts ---
@@ -712,7 +985,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithDefaultPartsReturnsHitsOnly() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		// Raw results without aggregations — mirrors what OpenSearchManager returns when
 		// the body did not supply aggregations.
@@ -736,7 +1008,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithAllPartsRequested() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS,
@@ -763,7 +1034,6 @@ public class SearchIndexQueryManagerImplTest {
 		// Aggregations are presence-driven by the body, not by a SearchQueryPart bit.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.HITS),
@@ -780,7 +1050,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchAggregationResultsNullWhenBodyHadNoAggregations() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		SearchQueryResults raw = rawHits().setAggregationResults(null);
 		stubOpenSearchSearchReturns(
@@ -798,7 +1067,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithSelectColumnsOnly() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		// Raw response without aggregations — body had no aggregations, so OpenSearchManager returns
 		// aggregationResults = null.
@@ -823,7 +1091,6 @@ public class SearchIndexQueryManagerImplTest {
 		// _source.includes narrows the SELECT_COLUMNS response to the named subset.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.SELECT_COLUMNS),
@@ -848,7 +1115,6 @@ public class SearchIndexQueryManagerImplTest {
 		// though AOSS already omitted its value from the hit.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.SELECT_COLUMNS),
@@ -872,7 +1138,6 @@ public class SearchIndexQueryManagerImplTest {
 		// in excludes.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.SELECT_COLUMNS),
@@ -896,7 +1161,6 @@ public class SearchIndexQueryManagerImplTest {
 		// No _source key means no narrowing; full SELECT-clause survives.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.SELECT_COLUMNS),
@@ -915,7 +1179,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchPassesResolvedPartsToOpenSearchManager() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		stubOpenSearchSearchReturns(
 				EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS),
@@ -938,7 +1201,6 @@ public class SearchIndexQueryManagerImplTest {
 	public void testAutocompleteAlwaysReturnsHitsOnly() {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
 		setupHappyPathMocks();
 		// rawHits carries totalHits / aggregationResults too — assert the manager strips them.
 		stubOpenSearchAutocompleteReturns(
@@ -963,7 +1225,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testAutocompleteWithNullRequestThrows() {
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.autocomplete(user, null));
-		verifyNoMoreInteractions(entityManager, connectionFactory, openSearchManager, tableManagerSupport, tableQueryManager);
+		verifyNoMoreInteractions(entityManager, entityAuthorizationManager, columnModelManager, connectionFactory, openSearchManager, tableQueryManager);
 	}
 
 	@Test
@@ -972,7 +1234,7 @@ public class SearchIndexQueryManagerImplTest {
 
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.autocomplete(user, request));
-		verifyNoMoreInteractions(entityManager, connectionFactory, openSearchManager, tableManagerSupport, tableQueryManager);
+		verifyNoMoreInteractions(entityManager, entityAuthorizationManager, columnModelManager, connectionFactory, openSearchManager, tableQueryManager);
 	}
 
 	@Test
@@ -981,7 +1243,7 @@ public class SearchIndexQueryManagerImplTest {
 
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.autocomplete(user, request));
-		verifyNoMoreInteractions(entityManager, connectionFactory, openSearchManager, tableManagerSupport, tableQueryManager);
+		verifyNoMoreInteractions(entityManager, entityAuthorizationManager, columnModelManager, connectionFactory, openSearchManager, tableQueryManager);
 	}
 
 	@Test
@@ -998,62 +1260,30 @@ public class SearchIndexQueryManagerImplTest {
 		assertThrows(IllegalArgumentException.class, () -> manager.search(user, request));
 	}
 
-	// A bound literal column with a synthetic id round-trips through the query path
+	// A literal output column with a synthetic id round-trips through the query path
 	// without tripping `Collectors.toMap`'s no-null-values rule when nameToId is built.
-	// The alias intentionally differs from the literal value so the rename is
-	// observable in the bound schema reaching OpenSearch.
 	@Test
-	public void testSearchWithLiteralColumnInDefiningSqlAssignsSyntheticId() {
-		SearchIndex si = setupSearchIndex();
-		si.setDefiningSQL("SELECT name, 'tag' as tag_alias FROM syn456");
-		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
-		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(
-				new SearchIndexStatus().setSearchIndexId(SEARCH_INDEX_ID).setState(SearchIndexState.ACTIVE)));
+	public void testSearchWithLiteralColumnInSnapshotLineage() {
+		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
+		setupActiveStatus();
+		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, "999"))));
+		when(entityAuthorizationManager.canQueryTableOrView(user, TABLE_NODES)).thenReturn(AuthorizationStatus.authorized());
 		ColumnModel nameCol = TableModelTestUtils.createColumn(
 				Long.parseLong(NAME_COLUMN_ID), NAME_COLUMN, ColumnType.STRING);
 		ColumnModel tagAliasCol = new ColumnModel().setId("999").setName("tag_alias")
 				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(SEARCH_INDEX_ID)))
+		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, "999")))
 				.thenReturn(Arrays.asList(nameCol, tagAliasCol));
-		@SuppressWarnings({"unchecked", "rawtypes"})
-		ArgumentCaptor<List<ColumnModel>> columnsCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(List.class);
-		when(openSearchManager.search(eq("search-index-1"),
-				argThat(b -> b != null && b.getQuery() != null), columnsCaptor.capture(),
-				eq(EnumSet.of(SearchQueryPart.HITS)), eq(Collections.emptyList())))
+		SearchQuery body = buildBody();
+		when(openSearchManager.search(PHYSICAL_INDEX, body, Arrays.asList(nameCol, tagAliasCol),
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()))
 				.thenReturn(new SearchQueryResults().setHits(Collections.emptyList()));
 
 		// call under test
-		manager.search(user, buildRequest(buildBody()));
+		SearchQueryResults results = manager.search(user, buildRequest(body));
 
-		// The bound list with both real-id and synthetic-id columns reached OpenSearch — the
-		// caller's body is opaque, so the column list is what carries the schema information
-		// the OpenSearchManager needs for name→id rewriting.
-		assertEquals(Arrays.asList(nameCol, tagAliasCol), columnsCaptor.getValue());
-		// The schema is read once via `getTableSchema(searchIndexId)` — no per-request
-		// QueryTranslator construction. Verify the new code path is taken.
-		verify(tableManagerSupport).getTableSchema(IdAndVersion.parse(SEARCH_INDEX_ID));
-	}
-
-	@Test
-	public void testSearchWhenSearchIndexHasNoBoundSchemaThrows() {
-		SearchIndex si = setupSearchIndex();
-		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-		setupAuthMocks();
-		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
-		when(searchIndexStatusDao.getStatus(1L)).thenReturn(Optional.of(
-				new SearchIndexStatus().setSearchIndexId(SEARCH_INDEX_ID).setState(SearchIndexState.ACTIVE)));
-		// SearchIndex created on a stack before `registerSchema` existed — no bound columns.
-		when(tableManagerSupport.getTableSchema(IdAndVersion.parse(SEARCH_INDEX_ID)))
-				.thenReturn(Collections.emptyList());
-
-		// call under test — clear failure rather than NPE in nameToId construction.
-		IllegalStateException ex = assertThrows(IllegalStateException.class,
-				() -> manager.search(user, buildRequest(buildBody())));
-		assertTrue(ex.getMessage().contains("no bound schema"),
-				"expected 'no bound schema' in message, got: " + ex.getMessage());
-		verifyNoMoreInteractions(openSearchManager);
+		assertEquals(new SearchQueryResults().setHits(Collections.emptyList()), results);
 	}
 
 	// ===================== branch coverage: extractSourceFilter =====================
@@ -1121,12 +1351,11 @@ public class SearchIndexQueryManagerImplTest {
 			}
 
 			// Reset mocks per iteration so each scenario starts fresh.
-			reset(entityManager, connectionFactory, openSearchManager,
-					tableManagerSupport, tableQueryManager, searchIndexStatusDao);
+			reset(entityManager, entityAuthorizationManager, columnModelManager, connectionFactory,
+					openSearchManager, tableQueryManager, searchIndexStatusDao);
 
 			SearchIndex si = setupSearchIndex();
 			when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
-			setupAuthMocks();
 			List<ColumnModel> schema = setupHappyPathMocks();
 
 			java.util.Set<SearchQueryPart> resolved = parts.isEmpty()
@@ -1165,86 +1394,61 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorAccessFiltersWithNoBenefactors() {
 		// A table source has no benefactors → no filter → reproduces public-data behavior.
-		IndexDescription source = new TableIndexDescription(SOURCE_ID);
+		IndexDescriptionSnapshot source = tableSnapshot(NAME_COLUMN_ID).getIndexDescription();
 
 		// call under test
 		List<org.opensearch.client.opensearch._types.query_dsl.Query> filters =
 				manager.buildBenefactorAccessFilters(user, source);
 
 		assertEquals(Collections.emptyList(), filters);
-		verifyNoMoreInteractions(connectionFactory);
+		verifyNoInteractions(connectionFactory, tableQueryManager);
 	}
 
 	@Test
-	public void testBuildBenefactorAccessFiltersWithMultipleDependencies() {
-		// A materialized view with two benefactor-bearing dependencies produces one terms
-		// filter per dependency, in getBenefactors() order, each on field _benefactor_i and
-		// always including the -1 sentinel.
-		IndexDescription source = org.mockito.Mockito.mock(IndexDescription.class);
-		when(source.getBenefactors()).thenReturn(Arrays.asList(
-				new BenefactorDescription("ROW_BENEFACTOR_A0", org.sagebionetworks.repo.model.ObjectType.ENTITY),
-				new BenefactorDescription("ROW_BENEFACTOR_A1", org.sagebionetworks.repo.model.ObjectType.ENTITY)));
-		when(source.getIdAndVersion()).thenReturn(SOURCE_ID);
-
-		TableIndexDAO indexDao = org.mockito.Mockito.mock(TableIndexDAO.class);
-		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
-		// User can read benefactor 10 (dep 0) and 20 (dep 1) but not 11.
-		// computeAccessibleBenefactors already bakes in the -1 sentinel.
-		when(tableQueryManager.computeAccessibleBenefactors(
-				eq(user), eq(source), eq(indexDao), eq(ACCESS_TYPE.READ)))
-				.thenReturn(Arrays.asList(
-						new BenefactorAccessFilter("ROW_BENEFACTOR_A0",
-								new java.util.HashSet<>(Arrays.asList(10L, -1L))),
-						new BenefactorAccessFilter("ROW_BENEFACTOR_A1",
-								new java.util.HashSet<>(Arrays.asList(20L, -1L)))));
+	public void testBuildBenefactorAccessFiltersWithMultipleBenefactors() {
+		// One terms filter per snapshot benefactor column, in snapshot order, each on field
+		// _benefactor_i and carrying the ids computeAccessibleBenefactors resolved (including -1).
+		IndexDescriptionSnapshot source = materializedViewSnapshot().getIndexDescription();
+		when(connectionFactory.getConnection(MATERIALIZED_VIEW_ID)).thenReturn(tableIndexDao);
+		when(tableQueryManager.computeAccessibleBenefactors(user, MATERIALIZED_VIEW_ID, MATERIALIZED_VIEW_BENEFACTORS,
+				tableIndexDao, ACCESS_TYPE.READ)).thenReturn(List.of(
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A0", Set.of(10L, -1L)),
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A1", Set.of(20L, -1L))));
 
 		// call under test
 		List<org.opensearch.client.opensearch._types.query_dsl.Query> filters =
 				manager.buildBenefactorAccessFilters(user, source);
 
-		assertEquals(2, filters.size());
-		// Dependency 0 → _benefactor_0 terms {10, -1}
-		assertEquals("_benefactor_0", filters.get(0).terms().field());
-		assertEquals(new java.util.HashSet<>(Arrays.asList(10L, -1L)),
-				filters.get(0).terms().terms().value().stream()
-						.map(v -> v.longValue()).collect(Collectors.toSet()));
-		// Dependency 1 → _benefactor_1 terms {20, -1}
-		assertEquals("_benefactor_1", filters.get(1).terms().field());
-		assertEquals(new java.util.HashSet<>(Arrays.asList(20L, -1L)),
-				filters.get(1).terms().terms().value().stream()
-						.map(v -> v.longValue()).collect(Collectors.toSet()));
+		assertEquals(MATERIALIZED_VIEW_FILTERS, describeFilters(filters));
 	}
 
 	@Test
 	public void testBuildBenefactorAccessFiltersWhenSourceTableNotBuilt() {
-		// When the source index table does not exist yet, computeAccessibleBenefactors handles
-		// the BadSqlGrammarException internally and returns fail-closed results: only the -1
-		// sentinel is accessible. The filter matches ONLY _benefactor_0 == -1, so
-		// benefactor-protected data is never exposed while the table is still building.
-		IndexDescription source = org.mockito.Mockito.mock(IndexDescription.class);
-		when(source.getBenefactors()).thenReturn(Arrays.asList(
-				new BenefactorDescription("ROW_BENEFACTOR_A0", org.sagebionetworks.repo.model.ObjectType.ENTITY)));
-		when(source.getIdAndVersion()).thenReturn(SOURCE_ID);
-
-		TableIndexDAO indexDao = org.mockito.Mockito.mock(TableIndexDAO.class);
-		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
-		// computeAccessibleBenefactors already bakes in the -1 sentinel and handles the
-		// table-not-yet-built case internally by falling back to {-1L}.
-		when(tableQueryManager.computeAccessibleBenefactors(
-				eq(user), eq(source), eq(indexDao), eq(ACCESS_TYPE.READ)))
-				.thenReturn(Collections.singletonList(
-						new BenefactorAccessFilter("ROW_BENEFACTOR_A0",
-								new java.util.HashSet<>(Arrays.asList(-1L)))));
+		// computeAccessibleBenefactors falls back to only the -1 sentinel when the source index
+		// table does not exist yet, so benefactor-protected data is never exposed.
+		IndexDescriptionSnapshot source = materializedViewSnapshot().getIndexDescription();
+		when(connectionFactory.getConnection(MATERIALIZED_VIEW_ID)).thenReturn(tableIndexDao);
+		when(tableQueryManager.computeAccessibleBenefactors(user, MATERIALIZED_VIEW_ID, MATERIALIZED_VIEW_BENEFACTORS,
+				tableIndexDao, ACCESS_TYPE.READ)).thenReturn(List.of(
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A0", Set.of(-1L)),
+						new BenefactorAccessFilter("ROW_BENEFACTOR_A1", Set.of(-1L))));
 
 		// call under test
 		List<org.opensearch.client.opensearch._types.query_dsl.Query> filters =
 				manager.buildBenefactorAccessFilters(user, source);
 
-		assertEquals(1, filters.size());
-		// Fail-closed: the only term is the -1 sentinel, never an empty/match-all filter.
-		assertEquals("_benefactor_0", filters.get(0).terms().field());
-		assertEquals(new java.util.HashSet<>(Arrays.asList(-1L)),
-				filters.get(0).terms().terms().value().stream()
-						.map(v -> v.longValue()).collect(Collectors.toSet()));
+		assertEquals(List.of(Map.entry("_benefactor_0", Set.of(-1L)), Map.entry("_benefactor_1", Set.of(-1L))),
+				describeFilters(filters));
+	}
+
+	// ===================== collectTableNodes =====================
+
+	@Test
+	public void testCollectTableNodesWithDependencies() {
+		// call under test
+		List<TableIdAndType> nodes = SearchIndexQueryManagerImpl.collectTableNodes(
+				materializedViewSnapshot().getIndexDescription());
+
+		assertEquals(MATERIALIZED_VIEW_NODES, nodes);
 	}
 }

@@ -61,6 +61,7 @@ import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
 import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FacetPostProcessingAlgorithm;
@@ -3055,6 +3056,31 @@ public class TableQueryManagerImplTest {
 
 		assertEquals(1, result.size());
 		assertTrue(result.get(0).accessibleIds().contains(-1L));
+	}
+
+	@Test
+	public void testComputeAccessibleBenefactorsWithObjectIdAndBenefactors() {
+		IdAndVersion objectId = IdAndVersion.parse("syn123.4");
+		List<BenefactorDescription> benefactors = List.of(
+				new BenefactorDescription("ROW_BENEFACTOR__A0", ObjectType.ENTITY),
+				new BenefactorDescription("ROW_BENEFACTOR__A1", ObjectType.ENTITY));
+
+		Set<Long> tableBenefactorsA0 = Sets.newHashSet(10L, 20L);
+		when(mockTableIndexDAO.getDistinctLongValues(objectId, "ROW_BENEFACTOR__A0")).thenReturn(tableBenefactorsA0);
+		when(mockTableIndexDAO.getDistinctLongValues(objectId, "ROW_BENEFACTOR__A1"))
+				.thenThrow(new BadSqlGrammarException("task", "sql", new java.sql.SQLException()));
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, tableBenefactorsA0, ACCESS_TYPE.READ))
+				.thenReturn(new HashSet<>(Set.of(20L)));
+		when(mockTableManagerSupport.getAccessibleBenefactors(user, ObjectType.ENTITY, Collections.emptySet(), ACCESS_TYPE.READ))
+				.thenReturn(new HashSet<>());
+
+		// call under test
+		List<BenefactorAccessFilter> result = manager.computeAccessibleBenefactors(user, objectId, benefactors,
+				mockTableIndexDAO, ACCESS_TYPE.READ);
+
+		assertEquals(List.of(
+				new BenefactorAccessFilter("ROW_BENEFACTOR__A0", Set.of(20L, -1L)),
+				new BenefactorAccessFilter("ROW_BENEFACTOR__A1", Set.of(-1L))), result);
 	}
 
 	private RowSet createRowSetForTest(List<String> headerNames, List<String>... rowValues){

@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -164,5 +166,22 @@ public interface TableQueryManager {
 	 */
 	List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
 			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types);
+
+	/**
+	 * For each of the given benefactor columns of {@code objectId}'s index (in list order), compute the
+	 * set of benefactor IDs the user can access for the given access {@code types}. The {@code -1}
+	 * sentinel (the default for a row with no benefactor) is always included. Candidate benefactor IDs
+	 * are the distinct values currently present in each column; a column of an index that does not
+	 * exist yet contributes only the sentinel.
+	 *
+	 * @param user        the user whose access is being resolved.
+	 * @param objectId    the object whose index holds the benefactor columns.
+	 * @param benefactors the benefactor columns of that index.
+	 * @param indexDao    connection to the object's index database for distinct-value lookup.
+	 * @param types       the access types required (e.g. READ, or READ + DOWNLOAD).
+	 * @return one filter per benefactor column, in {@code benefactors} order.
+	 */
+	List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user, IdAndVersion objectId,
+			List<BenefactorDescription> benefactors, TableIndexDAO indexDao, ACCESS_TYPE... types);
 
 }
