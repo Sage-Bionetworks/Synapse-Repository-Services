@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Folder;
@@ -139,6 +141,54 @@ public class ITCurationTaskControllerTest {
         response = synapse.listMetadataTasks(new ListCurationTaskRequest().setProjectId(project.getId()));
         assertEquals(0, response.getPage().size());
         assertNull(response.getNextPageToken());
+    }
+
+    @Test
+    public void testCreateCurationTaskWithNonExistentAssignee() throws SynapseException {
+        CurationTask task = new CurationTask()
+                .setProjectId(project.getId())
+                .setDataType("fastq: file-based")
+                .setAssigneePrincipalId(Long.toString(Long.MAX_VALUE))
+                .setTaskProperties(
+                        new FileBasedMetadataTaskProperties()
+                                .setFileViewId(view.getId())
+                                .setUploadFolderId(folder.getId())
+                );
+
+        // call under test - an assignee that is not a principal is a bad request, not a server error
+        assertThrows(SynapseBadRequestException.class, () -> synapse.createCurationTask(task));
+    }
+
+    @Test
+    public void testCurationTaskCRUDWithAssignee() throws SynapseException {
+        String myPrincipalId = synapse.getMyProfile().getOwnerId();
+
+        CurationTask task = new CurationTask()
+                .setProjectId(project.getId())
+                .setDataType("fastq: file-based")
+                .setAssigneePrincipalId(myPrincipalId)
+                .setTaskProperties(
+                        new FileBasedMetadataTaskProperties()
+                                .setFileViewId(view.getId())
+                                .setUploadFolderId(folder.getId())
+                );
+
+        // call under test - create
+        task = synapse.createCurationTask(task);
+
+        try {
+            assertEquals(myPrincipalId, task.getAssigneePrincipalId());
+            assertEquals(task, synapse.getMetadataTask(task.getTaskId()));
+
+            task.setAssigneePrincipalId(null);
+
+            // call under test - update
+            task = synapse.updateMetadataTask(task);
+
+            assertNull(task.getAssigneePrincipalId());
+        } finally {
+            synapse.deleteMetadataTask(task.getTaskId());
+        }
     }
 
     @Test

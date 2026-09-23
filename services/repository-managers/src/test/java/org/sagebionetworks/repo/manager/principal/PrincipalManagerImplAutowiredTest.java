@@ -18,19 +18,25 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.oauth.OAuthProvider;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -60,6 +66,12 @@ public class PrincipalManagerImplAutowiredTest {
 	@Autowired
 	private IdGenerator idGenerator;
 
+	@Autowired
+	private NotificationEmailDAO notificationEmailDao;
+
+	@Autowired
+	private UserProfileManager userProfileManager;
+
 	private UserInfo adminUserInfo;
 	private UserInfo testUser;
 
@@ -67,12 +79,15 @@ public class PrincipalManagerImplAutowiredTest {
 
 	private String fileHandleId;
 
+	private String originalEmail;
+
 	@BeforeEach
 	public void before() throws Exception {
 		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		NewUser nu = new NewUser();
-		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		originalEmail = UUID.randomUUID().toString() + "@test.com";
+		nu.setEmail(originalEmail);
 		nu.setUserName(UUID.randomUUID().toString());
 		testUser = userManager.createOrGetTestUser(adminUserInfo, nu);
 		authenticationManager.setPassword(testUser.getId(), password);
@@ -176,5 +191,89 @@ public class PrincipalManagerImplAutowiredTest {
 		
 		// Verify that the password has been changed
 		assertThrows(UnauthenticatedException.class, () -> authenticationManager.login(loginRequest, null));
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNewAddress() {
+		String newEmail = UUID.randomUUID().toString() + "@test.com";
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail);
+
+		assertEquals(originalEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+
+		// Call under test
+		NotificationEmail result = principalManager.updateNotificationEmailForUser(adminUserInfo, testUser.getId(), request);
+
+		assertEquals(new NotificationEmail().setEmail(newEmail), result);
+		assertEquals(newEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+
+		// The new address is bound in addition to the old one, so the profile lists both
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
+		assertTrue(profile.getEmails().contains(originalEmail));
+		assertTrue(profile.getEmails().contains(newEmail));
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithRemovePrevious() {
+		String newEmail = UUID.randomUUID().toString() + "@test.com";
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail)
+				.setRemovePreviousNotificationEmail(true);
+
+		// Call under test
+		NotificationEmail result = principalManager.updateNotificationEmailForUser(adminUserInfo, testUser.getId(), request);
+
+		assertEquals(new NotificationEmail().setEmail(newEmail), result);
+		assertEquals(newEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+
+		UserProfile profile = userProfileManager.getUserProfile(testUser.getId().toString());
+		assertFalse(profile.getEmails().contains(originalEmail));
+		assertTrue(profile.getEmails().contains(newEmail));
+		assertTrue(principalAliasDao.isAliasAvailable(originalEmail));
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNoNotificationEmailRow() {
+		// NOTIFICATION_EMAIL.ALIAS_ID cascades on delete, so dropping every alias also drops the
+		// notification email row. This is the only branch that a mock-based test cannot prove, since
+		// NotificationEmailDAO.update is a silent no-op when the principal has no row.
+		principalAliasDao.removeAllAliasFromPrincipal(testUser.getId());
+		assertThrows(NotFoundException.class, () -> notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+
+		String newEmail = UUID.randomUUID().toString() + "@test.com";
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail);
+
+		// Call under test
+		NotificationEmail result = principalManager.updateNotificationEmailForUser(adminUserInfo, testUser.getId(), request);
+
+		assertEquals(new NotificationEmail().setEmail(newEmail), result);
+		assertEquals(newEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithSameAddressTwice() {
+		String newEmail = UUID.randomUUID().toString() + "@test.com";
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest().setEmail(newEmail)
+				.setRemovePreviousNotificationEmail(true);
+
+		NotificationEmail first = principalManager.updateNotificationEmailForUser(adminUserInfo, testUser.getId(), request);
+
+		// Call under test - the repeat call is a no-op rather than unbinding the address it just set
+		NotificationEmail second = principalManager.updateNotificationEmailForUser(adminUserInfo, testUser.getId(), request);
+
+		assertEquals(first, second);
+		assertEquals(newEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
+		assertFalse(principalAliasDao.isAliasAvailable(newEmail));
+	}
+
+	@Test
+	public void testUpdateNotificationEmailForUserWithNonAdmin() {
+		UpdateNotificationEmailRequest request = new UpdateNotificationEmailRequest()
+				.setEmail(UUID.randomUUID().toString() + "@test.com");
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// Call under test
+			principalManager.updateNotificationEmailForUser(testUser, testUser.getId(), request);
+		});
+
+		assertEquals(originalEmail, notificationEmailDao.getNotificationEmailForPrincipal(testUser.getId()));
 	}
 }

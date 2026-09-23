@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirementInfoForUpdate;
@@ -60,13 +59,11 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.ar.AccessRequirementType;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.BindingType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -423,14 +420,15 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			@Override
 			public Void mapRow(ResultSet rs, int rowNum) throws SQLException {
 				requirementIdSet.add(rs.getString(COL_ACCESS_REQUIREMENT_ID));
-				String type = rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE);
-				if (type.equals(TermsOfUseAccessRequirement.class.getName())
-						|| type.equals(SelfSignAccessRequirement.class.getName())) {
+				AccessRequirementType type = AccessRequirementType
+						.lookupClassName(rs.getString(COL_ACCESS_REQUIREMENT_CONCRETE_TYPE));
+				if (type.hasToU()) {
 					stats.setHasToU(true);
-				} else if (type.equals(ACTAccessRequirement.class.getName())
-						|| type.equals(ManagedACTAccessRequirement.class.getName())) {
+				}
+				if (type.hasACT()) {
 					stats.setHasACT(true);
-				} else if (type.equals(LockAccessRequirement.class.getName())) {
+				}
+				if (type.hasLock()) {
 					stats.setHasLock(true);
 				}
 				return null;
