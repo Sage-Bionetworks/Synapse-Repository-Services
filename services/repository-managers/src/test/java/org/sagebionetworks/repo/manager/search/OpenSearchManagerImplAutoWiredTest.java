@@ -1316,6 +1316,12 @@ public class OpenSearchManagerImplAutoWiredTest {
 				columns, parts, 1);
 		assertEquals(List.of(2L), byExists.getHits().stream()
 				.map(SearchHit::getRowId).collect(Collectors.toList()));
+
+		// call under test
+		SearchQueryResults byLeadingWildcard = waitForSearchHits(queryBody(new Query().setQuery_string(
+				new QueryStringQuery().setQuery("title: *loid"))), columns, parts, 1);
+		assertEquals(List.of(1L), byLeadingWildcard.getHits().stream()
+				.map(SearchHit::getRowId).collect(Collectors.toList()));
 	}
 
 	/**

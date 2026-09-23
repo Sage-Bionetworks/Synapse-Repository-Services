@@ -1428,37 +1428,21 @@ public class SearchFieldRewriterTest {
 		assertEquals("article 100: wind", rewriteExpression("article title: wind"));
 	}
 
-	@Test
-	public void testRewriteQueryStringExpressionWithLeadingWildcardRejected() {
-		String message = assertExpressionRejected("title: *cal");
-		assertTrue(message.contains("leading wildcard"));
-	}
 
-	@Test
-	public void testRewriteQueryStringExpressionWithLeadingQuestionMarkRejected() {
-		String message = assertExpressionRejected("title: ?ind");
-		assertTrue(message.contains("leading wildcard"));
-	}
 
-	@Test
-	public void testRewriteQueryStringExpressionWithLeadingWildcardAfterProhibitOperator() {
-		// The '-' is an operator, so the term it negates still starts with the wildcard.
-		String message = assertExpressionRejected("title: -*cal");
-		assertTrue(message.contains("leading wildcard"));
-	}
 
 	@Test
 	public void testRewriteQueryStringExpressionWithWildcardFieldNameRejected() {
 		// Synapse index fields carry no sub-fields beyond .keyword, so a 'title.*' prefix resolves to
-		// nothing.
+		// no column.
 		String message = assertExpressionRejected("title.\\*: rise");
-		assertTrue(message.contains("wildcard field name"));
+		assertTrue(message.contains("unknown column"));
 	}
 
 	@Test
-	public void testRewriteQueryStringExpressionWithNestedFieldPrefixInGroupRejected() {
-		String message = assertExpressionRejected("title: (gone OR name: x)");
-		assertTrue(message.contains("nests a field prefix"));
+	public void testRewriteQueryStringExpressionWithNestedFieldPrefixInGroup() {
+		// call under test
+		assertEquals("100: (gone OR 101: x)", rewriteExpression("title: (gone OR name: x)"));
 	}
 
 	@Test
@@ -1468,23 +1452,14 @@ public class SearchFieldRewriterTest {
 		assertEquals("(100: gone OR 101: x)", rewriteExpression("(title: gone OR name: x)"));
 	}
 
-	@Test
-	public void testRewriteQueryStringExpressionWithColonAndNoFieldNameRejected() {
-		String message = assertExpressionRejected(": wind");
-		assertTrue(message.contains("no field name"));
-	}
 
 	@Test
-	public void testRewriteQueryStringExpressionWithUnterminatedQuoteRejected() {
-		String message = assertExpressionRejected("title: \"wind rises");
-		assertTrue(message.contains("unterminated"));
+	public void testRewriteQueryStringExpressionWithUnterminatedQuote() {
+		// Malformed syntax is left for OpenSearch to reject; the prefix before it is still rewritten.
+		// call under test
+		assertEquals("100: \"wind rises", rewriteExpression("title: \"wind rises"));
 	}
 
-	@Test
-	public void testRewriteQueryStringExpressionWithUnterminatedRangeRejected() {
-		String message = assertExpressionRejected("count: [1 TO 15");
-		assertTrue(message.contains("unterminated"));
-	}
 
 	@Test
 	public void testRewriteQueryStringExpressionWithEmptyExpression() {
@@ -1502,11 +1477,8 @@ public class SearchFieldRewriterTest {
 		// call under test
 		SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY);
 
-		ObjectNode clause = (ObjectNode) dsl.get("query_string");
-		assertEquals("100: wind OR 101: gone", clause.get("query").asText());
-		assertEquals("100^2", clause.get("fields").get(0).asText());
-		assertEquals("101", clause.get("fields").get(1).asText());
-		assertEquals("102", clause.get("default_field").asText());
+		assertEquals(parse("{\"query_string\":{\"query\":\"100: wind OR 101: gone\","
+				+ "\"fields\":[\"100^2\",\"101\"],\"default_field\":\"102\"}}"), dsl);
 	}
 
 	@Test

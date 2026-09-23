@@ -1,5 +1,5 @@
 {
-	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause &mdash; the full Lucene query syntax (field prefixes, <code>AND</code>/<code>OR</code>/<code>NOT</code>, grouping, ranges, <code>~</code> fuzziness, <code>^</code> boosts, <code>/regex/</code>). Column names used as field prefixes inside <code>query</code> are resolved against the index schema; an unresolvable name is rejected. A leading <code>*</code> or <code>?</code> on a term is rejected (it forces a full index scan).",
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause &mdash; the full Lucene query syntax (field prefixes, <code>AND</code>/<code>OR</code>/<code>NOT</code>, grouping, ranges, <code>~</code> fuzziness, <code>^</code> boosts, <code>/regex/</code>). Column names used as field prefixes inside <code>query</code> are resolved against the index schema; an unresolvable name is rejected.",
 	"implements": [
 		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" },
 		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MinimumShouldMatchOption" }

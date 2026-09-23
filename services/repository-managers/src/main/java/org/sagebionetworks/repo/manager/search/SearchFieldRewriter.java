@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -433,16 +435,25 @@ final class SearchFieldRewriter {
 
 	// ---------- query_string clause rewrite (column references inside a Lucene expression) ----------
 
-	/** The pseudo-field whose <i>argument</i>, rather than the prefix itself, names a column. */
-	private static final String EXISTS_PSEUDO_FIELD = "_exists_";
+	/**
+	 * One bare term of the Lucene query-string grammar: a run of escaped characters or characters
+	 * that are neither white space nor reserved. The wildcards ({@code *} / {@code ?}) are not
+	 * reserved, so they may appear inside a term.
+	 */
+	private static final String TERM = "(?:\\\\.|[^\\s\\\\+\\-=&|><!(){}\\[\\]^\"~:/])++";
 
 	/**
-	 * Characters that end a bare term in the Lucene query-string grammar: white space plus every
-	 * reserved character except the wildcards ({@code *} / {@code ?}, which may appear inside a
-	 * term) and the backslash (which escapes the character after it). A column name containing a
-	 * reserved character must be backslash-escaped by the caller, exactly as OpenSearch requires.
+	 * The spans of a {@code query_string} expression that carry a column reference: a
+	 * {@code _exists_:} argument (group 1) or a {@code <column>:} field prefix (group 2). A quoted
+	 * phrase, a {@code /regex/} literal and a {@code [range]} / <code>{range}</code> span match
+	 * first, so a {@code ':'} inside them is never mistaken for a field separator.
 	 */
-	private static final String TERM_BOUNDARY_CHARS = "+-=&|><!(){}[]^\"~:/";
+	private static final Pattern QUERY_STRING_COLUMN_REFERENCE = Pattern.compile(
+			"\"(?:\\\\.|[^\"\\\\])*+\""
+			+ "|/(?:\\\\.|[^/\\\\])*+/"
+			+ "|[\\[{](?:\\\\.|[^\\]}\\\\])*+[\\]}]"
+			+ "|_exists_:\\s*(" + TERM + ")"
+			+ "|(" + TERM + "):");
 
 	/**
 	 * Rewrite every column reference a {@code query_string} clause carries: its {@code fields}
@@ -480,131 +491,21 @@ final class SearchFieldRewriter {
 	/**
 	 * Rewrite each column reference embedded in a {@code query_string} expression &mdash; every
 	 * {@code <column>:} field prefix and every {@code _exists_:} argument &mdash; to the column id
-	 * the index is keyed by.
-	 *
-	 * <p>Resolving a field prefix only requires knowing where a term begins and ends, so this is a
-	 * single left-to-right pass rather than a parse of the expression: a backslash escapes the
-	 * character after it, and a quoted phrase, a {@code /regex/} literal and a {@code [range]} /
-	 * <code>{range}</code> span are copied through verbatim because nothing inside them is a column
-	 * reference. Whatever the pass cannot resolve it rejects &mdash; an unknown column, a wildcard
-	 * field name, a term opening with a wildcard, a field prefix nested inside another field's
-	 * group, or an unterminated quote / regex / range.</p>
+	 * the index is keyed by. Malformed syntax is left for OpenSearch to reject.
 	 */
 	static String rewriteQueryStringExpression(String expression, RoutingContext ctx) {
-		StringBuilder out = new StringBuilder(expression.length());
-		// Offset in `out` where the term being accumulated starts, or -1 between terms.
-		int termStart = -1;
-		// Only white space has been seen since the last field prefix, so a '(' here opens the group
-		// that prefix scopes.
-		boolean afterFieldPrefix = false;
-		int groupDepth = 0;
-		// Depth of the group a field prefix scopes, or -1 when outside one.
-		int fieldGroupDepth = -1;
-		int i = 0;
-		while (i < expression.length()) {
-			char c = expression.charAt(i);
-			if (c == '\\' && i + 1 < expression.length()) {
-				if (termStart < 0) {
-					termStart = out.length();
-					afterFieldPrefix = false;
-				}
-				out.append(c).append(expression.charAt(i + 1));
-				i += 2;
-			} else if (c == '"' || c == '/') {
-				termStart = -1;
-				afterFieldPrefix = false;
-				i = copyThrough(expression, i, out, String.valueOf(c));
-			} else if (c == '[' || c == '{') {
-				termStart = -1;
-				afterFieldPrefix = false;
-				i = copyThrough(expression, i, out, "]}");
-			} else if (c == '(') {
-				if (afterFieldPrefix && fieldGroupDepth < 0) {
-					fieldGroupDepth = groupDepth + 1;
-				}
-				groupDepth++;
-				termStart = -1;
-				afterFieldPrefix = false;
-				out.append(c);
-				i++;
-			} else if (c == ')') {
-				if (fieldGroupDepth == groupDepth) {
-					fieldGroupDepth = -1;
-				}
-				groupDepth--;
-				termStart = -1;
-				afterFieldPrefix = false;
-				out.append(c);
-				i++;
-			} else if (c == ':') {
-				if (fieldGroupDepth >= 0) {
-					throw new IllegalArgumentException("'query_string.query' nests a field prefix inside"
-							+ " another field's group; give each column its own clause instead");
-				}
-				i = rewriteFieldPrefix(expression, i, out, termStart, ctx);
-				termStart = -1;
-				afterFieldPrefix = true;
-			} else if (Character.isWhitespace(c)) {
-				termStart = -1;
-				out.append(c);
-				i++;
-			} else if (TERM_BOUNDARY_CHARS.indexOf(c) >= 0) {
-				termStart = -1;
-				afterFieldPrefix = false;
-				out.append(c);
-				i++;
+		return QUERY_STRING_COLUMN_REFERENCE.matcher(expression).replaceAll(match -> {
+			String rewritten;
+			if (match.group(1) != null) {
+				rewritten = match.group().substring(0, match.start(1) - match.start())
+						+ resolveColumnReference(unescape(match.group(1)), "query_string.query '_exists_'", ctx);
+			} else if (match.group(2) != null) {
+				rewritten = resolveColumnReference(unescape(match.group(2)), "query_string.query", ctx) + ":";
 			} else {
-				if (termStart < 0) {
-					if (c == '*' || c == '?') {
-						throw new IllegalArgumentException("leading wildcard '" + c + "' is not allowed in"
-								+ " 'query_string.query' (forces a full index scan)");
-					}
-					termStart = out.length();
-					afterFieldPrefix = false;
-				}
-				out.append(c);
-				i++;
+				rewritten = match.group();
 			}
-		}
-		return out.toString();
-	}
-
-	/**
-	 * Rewrite the field prefix ending at the {@code ':'} at index {@code colon} &mdash; the term
-	 * accumulated in {@code out} from {@code termStart} is the column name. Returns the index in
-	 * {@code expression} to continue the scan from, which for {@link #EXISTS_PSEUDO_FIELD} is past
-	 * the argument that names the column.
-	 */
-	private static int rewriteFieldPrefix(String expression, int colon, StringBuilder out, int termStart,
-			RoutingContext ctx) {
-		if (termStart < 0) {
-			throw new IllegalArgumentException("'query_string.query' has a ':' with no field name before it");
-		}
-		String name = unescape(out.substring(termStart));
-		out.setLength(termStart);
-		if (!EXISTS_PSEUDO_FIELD.equals(name)) {
-			out.append(resolveColumnReference(name, "query_string.query", ctx)).append(':');
-			return colon + 1;
-		}
-		out.append(name).append(':');
-		int i = colon + 1;
-		while (i < expression.length() && Character.isWhitespace(expression.charAt(i))) {
-			out.append(expression.charAt(i++));
-		}
-		int argumentStart = i;
-		while (i < expression.length()) {
-			char c = expression.charAt(i);
-			if (c == '\\' && i + 1 < expression.length()) {
-				i += 2;
-			} else if (Character.isWhitespace(c) || TERM_BOUNDARY_CHARS.indexOf(c) >= 0) {
-				break;
-			} else {
-				i++;
-			}
-		}
-		out.append(resolveColumnReference(unescape(expression.substring(argumentStart, i)),
-				"query_string.query '_exists_'", ctx));
-		return i;
+			return Matcher.quoteReplacement(rewritten);
+		});
 	}
 
 	/**
@@ -613,10 +514,6 @@ final class SearchFieldRewriter {
 	 * rejection message.
 	 */
 	static String resolveColumnReference(String name, String label, RoutingContext ctx) {
-		if (name.indexOf('*') >= 0 || name.indexOf('?') >= 0) {
-			throw new IllegalArgumentException("'" + label + "' may not use a wildcard field name: '"
-					+ name + "'");
-		}
 		String rewritten = rewriteFieldRef(name, ctx, RoutingMode.BARE);
 		if (rewritten.equals(name)) {
 			throw new IllegalArgumentException("'" + label + "' references an unknown column: '" + name + "'");
@@ -624,42 +521,9 @@ final class SearchFieldRewriter {
 		return rewritten;
 	}
 
-	/**
-	 * Copy the span opened at {@code open} through the first unescaped character in
-	 * {@code terminators}, returning the index just past it.
-	 */
-	private static int copyThrough(String expression, int open, StringBuilder out, String terminators) {
-		out.append(expression.charAt(open));
-		int i = open + 1;
-		while (i < expression.length()) {
-			char c = expression.charAt(i);
-			out.append(c);
-			i++;
-			if (c == '\\' && i < expression.length()) {
-				out.append(expression.charAt(i++));
-			} else if (terminators.indexOf(c) >= 0) {
-				return i;
-			}
-		}
-		throw new IllegalArgumentException("'query_string.query' has an unterminated '"
-				+ expression.charAt(open) + "'");
-	}
-
 	/** Drop the backslashes the Lucene syntax requires, yielding the column name to look up. */
 	private static String unescape(String term) {
-		if (term.indexOf('\\') < 0) {
-			return term;
-		}
-		StringBuilder out = new StringBuilder(term.length());
-		for (int i = 0; i < term.length(); i++) {
-			char c = term.charAt(i);
-			if (c == '\\' && i + 1 < term.length()) {
-				out.append(term.charAt(++i));
-			} else {
-				out.append(c);
-			}
-		}
-		return out.toString();
+		return term.replaceAll("\\\\(.)", "$1");
 	}
 
 	// ---------- Response-side rewrite (column id → column name, strip .keyword) ----------

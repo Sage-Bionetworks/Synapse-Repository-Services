@@ -134,8 +134,8 @@ final class SearchDslValidator {
 	/**
 	 * Maximum {@code max_determinized_states} on a {@code query_string} clause &mdash; the number of
 	 * automaton states a {@code /regex/} term may compile to. Lucene's own default is 10000; a caller
-	 * may lower it but not raise it, because {@code allow_leading_wildcard} does not apply to regular
-	 * expressions and a permissive pattern examines every term in the index.
+	 * may lower it but not raise it, because a larger automaton costs more memory to compile and more
+	 * time to run against every term in the index.
 	 */
 	static final int MAX_DETERMINIZED_STATES = 10000;
 
@@ -873,10 +873,8 @@ final class SearchDslValidator {
 
 	/**
 	 * {@code query_string}: cap {@code fields} length, the fuzzy expansion, and the automaton size a
-	 * {@code /regex/} term may compile to. The expression inside {@code query} is checked by
-	 * {@link SearchFieldRewriter} as it resolves the column references embedded in it &mdash; that is
-	 * where this clause's leading-wildcard rejection lives, since only a scan of the expression knows
-	 * where a term begins.
+	 * {@code /regex/} term may compile to. The column references inside {@code query} are checked by
+	 * {@link SearchFieldRewriter} as it resolves them.
 	 */
 	static void validateQueryString(QueryStringQuery qs) {
 		List<String> fields = qs.fields();
