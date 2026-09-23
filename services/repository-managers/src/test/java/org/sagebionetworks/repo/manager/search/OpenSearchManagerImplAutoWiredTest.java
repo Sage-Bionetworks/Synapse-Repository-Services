@@ -70,6 +70,7 @@ import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -152,14 +153,14 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		// call under test — happy-path create returns the applied settings JSON
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		assertTrue(appliedConfig.isPresent());
 		assertTrue(appliedConfig.get().length() > 0);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// call under test — creating an index that already exists returns Optional.empty()
 		Optional<String> duplicate = openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		assertTrue(duplicate.isEmpty(),
 				"resource_already_exists must surface as Optional.empty(), not throw");
 
@@ -175,13 +176,33 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
+	public void testGetLiveIndexWithSnapshotFromCreateIndex() throws Exception {
+		IndexAuthorizationSnapshot snapshot = OpenSearchManagerImplTest.createAuthorizationSnapshot();
+		String alias = indexName + "-alias";
+		openSearchManager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, snapshot);
+		openSearchManager.swapAlias(alias, indexName, Optional.empty());
+
+		// call under test
+		Optional<OpenSearchManager.LiveIndex> result = openSearchManager.getLiveIndex(alias);
+
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex(indexName, snapshot)), result);
+	}
+
+	@Test
+	public void testGetLiveIndexWithMissingAlias() {
+		// call under test
+		assertEquals(Optional.empty(), openSearchManager.getLiveIndex(indexName + "-alias"));
+	}
+
+	@Test
 	public void testCRUDWithSearchQueryAndDocumentVerification() {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
 				new ColumnModel().setId("2").setName("count").setColumnType(ColumnType.INTEGER)
 		);
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -232,7 +253,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new ColumnModel().setId("2").setName("tag").setColumnType(ColumnType.STRING)
 		);
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Tag "shared" appears on BOTH a public and a private row. The public row alone is in scope.
@@ -321,7 +342,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns, customQname,
-				Collections.emptyList(), analyzers, 0, 1, 0);
+				Collections.emptyList(), analyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		assertTrue(appliedConfig.isPresent());
 		// The applied config must register the namespaced filter from the custom analyzer.
 		String aossKey = OpenSearchManagerImpl.toAossKey(customQname);
@@ -364,7 +385,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		Optional<String> appliedConfig = openSearchManager.createIndex(indexName, columns,
-				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers, 0, 1, 0);
+				"org.sagebionetworks-SCIENTIFIC", List.of(overrideContainer), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		assertTrue(appliedConfig.isPresent());
 		openSearchManager.waitForIndexWritable(indexName);
 
@@ -423,7 +444,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 						.setOverrides(List.of(override));
 
 		openSearchManager.createIndex(indexName, columns, null,
-				List.of(overrideContainer), analyzers, 0, 1, 0);
+				List.of(overrideContainer), analyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -554,7 +575,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		// call under test — createIndex must succeed. Pre-fix this threw
 		// "Token filter [std_word_delimiter] cannot be used to parse synonyms".
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers, 0, 1, 0);
+				overrides, analyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Index one doc per synonym term so each query can match via synonym expansion at
@@ -605,7 +626,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", analyzerKey));
 
 		openSearchManager.createIndex(indexName, columns, analyzerKey,
-				overrides, analyzers, 0, 1, 0);
+				overrides, analyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -652,7 +673,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				List.of(bindColumnToAnalyzer("description", "org.sagebionetworks-STANDARD"));
 
 		openSearchManager.createIndex(indexName, columns, "org.sagebionetworks-STANDARD",
-				overrides, analyzers, 0, 1, 0);
+				overrides, analyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		// Each doc contains only the abbreviation — a query for the long form (or a
@@ -776,7 +797,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		}
 
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		Map<String, Object> doc = new HashMap<>();
@@ -785,7 +806,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 		for (ColumnModel column : columns) {
 			ColumnType type = column.getColumnType();
 			RoundTripCase rtc = casesByType.get(type);
-			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(rtc.raw, type);
+			Object converted = SearchIndexLifecycleManagerImpl.convertForDocument(
+					column.getName(), rtc.raw, type);
 			assertEquals(rtc.expected, converted,
 					"convertForDocument produced unexpected value for " + type);
 			doc.put(column.getId(), converted);
@@ -1179,7 +1201,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
 				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		List<BulkOperation> operations = List.of(
@@ -1286,7 +1308,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 		openSearchManager.bulkIndex(indexName, List.of(
 				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "amyloid"))));
@@ -1345,7 +1367,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("status").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		openSearchManager.bulkIndex(indexName, List.of(
@@ -1399,7 +1421,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("description").setColumnType(ColumnType.LARGETEXT));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		openSearchManager.bulkIndex(indexName, List.of(
@@ -1459,7 +1481,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new ColumnModel().setId("1").setName("projectId").setColumnType(ColumnType.STRING),
 				new ColumnModel().setId("2").setName("title").setColumnType(ColumnType.LARGETEXT));
 		openSearchManager.createIndex(indexName, columns, null,
-				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
 		openSearchManager.waitForIndexWritable(indexName);
 
 		openSearchManager.bulkIndex(indexName, List.of(

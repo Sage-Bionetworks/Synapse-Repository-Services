@@ -875,13 +875,18 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	@Override
 	public List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
 			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
-		List<BenefactorDescription> benefactors = indexDescription.getBenefactors();
+		return computeAccessibleBenefactors(user, indexDescription.getIdAndVersion(), indexDescription.getBenefactors(), indexDao, types);
+	}
+
+	@Override
+	public List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user, IdAndVersion objectId,
+			List<BenefactorDescription> benefactors, TableIndexDAO indexDao, ACCESS_TYPE... types) {
 		List<BenefactorAccessFilter> filters = new ArrayList<>(benefactors.size());
 		for (BenefactorDescription dependencyDesc : benefactors) {
 			// lookup the distinct benefactor IDs applied to the table.
 			Set<Long> tableBenefactors;
 			try {
-				tableBenefactors = indexDao.getDistinctLongValues(indexDescription.getIdAndVersion(), dependencyDesc.getBenefactorColumnName());
+				tableBenefactors = indexDao.getDistinctLongValues(objectId, dependencyDesc.getBenefactorColumnName());
 			} catch (BadSqlGrammarException e) { // table has not been created yet
 				tableBenefactors = Collections.emptySet();
 			}

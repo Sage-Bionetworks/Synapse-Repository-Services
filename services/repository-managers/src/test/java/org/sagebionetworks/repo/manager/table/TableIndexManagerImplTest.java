@@ -141,6 +141,8 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private TableRowSearchProcessor mockSearchProcessor;
 	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
 	private ViewFilter mockFilter;
 	@Mock
 	private ViewFilterBuilder mockFilterBuilder;
@@ -188,7 +190,7 @@ public class TableIndexManagerImplTest {
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory,
-				mockObjectFieldModelResolverFactory, mockSearchProcessor);
+				mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -244,7 +246,7 @@ public class TableIndexManagerImplTest {
 	public void testNullDao() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
@@ -252,28 +254,35 @@ public class TableIndexManagerImplTest {
 	public void testNullSupport() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
 	@Test
 	public void testNullProviderFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
 	@Test
 	public void testNullObjectFieldFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 	
 	@Test
 	public void testNullSearchProcessor() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null, mockIndexAuthorizationSnapshotManager);
+		});
+	}
+
+	@Test
+	public void testNullSnapshotManager() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, mockSearchProcessor, null);
 		});
 	}
 	
