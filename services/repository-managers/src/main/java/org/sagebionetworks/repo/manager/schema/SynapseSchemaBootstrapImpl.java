@@ -32,6 +32,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
+import org.sagebionetworks.schema.parser.TokenMgrError;
 import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,7 +193,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		} catch (NotFoundException e) {
 			// This will be the first version of this schema, so start at patch zero.
 			return Optional.of(0L);
-		} catch (ParseException e) {
+		} catch (ParseException | TokenMgrError e) {
+			// This parser is invoked directly rather than through SchemaIdParser.parseSchemaId, so it
+			// must guard against TokenMgrError itself.
 			throw new IllegalStateException(e);
 		}
 	}
