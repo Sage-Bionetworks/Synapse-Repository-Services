@@ -32,6 +32,11 @@ public class TableConstants {
 	public static final String STATUS_COL_SINGLE_KEY = "SINGLE_KEY";
 	public static final String STATUS_COL_SCHEMA_HASH = "SCHEMA_HASH";
 	public static final String STATUS_COL_SEARCH_ENABLED = "SEARCH_ENABLED";
+
+	/**
+	 * The as-built index authorization snapshot table's serialized JSON column.
+	 */
+	public static final String AUTH_SNAPSHOT_COL_JSON = "SNAPSHOT_JSON";
 	
 	public static final String ROW_ETAG = "ROW_ETAG";
 	public static final String ROW_BENEFACTOR = "ROW_BENEFACTOR";

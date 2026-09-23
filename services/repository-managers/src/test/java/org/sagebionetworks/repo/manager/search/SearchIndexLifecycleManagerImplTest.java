@@ -15,6 +15,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,6 +48,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManagerImpl.SearchIndexRowHandler;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.IndexAuthorizationSnapshotManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -66,6 +69,7 @@ import org.sagebionetworks.repo.model.search.table.SynonymSet;
 import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableFailedException;
@@ -138,6 +142,8 @@ public class SearchIndexLifecycleManagerImplTest {
 	private StackConfiguration stackConfiguration;
 	@Mock
 	private DefiningSqlDependencyDao definingSqlDependencyDao;
+	@Mock
+	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	@InjectMocks
 	private SearchIndexLifecycleManagerImpl manager;
@@ -224,8 +230,12 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testHandleCreateStreamsViaIndexDao() throws Exception {
 		// The happy path completes buildIndex and streams rows via indexDao.queryAsStream,
 		// writing ACTIVE status at the end.
-		// call under test
 		stubHappyPathThroughStream();
+		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot().setObjectId(ENTITY_ID);
+		when(indexAuthorizationSnapshotManager.buildSnapshot(eq(SOURCE_INDEX_DESCRIPTION), eq(DEFINING_SQL), anyList()))
+				.thenReturn(snapshot);
+
+		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(indexDao).queryAsStream(any(), any());
@@ -233,6 +243,13 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(statusDao, times(2)).createOrUpdate(captor.capture());
 		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
 		assertEquals(SearchIndexState.ACTIVE, captor.getAllValues().get(1).getState());
+		// The as-built snapshot is captured against the source's index description and persisted before the
+		// alias swap makes the freshly-built index live.
+		InOrder order = inOrder(indexAuthorizationSnapshotManager, statusDao, openSearchManager);
+		order.verify(indexAuthorizationSnapshotManager).buildSnapshot(eq(SOURCE_INDEX_DESCRIPTION), eq(DEFINING_SQL),
+				anyList());
+		order.verify(statusDao).saveSnapshot(KeyFactory.stringToKey(ENTITY_ID), snapshot);
+		order.verify(openSearchManager).swapAlias(any(), any(), any());
 	}
 
 	@Test
