@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
@@ -126,6 +127,42 @@ public class IndexAuthorizationSnapshotManager {
 				.setVersionNumber(object.getVersion().orElse(null))
 				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription))
 				.setColumnLineage(identityLineage(object, boundSchema));
+	}
+
+	/**
+	 * Build the as-built authorization snapshot for a SearchIndex. A SearchIndex selects from a single
+	 * source (a table, view, or MaterializedView) and is not itself a table type, so its snapshot is rooted
+	 * at the source: the authorization projection is the source's own persisted projection, while the
+	 * column lineage describes the SearchIndex's output columns, flattened through the source's persisted
+	 * lineage to leaf source columns.
+	 *
+	 * @param sourceSnapshot the persisted snapshot of the SearchIndex's source.
+	 * @param definingSql    the SearchIndex's defining SQL, used to compute column lineage.
+	 * @param outputSchema   the SearchIndex's output schema, in select-list order, supplying each output
+	 *                       column's id.
+	 * @param schemaProvider resolves the source's schema when computing lineage (including 'select *').
+	 * @return the snapshot to persist alongside the SearchIndex.
+	 */
+	public IndexAuthorizationSnapshot buildSearchIndexSnapshot(IndexAuthorizationSnapshot sourceSnapshot,
+			String definingSql, List<ColumnModel> outputSchema, SchemaProvider schemaProvider) {
+		ValidateArgument.required(sourceSnapshot, "sourceSnapshot");
+		ValidateArgument.required(definingSql, "definingSql");
+		ValidateArgument.required(outputSchema, "outputSchema");
+		ValidateArgument.required(schemaProvider, "schemaProvider");
+
+		IdAndVersion source = IdAndVersion.newBuilder()
+				.setId(KeyFactory.stringToKey(sourceSnapshot.getObjectId()))
+				.setVersion(sourceSnapshot.getVersionNumber())
+				.build();
+		Map<Long, List<ColumnLineageEntry>> sourceLineage = Collections.singletonMap(source.getId(),
+				sourceSnapshot.getColumnLineage());
+		List<ColumnLineageEntry> lineage = alignToBoundSchema(source, computeColumns(definingSql, schemaProvider), outputSchema)
+				.stream().map(entry -> flatten(entry, sourceLineage)).collect(Collectors.toList());
+		return new IndexAuthorizationSnapshot()
+				.setObjectId(sourceSnapshot.getObjectId())
+				.setVersionNumber(sourceSnapshot.getVersionNumber())
+				.setIndexDescription(sourceSnapshot.getIndexDescription())
+				.setColumnLineage(lineage);
 	}
 
 	/**
@@ -245,7 +282,7 @@ public class IndexAuthorizationSnapshotManager {
 	 */
 	private List<ColumnLineageEntry> flattenedLineage(IndexDescription node, String sql, List<ColumnModel> schema,
 			Map<IdAndVersion, List<ColumnLineageEntry>> memo) {
-		List<ColumnLineageEntry> immediate = alignToBoundSchema(node.getIdAndVersion(), computeColumns(sql), schema);
+		List<ColumnLineageEntry> immediate = alignToBoundSchema(node.getIdAndVersion(), computeColumns(sql, tableManagerSupport), schema);
 		// Index each defining-SQL dependency's flattened lineage by its object id, so an immediate input
 		// naming a dependency's output column can be replaced by that column's leaf inputs.
 		Map<Long, List<ColumnLineageEntry>> childLineage = new HashMap<>();
@@ -377,15 +414,16 @@ public class IndexAuthorizationSnapshotManager {
 	 * null; it is assigned from the bound schema during flattening.
 	 */
 	List<ColumnLineageEntry> computeEntries(String definingSql) {
-		return computeColumns(definingSql).stream().map(ComputedColumn::entry).collect(Collectors.toList());
+		return computeColumns(definingSql, tableManagerSupport).stream().map(ComputedColumn::entry).collect(Collectors.toList());
 	}
 
 	/**
 	 * Compute the ordered output columns of the defining SQL, each carrying both its lineage entry and
 	 * the output name the SQL produces, 1:1 and in the same order as
 	 * {@link SQLTranslatorUtils#getSchemaOfSelect}, so the caller can align them to the bound schema.
+	 * Source schemas (including the expansion of 'select *') are resolved through the given provider.
 	 */
-	List<ComputedColumn> computeColumns(String definingSql) {
+	List<ComputedColumn> computeColumns(String definingSql, SchemaProvider schemaProvider) {
 		QueryExpression model;
 		try {
 			model = new TableQueryParser(definingSql).queryExpression();
@@ -397,7 +435,7 @@ public class IndexAuthorizationSnapshotManager {
 
 		// Each QuerySpecification is one part; a UNION contributes multiple parts of equal width.
 		List<List<ComputedColumn>> perPart = model.stream(QuerySpecification.class)
-				.map(this::computeColumnsForPart).collect(Collectors.toList());
+				.map(part -> computeColumnsForPart(part, schemaProvider)).collect(Collectors.toList());
 		return mergeParts(perPart);
 	}
 
@@ -405,8 +443,8 @@ public class IndexAuthorizationSnapshotManager {
 	 * Compute the output columns of a single query part, resolving each output column's source-column
 	 * inputs against the part's tables and capturing the name the SQL produces for it.
 	 */
-	private List<ComputedColumn> computeColumnsForPart(QuerySpecification part) {
-		TableAndColumnMapper mapper = new TableAndColumnMapper(part, tableManagerSupport);
+	private static List<ComputedColumn> computeColumnsForPart(QuerySpecification part, SchemaProvider schemaProvider) {
+		TableAndColumnMapper mapper = new TableAndColumnMapper(part, schemaProvider);
 		// A 'select *' carries no explicit columns, so expand it into one column per source column -
 		// exactly as QueryTranslator does - before deriving an entry per output column.
 		if (Boolean.TRUE.equals(part.getSelectList().getAsterisk())) {

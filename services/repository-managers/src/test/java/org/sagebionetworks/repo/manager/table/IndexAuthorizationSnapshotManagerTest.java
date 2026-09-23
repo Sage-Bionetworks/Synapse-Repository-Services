@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.repo.model.table.SourceDependency;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 
@@ -46,6 +48,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 	private TableIndexConnectionFactory mockConnectionFactory;
 	@Mock
 	private TableIndexManager mockTableIndexManager;
+	@Mock
+	private SchemaProvider mockSchemaProvider;
 
 	@InjectMocks
 	private IndexAuthorizationSnapshotManager manager;
@@ -598,6 +602,98 @@ public class IndexAuthorizationSnapshotManagerTest {
 						new ColumnLineageEntry().setOutputColumnId("111").setDerivationKind(DerivationKind.IDENTITY)
 								.setInputs(Collections.singletonList(source("syn123", 4L, "111"))))),
 				snapshot);
+	}
+
+	// --- SearchIndex (rooted at its source) ---
+
+	@Test
+	public void testBuildSearchIndexSnapshotWithMaterializedViewSourceFlattensThroughSourceLineage() {
+		// The SearchIndex reads identity columns 'a' and 'b' from the MV syn2. syn2's persisted 'a' is an
+		// AGGREGATE(MAX) and its 'b' is an EXPRESSION merged from two leaf columns (e.g. a UNION in syn2's
+		// defining SQL); each SearchIndex output inherits the source column's derivation and leaf inputs.
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(syn2Schema);
+
+		// call under test
+		IndexAuthorizationSnapshot snapshot = manager.buildSearchIndexSnapshot(syn2Snapshot(), "select a, b from syn2",
+				syn2Schema, mockSchemaProvider);
+
+		assertEquals(new IndexAuthorizationSnapshot()
+				.setObjectId("syn2")
+				.setVersionNumber(null)
+				.setIndexDescription(syn2Snapshot().getIndexDescription())
+				.setColumnLineage(Arrays.asList(
+						new ColumnLineageEntry().setOutputColumnId("20").setDerivationKind(DerivationKind.AGGREGATE)
+								.setSetFunctionType("MAX").setInputs(Collections.singletonList(source("syn123", null, "111"))),
+						new ColumnLineageEntry().setOutputColumnId("21").setDerivationKind(DerivationKind.EXPRESSION)
+								.setInputs(Arrays.asList(source("syn123", null, "111"), source("syn456", null, "333"))))),
+				snapshot);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	@Test
+	public void testBuildSearchIndexSnapshotWithSelectStarExpandsFromSchemaProvider() {
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(syn2Schema);
+
+		// call under test
+		IndexAuthorizationSnapshot snapshot = manager.buildSearchIndexSnapshot(syn2Snapshot(), "select * from syn2",
+				syn2Schema, mockSchemaProvider);
+
+		assertEquals(syn2Snapshot().getColumnLineage(), snapshot.getColumnLineage());
+		verify(mockTableManagerSupport, never()).getTableSchema(any());
+	}
+
+	@Test
+	public void testBuildSearchIndexSnapshotWithLiteralColumn() {
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(syn2Schema);
+		ColumnModel tag = TableModelTestUtils.createColumn(600L, "tag", ColumnType.STRING);
+
+		// call under test
+		IndexAuthorizationSnapshot snapshot = manager.buildSearchIndexSnapshot(syn2Snapshot(),
+				"select 'x' as tag from syn2", Collections.singletonList(tag), mockSchemaProvider);
+
+		assertEquals(Collections.singletonList(new ColumnLineageEntry().setOutputColumnId("600")
+				.setDerivationKind(DerivationKind.LITERAL).setInputs(Collections.emptyList())),
+				snapshot.getColumnLineage());
+	}
+
+	@Test
+	public void testBuildSearchIndexSnapshotWithOutputSchemaSizeMismatch() {
+		when(mockSchemaProvider.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(syn2Schema);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			manager.buildSearchIndexSnapshot(syn2Snapshot(), "select a, b from syn2",
+					Collections.singletonList(syn2Schema.get(0)), mockSchemaProvider);
+		}).getMessage();
+		assertEquals("Expected 1 bound columns to match the defining SQL of syn2 but computed 2", message);
+		verifyNoInteractions(mockTableManagerSupport);
+	}
+
+	// syn2 materialized view schema: a(20), b(21)
+	private final List<ColumnModel> syn2Schema = Arrays.asList(
+			TableModelTestUtils.createColumn(20L, "a", ColumnType.INTEGER),
+			TableModelTestUtils.createColumn(21L, "b", ColumnType.INTEGER));
+
+	/**
+	 * The persisted snapshot of the materialized view syn2, with a row-level benefactor and dependencies on
+	 * syn123 and syn456.
+	 */
+	private IndexAuthorizationSnapshot syn2Snapshot() {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId("syn2")
+				.setColumnLineage(Arrays.asList(
+						new ColumnLineageEntry().setOutputColumnId("20").setDerivationKind(DerivationKind.AGGREGATE)
+								.setSetFunctionType("MAX").setInputs(Collections.singletonList(source("syn123", null, "111"))),
+						new ColumnLineageEntry().setOutputColumnId("21").setDerivationKind(DerivationKind.EXPRESSION)
+								.setInputs(Arrays.asList(source("syn123", null, "111"), source("syn456", null, "333")))))
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn2")
+						.setTableType(TableType.materializedview.name())
+						.setBenefactors(Collections.singletonList(new BenefactorColumn()
+								.setBenefactorColumnName("ROW_BENEFACTOR").setBenefactorType(ObjectType.ENTITY.name())))
+						.setDependencies(Arrays.asList(
+								new SourceDependency().setObjectId("syn123").setTableType(TableType.table.name()),
+								new SourceDependency().setObjectId("syn456").setTableType(TableType.table.name()))));
 	}
 
 	// --- read API ---
