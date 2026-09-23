@@ -122,6 +122,7 @@ public class SearchIndexStatusDaoImpl implements SearchIndexStatusDao {
 
 	@Override
 	public Optional<IndexAuthorizationSnapshot> getSnapshot(Long searchIndexId) {
+		ValidateArgument.required(searchIndexId, "searchIndexId");
 		String json;
 		try {
 			json = template.queryForObject(

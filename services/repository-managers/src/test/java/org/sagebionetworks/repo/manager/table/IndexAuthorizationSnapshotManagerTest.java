@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -98,7 +99,9 @@ public class IndexAuthorizationSnapshotManagerTest {
 	public void testComputeEntriesWithAggregateCount() {
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
 
-		// call under test - count(*) has no input column.
+		// call under test - count(*) is a function of row cardinality, not of any column value, so it has
+		// no input columns by design. See the AGGREGATE branch of computeEntry: the differencing risk of a
+		// filtered count is a query-time concern, not a select-list lineage hole.
 		List<ColumnLineageEntry> entries = manager.computeEntries("select count(*) from syn123");
 
 		assertEquals(Collections.singletonList(new ColumnLineageEntry().setDerivationKind(DerivationKind.AGGREGATE)
@@ -185,6 +188,18 @@ public class IndexAuthorizationSnapshotManagerTest {
 
 		// call under test - an expression combining two columns is not an identity (more than one input).
 		List<ColumnLineageEntry> entries = manager.computeEntries("select foo + bar from syn123");
+
+		assertEquals(Collections.singletonList(new ColumnLineageEntry().setDerivationKind(DerivationKind.EXPRESSION)
+				.setInputs(Arrays.asList(source("syn123", null, "111"), source("syn123", null, "222")))), entries);
+	}
+
+	@Test
+	public void testComputeEntriesWithMultiColumnFunction() {
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+
+		// call under test - a scalar function over two columns (plus a literal separator) is an expression;
+		// both referenced columns are inputs and the string literal contributes none.
+		List<ColumnLineageEntry> entries = manager.computeEntries("select concat(foo, '-', bar) as con from syn123");
 
 		assertEquals(Collections.singletonList(new ColumnLineageEntry().setDerivationKind(DerivationKind.EXPRESSION)
 				.setInputs(Arrays.asList(source("syn123", null, "111"), source("syn123", null, "222")))), entries);
@@ -304,6 +319,35 @@ public class IndexAuthorizationSnapshotManagerTest {
 				snapshot.getDependencies());
 	}
 
+	@Test
+	public void testBuildIndexDescriptionSnapshotDoesNotRewalkSharedSnapshotlessSubtree() {
+		// A snapshot-less diamond reachable by two paths: syn999 -> syn2 -> syn50 -> syn60 and
+		// syn999 -> syn3 -> syn50 -> syn60. With no persisted snapshot (a VirtualTable or legacy index),
+		// the shared syn50 subtree must be walked exactly once - not re-expanded per path - so a deep
+		// snapshot-less diamond cannot blow up into an exponential re-walk.
+		IndexDescription deep60 = mockNode("syn60", TableType.table);
+		IndexDescription shared50 = mockNode("syn50", TableType.materializedview, deep60);
+		IndexDescription mv2 = mockNode("syn2", TableType.materializedview, shared50);
+		IndexDescription mv3 = mockNode("syn3", TableType.materializedview, shared50);
+		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, mv3);
+		when(root.getBenefactors()).thenReturn(Collections.emptyList());
+		stubNoPersistedSnapshots();
+
+		// call under test
+		IndexDescriptionSnapshot snapshot = manager.buildIndexDescriptionSnapshot(root);
+
+		// The shared subtree is expanded exactly once even though it is reachable by two paths.
+		verify(shared50, times(1)).getDependencies();
+		verify(deep60, times(1)).getDependencies();
+		// The flattened closure still lists each node once, in first-seen order.
+		assertEquals(Arrays.asList(
+				new SourceDependency().setObjectId("syn2").setVersionNumber(null).setTableType(TableType.materializedview.name()),
+				new SourceDependency().setObjectId("syn50").setVersionNumber(null).setTableType(TableType.materializedview.name()),
+				new SourceDependency().setObjectId("syn60").setVersionNumber(null).setTableType(TableType.table.name()),
+				new SourceDependency().setObjectId("syn3").setVersionNumber(null).setTableType(TableType.materializedview.name())),
+				snapshot.getDependencies());
+	}
+
 	// --- build-time lineage flattening ---
 
 	@Test
@@ -405,6 +449,64 @@ public class IndexAuthorizationSnapshotManagerTest {
 				new SourceDependency().setObjectId("syn2").setVersionNumber(null).setTableType(TableType.materializedview.name()),
 				new SourceDependency().setObjectId("syn123").setVersionNumber(null).setTableType(TableType.table.name())),
 				snapshot.getIndexDescription().getDependencies());
+	}
+
+	@Test
+	public void testBuildSnapshotFirstNonIdentityDominatesWhenIdentityMergesMultipleChildren() {
+		// The root's single output column is an IDENTITY produced by a UNION whose branches read a bare
+		// column from two different materialized-view sources: 'a' from syn2 and 'b' from syn3. syn2's
+		// persisted 'a' is an EXPRESSION; syn3's persisted 'b' is an AGGREGATE(MAX). When the merged
+		// identity column is flattened, the first resolved non-identity child must dominate the derivation
+		// (EXPRESSION), not be overwritten by whichever child is resolved last (which would wrongly report
+		// AGGREGATE/MAX). Both children still contribute their leaf inputs.
+		IndexDescription mv2 = mockLeaf("syn2", TableType.materializedview);
+		IndexDescription mv3 = mockLeaf("syn3", TableType.materializedview);
+		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, mv3);
+		when(root.getBenefactors()).thenReturn(Collections.emptyList());
+
+		IndexAuthorizationSnapshot syn2Snapshot = new IndexAuthorizationSnapshot()
+				.setObjectId("syn2")
+				.setColumnLineage(Collections.singletonList(new ColumnLineageEntry()
+						.setOutputColumnId("20")
+						.setDerivationKind(DerivationKind.EXPRESSION)
+						.setInputs(Collections.singletonList(source("syn123", null, "111")))))
+				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId("syn2")
+						.setTableType(TableType.materializedview.name())
+						.setDependencies(Collections.singletonList(new SourceDependency()
+								.setObjectId("syn123").setVersionNumber(null).setTableType(TableType.table.name()))));
+		IndexAuthorizationSnapshot syn3Snapshot = new IndexAuthorizationSnapshot()
+				.setObjectId("syn3")
+				.setColumnLineage(Collections.singletonList(new ColumnLineageEntry()
+						.setOutputColumnId("30")
+						.setDerivationKind(DerivationKind.AGGREGATE)
+						.setSetFunctionType("MAX")
+						.setInputs(Collections.singletonList(source("syn456", null, "333")))))
+				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId("syn3")
+						.setTableType(TableType.materializedview.name())
+						.setDependencies(Collections.singletonList(new SourceDependency()
+								.setObjectId("syn456").setVersionNumber(null).setTableType(TableType.table.name()))));
+		when(mockConnectionFactory.connectToTableIndex(any())).thenReturn(mockTableIndexManager);
+		when(mockTableIndexManager.getAuthorizationSnapshot(IdAndVersion.parse("syn2"))).thenReturn(Optional.of(syn2Snapshot));
+		when(mockTableIndexManager.getAuthorizationSnapshot(IdAndVersion.parse("syn3"))).thenReturn(Optional.of(syn3Snapshot));
+
+		// The root's defining SQL unions a bare column from each source.
+		ColumnModel a = TableModelTestUtils.createColumn(20L, "a", ColumnType.INTEGER);
+		ColumnModel b = TableModelTestUtils.createColumn(30L, "b", ColumnType.INTEGER);
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn2"))).thenReturn(Collections.singletonList(a));
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn3"))).thenReturn(Collections.singletonList(b));
+		ColumnModel rootA = TableModelTestUtils.createColumn(500L, "a", ColumnType.INTEGER);
+
+		// call under test
+		IndexAuthorizationSnapshot snapshot = manager.buildSnapshot(root, "select a from syn2 union select b from syn3",
+				Collections.singletonList(rootA));
+
+		// First non-identity child (EXPRESSION) dominates; the AGGREGATE resolved last does not overwrite it.
+		assertEquals(Collections.singletonList(new ColumnLineageEntry()
+				.setOutputColumnId("500")
+				.setDerivationKind(DerivationKind.EXPRESSION)
+				.setSetFunctionType(null)
+				.setInputs(Arrays.asList(source("syn123", null, "111"), source("syn456", null, "333")))),
+				snapshot.getColumnLineage());
 	}
 
 	@Test

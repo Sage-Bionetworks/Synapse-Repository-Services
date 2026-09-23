@@ -39,8 +39,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Builds the {@link IndexAuthorizationSnapshot} that captures the as-built authorization state of a
- * defining-SQL object (MaterializedView, VirtualTable, SearchIndex) at index build time, and exposes
- * the persisted snapshot for reads.
+ * queryable index at build time, and exposes the persisted snapshot for reads. A defining-SQL object
+ * (MaterializedView, SearchIndex) is captured from its defining SQL and bound schema; a base index type
+ * (plain table, entity/dataset/submission view, record set) is captured as an identity of its own bound
+ * columns. A VirtualTable is never captured - it has no physical index and is inlined at query time.
  * <p>
  * A snapshot has two parts. The {@link IndexDescriptionSnapshot} is a serialized authorization
  * projection of the runtime {@link IndexDescription}: the object's id, version, table type, its
@@ -48,12 +50,16 @@ import org.springframework.stereotype.Service;
  * reconstituted at query time so the transitive-dependency ACL check and benefactor row-level filter
  * run against as-built state through the same authorization code path used for current-truth state.
  * The column lineage records each output column's derivation, flattened at build time to leaf source
- * columns. Because the runtime {@link IndexDescription} passed to the build already holds the full
- * transitive tree of dependent descriptions in memory, the lineage is flattened by recursively walking
- * that tree - composing each node's immediate lineage against its children's already-flattened lineage
- * - rather than reading persisted source snapshots. This makes the flatten self-contained (no ordering
- * dependency on whether a source's snapshot already exists) and flattens through VirtualTable sources,
- * which are inlined at query time and never carry a snapshot of their own.
+ * columns.
+ * <p>
+ * Both the transitive dependency closure and the column lineage are flattened <em>snapshot-first</em>:
+ * for each dependency we prefer its own <em>persisted</em> snapshot, which rode that source's atomic
+ * index swap and is held frozen by our read lock, so it records exactly what the bytes we consume were
+ * built from - immune to drift in the source's current defining SQL. Only when no snapshot exists do we
+ * fall back to recomputing from the dependency's current defining SQL by walking its in-memory
+ * description subtree: a VirtualTable is inlined at build and never materializes a snapshot, and a
+ * legacy index may predate snapshot capture. A dependency with neither a snapshot nor defining SQL is a
+ * physical leaf (a base table or view), kept as-is.
  */
 @Service
 public class IndexAuthorizationSnapshotManager {
@@ -196,9 +202,15 @@ public class IndexAuthorizationSnapshotManager {
 	private void collectDependencies(IndexDescription indexDescription, LinkedHashMap<IdAndVersion, SourceDependency> accumulator) {
 		for (IndexDescription dependency : indexDescription.getDependencies()) {
 			IdAndVersion dependencyId = dependency.getIdAndVersion();
-			accumulator.computeIfAbsent(dependencyId, id -> new SourceDependency()
-					.setObjectId("syn" + id.getId())
-					.setVersionNumber(id.getVersion().orElse(null))
+			// A dependency already in the accumulator was fully expanded by an earlier path (its own
+			// snapshot closure or in-memory subtree), so re-expanding it would only re-walk a shared
+			// subtree - exponentially for a deep snapshot-less diamond. Add it once, then move on.
+			if (accumulator.containsKey(dependencyId)) {
+				continue;
+			}
+			accumulator.put(dependencyId, new SourceDependency()
+					.setObjectId("syn" + dependencyId.getId())
+					.setVersionNumber(dependencyId.getVersion().orElse(null))
 					.setTableType(dependency.getTableType().name()));
 			Optional<IndexAuthorizationSnapshot> persisted = getAuthorizationSnapshot(dependencyId);
 			if (persisted.isPresent()) {
@@ -327,7 +339,11 @@ public class IndexAuthorizationSnapshotManager {
 				leafInputs.add(input);
 			} else {
 				leafInputs.addAll(childEntry.get().getInputs());
-				if (identity) {
+				// An identity column is exactly its source column, so it inherits that column's derivation.
+				// A UNION-merged identity can resolve several children; the first non-identity dominates
+				// (matching the merge rule), so only adopt a child kind while still identity - once a child
+				// has made this column non-identity, later children contribute only their leaf inputs.
+				if (identity && DerivationKind.IDENTITY.equals(resultKind)) {
 					resultKind = childEntry.get().getDerivationKind();
 					resultSetFunctionType = childEntry.get().getSetFunctionType();
 				}
@@ -413,6 +429,12 @@ public class IndexAuthorizationSnapshotManager {
 		if (setFunction != null) {
 			entry.setDerivationKind(DerivationKind.AGGREGATE);
 			entry.setSetFunctionType(setFunction.getSetFunctionType().name());
+			// An aggregate's inputs are only the columns whose values it reads, so 'count(*)' resolves to no
+			// inputs: it is a function of row cardinality, not of any column value. This is not a lineage
+			// hole for QID re-identification. The differencing risk of a count combined with a QID-narrowing
+			// filter is governed at query time by the filter column's own lineage (which flattens to the QID
+			// leaf) plus the transitive dependency closure (which records the QID-bearing source) - not by
+			// the count's select-list lineage - so query-set-size restriction applies there, not here.
 		} else if (columnReferences.isEmpty()) {
 			entry.setDerivationKind(DerivationKind.LITERAL);
 		} else if (isIdentity(derivedColumn, columnReferences)) {
