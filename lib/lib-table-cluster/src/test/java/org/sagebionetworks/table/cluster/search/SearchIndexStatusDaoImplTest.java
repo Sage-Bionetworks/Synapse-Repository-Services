@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -156,6 +157,15 @@ public class SearchIndexStatusDaoImplTest {
 	void testGetSnapshotWithMissingRow() {
 		// call under test
 		assertEquals(Optional.empty(), dao.getSnapshot(999L));
+	}
+
+	@Test
+	void testGetSnapshotWithNullId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			dao.getSnapshot(null);
+		}).getMessage();
+		assertEquals("searchIndexId is required.", message);
 	}
 
 	@Test
