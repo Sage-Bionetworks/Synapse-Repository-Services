@@ -48,6 +48,7 @@ import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolver;
 import org.sagebionetworks.table.cluster.metadata.ObjectFieldModelResolverFactory;
@@ -1109,7 +1110,7 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	
 	@Override
 	public Long populateMaterializedViewFromDefiningSql(List<ColumnModel> viewSchema, QueryTranslator definingSql) {
-		IndexDescription indexDescription = definingSql.getIndexDescription();
+		QueryIndexDescription indexDescription = definingSql.getIndexDescription();
 		
 		return tableIndexDao.executeInWriteTransaction((TransactionStatus status) -> {
 			String insertSql = SQLTranslatorUtils.createMaterializedViewInsertSql(viewSchema, definingSql.getOutputSQL(), indexDescription);
@@ -1119,9 +1120,9 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	}
 	
 	@Override
-	public long getVersionFromIndexDependencies(IndexDescription index) {
+	public long getVersionFromIndexDependencies(QueryIndexDescription index) {
 		return index.getDependencies().stream()
-				.map(IndexDescription::getIdAndVersion)
+				.map(QueryIndexDescription::getIdAndVersion)
 				.mapToLong(id ->
 						id.getId() + id.getVersion().orElse(0L) + getCurrentVersionOfIndex(id))
 				.sum();

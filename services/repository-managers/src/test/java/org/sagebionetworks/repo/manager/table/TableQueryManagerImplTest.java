@@ -77,6 +77,7 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunctionQueryFilter;
@@ -92,6 +93,8 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryOptions;
@@ -120,6 +123,8 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
@@ -169,7 +174,9 @@ public class TableQueryManagerImplTest {
 	private RowHandler mockRowHandler;
 	@Mock
 	private QueryTranslations mockQueryTranslations;
-	
+	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+
 	@Spy
 	@InjectMocks
 	private TableQueryManagerImpl manager;
@@ -417,6 +424,86 @@ public class TableQueryManagerImplTest {
 		assertThrows(UnauthorizedException.class, () -> {
 			manager.queryPreflight(user, query, null, queryOptions);
 		});
+	}
+
+	@Test
+	public void testQueryPreflightWithSnapshot() throws Exception {
+		// The as-built snapshot pins the object's type and its output-column id set.
+		List<ColumnLineageEntry> lineage = new ArrayList<>();
+		for (ColumnModel cm : models) {
+			lineage.add(new ColumnLineageEntry().setOutputColumnId(cm.getId()));
+		}
+		when(mockTableManagerSupport.getColumnModel(any())).thenAnswer(invocation -> {
+			String id = invocation.getArgument(0);
+			return models.stream().filter(m -> m.getId().equals(id)).findFirst().orElse(null);
+		});
+		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot()
+				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId(tableId)
+						.setTableType(TableType.table.name()).setBenefactors(Collections.emptyList())
+						.setDependencies(Collections.emptyList()))
+				.setColumnLineage(lineage);
+		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
+				.thenReturn(Optional.of(snapshot));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+
+		// call under test
+		manager.queryPreflight(user, query, null, queryOptions);
+
+		// Authorization runs against the reconstituted snapshot description, not the live index description.
+		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
+				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
+		// The live index description and live schema count are never consulted on the snapshot path.
+		verify(mockTableManagerSupport, never()).getIndexDescription(any());
+		verify(mockTableManagerSupport, never()).getTableSchemaCount(any());
+	}
+
+	@Test
+	public void testQueryPreflightWithSnapshotUnauthorized() throws Exception {
+		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot()
+				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId(tableId)
+						.setTableType(TableType.table.name()).setBenefactors(Collections.emptyList())
+						.setDependencies(Collections.emptyList()))
+				.setColumnLineage(Collections.singletonList(
+						new ColumnLineageEntry().setOutputColumnId(models.get(0).getId())));
+		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
+				.thenReturn(Optional.of(snapshot));
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDenied("no access"));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, null, queryOptions);
+		});
+		verify(mockTableManagerSupport, never()).getIndexDescription(any());
+	}
+
+	@Test
+	public void testQueryPreflightWithoutSnapshotFallsBackToLive() throws Exception {
+		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
+				.thenReturn(Optional.empty());
+		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long) models.size());
+		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
+		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
+		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+
+		// call under test
+		manager.queryPreflight(user, query, null, queryOptions);
+
+		// With no snapshot the live index description and live schema count drive preflight.
+		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
+		verify(mockTableManagerSupport).getTableSchemaCount(idAndVersion);
 	}
 
 	@Test
@@ -2535,63 +2622,45 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testAddRowLevelFilterEmpty() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(new HashSet<Long>());
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", query.toSql());
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
-	}
-	
-	@Test
-	public void testAddRowLevelFilterWithJoin() throws Exception {
-		QuerySpecification query = new TableQueryParser("select * from syn123 join syn456").querySpecification();
-		String message = assertThrows(IllegalArgumentException.class, ()->{
-			// call under test
-			manager.addRowLevelFilter(user, query);
-		}).getMessage();
-		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
 
 	@Test
 	public void getAddRowLevelFilterTableDoesNotExist() throws Exception {
 		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenReturn(benfactors);
-		
+
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		//return empty benefactors
 		when(mockTableIndexDAO.getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR)).thenThrow(BadSqlGrammarException.class);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		
+
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 
 		//Throw table not existing should be treated same as not having benefactors.
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1 )", query.toSql());
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
-	
+
 	@Test
 	public void testAddRowLevelFilter() throws Exception {
 		when(mockTableConnectionFactory.getConnection(any())).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
 		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
 		IndexDescription indexDescription = new ViewIndexDescription(idAndVersion, TableType.entityview, -1L);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		
+
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 
 		assertEquals("SELECT i0 FROM syn123 WHERE ROW_BENEFACTOR IN ( -1, 444 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	public void setupLookup(IndexDescription...all){
@@ -2613,21 +2682,19 @@ public class TableQueryManagerImplTest {
 				new ViewIndexDescription(viewTwoId, TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
 				"select * from syn1 a join syn2 on (a.id=b.id)", mockTableManagerSupport);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 
 		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR__A0 IN ( -1, 444 ) ) AND ROW_BENEFACTOR__A1 IN ( -1, 111 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A0");
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A1");
 		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
-		
+
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, twoBenefactors);
 		verify(mockTableManagerSupport, times(2)).getAccessibleBenefactors(any(), any(), any());
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
@@ -2643,36 +2710,32 @@ public class TableQueryManagerImplTest {
 		setupLookup(new ViewIndexDescription(viewOneId, TableType.entityview, -1L));
 		IndexDescription indexDescription = new MaterializedViewIndexDescription(idAndVersion,
 				"select * from syn1 a join syn1 on (a.id=b.id)", mockTableManagerSupport);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
 
 		QuerySpecification query = new TableQueryParser("select * from "+tableId).querySpecification();
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 
 		assertEquals("SELECT * FROM syn123 WHERE ( ROW_BENEFACTOR__A0 IN ( -1, 444 ) ) AND ROW_BENEFACTOR__A1 IN ( -1, 111 )", query.toSql());
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A0");
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, "ROW_BENEFACTOR__A1");
 		verify(mockTableIndexDAO, times(2)).getDistinctLongValues(any(), any());
-		
+
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, oneBenefactors);
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, twoBenefactors);
 		verify(mockTableManagerSupport, times(2)).getAccessibleBenefactors(any(), any(), any());
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	@Test
 	public void testAddRowLevelFilterWithTable() throws Exception {
 		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		
+
 		QuerySpecification query = new TableQueryParser("select i0 from "+tableId).querySpecification();
 		// call under test
-		manager.addRowLevelFilter(user, query);
+		manager.addRowLevelFilter(user, query, indexDescription);
 
 		assertEquals("SELECT i0 FROM syn123", query.toSql());
 		verify(mockTableIndexDAO, never()).getDistinctLongValues(any(), any());
 		verify(mockTableManagerSupport, never()).getAccessibleBenefactors(any(), any(), any());
-		verify(mockTableManagerSupport).getIndexDescription(idAndVersion);
 	}
 	
 	

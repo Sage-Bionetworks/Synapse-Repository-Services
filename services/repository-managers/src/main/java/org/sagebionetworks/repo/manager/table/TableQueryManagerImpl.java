@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.SnapshotSchemaProvider;
 import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -38,6 +39,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -65,8 +67,10 @@ import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -96,15 +100,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private ExecutorService threadPool;
 	private QueryCacheManager queryCacheManager;
 	private FacetPostProcessorProvider facetPostProcessorProvider;
+	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.threadPool = cachedThreadPool;
 		this.queryCacheManager = queryCacheManager;
 		this.facetPostProcessorProvider = facetPostProcessorProvider;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 	
 	/**
@@ -227,7 +233,22 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// We now have the table's ID.
 		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+		// For a materialized object the as-built authorization snapshot pins exactly what the served
+		// index contains, so authorization and translation run against it rather than current truth
+		// (closing the PLFM-9977 drift class). VirtualTable and legacy pre-snapshot indexes have no
+		// snapshot and fall back to the live index description + live bound schema.
+		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
+				.getAuthorizationSnapshot(idAndVersion);
+		QueryIndexDescription indexDescription;
+		SchemaProvider schemaProvider;
+		if (snapshot.isPresent()) {
+			indexDescription = SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
+					tableManagerSupport::getLastTableChangeNumber);
+			schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, snapshot.get());
+		} else {
+			indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+			schemaProvider = tableManagerSupport;
+		}
 		// 2. Validate the user has read access on this table. Because table queries run in
 		// this pipeline, we can enforce aggregate-only access: when row-level access is
 		// denied only because a source is bound to AGGREGATE_DATA, load that source's
@@ -254,8 +275,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 		}
 
-		// 3. Get the table's schema count
-		long count = tableManagerSupport.getTableSchemaCount(idAndVersion);
+		// 3. Get the table's schema count. On the snapshot path this is the as-built column count
+		// (the flattened columnLineage), so an empty-schema check reflects what the index actually contains.
+		long count = snapshot.isPresent() ? snapshot.get().getColumnLineage().size()
+				: tableManagerSupport.getTableSchemaCount(idAndVersion);
 		if (count < 1L) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
@@ -263,14 +286,26 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QueryExpression preprocessedModel = parserQueryQuerExpression(preprocessedSql);
 		for(QuerySpecification qs: preprocessedModel.createIterable(QuerySpecification.class)) {
 			// 4. Add row level filter as needed.
-			// Table views must have a row level filter applied to the query
-			addRowLevelFilter(user, qs, types);
+			// Table views must have a row level filter applied to the query.
+			// On the snapshot path preprocessing is the identity, so the single query specification is
+			// the queried object and the snapshot-backed description governs the filter. On the live
+			// fallback path a VirtualTable's definition is inlined, so a query specification can target
+			// a dependency; its filter must resolve that dependency's live description.
+			QueryIndexDescription filterDescription;
+			if (snapshot.isPresent()) {
+				filterDescription = indexDescription;
+			} else {
+				IdAndVersion qsIdAndVersion = IdAndVersion.parse(
+						qs.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+				filterDescription = tableManagerSupport.getIndexDescription(qsIdAndVersion);
+			}
+			addRowLevelFilter(user, qs, filterDescription, types);
 		}
 
 		QueryContext expansion = QueryContext.builder()
 			.setStartingSql(preprocessedModel.toSql())
 			.setUserId(user.getId())
-			.setSchemaProvider(tableManagerSupport)
+			.setSchemaProvider(schemaProvider)
 			.setIndexDescription(indexDescription)
 			.setMaxBytesPerPage(maxBytesPerPage)
 			.setMaxRowsPerCall(MAX_ROWS_PER_CALL)
@@ -857,16 +892,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	void addRowLevelFilter(UserInfo user, QuerySpecification query, ACCESS_TYPE...types)
+	void addRowLevelFilter(UserInfo user, QuerySpecification query, QueryIndexDescription indexDescription, ACCESS_TYPE...types)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
-		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		if(indexDescription.getBenefactors().isEmpty()) {
 			// with no benefactors nothing is needed.
 			return;
 		}
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(indexDescription.getIdAndVersion());
 		for (BenefactorAccessFilter filter : computeAccessibleBenefactors(user, indexDescription, indexDao, types)) {
 			buildBenefactorFilter(query, filter.accessibleIds(), filter.benefactorColumnName());
 		}
@@ -874,7 +906,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	@Override
 	public List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
-			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
+			QueryIndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
 		List<BenefactorDescription> benefactors = indexDescription.getBenefactors();
 		List<BenefactorAccessFilter> filters = new ArrayList<>(benefactors.size());
 		for (BenefactorDescription dependencyDesc : benefactors) {

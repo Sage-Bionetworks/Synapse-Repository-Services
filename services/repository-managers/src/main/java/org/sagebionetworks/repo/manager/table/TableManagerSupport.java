@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingCallable;
 
@@ -298,7 +299,7 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return the combined read-access decision over the table/view and its
 	 *         dependencies.
 	 */
-	AuthorizationStatus validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription);
+	AuthorizationStatus validateTableReadAccess(UserInfo userInfo, QueryIndexDescription indexDescription);
 
 	/**
 	 * Load the {@link AggregateDataConfiguration} bound to the given entity, if it is

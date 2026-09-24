@@ -63,6 +63,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.MaterializedViewIndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.description.RecordSetIndexDescription;
 import org.sagebionetworks.table.cluster.description.TableIndexDescription;
 import org.sagebionetworks.table.cluster.description.ViewIndexDescription;
@@ -538,7 +539,7 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
-	public AuthorizationStatus validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription) {
+	public AuthorizationStatus validateTableReadAccess(UserInfo userInfo, QueryIndexDescription indexDescription) {
 		// The read decision spans the queried table/view and every table/view it depends
 		// on (transitively). Flatten the dependency tree into a single list and let
 		// EntityAuthorizationManager decide READ/DOWNLOAD/aggregate-allowed for the whole
@@ -557,10 +558,10 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	 * Depth-first flatten of the index description and all of its dependencies into a
 	 * list of (id, type) nodes for a single authorization decision.
 	 */
-	void collectTableNodes(IndexDescription indexDescription, List<TableIdAndType> nodes) {
+	void collectTableNodes(QueryIndexDescription indexDescription, List<TableIdAndType> nodes) {
 		nodes.add(new TableIdAndType(indexDescription.getIdAndVersion().getId().toString(),
 				indexDescription.getTableType()));
-		for (IndexDescription dependency : indexDescription.getDependencies()) {
+		for (QueryIndexDescription dependency : indexDescription.getDependencies()) {
 			collectTableNodes(dependency, nodes);
 		}
 	}
