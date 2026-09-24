@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.aws.CannotDetermineBucketLocationException;
 import org.sagebionetworks.aws.SynapseS3ClientImpl;
+import org.sagebionetworks.aws.v2.S3ClientProvider;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
@@ -67,19 +68,24 @@ public class SynapseS3ClientImplUnitTest {
 	
 	@Mock
 	private AmazonS3 mockAmazonUSStandardClient;
-	
+
 	@Mock
 	private AmazonS3 mockAmazonClient;
-	
+
+	@Mock
+	private S3ClientProvider mockS3ClientProvider;
+
 	private SynapseS3ClientImpl client;
-	
+
 	// name and region for the US Standard client
 	private static final String BUCKET_NAME = "bucket-name";
 	private static final Region BUCKET_REGION_US_STANDARD = Region.US_Standard;
-	
+
 	// region for a non-US-Standard client
 	private static final Region BUCKET_REGION = Region.US_West;
-	
+
+	private static final software.amazon.awssdk.regions.Region BUCKET_REGION_V2 = software.amazon.awssdk.regions.Region.US_WEST_1;
+
 	private static final String OBJECT_KEY = "s3-object-key";
 
 	@BeforeEach
@@ -87,47 +93,41 @@ public class SynapseS3ClientImplUnitTest {
 		Map<Region, AmazonS3> regionSpecificClients = new HashMap<Region, AmazonS3>();
 		regionSpecificClients.put(BUCKET_REGION_US_STANDARD, mockAmazonUSStandardClient);
 		regionSpecificClients.put(BUCKET_REGION, mockAmazonClient);
-		client = new SynapseS3ClientImpl(regionSpecificClients);
-		
+		client = new SynapseS3ClientImpl(regionSpecificClients, mockS3ClientProvider);
+
 		// this setting is used by most tests in this class, overridden where necessary
-		HeadBucketResult headBucketResult = new HeadBucketResult().withBucketRegion(BUCKET_REGION.getFirstRegionId());
-		// Set as lenient as only one test is not using this
-		Mockito.lenient().doReturn(headBucketResult).when(mockAmazonUSStandardClient).headBucket(any());
+		// Set as lenient as only some tests are using this
+		Mockito.lenient().doReturn(BUCKET_REGION_V2).when(mockS3ClientProvider).getRegionForBucket(any());
 	}
-	
+
 	@Test
 	public void testGetRegionForBucketNotUSStandard() {
 		assertEquals(Region.US_West, client.getRegionForBucket(BUCKET_NAME));
+
+		verify(mockS3ClientProvider).getRegionForBucket(BUCKET_NAME);
 	}
-	
+
 	@Test
-	public void testGetRegionForBucketUSStandardAsNull() {
-		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(null));
+	public void testGetRegionForBucketUSStandard() {
+		when(mockS3ClientProvider.getRegionForBucket(any())).thenReturn(software.amazon.awssdk.regions.Region.US_EAST_1);
+
 		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
 	}
-	
-	@Test
-	public void testGetRegionForBucketUSStandardAsEmptyString() {
-		// just in case they start returning a zero length string instead of null:
-		when(mockAmazonUSStandardClient.headBucket(any())).thenReturn(new HeadBucketResult().withBucketRegion(""));
-		assertEquals(Region.US_Standard, client.getRegionForBucket(BUCKET_NAME));
-	}
-	
+
 	@Test
 	public void testGetRegionForBucketCantTellRegion() {
-		
-		AmazonS3Exception s3Ex = new AmazonS3Exception("can't check region");
-		
-		when(mockAmazonUSStandardClient.headBucket(any())).thenThrow(s3Ex);
-		
-		CannotDetermineBucketLocationException ex = assertThrows(CannotDetermineBucketLocationException.class, () -> {			
+
+		CannotDetermineBucketLocationException expectedException = new CannotDetermineBucketLocationException("can't check region");
+
+		when(mockS3ClientProvider.getRegionForBucket(any())).thenThrow(expectedException);
+
+		CannotDetermineBucketLocationException ex = assertThrows(CannotDetermineBucketLocationException.class, () -> {
 			client.getRegionForBucket(BUCKET_NAME);
 		});
-		
-		assertEquals(s3Ex, ex.getCause());
-		assertEquals("Failed to determine the Amazon region for bucket '"+BUCKET_NAME+"'. Please ensure that the bucket exists, is shared with Synapse, in particular granting ListObject permission.", ex.getMessage());
+
+		assertEquals(expectedException, ex);
 	}
-	
+
 	@Test
 	public void testDeleteObject() {
 		// method under test

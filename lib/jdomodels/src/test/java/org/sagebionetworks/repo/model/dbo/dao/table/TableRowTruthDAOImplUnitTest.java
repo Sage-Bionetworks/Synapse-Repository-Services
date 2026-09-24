@@ -1,10 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +27,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.util.FileProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
+
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class TableRowTruthDAOImplUnitTest {
@@ -63,15 +67,22 @@ public class TableRowTruthDAOImplUnitTest {
 	
 	@Test
 	public void testSaveToS3() throws IOException {
-		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(mockFile);
+		// A real file is needed here, the upload reads its content rather than just referencing it.
+		File temp = File.createTempFile("TableRowTruthDAOImplUnitTest", ".gz");
+		when(mockFileProvider.createTempFile(anyString(), anyString())).thenReturn(temp);
 		when(mockFileProvider.createFileOutputStream(any(File.class))).thenReturn(mockOutputStream);
+
 		// Call under test
-		dao.saveToS3(mockCallback);
+		String key = dao.saveToS3(mockCallback);
+
 		verify(mockCallback).write(mockOutputStream);
 		verify(mockOutputStream).flush();
 		verify(mockOutputStream, times(2)).close();
-		verify(mockS3Client).putObject(eq(s3Bucket),anyString(), eq(mockFile));
-		verify(mockFile).delete();
+
+		ArgumentCaptor<PutObjectRequest> requestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+		verify(mockS3Client).putObjectV2(requestCaptor.capture(), any(RequestBody.class));
+		assertEquals(PutObjectRequest.builder().bucket(s3Bucket).key(key).build(), requestCaptor.getValue());
+		assertFalse(temp.exists());
 	}
 	
 	@Test
