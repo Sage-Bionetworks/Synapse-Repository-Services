@@ -231,7 +231,8 @@ public class DBORequest implements MigratableDatabaseObject<DBORequest, DBOReque
 				DBORequest dbo = new DBORequest();
 				dbo.setId(rs.getLong(COL_DATA_ACCESS_REQUEST_ID));
 				dbo.setAccessRequirementId(rs.getLong(COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID));
-				dbo.setResearchProjectId(rs.getLong(COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID));
+				Long researchProjectId = rs.getLong(COL_DATA_ACCESS_REQUEST_RESEARCH_PROJECT_ID);
+				dbo.setResearchProjectId(rs.wasNull() ? null : researchProjectId);
 				dbo.setCreatedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_BY));
 				dbo.setCreatedOn(rs.getLong(COL_DATA_ACCESS_REQUEST_CREATED_ON));
 				dbo.setModifiedBy(rs.getLong(COL_DATA_ACCESS_REQUEST_MODIFIED_BY));

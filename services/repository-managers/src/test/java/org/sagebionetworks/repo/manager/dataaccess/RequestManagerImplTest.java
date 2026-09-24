@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,7 @@ public class RequestManagerImplTest {
 	private String etag;
 	private Request request;
 	private Renewal renewal;
+	private Map<String, Object> schemaData;
 
 
 	@BeforeEach
@@ -101,6 +103,7 @@ public class RequestManagerImplTest {
 		createdOn = new Date();
 		modifiedOn = new Date();
 		etag = "etag";
+		schemaData = Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage"));
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
@@ -146,11 +149,31 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithNullResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		Request toCreate = createNewRequest();
 		toCreate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.create(mockUser, toCreate);
-		});
+		}).getMessage();
+
+		assertEquals("Request.researchProjectId is required.", message);
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.create(mockUser, createNewRequest());
+		}).getMessage();
+
+		assertEquals("A research project cannot be associated with a request for a JsonSchemaAccessRequirement.",
+				message);
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test
@@ -178,7 +201,8 @@ public class RequestManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(5L);
+
 		assertEquals(request, manager.create(mockUser, createNewRequest()));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
@@ -186,18 +210,35 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
+		// The requirement version answering started on is stamped by the server
+		assertEquals(5L, toCreate.getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
 	public void testCreateWithJsonSchemaAccessRequirement() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(2L);
+
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
-		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+
+		Request toCreate = createNewRequest();
+		// A schema based request answers the bound schema instead of a research project
+		toCreate.setResearchProjectId(null);
+		toCreate.setSchemaData(schemaData);
+		// A client supplied stamp must be ignored in favour of the requirement's current version
+		toCreate.setAccessRequirementVersionNumber(99L);
 
 		// call under test
-		assertEquals(request, manager.create(mockUser, createNewRequest()));
+		assertEquals(request, manager.create(mockUser, toCreate));
 
-		verify(mockRequestDao).create(any(Request.class));
+		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+		verify(mockRequestDao).create(captor.capture());
+		Request created = captor.getValue();
+		assertEquals(schemaData, created.getSchemaData());
+		assertEquals(2L, created.getAccessRequirementVersionNumber().longValue());
+		assertNull(created.getResearchProjectId());
 	}
 
 	@Test
@@ -266,7 +307,11 @@ public class RequestManagerImplTest {
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRequest() {
+		request.setSchemaData(schemaData);
+		request.setAccessRequirementVersionNumber(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -289,16 +334,22 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		// The answers already given are carried forward as the starting point for the renewal
+		assertEquals(schemaData, renewal.getSchemaData());
+		// Answering starts over, so the stamp moves onto the requirement's current version
+		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
-	
+
 	/**
 	 * For this case the current request is a renewal.
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRenewal() {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(renewal);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -342,11 +393,20 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullResearchProjectId() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+
 		Request toUpdate = createNewRequest();
+		// Clearing the research project is as much an edit of it as changing it
 		toUpdate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.update(mockUser, toUpdate);
-		});
+		}).getMessage();
+
+		assertEquals("researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.",
+				message);
+		verify(mockRequestDao, never()).update(any());
 	}
 
 	@Test
@@ -549,6 +609,50 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testUpdateWithClientSuppliedAccessRequirementVersionNumber() {
+		// The persisted request records the version the requester started answering.
+		request.setAccessRequirementVersionNumber(1L);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setAccessRequirementVersionNumber(9L);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// Saving progress does not move the stamp onto the requirement's newer version.
+		assertEquals(1L, captor.getValue().getAccessRequirementVersionNumber().longValue());
+		verifyNoInteractions(mockAccessRequirementDao);
+	}
+
+	@Test
+	public void testUpdateWithPartialSchemaData() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+
+		// Saving progress must accept data that the bound schema would reject, since answers are
+		// only validated when the request is submitted.
+		Map<String, Object> partialSchemaData = Map.of("institution", Map.of(), "notASchemaProperty", 42);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setSchemaData(partialSchemaData);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		assertEquals(partialSchemaData, captor.getValue().getSchemaData());
+	}
+
+	@Test
 	public void testCreateRenewalFromApprovedRequest() {
 		Request request = createNewRequest();
 		AccessorChange change1 = new AccessorChange();
@@ -562,6 +666,7 @@ public class RequestManagerImplTest {
 		change3.setType(AccessType.REVOKE_ACCESS);
 		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
+		request.setSchemaData(schemaData);
 		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
@@ -574,6 +679,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		assertEquals(schemaData, renewal.getSchemaData());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);

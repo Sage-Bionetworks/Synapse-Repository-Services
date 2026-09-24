@@ -10,9 +10,13 @@
 			"type": "string",
 			"description": "The ID of the Access Requirement which requires a request to be submitted to gain access to a dataset. This request contains information that satisfies those requirements."
 		},
+		"accessRequirementVersionNumber": {
+			"type": "integer",
+			"description": "The version of the Access Requirement that was current when the requester started answering this request. Set by the server when the request is created and left unchanged by subsequent updates, so that a client can detect that the Access Requirement changed while the request was being answered. A client supplied value is ignored."
+		},
 		"researchProjectId": {
 			"type": "string",
-			"description": "The ID of the research project associated with this request."
+			"description": "The ID of the research project associated with this request. Only a request for a ManagedACTAccessRequirement has a research project; for a JsonSchemaAccessRequirement the equivalent information is collected as part of the schemaData."
 		},
 		"createdOn": {
 			"type": "string",
