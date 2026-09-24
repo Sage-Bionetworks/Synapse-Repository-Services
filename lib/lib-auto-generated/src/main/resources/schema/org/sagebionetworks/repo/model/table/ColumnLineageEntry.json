@@ -1,0 +1,23 @@
+{
+	"description": "The flattened lineage of a single output column of a defining-SQL object: how it derives from its source column(s), by stable ColumnModel id rather than name. After build-time flattening the inputs name leaf source columns.",
+	"properties": {
+		"outputColumnId": {
+			"type": "string",
+			"description": "The stable ColumnModel id of this output column, assigned from the object's bound schema."
+		},
+		"derivationKind": {
+			"$ref": "org.sagebionetworks.repo.model.table.DerivationKind"
+		},
+		"setFunctionType": {
+			"type": "string",
+			"description": "When the derivation kind is AGGREGATE, the name of the SQL set function (e.g. COUNT, MAX); null otherwise."
+		},
+		"inputs": {
+			"type": "array",
+			"description": "The source columns this output column derives from, de-duplicated in first-seen order. Empty for a LITERAL or a count(*).",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.SourceColumnReference"
+			}
+		}
+	}
+}

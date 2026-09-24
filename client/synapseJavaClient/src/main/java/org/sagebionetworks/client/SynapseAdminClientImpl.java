@@ -9,6 +9,7 @@ import org.sagebionetworks.evaluation.model.SubmissionContributor;
 import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.asynch.AsynchronousAdminRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationTypeNames;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
+import org.sagebionetworks.repo.model.principal.NotificationEmail;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -277,6 +279,14 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		ValidateArgument.required(targetUserId, "targetUserId");
 		String url = ADMIN_USER + "/" + targetUserId + "/2fa";
 		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
+	public NotificationEmail updateUserNotificationEmail(Long principalId, UpdateNotificationEmailRequest request) throws SynapseException {
+		ValidateArgument.required(principalId, "principalId");
+		ValidateArgument.required(request, "request");
+		String url = ADMIN_USER + "/" + principalId + "/notificationEmail";
+		return putJSONEntity(getRepoEndpoint(), url, request, NotificationEmail.class);
 	}
 
 	@Override

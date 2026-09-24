@@ -31,7 +31,12 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
+import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
@@ -41,7 +46,6 @@ import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptorResponse;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
@@ -52,7 +56,10 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResult;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchSort;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
+import org.sagebionetworks.repo.model.dbo.dao.dataaccess.FormTemplateDao;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.ForumDAO;
 import org.sagebionetworks.repo.model.discussion.ForumObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
@@ -103,11 +110,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	private DocuSignClient docuSignClient;
 
+	private FormTemplateDao formTemplateDao;
+
 	@Autowired
 	public AccessRequirementManagerImpl(AccessRequirementDAO accessRequirementDAO, AuthorizationManager authorizationManager,
 			NodeDAO nodeDao, NotificationEmailDAO notificationEmailDao, JiraClient jiraClient,
 			ProjectSettingsManager projectSettingsManager, TransactionalMessenger transactionalMessenger, AccessControlListManager aclManager,
-			DataAccessAuthorizationManager daAuthManager, ForumDAO forumDao, DocuSignClient docuSignClient) {
+			DataAccessAuthorizationManager daAuthManager, ForumDAO forumDao, DocuSignClient docuSignClient,
+			FormTemplateDao formTemplateDao) {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.authorizationManager = authorizationManager;
 		this.nodeDao = nodeDao;
@@ -119,6 +129,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.daAuthManager = daAuthManager;
 		this.forumDao = forumDao;
 		this.docuSignClient = docuSignClient;
+		this.formTemplateDao = formTemplateDao;
 	}
 
 	public static void validateAccessRequirement(AccessRequirement ar) throws InvalidModelException {
@@ -145,15 +156,48 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			}
 		}
 
-		if (ar instanceof ManagedACTAccessRequirement) {
-			ManagedACTAccessRequirement managedAR = (ManagedACTAccessRequirement) ar;
-			
-			Long expirationPeriod = managedAR.getExpirationPeriod();
-			
+		if (ar instanceof HasExpiration) {
+			Long expirationPeriod = ((HasExpiration) ar).getExpirationPeriod();
+
 			if (expirationPeriod != null && !expirationPeriod.equals(DEFAULT_EXPIRATION_PERIOD)) {
 				ValidateArgument.requirement(expirationPeriod > DEFAULT_EXPIRATION_PERIOD, "When supplied, the expiration period should be greater than " + DEFAULT_EXPIRATION_PERIOD);
 			}
 		}
+	}
+
+	/**
+	 * Validate the resources outside of the access requirement that it points at. Unlike
+	 * {@link #validateAccessRequirement(AccessRequirement)} these checks need to read the referenced
+	 * resource, so they cannot be static.
+	 */
+	void validateReferencedResources(AccessRequirement ar) {
+		if (ar instanceof HasDataUseCertificate duc && duc.getEDucTemplateId() != null) {
+			docuSignClient.validateTemplate(duc.getEDucTemplateId());
+		}
+		if (ar instanceof JsonSchemaAccessRequirement jsonSchemaAr) {
+			validateFormTemplateReference(jsonSchemaAr.getFormTemplateRef());
+		}
+	}
+
+	/**
+	 * The version of the template that an access requirement renders is pinned, so it must exist and
+	 * must still be offered at the moment the requirement is created or updated. Deprecating a template
+	 * afterwards only stops new references to it; the requirements already bound to it are untouched.
+	 */
+	private void validateFormTemplateReference(FormTemplateReference reference) {
+		ValidateArgument.required(reference, "formTemplateRef");
+		ValidateArgument.requiredNotBlank(reference.getTemplateId(), "formTemplateRef.templateId");
+		ValidateArgument.required(reference.getTemplateVersionNumber(), "formTemplateRef.templateVersionNumber");
+
+		String versionDescription = "Version " + reference.getTemplateVersionNumber()
+				+ " of the form template with the id '" + reference.getTemplateId() + "'";
+
+		FormTemplate template = formTemplateDao
+				.getVersion(Long.parseLong(reference.getTemplateId()), reference.getTemplateVersionNumber())
+				.orElseThrow(() -> new IllegalArgumentException(versionDescription + " does not exist."));
+
+		ValidateArgument.requirement(!Boolean.TRUE.equals(template.getDeprecated()),
+				versionDescription + " is deprecated, so it cannot be referenced by an access requirement.");
 	}
 
 	public static RestrictableObjectType determineObjectType(ACCESS_TYPE accessType) {
@@ -231,10 +275,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement)
 			throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		validateAccessRequirement(accessRequirement);
-		if (accessRequirement instanceof ManagedACTAccessRequirement managedAr
-				&& managedAr.getEDucTemplateId() != null) {
-			docuSignClient.validateTemplate(managedAr.getEDucTemplateId());
-		}
+		validateReferencedResources(accessRequirement);
 		if (!authorizationManager.isACTTeamMemberOrAdmin(userInfo)) {
 			throw new UnauthorizedException("Only ACT member can create an AccessRequirement.");
 		}
@@ -250,7 +291,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		T ar = (T) accessRequirementDAO.create(setDefaultValues(accessRequirement));
 
-		if (ar instanceof ManagedACTAccessRequirement) {
+		if (ar instanceof HasExpiration) {
 			forumDao.createForum(ar.getId().toString(), ForumObjectType.ACCESS_REQUIREMENT);
 		}
 
@@ -352,10 +393,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ValidateArgument.requirement(accessRequirementId.equals(toUpdate.getId().toString()),
 			"Update specified ID "+accessRequirementId+" but object contains id: "+toUpdate.getId());
 		validateAccessRequirement(toUpdate);
-		if (toUpdate instanceof ManagedACTAccessRequirement managedAr
-				&& managedAr.getEDucTemplateId() != null) {
-			docuSignClient.validateTemplate(managedAr.getEDucTemplateId());
-		}
+		validateReferencedResources(toUpdate);
 
 		authorizationManager.canAccess(userInfo, toUpdate.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE)
 				.checkAuthorizationOrElseThrow();
@@ -412,42 +450,40 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		sendChangeMessage(userInfo.getId(), ChangeType.DELETE, ar.getId(), null);
 	}
 
+	/**
+	 * Fill in the optional fields that the requirement left out, so that every requirement is persisted
+	 * with an explicit answer for each of the requirements it can impose. Defaults are keyed off of the
+	 * capability interfaces a requirement type declares rather than off of the type itself.
+	 */
 	static <T extends AccessRequirement> T setDefaultValues(T ar) {
-		if (ar instanceof ManagedACTAccessRequirement) {
-			setDefaultValuesForManagedACTAccessRequirement((ManagedACTAccessRequirement) ar);
-		} else if (ar instanceof SelfSignAccessRequirement) {
-			setDefaultValuesForSelfSignAccessRequirement((SelfSignAccessRequirement) ar);
+		if (ar instanceof HasAccessorRequirement accessorRequirement) {
+			if (accessorRequirement.getIsCertifiedUserRequired() == null) {
+				accessorRequirement.setIsCertifiedUserRequired(false);
+			}
+			if (accessorRequirement.getIsValidatedProfileRequired() == null) {
+				accessorRequirement.setIsValidatedProfileRequired(false);
+			}
+		}
+		if (ar instanceof HasExpiration expiration && expiration.getExpirationPeriod() == null) {
+			expiration.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
+		}
+		if (ar instanceof HasDataUseCertificate dataUseCertificate && dataUseCertificate.getIsDUCRequired() == null) {
+			dataUseCertificate.setIsDUCRequired(false);
+		}
+		if (ar instanceof HasTwoFactorAuthRequirement twoFactorAuth && twoFactorAuth.getIsTwoFaRequired() == null) {
+			twoFactorAuth.setIsTwoFaRequired(false);
+		}
+		if (ar instanceof ManagedACTAccessRequirement managedAr) {
+			setDefaultValuesForManagedACTAccessRequirement(managedAr);
 		}
 		return ar;
 	}
 
 	/**
-	 * @param ar
-	 * @return
+	 * Defaults for the fields that only the managed ACT requirement carries. The fields it shares with
+	 * the other ACT controlled requirement types are defaulted by {@link #setDefaultValues(AccessRequirement)}.
 	 */
-	public static void setDefaultValuesForSelfSignAccessRequirement(SelfSignAccessRequirement ar) {
-		if (ar.getIsCertifiedUserRequired() == null) {
-			ar.setIsCertifiedUserRequired(false);
-		}
-		if (ar.getIsValidatedProfileRequired() == null) {
-			ar.setIsValidatedProfileRequired(false);
-		}
-	}
-
-	/**
-	 * @param ar
-	 * @return
-	 */
-	public static void setDefaultValuesForManagedACTAccessRequirement(ManagedACTAccessRequirement ar) {
-		if (ar.getIsCertifiedUserRequired() == null) {
-			ar.setIsCertifiedUserRequired(false);
-		}
-		if (ar.getIsValidatedProfileRequired() == null) {
-			ar.setIsValidatedProfileRequired(false);
-		}
-		if (ar.getIsDUCRequired() == null) {
-			ar.setIsDUCRequired(false);
-		}
+	private static void setDefaultValuesForManagedACTAccessRequirement(ManagedACTAccessRequirement ar) {
 		if (ar.getIsIRBApprovalRequired() == null) {
 			ar.setIsIRBApprovalRequired(false);
 		}
@@ -457,14 +493,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		if (ar.getIsIDUPublic() == null) {
 			ar.setIsIDUPublic(false);
 		}
-		if (ar.getExpirationPeriod() == null) {
-			ar.setExpirationPeriod(DEFAULT_EXPIRATION_PERIOD);
-		}
 		if (ar.getIsIDURequired() == null) {
 			ar.setIsIDURequired(true);
-		}
-		if (ar.getIsTwoFaRequired() == null) {
-			ar.setIsTwoFaRequired(false);
 		}
 	}
 

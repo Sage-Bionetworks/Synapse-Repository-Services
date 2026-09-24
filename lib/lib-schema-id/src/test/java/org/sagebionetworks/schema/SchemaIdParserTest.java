@@ -13,6 +13,7 @@ import org.sagebionetworks.schema.id.SchemaId;
 import org.sagebionetworks.schema.id.SchemaName;
 import org.sagebionetworks.schema.parser.ParseException;
 import org.sagebionetworks.schema.parser.SchemaIdParser;
+import org.sagebionetworks.schema.parser.TokenMgrError;
 import org.sagebionetworks.schema.semantic.version.AlphanumericIdentifier;
 import org.sagebionetworks.schema.semantic.version.Build;
 import org.sagebionetworks.schema.semantic.version.NumericIdentifier;
@@ -22,7 +23,13 @@ import org.sagebionetworks.schema.semantic.version.SemanticVersion;
 import org.sagebionetworks.schema.semantic.version.VersionCore;
 
 public class SchemaIdParserTest {
-	
+
+	/**
+	 * Printable ASCII that is neither part of a token nor skipped as whitespace, so each of these
+	 * raises a lexical error rather than a parse error.
+	 */
+	private static final String UNSUPPORTED_CHARACTERS = "_@#~`\\!%(){}[]<>?*&$'\",:;=|^";
+
 
 	@Test
 	public void testNumericIdentifier() throws ParseException {
@@ -374,7 +381,43 @@ public class SchemaIdParserTest {
 		assertTrue(exception.getMessage().startsWith("Invalid '$id' : 'org.valid-name-0'"));
 		assertTrue(exception.getCause() instanceof ParseException);
 	}
-	
+
+	@Test
+	public void testParseSchemaIdWithUnderscore() {
+		// A character outside the token set fails lexically rather than grammatically, so the cause
+		// is a TokenMgrError. Since that extends Error, an unmapped one escaped the controller layer
+		// as a 500 instead of a 400 (PLFM-9941), which makes the cause the assertion that matters.
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SchemaIdParser.parseSchemaId("org.valid-my_schema");
+		});
+		assertTrue(exception.getMessage().startsWith("Invalid '$id' : 'org.valid-my_schema'"));
+		assertTrue(exception.getCause() instanceof TokenMgrError);
+	}
+
+	@Test
+	public void testParseSchemaIdWithUnderscoreRetainsLexicalPosition() {
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SchemaIdParser.parseSchemaId("org.valid-nam_e");
+		});
+		// the position of the offending character survives the wrapping
+		assertTrue(exception.getMessage().contains("column 14"), exception.getMessage());
+	}
+
+	@Test
+	public void testParseSchemaIdWithUnsupportedCharacters() {
+		for(char unsupported : UNSUPPORTED_CHARACTERS.toCharArray()) {
+			String id = "org.valid-schema" + unsupported + "name";
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+				// call under test
+				SchemaIdParser.parseSchemaId(id);
+			}, "Expected '" + unsupported + "' to be rejected");
+			assertTrue(exception.getMessage().startsWith("Invalid '$id' : '" + id + "'"));
+			assertTrue(exception.getCause() instanceof TokenMgrError);
+		}
+	}
+
 	@Test
 	public void testParseSchemaIdNullId() {
 		String id = null;
@@ -399,7 +442,43 @@ public class SchemaIdParserTest {
 		assertTrue(exception.getMessage().startsWith("Invalid 'organizationName' : 'org.valid.0"));
 		assertTrue(exception.getCause() instanceof ParseException);
 	}
-	
+
+	@Test
+	public void testParseOrganizationNameWithUnderscore() {
+		// See testParseSchemaIdWithUnderscore: an unmapped TokenMgrError surfaced as a 500 (PLFM-9941).
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SchemaIdParser.parseOrganizationName("myorg.sub_name");
+		});
+		assertTrue(exception.getMessage().startsWith("Invalid 'organizationName' : 'myorg.sub_name'"));
+		assertTrue(exception.getMessage().contains("column 10"), exception.getMessage());
+		assertTrue(exception.getCause() instanceof TokenMgrError);
+	}
+
+	@Test
+	public void testParseOrganizationNameWithUnderscoreIsNotNormalized() {
+		// An underscore must be rejected outright. Skipping it would alias 'my_org' onto 'myorg' and
+		// let two distinct names resolve to one organization.
+		assertEquals("myorg", SchemaIdParser.parseOrganizationName("myorg").toString());
+		assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			SchemaIdParser.parseOrganizationName("my_org");
+		});
+	}
+
+	@Test
+	public void testParseOrganizationNameWithUnsupportedCharacters() {
+		for(char unsupported : UNSUPPORTED_CHARACTERS.toCharArray()) {
+			String name = "myorg" + unsupported + "sub";
+			IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{
+				// call under test
+				SchemaIdParser.parseOrganizationName(name);
+			}, "Expected '" + unsupported + "' to be rejected");
+			assertTrue(exception.getMessage().startsWith("Invalid 'organizationName' : '" + name + "'"));
+			assertTrue(exception.getCause() instanceof TokenMgrError);
+		}
+	}
+
 	@Test
 	public void testParseOrganizationNameContainsSlash() {
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, ()->{

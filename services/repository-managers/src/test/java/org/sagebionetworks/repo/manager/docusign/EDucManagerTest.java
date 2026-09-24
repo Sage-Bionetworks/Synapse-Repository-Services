@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucTemplateValidationResult;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -329,6 +330,44 @@ public class EDucManagerTest {
 	}
 
 	@Test
+	public void testRouteForSignatureWithJsonSchemaAccessRequirement() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		// The creator is the only collaborator, so the envelope is kept minimal
+		request.setAccessorChanges(List.of());
+
+		JsonSchemaAccessRequirement ar = new JsonSchemaAccessRequirement();
+		ar.setId(1L);
+		ar.setIsDUCRequired(true);
+		ar.setEDucTemplateId("tpl-abc");
+
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(ar);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
+		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
+		UserProfile creatorProfile = new UserProfile();
+		creatorProfile.setFirstName("Creator");
+		creatorProfile.setLastName("User");
+		when(mockUserProfileDao.get("100")).thenReturn(creatorProfile);
+		when(mockDocuSignClient.createEnvelope(eq("tpl-abc"), any(), any())).thenReturn("env-xyz");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.routeForSignature(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(9), result.getRemaining());
+
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), any(), any());
+		verify(mockDocuSignClient).sendEnvelope("env-xyz");
+		verify(mockEDucQuotaDao).create(eq(100L), anyLong(), eq("env-xyz"));
+	}
+
+	@Test
 	public void testRouteForSignatureWithUnauthorizedUser() {
 		Request request = buildValidRequest();
 		when(mockRequestDao.get("req-1")).thenReturn(request);
@@ -485,7 +524,7 @@ public class EDucManagerTest {
 	}
 
 	@Test
-	public void testRouteForSignatureWithNonManagedACTRequirement() {
+	public void testRouteForSignatureWithRequirementNotSupportingDUC() {
 		Request request = buildValidRequest();
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
@@ -495,7 +534,7 @@ public class EDucManagerTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> eDucManager.routeForSignature(user, "req-1"));
 
-		assertEquals("The access requirement is not a ManagedACTAccessRequirement.", ex.getMessage());
+		assertEquals("The access requirement does not support a Data Use Certificate.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignClient);
 	}
 

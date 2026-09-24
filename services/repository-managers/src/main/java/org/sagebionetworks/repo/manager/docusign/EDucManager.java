@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -273,8 +273,8 @@ public class EDucManager {
 			return request;
 		}
 
-		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
-		String templateId = managedAr.getEDucTemplateId();
+		HasDataUseCertificate dataUseCertificate = validateEDucRequest(request);
+		String templateId = dataUseCertificate.getEDucTemplateId();
 		// No envelope exists yet, so the collaborator roles are assigned from scratch.
 		EDucContent content = buildEDucContent(request, List.of());
 
@@ -289,17 +289,17 @@ public class EDucManager {
 	 * Validates that the request's access requirement supports an eDUC and that the request has
 	 * the principal investigator and signing official needed to build the envelope.
 	 *
-	 * @return the ManagedACTAccessRequirement (which carries the eDUC template ID)
+	 * @return the access requirement, which carries the eDUC template ID
 	 */
-	private ManagedACTAccessRequirement validateEDucRequest(RequestInterface request) {
+	private HasDataUseCertificate validateEDucRequest(RequestInterface request) {
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		if (!(ar instanceof ManagedACTAccessRequirement managedAr)) {
-			throw new IllegalArgumentException("The access requirement is not a ManagedACTAccessRequirement.");
+		if (!(ar instanceof HasDataUseCertificate dataUseCertificate)) {
+			throw new IllegalArgumentException("The access requirement does not support a Data Use Certificate.");
 		}
-		if (!Boolean.TRUE.equals(managedAr.getIsDUCRequired())) {
+		if (!Boolean.TRUE.equals(dataUseCertificate.getIsDUCRequired())) {
 			throw new IllegalArgumentException("The access requirement does not require a DUC.");
 		}
-		if (StringUtils.isBlank(managedAr.getEDucTemplateId())) {
+		if (StringUtils.isBlank(dataUseCertificate.getEDucTemplateId())) {
 			throw new IllegalArgumentException("The access requirement does not have an eDUC template ID configured.");
 		}
 
@@ -314,7 +314,7 @@ public class EDucManager {
 		ValidateArgument.required(so.getInstitutionalEmail(), "signingOfficial.institutionalEmail");
 		ValidateArgument.requiredNotBlank(so.getName(), "signingOfficial.name");
 
-		return managedAr;
+		return dataUseCertificate;
 	}
 
 	// The recipient identities (email + name per role) and tab values derived from a request that

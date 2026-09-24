@@ -1,0 +1,22 @@
+{
+	"description": "How an output column of a defining-SQL object derives from its source column(s).",
+	"type": "string",
+	"enum": [
+		{
+			"name": "IDENTITY",
+			"description": "The output value is exactly one source column, unchanged by any function, cast, or arithmetic (an 'as' alias still counts as identity)."
+		},
+		{
+			"name": "AGGREGATE",
+			"description": "The output is a SQL set/aggregate function (e.g. COUNT, MAX) over its inputs."
+		},
+		{
+			"name": "EXPRESSION",
+			"description": "The output is a non-aggregate transformation over one or more source columns."
+		},
+		{
+			"name": "LITERAL",
+			"description": "The output is a constant with no source column input."
+		}
+	]
+}

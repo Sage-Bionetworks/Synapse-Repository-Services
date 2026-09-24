@@ -29,7 +29,8 @@ public class SchemaIdParser {
 	 * Parse an $id string into a SchemaId object.
 	 * 
 	 * @param id
-	 * @throws IllegalArgumentException that wraps any ParseException
+	 * @throws IllegalArgumentException if the $id does not match the grammar, or contains a
+	 *         character the grammar does not recognize.
 	 * @return
 	 */
 	public static SchemaId parseSchemaId(String id) {
@@ -40,10 +41,16 @@ public class SchemaIdParser {
 		try {
 			return parser.schemaId();
 		} catch (ParseException e) {
-			throw new IllegalArgumentException("Invalid '$id' : '" + id + "'\n" + e.getMessage(), e);
+			throw invalidValue("$id", id, e);
+		} catch (TokenMgrError e) {
+			// An unrecognized character yields a TokenMgrError, which extends Error rather than
+			// Exception. Left uncaught it escapes the controller layer as a 500, so it is reported
+			// the same way a grammar violation is (PLFM-9941). Separate catch blocks rather than a
+			// multi-catch because JavaCC parses this block with a pre-Java-7 grammar.
+			throw invalidValue("$id", id, e);
 		}
 	}
-	
+
 		/**
 	 * If the passed $id is absolute then it will be converted to relative.
 	 * If the passed $id is already relative then it will be returned unmodified.
@@ -66,6 +73,8 @@ public class SchemaIdParser {
 	/**
 	 * Parse an organization name into an OrganizationName object.
 	 * @param organizationName
+	 * @throws IllegalArgumentException if the name does not match the grammar, or contains a
+	 *         character the grammar does not recognize.
 	 * @return
 	 */
 	public static OrganizationName parseOrganizationName(String organizationName) {
@@ -76,8 +85,19 @@ public class SchemaIdParser {
 		try {
 			return parser.organizationNameTerminal();
 		} catch (ParseException e) {
-			throw new IllegalArgumentException("Invalid 'organizationName' : '" + organizationName + "'\n" + e.getMessage(), e);
+			throw invalidValue("organizationName", organizationName, e);
+		} catch (TokenMgrError e) {
+			// See parseSchemaId: TokenMgrError extends Error and would otherwise surface as a 500.
+			throw invalidValue("organizationName", organizationName, e);
 		}
+	}
+
+	/**
+	 * Uniform IllegalArgumentException for any input the parser rejects, whether the failure was
+	 * lexical or grammatical.
+	 */
+	private static IllegalArgumentException invalidValue(String name, String value, Throwable cause) {
+		return new IllegalArgumentException("Invalid '" + name + "' : '" + value + "'\n" + cause.getMessage(), cause);
 	}
 
 }

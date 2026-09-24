@@ -18,6 +18,9 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
+import org.sagebionetworks.repo.model.HasAccessorRequirement;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
+import org.sagebionetworks.repo.model.HasExpiration;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -57,6 +60,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UploadContentToS3DAO;
+import org.sagebionetworks.repo.model.dbo.dao.AccessRequirementUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.SubmissionDAO;
 import org.sagebionetworks.repo.model.dbo.dao.discussion.DiscussionThreadDAO;
@@ -192,26 +196,29 @@ public class SubmissionManagerImpl implements SubmissionManager{
 				"A submission has been created. It has to be reviewed or cancelled before another submission can be created.");
 
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		ValidateArgument.requirement(ar instanceof ManagedACTAccessRequirement,
-				"A Submission can only be created for an ManagedACTAccessRequirement.");
+		ValidateArgument.requirement(ar instanceof HasExpiration,
+				"A Submission can only be created for a managed access requirement.");
 		submissionToCreate.setAccessRequirementVersion(ar.getVersionNumber());
 
 		// validate based on the access requirement
-		ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) ar;
-		if (actAR.getIsDUCRequired()) {
+		if (ar instanceof HasDataUseCertificate duc && Boolean.TRUE.equals(duc.getIsDUCRequired())) {
 			ValidateArgument.requirement(request.getDucFileHandleId()!= null,
 					"You must provide a Data Use Certification document.");
 			submissionToCreate.setDucFileHandleId(request.getDucFileHandleId());
 		}
-		if (actAR.getIsIRBApprovalRequired()) {
-			ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
-					"You must provide an Institutional Review Board approval document.");
-			submissionToCreate.setIrbFileHandleId(request.getIrbFileHandleId());
-		}
-		if (actAR.getAreOtherAttachmentsRequired()) {
-			ValidateArgument.requirement(request.getAttachments()!= null && !request.getAttachments().isEmpty(),
-					"You must provide the required attachment(s).");
-			submissionToCreate.setAttachments(request.getAttachments());
+		// The IRB approval and the supplemental attachments are only asked for by the managed ACT
+		// requirement; for a schema based requirement they are described by the bound schema instead.
+		if (ar instanceof ManagedACTAccessRequirement actAR) {
+			if (actAR.getIsIRBApprovalRequired()) {
+				ValidateArgument.requirement(request.getIrbFileHandleId()!= null,
+						"You must provide an Institutional Review Board approval document.");
+				submissionToCreate.setIrbFileHandleId(request.getIrbFileHandleId());
+			}
+			if (actAR.getAreOtherAttachmentsRequired()) {
+				ValidateArgument.requirement(request.getAttachments()!= null && !request.getAttachments().isEmpty(),
+						"You must provide the required attachment(s).");
+				submissionToCreate.setAttachments(request.getAttachments());
+			}
 		}
 		ValidateArgument.requirement(request.getAccessorChanges() != null && !request.getAccessorChanges().isEmpty(),
 				"Must provide at least one accessor.");
@@ -237,7 +244,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			}
 		}
 
-		accessAprovalManager.validateHasAccessorRequirement(actAR, accessorsWillHaveAccess);
+		accessAprovalManager.validateHasAccessorRequirement((HasAccessorRequirement) ar, accessorsWillHaveAccess);
 
 		if (!accessorsAlreadyHaveAccess.isEmpty()) {
 			ValidateArgument.requirement(accessApprovalDao.hasApprovalsSubmittedBy(
@@ -305,7 +312,7 @@ public class SubmissionManagerImpl implements SubmissionManager{
 						"Cannot change state of a submission with "+submission.getState()+" state.");
 		
 		if (request.getNewState().equals(SubmissionState.APPROVED)) {
-			ManagedACTAccessRequirement ar = (ManagedACTAccessRequirement)accessRequirementDao.get(submission.getAccessRequirementId());
+			HasExpiration ar = (HasExpiration) accessRequirementDao.get(submission.getAccessRequirementId());
 			Date expiredOn = calculateExpiredOn(ar.getExpirationPeriod());
 			
 			List<AccessApproval> approvalsToCreateOrUpdate = new ArrayList<AccessApproval>();
@@ -447,7 +454,9 @@ public class SubmissionManagerImpl implements SubmissionManager{
 			expiredOn = getLatestExpirationDate(approvals);
 		}
 
-		if (concreteType.equals(ManagedACTAccessRequirement.class.getName())) {
+		// Every access requirement that is satisfied by a reviewed submission reports the status of that
+		// submission alongside the approval state.
+		if (AccessRequirementUtils.MANAGED_REQUIREMENT_TYPES.contains(concreteType)) {
 			ManagedACTAccessRequirementStatus status = new ManagedACTAccessRequirementStatus();
 			SubmissionStatus currentSubmissionStatus = submissionDao.getStatusByRequirementIdAndPrincipalId(
 					accessRequirementId, userInfo.getId().toString());

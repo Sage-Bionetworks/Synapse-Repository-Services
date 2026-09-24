@@ -18,9 +18,12 @@ SearchIndex enforces per-row ACL through **benefactor columns**: one non-analyze
 
 The API accepts an opaque OpenSearch query DSL (typed passthrough POJOs generated in `lib-auto-generated`'s `search/dsl/`). `SearchDslValidator` is the safety layer behind the POJO's structural allowlist: it enforces per-kind allowlists (`ALLOWED_QUERY_KINDS`, aggregation kinds), depth/clause caps, rejects leading wildcards, and rejects anything the OpenSearch client supports but nobody explicitly allowlisted. `SearchFieldRewriter` and `SearchOpaqueJsonUtil` handle field rewriting and opaque-JSON traversal. Preserve the extensive rationale comments — the caps and rejections are security controls, not arbitrary limits.
 
+**Opaque leaf-value shapes are schema-guided, not hand-maintained.** A number of DSL slots (`match.<col>.query`, `range.<col>.gte`, the aggregation `missing` substitution, ...) are schema-typed as a bare `"type":"object"` because their value is polymorphic. `SearchDslValidator.walkOpaqueLeaves` discovers every such leaf by walking the `dsl.Query` / `dsl.Aggregation` effective schema (`SchemaCache`/`ObjectSchema`) rather than a hand-picked list, and requires a scalar value by default. A leaf whose real shape is legitimately non-scalar, or checked elsewhere on the typed object, is an explicit entry in `OPAQUE_LEAF_EXCEPTIONS`. `SearchDslOpaqueLeafCoverageTest` fails the build if the schema's discovered opaque-leaf set drifts from a frozen list, forcing a conscious decision on any newly added opaque property.
+
 ## Anti-Patterns — Do NOT
 
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).
+- **Do NOT add a new opaque (`"type":"object"`) property to the `dsl.Query` / `dsl.Aggregation` schema family without updating `SearchDslOpaqueLeafCoverageTest`'s frozen leaf set.** The build fails until the addition is accounted for; if the new leaf is not a plain scalar, also add it to `SearchDslValidator.OPAQUE_LEAF_EXCEPTIONS`.
 - **Do NOT emit a query without the benefactor `accessFilters`** — see row-level access control above.
 
 ## Legacy

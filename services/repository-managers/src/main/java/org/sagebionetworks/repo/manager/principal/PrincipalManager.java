@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.principal;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -97,6 +98,20 @@ public interface PrincipalManager {
 	 * @throws NotFoundException
 	 */
 	NotificationEmail getNotificationEmail(UserInfo userInfo) throws NotFoundException;
+
+	/**
+	 * Administrative override that makes the given email address the notification email of another user, binding
+	 * the address to that user first if they do not already own it. The normal email validation flow is bypassed, so
+	 * the caller is responsible for verifying the user's identity out of band.
+	 *
+	 * @param userInfo    the caller, which must be an administrator
+	 * @param principalId the user whose notification email is being changed
+	 * @param request     the new address, plus an opt-in flag to unbind the previous notification address. Unbinding
+	 *                    also removes the OAuth provider bindings attached to that specific address, disabling
+	 *                    federated sign-in through those providers; ORCID and OpenID aliases are unaffected.
+	 * @return the resulting notification email, including its quarantine status if present
+	 */
+	NotificationEmail updateNotificationEmailForUser(UserInfo userInfo, Long principalId, UpdateNotificationEmailRequest request);
 
 	/**
 	 * Get the principalId for the given alias and alias type

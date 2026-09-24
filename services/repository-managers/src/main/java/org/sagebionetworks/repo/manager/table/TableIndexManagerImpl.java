@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
@@ -70,6 +71,7 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.sagebionetworks.workers.util.semaphore.LockUnavilableException;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionStatus;
@@ -99,18 +101,24 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	private final MetadataIndexProviderFactory metadataIndexProviderFactory;
 	private final ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
 	private final TableRowSearchProcessor searchProcessor;
+	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
-	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor){
+	public TableIndexManagerImpl(TableIndexDAO dao, TableManagerSupport tableManagerSupport, MetadataIndexProviderFactory metadataIndexProviderFactory, ObjectFieldModelResolverFactory objectFieldModelResolverFactory, TableRowSearchProcessor searchProcessor,
+			// @Lazy breaks a circular dependency: this manager is the singleton returned by
+			// TableIndexConnectionFactory, and IndexAuthorizationSnapshotManager depends on that factory.
+			@Lazy IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager){
 		ValidateArgument.required(dao, "TableIndexDao");
 		ValidateArgument.required(tableManagerSupport, "TableManagerSupport");
 		ValidateArgument.required(metadataIndexProviderFactory, "MetadataIndexProviderFactory");
 		ValidateArgument.required(objectFieldModelResolverFactory, "ObjectFieldModelResolverFactory");
 		ValidateArgument.required(searchProcessor, "RowSearchProcessor");
+		ValidateArgument.required(indexAuthorizationSnapshotManager, "IndexAuthorizationSnapshotManager");
 		this.tableIndexDao = dao;
 		this.tableManagerSupport = tableManagerSupport;
 		this.metadataIndexProviderFactory = metadataIndexProviderFactory;
 		this.objectFieldModelResolverFactory = objectFieldModelResolverFactory;
 		this.searchProcessor = searchProcessor;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 	/*
 	 * (non-Javadoc)
@@ -212,6 +220,16 @@ public class TableIndexManagerImpl implements TableIndexManager {
 	@Override
 	public void setIndexVersion(final IdAndVersion tableId, Long indexVersion) {
 		tableIndexDao.setMaxCurrentCompleteVersionForTable(tableId, indexVersion);
+	}
+
+	@Override
+	public void saveAuthorizationSnapshot(IdAndVersion tableId, IndexAuthorizationSnapshot snapshot) {
+		tableIndexDao.saveAuthorizationSnapshot(tableId, snapshot);
+	}
+
+	@Override
+	public Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion tableId) {
+		return tableIndexDao.getAuthorizationSnapshot(tableId);
 	}
 	
 	@Override
@@ -530,6 +548,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			String lastEtag = buildIndexToLatestChange(idAndVersion, iterator, targetChangeNumber.get(),
 					tableResetToken);
 			log.info("Completed index update for: " + idAndVersion);
+			// Capture the as-built authorization snapshot before go-live so it reflects exactly the index
+			// we just built. The exclusive lock held here also guards the table schema, so the bound
+			// schema read here is the schema the index was built against.
+			saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
+					tableManagerSupport.getIndexDescription(idAndVersion), tableManagerSupport.getTableSchema(idAndVersion)));
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, tableResetToken, lastEtag);
 		} catch (InvalidStatusTokenException e) {
 			// PLFM-6069, invalid tokens should not cause the table state to be set to failed, but

@@ -491,8 +491,124 @@ public class MaterializedViewUpdateWorkerIntegrationTest {
 	}
 
 	/**
+	 * Reproduces the data-exfiltration vulnerability described in PLFM-9977.
+	 *
+	 * A materialized view can be defined on top of another materialized view. When the defining SQL of an inner
+	 * view is repointed away from a source the caller cannot access, the inner view transitions to PROCESSING, but
+	 * any transitive dependent is left AVAILABLE while its index still physically holds rows derived from the
+	 * original, protected source. Query-time authorization is evaluated against the current defining SQL graph, so
+	 * once the inner view points at a source the caller can access, the caller becomes authorized to query the
+	 * dependents and can read the stale, protected data until they are fully rebuilt.
+	 *
+	 * This exercises a chain more than one hop deep (inner -&gt; outer -&gt; grandOuter) to prove the invalidation
+	 * walks the full transitive closure, not just the immediate dependents of the repointed view.
+	 *
+	 * Secure behavior asserted here: after the inner view is repointed, the caller must never be able to read the
+	 * secret data through any dependent view - no dependent may be queryable in its stale state until it has been
+	 * fully rebuilt.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testNestedMaterializedViewExfiltrationOnSourceRepoint() throws Exception {
+		// A project the attacker can READ but not DOWNLOAD: it holds the secret table. READ (without DOWNLOAD)
+		// makes the pre-repoint failure specifically the DOWNLOAD denial on the table dependency.
+		String secretProjectId = createProject();
+		aclDaoHelper.update(secretProjectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+		});
+
+		// A project the attacker can both READ and DOWNLOAD: it holds the accessible table and the two views.
+		String accessibleProjectId = createProject();
+		aclDaoHelper.update(accessibleProjectId, ObjectType.ENTITY, a -> {
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.READ));
+			a.getResourceAccess().add(createResourceAccess(userInfo.getId(), ACCESS_TYPE.DOWNLOAD));
+		});
+
+		// Both tables share a single-column schema so repointing the inner view never changes any downstream
+		// schema, isolating the test to the status/authorization behavior.
+		ColumnModel valueColumn = columnModelManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("value").setColumnType(ColumnType.STRING).setMaximumSize(50L));
+		List<String> columnIds = List.of(valueColumn.getId());
+
+		IdAndVersion secretTableId = createTable(secretProjectId, columnIds);
+		appendRowsToTable(List.of(valueColumn), secretTableId.toString(),
+				List.of(new Row().setValues(List.of("SECRET"))));
+
+		IdAndVersion accessibleTableId = createTable(accessibleProjectId, columnIds);
+		appendRowsToTable(List.of(valueColumn), accessibleTableId.toString(),
+				List.of(new Row().setValues(List.of("PUBLIC"))));
+
+		// The inner view initially exposes the secret table.
+		IdAndVersion innerId = createMaterializedView(accessibleProjectId, "select * from " + secretTableId);
+
+		// The outer view is built on the inner view: its index physically materializes the secret data.
+		IdAndVersion outerId = createMaterializedView(accessibleProjectId, "select * from " + innerId);
+
+		// A third view built on the outer view, so the dependency chain is more than one hop deep.
+		IdAndVersion grandOuterId = createMaterializedView(accessibleProjectId, "select * from " + outerId);
+
+		// The views that transitively hold the secret data through the inner view.
+		List<IdAndVersion> dependentViewIds = List.of(outerId, grandOuterId);
+
+		// Wait until the secret data has propagated all the way down the chain to the deepest view (as the admin).
+		asyncHelper.assertQueryResult(adminUserInfo, "select * from " + grandOuterId, (results) -> {
+			assertEquals(List.of("SECRET"),
+					results.getQueryResult().getQueryResults().getRows().iterator().next().getValues());
+		}, MAX_WAIT_MS);
+
+		// The attacker cannot query any view: authorization walks the dependency graph down to the secret
+		// table, on which the attacker lacks DOWNLOAD.
+		for (IdAndVersion viewId : List.of(innerId, outerId, grandOuterId)) {
+			String message = assertThrows(UnauthorizedException.class, () -> {
+				asyncHelper.assertQueryResult(userInfo, "select * from " + viewId, (results) -> {
+				}, MAX_WAIT_MS);
+			}).getMessage();
+			assertEquals("You lack DOWNLOAD access to the requested entity.", message);
+		}
+
+		// The attack: repoint the inner view at the accessible table. This transitions the inner view to
+		// PROCESSING, but leaves the outer view AVAILABLE while its index still holds the secret rows.
+		asyncHelper.updateMaterializedView(innerId.getId().toString(), adminUserInfo,
+				"select * from " + accessibleTableId);
+
+		// From this instant the attacker is authorized for the dependent views (each resolves through inner to the
+		// accessible table, all of which the attacker can DOWNLOAD). Poll every dependent view as the attacker from
+		// the moment of the repoint until the deepest one has been rebuilt to the accessible data, asserting that
+		// the attacker never observes the secret value at any point during the rebuild window. The matcher is a
+		// no-op so that the rows are inspected here rather than inside assertQueryResult's retry loop, which would
+		// otherwise swallow a transient leak once the views eventually rebuild.
+		TimeUtils.waitFor(MAX_WAIT_MS, 100L, () -> {
+			boolean deepestRebuiltToAccessibleData = false;
+
+			for (IdAndVersion viewId : dependentViewIds) {
+				try {
+					List<Row> rows = asyncHelper.assertQueryResult(userInfo, "select * from " + viewId, (results) -> {
+					}, MAX_WAIT_MS).getQueryResult().getQueryResults().getRows();
+
+					boolean leakedSecret = rows.stream().anyMatch(r -> r.getValues().contains("SECRET"));
+					assertFalse(leakedSecret, "SECURITY (PLFM-9977): the attacker read secret data through "
+							+ "transitively dependent materialized view " + viewId + " while it was rebuilt after the "
+							+ "inner view was repointed.");
+
+					// Done once the deepest view has been fully rebuilt to the accessible data.
+					if (viewId.equals(grandOuterId)) {
+						deepestRebuiltToAccessibleData = rows.stream().anyMatch(r -> r.getValues().contains("PUBLIC"));
+					}
+				} catch (AssertionError e) {
+					throw e;
+				} catch (Throwable e) {
+					// A dependent view may be transiently unavailable while it is rebuilt; keep polling.
+				}
+			}
+
+			return new Pair<>(deepestRebuiltToAccessibleData, null);
+		});
+	}
+
+	/**
 	 * This is a test for joining a view with a table.
-	 * 
+	 *
 	 * @throws Exception
 	 */
 	@Test

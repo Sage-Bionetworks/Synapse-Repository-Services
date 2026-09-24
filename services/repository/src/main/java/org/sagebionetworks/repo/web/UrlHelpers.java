@@ -1366,7 +1366,13 @@ public class UrlHelpers {
 	 * Admin endpoint to remove 2FA from a user, used to recover an account when the user has lost their authenticator and password.
 	 */
 	public static final String ADMIN_USER_2FA = ADMIN_USER + ID + "/2fa";
-	
+
+	/**
+	 * Admin endpoint to change the notification email of a user, used to recover an account when the user no longer
+	 * has access to the mailbox the password reset link would be sent to.
+	 */
+	public static final String ADMIN_USER_NOTIFICATION_EMAIL = ADMIN_USER + ID + NOTIFICATION_EMAIL;
+
 	public static final String ADMIN_EMAIL_QUARANTINE_EXPIRE = ADMIN + "/emailQuarantine/expire";
 	
 	public static final String REALM = "/realm";
