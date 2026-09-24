@@ -20,7 +20,6 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -79,8 +78,7 @@ public class UploadContentToS3DAOImpl implements UploadContentToS3DAO {
 		om.setContentDisposition(ContentDispositionUtils.getContentDispositionValue(key));
 		om.setContentEncoding("gzip");
 		om.setContentLength(compressedBytes.length);
-		PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, key, in, om)
-				.withCannedAcl(CannedAccessControlList.PublicRead);
+		PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, key, in, om);
 		s3Client.putObject(putObjectRequest);
 	}
 
