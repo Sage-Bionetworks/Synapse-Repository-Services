@@ -72,7 +72,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 		tokenIdsToDelete = new ArrayList<>();
 		
-		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null);
+		fullAccessToken = oidcTokenManager.createClientTotalAccessToken(userInfo.getId(), null, null);
 	}
 
 	@AfterEach
@@ -93,7 +93,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 
 	// Helper for getting token and retrieving the ID
 	private String createTokenAndGetId() {
-		String tokenId = getTokenIdFromJwt(personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken());
+		String tokenId = getTokenIdFromJwt(personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, null).getToken());
 		tokenIdsToDelete.add(tokenId);
 		return tokenId;
 	}
@@ -101,7 +101,7 @@ public class PersonalAccessTokenManagerAutowiredTest {
 	@Test
 	void testIssueAndRevokeToken() {
 		// method under test -- create
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, new AccessTokenGenerationRequest(), OAUTH_ENDPOINT, null).getToken();
 		assertTrue(StringUtils.isNotBlank(token));
 
 		String tokenId = this.getTokenIdFromJwt(token);
@@ -124,11 +124,11 @@ public class PersonalAccessTokenManagerAutowiredTest {
 		request.setName("token name");
 
 		// Create a token
-		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT).getToken();
+		String token = personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT, null).getToken();
 		String tokenId = this.getTokenIdFromJwt(token);
 
 		// Method under test: a user should not be able to create two tokens with the same name, and should get a specific error message
-		assertThrows(IllegalArgumentException.class, () -> personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT).getToken(), PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
+		assertThrows(IllegalArgumentException.class, () -> personalAccessTokenManager.issueToken(userInfo, fullAccessToken, request, OAUTH_ENDPOINT, null).getToken(), PersonalAccessTokenManagerImpl.DUPLICATE_TOKEN_NAME_MSG);
 
 		// Cleanup -- delete the created token
 		personalAccessTokenManager.revokeToken(userInfo, tokenId);

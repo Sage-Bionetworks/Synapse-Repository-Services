@@ -89,7 +89,8 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 
 	@WriteTransaction
 	@Override
-	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
+	public AccessTokenGenerationResponse issueToken(UserInfo userInfo, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
+			String identityProvider) {
 		ValidateArgument.required(request, "AccessTokenGenerationRequest");
 		if (userInfo.isUserAnonymous()) {
 			throw new UnauthenticatedException("Anonymous users may not issue personal access tokens.");
@@ -153,7 +154,9 @@ public class PersonalAccessTokenManagerImpl implements PersonalAccessTokenManage
 			}
 		}
 		AccessTokenGenerationResponse response = new AccessTokenGenerationResponse();
-		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record));
+		// The provider that authenticated the session creating this token, since a personal access token
+		// is later presented on its own without any identity provider being involved.
+		response.setToken(oidcTokenManager.createPersonalAccessToken(oauthEndpoint, record, identityProvider));
 
 		// If the user has over 100 tokens, delete the least recently used to get under the limit.
 		personalAccessTokenDao.deleteLeastRecentlyUsedTokensOverLimit(userInfo.getId().toString(), MAX_NUMBER_OF_TOKENS_PER_USER);
