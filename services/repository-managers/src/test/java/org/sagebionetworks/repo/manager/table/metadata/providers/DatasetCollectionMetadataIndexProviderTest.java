@@ -81,6 +81,22 @@ public class DatasetCollectionMetadataIndexProviderTest {
 	}
 
 	@Test
+	public void testGetViewFilterWithNullItemVersion() {
+		// An item with a null version number always references the latest version of the dataset (PLFM-8384).
+		items = Arrays.asList(new EntityRef().setEntityId("syn11").setVersionNumber(null),
+				new EntityRef().setEntityId("syn22").setVersionNumber(3L));
+
+		when(mockNodeDao.getNodeItems(viewId)).thenReturn(items);
+		// call under test
+		ViewFilter filter = provider.getViewFilter(viewId);
+		Set<IdAndVersion> expectedScope = Set.of(
+				IdAndVersion.newBuilder().setId(11L).setVersion(null).build(),
+				IdAndVersion.newBuilder().setId(22L).setVersion(3L).build());
+		ViewFilter expected = new IdAndVersionFilter(ReplicationType.ENTITY, subTypes, expectedScope);
+		assertEquals(filter, expected);
+	}
+
+	@Test
 	public void testGetViewFilterWithTypeAndScope() {
 		// call under test
 		ViewFilter filter = provider.getViewFilter(viewScopeType.getTypeMask(), scope);
