@@ -113,6 +113,8 @@ public class TableViewManagerImpl implements TableViewManager {
 	private MetadataIndexProviderFactory metadataIndexProviderFactory;
 	@Autowired
 	private ObjectFieldModelResolverFactory objectFieldModelResolverFactory;
+	@Autowired
+	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	/*
 	 * (non-Javadoc)
@@ -548,6 +550,10 @@ public class TableViewManagerImpl implements TableViewManager {
 			// both the version and schema MD5 are used to determine if the view is up-to-date. 
 			// The schema MD5 is already set when resetting the index
 			indexManager.setIndexVersion(idAndVersion, viewVersion);
+			// Capture the as-built authorization snapshot before go-live, using the description and schema
+			// this build was bound to so the snapshot reflects exactly the index we just built.
+			indexManager.saveAuthorizationSnapshot(idAndVersion,
+					indexAuthorizationSnapshotManager.buildSnapshot(indexDescription, viewSchema));
 			// Attempt to set the table to complete.
 			tableManagerSupport.attemptToSetTableStatusToAvailable(idAndVersion, token, DEFAULT_ETAG);
 			log.info(String.format("Set view: '%s' to AVAILABLE.", idAndVersion.toString()));
