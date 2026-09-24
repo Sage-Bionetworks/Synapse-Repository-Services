@@ -8,7 +8,7 @@ OpenSearch-backed search: index lifecycle/build, the query surface, and DSL vali
 
 - **Endpoint is discovered via `describeDomain`**, not injected from config — code must resolve it at runtime.
 - **Shard count is computed from the source table's byte size** at build time (clamped to a max), so index topology tracks data size.
-- The build reads the bound schema (via `tableManagerSupport.getTableSchema`) rather than re-translating the defining SQL.
+- **The build derives its document schema from its own translation of the defining SQL, then rebinds it after the alias swap** — it must never read back the schema bound by an earlier registration. See the anti-pattern below.
 
 ## Row-level access control
 
@@ -25,6 +25,8 @@ The API accepts an opaque OpenSearch query DSL (typed passthrough POJOs generate
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).
 - **Do NOT add a new opaque (`"type":"object"`) property to the `dsl.Query` / `dsl.Aggregation` schema family without updating `SearchDslOpaqueLeafCoverageTest`'s frozen leaf set.** The build fails until the addition is accounted for; if the new leaf is not a plain scalar, also add it to `SearchDslValidator.OPAQUE_LEAF_EXCEPTIONS`.
 - **Do NOT emit a query without the benefactor `accessFilters`** — see row-level access control above.
+- **Do NOT build the index against the bound schema (`tableManagerSupport.getTableSchema(searchIndexId)`).** Nothing re-registers a SearchIndex when its *source's* schema changes, yet that change is exactly what fans out the rebuild — so the bound schema can describe a shape the source no longer has. Pairing it with freshly translated row values makes the positional zip in the row handler silently misread every row (evidence: PLFM-9714, reproduced by `SearchIndexLifecycleWorkerAutowireTest` inserting a column into a source MV's select list). Derive the schema from this build's own `QueryTranslator` and rebind it only after the alias swap, as `MaterializedViewManagerImpl` does around its index swap.
+- **Do NOT infer the benefactor-column count from the streamed row width.** The row handler is told the document-column and trailing-benefactor counts and fails closed on any mismatch. Treating surplus values as benefactors indexes rows under a benefactor they do not belong to whenever the surplus value parses as a long, which silently corrupts query-time ACL filtering instead of failing the build.
 
 ## Legacy
 
