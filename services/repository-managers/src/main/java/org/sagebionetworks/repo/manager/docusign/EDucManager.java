@@ -221,8 +221,14 @@ public class EDucManager {
 			throw new UnauthorizedException("Only the request creator or an administrator can preview the eDUC.");
 		}
 
+		// A draft built by an earlier preview still holds the values it was created with, so it is brought
+		// up to date before being rendered again.
+		boolean reusingDraft = request.getEDucSignatureEnvelopeId() != null;
 		request = createDraftEDuc(request);
 		String envelopeId = request.getEDucSignatureEnvelopeId();
+		if (reusingDraft) {
+			refreshDraftSenderFields(request, envelopeId);
+		}
 
 		byte[] pdfBytes = docuSignClient.getDocument(envelopeId);
 
@@ -283,6 +289,28 @@ public class EDucManager {
 		request.setEDucSignatureEnvelopeId(envelopeId);
 		requestDao.update(request);
 		return request;
+	}
+
+	/**
+	 * Brings the sender fields of an existing draft up to date with the request, so that previewing after
+	 * a change shows the current content.
+	 * <p>
+	 * Only sender fields need this. DocuSign does not resolve a recipient's own tabs until signing, so a
+	 * preview never shows those whatever the draft holds; a sender field is resolved by the sender, which
+	 * is what makes it visible in a preview and stale if left alone. An envelope already out for signature
+	 * is left untouched — its sender fields can no longer be set, and applying changes to a routed
+	 * envelope belongs to {@link #updateRoutedEnvelope}.
+	 */
+	private void refreshDraftSenderFields(RequestInterface request, String envelopeId) {
+		EnvelopeStatusResult statusResult = docuSignClient.getEnvelopeStatus(envelopeId);
+		if (!EDucStatusEnum.draft.equals(statusResult.status().getDucStatus())) {
+			return;
+		}
+		validateEDucRequest(request);
+		// The existing recipients are read so that the collaborators keep the roles the draft gave them,
+		// and so each value is matched to the same tab it was first written to.
+		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
+		docuSignClient.refreshSenderFields(envelopeId, content.tabValues());
 	}
 
 	/**

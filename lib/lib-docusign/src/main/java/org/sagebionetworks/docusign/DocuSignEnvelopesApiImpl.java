@@ -137,6 +137,36 @@ class DocuSignEnvelopesApiImpl implements DocuSignEnvelopesApi {
 	}
 
 	@Override
+	public Tabs getDocumentTabs(String envelopeId, String documentId) {
+		return retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.getDocumentTabs(config.getAccountId(), envelopeId, documentId);
+		});
+	}
+
+	@Override
+	public void updateDocumentTabs(String envelopeId, String documentId, Tabs tabs) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.updateDocumentTabs(config.getAccountId(), envelopeId, documentId, tabs);
+		});
+	}
+
+	@Override
+	public void createDocumentTabs(String envelopeId, String documentId, Tabs tabs) {
+		retryHelper.executeWithRetry(accessToken -> {
+			ApiClient apiClient = new ApiClient(config.getBasePath());
+			apiClient.addDefaultHeader("Authorization", "Bearer " + accessToken);
+			EnvelopesApi envelopesApi = new EnvelopesApi(apiClient);
+			return envelopesApi.createDocumentTabs(config.getAccountId(), envelopeId, documentId, tabs);
+		});
+	}
+
+	@Override
 	public TemplateInformation listTemplates(String envelopeId) {
 		return retryHelper.executeWithRetry(accessToken -> {
 			ApiClient apiClient = new ApiClient(config.getBasePath());

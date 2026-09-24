@@ -60,4 +60,22 @@ interface DocuSignEnvelopesApi {
 	 * nested in it, so they have to be created in their own request.
 	 */
 	void createTabs(String envelopeId, String recipientId, Tabs tabs);
+
+	/**
+	 * The tabs belonging to one of an envelope's documents rather than to a recipient, which is where an
+	 * envelope keeps its sender fields.
+	 */
+	Tabs getDocumentTabs(String envelopeId, String documentId);
+
+	/**
+	 * Set the values of sender fields already on an envelope's document, leaving their placement alone.
+	 */
+	void updateDocumentTabs(String envelopeId, String documentId, Tabs tabs);
+
+	/**
+	 * Add tabs to an envelope's document. Needed only when an envelope created from a template did not
+	 * inherit the template's sender fields, in which case they are placed from the template's own
+	 * definitions.
+	 */
+	void createDocumentTabs(String envelopeId, String documentId, Tabs tabs);
 }

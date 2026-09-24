@@ -5,13 +5,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucSignerStatus;
 import org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum;
@@ -21,17 +22,20 @@ import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.stereotype.Service;
 
+import com.docusign.esign.model.Document;
 import com.docusign.esign.model.Envelope;
 import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
+import com.docusign.esign.model.PrefillTabs;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.TemplateInformation;
 import com.docusign.esign.model.TemplateRole;
 import com.docusign.esign.model.TemplateSummary;
+import com.docusign.esign.model.Text;
 
 import io.jsonwebtoken.lang.Collections;
 
@@ -71,8 +75,34 @@ public class DocuSignClient {
 	 */
 	public void validateTemplate(String templateId) {
 		ValidateArgument.required(templateId, "templateId");
+		loadValidatedTemplate(templateId);
+	}
+
+	// A template together with what validating it established about where each of the values Synapse
+	// fills in belongs.
+	private record ValidatedTemplate(EnvelopeTemplate template, EDucTemplateLayout layout) {}
+
+	private ValidatedTemplate loadValidatedTemplate(String templateId) {
 		EnvelopeTemplate template = templatesApi.getTemplate(templateId);
-		DocuSignTemplateValidator.validate(template);
+		EDucTemplateLayout layout = DocuSignTemplateValidator.validate(template,
+				templateDocumentTabs(templateId, template));
+		return new ValidatedTemplate(template, layout);
+	}
+
+	/**
+	 * The document-level tabs of each of a template's documents. A sender field belongs to a document
+	 * rather than to a recipient, so it appears nowhere among the template's recipients and has to be
+	 * read a document at a time.
+	 */
+	private List<Tabs> templateDocumentTabs(String templateId, EnvelopeTemplate template) {
+		if (template.getDocuments() == null) {
+			return List.of();
+		}
+		List<Tabs> documentTabs = new ArrayList<>();
+		for (Document document : template.getDocuments()) {
+			documentTabs.add(templatesApi.getDocumentTabs(templateId, document.getDocumentId()));
+		}
+		return documentTabs;
 	}
 
 	/**
@@ -90,17 +120,145 @@ public class DocuSignClient {
 		ValidateArgument.required(recipients, "recipients");
 		ValidateArgument.required(tabValues, "tabValues");
 
-		EnvelopeTemplate template = templatesApi.getTemplate(templateId);
-		DocuSignTemplateValidator.validate(template);
+		EDucTemplateLayout layout = loadValidatedTemplate(templateId).layout();
 
-		List<TemplateRole> templateRoles = buildTemplateRoles(recipients, tabValues);
+		List<TemplateRole> templateRoles = buildTemplateRoles(recipients, tabValues, layout);
 		EnvelopeDefinition envelopeDefinition = new EnvelopeDefinition();
 		envelopeDefinition.setTemplateId(templateId);
 		envelopeDefinition.setTemplateRoles(templateRoles);
 		envelopeDefinition.setStatus("created");
 
 		EnvelopeSummary summary = envelopesApi.createEnvelope(envelopeDefinition);
-		return summary.getEnvelopeId();
+		String envelopeId = summary.getEnvelopeId();
+		applySenderFields(envelopeId, tabValues, layout);
+		return envelopeId;
+	}
+
+	/**
+	 * Writes the values of an envelope's sender fields, leaving alone any that already hold the value
+	 * wanted.
+	 * <p>
+	 * A sender field belongs to no recipient, so unlike every other value it cannot travel in the
+	 * envelope's template roles; it is set on the envelope's own documents once the envelope exists. Only
+	 * the sender can set one, and DocuSign will not accept a change once a recipient has acted on the
+	 * envelope, which is why nothing is written unless the value actually differs: a correction that
+	 * leaves the sender fields alone then costs no request that could be refused.
+	 */
+	private void applySenderFields(String envelopeId, Map<RoleLabelKey, String> tabValues,
+			EDucTemplateLayout layout) {
+		Map<String, Map<String, String>> valuesByDocument = senderFieldValuesByDocument(tabValues, layout);
+		for (Map.Entry<String, Map<String, String>> documentEntry : valuesByDocument.entrySet()) {
+			String documentId = documentEntry.getKey();
+			Map<String, String> valuesByLabel = documentEntry.getValue();
+
+			// An envelope created from a template is expected to inherit the template's sender fields, in
+			// which case setting a value is an update that leaves the inherited placement alone. Should one
+			// not have come across, it is created from the template's own definition, which carries the
+			// placement a tab needs in order to appear on the document at all.
+			Tabs envelopeTabs = envelopesApi.getDocumentTabs(envelopeId, documentId);
+			List<Text> toUpdate = new ArrayList<>();
+			List<Text> toCreate = new ArrayList<>();
+			for (Map.Entry<String, String> valueEntry : valuesByLabel.entrySet()) {
+				String tabLabel = valueEntry.getKey();
+				String value = valueEntry.getValue();
+				Text inherited = findSenderField(envelopeTabs, tabLabel);
+				if (inherited == null) {
+					toCreate.add(copyOfSenderFieldDefinition(layout, tabLabel, value));
+				} else if (!Strings.CS.equals(value, inherited.getValue())) {
+					inherited.setValue(value);
+					toUpdate.add(inherited);
+				}
+			}
+			if (!toUpdate.isEmpty()) {
+				envelopesApi.updateDocumentTabs(envelopeId, documentId, senderFieldTabs(toUpdate));
+			}
+			if (!toCreate.isEmpty()) {
+				envelopesApi.createDocumentTabs(envelopeId, documentId, senderFieldTabs(toCreate));
+			}
+		}
+	}
+
+	/**
+	 * Brings the sender fields of a draft envelope up to date with the given values.
+	 * <p>
+	 * Needed because a draft is created once and then reused: a preview taken after the request changed
+	 * would otherwise still show the values the envelope was created with. The recipients' own tabs do
+	 * not have this problem in a preview, since DocuSign does not resolve those until signing.
+	 */
+	public void refreshSenderFields(String envelopeId, Map<RoleLabelKey, String> tabValues) {
+		ValidateArgument.required(envelopeId, "envelopeId");
+		ValidateArgument.required(tabValues, "tabValues");
+		applySenderFields(envelopeId, tabValues, loadValidatedTemplate(templateIdOf(envelopeId)).layout());
+	}
+
+	/**
+	 * The sender field values to write, grouped by the document that declares each field. A template may
+	 * spread its sender fields over more than one document, and they are written a document at a time.
+	 */
+	private static Map<String, Map<String, String>> senderFieldValuesByDocument(
+			Map<RoleLabelKey, String> tabValues, EDucTemplateLayout layout) {
+		Map<String, Map<String, String>> valuesByDocument = new LinkedHashMap<>();
+		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
+			String roleName = tabEntry.getKey().roleName();
+			String tabLabel = tabEntry.getKey().tabLabel();
+			if (!layout.isSenderField(roleName, tabLabel)) {
+				continue;
+			}
+			Text definition = findSenderFieldDefinition(layout, tabLabel);
+			valuesByDocument
+					.computeIfAbsent(definition.getDocumentId(), documentId -> new LinkedHashMap<>())
+					.put(tabLabel, tabEntry.getValue());
+		}
+		return valuesByDocument;
+	}
+
+	private static Text findSenderFieldDefinition(EDucTemplateLayout layout, String tabLabel) {
+		for (Text definition : layout.senderFieldDefinitions()) {
+			if (Strings.CS.equals(tabLabel, definition.getTabLabel())) {
+				return definition;
+			}
+		}
+		// Validation resolved this label to a sender field, so the definition it was resolved against is
+		// always present.
+		throw new IllegalStateException("The template has no sender field labeled '" + tabLabel + "'.");
+	}
+
+	private static Text findSenderField(Tabs tabs, String tabLabel) {
+		if (tabs == null || tabs.getPrefillTabs() == null || tabs.getPrefillTabs().getTextTabs() == null) {
+			return null;
+		}
+		for (Text tab : tabs.getPrefillTabs().getTextTabs()) {
+			if (Strings.CS.equals(tabLabel, tab.getTabLabel())) {
+				return tab;
+			}
+		}
+		return null;
+	}
+
+	// The template's definition, carrying its placement, with the tab ID it had in the template cleared
+	// because DocuSign assigns the envelope's own.
+	private static Text copyOfSenderFieldDefinition(EDucTemplateLayout layout, String tabLabel, String value) {
+		Text definition = findSenderFieldDefinition(layout, tabLabel);
+		Text copy = new Text();
+		copy.setTabLabel(definition.getTabLabel());
+		copy.setDocumentId(definition.getDocumentId());
+		copy.setPageNumber(definition.getPageNumber());
+		copy.setXPosition(definition.getXPosition());
+		copy.setYPosition(definition.getYPosition());
+		copy.setWidth(definition.getWidth());
+		copy.setHeight(definition.getHeight());
+		copy.setFont(definition.getFont());
+		copy.setFontSize(definition.getFontSize());
+		copy.setValue(value);
+		return copy;
+	}
+
+	private static Tabs senderFieldTabs(List<Text> textTabs) {
+		PrefillTabs prefillTabs = new PrefillTabs();
+		prefillTabs.setTextTabs(textTabs);
+		Tabs tabs = new Tabs();
+		tabs.setPrefillTabs(prefillTabs);
+		return tabs;
 	}
 
 	/**
@@ -168,18 +326,25 @@ public class DocuSignClient {
 			existingSigners = List.of();
 		}
 
+		// The template is the only record of which type each of its tabs was given, and DocuSign matches a
+		// supplied tab to the template by type as well as by label, so a value written under the wrong type
+		// is silently dropped. It is therefore read for every correction, not only for those that have to
+		// add a recipient back.
+		ValidatedTemplate validated = loadValidatedTemplate(templateIdOf(envelopeId));
+		EDucTemplateLayout layout = validated.layout();
+
 		// Every change is computed before the envelope is touched, so that a failure to build one
 		// leaves the envelope as it was rather than partially corrected.
 
 		Recipients toDelete = buildRemovedRecipients(existingSigners, recipients);
-		Recipients toUpdate = buildUpdatedRecipients(existingSigners, recipients, tabValues);
-		
+		Recipients toUpdate = buildUpdatedRecipients(existingSigners, recipients, tabValues, layout);
+
 		// Now handle new recipients, not already in the envelope
 		// In contrast to sending a new envelope, here we don't just add tab values,
 		// but we add the entire recipient (a Signer object), including the tab definition (including where
 		// it's placed in the document)
-		Recipients toCreate = buildNewRecipients(existingSigners, () -> templateSignersByRole(envelopeId),
-				recipients, tabValues);
+		Recipients toCreate = buildNewRecipients(existingSigners, signersByRole(validated.template()),
+				recipients, tabValues, layout);
 
 		// Each call resends to the recipients it touches, so no envelope-level re-send is needed.
 		if (hasSigners(toDelete)) {
@@ -199,6 +364,10 @@ public class DocuSignClient {
 				}
 			}
 		}
+
+		// Sender fields belong to the documents rather than to any recipient, so they are corrected
+		// separately. Only those whose value actually changed are written.
+		applySenderFields(envelopeId, tabValues, layout);
 	}
 
 	// Existing (not-yet-signed) signers whose role is no longer desired are removed.
@@ -221,7 +390,8 @@ public class DocuSignClient {
 
 	// Existing (not-yet-signed) signers whose role is still desired get their email and tabs re-applied.
 	static Recipients buildUpdatedRecipients(List<Signer> existingSigners,
-			Map<String, RecipientInfo> recipients, Map<RoleLabelKey, String> tabValues) {
+			Map<String, RecipientInfo> recipients, Map<RoleLabelKey, String> tabValues,
+			EDucTemplateLayout layout) {
 		List<Signer> updated = new ArrayList<>();
 		for (Signer existing : existingSigners) {
 			if (isCompleted(existing)) {
@@ -239,7 +409,7 @@ public class DocuSignClient {
 			signer.setName(recipient.name());
 			Tabs tabs = new Tabs();
 			signer.setTabs(tabs);
-			fillTabsForRole(roleName, tabs, tabValues);
+			fillTabsForRole(roleName, tabs, tabValues, layout);
 			updated.add(signer);
 		}
 		return toRecipients(updated);
@@ -252,18 +422,11 @@ public class DocuSignClient {
 	private static final String EARLIEST_ROUTING_ORDER = "1";
 
 	/**
-	 * The signer roles, by role name, of the template the given envelope was created from. Deleting a
-	 * recipient from an envelope removes its tabs and routing order along with it, so for a recipient
-	 * that has to be added back the template is the only remaining source of those definitions.
-	 * <p>
-	 * The template is identified by asking the envelope rather than by taking an ID from the caller,
-	 * so that a template cloned and repointed since the envelope was routed cannot be read in place of
-	 * the one the envelope's other recipients were actually placed from.
+	 * The signer roles of a template, by role name. Deleting a recipient from an envelope removes its tabs
+	 * and routing order along with it, so for a recipient that has to be added back the template is the
+	 * only remaining source of those definitions.
 	 */
-	private Map<String, Signer> templateSignersByRole(String envelopeId) {
-		EnvelopeTemplate template = templatesApi.getTemplate(templateIdOf(envelopeId));
-		// Guarantees the roles and their tabs are present and well-formed before they are copied.
-		DocuSignTemplateValidator.validate(template);
+	private static Map<String, Signer> signersByRole(EnvelopeTemplate template) {
 		Map<String, Signer> signersByRole = new HashMap<>();
 		for (Signer signer : template.getRecipients().getSigners()) {
 			signersByRole.put(signer.getRoleName(), signer);
@@ -277,12 +440,11 @@ public class DocuSignClient {
 	 * sending a new envelope, this does not just supply tab values: it adds the whole recipient,
 	 * including each tab's definition and where it is placed in the document.
 	 *
-	 * @param templateSigners the template's signer roles, resolved only if a role actually has to be
-	 *        added; most corrections add none, and reading the template costs a request to DocuSign
+	 * @param templateSignersByRole the signer roles of the template the envelope was created from
 	 */
 	static Recipients buildNewRecipients(List<Signer> existingSigners,
-			Supplier<Map<String, Signer>> templateSigners, Map<String, RecipientInfo> recipients,
-			Map<RoleLabelKey, String> tabValues) {
+			Map<String, Signer> templateSignersByRole, Map<String, RecipientInfo> recipients,
+			Map<RoleLabelKey, String> tabValues, EDucTemplateLayout layout) {
 		int maxRecipientId = 0;
 		for (Signer existing : existingSigners) {
 			maxRecipientId = Math.max(maxRecipientId, parseRecipientId(existing.getRecipientId()));
@@ -290,11 +452,7 @@ public class DocuSignClient {
 
 		List<Signer> created = new ArrayList<>();
 		int nextRecipientId = maxRecipientId;
-		Map<String, Signer> templateSignersByRole = null;
 		for (String roleName : rolesToAdd(existingSigners, recipients)) {
-			if (templateSignersByRole == null) {
-				templateSignersByRole = templateSigners.get();
-			}
 			Signer templateSigner = templateSignersByRole.get(roleName);
 			if (templateSigner == null) {
 				throw new IllegalArgumentException("The template does not define the role '" + roleName + "'.");
@@ -310,7 +468,7 @@ public class DocuSignClient {
 			signer.setRoleName(roleName);
 			signer.setEmail(recipient.email());
 			signer.setName(recipient.name());
-			signer.setTabs(buildTabsFromTemplate(roleName, recipientId, templateSigner, tabValues));
+			signer.setTabs(buildTabsFromTemplate(roleName, recipientId, templateSigner, tabValues, layout));
 			created.add(signer);
 		}
 		return toRecipients(created);
@@ -319,6 +477,10 @@ public class DocuSignClient {
 	/**
 	 * The ID of the single template the given envelope was created from. An envelope does not carry
 	 * its template's ID as a field, so DocuSign is asked which templates were applied to it.
+	 * <p>
+	 * Asking the envelope rather than taking an ID from the caller is deliberate: a template cloned and
+	 * repointed since the envelope was routed must not be read in place of the one the envelope's existing
+	 * recipients and tabs were actually placed from.
 	 *
 	 * @throws IllegalStateException if the envelope does not report exactly one template, rather than
 	 *         risk placing a recipient's tabs from a template the envelope was not built from
@@ -359,7 +521,7 @@ public class DocuSignClient {
 	 * applied to them.
 	 */
 	private static Tabs buildTabsFromTemplate(String roleName, String recipientId, Signer templateSigner,
-			Map<RoleLabelKey, String> tabValues) {
+			Map<RoleLabelKey, String> tabValues, EDucTemplateLayout layout) {
 		// A tab only appears on the document if it carries a placement (a document, a page and
 		// coordinates or an anchor), which a tab built from a label and a value alone does not have.
 		// Reusing the template's definitions brings across every tab of the role, not only those this
@@ -376,7 +538,11 @@ public class DocuSignClient {
 				continue;
 			}
 			String tabLabel = tabEntry.getKey().tabLabel();
-			TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabLabel);
+			TabType type = layout.typeOf(roleName, tabLabel);
+			// A sender field is not among the role's tabs; it belongs to the document and is written there.
+			if (TabType.PREFILL_TEXT == type) {
+				continue;
+			}
 			type.applyValueToTabWithLabel(tabs, tabLabel, tabEntry.getValue());
 		}
 		return tabs;
@@ -454,7 +620,7 @@ public class DocuSignClient {
 	 * template and to fill in the relevant information.
 	 */
 	static List<TemplateRole> buildTemplateRoles(Map<String, RecipientInfo> recipients,
-			Map<RoleLabelKey, String> tabValues) {
+			Map<RoleLabelKey, String> tabValues, EDucTemplateLayout layout) {
 		List<TemplateRole> roles = new ArrayList<>();
 		for (String roleName : recipients.keySet()) {
 			RecipientInfo recipient = requireRecipient(recipients, roleName);
@@ -467,7 +633,7 @@ public class DocuSignClient {
 			Tabs tabs = new Tabs();
 			role.setTabs(tabs);
 			// here we create the tab values which will be matched against the tabs in the template
-			fillTabsForRole(roleName, tabs, tabValues);
+			fillTabsForRole(roleName, tabs, tabValues, layout);
 
 			roles.add(role);
 		}
@@ -478,14 +644,23 @@ public class DocuSignClient {
 	 * Populates the given {@code tabs} with the values for the given role. Any tab-level
 	 * constraints (e.g. which tabs are locked/read-only for the signer) are defined on the
 	 * template and carried forward by DocuSign, so they are not set here.
+	 * <p>
+	 * The type of each tab comes from the layout the template was validated against rather than from the
+	 * label alone: DocuSign matches a supplied tab to the template by type as well as by label, so a tab
+	 * given the wrong type is not rejected but silently left unfilled.
 	 */
-	private static void fillTabsForRole(String roleName, Tabs tabs, Map<RoleLabelKey, String> tabValues) {
+	private static void fillTabsForRole(String roleName, Tabs tabs, Map<RoleLabelKey, String> tabValues,
+			EDucTemplateLayout layout) {
 		for (Map.Entry<RoleLabelKey, String> tabEntry : tabValues.entrySet()) {
 			if (!tabEntry.getKey().roleName().equals(roleName)) {
 				continue;
 			}
 			String tabLabel = tabEntry.getKey().tabLabel();
-			TabType type = DocuSignTemplateValidator.typeforRoleAndLabel(roleName, tabLabel);
+			TabType type = layout.typeOf(roleName, tabLabel);
+			// A sender field belongs to the document rather than to this role, and is written separately.
+			if (TabType.PREFILL_TEXT == type) {
+				continue;
+			}
 			type.addTabWithLabel(tabs, tabLabel, tabEntry.getValue());
 		}
 	}

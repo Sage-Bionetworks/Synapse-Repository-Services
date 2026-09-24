@@ -1,14 +1,16 @@
 package org.sagebionetworks.docusign;
 
+import java.util.List;
+
 import org.apache.commons.lang3.Strings;
 
 import com.docusign.esign.model.DateSigned;
 import com.docusign.esign.model.EmailAddress;
 import com.docusign.esign.model.FullName;
+import com.docusign.esign.model.PrefillTabs;
 import com.docusign.esign.model.SignHere;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.Text;
-import com.docusign.esign.model.Title;
 
 enum TabType {
 	TEXT {
@@ -77,39 +79,6 @@ enum TabType {
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
 		}
 	},
-	TITLE {
-		@Override
-		public void addTabWithLabel(Tabs tabs, String label, String value) {
-			Title t = new Title();
-			t.setTabLabel(label);
-			t.setValue(value);
-			tabs.addTitleTabsItem(t);
-		}
-		@Override
-		public boolean hasTabWithLabel(Tabs tabs, String label) {
-			if (tabs.getTitleTabs() == null) {
-				return false;
-			}
-			for (Title t : tabs.getTitleTabs()) {
-				if (Strings.CS.equals(label, t.getTabLabel())) {
-					return true;
-				}
-			}
-			return false;
-		}
-		@Override
-		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
-			if (tabs.getTitleTabs() != null) {
-				for (Title t : tabs.getTitleTabs()) {
-					if (Strings.CS.equals(label, t.getTabLabel())) {
-						t.setValue(value);
-						return;
-					}
-				}
-			}
-			throw new IllegalArgumentException(noSuchTabMessage(this, label));
-		}
-	},
 	EMAIL_ADDRESS {
 		@Override
 		public void addTabWithLabel(Tabs tabs, String label, String value) {
@@ -138,6 +107,37 @@ enum TabType {
 						t.setValue(value);
 						return;
 					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+	},
+	/**
+	 * A "sender field": a text tab owned by the document rather than by any recipient, whose value only
+	 * the sender can set. Having no recipient, it has no template role for DocuSign to resolve its
+	 * placement from, so it cannot be created from a label alone the way the other types can.
+	 */
+	PREFILL_TEXT {
+		@Override
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			throw new UnsupportedOperationException("A PREFILL_TEXT tab has no recipient to resolve its"
+					+ " placement, so it has to be copied from the template rather than created from a label.");
+		}
+		@Override
+		public boolean hasTabWithLabel(Tabs tabs, String label) {
+			for (Text t : prefillTextTabs(tabs)) {
+				if (Strings.CS.equals(label, t.getTabLabel())) {
+					return true;
+				}
+			}
+			return false;
+		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			for (Text t : prefillTextTabs(tabs)) {
+				if (Strings.CS.equals(label, t.getTabLabel())) {
+					t.setValue(value);
+					return;
 				}
 			}
 			throw new IllegalArgumentException(noSuchTabMessage(this, label));
@@ -210,6 +210,16 @@ enum TabType {
 
 	private static String noSuchTabMessage(TabType type, String label) {
 		return "There is no " + type.name() + " tab labeled '" + label + "'.";
+	}
+
+	// Prefill tabs sit one level deeper than every other type: Tabs holds a single PrefillTabs
+	// container rather than a list, and either it or its text tabs may be absent.
+	private static List<Text> prefillTextTabs(Tabs tabs) {
+		PrefillTabs prefillTabs = tabs.getPrefillTabs();
+		if (prefillTabs == null || prefillTabs.getTextTabs() == null) {
+			return List.of();
+		}
+		return prefillTabs.getTextTabs();
 	}
 }
 
