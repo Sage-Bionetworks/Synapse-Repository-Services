@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.java_websocket.WebSocket;
@@ -58,6 +59,7 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 import org.sagebionetworks.repo.model.grid.ReplicaSelectionModel;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessage;
 import org.sagebionetworks.repo.model.grid.message.JsonRxMessageType;
+import org.sagebionetworks.repo.model.grid.node.ObjectNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
@@ -285,12 +287,28 @@ public class GridAgentChatWorkerIntegrationTest {
 		websoceket.send(message.toJson());
 		asynchronousJobWorkerHelper.waitForMessage((a) -> a.optInt(0) == 5 && a.optInt(1) == message.getId().get(),
 				incomingMessages);
-		TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-			ReplicaSelectionModel curSelection = gridReplicaViewManager
-					.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
-					.getReplicaSelectionModel();
-			return Pair.create(curSelection != null, null);
-		});
+		try {
+			TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+				ReplicaSelectionModel curSelection = gridReplicaViewManager
+						.readHeader(gridSession.getSessionId(), INTERNAL_REPLICA_ID, context.getUsersReplicaId()).get()
+						.getReplicaSelectionModel();
+				return Pair.create(curSelection != null, null);
+			});
+		} catch (TimeoutException e) {
+			// Diagnostic for an intermittent selection-propagation timeout: the set-selection patch is
+			// applied asynchronously off SQS, and the patch is silently ignored if the replica's
+			// connection is no longer active by the time it is processed. Dump the indexed root so a
+			// future CI failure shows whether the patch was dropped (no "selection" key on the root)
+			// versus applied but not yet visible under the user's replica id.
+			Optional<ObjectNode> root = gridIndexDao.getRootObject(gridSession.getSessionId(), INTERNAL_REPLICA_ID);
+			boolean selectionKeyPresent = root
+					.map(r -> r.getValue() != null && r.getValue().containsKey("selection")).orElse(false);
+			System.out.println("SELECTION TIMEOUT: session=" + gridSession.getSessionId() + " internalReplica="
+					+ INTERNAL_REPLICA_ID + " usersReplicaId=" + context.getUsersReplicaId() + " messageId="
+					+ message.getId().orElse(null) + " rootPresent=" + root.isPresent() + " selectionKeyPresent="
+					+ selectionKeyPresent);
+			throw e;
+		}
 
 		chatRequest = "I want to focus on my currently selected row.  Why is this row invalid?";
 		asynchronousJobWorkerHelper

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.table.query;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,11 +35,13 @@ public class QueryContext {
 	private final Long limit;
 	private final List<SortItem> sort;
 	private final AggregateDataConfiguration aggregateDataConfiguration;
+	private final List<Integer> protectedCountColumnIndexes;
 
 	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
-			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration) {
+			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
+			List<Integer> protectedCountColumnIndexes) {
 
 		ValidateArgument.required(startingSql, "startingSql");
 		ValidateArgument.required(schemaProvider, "schemaProvider");
@@ -58,6 +61,8 @@ public class QueryContext {
 		this.limit = limit;
 		this.sort = sort;
 		this.aggregateDataConfiguration = aggregateDataConfiguration;
+		this.protectedCountColumnIndexes = protectedCountColumnIndexes == null ? Collections.emptyList()
+				: protectedCountColumnIndexes;
 	}
 
 	/**
@@ -167,6 +172,16 @@ public class QueryContext {
 		return aggregateDataConfiguration != null;
 	}
 
+	/**
+	 * @return The zero-based indexes into each result row's values of the columns that are a
+	 *         participant count of a quasi-identifier and are therefore subject to
+	 *         cell-level k-anonymity suppression. Empty when the query is not an aggregate
+	 *         read that returns rows.
+	 */
+	public List<Integer> getProtectedCountColumnIndexes() {
+		return protectedCountColumnIndexes;
+	}
+
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -187,6 +202,7 @@ public class QueryContext {
 		private Long limit;
 		private List<SortItem> sort;
 		private AggregateDataConfiguration aggregateDataConfiguration;
+		private List<Integer> protectedCountColumnIndexes;
 
 		/**
 		 * @param startingSql the startingSql to set
@@ -303,10 +319,20 @@ public class QueryContext {
 			return this;
 		}
 
+		/**
+		 * @param protectedCountColumnIndexes The zero-based indexes of the result columns that
+		 *                                    are a participant count of a quasi-identifier and
+		 *                                    must have cell-level k-anonymity applied.
+		 */
+		public Builder setProtectedCountColumnIndexes(List<Integer> protectedCountColumnIndexes) {
+			this.protectedCountColumnIndexes = protectedCountColumnIndexes;
+			return this;
+		}
+
 		public QueryContext build() {
 			return new QueryContext(startingSql, schemaProvider, indexDescription, userId, maxBytesPerPage,
 					maxRowsPerCall, additionalFilters, selectedFacets, selectFileColumn, includeEntityEtag, offset,
-					limit, sort, aggregateDataConfiguration);
+					limit, sort, aggregateDataConfiguration, protectedCountColumnIndexes);
 		}
 
 	}
