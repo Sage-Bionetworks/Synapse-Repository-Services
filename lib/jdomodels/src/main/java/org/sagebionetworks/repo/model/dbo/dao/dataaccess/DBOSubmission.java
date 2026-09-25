@@ -175,7 +175,8 @@ public class DBOSubmission implements MigratableDatabaseObject<DBOSubmission, DB
 				dbo.setEtag(rs.getString(COL_DATA_ACCESS_SUBMISSION_ETAG));
 				Blob blob = rs.getBlob(COL_DATA_ACCESS_SUBMISSION_SUBMISSION_SERIALIZED);
 				dbo.setSubmissionSerialized(blob.getBytes(1, (int) blob.length()));
-				dbo.setResearchProjectId(rs.getLong(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID));
+				Long researchProjectId = rs.getLong(COL_DATA_ACCESS_SUBMISSION_RESEARCH_PROJECT_ID);
+				dbo.setResearchProjectId(rs.wasNull() ? null : researchProjectId);
 				return dbo;
 			}
 
