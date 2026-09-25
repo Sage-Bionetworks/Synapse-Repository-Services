@@ -16,16 +16,12 @@ import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.search.SourceConfig;
 import org.opensearch.client.opensearch.core.search.SourceFilter;
 import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
-import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager.TableIdAndType;
 import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.table.TableType;
-import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
@@ -38,13 +34,12 @@ import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
 import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
-import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.SelectColumn;
-import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.description.BenefactorDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -58,20 +53,20 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
 
 	private final EntityManager entityManager;
-	private final EntityAuthorizationManager entityAuthorizationManager;
+	private final TableManagerSupport tableManagerSupport;
 	private final ColumnModelManager columnModelManager;
 	private final ConnectionFactory connectionFactory;
 	private final OpenSearchManager openSearchManager;
 	private final TableQueryManager tableQueryManager;
 
 	public SearchIndexQueryManagerImpl(EntityManager entityManager,
-			EntityAuthorizationManager entityAuthorizationManager,
+			TableManagerSupport tableManagerSupport,
 			ColumnModelManager columnModelManager,
 			ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
 			TableQueryManager tableQueryManager) {
 		this.entityManager = entityManager;
-		this.entityAuthorizationManager = entityAuthorizationManager;
+		this.tableManagerSupport = tableManagerSupport;
 		this.columnModelManager = columnModelManager;
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
@@ -149,10 +144,14 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		}
 		OpenSearchManager.LiveIndex liveIndex = liveIndexOpt.get();
 		IndexAuthorizationSnapshot snapshot = liveIndex.snapshot();
-		IndexDescriptionSnapshot source = snapshot.getIndexDescription();
+		// The search path never consults the query cache, so the source's table hash needs no live
+		// change number.
+		QueryIndexDescription source = SnapshotIndexDescription.fromSnapshot(snapshot.getIndexDescription(),
+				id -> Optional.empty());
 		// Authorize before consulting the build status so a caller without access to the served
-		// source never sees status detail.
-		entityAuthorizationManager.canQueryTableOrView(user, collectTableNodes(source)).checkAuthorizationOrElseThrow();
+		// source never sees status detail. A search document cannot be released as an aggregate, so
+		// aggregate-only access is a denial.
+		tableManagerSupport.validateTableReadAccess(user, source).checkAuthorizationOrElseThrow();
 		checkIndexStatus(searchIndexId);
 		return new LiveQueryTarget(liveIndex.physicalIndex(), buildQueryMetadata(snapshot.getColumnLineage()),
 				buildBenefactorAccessFilters(user, source));
@@ -161,23 +160,6 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	private static boolean isIndexNotFound(IllegalStateException e) {
 		return e.getCause() instanceof OpenSearchException cause && cause.error() != null
 				&& INDEX_NOT_FOUND_EXCEPTION.equals(cause.error().type());
-	}
-
-	/**
-	 * The as-built source followed by each of its flattened transitive dependencies, as the
-	 * (id, type) nodes of a single table-query authorization decision.
-	 */
-	static List<TableIdAndType> collectTableNodes(IndexDescriptionSnapshot source) {
-		List<TableIdAndType> nodes = new ArrayList<>(source.getDependencies().size() + 1);
-		nodes.add(toTableNode(source.getObjectId(), source.getTableType()));
-		for (SourceDependency dependency : source.getDependencies()) {
-			nodes.add(toTableNode(dependency.getObjectId(), dependency.getTableType()));
-		}
-		return nodes;
-	}
-
-	private static TableIdAndType toTableNode(String objectId, String tableType) {
-		return new TableIdAndType(KeyFactory.stringToKey(objectId).toString(), TableType.valueOf(tableType));
 	}
 
 	/**
@@ -190,22 +172,15 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	 * empty list for a benefactor-less source (e.g. a table), applying no row filter; access to
 	 * such a source is enforced at the entity level.
 	 */
-	List<Query> buildBenefactorAccessFilters(UserInfo user, IndexDescriptionSnapshot source) {
+	List<Query> buildBenefactorAccessFilters(UserInfo user, QueryIndexDescription source) {
 		if (source.getBenefactors().isEmpty()) {
 			return Collections.emptyList();
 		}
-		IdAndVersion sourceId = IdAndVersion.newBuilder()
-				.setId(KeyFactory.stringToKey(source.getObjectId()))
-				.setVersion(source.getVersionNumber())
-				.build();
-		List<BenefactorDescription> benefactors = source.getBenefactors().stream()
-				.map(b -> new BenefactorDescription(b.getBenefactorColumnName(), ObjectType.valueOf(b.getBenefactorType())))
-				.collect(Collectors.toList());
-		TableIndexDAO indexDao = connectionFactory.getConnection(sourceId);
+		TableIndexDAO indexDao = connectionFactory.getConnection(source.getIdAndVersion());
 		// Shared with the table-query SQL row-level filter so both gates compute accessibility
 		// identically (including the -1 sentinel).
 		List<BenefactorAccessFilter> accessibleBenefactors =
-				tableQueryManager.computeAccessibleBenefactors(user, sourceId, benefactors, indexDao, ACCESS_TYPE.READ);
+				tableQueryManager.computeAccessibleBenefactors(user, source, indexDao, ACCESS_TYPE.READ);
 		List<Query> filters = new ArrayList<>(accessibleBenefactors.size());
 		for (int i = 0; i < accessibleBenefactors.size(); i++) {
 			final String field = "_benefactor_" + i;
