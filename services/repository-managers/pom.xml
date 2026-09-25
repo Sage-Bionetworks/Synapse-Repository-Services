@@ -373,6 +373,12 @@
 							<sourceDirectory>${basedir}/src/main/resources</sourceDirectory>
 						</configuration>
 					</execution>
+					<execution>
+						<id>javacc</id>
+						<goals>
+							<goal>javacc</goal>
+						</goals>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

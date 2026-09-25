@@ -41,7 +41,6 @@ import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
 import org.opensearch.client.opensearch._types.query_dsl.TermsLookup;
-import org.opensearch.client.opensearch._types.query_dsl.WildcardQuery;
 import org.opensearch.client.opensearch.core.search.FieldCollapse;
 import org.opensearch.client.opensearch.core.search.Highlight;
 import org.opensearch.client.opensearch.core.search.HighlightField;
@@ -193,25 +192,18 @@ public class SearchDslValidatorTest {
 	}
 
 	@Test
-	public void testValidateQueryWithPrefixLeadingWildcard() {
-		Query q = Query.of(b -> b.prefix(p -> p.field("foo").value("*bad")));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchDslValidator.validateQuery(q, false));
-		assertTrue(ex.getMessage().contains("leading wildcard"));
-	}
-
-	@Test
-	public void testValidateQueryWithPrefixLeadingQuestionMark() {
-		Query q = Query.of(b -> b.prefix(p -> p.field("foo").value("?bad")));
-		assertThrows(IllegalArgumentException.class,
-				() -> SearchDslValidator.validateQuery(q, false));
-	}
-
-	@Test
-	public void testValidateQueryWithWildcardLeadingWildcard() {
-		Query q = Query.of(b -> b.wildcard(w -> w.field("foo").value("*ouch")));
-		assertThrows(IllegalArgumentException.class,
-				() -> SearchDslValidator.validateQuery(q, false));
+	public void testValidateQueryWithLeadingWildcardAccepted() {
+		List<Query> queries = List.of(
+				Query.of(b -> b.prefix(p -> p.field("foo").value("*x"))),
+				Query.of(b -> b.prefix(p -> p.field("foo").value("?x"))),
+				Query.of(b -> b.wildcard(w -> w.field("foo").value("*x"))),
+				Query.of(b -> b.wildcard(w -> w.field("foo").wildcard("?x"))),
+				Query.of(b -> b.simpleQueryString(s -> s.query("*x").analyzeWildcard(true))),
+				Query.of(b -> b.queryString(s -> s.query("*x"))));
+		for (Query q : queries) {
+			// call under test
+			assertDoesNotThrow(() -> SearchDslValidator.validateQuery(q, false));
+		}
 	}
 
 	@Test
@@ -227,17 +219,48 @@ public class SearchDslValidatorTest {
 	}
 
 	@Test
-	public void testValidateQueryWithSimpleQueryStringLeadingWildcardAndAnalyzeWildcard() {
-		Query q = Query.of(b -> b.simpleQueryString(s -> s.query("*foo").analyzeWildcard(true)));
+	public void testValidateQueryWithSimpleQueryStringFuzzyMaxExpansionsAboveCap() {
+		Query q = Query.of(b -> b.simpleQueryString(s -> s.query("x")
+				.fuzzyMaxExpansions(SearchDslValidator.MAX_PREFIX_EXPANSIONS + 1)));
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> SearchDslValidator.validateQuery(q, false));
-		assertTrue(ex.getMessage().contains("leading wildcard"));
+		assertTrue(ex.getMessage().contains("simple_query_string"));
 	}
 
 	@Test
-	public void testValidateQueryWithSimpleQueryStringLeadingWildcardWithoutAnalyze() {
-		// Without analyze_wildcard the leading wildcard is just literal text, not expanded.
-		Query q = Query.of(b -> b.simpleQueryString(s -> s.query("*foo")));
+	public void testValidateQueryWithQueryStringFieldsAtCap() {
+		List<String> fields = new ArrayList<>();
+		for (int i = 0; i <= SearchDslValidator.MAX_VALUES_PER_CLAUSE; i++) {
+			fields.add("f" + i);
+		}
+		Query q = Query.of(b -> b.queryString(s -> s.query("x").fields(fields)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("query_string.fields"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringFuzzyMaxExpansionsAboveCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("x")
+				.fuzzyMaxExpansions(SearchDslValidator.MAX_PREFIX_EXPANSIONS + 1)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("query_string"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringMaxDeterminizedStatesAboveCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("/.*d/")
+				.maxDeterminizedStates(SearchDslValidator.MAX_DETERMINIZED_STATES + 1)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchDslValidator.validateQuery(q, false));
+		assertTrue(ex.getMessage().contains("max_determinized_states"));
+	}
+
+	@Test
+	public void testValidateQueryWithQueryStringMaxDeterminizedStatesAtCap() {
+		Query q = Query.of(b -> b.queryString(s -> s.query("/.*d/")
+				.maxDeterminizedStates(SearchDslValidator.MAX_DETERMINIZED_STATES)));
 		// call under test — must not throw
 		SearchDslValidator.validateQuery(q, false);
 	}
@@ -736,6 +759,7 @@ public class SearchDslValidatorTest {
 		leaves.add(Query.of(b -> b.wildcard(w -> w.field("f").value("x"))));
 		leaves.add(Query.of(b -> b.fuzzy(f -> f.field("f").value(FieldValue.of("x")))));
 		leaves.add(Query.of(b -> b.simpleQueryString(s -> s.query("x"))));
+		leaves.add(Query.of(b -> b.queryString(s -> s.query("x"))));
 		leaves.add(Query.of(b -> b.matchAll(m -> m)));
 
 		// Compounds wrap a different leaf each so all four compound branches run.
@@ -854,17 +878,6 @@ public class SearchDslValidatorTest {
 	}
 
 	// -----------------------------------------------------------------------------
-	// prefix: empty value is accepted (exercises the pattern.isEmpty() early-out)
-	// -----------------------------------------------------------------------------
-
-	@Test
-	public void testValidateQueryWithPrefixEmptyValueAccepted() {
-		Query q = Query.of(b -> b.prefix(p -> p.field("foo").value("")));
-		// call under test — empty value short-circuits the leading-wildcard check
-		assertDoesNotThrow(() -> SearchDslValidator.validateQuery(q, false));
-	}
-
-	// -----------------------------------------------------------------------------
 	// terms aggregation: inline include-list form
 	// -----------------------------------------------------------------------------
 
@@ -976,68 +989,6 @@ public class SearchDslValidatorTest {
 				.negativeBoost(0.5f));
 		// call under test — must not throw
 		SearchDslValidator.walkBoosting(bo, 1, new int[] { 0 });
-	}
-
-	// ---------- rejectLeadingWildcardWildcard ----------
-
-	@Test
-	public void testRejectLeadingWildcardWildcardWithValueLeadingRejected() {
-		WildcardQuery w = WildcardQuery.of(b -> b.field("foo").value("*bad"));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.rejectLeadingWildcardWildcard(w));
-		assertTrue(ex.getMessage().contains("leading wildcard"));
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWildcardWithWildcardPropertyFallbackRejected() {
-		// `value()` is null, so the helper falls back to the legacy `wildcard` property.
-		WildcardQuery w = WildcardQuery.of(b -> b.field("foo").wildcard("*bad"));
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.rejectLeadingWildcardWildcard(w));
-		assertTrue(ex.getMessage().contains("leading wildcard"));
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWildcardWithNonLeadingAccepted() {
-		WildcardQuery w = WildcardQuery.of(b -> b.field("foo").value("ok*"));
-		// call under test — must not throw
-		SearchDslValidator.rejectLeadingWildcardWildcard(w);
-	}
-
-	// ---------- rejectLeadingWildcard ----------
-
-	@Test
-	public void testRejectLeadingWildcardWithNullAccepted() {
-		// call under test — must not throw
-		SearchDslValidator.rejectLeadingWildcard(null, "prefix", "foo");
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWithEmptyAccepted() {
-		// call under test — must not throw
-		SearchDslValidator.rejectLeadingWildcard("", "prefix", "foo");
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWithStarRejected() {
-		assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.rejectLeadingWildcard("*x", "prefix", "foo"));
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWithQuestionMarkRejected() {
-		assertThrows(IllegalArgumentException.class,
-				// call under test
-				() -> SearchDslValidator.rejectLeadingWildcard("?x", "prefix", "foo"));
-	}
-
-	@Test
-	public void testRejectLeadingWildcardWithPlainPrefixAccepted() {
-		// call under test — must not throw
-		SearchDslValidator.rejectLeadingWildcard("abc", "prefix", "foo");
 	}
 
 	// ---------- checkMaxExpansions ----------

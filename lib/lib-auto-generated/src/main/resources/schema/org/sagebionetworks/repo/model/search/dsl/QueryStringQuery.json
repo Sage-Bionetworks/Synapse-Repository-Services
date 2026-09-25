@@ -1,0 +1,84 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/query-dsl/full-text/query-string/\"><code>query_string</code></a> full-text clause &mdash; the full Lucene query syntax (column prefixes such as <code>title: wind</code>, <code>AND</code>/<code>OR</code>/<code>NOT</code>, grouping, ranges, <code>~</code> fuzziness, <code>^</code> boosts, <code>/regex/</code>). The operators have no precedence, so parenthesize any expression that mixes <code>AND</code> and <code>OR</code>. Every column named in <code>query</code>, <code>fields</code> and <code>default_field</code> is resolved against the index schema, and an unknown column is rejected. Inside <code>query</code>, a column name containing white space or one of <code>+ - ! ( ) : ^ [ ] \" { } ~ * ? \\ /</code> must escape that character with a backslash (e.g. <code>sample\\ id: S-1</code>); the all-columns prefix <code>*:</code> is not supported, and <code>_exists_:</code> takes a single column name.",
+	"implements": [
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.ClauseScoringOptions" },
+		{ "$ref": "org.sagebionetworks.repo.model.search.dsl.MinimumShouldMatchOption" }
+	],
+	"properties": {
+		"query": {
+			"type": "string",
+			"description": "Required. The text to search, which may contain expressions in the query-string syntax."
+		},
+		"fields": {
+			"type": "array",
+			"description": "Optional. The columns to search, at most <code>1024</code>. Each entry may carry a <code>^boost</code> suffix (e.g. <code>[\"title^4\", \"description\"]</code>); column-name wildcards are not supported. Defaults to <code>default_field</code>.",
+			"items": {
+				"type": "object"
+			}
+		},
+		"default_field": {
+			"type": "string",
+			"description": "Optional. The column searched by terms that carry no column prefix; column-name wildcards are not supported. When neither this nor <code>fields</code> is given, every indexed column is searched. The number of columns multiplied by the number of terms may not exceed <code>1024</code> (the OpenSearch <code>indices.query.bool.max_clause_count</code> setting)."
+		},
+		"default_operator": {
+			"type": "string",
+			"description": "Optional. Whether all terms (<code>AND</code>) or only one term (<code>OR</code>) must match when the query contains several terms with no operator between them. With <code>OR</code>, <code>to be</code> is interpreted as <code>to OR be</code>; with <code>AND</code>, as <code>to AND be</code>. Default <code>OR</code>."
+		},
+		"type": {
+			"type": "string",
+			"description": "Optional. How the per-column matches are combined when <code>fields</code> lists more than one column: <code>best_fields</code> (default), <code>most_fields</code>, <code>cross_fields</code>, <code>phrase</code>, <code>phrase_prefix</code>, or <code>bool_prefix</code>."
+		},
+		"analyze_wildcard": {
+			"type": "boolean",
+			"description": "Optional. Whether OpenSearch should attempt to analyze wildcard terms. Default <code>false</code>."
+		},
+		"auto_generate_synonyms_phrase_query": {
+			"type": "boolean",
+			"description": "Optional. Whether to create a match-phrase query automatically for multi-term synonyms. For example, with the synonyms <code>ba, batting average</code>, a search for <code>ba</code> is <code>ba OR \"batting average\"</code> when <code>true</code> and <code>ba OR (batting AND average)</code> when <code>false</code>. Default <code>true</code>."
+		},
+		"enable_position_increments": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, the resulting queries are aware of position increments, which matters when the removal of stop words leaves an unwanted gap between terms. Default <code>true</code>."
+		},
+		"fuzziness": {
+			"type": "string",
+			"description": "Optional. The number of character edits (insert, delete, substitute) that it takes to change one word to another when deciding whether a <code>~</code> term matched; for example, the distance between <code>wined</code> and <code>wind</code> is 1. A non-negative integer or <code>AUTO</code>. The default, <code>AUTO</code>, picks the edit distance from the term's length; <code>AUTO:[low],[high]</code> customizes the length boundaries, and plain <code>AUTO</code> means <code>AUTO:3,6</code>: terms of 0&ndash;2 characters must match exactly, terms of 3&ndash;5 characters allow 1 edit, and terms of 6 or more characters allow 2 edits."
+		},
+		"fuzzy_max_expansions": {
+			"type": "integer",
+			"description": "Optional. The maximum number of terms a fuzzy term can expand to: a fuzzy term expands to the indexed terms within the <code>fuzziness</code> distance, and those terms are then matched. Default and maximum <code>50</code>; a larger value is rejected."
+		},
+		"fuzzy_prefix_length": {
+			"type": "integer",
+			"description": "Optional. Number of leading characters left unchanged when fuzzy matching."
+		},
+		"fuzzy_transpositions": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, a swap of two adjacent characters counts as one edit alongside the insert, delete and substitute edits of <code>fuzziness</code>. For example, the distance between <code>wind</code> and <code>wnid</code> is 1 when <code>true</code> and 2 when <code>false</code>. Default <code>true</code>."
+		},
+		"lenient": {
+			"type": "boolean",
+			"description": "Optional. When <code>true</code>, data type mismatches between the query and a column are ignored; for example, a query of <code>8.2</code> could match a column of type float. Default <code>false</code>."
+		},
+		"max_determinized_states": {
+			"type": "integer",
+			"description": "Optional. The maximum number of states (a measure of complexity) Lucene may create for a <code>/regex/</code> term (e.g. <code>/wind.+?/</code>); a larger number allows regular expressions that use more memory. Default and maximum <code>10000</code>; a larger value is rejected."
+		},
+		"phrase_slop": {
+			"type": "number",
+			"description": "Optional. The maximum number of words allowed between the matched words of a quoted phrase. With <code>2</code>, up to two words may appear between matched words; transposed words have a slop of 2. Default <code>0</code> (the matched words must be adjacent)."
+		},
+		"quote_field_suffix": {
+			"type": "string",
+			"description": "Optional. A suffix appended to the column searched by quoted (exact) portions of the query, so they can be matched with a different analysis than unquoted terms. For example, with <code>.keyword</code>, <code>title: \"wind rises\"</code> is matched against the unanalyzed value of the <code>title</code> column."
+		},
+		"rewrite": {
+			"type": "string",
+			"description": "Optional. How multi-term queries are rewritten and scored: <code>constant_score</code> (default), <code>scoring_boolean</code>, <code>constant_score_boolean</code>, <code>top_terms_N</code>, <code>top_terms_boost_N</code>, or <code>top_terms_blended_freqs_N</code>."
+		},
+		"time_zone": {
+			"type": "string",
+			"description": "Optional. The UTC offset (e.g. <code>-08:00</code>) or time zone ID (e.g. <code>America/Los_Angeles</code>) used to interpret dates in range expressions, such as <code>release_date: [2012-01-01 TO 2014-01-01]</code>. Default UTC."
+		}
+	}
+}

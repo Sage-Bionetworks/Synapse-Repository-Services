@@ -14,10 +14,6 @@
 			"type": "string",
 			"description": "Optional. Boolean logic used to combine the analyzed terms: <code>or</code> (default) or <code>and</code>."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the query text. Defaults to the field's search analyzer."
-		},
 		"max_expansions": {
 			"type": "integer",
 			"description": "Optional. Maximum number of terms the final (prefix) term expands into. Default <code>50</code>."
