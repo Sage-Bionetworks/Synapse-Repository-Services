@@ -1161,9 +1161,7 @@ public class SearchManagementController {
 	 * as <code>bool</code>) is rejected with HTTP 400. The same per-clause guarantees as the
 	 * async search endpoint apply: scripts, cross-index references, and the
 	 * <code>wrapper</code> form are rejected; depth, total-clause, and inline
-	 * <code>terms</code> array length are capped; <code>prefix</code> values starting with
-	 * <code>*</code> or <code>?</code> are rejected (a leading wildcard forces a full
-	 * inverted-index scan).
+	 * <code>terms</code> array length are capped.
 	 * </p>
 	 * <p>
 	 * <b><code>_source</code></b> — optional. Source filter; same shape as on

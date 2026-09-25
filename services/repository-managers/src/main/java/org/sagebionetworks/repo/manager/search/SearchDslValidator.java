@@ -30,13 +30,11 @@ import org.opensearch.client.opensearch._types.query_dsl.FuzzyQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchBoolPrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
-import org.opensearch.client.opensearch._types.query_dsl.PrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.QueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.SimpleQueryStringQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQuery;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
-import org.opensearch.client.opensearch._types.query_dsl.WildcardQuery;
 import org.opensearch.client.opensearch.core.search.FieldCollapse;
 import org.opensearch.client.opensearch.core.search.Highlight;
 import org.opensearch.client.opensearch.core.search.HighlightField;
@@ -57,8 +55,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * {@link Rescore}). Each {@code validate*} method walks its typed object and enforces the numeric
  * caps that need typed accessors and prevent a request from expanding into an unbounded shape inside
  * AOSS: query depth and clause count, aggregation depth and count, value-array length,
- * prefix-expansion, regex automaton size, histogram bucket bound, cardinality precision, and the
- * leading-wildcard rejection.
+ * prefix-expansion, regex automaton size, histogram bucket bound, and cardinality precision.
  *
  * <p>This is the defense-in-depth layer behind the typed POJO's structural allowlist. Each
  * {@code walk*} switch has a throwing {@code default}, so a query / aggregation kind that the
@@ -74,9 +71,10 @@ import com.fasterxml.jackson.databind.JsonNode;
  *
  * <p><b>Resource exhaustion / AOSS denial-of-wallet caps.</b> Depth and total-count caps bound
  * query shape; an inline {@code terms} value array is capped at {@link #MAX_VALUES_PER_CLAUSE};
- * bucket aggregation {@code size} / {@code shard_size} are capped at {@link #MAX_AGG_SIZE};
- * {@code prefix} / {@code wildcard} values that begin with {@code *} or {@code ?} are rejected
- * because a leading wildcard forces a full inverted-index scan.</p>
+ * bucket aggregation {@code size} / {@code shard_size} are capped at {@link #MAX_AGG_SIZE}.
+ * Leading wildcards are accepted in every clause: a {@code query_string} {@code /regex/} term
+ * already carries the same full-term-scan cost, so rejecting them elsewhere would add friction
+ * without bounding anything.</p>
  *
  * <p>Throws {@link IllegalArgumentException} (HTTP 400) on any violation.</p>
  */
@@ -725,12 +723,6 @@ final class SearchDslValidator {
 		case MultiMatch:
 			validateMultiMatch(query.multiMatch());
 			break;
-		case Prefix:
-			rejectLeadingWildcardPrefix(query.prefix());
-			break;
-		case Wildcard:
-			rejectLeadingWildcardWildcard(query.wildcard());
-			break;
 		case SimpleQueryString:
 			validateSimpleQueryString(query.simpleQueryString());
 			break;
@@ -748,8 +740,9 @@ final class SearchDslValidator {
 			break;
 		default:
 			// Allowlisted leaves with no additional caps to enforce (Match, MatchPhrase, Term, Range,
-			// Exists, MatchAll). Any kind outside ALLOWED_QUERY_KINDS is not a property of the Query
-			// schema and is rejected at the request boundary, so it cannot reach here.
+			// Exists, Prefix, Wildcard, MatchAll). Any kind outside ALLOWED_QUERY_KINDS is not a
+			// property of the Query schema and is rejected at the request boundary, so it cannot
+			// reach here.
 			break;
 		}
 	}
@@ -825,31 +818,10 @@ final class SearchDslValidator {
 		checkMaxExpansions(mm.maxExpansions(), "multi_match");
 	}
 
-	static void rejectLeadingWildcardPrefix(PrefixQuery prefix) {
-		rejectLeadingWildcard(prefix.value(), "prefix", prefix.field());
-	}
-
-	static void rejectLeadingWildcardWildcard(WildcardQuery wildcard) {
-		String value = wildcard.value() != null ? wildcard.value() : wildcard.wildcard();
-		rejectLeadingWildcard(value, "wildcard", wildcard.field());
-	}
-
-	static void rejectLeadingWildcard(String pattern, String clause, String field) {
-		if (pattern == null || pattern.isEmpty()) {
-			return;
-		}
-		char first = pattern.charAt(0);
-		if (first == '*' || first == '?') {
-			throw new IllegalArgumentException("leading wildcard is not allowed in '" + clause
-					+ "' on field '" + field + "' (forces a full index scan)");
-		}
-	}
-
 	/**
-	 * {@code simple_query_string}: cap {@code fields} length and the fuzzy expansion, reject a
-	 * leading wildcard in {@code query} when {@code analyze_wildcard} is true (otherwise the leading
-	 * wildcard wouldn't actually be evaluated as one). The mini-DSL inside {@code query} is otherwise
-	 * passed through &mdash; AOSS request timeouts bound the worst case.
+	 * {@code simple_query_string}: cap {@code fields} length and the fuzzy expansion. The mini-DSL
+	 * inside {@code query} is otherwise passed through &mdash; AOSS request timeouts bound the worst
+	 * case.
 	 */
 	static void validateSimpleQueryString(SimpleQueryStringQuery sq) {
 		List<String> fields = sq.fields();
@@ -858,17 +830,6 @@ final class SearchDslValidator {
 					+ " entries; max is " + MAX_VALUES_PER_CLAUSE);
 		}
 		checkMaxExpansions(sq.fuzzyMaxExpansions(), "simple_query_string");
-		if (Boolean.TRUE.equals(sq.analyzeWildcard())) {
-			String pattern = sq.query();
-			if (!pattern.isEmpty()) {
-				char first = pattern.charAt(0);
-				if (first == '*' || first == '?') {
-					throw new IllegalArgumentException(
-							"leading wildcard is not allowed in 'simple_query_string.query' "
-									+ "with analyze_wildcard=true (forces a full index scan)");
-				}
-			}
-		}
 	}
 
 	/**
