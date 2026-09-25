@@ -20,6 +20,8 @@ The API accepts an opaque OpenSearch query DSL (typed passthrough POJOs generate
 
 **Opaque leaf-value shapes are schema-guided, not hand-maintained.** A number of DSL slots (`match.<col>.query`, `range.<col>.gte`, the aggregation `missing` substitution, ...) are schema-typed as a bare `"type":"object"` because their value is polymorphic. `SearchDslValidator.walkOpaqueLeaves` discovers every such leaf by walking the `dsl.Query` / `dsl.Aggregation` effective schema (`SchemaCache`/`ObjectSchema`) rather than a hand-picked list, and requires a scalar value by default. A leaf whose real shape is legitimately non-scalar, or checked elsewhere on the typed object, is an explicit entry in `OPAQUE_LEAF_EXCEPTIONS`. `SearchDslOpaqueLeafCoverageTest` fails the build if the schema's discovered opaque-leaf set drifts from a frozen list, forcing a conscious decision on any newly added opaque property.
 
+**Every sort ends in `_row_id asc` except under `rescore`** (`SearchOpaqueJsonUtil.parseSort`); without a unique final key, `search_after` paging skips ties, and a relevance-only sort emits no cursor at all.
+
 ## Anti-Patterns — Do NOT
 
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).

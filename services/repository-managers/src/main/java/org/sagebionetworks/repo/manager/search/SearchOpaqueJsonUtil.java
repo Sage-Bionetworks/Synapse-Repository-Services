@@ -415,14 +415,23 @@ public final class SearchOpaqueJsonUtil {
 	 * resulting kinds are then checked against {@link SearchDslValidator#ALLOWED_SORT_KINDS}, so
 	 * only {@code field} and {@code _score} sorts survive &mdash; the {@code script},
 	 * {@code _geo_distance}, and {@code _doc} sort kinds are rejected by not being on the allowlist.
+	 *
+	 * <p>The sort ends in {@code _row_id asc} (see {@link #withRowIdTiebreak}) unless the body
+	 * carries a {@code rescore}, which OpenSearch will not combine with a non-relevance sort.</p>
 	 */
 	static List<SortOptions> parseSort(JsonNode body, SearchFieldRewriter.RoutingContext ctx) {
+		// "Cannot use [sort] option in conjunction with [rescore]": OpenSearch allows a rescoring
+		// query to sort by relevance only, so such a caller cannot be given the tiebreak and
+		// forfeits deterministic search_after paging.
+		JsonNode rescore = body.get("rescore");
+		boolean tiebreak = rescore == null || rescore.isNull();
 		JsonNode node = body.get("sort");
 		if (node == null || node.isNull() || (node.isArray() && node.isEmpty())) {
 			// Default: relevance descending. Mirrors the OpenSearch default sort when
 			// callers omit `sort` entirely.
-			return Collections.singletonList(SortOptions.of(so ->
+			List<SortOptions> relevance = Collections.singletonList(SortOptions.of(so ->
 					so.field(FieldSort.of(fs -> fs.field("_score").order(SortOrder.Desc)))));
+			return tiebreak ? withRowIdTiebreak(relevance) : relevance;
 		}
 		// A bare top-level string ("title") is the column-name shorthand — JsonNode mutation can't
 		// replace it in place, so wrap it in the array shorthand before rewriting.
@@ -444,7 +453,24 @@ public final class SearchOpaqueJsonUtil {
 			sort.add(fromJsonpTree(walkable, SortOptions._DESERIALIZER));
 		}
 		SearchDslValidator.validateSort(sort);
-		return sort;
+		return tiebreak ? withRowIdTiebreak(sort) : sort;
+	}
+
+	/**
+	 * Append {@code _row_id asc} so the sort is a total order, unless the caller already sorts on
+	 * {@code _row_id}. Without a unique final key, documents tying on every sort key have no
+	 * defined order across shards and a {@code search_after} cursor skips the rest of the tie.
+	 */
+	private static List<SortOptions> withRowIdTiebreak(List<SortOptions> sort) {
+		boolean alreadyPresent = sort.stream().anyMatch(so -> so.isField()
+				&& OpenSearchManagerImpl.SYSTEM_FIELD_ROW_ID.equals(so.field().field()));
+		if (alreadyPresent) {
+			return sort;
+		}
+		List<SortOptions> withTiebreak = new ArrayList<>(sort);
+		withTiebreak.add(SortOptions.of(so -> so.field(FieldSort.of(fs -> fs
+				.field(OpenSearchManagerImpl.SYSTEM_FIELD_ROW_ID).order(SortOrder.Asc)))));
+		return withTiebreak;
 	}
 
 	/**

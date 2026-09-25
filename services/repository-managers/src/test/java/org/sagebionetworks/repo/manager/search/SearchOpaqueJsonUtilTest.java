@@ -989,14 +989,48 @@ public class SearchOpaqueJsonUtilTest {
 
 	// ===================== parseSort =====================
 
+	/** Every parsed sort ends in {@code _row_id asc} so the ordering is a total order. */
+	private static void assertRowIdTiebreak(List<SortOptions> sort) {
+		SortOptions last = sort.get(sort.size() - 1);
+		assertEquals("_row_id", last.field().field());
+		assertEquals(SortOrder.Asc, last.field().order());
+	}
+
+	@Test
+	public void testParseSortWithRescoreWithholdsTiebreak() {
+		// OpenSearch: "Cannot use [sort] option in conjunction with [rescore]" — a rescoring query
+		// may sort by relevance only, so appending the tiebreak would make every rescore request
+		// fail on the shard.
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}},"
+				+ "\"rescore\":{\"window_size\":50,\"query\":{\"rescore_query\":{\"match_all\":{}}}}}");
+
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+
+		assertEquals(1, sort.size());
+		assertEquals("_score", sort.get(0).field().field());
+	}
+
+	@Test
+	public void testParseSortWithRowIdAlreadyPresentIsNotDuplicated() {
+		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":[{\"_row_id\":\"desc\"}]}");
+		// call under test
+		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
+		assertEquals(1, sort.size());
+		assertEquals("_row_id", sort.get(0).field().field());
+		// The caller's own direction is preserved — the tiebreak is only appended when absent.
+		assertEquals(SortOrder.Desc, sort.get(0).field().order());
+	}
+
 	@Test
 	public void testParseSortWithAbsentInjectsScoreDescending() {
 		JsonNode body = SearchOpaqueJsonUtil.parse("{\"query\":{\"match_all\":{}}}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(1, sort.size());
+		assertEquals(2, sort.size());
 		assertEquals("_score", sort.get(0).field().field());
 		assertEquals(SortOrder.Desc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test
@@ -1006,8 +1040,9 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":\"_score\"}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(1, sort.size());
+		assertEquals(2, sort.size());
 		assertTrue(sort.get(0).isScore());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test
@@ -1015,8 +1050,9 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":\"title\"}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(1, sort.size());
+		assertEquals(2, sort.size());
 		assertEquals("title", sort.get(0).field().field());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test
@@ -1024,7 +1060,8 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":[\"title\",{\"year\":\"desc\"}]}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(2, sort.size());
+		assertEquals(3, sort.size());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test
@@ -1032,9 +1069,10 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode body = SearchOpaqueJsonUtil.parse("{\"sort\":{\"year\":{\"order\":\"asc\"}}}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(1, sort.size());
+		assertEquals(2, sort.size());
 		assertEquals("year", sort.get(0).field().field());
 		assertEquals(SortOrder.Asc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test
@@ -1044,9 +1082,10 @@ public class SearchOpaqueJsonUtilTest {
 				"{\"sort\":[{\"year\":{\"order\":\"asc\",\"mode\":\"min\",\"missing\":\"_last\"}}]}");
 		// call under test
 		List<SortOptions> sort = SearchOpaqueJsonUtil.parseSort(body, nameOnly(Function.identity()));
-		assertEquals(1, sort.size());
+		assertEquals(2, sort.size());
 		assertEquals("year", sort.get(0).field().field());
 		assertEquals(SortOrder.Asc, sort.get(0).field().order());
+		assertRowIdTiebreak(sort);
 	}
 
 	@Test

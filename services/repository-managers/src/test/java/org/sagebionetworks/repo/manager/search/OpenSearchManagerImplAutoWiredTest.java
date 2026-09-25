@@ -219,6 +219,43 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
+	public void testSearchWithMatchAllPagedBySearchAfterReturnsEveryRowOnce() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
+		openSearchManager.waitForIndexWritable(indexName);
+		List<BulkOperation> operations = new ArrayList<>();
+		for (long rowId = 1; rowId <= 5; rowId++) {
+			operations.add(buildBulkOp(indexName, String.valueOf(rowId),
+					Map.of("_row_id", rowId, "_row_version", 1L, "1", "row " + rowId)));
+		}
+		assertEquals(5L, openSearchManager.bulkIndex(indexName, operations));
+		// Exactly 5 hits also means the readiness sentinel is gone.
+		waitForSearchHits(matchAllBody(), columns, EnumSet.of(SearchQueryPart.HITS), 5);
+
+		// Every match_all hit scores the same, so only the _row_id tiebreak orders the pages.
+		List<Long> pagedRowIds = new ArrayList<>();
+		List<Object> searchAfter = null;
+		for (int page = 0; page < 5; page++) {
+			SearchQuery body = new SearchQuery()
+					.setQuery(new Query().setMatch_all(new MatchAllQuery()))
+					.setSize(2L)
+					.setSearch_after(searchAfter);
+			// call under test
+			SearchQueryResults results = openSearchManager.search(indexName, body, columns,
+					EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+			if (results.getHits().isEmpty()) {
+				break;
+			}
+			results.getHits().forEach(hit -> pagedRowIds.add(hit.getRowId()));
+			searchAfter = results.getNextSearchAfter();
+		}
+
+		assertEquals(List.of(1L, 2L, 3L, 4L, 5L), pagedRowIds);
+	}
+
+	@Test
 	public void testFilterAggregationRespectsTopLevelQueryScope() {
 		// ACL-scope invariant: a `filter` (and `filters`) aggregation runs *inside* the search
 		// context, so it must only ever count documents the top-level query already admits. When
