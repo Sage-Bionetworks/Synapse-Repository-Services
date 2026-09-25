@@ -29,6 +29,7 @@ An in-expression name that resolves to nothing must be rejected rather than pass
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).
 - **Do NOT add a new opaque (`"type":"object"`) property to the `dsl.Query` / `dsl.Aggregation` schema family without updating `SearchDslOpaqueLeafCoverageTest`'s frozen leaf set.** The build fails until the addition is accounted for; if the new leaf is not a plain scalar, also add it to `SearchDslValidator.OPAQUE_LEAF_EXCEPTIONS`.
 - **Do NOT emit a query without the benefactor `accessFilters`** — see row-level access control above.
+- **Do NOT expose per-query `analyzer` / `quote_analyzer` in the DSL, even though the OpenSearch spec has them.** Analysis is owned by the column's bound TextAnalyzer (SearchConfiguration `defaultAnalyzer` or a ColumnAnalyzerOverride) for both index and search time; a per-query override silently diverges from the index-time token stream, and its value would have to be an internal namespaced analysis key rather than a TextAnalyzer qualified name.
 
 ## Legacy
 

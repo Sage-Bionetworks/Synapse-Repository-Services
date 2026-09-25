@@ -9,10 +9,6 @@
 			"type": "object",
 			"description": "Required. The phrase whose last term is treated as a prefix. A string."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the phrase. Defaults to the field's search analyzer."
-		},
 		"slop": {
 			"type": "integer",
 			"description": "Optional. Number of positions allowed between matching terms. Default <code>0</code>."

@@ -24,10 +24,6 @@
 			"type": "string",
 			"description": "Optional. Pipe-delimited list of enabled syntax features (e.g. <code>AND|OR|PREFIX</code>), or <code>ALL</code> / <code>NONE</code>."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the query text. Defaults to each field's search analyzer."
-		},
 		"analyze_wildcard": {
 			"type": "boolean",
 			"description": "Optional. Whether to analyze wildcard terms. Default <code>false</code>. A leading wildcard with this enabled is rejected (it forces a full index scan)."

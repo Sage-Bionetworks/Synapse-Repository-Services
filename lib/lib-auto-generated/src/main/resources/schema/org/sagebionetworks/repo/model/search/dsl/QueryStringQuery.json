@@ -28,14 +28,6 @@
 			"type": "string",
 			"description": "Optional. How the per-field matches are combined when <code>fields</code> lists more than one column: <code>best_fields</code> (default), <code>most_fields</code>, <code>cross_fields</code>, <code>phrase</code>, <code>phrase_prefix</code>, or <code>bool_prefix</code>."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the query text. Defaults to each field's search analyzer."
-		},
-		"quote_analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the quoted (exact-phrase) portions of the query."
-		},
 		"analyze_wildcard": {
 			"type": "boolean",
 			"description": "Optional. Whether to analyze wildcard terms. Default <code>false</code>."

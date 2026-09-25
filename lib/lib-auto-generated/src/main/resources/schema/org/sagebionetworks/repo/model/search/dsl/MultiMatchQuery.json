@@ -30,10 +30,6 @@
 			"type": "number",
 			"description": "Optional. Weight (0&ndash;1) applied to non-best field scores in <code>best_fields</code> / <code>cross_fields</code>."
 		},
-		"analyzer": {
-			"type": "string",
-			"description": "Optional. Analyzer used to tokenize the query text. Defaults to each field's search analyzer."
-		},
 		"max_expansions": {
 			"type": "integer",
 			"description": "Optional. Maximum number of terms a fuzzy / prefix expansion will generate. Default <code>50</code>."
