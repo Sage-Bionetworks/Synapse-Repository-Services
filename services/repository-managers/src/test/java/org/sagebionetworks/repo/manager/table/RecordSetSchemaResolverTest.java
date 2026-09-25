@@ -71,10 +71,9 @@ public class RecordSetSchemaResolverTest {
 
 	@Test
 	public void testGetReconciledSchemaWithNoBoundSchema() {
-		// CSV inference always sizes a STRING column, so the fixtures do too.
 		stubInferSchema(List.of(
 				new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
-				new ColumnModel().setName("b").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+				new ColumnModel().setName("b").setColumnType(ColumnType.STRING)));
 		when(mockEntityManager.findBoundSchema(entityId)).thenReturn(Optional.empty());
 
 		// call under test
@@ -96,7 +95,7 @@ public class RecordSetSchemaResolverTest {
 		// inferred from the CSV must be upgraded to STRING_LIST. "a" stays scalar.
 		stubInferSchema(List.of(
 				new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
-				new ColumnModel().setName("tags").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+				new ColumnModel().setName("tags").setColumnType(ColumnType.STRING)));
 		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
 				"tags", new JsonSchema().setType(Type.array)));
 		stubBoundSchema(validationSchema);
@@ -241,9 +240,27 @@ public class RecordSetSchemaResolverTest {
 	}
 
 	@Test
-	public void testGetReconciledSchemaCapsCsvAndSchemaOnlyColumnsAlike() {
-		// "a" is matched to the CSV and "b" is declared only by the schema, but both declare a
-		// maxLength beyond what a STRING column can hold, so both must be capped the same way.
+	public void testGetReconciledSchemaWithUnboundedArrayOfStrings() {
+		// An unsized STRING_LIST is a valid way to read a CSV column of entity ids that the
+		// schema declares as an array of strings, so it must survive as a list: capping it to
+		// MEDIUMTEXT would make the grid store the value as a plain string instead of a
+		// single-element array (PLFM-9945).
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
+		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
+				"a", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
+
+		assertEquals(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING_LIST)), schema);
+	}
+
+	@Test
+	public void testGetReconciledSchemaWithStringLongerThanTheIndexAllows() {
+		// The reconciled types describe how to read the CSV, so a maxLength beyond what a
+		// STRING column can hold is carried as-is. Only a column bound to the table index is
+		// capped, which is a schema-only column ("b") here.
 		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
 		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
 				"a", new JsonSchema().setType(Type.string).setMaxLength(5000L),
@@ -254,13 +271,13 @@ public class RecordSetSchemaResolverTest {
 		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
 
 		assertEquals(List.of(
-				new ColumnModel().setName("a").setColumnType(ColumnType.MEDIUMTEXT),
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(5000L),
 				new ColumnModel().setName("b").setColumnType(ColumnType.MEDIUMTEXT)), schema);
 	}
 
 	@Test
-	public void testGetReconciledSchemaKeepsStringWithinTheIndexLimit() {
-		// The schema re-types the inferred ENTITYID to a string that a STRING column can hold.
+	public void testGetReconciledSchemaWithStringMaxLength() {
+		// The schema re-types the inferred ENTITYID to a sized STRING.
 		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
 		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
 				"a", new JsonSchema().setType(Type.string).setMaxLength(64L)));

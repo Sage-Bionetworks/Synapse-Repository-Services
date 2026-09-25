@@ -1426,11 +1426,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 		// scores_column holds decimals, which the CSV inference types as DOUBLE: a type with
 		// no list equivalent, so the grid keeps the raw value as text rather than failing to
 		// build a DOUBLE_LIST that does not exist (PLFM-9945).
+		// refs_column holds entity ids (inferred as ENTITYID) against an array of strings that
+		// declares no maxLength, so the element type carries no size: the column must still be
+		// read as a list rather than degrading to a plain text cell (PLFM-9945).
 		String csvContent =
-			"id_column,tags_column,name_column,scores_column" + System.lineSeparator() +
-			"1,alpha,first,1.5"                               + System.lineSeparator() +
-			"2,\"beta, gamma\",second,2.5"                    + System.lineSeparator() +
-			"3,\"[\"\"delta\"\"]\",third,3.5";
+			"id_column,tags_column,name_column,scores_column,refs_column" + System.lineSeparator() +
+			"1,alpha,first,1.5,syn123"                                    + System.lineSeparator() +
+			"2,\"beta, gamma\",second,2.5,syn456"                         + System.lineSeparator() +
+			"3,\"[\"\"delta\"\"]\",third,3.5,syn789";
 
 		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(),
 			csvContent.getBytes(StandardCharsets.UTF_8), "recordset_array.csv", ContentType.create("text/csv"), null);
@@ -1441,12 +1444,13 @@ public class GridEventBrokerWorkerIntegrationTest {
 			.setDataFileHandleId(fileHandle.getId())
 			.setUpsertKey(List.of("id_column")), null);
 
-		// Schema with tags_column and scores_column as array types
+		// Schema with tags_column, scores_column and refs_column as array types
 		String schemaId = createJsonSchema(Map.of(
 			"id_column", new JsonSchema().setType(Type.integer),
 			"tags_column", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string)),
 			"name_column", new JsonSchema().setType(Type.string),
-			"scores_column", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.number))
+			"scores_column", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.number)),
+			"refs_column", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))
 		), List.of("id_column", "name_column")).getNewVersionInfo().get$id();
 
 		entityService.bindSchemaToEntity(admin.getId(),
@@ -1466,7 +1470,7 @@ public class GridEventBrokerWorkerIntegrationTest {
 		);
 
 		assertEquals(
-			List.of("id_column", "tags_column", "name_column", "scores_column"),
+			List.of("id_column", "tags_column", "name_column", "scores_column", "refs_column"),
 			header.getOrderedColumns().stream().map(Column::getName).collect(Collectors.toList())
 		);
 
@@ -1482,29 +1486,29 @@ public class GridEventBrokerWorkerIntegrationTest {
 			);
 		});
 
-		// Verify that plain strings were coerced to arrays, while the decimals of the
-		// scores_column are carried through as text
+		// Verify that plain strings and entity ids were coerced to arrays, while the decimals
+		// of the scores_column are carried through as text
 		assertEquals(
 			List.of(
-				"{\"id_column\":1,\"tags_column\":[\"alpha\"],\"name_column\":\"first\",\"scores_column\":\"1.5\"}",
-				"{\"id_column\":2,\"tags_column\":[\"beta\",\"gamma\"],\"name_column\":\"second\",\"scores_column\":\"2.5\"}",
-				"{\"id_column\":3,\"tags_column\":[\"delta\"],\"name_column\":\"third\",\"scores_column\":\"3.5\"}"
+				"{\"id_column\":1,\"tags_column\":[\"alpha\"],\"name_column\":\"first\",\"scores_column\":\"1.5\",\"refs_column\":[\"syn123\"]}",
+				"{\"id_column\":2,\"tags_column\":[\"beta\",\"gamma\"],\"name_column\":\"second\",\"scores_column\":\"2.5\",\"refs_column\":[\"syn456\"]}",
+				"{\"id_column\":3,\"tags_column\":[\"delta\"],\"name_column\":\"third\",\"scores_column\":\"3.5\",\"refs_column\":[\"syn789\"]}"
 			),
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
 
 		// Now test CSV import path — exercises GridCsvImporterImpl + CsvSchemaReconciler
 		String upsertCsvContent =
-			"id_column,tags_column,name_column,scores_column" + System.lineSeparator() +
-			"1,updated_alpha,first_updated,1.75"              + System.lineSeparator() +
-			"4,\"new_a, new_b\",fourth,4.5";
+			"id_column,tags_column,name_column,scores_column,refs_column" + System.lineSeparator() +
+			"1,updated_alpha,first_updated,1.75,syn999"                    + System.lineSeparator() +
+			"4,\"new_a, new_b\",fourth,4.5,syn111";
 
 		S3FileHandle upsertFileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(),
 			upsertCsvContent.getBytes(StandardCharsets.UTF_8), "recordset_array_upsert.csv", ContentType.create("text/csv"), null);
 
-		// Note: schema uses STRING for tags_column — the reconciler should upgrade to STRING_LIST,
-		// and DOUBLE for scores_column, which the reconciler keeps as text since the JSON schema
-		// declares an array and DOUBLE has no list equivalent
+		// Note: schema uses STRING for tags_column and ENTITYID for refs_column — the reconciler
+		// should upgrade both to STRING_LIST — and DOUBLE for scores_column, which the reconciler
+		// keeps as text since the JSON schema declares an array and DOUBLE has no list equivalent
 		GridCsvImportRequest csvImportRequest = new GridCsvImportRequest()
 			.setSessionId(session.getSessionId())
 			.setFileHandleId(upsertFileHandle.getId())
@@ -1513,7 +1517,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 				new ColumnModel().setName("id_column").setColumnType(ColumnType.INTEGER),
 				new ColumnModel().setName("tags_column").setColumnType(ColumnType.STRING),
 				new ColumnModel().setName("name_column").setColumnType(ColumnType.STRING),
-				new ColumnModel().setName("scores_column").setColumnType(ColumnType.DOUBLE)
+				new ColumnModel().setName("scores_column").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setName("refs_column").setColumnType(ColumnType.ENTITYID)
 			));
 
 		asynchronousJobWorkerHelper.assertJobResponse(admin, csvImportRequest, (GridCsvImportResponse response) -> {
@@ -1536,10 +1541,10 @@ public class GridEventBrokerWorkerIntegrationTest {
 
 		assertEquals(
 			List.of(
-				"{\"id_column\":1,\"tags_column\":[\"updated_alpha\"],\"name_column\":\"first_updated\",\"scores_column\":\"1.75\"}",
-				"{\"id_column\":2,\"tags_column\":[\"beta\",\"gamma\"],\"name_column\":\"second\",\"scores_column\":\"2.5\"}",
-				"{\"id_column\":3,\"tags_column\":[\"delta\"],\"name_column\":\"third\",\"scores_column\":\"3.5\"}",
-				"{\"id_column\":4,\"tags_column\":[\"new_a\",\"new_b\"],\"name_column\":\"fourth\",\"scores_column\":\"4.5\"}"
+				"{\"id_column\":1,\"tags_column\":[\"updated_alpha\"],\"name_column\":\"first_updated\",\"scores_column\":\"1.75\",\"refs_column\":[\"syn999\"]}",
+				"{\"id_column\":2,\"tags_column\":[\"beta\",\"gamma\"],\"name_column\":\"second\",\"scores_column\":\"2.5\",\"refs_column\":[\"syn456\"]}",
+				"{\"id_column\":3,\"tags_column\":[\"delta\"],\"name_column\":\"third\",\"scores_column\":\"3.5\",\"refs_column\":[\"syn789\"]}",
+				"{\"id_column\":4,\"tags_column\":[\"new_a\",\"new_b\"],\"name_column\":\"fourth\",\"scores_column\":\"4.5\",\"refs_column\":[\"syn111\"]}"
 			),
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
@@ -1671,8 +1676,75 @@ public class GridEventBrokerWorkerIntegrationTest {
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
 	}
-	
-	
+
+	@Test
+	public void testGridWithRecordSetAndEntityIdColumnDeclaredAsInteger() throws Exception {
+		Project project = entityService.createEntity(admin.getId(),
+			new Project().setName("EntityIdAsInteger Test"), null);
+
+		// ref_column holds entity ids that its schema property declares as integers, so the data
+		// contradicts the schema. Reading the column as the declared integer would fail on
+		// "syn123" and take the whole grid down with it, so the values are read as the entity ids
+		// they are and the conflict is left to row validation for a user to resolve (PLFM-9945).
+		String csvContent =
+			"id_column,ref_column" + System.lineSeparator() +
+			"1,syn123"             + System.lineSeparator() +
+			"2,syn456";
+
+		S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(admin.getId().toString(), new Date(),
+			csvContent.getBytes(StandardCharsets.UTF_8), "recordset_ref.csv", ContentType.create("text/csv"), null);
+
+		RecordSet recordSet = entityService.createEntity(admin.getId(), new RecordSet()
+			.setParentId(project.getId())
+			.setName("refRecordSet")
+			.setDataFileHandleId(fileHandle.getId())
+			.setUpsertKey(List.of("id_column")), null);
+
+		String schemaId = createJsonSchema(Map.of(
+			"id_column", new JsonSchema().setType(Type.integer),
+			"ref_column", new JsonSchema().setType(Type.integer)
+		), List.of("id_column")).getNewVersionInfo().get$id();
+
+		entityService.bindSchemaToEntity(admin.getId(),
+			new BindSchemaToEntityRequest().setEntityId(recordSet.getId()).setSchema$id(schemaId));
+
+		GridSession session = asynchronousJobWorkerHelper.assertJobResponse(admin,
+			new CreateGridRequest().setRecordSetId(recordSet.getId()), (CreateGridResponse response) -> {
+				assertNotNull(response);
+				assertNotNull(response.getGridSession());
+			}, MAX_WAIT_MS).getResponse().getGridSession();
+
+		GridHeader header = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () ->
+			gridViewManager.readHeader(session.getSessionId(), INTERNAL_REPLICA_ID)
+				.map(h -> Pair.create(true, h))
+				.orElse(Pair.create(false, null))
+		);
+
+		List<RowView> rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			if (page.size() != 2) {
+				return Pair.create(false, page);
+			}
+			return Pair.create(
+				page.stream().allMatch(r -> r.getRowValidationResults() != null),
+				page
+			);
+		});
+
+		assertEquals(
+			List.of(
+				"{\"id_column\":1,\"ref_column\":\"syn123\"}",
+				"{\"id_column\":2,\"ref_column\":\"syn456\"}"
+			),
+			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
+		);
+
+		// The rows are reported as invalid, since an entity id is not the integer the schema declares
+		assertEquals(List.of(false, false),
+			rowsView.stream().map(r -> r.getRowValidationResults().getIsValid()).collect(Collectors.toList()));
+	}
+
+
 	UserInfo createUser(){
 		NewUser newUser = new NewUser();
 		newUser.setEmail(UUID.randomUUID().toString() + "@test.com");

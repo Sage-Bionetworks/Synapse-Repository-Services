@@ -188,7 +188,10 @@ public class CsvSchemaReconcilerTest {
 		));
 		// call under test
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
-		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.INTEGER), csvSchema.get(0));
+		// the column keeps its inferred type: an entity id such as "syn123" cannot be read as an
+		// integer, so reading the column as declared would fail instead of surfacing the values
+		// for a user to correct
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.ENTITYID), csvSchema.get(0));
 	}
 
 	@Test
@@ -285,6 +288,21 @@ public class CsvSchemaReconcilerTest {
 		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
 		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.STRING_LIST).setMaximumSize(64L),
 				csvSchema.get(0));
+	}
+
+	@Test
+	public void testReconcileWithEntityIdToArrayOfIntegerSchema() {
+		List<ColumnModel> csvSchema = Arrays.asList(
+				new ColumnModel().setName("col1").setColumnType(ColumnType.ENTITYID)
+		);
+		JsonSchema validationSchema = new JsonSchema().setProperties(Collections.singletonMap(
+				"col1", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.integer))
+		));
+		// call under test
+		CsvSchemaReconciler.reconcile(csvSchema, validationSchema);
+		// the element type the schema declares is not applied, so the entity ids are read as a
+		// list of entity ids rather than a list of integers they cannot be parsed as
+		assertEquals(new ColumnModel().setName("col1").setColumnType(ColumnType.ENTITYID_LIST), csvSchema.get(0));
 	}
 
 	@Test
