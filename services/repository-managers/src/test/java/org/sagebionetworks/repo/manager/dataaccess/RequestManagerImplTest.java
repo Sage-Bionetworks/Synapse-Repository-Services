@@ -520,6 +520,8 @@ public class RequestManagerImplTest {
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
 		// call under test.
@@ -531,6 +533,7 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+		assertEquals(7L, updated.getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
@@ -542,6 +545,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		// A stale client copy tries to send a different envelope id.
@@ -569,6 +574,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		// A stale client omits the envelope id and tries to attach a signed DUC document. The
 		// completion check must run against the server's (in-flight) envelope, not the client's
@@ -594,6 +601,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		// A stale client copy still carries the old envelope id.
@@ -610,13 +619,16 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithClientSuppliedAccessRequirementVersionNumber() {
-		// The persisted request records the version the requester started answering.
+		// The saved answers were last written against version one, and the requirement has since
+		// moved on to version seven.
 		request.setAccessRequirementVersionNumber(1L);
 
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setAccessRequirementVersionNumber(9L);
@@ -626,9 +638,9 @@ public class RequestManagerImplTest {
 
 		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
 		verify(mockRequestDao).update(captor.capture());
-		// Saving progress does not move the stamp onto the requirement's newer version.
-		assertEquals(1L, captor.getValue().getAccessRequirementVersionNumber().longValue());
-		verifyNoInteractions(mockAccessRequirementDao);
+		// The client's own value is ignored in favour of the requirement's current version, which
+		// is what lets a client stop warning about drift once this save lands.
+		assertEquals(7L, captor.getValue().getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
@@ -637,6 +649,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		// Saving progress must accept data that the bound schema would reject, since answers are
 		// only validated when the request is submitted.
@@ -726,6 +740,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Request toUpdate = createNewRequest();
 		toUpdate.setDucFileHandleId("777");

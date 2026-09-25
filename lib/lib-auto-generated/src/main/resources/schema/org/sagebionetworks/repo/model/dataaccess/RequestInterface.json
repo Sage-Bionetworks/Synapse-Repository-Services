@@ -12,7 +12,7 @@
 		},
 		"accessRequirementVersionNumber": {
 			"type": "integer",
-			"description": "The version of the Access Requirement that was current when the requester started answering this request. Set by the server when the request is created and left unchanged by subsequent updates, so that a client can detect that the Access Requirement changed while the request was being answered. A client supplied value is ignored."
+			"description": "The version of the Access Requirement that this request was last saved against. Set by the server on each create and update, so that a client resuming a request can compare it against the current version of the Access Requirement to detect that the requirement changed since the last save, and can clear that warning by saving the request against the current form. A client supplied value is ignored."
 		},
 		"researchProjectId": {
 			"type": "string",

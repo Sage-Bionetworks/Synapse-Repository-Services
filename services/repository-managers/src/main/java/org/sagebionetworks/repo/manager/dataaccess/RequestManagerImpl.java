@@ -255,10 +255,11 @@ public class RequestManagerImpl implements RequestManager{
 		// envelope id rather than whatever the client sent.
 		toUpdate.setEDucSignatureEnvelopeId(original.getEDucSignatureEnvelopeId());
 
-		// The access requirement version is server managed and records where answering
-		// began. Refreshing it on every save would make it permanently equal to the requirement's
-		// current version, which is exactly the drift the field exists to expose.
-		toUpdate.setAccessRequirementVersionNumber(original.getAccessRequirementVersionNumber());
+		// Server managed record of the version these answers were written against. Re-stamping on
+		// every save is what lets a client both raise a warning once the requirement moves on, and
+		// clear it once the requester has saved against the current form.
+		toUpdate.setAccessRequirementVersionNumber(
+				accessRequirementDao.get(original.getAccessRequirementId()).getVersionNumber());
 
 		validateEnvelopeCompletion(toUpdate);
 
@@ -290,8 +291,7 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.required(requestId, "requestId");
 		RequestInterface original = requestDao.getForUpdate(requestId);
 		Renewal renewal = createRenewalFromApprovedRequest(original);
-		// The approved request is replaced by a renewal the requester starts answering from
-		// scratch, so the stamp moves forward to whichever version the requirement is on now.
+		// This bypasses update(), so the stamp is applied here by the same rule.
 		renewal.setAccessRequirementVersionNumber(
 				accessRequirementDao.get(renewal.getAccessRequirementId()).getVersionNumber());
 		/*

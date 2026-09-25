@@ -191,18 +191,24 @@ public class ITJsonSchemaDataAccessRequestTest {
 		// The requirement moves onto a new version of the template while the request is being answered
 		moveRequirementToNewTemplateVersion();
 
-		// A client sending its own stamp does not get to choose it either
-		Request toUpdate = ((Request) synapse.getRequestForUpdate(accessRequirementId()))
+		// Resuming shows the stamp lagging behind the requirement, which is how a client detects that
+		// the form changed underneath the requester.
+		Request resumed = (Request) synapse.getRequestForUpdate(accessRequirementId());
+		assertEquals(0L, resumed.getAccessRequirementVersionNumber().longValue());
+
+		// The requester answers again after the change. A client sending its own stamp does not get
+		// to choose it.
+		Request toUpdate = resumed
 				.setAccessRequirementVersionNumber(99L)
 				.setSchemaData(json("{\"projectLead\":\"Dr. Lead\",\"intendedDataUse\":\"Research\"}"));
 
 		// call under test
 		RequestInterface updated = synapse.createOrUpdateRequest(toUpdate);
 
-		// The stamp still records the version answering began on, which is how a client detects that
-		// the requirement changed underneath the requester.
-		assertEquals(0L, updated.getAccessRequirementVersionNumber().longValue());
+		// The stamp records the version the answers were last saved against, so a client that warned
+		// about the change can stop warning once the requester saves against the current form.
 		assertEquals(1L, adminSynapse.getAccessRequirement(accessRequirement.getId()).getVersionNumber().longValue());
+		assertEquals(1L, updated.getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
