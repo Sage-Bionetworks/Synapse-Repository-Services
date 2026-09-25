@@ -95,7 +95,7 @@ public class IndexAuthorizationSnapshotManager {
 
 		IdAndVersion object = indexDescription.getIdAndVersion();
 		return new IndexAuthorizationSnapshot()
-				.setObjectId("syn" + object.getId())
+				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
 				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription))
 				.setColumnLineage(flattenedLineage(indexDescription, definingSql, boundSchema, new HashMap<>()));
@@ -122,7 +122,7 @@ public class IndexAuthorizationSnapshotManager {
 
 		IdAndVersion object = indexDescription.getIdAndVersion();
 		return new IndexAuthorizationSnapshot()
-				.setObjectId("syn" + object.getId())
+				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
 				.setIndexDescription(buildIndexDescriptionSnapshot(indexDescription))
 				.setColumnLineage(identityLineage(object, boundSchema));
@@ -138,10 +138,23 @@ public class IndexAuthorizationSnapshotManager {
 						.setOutputColumnId(column.getId())
 						.setDerivationKind(DerivationKind.IDENTITY)
 						.setInputs(Collections.singletonList(new SourceColumnReference()
-								.setSourceObjectId("syn" + object.getId())
+								.setSourceObjectId(toObjectIdString(object))
 								.setSourceVersionNumber(object.getVersion().orElse(null))
 								.setSourceColumnId(column.getId()))))
 				.collect(Collectors.toList());
+	}
+
+	/**
+	 * The {@code "syn"}-prefixed id string a snapshot records for its own object. A materialized view
+	 * shadow rebuild builds the index under a temporary <em>negated</em> id (see
+	 * {@code MaterializedViewManagerImpl}), then atomically swaps the index - and its snapshot - into the
+	 * real id. Because the snapshot is served for the real id after that swap, its content must record the
+	 * real object id, not the temporary build-target id. The temporary id is exactly the negation of the
+	 * real id (Synapse object ids are always positive), so its absolute value recovers the real id; for an
+	 * in-place build the id is already positive and this is a no-op.
+	 */
+	private static String toObjectIdString(IdAndVersion object) {
+		return "syn" + Math.abs(object.getId());
 	}
 
 	/**
@@ -174,7 +187,7 @@ public class IndexAuthorizationSnapshotManager {
 		LinkedHashMap<IdAndVersion, SourceDependency> dependencies = new LinkedHashMap<>();
 		collectDependencies(indexDescription, dependencies);
 		return new IndexDescriptionSnapshot()
-				.setObjectId("syn" + object.getId())
+				.setObjectId(toObjectIdString(object))
 				.setVersionNumber(object.getVersion().orElse(null))
 				.setTableType(indexDescription.getTableType().name())
 				.setBenefactors(benefactors)

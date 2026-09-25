@@ -949,11 +949,11 @@ public class MaterializedViewManagerImplTest {
 		verify(mockTableIndexManager).swapTableIndex(temporaryIndex, indexDescription);
 		verify(mockColumnModelManager).bindColumnsToVersionOfObject(viewSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()), idAndVersion);
 		verify(mockTableManagerSupport).updateChangedOnIfAvailable(idAndVersion);
-		
+
 	}
-	
+
 	@Test
-	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithIndexSynchronized() throws Exception {		
+	public void testRebuildAvailableViewHoldingTemporaryExclusiveLockWithIndexSynchronized() throws Exception {
 		doAnswer(invocation -> {
 			ProgressCallback callback = (ProgressCallback) invocation.getArguments()[0];
 			ProgressingCallable runner = (ProgressingCallable) invocation.getArguments()[2];

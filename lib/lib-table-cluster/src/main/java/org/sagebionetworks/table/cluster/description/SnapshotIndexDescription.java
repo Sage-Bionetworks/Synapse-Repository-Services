@@ -64,9 +64,11 @@ public class SnapshotIndexDescription implements QueryIndexDescription {
 	 * {@link IndexDescriptionSnapshot}.
 	 *
 	 * @param snapshot             the as-built authorization projection
-	 * @param changeNumberProvider supplies the live last-change-number for an
-	 *                             object (drives the query-cache hash); typically
-	 *                             bound to {@code getLastTableChangeNumber}
+	 * @param changeNumberProvider supplies an object's live table version (drives
+	 *                             the query-cache hash so it invalidates on every
+	 *                             index update); must match the value the live
+	 *                             {@code IndexDescription} is built with, i.e.
+	 *                             {@code TableManagerSupport.getTableVersion}
 	 * @return a reconstituted description
 	 */
 	public static SnapshotIndexDescription fromSnapshot(IndexDescriptionSnapshot snapshot,
@@ -142,6 +144,13 @@ public class SnapshotIndexDescription implements QueryIndexDescription {
 
 	@Override
 	public Optional<Long> getLastTableChangeNumber() {
+		// Mirror the live subtypes exactly so the query-cache hash matches the live path: a
+		// materialized view's own node contributes nothing to the hash (its freshness is driven
+		// entirely by its dependencies' change numbers, matching MaterializedViewIndexDescription),
+		// while every other materialized type contributes its live table version.
+		if (TableType.materializedview.equals(tableType)) {
+			return Optional.empty();
+		}
 		return changeNumberProvider.apply(idAndVersion);
 	}
 

@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -621,109 +622,104 @@ public class TableQueryManagerImplTest {
 	public void testQueryAfterAuthorization() throws Exception{
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		when(mockQueryExecutor.executeQuery(any(), any())).thenReturn(rowSet);
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		Long maxBytesPerPage = null;
+		// Only the SQL is parsed before the lock; authorization and translation are deferred into the
+		// locked callback. Stub preflight so this test focuses on the lock/availability orchestration.
+		doReturn(mockQueryTranslations).when(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryResultBundle expected = new QueryResultBundle();
+
 		// call under test.
-		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, mockQueryExecutor);
-		assertNotNull(result);
-		assertNotNull(result.getQueryResult());
-		assertNotNull(result.getQueryResult().getQueryResults());
-		assertEquals(status.getLastTableChangeEtag(), result.getQueryResult().getQueryResults().getEtag());
-		// an exclusive lock must be held for a consistent query.
+		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, maxBytesPerPage,
+				queryOptions, (translatedQuery, tableStatus) -> {
+					// the consumer receives the query translated under the lock and the status from the availability check.
+					assertEquals(mockQueryTranslations, translatedQuery);
+					assertEquals(status, tableStatus);
+					return expected;
+				});
+		assertEquals(expected, result);
+		// the read lock must be held while the query is authorized, translated, and run.
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(), any(ProgressingCallable.class), any(IdAndVersion.class));
-		// The table status should be checked only for a consistent query.
+		// availability is confirmed once, under the lock, before translation.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
+		verify(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
 	}
-	
+
 	@Test
 	public void testQueryAfterAuthorizationNotFoundException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new NotFoundException("not found"));
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
 		});
 	}
-	
+
 	@Test
 	public void testQueryAfterAuthorizationTableUnavailableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableUnavailableException(new TableStatus()));
-		
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
 		});
 	}
-	
+
 	@Test
 	public void testQueryAfterAuthorizationTableFailedException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new TableFailedException(new TableStatus()));
-		
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
 		});
 	}
-	
+
 	@Test
 	public void testQueryAfterAuthorizationLockUnavilableException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new LockUnavilableException(LockType.Read, "key", "context"));
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
 		assertThrows(LockUnavilableException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
 		});
 
 	}
-	
+
 	@Test
 	public void testQueryAfterAuthorizationEmptyResultException() throws Exception{
 		when(mockTableManagerSupport.tryRunWithTableNonExclusiveLock(
 						any(ProgressCallback.class), any(), any(ProgressingCallable.class),
 						any(IdAndVersion.class))).thenThrow(
 				new EmptyResultException());
-		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
-		
-		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
-		
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId).build(), queryOptions);
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
 		assertThrows(EmptyResultException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
 		});
 	}
 	
@@ -1029,14 +1025,24 @@ public class TableQueryManagerImplTest {
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
 		queryOptions = new QueryOptions().withRunQuery(true);
-		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+		QueryTranslations translated = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		Long maxBytesPerPage = null;
+		doReturn(translated).when(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
+
 		// call under test
-		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, queryOptions, mockQueryExecutor);
+		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, maxBytesPerPage,
+				queryOptions, (translatedQuery, tableStatus) -> {
+					QueryResultBundle bundle = manager.executeQuery(user, translatedQuery, queryOptions, mockQueryExecutor);
+					// rows are suppressed for an aggregate-only query, so the etag block must be null-guarded and not NPE.
+					manager.setConsistentQueryEtag(bundle, queryOptions, tableStatus);
+					return bundle;
+				});
 		assertNotNull(result);
-		// rows are suppressed, so there is no query result to stamp the etag onto (the etag
-		// block must be null-guarded and not NPE)
+		// rows are suppressed, so there is no query result to stamp the etag onto
 		assertNull(result.getQueryResult());
 		assertEquals(count, result.getQueryCount());
 	}
@@ -1375,6 +1381,8 @@ public class TableQueryManagerImplTest {
 	@Test 
 	public void testQuerySinglePageEmptySchema() throws Exception {
 		// Return no columns
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		Query query = new Query();
@@ -1394,14 +1402,7 @@ public class TableQueryManagerImplTest {
 	public void testQueryIndexNotAvailable() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
-		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn((long)models.size());
-		when(mockTableManagerSupport.getTableSchema(idAndVersion)).thenReturn(models);
-		IndexDescription indexDescription = new TableIndexDescription(idAndVersion);
-		when(mockTableManagerSupport.getIndexDescription(any())).thenReturn(indexDescription);
-		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
-		
-		when(mockTableManagerSupport.getColumnModel(any())).thenReturn(models.get(0));
-		
+
 		status.setState(TableState.PROCESSING);
 		Query query = new Query();
 		query.setSql("select * from " + tableId + " limit 1");
@@ -1412,7 +1413,9 @@ public class TableQueryManagerImplTest {
 		});
 		assertEquals(status, result.getStatus());
 		verify(mockTableManagerSupport, times(1)).getTableStatusOrCreateIfNotExists(idAndVersion);
-		verify(mockTableManagerSupport).validateTableReadAccess(user, indexDescription);
+		// Availability is now confirmed under the read lock BEFORE authorization or translation, so an
+		// unavailable table is rejected without ever authorizing the user.
+		verify(mockTableManagerSupport, never()).validateTableReadAccess(any(), any());
 	}
 	
 	
@@ -1538,7 +1541,9 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testQueryBundleSumFileSizes() throws LockUnavilableException, TableUnavailableException, TableFailedException {
+	public void testQueryBundleSumFileSizes() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		QueryBundleRequest queryBundle = new QueryBundleRequest();
 		Query query = new Query();
@@ -1963,8 +1968,10 @@ public class TableQueryManagerImplTest {
 	}
 	
 	@Test
-	public void testRunQueryDownloadAsStreamEmptyDownload() throws NotFoundException, TableUnavailableException, TableFailedException, LockUnavilableException {
+	public void testRunQueryDownloadAsStreamEmptyDownload() throws Exception {
 		// Return no columns
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.getTableSchemaCount(any())).thenReturn(0L);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
@@ -2260,6 +2267,8 @@ public class TableQueryManagerImplTest {
 		rows.add(row);
 		// no options
 		queryOptions = new QueryOptions();
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		Query query = new Query();
 		query.setSql("select * from "+tableId);
@@ -2279,6 +2288,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageWithNoNextPage() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
@@ -2334,6 +2345,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageRunQueryTrue() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(true).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
@@ -2355,6 +2368,8 @@ public class TableQueryManagerImplTest {
 	
 	@Test
 	public void testQuerySinglePageRunQueryFalse() throws Exception{
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		queryOptions = new QueryOptions().withRunQuery(false).withRunCount(true).withReturnFacets(false);
 		Query query = new Query();
@@ -3015,14 +3030,20 @@ public class TableQueryManagerImplTest {
 		queryOptions = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true).withRunCount(false)
 				.withReturnFacets(false);
 		Query request = new Query().setSql("select * from " + idAndVersion.toString());
-		doReturn(mockQueryTranslations).when(manager).queryPreflight(user, request, null, queryOptions);
 
 		when(mockRowHandlerProvider.getHandler(mockQueryTranslations)).thenReturn(mockRowHandler);
-		StreamingQueryExecutor executor = new StreamingQueryExecutor(mockRowHandler);
-
 		QueryResultBundle expected = new QueryResultBundle().setQueryCount(1L);
-		doReturn(expected).when(manager).queryAfterAuthorization(mockProgressCallbackVoid, user, mockQueryTranslations,
-				queryOptions, executor);
+		// executeQuery is covered separately; here we only verify runQueryAsStream opens the handler under
+		// the lock, runs the translated query against it, and closes the handler.
+		doReturn(expected).when(manager).executeQuery(eq(user), eq(mockQueryTranslations), eq(queryOptions),
+				any(StreamingQueryExecutor.class));
+		// queryAfterAuthorization runs its consumer under the read lock; invoke it here with the query the
+		// preflight would have translated so the streaming consumer executes.
+		doAnswer(invocation -> {
+			TableQueryManagerImpl.TranslatedQueryConsumer consumer = invocation.getArgument(5);
+			return consumer.apply(mockQueryTranslations, status);
+		}).when(manager).queryAfterAuthorization(eq(mockProgressCallbackVoid), eq(user), eq(request), isNull(),
+				eq(queryOptions), any(TableQueryManagerImpl.TranslatedQueryConsumer.class));
 
 		// call under test
 		QueryResultBundle results = manager.runQueryAsStream(mockProgressCallbackVoid, user, request,
@@ -3031,14 +3052,17 @@ public class TableQueryManagerImplTest {
 
 		verify(mockRowHandler).close();
 	}
-	
+
 	@Test
 	public void testRunQueryAsStreamWithEmptyException() throws Exception {
 		queryOptions = new QueryOptions().withRunQuery(true).withReturnSelectColumns(true).withRunCount(false)
 				.withReturnFacets(false);
 		Query request = new Query().setSql("select * from " + idAndVersion.toString());
-		doThrow(new EmptyResultException("message", "syn123")).when(manager).queryPreflight(user, request, null,
-				queryOptions);
+		// The empty-schema check runs inside queryPreflight, under the lock, so it surfaces out of
+		// queryAfterAuthorization; runQueryAsStream maps it to an IllegalArgumentException.
+		doThrow(new EmptyResultException("message", "syn123")).when(manager).queryAfterAuthorization(
+				eq(mockProgressCallbackVoid), eq(user), eq(request), isNull(), eq(queryOptions),
+				any(TableQueryManagerImpl.TranslatedQueryConsumer.class));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

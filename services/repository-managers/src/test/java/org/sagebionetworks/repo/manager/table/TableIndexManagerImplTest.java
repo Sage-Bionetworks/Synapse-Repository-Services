@@ -1472,22 +1472,42 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testBuildTableIndexWithLockNoSnapshot() throws Exception {
+	public void testBuildTableIndexWithLockNoTableChange() throws Exception {
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		String resetToken = "resetToken";
 		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
-		// No change number for this case.
+		// A table with no columns and no rows records no table change.
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
+		// The empty index build is covered by its own test; stub it out here.
+		doReturn(Collections.emptyList()).when(managerSpy).resetTableIndex(any(IndexDescription.class));
+		when(mockManagerSupport.getTableVersion(tableId)).thenReturn(-1L);
 		// call under test
-		manager.buildTableIndexWithLock(mockCallback, tableId, iterator);
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(),
-				anyString());
+		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		verify(managerSpy).buildEmptyTableIndex(tableId, resetToken);
+		// The empty table is set available (no etag) rather than restored or failed.
+		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
+		verify(managerSpy, never()).attemptToRestoreTableFromExistingSnapshot(any(), any(), anyLong());
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
-		// should fail
-		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(tableId), any(Exception.class));
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+	}
+
+	@Test
+	public void testBuildEmptyTableIndex() throws Exception {
+		String resetToken = "resetToken";
+		doReturn(Collections.emptyList()).when(managerSpy).resetTableIndex(any(IndexDescription.class));
+		when(mockManagerSupport.getTableVersion(tableId)).thenReturn(-1L);
+		// call under test
+		managerSpy.buildEmptyTableIndex(tableId, resetToken);
+		// The empty index is created/aligned and its version pinned to truth so the table is synchronized.
+		verify(managerSpy).resetTableIndex(new TableIndexDescription(tableId));
+		verify(managerSpy).setIndexVersion(tableId, -1L);
+		// The empty as-built snapshot is captured and the table is set available with no etag.
+		verify(managerSpy).saveAuthorizationSnapshot(eq(tableId), any());
+		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
 	}
 
 	@Test

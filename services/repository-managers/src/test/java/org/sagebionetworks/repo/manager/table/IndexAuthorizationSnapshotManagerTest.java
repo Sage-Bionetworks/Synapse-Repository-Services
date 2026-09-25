@@ -405,6 +405,30 @@ public class IndexAuthorizationSnapshotManagerTest {
 	}
 
 	@Test
+	public void testBuildSnapshotWithTemporaryShadowRebuildIdUsesRealObjectId() {
+		// A materialized view shadow rebuild builds under a temporary negated id (see
+		// MaterializedViewManagerImpl), then atomically swaps the index - and its snapshot - into the real
+		// id. The snapshot content is served for the real id, so it must carry the real object id, not the
+		// negated build-target id, or a query resolving the snapshot would parse 'syn-999' and fail to find
+		// the object.
+		IndexDescription table123 = mockNode("syn123", TableType.table);
+		IndexDescription root = mockNode("syn-999", TableType.materializedview, table123);
+		when(root.getBenefactors()).thenReturn(Collections.emptyList());
+		stubNoPersistedSnapshots();
+		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
+		when(mockNodeDao.getDefiningSql(IdAndVersion.parse("syn123"))).thenReturn(Optional.empty());
+
+		ColumnModel rootFoo = TableModelTestUtils.createColumn(500L, "foo", ColumnType.INTEGER);
+
+		// call under test
+		IndexAuthorizationSnapshot snapshot = manager.buildSnapshot(root, "select foo from syn123",
+				Collections.singletonList(rootFoo));
+
+		assertEquals("syn999", snapshot.getObjectId());
+		assertEquals("syn999", snapshot.getIndexDescription().getObjectId());
+	}
+
+	@Test
 	public void testBuildSnapshotComposesAgainstPersistedSourceSnapshot() {
 		// The root reads identity column 'a' from syn2, a materialized view. syn2 has a PERSISTED snapshot
 		// whose 'a' is an EXPRESSION over the leaf syn123.foo. Composition must use that frozen snapshot -
