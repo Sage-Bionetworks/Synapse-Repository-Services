@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -188,6 +189,105 @@ public class RecordSetSchemaResolverTest {
 				new JsonSchema().setType(Type.array).setItems(
 						new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.integer)))).getColumnType());
 		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("untyped", new JsonSchema()).getColumnType());
+		// A string longer than a STRING column can hold cannot be indexed as a STRING, either
+		// on its own or as the element of a list, so it falls back to MEDIUMTEXT.
+		ColumnModel oversizedString = RecordSetSchemaResolver.toColumnModel("s",
+				new JsonSchema().setType(Type.string).setMaxLength(ColumnConstants.MAX_ALLOWED_STRING_SIZE + 1));
+		assertEquals(ColumnType.MEDIUMTEXT, oversizedString.getColumnType());
+		assertEquals(null, oversizedString.getMaximumSize());
+		assertEquals(ColumnType.MEDIUMTEXT, RecordSetSchemaResolver.toColumnModel("arr",
+				new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string)
+						.setMaxLength(ColumnConstants.MAX_ALLOWED_STRING_SIZE + 1))).getColumnType());
+	}
+
+	@Test
+	public void testApplyIndexLimits() {
+		// A sized STRING within the limit is left alone, including at the limit itself.
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+				RecordSetSchemaResolver.applyIndexLimits(
+						new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(50L)));
+		assertEquals(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING)
+						.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE),
+				RecordSetSchemaResolver.applyIndexLimits(new ColumnModel().setName("a")
+						.setColumnType(ColumnType.STRING).setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE)));
+		// A STRING that is unbounded, over the limit, or sized to nothing becomes MEDIUMTEXT.
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.MEDIUMTEXT),
+				RecordSetSchemaResolver.applyIndexLimits(
+						new ColumnModel().setName("a").setColumnType(ColumnType.STRING)));
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.MEDIUMTEXT),
+				RecordSetSchemaResolver.applyIndexLimits(new ColumnModel().setName("a")
+						.setColumnType(ColumnType.STRING).setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE + 1)));
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.MEDIUMTEXT),
+				RecordSetSchemaResolver.applyIndexLimits(
+						new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(0L)));
+		// The same limit applies to the elements of a STRING_LIST, and the list length goes
+		// with the list type.
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.MEDIUMTEXT),
+				RecordSetSchemaResolver.applyIndexLimits(new ColumnModel().setName("a")
+						.setColumnType(ColumnType.STRING_LIST).setMaximumListLength(100L)
+						.setMaximumSize(ColumnConstants.MAX_ALLOWED_STRING_SIZE + 1)));
+		// Types that do not carry a string size are left alone.
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID),
+				RecordSetSchemaResolver.applyIndexLimits(
+						new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER_LIST).setMaximumListLength(100L),
+				RecordSetSchemaResolver.applyIndexLimits(new ColumnModel().setName("a")
+						.setColumnType(ColumnType.INTEGER_LIST).setMaximumListLength(100L)));
+		assertEquals(new ColumnModel().setName("a").setColumnType(ColumnType.LARGETEXT),
+				RecordSetSchemaResolver.applyIndexLimits(
+						new ColumnModel().setName("a").setColumnType(ColumnType.LARGETEXT)));
+	}
+
+	@Test
+	public void testGetReconciledSchemaWithUnboundedArrayOfStrings() {
+		// An unsized STRING_LIST is a valid way to read a CSV column of entity ids that the
+		// schema declares as an array of strings, so it must survive as a list: capping it to
+		// MEDIUMTEXT would make the grid store the value as a plain string instead of a
+		// single-element array (PLFM-9945).
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
+		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
+				"a", new JsonSchema().setType(Type.array).setItems(new JsonSchema().setType(Type.string))));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
+
+		assertEquals(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING_LIST)), schema);
+	}
+
+	@Test
+	public void testGetReconciledSchemaWithStringLongerThanTheIndexAllows() {
+		// The reconciled types describe how to read the CSV, so a maxLength beyond what a
+		// STRING column can hold is carried as-is. "b" is capped instead because it has no CSV
+		// column to read and is built by toColumnModel from the property alone.
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
+		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
+				"a", new JsonSchema().setType(Type.string).setMaxLength(5000L),
+				"b", new JsonSchema().setType(Type.string).setMaxLength(5000L)));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
+
+		assertEquals(List.of(
+				new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(5000L),
+				new ColumnModel().setName("b").setColumnType(ColumnType.MEDIUMTEXT)), schema);
+	}
+
+	@Test
+	public void testGetReconciledSchemaWithStringMaxLength() {
+		// The schema re-types the inferred ENTITYID to a sized STRING.
+		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
+		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
+				"a", new JsonSchema().setType(Type.string).setMaxLength(64L)));
+		stubBoundSchema(validationSchema);
+
+		// call under test
+		List<ColumnModel> schema = resolver.getReconciledSchema(entityId, fileHandle, csvDescriptor).getSchema();
+
+		assertEquals(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.STRING).setMaximumSize(64L)),
+				schema);
 	}
 
 	@Test

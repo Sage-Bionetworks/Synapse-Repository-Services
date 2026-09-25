@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
 import org.sagebionetworks.repo.model.schema.JsonSchemaProperties;
 import org.sagebionetworks.repo.model.schema.Type;
+import org.sagebionetworks.repo.model.table.ColumnConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -30,14 +31,26 @@ import org.springframework.stereotype.Service;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
- * Infers a {@link ColumnModel} schema from a RecordSet's CSV data file and
- * reconciles it with the RecordSet's bound JSON Schema (if any). This logic is
- * shared by the grid create flow ({@code RecordSetCreateGridHandler}) and the
- * RecordSetMetadataProvider, which binds the column schema on to the table index
- * upon create/update.
+ * Determines the {@link ColumnModel} schema of a RecordSet's CSV data file, from
+ * the types inferred from the data and the RecordSet's bound JSON Schema (if
+ * any).
+ * The two consumers need different things, so they take different entry points:
+ * the grid create flow ({@code RecordSetCreateGridHandler}) reads the CSV through
+ * {@link #getReconciledSchema}, while the RecordSetMetadataProvider binds the
+ * column schema onto the table index from {@link #getJsonSchemaColumns}. Capping a
+ * type to what that index can store is the business of {@link #toColumnModel}, so
+ * it applies to every type built from a JSON Schema property alone - including the
+ * columns {@link #getReconciledSchema} appends for properties the CSV does not
+ * have - and never to a type inferred from the CSV data.
  */
 @Service
 public class RecordSetSchemaResolver {
+
+	/**
+	 * The column types that hold a string of a bounded size, and so are subject to
+	 * the maximum size a STRING column allows.
+	 */
+	private static final Set<ColumnType> SIZED_STRING_TYPES = Set.of(ColumnType.STRING, ColumnType.STRING_LIST);
 
 	private final CsvFileHandleProvider csvFileHandleProvider;
 	private final EntityManager entityManager;
@@ -88,8 +101,11 @@ public class RecordSetSchemaResolver {
 
 	/**
 	 * Infer the schema from the CSV file and reconcile it with the RecordSet's bound
-	 * JSON Schema, upgrading scalar columns to list types where the JSON Schema
-	 * declares an array.
+	 * JSON Schema, re-typing each inferred column to the type its JSON Schema
+	 * property declares. An inferred type describes how to read the CSV values, so it
+	 * is not capped to the table index limits; a column appended for a JSON Schema
+	 * property the CSV does not have has no values to read and comes from
+	 * {@link #toColumnModel}, which does cap it.
 	 *
 	 * @param entityId      the RecordSet entity id, used to look up the bound schema
 	 * @param fileHandle    the CSV data file handle
@@ -151,10 +167,11 @@ public class RecordSetSchemaResolver {
     }
 
 	/**
-	 * Map a single JSON Schema property to a {@link ColumnModel}. Scalar types map
-	 * to their column equivalents; length-constrained strings map to strings, arrays
-	 * map to a string list; objects, nulls, untyped properties and non-length-constrained
-	 * strings map to MEDIUMTEXT.
+	 * Map a single JSON Schema property to a {@link ColumnModel} the table index can
+	 * store. Scalar types map to their column equivalents, a length-constrained
+	 * string to a sized STRING and an array to the list equivalent of its element
+	 * type; objects, nulls, untyped properties, strings that a STRING column cannot
+	 * hold and element types with no list equivalent all map to MEDIUMTEXT.
 	 *
 	 * @param name     the property (column) name
 	 * @param property the property's JSON Schema
@@ -179,16 +196,31 @@ public class RecordSetSchemaResolver {
 				} catch (IllegalArgumentException e) {
 					column.setColumnType(ColumnType.MEDIUMTEXT);
 				}
-				yield column;
+				yield applyIndexLimits(column);
 			}
-			case string -> {
-				if (property.getMaxLength() != null) {
-					yield column.setColumnType(ColumnType.STRING).setMaximumSize(property.getMaxLength());
-				}
-				yield column.setColumnType(ColumnType.MEDIUMTEXT);
-			}
+			case string -> applyIndexLimits(
+					column.setColumnType(ColumnType.STRING).setMaximumSize(property.getMaxLength()));
 			case _null -> column.setColumnType(ColumnType.MEDIUMTEXT);
 		};
+	}
+
+	/**
+	 * Cap a column to the limits the table index enforces, so that a schema built
+	 * from any source can be bound to the index and queried.
+	 *
+	 * @param column the column to cap, modified in place
+	 * @return the same column, to allow chaining
+	 */
+	static ColumnModel applyIndexLimits(ColumnModel column) {
+		// A string that a STRING column cannot be sized to hold is stored as text instead.
+		// An absent size means the length is unbounded, which no STRING column can be.
+		if (SIZED_STRING_TYPES.contains(column.getColumnType())) {
+			Long maximumSize = column.getMaximumSize();
+			if (maximumSize == null || maximumSize < 1 || maximumSize > ColumnConstants.MAX_ALLOWED_STRING_SIZE) {
+				column.setColumnType(ColumnType.MEDIUMTEXT).setMaximumSize(null).setMaximumListLength(null);
+			}
+		}
+		return column;
 	}
 
 	List<ColumnModel> inferSchemaFromCsv(FileHandle fileHandle, CsvTableDescriptor csvDescriptor) {
