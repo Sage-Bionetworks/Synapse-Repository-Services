@@ -105,6 +105,8 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -159,14 +161,14 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementPermissions;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessRequirementStatus;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplate;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchRequest;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateSearchResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRequest;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupResponse;
 import org.sagebionetworks.repo.model.dataaccess.AccessorGroupRevokeRequest;
 import org.sagebionetworks.repo.model.dataaccess.CreateSubmissionRequest;
 import org.sagebionetworks.repo.model.dataaccess.OpenSubmissionPage;
-import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
-import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
-import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.RequestInterface;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
@@ -221,6 +223,10 @@ import org.sagebionetworks.repo.model.download.RemoveBatchOfFilesFromDownloadLis
 import org.sagebionetworks.repo.model.drs.AccessUrl;
 import org.sagebionetworks.repo.model.drs.DrsObject;
 import org.sagebionetworks.repo.model.drs.ServiceInformation;
+import org.sagebionetworks.repo.model.educ.EDucSignatureQuota;
+import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
+import org.sagebionetworks.repo.model.educ.EDucTemplateListRequest;
+import org.sagebionetworks.repo.model.educ.EDucTemplatePage;
 import org.sagebionetworks.repo.model.entity.BindSchemaToEntityRequest;
 import org.sagebionetworks.repo.model.entity.EntityLookupRequest;
 import org.sagebionetworks.repo.model.entity.FileHandleUpdateRequest;
@@ -274,18 +280,18 @@ import org.sagebionetworks.repo.model.grid.CreateReplicaRequest;
 import org.sagebionetworks.repo.model.grid.CreateReplicaResponse;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridRequest;
 import org.sagebionetworks.repo.model.grid.DownloadFromGridResult;
+import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
+import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
+import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasResponse;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsRequest;
 import org.sagebionetworks.repo.model.grid.ListGridSessionsResponse;
-import org.sagebionetworks.repo.model.grid.GridQueryJobRequest;
-import org.sagebionetworks.repo.model.grid.GridQueryJobResponse;
-import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
-import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.limits.ProjectStorageUsage;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -363,6 +369,22 @@ import org.sagebionetworks.repo.model.schema.ValidationSummaryStatistics;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
+import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
+import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
+import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
+import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
+import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
+import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
+import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
+import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
+import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.repo.model.search.table.SynonymSet;
+import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsRequest;
 import org.sagebionetworks.repo.model.statistics.ObjectStatisticsResponse;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -414,22 +436,6 @@ import org.sagebionetworks.repo.model.table.ViewColumnModelResponse;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewScope;
 import org.sagebionetworks.repo.model.table.ViewType;
-import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
-import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
-import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesRequest;
-import org.sagebionetworks.repo.model.search.table.ListColumnAnalyzerOverridesResponse;
-import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
-import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
-import org.sagebionetworks.repo.model.search.table.ListSynonymSetsRequest;
-import org.sagebionetworks.repo.model.search.table.ListSynonymSetsResponse;
-import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersRequest;
-import org.sagebionetworks.repo.model.search.table.ListTextAnalyzersResponse;
-import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
-import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
-import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
-import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
-import org.sagebionetworks.repo.model.search.table.SynonymSet;
-import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiOrderHint;
@@ -599,6 +605,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String USER_GROUP_HEADER_BY_ALIAS = "/userGroupHeaders/aliases";
 
 	private static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	private static final String FORM_TEMPLATE = ACCESS_REQUIREMENT + "/formTemplate";
 
 	private static final String ACCESS_APPROVAL = "/accessApproval";
 
@@ -5811,6 +5818,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	private static final String EDUC_TEMPLATE = "/eDuc/template";
+	private static final String EDUC_SIGNATURE = "/signature";
+	private static final String EDUC_SIGNATURE_STATUS = EDUC_SIGNATURE + "/status";
+	private static final String EDUC_SIGNATURE_PRECHECK = EDUC_SIGNATURE + "/precheck";
 
 	@Override
 	public EDucTemplatePage listEDucTemplates(EDucTemplateListRequest request) throws SynapseException {
@@ -5818,6 +5828,40 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public EDucSignatureQuota routeEDucForSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		return postJSONEntity(getRepoEndpoint(), url, null, EDucSignatureQuota.class);
+	}
+
+	@Override
+	public EDucSignatureStatus getEDucSignatureStatus(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE_STATUS;
+		return getJSONEntity(getRepoEndpoint(), url, EDucSignatureStatus.class);
+	}
+
+	@Override
+	public void cancelEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		deleteUri(getRepoEndpoint(), url);
+	}
+
+	@Override
+	public EDucSignatureStatus updateRoutedEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE;
+		return putJSONEntity(getRepoEndpoint(), url, null, EDucSignatureStatus.class);
+	}
+
+	@Override
+	public boolean canUpdateRoutedEDucSignature(String requestId) throws SynapseException {
+		ValidateArgument.required(requestId, "requestId");
+		String url = DATA_ACCESS_REQUEST + "/" + requestId + EDUC_SIGNATURE_PRECHECK;
+		return getBooleanResult(getRepoEndpoint(), url);
+	}
+	
 	public EDucSignatureQuota getEDucSignatureQuota(String requestId) throws SynapseException {
 		ValidateArgument.required(requestId, "requestId");
 		return getJSONEntity(getRepoEndpoint(), "/dataAccessRequest/" + requestId + "/signature/quota",
@@ -6401,6 +6445,39 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
+	public FormTemplate createFormTemplate(FormTemplate template) throws SynapseException {
+		ValidateArgument.required(template, "template");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE, template, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate createFormTemplateVersion(FormTemplate template) throws SynapseException {
+		ValidateArgument.required(template, "template");
+		ValidateArgument.required(template.getId(), "template.id");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + template.getId(), template, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate getFormTemplate(String templateId) throws SynapseException {
+		ValidateArgument.required(templateId, "templateId");
+		return getJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + templateId, FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplate getFormTemplateVersion(String templateId, Long versionNumber) throws SynapseException {
+		ValidateArgument.required(templateId, "templateId");
+		ValidateArgument.required(versionNumber, "versionNumber");
+		return getJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/" + templateId + "/version/" + versionNumber,
+				FormTemplate.class);
+	}
+
+	@Override
+	public FormTemplateSearchResponse searchFormTemplates(FormTemplateSearchRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		return postJSONEntity(getRepoEndpoint(), FORM_TEMPLATE + "/search", request, FormTemplateSearchResponse.class);
+	}
+
+	@Override
 	public Keys getDerivedAnnotationsKeys(String entityId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/entity/"+entityId+"/derivedKeys", Keys.class);
 	}
@@ -6562,7 +6639,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ValidateArgument.required(registrationId, "registrationId");
 		return getJSONEntity(getRepoEndpoint(), "/agent/registration/"+registrationId, AgentRegistration.class);
 	}
-	
+
+	@Override
+	public AgentRegistrationActSettingsBundle updateAgentRegistrationActSettings(
+			AgentRegistrationActSettingsRequest request) throws SynapseException {
+		ValidateArgument.required(request, "request");
+		ValidateArgument.required(request.getAgentRegistrationId(), "request.agentRegistrationId");
+		return putJSONEntity(getRepoEndpoint(),
+				"/agent/registration/" + request.getAgentRegistrationId() + "/actSettings", request,
+				AgentRegistrationActSettingsBundle.class);
+	}
+
+	@Override
+	public AgentRegistrationActSettingsBundle getAgentRegistrationActSettings(String registrationId)
+			throws SynapseException {
+		ValidateArgument.required(registrationId, "registrationId");
+		return getJSONEntity(getRepoEndpoint(), "/agent/registration/" + registrationId + "/actSettings",
+				AgentRegistrationActSettingsBundle.class);
+	}
+
 	@Override
 	public ProjectStorageUsage getProjectStorageUsage(String projectId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/project/" + projectId + "/storage/usage", ProjectStorageUsage.class);

@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -185,6 +186,18 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirement() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, createNewRequest()));
+
+		verify(mockRequestDao).create(any(Request.class));
 	}
 
 	@Test
@@ -806,7 +819,7 @@ public class RequestManagerImplTest {
 	@Test
 	public void testListUserRequestsWithNoRequests() {
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of());
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of());
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -831,7 +844,7 @@ public class RequestManagerImplTest {
 		info.setSubmittedOn(new Date(1000L));
 		info.setModifiedOn(new Date(2000L));
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -861,7 +874,7 @@ public class RequestManagerImplTest {
 		info.setSubmissionStatus(null);
 		info.setEnvelopeId("env-abc");
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		Signer signer1 = new Signer();
 		signer1.setStatus("completed");
@@ -895,6 +908,36 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testListUserRequestsWithEnvelopeMissingRecipients() {
+		// An envelope read that does not carry recipients yields a status but no signature counts. This
+		// is what a caller sees if the bulk read ever stops asking DocuSign to include recipients.
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("200");
+		info.setEnvelopeId("env-abc");
+		info.setSubmissionStatus(null);
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		Envelope envelope = new Envelope();
+		envelope.setEnvelopeId("env-abc");
+		envelope.setStatus("completed");
+		envelope.setRecipients(null);
+
+		when(mockDocuSignClient.listEnvelopeStatuses(List.of("env-abc"))).thenReturn(List.of(envelope));
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, new AccessRequestListRequest());
+
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals(AccessRequestStatusEnum.completed, summary.getStatus());
+		assertEquals(true, summary.getIsEDuc());
+		assertNull(summary.getSignaturesRequested());
+		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
 	public void testListUserRequestsWithNoSubmissionAndNoEnvelope() {
 		when(mockUser.getId()).thenReturn(1L);
 
@@ -904,7 +947,7 @@ public class RequestManagerImplTest {
 		info.setSubmissionStatus(null);
 		info.setEnvelopeId(null);
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -918,6 +961,77 @@ public class RequestManagerImplTest {
 		assertEquals(false, summary.getIsEDuc());
 		assertNull(summary.getSignaturesRequested());
 		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucTrue() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucFalse() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, false, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(false);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		// false must reach the DAO as a filter rather than being treated as "no filter"
+		verify(mockRequestDao).getUserRequests(1L, false, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithAccessRequirementId() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, null, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, null, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithBothFilters() {
+		// the two filters are independent and may be combined
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithNonNumericAccessRequirementId() {
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("not-a-number");
+
+		// call under test — NumberFormatException extends IllegalArgumentException, so this is a 400
+		assertThrows(NumberFormatException.class,
+				() -> manager.listUserRequests(mockUser, listRequest));
+
+		verifyNoInteractions(mockRequestDao);
 	}
 
 	@Test

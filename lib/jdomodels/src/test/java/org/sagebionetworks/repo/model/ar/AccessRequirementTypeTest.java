@@ -1,20 +1,21 @@
 package org.sagebionetworks.repo.model.ar;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictionLevel;
 import org.sagebionetworks.repo.model.SelfSignAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.ar.AccessRequirementType;
+
 
 @ExtendWith(MockitoExtension.class)
 public class AccessRequirementTypeTest {
@@ -75,6 +76,16 @@ public class AccessRequirementTypeTest {
 		assertFalse(type.hasLock());
 	}
 	
+	@Test
+	public void testJsonSchema() {
+		AccessRequirementType type = AccessRequirementType.lookupClassName(JsonSchemaAccessRequirement.class.getName());
+		assertEquals(AccessRequirementType.JSON_SCHEMA, type);
+		assertEquals(RestrictionLevel.CONTROLLED_BY_ACT, type.getRestrictionLevel());
+		assertTrue(type.hasACT());
+		assertFalse(type.hasToU());
+		assertFalse(type.hasLock());
+	}
+
 	@Test
 	public void testLock() {
 		AccessRequirementType type = AccessRequirementType.lookupClassName(LockAccessRequirement.class.getName());
