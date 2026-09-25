@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.IndexAuthorizationSnapshotManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
+import org.sagebionetworks.repo.manager.table.query.SnapshotSchemaProvider;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableType;
@@ -43,7 +44,6 @@ import org.sagebionetworks.repo.model.search.table.TextAnalyzer;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.BenefactorColumn;
-import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
@@ -59,7 +59,8 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.TranslatedQuery;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.search.SearchIndexStatusDao;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
@@ -197,7 +198,18 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		ValidateArgument.required(searchIndexId, "searchIndexId");
 		ValidateArgument.requiredNotBlank(definingSql, "definingSql");
 		IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSql).get(0);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(sourceId);
+		// Validate against the source's as-built snapshot when it has one, exactly as a table query
+		// preflight does; a virtual table or a not-yet-built source falls back to live truth.
+		Optional<IndexAuthorizationSnapshot> sourceSnapshot = indexAuthorizationSnapshotManager.getAuthorizationSnapshot(sourceId);
+		QueryIndexDescription indexDescription;
+		SchemaProvider schemaProvider;
+		if (sourceSnapshot.isPresent()) {
+			indexDescription = toQueryIndexDescription(sourceSnapshot.get());
+			schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, sourceSnapshot.get());
+		} else {
+			indexDescription = tableManagerSupport.getIndexDescription(sourceId);
+			schemaProvider = tableManagerSupport;
+		}
 		// A virtual table is a query rewrite, not a materialized index: it has no status row and
 		// never fires a TABLE_STATUS_EVENT. A SearchIndex registered against one would build once
 		// but never receive a source-availability event to rebuild on, drifting silently stale.
@@ -210,7 +222,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// SqlContext.query: TableIndexDescription rejects `build`; only Views/MVs accept it.
 		QueryTranslator sqlQuery = QueryTranslator.builder()
 				.sql(definingSql)
-				.schemaProvider(tableManagerSupport)
+				.schemaProvider(schemaProvider)
 				.sqlContext(SqlContext.query)
 				.indexDescription(indexDescription)
 				.build();
@@ -309,7 +321,6 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			Map<String, TextAnalyzer> inlineAnalyzers = materializeInlineAnalyzerSlots(config, overrides);
 
 			IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSQL).get(0);
-			IndexDescription sourceIndexDescription = tableManagerSupport.getIndexDescription(sourceId);
 			TableIndexDAO indexDao = connectionFactory.getConnection(sourceId);
 
 			// Require the source to be AVAILABLE first. A PROCESSING source cannot be waited on by
@@ -353,7 +364,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
 					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
 					(ProgressCallback callback) -> {
-						streamIntoIdleSlot(idleSlot, searchIndex, sourceId, sourceIndexDescription, indexDao,
+						streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
 								config, overrides, inlineAnalyzers);
 						return null;
 					}, sourceId);
@@ -439,7 +450,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * @throws IllegalArgumentException    when the source or any of its dependencies is AGGREGATE_DATA.
 	 */
 	private void streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
-			IndexDescription sourceIndexDescription, TableIndexDAO indexDao, SearchConfiguration config,
+			TableIndexDAO indexDao, SearchConfiguration config,
 			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers) throws Exception {
 		String definingSQL = searchIndex.getDefiningSQL();
 		IndexAuthorizationSnapshot sourceSnapshot = indexAuthorizationSnapshotManager.getAuthorizationSnapshot(sourceId)
@@ -450,14 +461,13 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// index table; build context is rejected by table and view sources (only a
 		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
 		// source row without authorization and is served to many users through per-row
-		// benefactor filtering, so there is no single current user to bind. The live index
-		// description is used only to generate the SQL.
-		SchemaProvider schemaProvider = snapshotSchemaProvider(sourceId, sourceSnapshot);
+		// benefactor filtering, so there is no single current user to bind.
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, sourceSnapshot);
 		QueryTranslator base = QueryTranslator.builder()
 				.sql(definingSQL)
 				.schemaProvider(schemaProvider)
 				.sqlContext(SqlContext.query)
-				.indexDescription(sourceIndexDescription)
+				.indexDescription(toQueryIndexDescription(sourceSnapshot))
 				.build();
 
 		List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
@@ -537,33 +547,11 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	}
 
 	/**
-	 * A {@link SchemaProvider} that resolves the source's schema from its as-built snapshot (the
-	 * snapshot's output column ids, in order) and delegates every other lookup to
-	 * {@link TableManagerSupport}.
+	 * The query-time description of a source as it was built. A SearchIndex never consults the query
+	 * cache, so the table hash needs no live change number.
 	 */
-	private SchemaProvider snapshotSchemaProvider(IdAndVersion sourceId, IndexAuthorizationSnapshot sourceSnapshot) {
-		List<String> sourceColumnIds = sourceSnapshot.getColumnLineage().stream()
-				.map(ColumnLineageEntry::getOutputColumnId)
-				.collect(Collectors.toList());
-		return new SchemaProvider() {
-			@Override
-			public TableType getTableType(IdAndVersion tableId) {
-				return tableManagerSupport.getTableType(tableId);
-			}
-
-			@Override
-			public List<ColumnModel> getTableSchema(IdAndVersion tableId) {
-				if (sourceId.equals(tableId)) {
-					return columnModelManager.getAndValidateColumnModels(sourceColumnIds);
-				}
-				return tableManagerSupport.getTableSchema(tableId);
-			}
-
-			@Override
-			public ColumnModel getColumnModel(String id) {
-				return tableManagerSupport.getColumnModel(id);
-			}
-		};
+	private static QueryIndexDescription toQueryIndexDescription(IndexAuthorizationSnapshot snapshot) {
+		return SnapshotIndexDescription.fromSnapshot(snapshot.getIndexDescription(), id -> Optional.empty());
 	}
 
 	@Override

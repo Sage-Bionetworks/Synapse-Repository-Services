@@ -118,9 +118,6 @@ public class SearchIndexLifecycleManagerImplTest {
 	// benefactor handling.
 	private static final IndexDescription TABLE_INDEX_DESCRIPTION =
 			new TableIndexDescription(IdAndVersion.parse("syn123"));
-	// Source index description for the source table used in DEFINING_SQL ("SELECT * FROM syn789").
-	private static final IndexDescription SOURCE_INDEX_DESCRIPTION =
-			new TableIndexDescription(IdAndVersion.parse("syn789"));
 	private static final String DEFINING_SQL = "SELECT * FROM syn789";
 	private static final IdAndVersion SOURCE_ID = IdAndVersion.parse("syn789");
 	private static final LockContext BUILD_LOCK_CONTEXT =
@@ -205,7 +202,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
 		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
-		when(tableManagerSupport.getIndexDescription(SOURCE_ID)).thenReturn(SOURCE_INDEX_DESCRIPTION);
 		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
 		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(SOURCE_ID))
 				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
@@ -232,7 +228,6 @@ public class SearchIndexLifecycleManagerImplTest {
 	private void stubSourceSnapshotAndTranslation() throws Exception {
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID))
 				.thenReturn(Optional.of(SOURCE_SNAPSHOT));
-		when(columnModelManager.getAndValidateColumnModels(List.of("100"))).thenReturn(List.of(NAME_COLUMN));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 		// buildIndex persists each selected column through createColumnModel.
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
@@ -376,8 +371,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
-		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
-				.thenReturn(SOURCE_INDEX_DESCRIPTION);
 		when(connectionFactory.getConnection(IdAndVersion.parse("syn789"))).thenReturn(indexDao);
 		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(IdAndVersion.parse("syn789")))
 				.thenReturn(new TableStatus().setState(TableState.PROCESSING));
@@ -405,8 +398,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
 		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
 		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
-		when(tableManagerSupport.getIndexDescription(IdAndVersion.parse("syn789")))
-				.thenReturn(SOURCE_INDEX_DESCRIPTION);
 		when(connectionFactory.getConnection(IdAndVersion.parse("syn789"))).thenReturn(indexDao);
 		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(IdAndVersion.parse("syn789")))
 				.thenReturn(new TableStatus().setState(TableState.PROCESSING_FAILED));
@@ -1049,7 +1040,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		ColumnModel ageColumn = new ColumnModel().setId("101").setName("age").setColumnType(ColumnType.INTEGER);
 		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("100", "101");
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
-		when(columnModelManager.getAndValidateColumnModels(List.of("100", "101"))).thenReturn(List.of(NAME_COLUMN, ageColumn));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 		when(tableManagerSupport.getColumnModel("101")).thenReturn(ageColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
@@ -1075,7 +1065,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		ColumnModel builtNameColumn = new ColumnModel().setId("102").setName("name").setColumnType(ColumnType.INTEGER);
 		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("102");
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
-		when(columnModelManager.getAndValidateColumnModels(List.of("102"))).thenReturn(List.of(builtNameColumn));
 		when(tableManagerSupport.getColumnModel("102")).thenReturn(builtNameColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> ColumnType.INTEGER.equals(cm.getColumnType()))))
 				.thenReturn(builtNameColumn);
@@ -1151,7 +1140,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		stubHappyPathThroughCreateIndex();
 		stubSourceLock();
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
-		when(columnModelManager.getAndValidateColumnModels(List.of("100"))).thenReturn(List.of(NAME_COLUMN));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
 		IndexAuthorizationSnapshot searchIndexSnapshot = tableSnapshot("100");
@@ -1179,16 +1167,8 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testHandleCreateWithMaterializedViewSourceSplicesSnapshotBenefactors() throws Exception {
 		stubHappyPathThroughCreateIndex();
 		stubSourceLock();
-		// The live MV description generates the SQL; the benefactor columns spliced into it come from
-		// the source's as-built snapshot.
-		IdAndVersion leftViewId = IdAndVersion.parse("syn801");
-		IdAndVersion rightViewId = IdAndVersion.parse("syn802");
-		IndexDescription leftView = new ViewIndexDescription(leftViewId, TableType.entityview, -1L);
-		IndexDescription rightView = new ViewIndexDescription(rightViewId, TableType.entityview, -1L);
-		IndexDescriptionLookup lookup = id -> leftViewId.equals(id) ? leftView : rightView;
-		MaterializedViewIndexDescription mvSource = new MaterializedViewIndexDescription(SOURCE_ID,
-				"select syn801.studyId from syn801 join syn802 on (syn801.studyId = syn802.studyId)", lookup);
-		when(tableManagerSupport.getIndexDescription(SOURCE_ID)).thenReturn(mvSource);
+		// The SQL is generated from, and the benefactor columns spliced into it come from, the
+		// source's as-built snapshot.
 		ColumnModel studyColumn = TableModelTestUtils.createColumn(703L, "studyId", ColumnType.INTEGER);
 		IndexDescriptionSnapshot mvDescription = new IndexDescriptionSnapshot()
 				.setObjectId("syn789")
@@ -1200,7 +1180,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
 		IndexAuthorizationSnapshot searchIndexSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
-		when(columnModelManager.getAndValidateColumnModels(List.of("703"))).thenReturn(List.of(studyColumn));
 		when(tableManagerSupport.getColumnModel("703")).thenReturn(studyColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> "studyId".equals(cm.getName())))).thenReturn(studyColumn);
 		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(sourceSnapshot), eq(DEFINING_SQL),
@@ -1831,6 +1810,44 @@ public class SearchIndexLifecycleManagerImplTest {
 		// Guard fires before any schema is bound or dependency edge recorded.
 		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
 		verify(definingSqlDependencyDao, never()).setSourceTable(any(), any(), any());
+	}
+
+	@Test
+	public void testRegisterSchemaWithSourceSnapshotBindsAsBuiltSchema() {
+		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
+
+		// call under test
+		List<String> schemaIds = manager.registerSchema(searchIndexId, "SELECT name FROM syn789");
+
+		assertEquals(List.of("100"), schemaIds);
+		verify(columnModelManager).bindColumnsToVersionOfObject(List.of("100"), searchIndexId);
+		verify(definingSqlDependencyDao).setSourceTable(searchIndexId, ObjectType.SEARCH_INDEX.name(), SOURCE_ID);
+		verify(tableManagerSupport, never()).getIndexDescription(any());
+		verify(tableManagerSupport, never()).getTableSchema(any());
+	}
+
+	@Test
+	public void testRegisterSchemaWithAggregateOverSnapshotBenefactorSourceThrows() {
+		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
+		IndexAuthorizationSnapshot mvSnapshot = tableSnapshot("100").setIndexDescription(new IndexDescriptionSnapshot()
+				.setObjectId("syn789")
+				.setTableType(TableType.materializedview.name())
+				.setBenefactors(List.of(new BenefactorColumn().setBenefactorColumnName("ROW_BENEFACTOR_A0")
+						.setBenefactorType(ObjectType.ENTITY.name())))
+				.setDependencies(List.of()));
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(mvSnapshot));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.registerSchema(searchIndexId, "SELECT name, COUNT(*) FROM syn789 GROUP BY name"));
+		assertTrue(ex.getMessage().contains("cannot include a group by clause"),
+				"expected the aggregation guard message, got: " + ex.getMessage());
+		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
+		verify(tableManagerSupport, never()).getIndexDescription(any());
 	}
 
 	// -------- buildWithBenefactorColumns (package-private) --------
