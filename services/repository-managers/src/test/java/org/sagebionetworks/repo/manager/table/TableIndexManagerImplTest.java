@@ -1496,6 +1496,26 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
+	public void testBuildTableIndexWithLockNoChangeForVersion() throws Exception {
+		// A specific version is always bound to the change number it was snapshotted at.
+		IdAndVersion versionedId = IdAndVersion.parse("syn123.1");
+		when(mockManagerSupport.isIndexWorkRequired(versionedId)).thenReturn(true);
+		String resetToken = "resetToken";
+		when(mockManagerSupport.startTableProcessing(versionedId)).thenReturn(resetToken);
+
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		when(mockManagerSupport.getLastTableChangeNumber(versionedId)).thenReturn(Optional.empty());
+		// call under test
+		managerSpy.buildTableIndexWithLock(mockCallback, versionedId, iterator);
+		// An absent change number for a version is a genuine anomaly - fail loudly, do not build empty.
+		verify(managerSpy, never()).buildEmptyTableIndex(any(), any());
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(),
+				any());
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(versionedId), any(NotFoundException.class));
+	}
+
+	@Test
 	public void testBuildEmptyTableIndex() throws Exception {
 		String resetToken = "resetToken";
 		doReturn(Collections.emptyList()).when(managerSpy).resetTableIndex(any(IndexDescription.class));

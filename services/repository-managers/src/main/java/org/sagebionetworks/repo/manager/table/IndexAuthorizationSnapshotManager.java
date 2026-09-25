@@ -154,7 +154,7 @@ public class IndexAuthorizationSnapshotManager {
 	 * in-place build the id is already positive and this is a no-op.
 	 */
 	private static String toObjectIdString(IdAndVersion object) {
-		return "syn" + Math.abs(object.getId());
+		return KeyFactory.keyToString(Math.abs(object.getId()));
 	}
 
 	/**
@@ -222,7 +222,7 @@ public class IndexAuthorizationSnapshotManager {
 				continue;
 			}
 			accumulator.put(dependencyId, new SourceDependency()
-					.setObjectId("syn" + dependencyId.getId())
+					.setObjectId(KeyFactory.keyToString(dependencyId.getId()))
 					.setVersionNumber(dependencyId.getVersion().orElse(null))
 					.setTableType(dependency.getTableType().name()));
 			Optional<IndexAuthorizationSnapshot> persisted = getAuthorizationSnapshot(dependencyId);
@@ -484,7 +484,7 @@ public class IndexAuthorizationSnapshotManager {
 			mapper.lookupColumnReferenceMatch(columnReference)
 					.filter(match -> match.getColumnTranslationReference() instanceof SchemaColumnTranslationReference)
 					.ifPresent(match -> inputs.add(new SourceColumnReference()
-							.setSourceObjectId("syn" + match.getTableInfo().getTableIdAndVersion().getId())
+							.setSourceObjectId(KeyFactory.keyToString(match.getTableInfo().getTableIdAndVersion().getId()))
 							.setSourceVersionNumber(match.getTableInfo().getTableIdAndVersion().getVersion().orElse(null))
 							.setSourceColumnId(((SchemaColumnTranslationReference) match.getColumnTranslationReference()).getId())));
 		}

@@ -539,6 +539,11 @@ public class TableIndexManagerImpl implements TableIndexManager {
 			// Lookup the target change number for the given ID and version.
 			Optional<Long> targetChangeNumber = tableManagerSupport.getLastTableChangeNumber(idAndVersion);
 			if(!targetChangeNumber.isPresent()) {
+				if (idAndVersion.getVersion().isPresent()) {
+					// A specific table version is always bound to the change number it was snapshotted at,
+					// so an absent change number here is a genuine anomaly rather than the benign empty case.
+					throw new NotFoundException("Snapshot for "+idAndVersion.toString()+" does not exist");
+				}
 				// A table with no columns and no rows records no table change, so there is no change to
 				// build to. Rather than fail, build the empty index and set the table AVAILABLE so a query
 				// returns an empty result instead of waiting on a build that can never complete.
