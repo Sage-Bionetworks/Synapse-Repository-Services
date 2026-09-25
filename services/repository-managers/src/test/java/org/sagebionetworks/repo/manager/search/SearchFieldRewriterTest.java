@@ -39,6 +39,9 @@ public class SearchFieldRewriterTest {
 		NAME_TO_ID.put("count", "102");
 		NAME_TO_ID.put("article title", "103");
 		NAME_TO_ID.put("gene-name", "104");
+		NAME_TO_ID.put("p<0.05", "105");
+		NAME_TO_ID.put("a&b=c|d>e", "106");
+		NAME_TO_ID.put("título", "107");
 	}
 
 	/** Name-only routing context: maps via NAME_TO_ID, reports every column as non-text so
@@ -1477,9 +1480,72 @@ public class SearchFieldRewriterTest {
 
 	@Test
 	public void testRewriteQueryStringExpressionWithUnterminatedQuote() {
-		// Malformed syntax is left for OpenSearch to reject; the prefix before it is still rewritten.
+		// An expression the lexer cannot tokenize may hide column references it never reached.
+		String message = assertExpressionRejected("title: \"wind rises");
+		assertTrue(message.contains("malformed"));
+		assertTrue(message.contains("column"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithTrailingBackslashRejected() {
+		String message = assertExpressionRejected("title: wind\\");
+		assertTrue(message.contains("malformed"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithReservedCharactersInColumnName() {
+		// Lucene reserves only the characters its lexer excludes from a term; '<', '&', '=', '|' and
+		// '>' are ordinary term characters, so a column name containing them needs no escape.
 		// call under test
-		assertEquals("100: \"wind rises", rewriteExpression("title: \"wind rises"));
+		assertEquals("105: true AND 106: x", rewriteExpression("p<0.05: true AND a&b=c|d>e: x"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithNonAsciiColumnName() {
+		// call under test
+		assertEquals("107: café AND _exists_: 107", rewriteExpression("título: café AND _exists_: título"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithWhitespacePreserved() {
+		// call under test
+		assertEquals("  100:\t wind \n AND\u3000\u3000101 :gone\r\n",
+				rewriteExpression("  title:\t wind \n AND\u3000\u3000name :gone\r\n"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithSymbolicOperators() {
+		// '&&', '||' and '!' are operators, so the column names beside them are still field prefixes.
+		// call under test
+		assertEquals("100: a && !102: 2024 || 101: b", rewriteExpression("title: a && !count: 2024 || name: b"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithAllFieldsPrefixRejected() {
+		String message = assertExpressionRejected("*: wind");
+		assertTrue(message.contains("'*'"));
+		assertTrue(message.contains("name a column"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithUnescapedWildcardFieldPrefixRejected() {
+		String message = assertExpressionRejected("tit*: wind");
+		assertTrue(message.contains("'tit*'"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExistsGroupRejected() {
+		// OpenSearch reads every term in an '_exists_:(...)' group as a field name, so a group would
+		// carry column names this rewrite does not resolve.
+		String message = assertExpressionRejected("_exists_:(title OR name)");
+		assertTrue(message.contains("_exists_"));
+		assertTrue(message.contains("single column name"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithExistsWildcardRejected() {
+		String message = assertExpressionRejected("_exists_: tit*");
+		assertTrue(message.contains("'tit*'"));
 	}
 
 

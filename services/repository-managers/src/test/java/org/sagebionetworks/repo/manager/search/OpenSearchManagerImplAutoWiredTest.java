@@ -1284,56 +1284,122 @@ public class OpenSearchManagerImplAutoWiredTest {
 	 * field prefix and as the argument of {@code _exists_} &mdash; while the index maps each column
 	 * under its column id. An unresolved name reaches a field the mapping does not have, which AOSS
 	 * answers with zero hits and HTTP 200 rather than an error, so these assertions are on the
-	 * matched rows: a search that merely succeeds proves nothing about the rewrite.
+	 * matched rows: a search that merely succeeds proves nothing about the rewrite. Each row of the
+	 * fixture is excluded by a different branch of the compound expressions, so a branch that is
+	 * mis-parsed or left unrewritten changes the result.
 	 */
 	@Test
 	public void testSearchWithQueryStringColumnNamesInExpression() {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
-				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER));
+				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("3").setName("status").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("4").setName("p<0.05").setColumnType(ColumnType.BOOLEAN),
+				new ColumnModel().setId("5").setName("sample id").setColumnType(ColumnType.STRING));
 		openSearchManager.createIndex(indexName, columns, null,
 				Collections.emptyList(), defaultAnalyzers, 0, 1, 0);
 		openSearchManager.waitForIndexWritable(indexName);
 
 		openSearchManager.bulkIndex(indexName, List.of(
 				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L,
-						"1", "amyloid plaques", "2", "2024")),
+						"1", "amyloid plaques", "2", "2024", "3", "published", "4", true, "5", "S-1")),
 				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L,
-						"1", "tau tangles", "2", "2023"))));
-		waitForSearch(matchAllBody(), columns, 2);
+						"1", "tau tangles", "2", "2022", "3", "published", "4", false, "5", "S-2")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L,
+						"1", "amyloid fibrils", "2", "2023", "3", "published", "4", true)),
+				buildBulkOp(indexName, "4", Map.of("_row_id", 4L, "_row_version", 1L,
+						"1", "tau oligomers", "2", "2024", "3", "retracted", "4", true, "5", "S-4")),
+				buildBulkOp(indexName, "5", Map.of("_row_id", 5L, "_row_version", 1L,
+						"1", "synuclein bodies", "2", "2024", "3", "published", "4", true, "5", "S-5")),
+				buildBulkOp(indexName, "6", Map.of("_row_id", 6L, "_row_version", 1L,
+						"1", "amyloid beta", "2", "2019", "3", "published", "4", false, "5", "S-6"))));
+		waitForSearch(matchAllBody(), columns, 6);
 
 		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS);
 
 		// call under test
-		SearchQueryResults byFieldPrefix = waitForSearchHits(queryBody(new Query().setQuery_string(
-				new QueryStringQuery().setQuery("title: amyloid AND year: 2024"))), columns, parts, 1);
-		assertEquals(List.of(1L), byFieldPrefix.getHits().stream()
-				.map(SearchHit::getRowId).collect(Collectors.toList()));
+		SearchQueryResults byFieldPrefix = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid AND year: 2024")), columns, parts, 1);
+		assertEquals(List.of(1L), rowIds(byFieldPrefix));
 
 		// call under test
-		SearchQueryResults byExists = waitForSearchHits(queryBody(new Query().setQuery_string(
-				new QueryStringQuery().setQuery("_exists_: year AND NOT title: amyloid"))),
+		SearchQueryResults byExists = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("_exists_: year AND NOT title: amyloid")), columns, parts, 3);
+		assertEquals(Set.of(2L, 4L, 5L), Set.copyOf(rowIds(byExists)));
+
+		// call under test
+		SearchQueryResults byLeadingWildcard = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: *loid")), columns, parts, 3);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byLeadingWildcard)));
+
+		// call under test
+		SearchQueryResults byFields = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("tau").setFields(List.of("title"))), columns, parts, 2);
+		assertEquals(Set.of(2L, 4L), Set.copyOf(rowIds(byFields)));
+
+		// call under test
+		SearchQueryResults byDefaultField = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("2024").setDefault_field("year")), columns, parts, 3);
+		assertEquals(Set.of(1L, 4L, 5L), Set.copyOf(rowIds(byDefaultField)));
+
+		// Rows 3, 4, 5 and 6 are each excluded by a different branch.
+		// call under test
+		SearchQueryResults byNestedGroups = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"((title: amyloid OR title: tau) AND NOT (year: 2023 OR status: retracted)) AND year: [2020 TO 2025]")),
+				columns, parts, 2);
+		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(byNestedGroups)));
+
+		// Rows 2 and 6 are excluded by the '<' column, 3 by the escaped-space '_exists_' column, 1 by
+		// the phrase whose ':' is not a field separator, and 4 by the regular expression.
+		// call under test
+		SearchQueryResults bySpecialSyntax = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"(p<0.05: true AND _exists_: sample\\ id) AND NOT (title: \"amyloid: plaques\" OR title: /tau.*/)")),
 				columns, parts, 1);
-		assertEquals(List.of(2L), byExists.getHits().stream()
-				.map(SearchHit::getRowId).collect(Collectors.toList()));
+		assertEquals(List.of(5L), rowIds(bySpecialSyntax));
+
+		// A fuzzy term is not analyzed, so it is compared against the stemmed index tokens; these
+		// terms are one edit from words the English stemmer leaves unchanged ('synuclein', 'tau').
+		// call under test
+		SearchQueryResults byFuzzy = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: synucleen~1")), columns, parts, 1);
+		assertEquals(List.of(5L), rowIds(byFuzzy));
+
+		// The fuzzy terms match rows 2, 4 and 5; the '<' column then excludes rows 4 and 5.
+		// call under test
+		SearchQueryResults byFuzzyInGroup = waitForSearchHits(queryStringBody(new QueryStringQuery().setQuery(
+				"(title: tay~1 OR title: synucleen~1) AND NOT p<0.05: true")), columns, parts, 1);
+		assertEquals(List.of(2L), rowIds(byFuzzyInGroup));
+
+		// 'tau' is in fewer rows than 'amyloid', so it scores higher unboosted; the boosted query
+		// below reverses that order only if the boost reached the rewritten field.
+		// call under test
+		SearchQueryResults unboosted = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid OR title: tau")), columns, parts, 5);
+		assertEquals(Set.of(2L, 4L), Set.copyOf(rowIds(unboosted).subList(0, 2)));
 
 		// call under test
-		SearchQueryResults byLeadingWildcard = waitForSearchHits(queryBody(new Query().setQuery_string(
-				new QueryStringQuery().setQuery("title: *loid"))), columns, parts, 1);
-		assertEquals(List.of(1L), byLeadingWildcard.getHits().stream()
-				.map(SearchHit::getRowId).collect(Collectors.toList()));
+		SearchQueryResults byExpressionBoost = waitForSearchHits(queryStringBody(
+				new QueryStringQuery().setQuery("title: amyloid^5 OR title: tau")), columns, parts, 5);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byExpressionBoost).subList(0, 3)));
+
+		// 'retracted' is in a single row, so it scores highest unboosted.
+		// call under test
+		SearchQueryResults unboostedFields = waitForSearchHits(queryStringBody(new QueryStringQuery()
+				.setQuery("amyloid OR retracted").setFields(List.of("title", "status"))), columns, parts, 4);
+		assertEquals(4L, rowIds(unboostedFields).get(0));
 
 		// call under test
-		SearchQueryResults byFields = waitForSearchHits(queryBody(new Query().setQuery_string(
-				new QueryStringQuery().setQuery("tau").setFields(List.of("title")))), columns, parts, 1);
-		assertEquals(List.of(2L), byFields.getHits().stream()
-				.map(SearchHit::getRowId).collect(Collectors.toList()));
+		SearchQueryResults byFieldsBoost = waitForSearchHits(queryStringBody(new QueryStringQuery()
+				.setQuery("amyloid OR retracted").setFields(List.of("title^5", "status"))), columns, parts, 4);
+		assertEquals(Set.of(1L, 3L, 6L), Set.copyOf(rowIds(byFieldsBoost).subList(0, 3)));
+	}
 
-		// call under test
-		SearchQueryResults byDefaultField = waitForSearchHits(queryBody(new Query().setQuery_string(
-				new QueryStringQuery().setQuery("2024").setDefault_field("year"))), columns, parts, 1);
-		assertEquals(List.of(1L), byDefaultField.getHits().stream()
-				.map(SearchHit::getRowId).collect(Collectors.toList()));
+	private static SearchQuery queryStringBody(QueryStringQuery queryString) {
+		return queryBody(new Query().setQuery_string(queryString));
+	}
+
+	private static List<Long> rowIds(SearchQueryResults results) {
+		return results.getHits().stream().map(SearchHit::getRowId).collect(Collectors.toList());
 	}
 
 	/**

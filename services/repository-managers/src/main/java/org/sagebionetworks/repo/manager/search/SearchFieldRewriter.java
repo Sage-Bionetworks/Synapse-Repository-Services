@@ -9,8 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import org.sagebionetworks.repo.manager.search.querystring.QueryStringLexer;
+import org.sagebionetworks.repo.manager.search.querystring.QueryStringLexerConstants;
+import org.sagebionetworks.repo.manager.search.querystring.Token;
+import org.sagebionetworks.repo.manager.search.querystring.TokenMgrError;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -436,28 +439,6 @@ final class SearchFieldRewriter {
 	// ---------- query_string clause rewrite (column references inside a Lucene expression) ----------
 
 	/**
-	 * One bare term of the Lucene query-string grammar: a run of escaped characters or characters
-	 * that are neither white space nor reserved. The wildcards ({@code *} / {@code ?}) are not
-	 * reserved, so they may appear inside a term. As in Lucene, {@code +} / {@code -} are operators
-	 * only at the start of a term, so a column name such as {@code p-value} is one term.
-	 */
-	private static final String TERM = "(?:\\\\.|[^\\s\\\\+\\-=&|><!(){}\\[\\]^\"~:/])"
-			+ "(?:\\\\.|[^\\s\\\\=&|><!(){}\\[\\]^\"~:/])*+";
-
-	/**
-	 * The spans of a {@code query_string} expression that carry a column reference: a
-	 * {@code _exists_:} argument (group 1) or a {@code <column>:} field prefix (group 2). A quoted
-	 * phrase, a {@code /regex/} literal and a {@code [range]} / <code>{range}</code> span match
-	 * first, so a {@code ':'} inside them is never mistaken for a field separator.
-	 */
-	private static final Pattern QUERY_STRING_COLUMN_REFERENCE = Pattern.compile(
-			"\"(?:\\\\.|[^\"\\\\])*+\""
-			+ "|/(?:\\\\.|[^/\\\\])*+/"
-			+ "|[\\[{](?:\\\\.|[^\\]}\\\\])*+[\\]}]"
-			+ "|_exists_:\\s*(" + TERM + ")"
-			+ "|(" + TERM + "):");
-
-	/**
 	 * Rewrite every column reference a {@code query_string} clause carries: its {@code fields}
 	 * entries, its {@code default_field}, and the field prefixes embedded in its {@code query}
 	 * expression. Mutates {@code queryString} in place.
@@ -493,21 +474,77 @@ final class SearchFieldRewriter {
 	/**
 	 * Rewrite each column reference embedded in a {@code query_string} expression &mdash; every
 	 * {@code <column>:} field prefix and every {@code _exists_:} argument &mdash; to the column id
-	 * the index is keyed by. Malformed syntax is left for OpenSearch to reject.
+	 * the index is keyed by. Every other character of the expression, white space included, is
+	 * preserved.
+	 *
+	 * @throws IllegalArgumentException when the expression cannot be tokenized, when a field
+	 *         prefix is not a column name (e.g. {@code *:}), when {@code _exists_:} is not followed
+	 *         by a single column name, or when a referenced column is unknown
 	 */
 	static String rewriteQueryStringExpression(String expression, RoutingContext ctx) {
-		return QUERY_STRING_COLUMN_REFERENCE.matcher(expression).replaceAll(match -> {
-			String rewritten;
-			if (match.group(1) != null) {
-				rewritten = match.group().substring(0, match.start(1) - match.start())
-						+ resolveColumnReference(unescape(match.group(1)), "query_string.query '_exists_'", ctx);
-			} else if (match.group(2) != null) {
-				rewritten = resolveColumnReference(unescape(match.group(2)), "query_string.query", ctx) + ":";
-			} else {
-				rewritten = match.group();
+		List<Token> tokens;
+		try {
+			tokens = QueryStringLexer.tokenize(expression);
+		} catch (TokenMgrError e) {
+			// A string the lexer cannot tokenize may hide column references it never reached, so it
+			// is rejected rather than forwarded with those references unresolved.
+			throw new IllegalArgumentException("'query_string.query' is malformed: " + e.getMessage(), e);
+		}
+		StringBuilder rewritten = new StringBuilder(expression.length());
+		for (int i = 0; i < tokens.size(); i++) {
+			appendPrecedingWhitespace(tokens.get(i), rewritten);
+			rewritten.append(rewriteQueryStringToken(tokens, i, ctx));
+		}
+		return rewritten.toString();
+	}
+
+	/**
+	 * The text {@code tokens[i]} contributes to the rewritten expression. As in Lucene's grammar, a
+	 * field prefix is a {@code TERM} directly followed by a {@code COLON}, and {@code _exists_} is a
+	 * field prefix whose argument is itself a column name.
+	 */
+	private static String rewriteQueryStringToken(List<Token> tokens, int i, RoutingContext ctx) {
+		Token token = tokens.get(i);
+		boolean isFieldPrefix = i + 1 < tokens.size() && tokens.get(i + 1).kind == QueryStringLexerConstants.COLON;
+		if (isFieldPrefix) {
+			if (token.kind != QueryStringLexerConstants.TERM) {
+				throw new IllegalArgumentException("'query_string.query' field prefix '" + token.image
+						+ "' is not a column name; name a column");
 			}
-			return Matcher.quoteReplacement(rewritten);
-		});
+			String name = unescape(token.image);
+			return EXISTS_FIELD.equals(name) ? token.image : resolveColumnReference(name, "query_string.query", ctx);
+		}
+		if (isExistsArgument(tokens, i)) {
+			if (token.kind != QueryStringLexerConstants.TERM) {
+				throw new IllegalArgumentException(
+						"'query_string.query' '_exists_' must be followed by a single column name, not '" + token.image + "'");
+			}
+			return resolveColumnReference(unescape(token.image), "query_string.query '_exists_'", ctx);
+		}
+		return token.image;
+	}
+
+	private static final String EXISTS_FIELD = "_exists_";
+
+	private static boolean isExistsArgument(List<Token> tokens, int i) {
+		return i >= 2
+				&& tokens.get(i - 1).kind == QueryStringLexerConstants.COLON
+				&& tokens.get(i - 2).kind == QueryStringLexerConstants.TERM
+				&& EXISTS_FIELD.equals(unescape(tokens.get(i - 2).image));
+	}
+
+	/** Append the white space the lexer attached to {@code token}, in its original order. */
+	private static void appendPrecedingWhitespace(Token token, StringBuilder out) {
+		Token first = token.specialToken;
+		if (first == null) {
+			return;
+		}
+		while (first.specialToken != null) {
+			first = first.specialToken;
+		}
+		for (Token whitespace = first; whitespace != null; whitespace = whitespace.next) {
+			out.append(whitespace.image);
+		}
 	}
 
 	/**

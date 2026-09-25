@@ -1,0 +1,112 @@
+/*
+ * The token definitions below are copied from Apache Lucene's classic query parser grammar,
+ * lucene/queryparser/src/java/org/apache/lucene/queryparser/classic/QueryParser.jj at tag
+ * releases/lucene/10.4.0 (the Lucene version of OpenSearch 3.7, whose query_string clause parses
+ * with that grammar). They are kept identical so that this lexer splits a query_string expression
+ * into exactly the tokens OpenSearch will, with one deliberate difference: white space is a
+ * SPECIAL_TOKEN rather than SKIP, so the original text can be rebuilt character for character.
+ *
+ * The copied definitions are licensed as follows:
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+options {
+  STATIC=false;
+}
+
+PARSER_BEGIN(QueryStringLexer)
+
+package org.sagebionetworks.repo.manager.search.querystring;
+
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Lexer for the Lucene query-string syntax of an OpenSearch {@code query_string} clause.
+ */
+public class QueryStringLexer {
+
+  /**
+   * Split {@code expression} into its tokens, ending with the {@code EOF} token. Each token's
+   * {@link Token#specialToken} chain carries the white space that precedes it.
+   *
+   * @throws TokenMgrError when {@code expression} contains a character sequence no token matches
+   */
+  public static List<Token> tokenize(String expression) {
+    QueryStringLexerTokenManager tokenManager =
+        new QueryStringLexerTokenManager(new SimpleCharStream(new StringReader(expression)));
+    List<Token> tokens = new ArrayList<Token>();
+    Token token;
+    do {
+      token = tokenManager.getNextToken();
+      tokens.add(token);
+    } while (token.kind != EOF);
+    return tokens;
+  }
+}
+
+PARSER_END(QueryStringLexer)
+
+<*> TOKEN : {
+  <#_NUM_CHAR:        ["0"-"9"] >
+| <#_ESCAPED_CHAR:    "\\" ~[] >  // every character that follows a backslash is considered as an escaped character
+| <#_TERM_START_CHAR: ( ~[ " ", "\t", "\n", "\r", "\u3000", "+", "-", "!", "(", ")", ":", "^",
+                           "[", "]", "\"", "{", "}", "~", "*", "?", "\\", "/" ]
+                        | <_ESCAPED_CHAR> ) >
+| <#_TERM_CHAR:       ( <_TERM_START_CHAR> | "-" | "+" ) >
+| <#_WHITESPACE:      ( " " | "\t" | "\n" | "\r" | "\u3000") >
+| <#_QUOTED_CHAR:     ( ~[ "\"", "\\" ] | <_ESCAPED_CHAR> ) >
+}
+
+<DEFAULT, Range> SPECIAL_TOKEN : {
+  <WHITESPACE: <_WHITESPACE>>
+}
+
+<DEFAULT> TOKEN : {
+  <AND:           ("AND" | "&&") >
+| <OR:            ("OR" | "||") >
+| <NOT:           ("NOT" | "!") >
+| <PLUS:          "+" >
+| <MINUS:         "-" >
+| <BAREOPER:      ("+"|"-"|"!") <_WHITESPACE> >
+| <LPAREN:        "(" >
+| <RPAREN:        ")" >
+| <COLON:         ":" >
+| <STAR:          "*" >
+| <CARAT:         "^" > : Boost
+| <QUOTED:        "\"" (<_QUOTED_CHAR>)* "\"">
+| <TERM:          <_TERM_START_CHAR> (<_TERM_CHAR>)*  >
+| <FUZZY_SLOP:    "~" ((<_NUM_CHAR>)+ (( "." (<_NUM_CHAR>)+ )? (<_TERM_CHAR>)*) | (<_TERM_CHAR>)*) >
+| <PREFIXTERM:    ("*") | ( <_TERM_START_CHAR> (<_TERM_CHAR>)* "*" ) >
+| <WILDTERM:      (<_TERM_START_CHAR> | [ "*", "?" ]) (<_TERM_CHAR> | ( [ "*", "?" ] ))* >
+| <REGEXPTERM:    "/" (~[ "/" ] | "\\/" )* "/" >
+| <RANGEIN_START: "[" > : Range
+| <RANGEEX_START: "{" > : Range
+}
+
+<Boost> TOKEN : {
+  <NUMBER: (<_NUM_CHAR>)+ ( "." (<_NUM_CHAR>)+ )? > : DEFAULT
+}
+
+<Range> TOKEN : {
+  <RANGE_TO:     "TO">
+| <RANGEIN_END:  "]"> : DEFAULT
+| <RANGEEX_END:  "}"> : DEFAULT
+| <RANGE_QUOTED: "\"" (~["\""] | "\\\"")+ "\"">
+| <RANGE_GOOP:   (~[ " ", "]", "}" ])+ >
+}
