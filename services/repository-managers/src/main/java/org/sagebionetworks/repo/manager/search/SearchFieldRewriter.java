@@ -438,9 +438,11 @@ final class SearchFieldRewriter {
 	/**
 	 * One bare term of the Lucene query-string grammar: a run of escaped characters or characters
 	 * that are neither white space nor reserved. The wildcards ({@code *} / {@code ?}) are not
-	 * reserved, so they may appear inside a term.
+	 * reserved, so they may appear inside a term. As in Lucene, {@code +} / {@code -} are operators
+	 * only at the start of a term, so a column name such as {@code p-value} is one term.
 	 */
-	private static final String TERM = "(?:\\\\.|[^\\s\\\\+\\-=&|><!(){}\\[\\]^\"~:/])++";
+	private static final String TERM = "(?:\\\\.|[^\\s\\\\+\\-=&|><!(){}\\[\\]^\"~:/])"
+			+ "(?:\\\\.|[^\\s\\\\=&|><!(){}\\[\\]^\"~:/])*+";
 
 	/**
 	 * The spans of a {@code query_string} expression that carry a column reference: a

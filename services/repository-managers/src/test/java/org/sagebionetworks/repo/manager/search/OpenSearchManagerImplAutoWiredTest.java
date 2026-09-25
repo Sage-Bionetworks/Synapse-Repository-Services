@@ -1322,6 +1322,18 @@ public class OpenSearchManagerImplAutoWiredTest {
 				new QueryStringQuery().setQuery("title: *loid"))), columns, parts, 1);
 		assertEquals(List.of(1L), byLeadingWildcard.getHits().stream()
 				.map(SearchHit::getRowId).collect(Collectors.toList()));
+
+		// call under test
+		SearchQueryResults byFields = waitForSearchHits(queryBody(new Query().setQuery_string(
+				new QueryStringQuery().setQuery("tau").setFields(List.of("title")))), columns, parts, 1);
+		assertEquals(List.of(2L), byFields.getHits().stream()
+				.map(SearchHit::getRowId).collect(Collectors.toList()));
+
+		// call under test
+		SearchQueryResults byDefaultField = waitForSearchHits(queryBody(new Query().setQuery_string(
+				new QueryStringQuery().setQuery("2024").setDefault_field("year"))), columns, parts, 1);
+		assertEquals(List.of(1L), byDefaultField.getHits().stream()
+				.map(SearchHit::getRowId).collect(Collectors.toList()));
 	}
 
 	/**

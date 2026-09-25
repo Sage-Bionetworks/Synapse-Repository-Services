@@ -12,6 +12,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -37,6 +38,7 @@ public class SearchFieldRewriterTest {
 		NAME_TO_ID.put("name", "101");
 		NAME_TO_ID.put("count", "102");
 		NAME_TO_ID.put("article title", "103");
+		NAME_TO_ID.put("gene-name", "104");
 	}
 
 	/** Name-only routing context: maps via NAME_TO_ID, reports every column as non-text so
@@ -1421,6 +1423,26 @@ public class SearchFieldRewriterTest {
 	}
 
 	@Test
+	public void testRewriteQueryStringExpressionWithHyphenatedColumnName() {
+		// Regression: the hyphen once split the name, so `gene-name:` rewrote only its `name`
+		// suffix to `gene-101:` — a field the index does not carry, matching nothing.
+		// call under test
+		assertEquals("104: tp53 AND _exists_:104", rewriteExpression("gene-name: tp53 AND _exists_:gene-name"));
+	}
+
+	@Test
+	public void testRewriteQueryStringExpressionWithInternalFieldRejected() {
+		// The index also carries non-column fields, including the benefactor ids the row-level
+		// ACL filter matches on; none of them is addressable through a query_string expression.
+		for (String field : List.of("_row_id", "_row_version", "_id", "_benefactor_0")) {
+			// call under test
+			assertTrue(assertExpressionRejected(field + ": 1").contains(field));
+			// call under test
+			assertTrue(assertExpressionRejected("_exists_: " + field).contains(field));
+		}
+	}
+
+	@Test
 	public void testRewriteQueryStringExpressionWithUnescapedSpaceInColumnName() {
 		// Without the escape the name splits at the space exactly as OpenSearch would parse it: a
 		// bare 'article' term followed by a prefix on the column named 'title'.
@@ -1499,6 +1521,23 @@ public class SearchFieldRewriterTest {
 				// call under test
 				() -> SearchFieldRewriter.rewriteRequestFields(dsl, NAME_ONLY, Surface.QUERY)).getMessage();
 		assertTrue(message.contains("query_string.default_field"));
+	}
+
+	@Test
+	public void testRewriteRequestFieldsWithQueryStringInternalFieldRejected() throws IOException {
+		JsonNode fieldsDsl = parse("{\"query_string\":{\"query\":\"1\",\"fields\":[\"title\",\"_benefactor_0\"]}}");
+		String fieldsMessage = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchFieldRewriter.rewriteRequestFields(fieldsDsl, NAME_ONLY, Surface.QUERY)).getMessage();
+		assertTrue(fieldsMessage.contains("query_string.fields"));
+		assertTrue(fieldsMessage.contains("_benefactor_0"));
+
+		JsonNode defaultFieldDsl = parse("{\"query_string\":{\"query\":\"1\",\"default_field\":\"_row_id\"}}");
+		String defaultFieldMessage = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchFieldRewriter.rewriteRequestFields(defaultFieldDsl, NAME_ONLY, Surface.QUERY)).getMessage();
+		assertTrue(defaultFieldMessage.contains("query_string.default_field"));
+		assertTrue(defaultFieldMessage.contains("_row_id"));
 	}
 
 	@Test
