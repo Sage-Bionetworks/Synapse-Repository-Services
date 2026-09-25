@@ -23,10 +23,12 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
  *   INTEGER or other non-text type with STRING.
  * A column that does not match a top-level schema property, or that matches a
  * property of any other declared type, keeps its inferred type.
- * The result describes the shape of the data only. The limits a Synapse table
- * index imposes on a column type (such as the maximum size of a STRING) are not
- * considered here; a caller that also makes the CSV queryable through the table
- * services is responsible for capping the result to what that index can store.
+ * The result describes how to read the data into a grid, and nothing else. The
+ * limits a Synapse table index imposes on a column type (such as the maximum size
+ * of a STRING) are deliberately not considered: a type that the index could not
+ * store is still the right way to read a CSV value, and the schema a RecordSet
+ * binds to that index is derived from its JSON Schema rather than from this
+ * result.
  */
 public class CsvSchemaReconciler {
 

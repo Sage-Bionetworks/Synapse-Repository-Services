@@ -1555,11 +1555,12 @@ public class GridEventBrokerWorkerIntegrationTest {
 		Project project = entityService.createEntity(admin.getId(), new Project().setName("SchemaTypedColumn Test"),
 			null);
 
-		// Every column here is one the CSV type inference reads as something narrower than the
-		// bound JSON schema declares (PLFM-9945): entity_id_column looks like entity ids
-		// (ENTITYID) and code_column like integers (INTEGER), while the schema declares both as
-		// strings. entity_id_column is also the upsert key, so its reconciled type is what the
-		// CSV import stages the key in.
+		// entity_id_column and code_column are the two the CSV type inference reads as something
+		// narrower than the bound JSON schema declares (PLFM-9945): entity ids (ENTITYID) and
+		// integers (INTEGER) respectively, while the schema declares both as strings.
+		// entity_id_column is also the upsert key, so its reconciled type is what the CSV import
+		// stages the key in. label_column already infers as a string and is here to show a column
+		// the reconciler leaves alone.
 		String csvContent =
 			"entity_id_column,code_column,label_column" + System.lineSeparator() +
 			"syn1,001,alpha"                            + System.lineSeparator() +
@@ -1721,7 +1722,8 @@ public class GridEventBrokerWorkerIntegrationTest {
 		);
 
 		List<RowView> rowsView = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
-			List<RowView> page = gridViewManager.querySinglePage(header, 100L, 0L);
+			List<RowView> page = gridViewManager.querySinglePage(header,
+				new QueryElement().setIncludeValidationMessages(true));
 			if (page.size() != 2) {
 				return Pair.create(false, page);
 			}
@@ -1739,9 +1741,14 @@ public class GridEventBrokerWorkerIntegrationTest {
 			rowsView.stream().map(r -> r.getRowObject().getData().getRowJsonDocument().toString()).collect(Collectors.toList())
 		);
 
-		// The rows are reported as invalid, since an entity id is not the integer the schema declares
-		assertEquals(List.of(false, false),
-			rowsView.stream().map(r -> r.getRowValidationResults().getIsValid()).collect(Collectors.toList()));
+		// Each row is reported as invalid for the one right reason: the entity id read into
+		// ref_column is not the integer that property declares
+		ValidationResults expectedValidation = new ValidationResults().setIsValid(false)
+			.setAllValidationMessages(List.of("#/ref_column: expected type: Integer, found: String"))
+			.setValidationErrorMessage("expected type: Integer, found: String");
+
+		assertEquals(List.of(expectedValidation, expectedValidation),
+			rowsView.stream().map(RowView::getRowValidationResults).collect(Collectors.toList()));
 	}
 
 

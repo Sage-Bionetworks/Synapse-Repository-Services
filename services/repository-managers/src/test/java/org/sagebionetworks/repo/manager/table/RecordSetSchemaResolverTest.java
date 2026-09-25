@@ -259,8 +259,8 @@ public class RecordSetSchemaResolverTest {
 	@Test
 	public void testGetReconciledSchemaWithStringLongerThanTheIndexAllows() {
 		// The reconciled types describe how to read the CSV, so a maxLength beyond what a
-		// STRING column can hold is carried as-is. Only a column bound to the table index is
-		// capped, which is a schema-only column ("b") here.
+		// STRING column can hold is carried as-is. "b" is capped instead because it has no CSV
+		// column to read and is built by toColumnModel from the property alone.
 		stubInferSchema(List.of(new ColumnModel().setName("a").setColumnType(ColumnType.ENTITYID)));
 		JsonSchema validationSchema = new JsonSchema().setProperties(Map.of(
 				"a", new JsonSchema().setType(Type.string).setMaxLength(5000L),

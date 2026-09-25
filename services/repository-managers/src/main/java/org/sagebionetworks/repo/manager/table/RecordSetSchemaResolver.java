@@ -37,8 +37,11 @@ import au.com.bytecode.opencsv.CSVReader;
  * The two consumers need different things, so they take different entry points:
  * the grid create flow ({@code RecordSetCreateGridHandler}) reads the CSV through
  * {@link #getReconciledSchema}, while the RecordSetMetadataProvider binds the
- * column schema onto the table index from {@link #getJsonSchemaColumns}, whose
- * types are capped to what that index can store.
+ * column schema onto the table index from {@link #getJsonSchemaColumns}. Capping a
+ * type to what that index can store is the business of {@link #toColumnModel}, so
+ * it applies to every type built from a JSON Schema property alone - including the
+ * columns {@link #getReconciledSchema} appends for properties the CSV does not
+ * have - and never to a type inferred from the CSV data.
  */
 @Service
 public class RecordSetSchemaResolver {
@@ -99,8 +102,10 @@ public class RecordSetSchemaResolver {
 	/**
 	 * Infer the schema from the CSV file and reconcile it with the RecordSet's bound
 	 * JSON Schema, re-typing each inferred column to the type its JSON Schema
-	 * property declares. The types describe how to read the CSV values and are not
-	 * capped to the table index limits.
+	 * property declares. An inferred type describes how to read the CSV values, so it
+	 * is not capped to the table index limits; a column appended for a JSON Schema
+	 * property the CSV does not have has no values to read and comes from
+	 * {@link #toColumnModel}, which does cap it.
 	 *
 	 * @param entityId      the RecordSet entity id, used to look up the bound schema
 	 * @param fileHandle    the CSV data file handle
