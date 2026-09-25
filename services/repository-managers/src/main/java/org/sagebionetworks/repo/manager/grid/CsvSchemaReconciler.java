@@ -21,10 +21,8 @@ import org.sagebionetworks.table.query.util.ColumnTypeListMappings;
  *   equivalent of its element type (e.g. STRING to STRING_LIST).
  * - A property of {@code "type": "string"} replaces an inferred ENTITYID,
  *   INTEGER or other non-text type with STRING.
- * - A property of {@code "type": "integer"} replaces an inferred
- *   ENTITYID with INTEGER.
- * A column that does not match a top-level schema property keeps its inferred
- * type.
+ * A column that does not match a top-level schema property, or that matches a
+ * property of any other declared type, keeps its inferred type.
  * The result describes the shape of the data only. The limits a Synapse table
  * index imposes on a column type (such as the maximum size of a STRING) are not
  * considered here; a caller that also makes the CSV queryable through the table
@@ -88,22 +86,12 @@ public class CsvSchemaReconciler {
 	}
 
 	/**
-	 * Re-type a column declared as a scalar. Only the string and integer types are
-	 * applied; for the remaining types the inferred type is either already
-	 * equivalent (boolean, number) or cannot be narrowed to the declared type
-	 * without losing the CSV values (object, null).
+	 * Re-type a column declared as a scalar. Only a string property is applied,
+	 * because a string can carry any CSV value
 	 */
 	private static void applyScalarType(ColumnModel column, JsonSchema property) {
-		Type type = property == null ? null : property.getType();
-		if (type == null) {
-			return;
-		}
-		switch (type) {
-			case string -> applyStringType(column, property.getMaxLength());
-			case integer -> applyIntegerType(column);
-			default -> {
-				// the inferred type is kept as-is
-			}
+		if (property != null && Type.string.equals(property.getType())) {
+			applyStringType(column, property.getMaxLength());
 		}
 	}
 
@@ -119,14 +107,4 @@ public class CsvSchemaReconciler {
 		column.setColumnType(ColumnType.STRING).setMaximumSize(maxLength);
 	}
 
-	/**
-	 * An integer property only replaces an inferred ENTITYID: the other inferred
-	 * types either already hold integers or hold values that are not integers at
-	 * all (e.g. a DATE inferred from date strings).
-	 */
-	private static void applyIntegerType(ColumnModel column) {
-		if (ColumnType.ENTITYID.equals(column.getColumnType())) {
-			column.setColumnType(ColumnType.INTEGER).setMaximumSize(null);
-		}
-	}
 }

@@ -31,12 +31,14 @@ import org.springframework.stereotype.Service;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
- * Determines the {@link ColumnModel} schema that makes a RecordSet's CSV data
- * file queryable, by inferring the types from the data, reconciling them with the
- * RecordSet's bound JSON Schema (if any), and capping the result to the limits
- * the table index enforces. This logic is shared by the grid create flow
- * ({@code RecordSetCreateGridHandler}) and the RecordSetMetadataProvider, which
- * binds the column schema on to the table index upon create/update.
+ * Determines the {@link ColumnModel} schema of a RecordSet's CSV data file, from
+ * the types inferred from the data and the RecordSet's bound JSON Schema (if
+ * any).
+ * The two consumers need different things, so they take different entry points:
+ * the grid create flow ({@code RecordSetCreateGridHandler}) reads the CSV through
+ * {@link #getReconciledSchema}, while the RecordSetMetadataProvider binds the
+ * column schema onto the table index from {@link #getJsonSchemaColumns}, whose
+ * types are capped to what that index can store.
  */
 @Service
 public class RecordSetSchemaResolver {
@@ -95,9 +97,10 @@ public class RecordSetSchemaResolver {
 	}
 
 	/**
-	 * Infer the schema from the CSV file, reconcile it with the RecordSet's bound
-	 * JSON Schema by re-typing each inferred column to the type its JSON Schema
-	 * property declares, and cap every column to the table index limits.
+	 * Infer the schema from the CSV file and reconcile it with the RecordSet's bound
+	 * JSON Schema, re-typing each inferred column to the type its JSON Schema
+	 * property declares. The types describe how to read the CSV values and are not
+	 * capped to the table index limits.
 	 *
 	 * @param entityId      the RecordSet entity id, used to look up the bound schema
 	 * @param fileHandle    the CSV data file handle
@@ -110,9 +113,6 @@ public class RecordSetSchemaResolver {
 		Optional<JsonSchema> validationSchema = getBoundValidationSchema(entityId);
 		validationSchema.ifPresent(vs -> CsvSchemaReconciler.reconcile(schema, vs));
 		validationSchema.ifPresent(vs -> addJsonSchemaOnlyColumns(schema, vs));
-		// The grid reconciles types from the data and the schema alone, so every column is
-		// capped here to keep the schema within what the table index can store.
-		schema.forEach(RecordSetSchemaResolver::applyIndexLimits);
 
 		List<String> required = validationSchema.map(JsonSchema::getRequired).orElse(new ArrayList<>());
 		Map<String, Integer> columnNameToIndex = new HashMap<>();
