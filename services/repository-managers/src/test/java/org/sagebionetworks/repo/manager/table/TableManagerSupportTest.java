@@ -1050,6 +1050,16 @@ public class TableManagerSupportTest {
 	}
 	
 	@Test
+	public void testGetDefiningSql() {
+		String definingSql = "select * from syn456";
+		when(mockNodeDao.getDefiningSql(any())).thenReturn(Optional.of(definingSql));
+		// call under test
+		Optional<String> result = managerSpy.getDefiningSql(idAndVersion);
+		assertEquals(Optional.of(definingSql), result);
+		verify(mockNodeDao).getDefiningSql(idAndVersion);
+	}
+
+	@Test
 	public void testGetIndexDescriptionWithTable() {
 		when(mockNodeDao.getNodeTypeById(any())).thenReturn(EntityType.table);
 		doReturn(Optional.of(14L)).when(managerSpy).getLastTableChangeNumber(any());

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
+import org.sagebionetworks.repo.manager.table.query.SnapshotSchemaProvider;
 import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -38,6 +40,7 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
@@ -65,8 +68,12 @@ import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
+import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -96,15 +103,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private ExecutorService threadPool;
 	private QueryCacheManager queryCacheManager;
 	private FacetPostProcessorProvider facetPostProcessorProvider;
+	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
 		this.threadPool = cachedThreadPool;
 		this.queryCacheManager = queryCacheManager;
 		this.facetPostProcessorProvider = facetPostProcessorProvider;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 	
 	/**
@@ -138,35 +147,28 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				combinedSql = createCombinedSql(user, query);
 			}
 			
-			// pre-flight includes parsing and authorization
-			QueryTranslations sqlQuery = queryPreflight(user, query, this.maxBytesPerRequest, options);
-			
 			QueryExecutor queryExecutor = new CacheableQueryExecutor(queryCacheManager, CACHED_QUERY_EXPIRES_IN_SEC);
-			
-			// run the query as a stream.
-			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, sqlQuery, options, queryExecutor);
-			
+
+			// Acquire the read lock, confirm the table is available, then authorize, translate, and
+			// run against the served index the lock pins (see queryAfterAuthorization).
+			QueryResultBundle bundle = queryAfterAuthorization(progressCallback, user, query, this.maxBytesPerRequest,
+					options, (sqlQuery, status) -> {
+						QueryResultBundle result = executeQuery(user, sqlQuery, options, queryExecutor);
+						setConsistentQueryEtag(result, options, status);
+						addNextPageTokenIfNeeded(result, sqlQuery, query, options);
+						return result;
+					});
+
 			// add combined sql to the bundle
 			bundle.setCombinedSql(combinedSql);
-			
-			// save the max rows per page.
-			if (options.returnMaxRowsPerPage()) {
-				bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage());
-			}
-			
-			int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
-			// add the next page token if needed
-			if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
-				long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
-				QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
-						nextOffset, query.getLimit(), query.getSelectedFacets());
-				bundle.getQueryResult().setNextPageToken(nextPageToken);
-			}
-			
+
 			return bundle;
 		} catch (EmptyResultException e) {
 			// return an empty result.
 			return createEmptyBundle(e.getTableId(), options);
+		} catch (IOException e) {
+			// The cache-backed executor performs no stream IO, so this is unreachable here.
+			throw new IllegalStateException(e);
 		}
 
 	}
@@ -227,7 +229,17 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// We now have the table's ID.
 		String tableId = model.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
+		// For a materialized object the as-built authorization snapshot pins exactly what the served
+		// index contains, so authorization and translation run against it rather than current truth
+		// (closing the PLFM-9977 drift class). A VirtualTable has no index of its own, so it is
+		// resolved as a query over its dependent's as-built snapshot (see getQueryIndexDescription).
+		//
+		// The caller holds the table's read lock and has already confirmed the table is AVAILABLE, so
+		// this snapshot matches the served index and cannot be swapped while the query runs (see
+		// queryAfterAuthorization).
+		QueryIndexDescription indexDescription = getQueryIndexDescription(idAndVersion);
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport,
+				indexAuthorizationSnapshotManager::getAuthorizationSnapshot);
 		// 2. Validate the user has read access on this table. Because table queries run in
 		// this pipeline, we can enforce aggregate-only access: when row-level access is
 		// denied only because a source is bound to AGGREGATE_DATA, load that source's
@@ -254,8 +266,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 		}
 
-		// 3. Get the table's schema count
-		long count = tableManagerSupport.getTableSchemaCount(idAndVersion);
+		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
+		// set, or the live bound schema for a VirtualTable), so an empty-schema check reflects what
+		// the index actually contains.
+		long count = schemaProvider.getTableSchema(idAndVersion).size();
 		if (count < 1L) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
@@ -263,14 +277,22 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QueryExpression preprocessedModel = parserQueryQuerExpression(preprocessedSql);
 		for(QuerySpecification qs: preprocessedModel.createIterable(QuerySpecification.class)) {
 			// 4. Add row level filter as needed.
-			// Table views must have a row level filter applied to the query
-			addRowLevelFilter(user, qs, types);
+			// Table views must have a row level filter applied to the query. Preprocessing is the
+			// identity for a materialized object (the single query specification is the queried
+			// object), but a VirtualTable inlines its defining SQL, so a query specification can
+			// target a dependency; each specification's filter therefore resolves that object's
+			// own snapshot-backed description.
+			IdAndVersion qsIdAndVersion = IdAndVersion.parse(
+					qs.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+			QueryIndexDescription filterDescription = qsIdAndVersion.equals(idAndVersion) ? indexDescription
+					: getQueryIndexDescription(qsIdAndVersion);
+			addRowLevelFilter(user, qs, filterDescription, types);
 		}
 
 		QueryContext expansion = QueryContext.builder()
 			.setStartingSql(preprocessedModel.toSql())
 			.setUserId(user.getId())
-			.setSchemaProvider(tableManagerSupport)
+			.setSchemaProvider(schemaProvider)
 			.setIndexDescription(indexDescription)
 			.setMaxBytesPerPage(maxBytesPerPage)
 			.setMaxRowsPerCall(MAX_ROWS_PER_CALL)
@@ -293,43 +315,122 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	/**
-	 * The main entry point for all table queries. Any business logic that must be
-	 * applied to all table queries should applied here or lower.
-	 * 
+	 * Resolve the query-time {@link IndexDescription} for an object against its as-built state rather
+	 * than current truth:
+	 * <ul>
+	 * <li>A materialized object (table/view/materialized view/record set) has an
+	 * {@link IndexAuthorizationSnapshot} captured with its index, so a {@link SnapshotIndexDescription}
+	 * reconstituted from that snapshot describes exactly what the served index contains.</li>
+	 * <li>A VirtualTable has no index of its own; it is a query over a dependent, so it is described by
+	 * a {@link VirtualTableIndexDescription} whose source is resolved through this same method — the
+	 * dependent's as-built snapshot stands in for its live index description. Recursion handles a
+	 * VirtualTable defined over another VirtualTable.</li>
+	 * </ul>
+	 * Any other object without a snapshot is an invariant violation: the caller has already confirmed
+	 * the object is AVAILABLE under the read lock, and every AVAILABLE materialized index is built with
+	 * a snapshot.
+	 *
+	 * @param idAndVersion the object being queried (or a dependent inlined by a VirtualTable)
+	 * @return a snapshot-backed description
+	 */
+	IndexDescription getQueryIndexDescription(IdAndVersion idAndVersion) {
+		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
+				.getAuthorizationSnapshot(idAndVersion);
+		if (snapshot.isPresent()) {
+			// The change-number provider must yield the same value the live IndexDescription is built
+			// with (TableManagerSupport.getTableVersion): the truth change number for a table, but the
+			// index version for a view/dataset/recordset. Binding it to getLastTableChangeNumber
+			// instead would leave the query-cache hash unchanged across incremental view/dataset index
+			// updates, serving stale count/facet results.
+			return SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
+					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
+		}
+		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(idAndVersion))) {
+			String definingSql = tableManagerSupport.getDefiningSql(idAndVersion)
+					.orElseThrow(() -> new IllegalStateException("VirtualTable " + idAndVersion + " has no defining SQL"));
+			return new VirtualTableIndexDescription(idAndVersion, definingSql, this::getQueryIndexDescription);
+		}
+		throw new IllegalStateException(
+				"No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable");
+	}
+
+	/**
+	 * Receives the query once it has been translated under the table's read lock, together with the
+	 * status captured at the availability check, and runs it. The consumer executes entirely inside
+	 * the locked region, so the translated query and any handler it opens are pinned to the served
+	 * index.
+	 */
+	@FunctionalInterface
+	interface TranslatedQueryConsumer {
+		QueryResultBundle apply(QueryTranslations query, TableStatus status) throws Exception;
+	}
+
+	/**
+	 * The main entry point for all table queries. Any business logic that must be applied to all
+	 * table queries should be applied here or lower.
+	 * <p>
+	 * Only SQL parsing (to extract the single table id) happens before the lock. The snapshot fetch,
+	 * authorization, and translation are all deferred into the locked callback so they run against
+	 * the exact index the read lock pins: acquire the read lock, confirm the table is AVAILABLE,
+	 * authorize + translate against the served index, then run.
+	 *
 	 * @param progressCallback
 	 * @param user
-	 * @param query
-	 * @param offset
-	 * @param limit
-	 * @param runQuery
-	 * @param runCount
+	 * @param query          the raw (untranslated) query.
+	 * @param maxBytesPerPage
+	 * @param options
+	 * @param consumer       runs the translated query under the lock.
+	 * @param types          additional access types to enforce during preflight.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 * @throws EmptyResultException
-	 * @throws TableLockUnavailableException
+	 * @throws IOException
 	 */
-	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final QueryTranslations query,
-			final QueryOptions options, final QueryExecutor queryExecutor)
+	QueryResultBundle queryAfterAuthorization(final ProgressCallback progressCallback, final UserInfo user, final Query query,
+			final Long maxBytesPerPage, final QueryOptions options, final TranslatedQueryConsumer consumer, final ACCESS_TYPE... types)
 			throws DatastoreException, NotFoundException, TableUnavailableException, TableFailedException,
-			LockUnavilableException, EmptyResultException {
-		// run with a read lock on the table and include the current etag.
-		IdAndVersion idAndVersion = IdAndVersion.parse(query.getMainQuery().getTranslator().getSingleTableIdOptional().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+			LockUnavilableException, EmptyResultException, IOException {
+		IdAndVersion idAndVersion = IdAndVersion.parse(
+				parserQuery(query.getSql()).getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
 		return tryRunWithTableReadLock(progressCallback, idAndVersion, (ProgressCallback callback) -> {
-					// We can only run this query if the table is available.
-					final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
-					// run the query
-					QueryResultBundle bundle = executeQuery(user, query, options, queryExecutor);
-					// add the status to the result. An aggregate-only query suppresses rows,
-					// so the query result may be absent even when a query was requested.
-					if (options.runQuery() && bundle.getQueryResult() != null) {
-						// the etag is only returned for consistent queries.
-						bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
-					}
-					return bundle;
-				});
+			// The query can only run against an AVAILABLE index. Confirming availability while holding
+			// the read lock blocks the builder's exclusive lock, so the snapshot the preflight fetches
+			// next matches the served index and cannot be swapped while the query runs.
+			final TableStatus status = validateTableIsAvailable(idAndVersion.toString());
+			QueryTranslations translated = queryPreflight(user, query, maxBytesPerPage, options, types);
+			return consumer.apply(translated, status);
+		});
+	}
+
+	/**
+	 * Set the consistent-query etag on the bundle's row result. The etag is only meaningful for a
+	 * consistent (row-returning) query; an aggregate-only query suppresses rows, so the result may be
+	 * absent even when a query was requested.
+	 */
+	void setConsistentQueryEtag(QueryResultBundle bundle, QueryOptions options, TableStatus status) {
+		if (options.runQuery() && bundle.getQueryResult() != null) {
+			bundle.getQueryResult().getQueryResults().setEtag(status.getLastTableChangeEtag());
+		}
+	}
+
+	/**
+	 * Populate the max-rows-per-page on the bundle and, when the returned page is full, the next-page
+	 * token that will fetch the following page.
+	 */
+	void addNextPageTokenIfNeeded(QueryResultBundle bundle, QueryTranslations sqlQuery, Query query, QueryOptions options) {
+		if (options.returnMaxRowsPerPage()) {
+			bundle.setMaxRowsPerPage(sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage());
+		}
+		int maxRowsPerPage = sqlQuery.getMainQuery().getTranslator().getMaxRowsPerPage().intValue();
+		if (isRowCountEqualToMaxRowsPerPage(bundle, maxRowsPerPage)) {
+			long nextOffset = (query.getOffset() == null ? 0 : query.getOffset()) + maxRowsPerPage;
+			QueryNextPageToken nextPageToken = TableQueryUtils.createNextPageToken(query.getSql(), query.getSort(),
+					nextOffset, query.getLimit(), query.getSelectedFacets());
+			bundle.getQueryResult().setNextPageToken(nextPageToken);
+		}
 	}
 
 	/**
@@ -342,15 +443,16 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws TableFailedException
 	 * @throws EmptyResultException
+	 * @throws IOException the streaming handler run under the lock failed.
 	 */
 	<R, T> R tryRunWithTableReadLock(ProgressCallback callback, IdAndVersion idAndversion, ProgressingCallable<R> runner)
-			throws TableUnavailableException, TableFailedException, EmptyResultException {
+			throws TableUnavailableException, TableFailedException, EmptyResultException, IOException {
 
 		try {
 			return tableManagerSupport.tryRunWithTableNonExclusiveLock(callback, new LockContext(ContextType.Query, idAndversion) , runner,
 					idAndversion);
-		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException e) {
-			// runtime exceptions are unchanged.
+		} catch (RuntimeException | TableUnavailableException | EmptyResultException | TableFailedException | IOException e) {
+			// runtime exceptions and the streaming handler's IOException are unchanged.
 			throw e;
 		} catch (Exception e) {
 			// all other checked exceptions are converted to runtime
@@ -641,11 +743,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 					.withRunCount(false).withReturnFacets(false);
 			// there is no limit to the size
 			Long maxBytes = null;
-			final QueryTranslations query = queryPreflight(user, request, maxBytes, options, types);
-			try(RowHandler handler = provider.getHandler(query)){
-				return queryAfterAuthorization(progressCallback, user, query, options,
-						new StreamingQueryExecutor(handler));
-			}
+			// The handler is opened and consumed entirely inside the locked callback, after the query
+			// has been translated against the served index, so its stream is pinned to that index.
+			return queryAfterAuthorization(progressCallback, user, request, maxBytes, options, (query, status) -> {
+				try (RowHandler handler = provider.getHandler(query)) {
+					QueryResultBundle bundle = executeQuery(user, query, options, new StreamingQueryExecutor(handler));
+					setConsistentQueryEtag(bundle, options, status);
+					return bundle;
+				}
+			}, types);
 		} catch (EmptyResultException e) { // this is thrown in queryPreflight()
 			throw new IllegalArgumentException("Table " + e.getTableId() + " has an empty schema", e);
 		}
@@ -857,16 +963,13 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	 * @throws TableUnavailableException
 	 * @throws NotFoundException
 	 */
-	void addRowLevelFilter(UserInfo user, QuerySpecification query, ACCESS_TYPE...types)
+	void addRowLevelFilter(UserInfo user, QuerySpecification query, QueryIndexDescription indexDescription, ACCESS_TYPE...types)
 			throws NotFoundException, TableUnavailableException, TableFailedException {
-		String tableId = query.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT);
-		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
-		IndexDescription indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
 		if(indexDescription.getBenefactors().isEmpty()) {
 			// with no benefactors nothing is needed.
 			return;
 		}
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(idAndVersion);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(indexDescription.getIdAndVersion());
 		for (BenefactorAccessFilter filter : computeAccessibleBenefactors(user, indexDescription, indexDao, types)) {
 			buildBenefactorFilter(query, filter.accessibleIds(), filter.benefactorColumnName());
 		}
@@ -874,7 +977,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 
 	@Override
 	public List<BenefactorAccessFilter> computeAccessibleBenefactors(UserInfo user,
-			IndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
+			QueryIndexDescription indexDescription, TableIndexDAO indexDao, ACCESS_TYPE... types) {
 		List<BenefactorDescription> benefactors = indexDescription.getBenefactors();
 		List<BenefactorAccessFilter> filters = new ArrayList<>(benefactors.size());
 		for (BenefactorDescription dependencyDesc : benefactors) {

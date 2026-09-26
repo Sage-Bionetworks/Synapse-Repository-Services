@@ -21,6 +21,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -334,7 +335,7 @@ public interface TableIndexManager {
 	 * @param index
 	 * @return A version representing the sum of the current versions of all the dependencies for the given index
 	 */
-	long getVersionFromIndexDependencies(IndexDescription index);
+	long getVersionFromIndexDependencies(QueryIndexDescription index);
 
 	/**
 	 * Find all Views IDs that have a scope that overlaps with provided path.
