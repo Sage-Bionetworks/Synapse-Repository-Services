@@ -128,7 +128,8 @@ public class TableExceptionTranslatorTest {
 		assertNotNull(result);
 		assertTrue(result instanceof IllegalArgumentException);
 		IllegalArgumentException illegalArg = (IllegalArgumentException)result;
-		assertEquals("Incorrect integer value: 'Alabama' for column 'bar' at row 1", illegalArg.getMessage());
+		// The offending cell value 'Alabama' is redacted; the column name is retained.
+		assertEquals("Incorrect integer value: '[value redacted]' for column 'bar' at row 1", illegalArg.getMessage());
 		assertEquals(uncategorizedSQLException, illegalArg.getCause());
 	}
 	
@@ -147,6 +148,44 @@ public class TableExceptionTranslatorTest {
 						TableExceptionTranslator.UNQUOTED_KEYWORDS_ERROR_MESSAGE,
 				illegalArg.getMessage());
 		assertEquals(badSqlException, illegalArg.getCause());
+	}
+
+	@Test
+	public void testRedactDataValuesWithIncorrectValue() {
+		String message = "Incorrect integer value: 'Alabama' for column '_C456_' at row 1";
+		// call under test
+		assertEquals("Incorrect integer value: '[value redacted]' for column '_C456_' at row 1",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithTruncatedIncorrectValue() {
+		String message = "Truncated incorrect DOUBLE value: 'secret' for column '_C456_' at row 3";
+		// call under test
+		assertEquals("Truncated incorrect DOUBLE value: '[value redacted]' for column '_C456_' at row 3",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithDuplicateEntry() {
+		String message = "Duplicate entry 'secret-ssn' for key 'T123.PRIMARY'";
+		// call under test
+		assertEquals("Duplicate entry '[value redacted]' for key 'T123.PRIMARY'",
+				TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithNoValueBearingPattern() {
+		// A message that references only schema (column names/sizes) is left unchanged.
+		String message = "Data too long for column '_C456_' at row 1";
+		// call under test
+		assertEquals(message, TableExceptionTranslatorImpl.redactDataValues(message));
+	}
+
+	@Test
+	public void testRedactDataValuesWithNull() {
+		// call under test
+		assertEquals(null, TableExceptionTranslatorImpl.redactDataValues(null));
 	}
 
 	@Test
