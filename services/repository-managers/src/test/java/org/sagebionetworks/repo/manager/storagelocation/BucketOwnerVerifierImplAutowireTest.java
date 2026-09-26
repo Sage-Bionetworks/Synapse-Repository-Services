@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfigurationSingleton;
 import org.sagebionetworks.aws.SynapseS3Client;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.BucketObjectReader;
 import org.sagebionetworks.repo.manager.file.readers.GCBucketObjectReader;
@@ -154,9 +155,7 @@ public class BucketOwnerVerifierImplAutowireTest {
 		storageLocation.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		storageLocation.setBaseKey(baseKey);
 		
-		if (! s3Client.doesBucketExist(storageLocation.getBucket())) {
-			s3Client.createBucket(storageLocation.getBucket());
-		}
+		S3TestUtils.createBucketIfMissing(storageLocation.getBucket());
 
 		String ownerContent = String.join("\n", ownersList);
 

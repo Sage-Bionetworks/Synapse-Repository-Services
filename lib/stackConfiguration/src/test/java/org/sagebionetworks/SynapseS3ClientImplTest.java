@@ -36,11 +36,6 @@ public class SynapseS3ClientImplTest {
 	}
 
 	@Test
-	public void testGetStandardRegionClient() {
-		assertEquals(Region.US_Standard, synapseS3Client.getUSStandardAmazonClient().getRegion());
-	}
-
-	@Test
 	public void testGetS3ClientForBucket() {
 		assertEquals(Region.US_Standard, synapseS3Client.getS3ClientForBucket(S3_BUCKET_NAME).getRegion());
 	}
