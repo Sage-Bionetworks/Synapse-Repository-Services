@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.ActionsRequiredDao;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredCallback;
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
@@ -69,8 +70,10 @@ import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
+import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -228,29 +231,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		IdAndVersion idAndVersion = IdAndVersion.parse(tableId);
 		// For a materialized object the as-built authorization snapshot pins exactly what the served
 		// index contains, so authorization and translation run against it rather than current truth
-		// (closing the PLFM-9977 drift class). VirtualTable and legacy pre-snapshot indexes have no
-		// snapshot and fall back to the live index description + live bound schema.
+		// (closing the PLFM-9977 drift class). A VirtualTable has no index of its own, so it is
+		// resolved as a query over its dependent's as-built snapshot (see getQueryIndexDescription).
 		//
 		// The caller holds the table's read lock and has already confirmed the table is AVAILABLE, so
 		// this snapshot matches the served index and cannot be swapped while the query runs (see
 		// queryAfterAuthorization).
-		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
-				.getAuthorizationSnapshot(idAndVersion);
-		QueryIndexDescription indexDescription;
-		SchemaProvider schemaProvider;
-		if (snapshot.isPresent()) {
-			// The change-number provider must yield the same value the live IndexDescription is
-			// built with (TableManagerSupport.getTableVersion): the truth change number for a
-			// table, but the index version for a view/dataset/recordset. Binding it to
-			// getLastTableChangeNumber instead would leave the query-cache hash unchanged across
-			// incremental view/dataset index updates, serving stale count/facet results.
-			indexDescription = SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
-					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
-			schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, snapshot.get());
-		} else {
-			indexDescription = tableManagerSupport.getIndexDescription(idAndVersion);
-			schemaProvider = tableManagerSupport;
-		}
+		QueryIndexDescription indexDescription = getQueryIndexDescription(idAndVersion);
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport,
+				indexAuthorizationSnapshotManager::getAuthorizationSnapshot);
 		// 2. Validate the user has read access on this table. Because table queries run in
 		// this pipeline, we can enforce aggregate-only access: when row-level access is
 		// denied only because a source is bound to AGGREGATE_DATA, load that source's
@@ -277,10 +266,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			aggregateDataConfiguration = options.getAggregateDataPreview().orElse(null);
 		}
 
-		// 3. Get the table's schema count. On the snapshot path this is the as-built column count
-		// (the flattened columnLineage), so an empty-schema check reflects what the index actually contains.
-		long count = snapshot.isPresent() ? snapshot.get().getColumnLineage().size()
-				: tableManagerSupport.getTableSchemaCount(idAndVersion);
+		// 3. Get the table's schema count from the as-built schema (the snapshot's pinned column id
+		// set, or the live bound schema for a VirtualTable), so an empty-schema check reflects what
+		// the index actually contains.
+		long count = schemaProvider.getTableSchema(idAndVersion).size();
 		if (count < 1L) {
 			throw new EmptyResultException("Table schema is empty for: " + tableId, tableId);
 		}
@@ -288,19 +277,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		QueryExpression preprocessedModel = parserQueryQuerExpression(preprocessedSql);
 		for(QuerySpecification qs: preprocessedModel.createIterable(QuerySpecification.class)) {
 			// 4. Add row level filter as needed.
-			// Table views must have a row level filter applied to the query.
-			// On the snapshot path preprocessing is the identity, so the single query specification is
-			// the queried object and the snapshot-backed description governs the filter. On the live
-			// fallback path a VirtualTable's definition is inlined, so a query specification can target
-			// a dependency; its filter must resolve that dependency's live description.
-			QueryIndexDescription filterDescription;
-			if (snapshot.isPresent()) {
-				filterDescription = indexDescription;
-			} else {
-				IdAndVersion qsIdAndVersion = IdAndVersion.parse(
-						qs.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
-				filterDescription = tableManagerSupport.getIndexDescription(qsIdAndVersion);
-			}
+			// Table views must have a row level filter applied to the query. Preprocessing is the
+			// identity for a materialized object (the single query specification is the queried
+			// object), but a VirtualTable inlines its defining SQL, so a query specification can
+			// target a dependency; each specification's filter therefore resolves that object's
+			// own snapshot-backed description.
+			IdAndVersion qsIdAndVersion = IdAndVersion.parse(
+					qs.getSingleTableName().orElseThrow(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEXT));
+			QueryIndexDescription filterDescription = qsIdAndVersion.equals(idAndVersion) ? indexDescription
+					: getQueryIndexDescription(qsIdAndVersion);
 			addRowLevelFilter(user, qs, filterDescription, types);
 		}
 
@@ -327,6 +312,46 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		// expressions and GROUP BY keys) becomes load-bearing in PLFM-9757, where aggregate
 		// result rows are actually returned; it is deferred to that ticket.
 		return new QueryTranslations(expansion, options);
+	}
+
+	/**
+	 * Resolve the query-time {@link IndexDescription} for an object against its as-built state rather
+	 * than current truth:
+	 * <ul>
+	 * <li>A materialized object (table/view/materialized view/record set) has an
+	 * {@link IndexAuthorizationSnapshot} captured with its index, so a {@link SnapshotIndexDescription}
+	 * reconstituted from that snapshot describes exactly what the served index contains.</li>
+	 * <li>A VirtualTable has no index of its own; it is a query over a dependent, so it is described by
+	 * a {@link VirtualTableIndexDescription} whose source is resolved through this same method — the
+	 * dependent's as-built snapshot stands in for its live index description. Recursion handles a
+	 * VirtualTable defined over another VirtualTable.</li>
+	 * </ul>
+	 * Any other object without a snapshot is an invariant violation: the caller has already confirmed
+	 * the object is AVAILABLE under the read lock, and every AVAILABLE materialized index is built with
+	 * a snapshot.
+	 *
+	 * @param idAndVersion the object being queried (or a dependent inlined by a VirtualTable)
+	 * @return a snapshot-backed description
+	 */
+	IndexDescription getQueryIndexDescription(IdAndVersion idAndVersion) {
+		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
+				.getAuthorizationSnapshot(idAndVersion);
+		if (snapshot.isPresent()) {
+			// The change-number provider must yield the same value the live IndexDescription is built
+			// with (TableManagerSupport.getTableVersion): the truth change number for a table, but the
+			// index version for a view/dataset/recordset. Binding it to getLastTableChangeNumber
+			// instead would leave the query-cache hash unchanged across incremental view/dataset index
+			// updates, serving stale count/facet results.
+			return SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
+					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
+		}
+		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(idAndVersion))) {
+			String definingSql = tableManagerSupport.getDefiningSql(idAndVersion)
+					.orElseThrow(() -> new IllegalStateException("VirtualTable " + idAndVersion + " has no defining SQL"));
+			return new VirtualTableIndexDescription(idAndVersion, definingSql, this::getQueryIndexDescription);
+		}
+		throw new IllegalStateException(
+				"No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable");
 	}
 
 	/**

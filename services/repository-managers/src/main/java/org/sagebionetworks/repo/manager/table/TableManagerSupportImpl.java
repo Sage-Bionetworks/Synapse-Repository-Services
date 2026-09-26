@@ -682,6 +682,11 @@ public class TableManagerSupportImpl implements TableManagerSupport {
 	}
 
 	@Override
+	public Optional<String> getDefiningSql(IdAndVersion idAndVersion) {
+		return nodeDao.getDefiningSql(idAndVersion);
+	}
+
+	@Override
 	public IndexDescription getIndexDescription(IdAndVersion idAndVersion) {
 		TableType type = getTableType(idAndVersion);
 		switch (type) {

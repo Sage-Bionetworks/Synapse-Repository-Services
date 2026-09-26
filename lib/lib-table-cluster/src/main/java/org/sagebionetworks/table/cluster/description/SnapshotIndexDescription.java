@@ -32,19 +32,25 @@ import org.sagebionetworks.util.ValidateArgument;
  * <p>
  * It is a pure reconstitution: id/version, table type, benefactors, and the
  * flattened dependency node set come from the snapshot; live change numbers
- * (for the query-cache hash) are supplied by an injected provider. It carries no
- * build-only ability, so it implements only {@link QueryIndexDescription}.
+ * (for the query-cache hash) are supplied by an injected provider.
+ * <p>
+ * It implements the full {@link IndexDescription} (not just the narrow
+ * {@link QueryIndexDescription}) so a snapshot-backed source can be handed to a
+ * {@link VirtualTableIndexDescription} through an {@link IndexDescriptionLookup}:
+ * a VirtualTable has no index of its own, so its dependent's as-built snapshot
+ * must stand in for the live index description. It has no build-only ability, so
+ * {@link #getCreateOrUpdateIndexSql()} is unreachable on the query path and throws.
  */
-public class SnapshotIndexDescription implements QueryIndexDescription {
+public class SnapshotIndexDescription implements IndexDescription {
 
 	private final IdAndVersion idAndVersion;
 	private final TableType tableType;
 	private final List<BenefactorDescription> benefactors;
-	private final List<SnapshotIndexDescription> dependencies;
+	private final List<IndexDescription> dependencies;
 	private final Function<IdAndVersion, Optional<Long>> changeNumberProvider;
 
 	public SnapshotIndexDescription(IdAndVersion idAndVersion, TableType tableType,
-			List<BenefactorDescription> benefactors, List<SnapshotIndexDescription> dependencies,
+			List<BenefactorDescription> benefactors, List<IndexDescription> dependencies,
 			Function<IdAndVersion, Optional<Long>> changeNumberProvider) {
 		super();
 		ValidateArgument.required(idAndVersion, "idAndVersion");
@@ -84,7 +90,7 @@ public class SnapshotIndexDescription implements QueryIndexDescription {
 		// Dependencies are stored pre-flattened; each becomes a childless node carrying
 		// only id, version, and type so the transitive ACL check evaluates the same node
 		// set as the live path.
-		List<SnapshotIndexDescription> dependencies = new ArrayList<>();
+		List<IndexDescription> dependencies = new ArrayList<>();
 		if (snapshot.getDependencies() != null) {
 			for (SourceDependency dependency : snapshot.getDependencies()) {
 				dependencies.add(new SnapshotIndexDescription(
@@ -117,8 +123,14 @@ public class SnapshotIndexDescription implements QueryIndexDescription {
 	}
 
 	@Override
-	public List<? extends QueryIndexDescription> getDependencies() {
+	public List<IndexDescription> getDependencies() {
 		return dependencies;
+	}
+
+	@Override
+	public String getCreateOrUpdateIndexSql() {
+		// A snapshot description only drives the query path; it is never used to build an index.
+		throw new UnsupportedOperationException("Cannot create or update the index of a snapshot description");
 	}
 
 	@Override

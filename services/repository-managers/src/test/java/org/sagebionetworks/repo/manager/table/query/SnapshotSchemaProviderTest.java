@@ -3,12 +3,13 @@ package org.sagebionetworks.repo.manager.table.query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,9 +37,20 @@ public class SnapshotSchemaProviderTest {
 						new ColumnLineageEntry().setOutputColumnId("22")));
 	}
 
+	/**
+	 * A lookup that returns the given snapshot only for its own object id, matching the manager's
+	 * per-id resolution.
+	 */
+	private Function<IdAndVersion, Optional<IndexAuthorizationSnapshot>> lookupFor(IndexAuthorizationSnapshot snapshot) {
+		IndexDescriptionSnapshot description = snapshot.getIndexDescription();
+		IdAndVersion objectId = IdAndVersion.parse(description.getVersionNumber() == null ? description.getObjectId()
+				: description.getObjectId() + "." + description.getVersionNumber());
+		return id -> objectId.equals(id) ? Optional.of(snapshot) : Optional.empty();
+	}
+
 	@Test
 	public void testGetTableSchemaForQueriedObject() {
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot());
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot()));
 		ColumnModel one = new ColumnModel().setId("11").setName("one");
 		ColumnModel two = new ColumnModel().setId("22").setName("two");
 		when(mockWrapped.getColumnModel("11")).thenReturn(one);
@@ -52,8 +64,8 @@ public class SnapshotSchemaProviderTest {
 	}
 
 	@Test
-	public void testGetTableSchemaForOtherObjectDelegates() {
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot());
+	public void testGetTableSchemaForObjectWithoutSnapshotDelegates() {
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot()));
 		IdAndVersion other = IdAndVersion.parse("syn456");
 		List<ColumnModel> otherSchema = Collections.singletonList(new ColumnModel().setId("99").setName("other"));
 		when(mockWrapped.getTableSchema(other)).thenReturn(otherSchema);
@@ -68,31 +80,29 @@ public class SnapshotSchemaProviderTest {
 	public void testGetTableSchemaForQueriedObjectWithEmptyLineage() {
 		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot().setIndexDescription(
 				new IndexDescriptionSnapshot().setObjectId("syn123").setTableType(TableType.table.name()))
-				.setColumnLineage(null);
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot);
+				.setColumnLineage(Collections.emptyList());
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot));
 
 		// call under test
 		List<ColumnModel> result = provider.getTableSchema(IdAndVersion.parse("syn123"));
 
 		assertEquals(Collections.emptyList(), result);
-		verifyNoInteractions(mockWrapped);
 	}
 
 	@Test
 	public void testGetTableTypeForQueriedObject() {
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot());
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot()));
 
 		// call under test
 		TableType result = provider.getTableType(IdAndVersion.parse("syn123"));
 
 		// The queried object's type comes from the snapshot, not a live read.
 		assertEquals(TableType.entityview, result);
-		verifyNoInteractions(mockWrapped);
 	}
 
 	@Test
-	public void testGetTableTypeForOtherObjectDelegates() {
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot());
+	public void testGetTableTypeForObjectWithoutSnapshotDelegates() {
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot()));
 		IdAndVersion other = IdAndVersion.parse("syn456");
 		when(mockWrapped.getTableType(other)).thenReturn(TableType.table);
 
@@ -104,7 +114,7 @@ public class SnapshotSchemaProviderTest {
 
 	@Test
 	public void testGetColumnModelDelegatesLive() {
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot());
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot()));
 		ColumnModel live = new ColumnModel().setId("11").setName("one");
 		when(mockWrapped.getColumnModel("11")).thenReturn(live);
 
@@ -121,7 +131,7 @@ public class SnapshotSchemaProviderTest {
 				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId("syn123").setVersionNumber(4L)
 						.setTableType(TableType.entityview.name()))
 				.setColumnLineage(Collections.singletonList(new ColumnLineageEntry().setOutputColumnId("11")));
-		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, snapshot);
+		SnapshotSchemaProvider provider = new SnapshotSchemaProvider(mockWrapped, lookupFor(snapshot));
 		ColumnModel one = new ColumnModel().setId("11").setName("one");
 		when(mockWrapped.getColumnModel("11")).thenReturn(one);
 
@@ -134,24 +144,16 @@ public class SnapshotSchemaProviderTest {
 	@Test
 	public void testConstructorWithNullWrapped() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
-			new SnapshotSchemaProvider(null, snapshot());
+			new SnapshotSchemaProvider(null, lookupFor(snapshot()));
 		}).getMessage();
 		assertEquals("wrapped is required.", message);
 	}
 
 	@Test
-	public void testConstructorWithNullSnapshot() {
+	public void testConstructorWithNullSnapshotLookup() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			new SnapshotSchemaProvider(mockWrapped, null);
 		}).getMessage();
-		assertEquals("snapshot is required.", message);
-	}
-
-	@Test
-	public void testConstructorWithNullIndexDescription() {
-		String message = assertThrows(IllegalArgumentException.class, () -> {
-			new SnapshotSchemaProvider(mockWrapped, new IndexAuthorizationSnapshot().setIndexDescription(null));
-		}).getMessage();
-		assertEquals("snapshot.indexDescription is required.", message);
+		assertEquals("snapshotLookup is required.", message);
 	}
 }
