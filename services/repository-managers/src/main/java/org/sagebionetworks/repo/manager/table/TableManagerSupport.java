@@ -363,6 +363,14 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	TableType getTableType(IdAndVersion tableId);
 
 	/**
+	 * Get the defining SQL for a defining-SQL entity (MaterializedView, VirtualTable, SearchIndex).
+	 *
+	 * @param idAndVersion
+	 * @return the defining SQL, or empty if the object has none
+	 */
+	Optional<String> getDefiningSql(IdAndVersion idAndVersion);
+
+	/**
 	 * Get the view scope type for the view with the give id
 	 * 
 	 * @param viewId

@@ -205,7 +205,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		SchemaProvider schemaProvider;
 		if (sourceSnapshot.isPresent()) {
 			indexDescription = toQueryIndexDescription(sourceSnapshot.get());
-			schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, sourceSnapshot.get());
+			schemaProvider = pinnedSchemaProvider(sourceId, sourceSnapshot.get());
 		} else {
 			indexDescription = tableManagerSupport.getIndexDescription(sourceId);
 			schemaProvider = tableManagerSupport;
@@ -462,7 +462,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
 		// source row without authorization and is served to many users through per-row
 		// benefactor filtering, so there is no single current user to bind.
-		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, sourceSnapshot);
+		SchemaProvider schemaProvider = pinnedSchemaProvider(sourceId, sourceSnapshot);
 		QueryTranslator base = QueryTranslator.builder()
 				.sql(definingSQL)
 				.schemaProvider(schemaProvider)
@@ -544,6 +544,15 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				idleSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
 			indexDao.queryAsStream(query, handler);
 		}
+	}
+
+	/**
+	 * A schema provider that resolves the source's schema from the given snapshot and every other
+	 * object live, so translation and lineage read the same as-built source the rows stream from.
+	 */
+	private SchemaProvider pinnedSchemaProvider(IdAndVersion sourceId, IndexAuthorizationSnapshot sourceSnapshot) {
+		return new SnapshotSchemaProvider(tableManagerSupport,
+				id -> sourceId.equals(id) ? Optional.of(sourceSnapshot) : Optional.empty());
 	}
 
 	/**

@@ -16,10 +16,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /**
- * Codec for opaque-Object JSON columns on the search-feature DTOs:
+ * Codec for opaque-Object values that are persisted as JSON text:
  * {@code TextAnalyzer.settings}, {@code SynonymSet.definition},
- * {@code SearchConfiguration.defaultAnalyzer}, and each element of
- * {@code SearchConfiguration.columnAnalyzerOverrides}.
+ * {@code SearchConfiguration.defaultAnalyzer}, each element of
+ * {@code SearchConfiguration.columnAnalyzerOverrides}, and
+ * {@code RequestInterface.schemaData}.
  *
  * <p>Two boundaries to cross:</p>
  *
@@ -53,7 +54,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
  * the canonical JSON for storage. To store a JSON object, pass a {@code Map} /
  * {@code JSONObject}; never pass a {@code String} that happens to contain JSON.</p>
  */
-final class OpaqueJsonColumnCodecUtil {
+public final class OpaqueJsonColumnCodecUtil {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -72,7 +73,7 @@ final class OpaqueJsonColumnCodecUtil {
 	 * </ul>
 	 * Returns {@code null} when {@code json} is {@code null}.
 	 */
-	static Object deserialize(String json, String fieldDescription) {
+	public static Object deserialize(String json, String fieldDescription) {
 		if (json == null) {
 			return null;
 		}
@@ -119,7 +120,7 @@ final class OpaqueJsonColumnCodecUtil {
 	 *
 	 * @throws IllegalArgumentException when the input cannot be rendered as JSON.
 	 */
-	static String serialize(Object value, String fieldDescription) {
+	public static String serialize(Object value, String fieldDescription) {
 		if (value == null) {
 			return null;
 		}

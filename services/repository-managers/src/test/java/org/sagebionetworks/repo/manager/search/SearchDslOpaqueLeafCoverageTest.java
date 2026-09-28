@@ -38,6 +38,8 @@ public class SearchDslOpaqueLeafCoverageTest {
 			"MultiMatchQuery#query",
 			"PrefixFieldOptions#value",
 			"Query#terms",
+			"QueryStringQuery#fields[]",
+			"QueryStringQuery#minimum_should_match",
 			"RangeFieldOptions#gt",
 			"RangeFieldOptions#gte",
 			"RangeFieldOptions#lt",

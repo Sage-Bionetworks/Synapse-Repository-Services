@@ -243,6 +243,17 @@ public class SnapshotIndexDescriptionTest {
 	}
 
 	@Test
+	public void testGetCreateOrUpdateIndexSqlThrows() {
+		SnapshotIndexDescription description = tableDescription(IdAndVersion.parse("syn123"), TableType.table);
+		// A snapshot description only drives the query path and can never build an index.
+		String message = assertThrows(UnsupportedOperationException.class, () -> {
+			// call under test
+			description.getCreateOrUpdateIndexSql();
+		}).getMessage();
+		assertEquals("Cannot create or update the index of a snapshot description", message);
+	}
+
+	@Test
 	public void testConstructorWithNullIdAndVersion() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			new SnapshotIndexDescription(null, TableType.table, Collections.emptyList(), Collections.emptyList(),

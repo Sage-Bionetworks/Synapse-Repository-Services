@@ -10,6 +10,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.sagebionetworks.repo.manager.search.querystring.QueryStringLexer;
+import org.sagebionetworks.repo.manager.search.querystring.QueryStringLexerConstants;
+import org.sagebionetworks.repo.manager.search.querystring.Token;
+import org.sagebionetworks.repo.manager.search.querystring.TokenMgrError;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,7 +28,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
  *       an inbound {@code query} / {@code aggregations} tree, rewriting
  *       caller column names to column ids and routing text-typed columns through their
  *       {@code .keyword} sub-field on operations that need it (term-family, range,
- *       aggregations, sort-equivalent clauses).</li>
+ *       aggregations, sort-equivalent clauses). A {@code query_string} clause additionally has
+ *       the column references embedded in its Lucene expression resolved
+ *       ({@link #rewriteQueryStringClause}).</li>
  *   <li>Response side: {@link #rewriteAggregationResults} walks the AOSS aggregations response
  *       envelope, rewrites embedded column ids back to column names, and strips the
  *       {@code .keyword} suffix so the caller sees their original bare column name even when the
@@ -315,6 +322,11 @@ final class SearchFieldRewriter {
 							walk(query, ctx, Surface.QUERY, RoutingMode.BARE);
 						}
 					}
+				} else if ("query_string".equals(key) && value.isObject()) {
+					// Every column reference this clause carries lives in one of its own properties
+					// (`fields`, `default_field`, or embedded in the `query` expression) and it has
+					// no nested query slot, so the clause is rewritten whole and not recursed into.
+					rewriteQueryStringClause((ObjectNode) value, ctx);
 				} else {
 					RoutingMode childMode = kindMap.getOrDefault(key, RoutingMode.BARE);
 					if (SHORTHAND_FIELD_KEYED_KINDS.contains(key) && value.isObject()) {
@@ -422,6 +434,135 @@ final class SearchFieldRewriter {
 			return subField.isEmpty() ? raw : namePart + subField + boost;
 		}
 		return mapped + subField + boost;
+	}
+
+	// ---------- query_string clause rewrite (column references inside a Lucene expression) ----------
+
+	/**
+	 * Rewrite every column reference a {@code query_string} clause carries: its {@code fields}
+	 * entries, its {@code default_field}, and the field prefixes embedded in its {@code query}
+	 * expression. Mutates {@code queryString} in place.
+	 *
+	 * <p>Unlike the rest of the rewriter, an unresolvable name here is rejected rather than passed
+	 * through to AOSS. A field the index does not carry is not an error to OpenSearch &mdash; it
+	 * simply matches nothing, so passing one through would answer the caller's query with an empty
+	 * result and no indication that their column name was never applied.</p>
+	 */
+	static void rewriteQueryStringClause(ObjectNode queryString, RoutingContext ctx) {
+		JsonNode fields = queryString.get("fields");
+		if (fields != null && fields.isArray()) {
+			ArrayNode array = (ArrayNode) fields;
+			for (int i = 0; i < array.size(); i++) {
+				JsonNode element = array.get(i);
+				if (element.isTextual()) {
+					array.set(i, new TextNode(
+							resolveColumnReference(element.asText(), "query_string.fields", ctx)));
+				}
+			}
+		}
+		JsonNode defaultField = queryString.get("default_field");
+		if (defaultField != null && defaultField.isTextual()) {
+			queryString.set("default_field", new TextNode(
+					resolveColumnReference(defaultField.asText(), "query_string.default_field", ctx)));
+		}
+		JsonNode query = queryString.get("query");
+		if (query != null && query.isTextual()) {
+			queryString.set("query", new TextNode(rewriteQueryStringExpression(query.asText(), ctx)));
+		}
+	}
+
+	/**
+	 * Rewrite each column reference embedded in a {@code query_string} expression &mdash; every
+	 * {@code <column>:} field prefix and every {@code _exists_:} argument &mdash; to the column id
+	 * the index is keyed by. Every other character of the expression, white space included, is
+	 * preserved.
+	 *
+	 * @throws IllegalArgumentException when the expression cannot be tokenized, when a field
+	 *         prefix is not a column name (e.g. {@code *:}), when {@code _exists_:} is not followed
+	 *         by a single column name, or when a referenced column is unknown
+	 */
+	static String rewriteQueryStringExpression(String expression, RoutingContext ctx) {
+		List<Token> tokens;
+		try {
+			tokens = QueryStringLexer.tokenize(expression);
+		} catch (TokenMgrError e) {
+			// A string the lexer cannot tokenize may hide column references it never reached, so it
+			// is rejected rather than forwarded with those references unresolved.
+			throw new IllegalArgumentException("'query_string.query' is malformed: " + e.getMessage(), e);
+		}
+		StringBuilder rewritten = new StringBuilder(expression.length());
+		for (int i = 0; i < tokens.size(); i++) {
+			appendPrecedingWhitespace(tokens.get(i), rewritten);
+			rewritten.append(rewriteQueryStringToken(tokens, i, ctx));
+		}
+		return rewritten.toString();
+	}
+
+	/**
+	 * The text {@code tokens[i]} contributes to the rewritten expression. As in Lucene's grammar, a
+	 * field prefix is a {@code TERM} directly followed by a {@code COLON}, and {@code _exists_} is a
+	 * field prefix whose argument is itself a column name.
+	 */
+	private static String rewriteQueryStringToken(List<Token> tokens, int i, RoutingContext ctx) {
+		Token token = tokens.get(i);
+		boolean isFieldPrefix = i + 1 < tokens.size() && tokens.get(i + 1).kind == QueryStringLexerConstants.COLON;
+		if (isFieldPrefix) {
+			if (token.kind != QueryStringLexerConstants.TERM) {
+				throw new IllegalArgumentException("'query_string.query' field prefix '" + token.image
+						+ "' is not a column name; name a column");
+			}
+			String name = unescape(token.image);
+			return EXISTS_FIELD.equals(name) ? token.image : resolveColumnReference(name, "query_string.query", ctx);
+		}
+		if (isExistsArgument(tokens, i)) {
+			if (token.kind != QueryStringLexerConstants.TERM) {
+				throw new IllegalArgumentException(
+						"'query_string.query' '_exists_' must be followed by a single column name, not '" + token.image + "'");
+			}
+			return resolveColumnReference(unescape(token.image), "query_string.query '_exists_'", ctx);
+		}
+		return token.image;
+	}
+
+	private static final String EXISTS_FIELD = "_exists_";
+
+	private static boolean isExistsArgument(List<Token> tokens, int i) {
+		return i >= 2
+				&& tokens.get(i - 1).kind == QueryStringLexerConstants.COLON
+				&& tokens.get(i - 2).kind == QueryStringLexerConstants.TERM
+				&& EXISTS_FIELD.equals(unescape(tokens.get(i - 2).image));
+	}
+
+	/** Append the white space the lexer attached to {@code token}, in its original order. */
+	private static void appendPrecedingWhitespace(Token token, StringBuilder out) {
+		Token first = token.specialToken;
+		if (first == null) {
+			return;
+		}
+		while (first.specialToken != null) {
+			first = first.specialToken;
+		}
+		for (Token whitespace = first; whitespace != null; whitespace = whitespace.next) {
+			out.append(whitespace.image);
+		}
+	}
+
+	/**
+	 * Map one column name to the column id the index is keyed by, preserving an explicit
+	 * {@code .keyword} selector. {@code label} names the property the reference came from, for the
+	 * rejection message.
+	 */
+	static String resolveColumnReference(String name, String label, RoutingContext ctx) {
+		String rewritten = rewriteFieldRef(name, ctx, RoutingMode.BARE);
+		if (rewritten.equals(name)) {
+			throw new IllegalArgumentException("'" + label + "' references an unknown column: '" + name + "'");
+		}
+		return rewritten;
+	}
+
+	/** Drop the backslashes the Lucene syntax requires, yielding the column name to look up. */
+	private static String unescape(String term) {
+		return term.replaceAll("\\\\(.)", "$1");
 	}
 
 	// ---------- Response-side rewrite (column id → column name, strip .keyword) ----------
