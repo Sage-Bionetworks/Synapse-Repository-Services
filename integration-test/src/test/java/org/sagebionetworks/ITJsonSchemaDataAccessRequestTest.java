@@ -113,14 +113,14 @@ public class ITJsonSchemaDataAccessRequestTest {
 			adminSynapse.deleteDataAccessSubmission(submissionId);
 			submissionId = null;
 		}
-		if (otherUserId != null) {
-			adminSynapse.deleteUser(otherUserId);
-			otherUserId = null;
-		}
 		adminSynapse.deleteEntity(project);
 		deleteSchemaAndOrganization();
 		// The access requirement is left behind on purpose: a saved request references it and the
 		// requester's saved progress must not be destroyed by removing the requirement.
+		if (otherUserId != null) {
+			adminSynapse.deleteUser(otherUserId);
+			otherUserId = null;
+		}
 	}
 
 	@Test
@@ -250,7 +250,9 @@ public class ITJsonSchemaDataAccessRequestTest {
 		RequestInterface saved = createRequest("{\"projectLead\":\"Dr. Lead\"}");
 
 		SynapseClient otherSynapse = new SynapseClientImpl();
-		otherUserId = SynapseClientHelper.createUser(adminSynapse, otherSynapse, true, true);
+		// The request services do not check profile validation, and a validated test user cannot be
+		// deleted afterwards because VERIFICATION_STATE restricts deleting its USER_GROUP row.
+		otherUserId = SynapseClientHelper.createUser(adminSynapse, otherSynapse, true, false);
 
 		// call under test
 		RequestInterface otherRequest = otherSynapse.getRequestForUpdate(accessRequirementId());
