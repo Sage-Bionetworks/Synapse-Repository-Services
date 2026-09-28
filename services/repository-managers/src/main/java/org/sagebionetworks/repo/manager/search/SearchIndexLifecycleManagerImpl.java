@@ -194,55 +194,20 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 	@Override
 	@WriteTransaction
-	public List<String> registerSchema(IdAndVersion searchIndexId, String definingSql) {
+	public void registerSource(IdAndVersion searchIndexId, String definingSql) {
 		ValidateArgument.required(searchIndexId, "searchIndexId");
 		ValidateArgument.requiredNotBlank(definingSql, "definingSql");
 		IdAndVersion sourceId = TableModelUtils.getSourceTableIds(definingSql).get(0);
-		// Validate against the source's as-built snapshot when it has one, exactly as a table query
-		// preflight does; a virtual table or a not-yet-built source falls back to live truth.
-		Optional<IndexAuthorizationSnapshot> sourceSnapshot = indexAuthorizationSnapshotManager.getAuthorizationSnapshot(sourceId);
-		QueryIndexDescription indexDescription;
-		SchemaProvider schemaProvider;
-		if (sourceSnapshot.isPresent()) {
-			indexDescription = toQueryIndexDescription(sourceSnapshot.get());
-			schemaProvider = pinnedSchemaProvider(sourceId, sourceSnapshot.get());
-		} else {
-			indexDescription = tableManagerSupport.getIndexDescription(sourceId);
-			schemaProvider = tableManagerSupport;
-		}
-		// A virtual table is a query rewrite, not a materialized index: it has no status row and
-		// never fires a TABLE_STATUS_EVENT. A SearchIndex registered against one would build once
-		// but never receive a source-availability event to rebuild on, drifting silently stale.
-		// The dependency graph is one level deep, so the underlying table's events would fan out
-		// to that table's own dependents, never to this SearchIndex. Forbid it at registration.
-		if (TableType.virtualtable.equals(indexDescription.getTableType())) {
+		// A virtual table is a query rewrite, not a materialized index: it has no status row, no
+		// as-built snapshot, and never fires a TABLE_STATUS_EVENT. A SearchIndex over one could never
+		// build, so reject it synchronously rather than leaving the build deferred forever.
+		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(sourceId))) {
 			throw new IllegalArgumentException(
 					"The defining SQL of a search index cannot reference a virtual table.");
 		}
-		// SqlContext.query: TableIndexDescription rejects `build`; only Views/MVs accept it.
-		QueryTranslator sqlQuery = QueryTranslator.builder()
-				.sql(definingSql)
-				.schemaProvider(schemaProvider)
-				.sqlContext(SqlContext.query)
-				.indexDescription(indexDescription)
-				.build();
-		// An aggregating defining SQL collapses source rows that may span different
-		// benefactors into a single output row, for which there is no correct per-row
-		// benefactor. When the source has benefactors, reject it up front (mirrors the
-		// materialized-view guard) rather than building an index whose row-level access
-		// filter would silently exclude every aggregated document.
-		if (sqlQuery.isAggregatedResult() && !indexDescription.getBenefactors().isEmpty()) {
-			throw new IllegalArgumentException(
-					"The defining SQL of a search index over an access-controlled source cannot include a group by clause.");
-		}
-		List<String> schemaIds = sqlQuery.getSchemaOfSelect().stream()
-				.map(c -> columnModelManager.createColumnModel(c).getId())
-				.collect(Collectors.toList());
-		columnModelManager.bindColumnsToVersionOfObject(schemaIds, searchIndexId);
 		// Record the source -> SearchIndex edge so a source table/view that becomes AVAILABLE can
 		// reverse-look-up which SearchIndex(es) depend on it and enqueue their rebuild.
 		definingSqlDependencyDao.setSourceTable(searchIndexId, OBJECT_TYPE, sourceId);
-		return schemaIds;
 	}
 
 	@Override
@@ -462,13 +427,26 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
 		// source row without authorization and is served to many users through per-row
 		// benefactor filtering, so there is no single current user to bind.
-		SchemaProvider schemaProvider = pinnedSchemaProvider(sourceId, sourceSnapshot);
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport,
+				id -> sourceId.equals(id) ? Optional.of(sourceSnapshot) : Optional.empty());
+		// A SearchIndex never consults the query cache, so the source's table hash needs no live
+		// change number.
+		QueryIndexDescription sourceDescription = SnapshotIndexDescription
+				.fromSnapshot(sourceSnapshot.getIndexDescription(), id -> Optional.empty());
 		QueryTranslator base = QueryTranslator.builder()
 				.sql(definingSQL)
 				.schemaProvider(schemaProvider)
 				.sqlContext(SqlContext.query)
-				.indexDescription(toQueryIndexDescription(sourceSnapshot))
+				.indexDescription(sourceDescription)
 				.build();
+		// An aggregating defining SQL collapses source rows that may span different benefactors into
+		// a single output row, for which there is no correct per-row benefactor (mirrors the
+		// materialized-view guard); the row-level access filter would silently exclude every
+		// aggregated document.
+		if (base.isAggregatedResult() && !sourceDescription.getBenefactors().isEmpty()) {
+			throw new IllegalArgumentException(
+					"The defining SQL of a search index over an access-controlled source cannot include a group by clause.");
+		}
 
 		List<ColumnModel> selectedColumns = base.getSchemaOfSelect().stream()
 				.map(columnModelManager::createColumnModel)
@@ -544,23 +522,6 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				idleSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
 			indexDao.queryAsStream(query, handler);
 		}
-	}
-
-	/**
-	 * A schema provider that resolves the source's schema from the given snapshot and every other
-	 * object live, so translation and lineage read the same as-built source the rows stream from.
-	 */
-	private SchemaProvider pinnedSchemaProvider(IdAndVersion sourceId, IndexAuthorizationSnapshot sourceSnapshot) {
-		return new SnapshotSchemaProvider(tableManagerSupport,
-				id -> sourceId.equals(id) ? Optional.of(sourceSnapshot) : Optional.empty());
-	}
-
-	/**
-	 * The query-time description of a source as it was built. A SearchIndex never consults the query
-	 * cache, so the table hash needs no live change number.
-	 */
-	private static QueryIndexDescription toQueryIndexDescription(IndexAuthorizationSnapshot snapshot) {
-		return SnapshotIndexDescription.fromSnapshot(snapshot.getIndexDescription(), id -> Optional.empty());
 	}
 
 	@Override

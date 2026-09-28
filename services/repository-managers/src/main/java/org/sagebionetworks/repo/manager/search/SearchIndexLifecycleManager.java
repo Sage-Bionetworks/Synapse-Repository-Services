@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavailableException;
@@ -57,20 +55,18 @@ public interface SearchIndexLifecycleManager {
 	void handleDelete(ProgressCallback progressCallback, String entityId) throws Exception;
 
 	/**
-	 * Resolve every SELECT-list column in {@code definingSql} — including literals
-	 * and aliases not on the source schema — to a persisted {@link
-	 * org.sagebionetworks.repo.model.table.ColumnModel} and bind them to the
-	 * SearchIndex. Called from the entity metadata provider on create / update so a
-	 * malformed query fails synchronously with HTTP 400 instead of FAILED'ing the async
-	 * build.
+	 * Record the SearchIndex's dependency on the single source its {@code definingSql}
+	 * selects from, so the source becoming AVAILABLE triggers a rebuild. Called from the
+	 * entity metadata provider on create / update. The SearchIndex's schema is not bound
+	 * here: the build derives it from the source's as-built snapshot and each physical
+	 * index serves it from its own mapping {@code _meta}.
 	 *
-	 * @param searchIndexId The SearchIndex entity ID (with version) whose schema is being
-	 *                      bound.
+	 * @param searchIndexId The SearchIndex entity ID (with version).
 	 * @param definingSql   The SQL the SearchIndex is defined by.
-	 * @return The bound column ids in SELECT-list order — also the order rows stream out
-	 *         at index-build time.
+	 * @throws IllegalArgumentException when the source is a VirtualTable, which has no
+	 *                                  as-built index to build from.
 	 */
-	List<String> registerSchema(IdAndVersion searchIndexId, String definingSql);
+	void registerSource(IdAndVersion searchIndexId, String definingSql);
 
 	/**
 	 * Under the per-entity write lock, rebuild

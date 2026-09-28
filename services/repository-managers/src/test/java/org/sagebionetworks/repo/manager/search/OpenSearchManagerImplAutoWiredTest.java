@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -194,6 +195,29 @@ public class OpenSearchManagerImplAutoWiredTest {
 	public void testGetLiveIndexWithMissingAlias() {
 		// call under test
 		assertEquals(Optional.empty(), openSearchManager.getLiveIndex(indexName + "-alias"));
+	}
+
+	@Test
+	public void testBulkIndexWithUnparseableFieldValuesRedactsValues() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("count").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("2").setName("score").setColumnType(ColumnType.DOUBLE),
+				new ColumnModel().setId("3").setName("flag").setColumnType(ColumnType.BOOLEAN));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, 0, 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot());
+		openSearchManager.waitForIndexWritable(indexName);
+		List<BulkOperation> operations = List.of(
+				buildBulkOp(indexName, "1", Map.of("_row_id", 1L, "_row_version", 1L, "1", "secret-count")),
+				buildBulkOp(indexName, "2", Map.of("_row_id", 2L, "_row_version", 1L, "2", "secret-score")),
+				buildBulkOp(indexName, "3", Map.of("_row_id", 3L, "_row_version", 1L, "3", "secret-flag")));
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> openSearchManager.bulkIndex(indexName, operations));
+
+		assertTrue(ex.getMessage().contains("3 permanent"), ex.getMessage());
+		assertFalse(ex.getMessage().contains("secret"), ex.getMessage());
+		assertTrue(ex.getMessage().contains(OpenSearchManagerImpl.REDACTED_VALUE), ex.getMessage());
 	}
 
 	@Test

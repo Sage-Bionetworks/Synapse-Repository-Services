@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -92,6 +94,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	// embedded in the thrown RuntimeException message so the reason reaches the user
 	// via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS.
 	static final int MAX_FAILURE_SAMPLES = 5;
+
+	static final String REDACTED_VALUE = "[value redacted]";
+
+	/**
+	 * Document-parsing errors quote the offending field value, and permanent bulk failures are
+	 * persisted to SEARCH_INDEX_STATUS.ERROR_MESSAGE, which is shown to any caller who can read the
+	 * SearchIndex. A build reads rows across many benefactors, so that value can belong to a row the
+	 * caller is not authorized to see. Each pattern captures the text before (group 1) and after
+	 * (group 2) the quoted value.
+	 */
+	private static final List<Pattern> VALUE_BEARING_PATTERNS = List.of(
+			Pattern.compile("(Preview of field's value: ').*?('(?=$|]|,| caused by | \\[))"),
+			Pattern.compile("(For input string: \").*?(\"(?=$|]|,| caused by | \\[))"),
+			Pattern.compile("(Failed to parse value \\[).*?(] as only \\[true] or \\[false] are allowed)"));
+
 	static final int MAX_BULK_ERROR_MESSAGE_CHARS = 2500;
 	static final String TRUNCATION_MARKER = "...[truncated]";
 
@@ -876,7 +893,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				String descriptor = describeBulkItemFailure(item);
 				LOG.error("Bulk index item failed in {}: {}", indexName, descriptor);
 				if (c.permanentSamples.size() < MAX_FAILURE_SAMPLES) {
-					c.permanentSamples.add(descriptor);
+					c.permanentSamples.add(redactFieldValues(descriptor));
 				}
 			}
 		}
@@ -1004,6 +1021,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		if (c.stackTrace() != null) {
 			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
 		}
+	}
+
+	/**
+	 * Replace every field value quoted by a known value-bearing OpenSearch document-parsing error
+	 * with {@link #REDACTED_VALUE}, leaving the field name, type, and document id intact.
+	 * <p>
+	 * Known limitation: a value that itself contains the closing delimiter of its pattern is only
+	 * partially redacted.
+	 */
+	static String redactFieldValues(String message) {
+		String result = message;
+		for (Pattern pattern : VALUE_BEARING_PATTERNS) {
+			result = pattern.matcher(result).replaceAll("$1" + Matcher.quoteReplacement(REDACTED_VALUE) + "$2");
+		}
+		return result;
 	}
 
 	/**

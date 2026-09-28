@@ -55,12 +55,12 @@ public class SearchIndexMetadataProvider implements
 
 	@Override
 	public void entityCreated(UserInfo userInfo, SearchIndex entity) {
-		lifecycleManager.registerSchema(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+		lifecycleManager.registerSource(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override
 	public void entityUpdated(UserInfo userInfo, SearchIndex entity, boolean wasNewVersionCreated) {
-		lifecycleManager.registerSchema(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
+		lifecycleManager.registerSource(IdAndVersion.parse(entity.getId()), entity.getDefiningSQL());
 	}
 
 	@Override

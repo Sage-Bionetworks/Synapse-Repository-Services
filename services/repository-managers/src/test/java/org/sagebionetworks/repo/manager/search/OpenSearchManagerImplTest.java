@@ -746,6 +746,27 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testRedactFieldValuesWithValueBearingMessages() {
+		String message = "doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
+				+ " in document with id '5'. Preview of field's value: 'it's secret'"
+				+ " caused by illegal_argument_exception: For input string: \"secret\""
+				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
+				+ " Preview of field's value: 'secret'"
+				+ " caused by illegal_argument_exception: Failed to parse value [secret] as only [true] or [false] are allowed.";
+
+		// call under test
+		String redacted = OpenSearchManagerImpl.redactFieldValues(message);
+
+		assertEquals("doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
+				+ " in document with id '5'. Preview of field's value: '[value redacted]'"
+				+ " caused by illegal_argument_exception: For input string: \"[value redacted]\""
+				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
+				+ " Preview of field's value: '[value redacted]'"
+				+ " caused by illegal_argument_exception: Failed to parse value [[value redacted]] as only [true] or [false] are allowed.",
+				redacted);
+	}
+
+	@Test
 	public void testDescribeErrorWithSingleCause() {
 		ErrorCause cause = ErrorCause.of(b -> b
 				.type("mapper_parsing_exception")

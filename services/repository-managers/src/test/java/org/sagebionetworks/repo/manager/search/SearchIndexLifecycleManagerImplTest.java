@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -1739,99 +1740,50 @@ public class SearchIndexLifecycleManagerImplTest {
 				"nested lock-unavailable must not mark the index FAILED");
 	}
 
-	// --- registerSchema: aggregation-over-benefactor-source guard ---
+	// --- registerSource ---
 
 	@Test
-	public void testRegisterSchemaWithAggregateOverBenefactorSourceThrows() {
+	public void testRegisterSourceWithTableSourceRecordsEdge() {
 		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
-		IdAndVersion sourceId = IdAndVersion.parse("syn789");
-		// A materialized-view source with a benefactor-bearing dependency. An aggregating
-		// defining SQL would collapse rows spanning different benefactors into one output
-		// row, for which there is no correct per-row benefactor — so it must be rejected.
-		IndexDescription mvSource = mock(IndexDescription.class);
-		when(mvSource.getTableHash()).thenReturn("hash");
-		when(mvSource.getTableType()).thenReturn(TableType.materializedview);
-		when(mvSource.getColumnNamesToAddToSelect(any(SqlContext.class), anyBoolean(), anyBoolean()))
-				.thenReturn(Collections.emptyList());
-		when(mvSource.getBenefactors()).thenReturn(Collections.singletonList(
-				new BenefactorDescription("ROW_BENEFACTOR_A0", ObjectType.ENTITY)));
-		ColumnModel fooColumn = new ColumnModel().setId("100").setName("foo")
-				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
-		when(tableManagerSupport.getIndexDescription(sourceId)).thenReturn(mvSource);
-		when(tableManagerSupport.getTableSchema(sourceId)).thenReturn(Collections.singletonList(fooColumn));
-		when(tableManagerSupport.getColumnModel("100")).thenReturn(fooColumn);
+		when(tableManagerSupport.getTableType(SOURCE_ID)).thenReturn(TableType.table);
 
 		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> manager.registerSchema(searchIndexId, "SELECT foo, COUNT(*) FROM syn789 GROUP BY foo"));
-		assertTrue(ex.getMessage().contains("cannot include a group by clause"),
-				"expected the aggregation guard message, got: " + ex.getMessage());
-		// Guard fires before any schema is bound.
-		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
-	}
+		manager.registerSource(searchIndexId, "SELECT name, COUNT(*) FROM syn789 GROUP BY name");
 
-	@Test
-	public void testRegisterSchemaWithAggregateOverBenefactorlessSourceSucceeds() {
-		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
-		IdAndVersion sourceId = IdAndVersion.parse("syn789");
-		// A plain table source has no benefactors, so an aggregating defining SQL is allowed —
-		// row-level ACL is moot and the guard must not fire.
-		ColumnModel fooColumn = new ColumnModel().setId("100").setName("foo")
-				.setColumnType(ColumnType.STRING).setMaximumSize(50L);
-		when(tableManagerSupport.getIndexDescription(sourceId)).thenReturn(new TableIndexDescription(sourceId));
-		when(tableManagerSupport.getTableSchema(sourceId)).thenReturn(Collections.singletonList(fooColumn));
-		when(tableManagerSupport.getColumnModel("100")).thenReturn(fooColumn);
-		when(columnModelManager.createColumnModel(any()))
-				.thenReturn(new ColumnModel().setId("200").setName("foo").setColumnType(ColumnType.STRING).setMaximumSize(50L));
-
-		// call under test — must not throw.
-		manager.registerSchema(searchIndexId, "SELECT foo, COUNT(*) FROM syn789 GROUP BY foo");
-
-		verify(columnModelManager).bindColumnsToVersionOfObject(any(), eq(searchIndexId));
-		// The source -> SearchIndex edge is recorded so a later source-availability event finds it.
-		verify(definingSqlDependencyDao).setSourceTable(searchIndexId, ObjectType.SEARCH_INDEX.name(), sourceId);
-	}
-
-	@Test
-	public void testRegisterSchemaWithVirtualTableSourceThrows() {
-		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
-		IdAndVersion sourceId = IdAndVersion.parse("syn789");
-		// A virtual table is a query rewrite with no materialized index and no status events, so
-		// it would never trigger a source-availability rebuild — the SearchIndex must reject it.
-		IndexDescription virtualSource = mock(IndexDescription.class);
-		when(virtualSource.getTableType()).thenReturn(TableType.virtualtable);
-		when(tableManagerSupport.getIndexDescription(sourceId)).thenReturn(virtualSource);
-
-		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> manager.registerSchema(searchIndexId, "SELECT foo FROM syn789"));
-		assertTrue(ex.getMessage().contains("cannot reference a virtual table"),
-				"expected the virtual-table guard message, got: " + ex.getMessage());
-		// Guard fires before any schema is bound or dependency edge recorded.
-		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
-		verify(definingSqlDependencyDao, never()).setSourceTable(any(), any(), any());
-	}
-
-	@Test
-	public void testRegisterSchemaWithSourceSnapshotBindsAsBuiltSchema() {
-		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
-		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
-		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
-		when(columnModelManager.createColumnModel(argThat(cm -> "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
-
-		// call under test
-		List<String> schemaIds = manager.registerSchema(searchIndexId, "SELECT name FROM syn789");
-
-		assertEquals(List.of("100"), schemaIds);
-		verify(columnModelManager).bindColumnsToVersionOfObject(List.of("100"), searchIndexId);
 		verify(definingSqlDependencyDao).setSourceTable(searchIndexId, ObjectType.SEARCH_INDEX.name(), SOURCE_ID);
-		verify(tableManagerSupport, never()).getIndexDescription(any());
-		verify(tableManagerSupport, never()).getTableSchema(any());
+		verifyNoInteractions(columnModelManager, indexAuthorizationSnapshotManager);
 	}
 
 	@Test
-	public void testRegisterSchemaWithAggregateOverSnapshotBenefactorSourceThrows() {
+	public void testRegisterSourceWithVirtualTableSourceThrows() {
 		IdAndVersion searchIndexId = IdAndVersion.parse("syn456");
+		// A virtual table is a query rewrite with no materialized index, snapshot, or status events,
+		// so a SearchIndex over one could never build.
+		when(tableManagerSupport.getTableType(SOURCE_ID)).thenReturn(TableType.virtualtable);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> manager.registerSource(searchIndexId, "SELECT foo FROM syn789"));
+		assertEquals("The defining SQL of a search index cannot reference a virtual table.", ex.getMessage());
+		verifyNoInteractions(definingSqlDependencyDao);
+	}
+
+	@Test
+	public void testHandleCreateWithAggregateOverBenefactorSourceRecordsFailed() throws Exception {
+		stubBuildLock();
+		stubSourceLock();
+		SearchIndex searchIndex = new SearchIndex()
+				.setDefiningSQL("SELECT name, COUNT(*) FROM syn789 GROUP BY name").setParentId("syn100");
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
+		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
+		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
+		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
+		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(SOURCE_ID))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(indexDao.getRowCountForTable(SOURCE_ID)).thenReturn(0L);
+		// An aggregating defining SQL would collapse rows spanning different benefactors into one
+		// output row, for which there is no correct per-row benefactor.
 		IndexAuthorizationSnapshot mvSnapshot = tableSnapshot("100").setIndexDescription(new IndexDescriptionSnapshot()
 				.setObjectId("syn789")
 				.setTableType(TableType.materializedview.name())
@@ -1842,12 +1794,16 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 
 		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> manager.registerSchema(searchIndexId, "SELECT name, COUNT(*) FROM syn789 GROUP BY name"));
-		assertTrue(ex.getMessage().contains("cannot include a group by clause"),
-				"expected the aggregation guard message, got: " + ex.getMessage());
-		verify(columnModelManager, never()).bindColumnsToVersionOfObject(any(), any());
-		verify(tableManagerSupport, never()).getIndexDescription(any());
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, times(2)).createOrUpdate(captor.capture());
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("The defining SQL of a search index over an access-controlled source cannot include a group by clause."),
+				captor.getAllValues().get(1));
+		verify(columnModelManager, never()).createColumnModel(any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
+		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
 	// -------- buildWithBenefactorColumns (package-private) --------
