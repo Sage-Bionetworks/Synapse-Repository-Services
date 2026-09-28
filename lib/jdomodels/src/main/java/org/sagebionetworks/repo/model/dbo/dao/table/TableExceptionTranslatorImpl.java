@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -24,6 +25,22 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	
 	private static final String CHECK_CONSTRAINT_SUFFIX = "' is violated.";
 	private static final String CHECK_CONSTRAINT_PREFIX = "Check constraint '";
+
+	static final String REDACTED_VALUE = "[value redacted]";
+
+	/**
+	 * MySQL data-value error messages quote the offending cell value (e.g. "Incorrect integer value:
+	 * 'Alabama' for column '_C456_' at row 1"). Because a table/view build reads rows across many
+	 * benefactors, that value can belong to a source row the querying caller is not authorized to see,
+	 * so the value is redacted before it is ever persisted to the table status or surfaced. Each pattern
+	 * captures the leading clause (group 1) and matches the quoted data literal that follows it; the
+	 * trailing column/key name (schema, not data) is left intact.
+	 */
+	private static final List<Pattern> VALUE_BEARING_PATTERNS = List.of(
+			// 1366 (Incorrect ... value) and 1292 (Truncated incorrect ... value)
+			Pattern.compile("(?i)(incorrect\\s+\\w+\\s+value:\\s*)'[^']*'"),
+			// 1062 Duplicate entry '<value>' for key '<key>'
+			Pattern.compile("(?i)(duplicate entry\\s+)'[^']*'"));
 
 	private final ColumnNameProvider columnNameProvider;
 	private final ConnectionFactory connectionFactory;
@@ -46,8 +63,10 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 		// attempt to find a SQLException in the stack.
 		SQLException sqlException = findSQLException(exception);
 		if (sqlException != null) {
-			// found a SQLException so we can translate it.
-			String newMessage = replaceConstraintNameWithConstraintClause(sqlException.getMessage());
+			// found a SQLException so we can translate it. Redact any embedded data value first, on the
+			// raw message, so a leaked value can never be reinterpreted as a column/table token below.
+			String newMessage = redactDataValues(sqlException.getMessage());
+			newMessage = replaceConstraintNameWithConstraintClause(newMessage);
 			newMessage = replaceColumnIdsAndTableNames(newMessage);
 			newMessage = appendUnquotedKeyWordMessage(newMessage);
 			return new IllegalArgumentException(newMessage, exception);
@@ -62,6 +81,25 @@ public class TableExceptionTranslatorImpl implements TableExceptionTranslator {
 	}
 	
 	
+	/**
+	 * Replace any quoted data literal in a known value-bearing MySQL error message with a redaction
+	 * placeholder, leaving the surrounding schema references (column/key names) intact. Returns the
+	 * input unchanged when it matches no value-bearing pattern.
+	 * <p>
+	 * Known limitation: a data value that itself contains a single quote is only partially redacted,
+	 * since the quoted-literal match stops at the first inner quote.
+	 */
+	static String redactDataValues(String message) {
+		if (message == null) {
+			return null;
+		}
+		String result = message;
+		for (Pattern pattern : VALUE_BEARING_PATTERNS) {
+			result = pattern.matcher(result).replaceAll("$1'" + Matcher.quoteReplacement(REDACTED_VALUE) + "'");
+		}
+		return result;
+	}
+
 	String replaceConstraintNameWithConstraintClause(String message) {
 		Optional<String> constraintName = getConstraintViolationName(message);
 		if(constraintName.isPresent()) {

@@ -256,7 +256,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 			// continue with a read lock on each dependent table.
 			tryRunWithNonExclusiveLockOnAvailableDependecies(callback, parentContext, (ProgressCallback innerCallback) -> {
 				LOG.info("Rebuilding materialized view index " + idAndVersion);
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(indexDescription, sqlQuery, tableManagerSupport.getTableSchema(idAndVersion), tableManagerSupport.isTableSearchEnabled(idAndVersion));
 				return null;
 			}, sqlQuery.getTableIds());
 		} catch (RecoverableMessageException e) {
@@ -307,7 +307,7 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 					return true;
 				}
 				
-				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(sqlQuery, schema, isSearchEnabled);
+				createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(temporaryIndex, sqlQuery, schema, isSearchEnabled);
 
 				return false;
 			}, sqlQuery.getTableIds());
@@ -344,27 +344,27 @@ public class MaterializedViewManagerImpl implements MaterializedViewManager {
 		}
 	}
 	
-	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
-		IdAndVersion idAndVersion = definingSql.getIndexDescription().getIdAndVersion();
+	void createOrRebuildViewHoldingWriteLockAndAllDependentReadLocks(IndexDescription indexDescription, QueryTranslator definingSql, List<ColumnModel> schema, boolean isSearchEnabled) {
+		IdAndVersion idAndVersion = indexDescription.getIdAndVersion();
 		TableIndexManager indexManager = connectionFactory.connectToTableIndex(idAndVersion);
-		
+
 		// Start the worker
 		final String token = tableManagerSupport.startTableProcessing(idAndVersion);
-		
+
 		tableManagerSupport.attemptToUpdateTableProgress(idAndVersion, token, "Building MaterializedView...", 0L, 1L);
-		
-		List<ColumnModel> viewSchema = indexManager.resetTableIndex(definingSql.getIndexDescription(), schema, isSearchEnabled);
-		
+
+		List<ColumnModel> viewSchema = indexManager.resetTableIndex(indexDescription, schema, isSearchEnabled);
+
 		Long viewVersion = indexManager.populateMaterializedViewFromDefiningSql(viewSchema, definingSql);
 
 		// Now build the secondary indicies
-		indexManager.buildTableIndexIndices(definingSql.getIndexDescription(), viewSchema);
+		indexManager.buildTableIndexIndices(indexDescription, viewSchema);
 
 		// Capture the as-built authorization snapshot keyed by the id this build targets - the temporary
 		// id on the shadow-rebuild path, the real id in place - so it rides the same atomic swap as the
 		// index it describes and later drift in current truth cannot authorize access to these bytes.
 		indexManager.saveAuthorizationSnapshot(idAndVersion, indexAuthorizationSnapshotManager.buildSnapshot(
-				definingSql.getIndexDescription(), definingSql.getInputSql(), viewSchema));
+				indexDescription, definingSql.getInputSql(), viewSchema));
 
 		// both the version and schema MD5 are used to determine if the view is up-to-date.
 		// The schema MD5 is already set when resetting the index

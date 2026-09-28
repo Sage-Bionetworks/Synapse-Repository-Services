@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescriptionLookup;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.progress.ProgressCallback;
 import org.sagebionetworks.util.progress.ProgressingCallable;
 
@@ -298,7 +299,7 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return the combined read-access decision over the table/view and its
 	 *         dependencies.
 	 */
-	AuthorizationStatus validateTableReadAccess(UserInfo userInfo, IndexDescription indexDescription);
+	AuthorizationStatus validateTableReadAccess(UserInfo userInfo, QueryIndexDescription indexDescription);
 
 	/**
 	 * Load the {@link AggregateDataConfiguration} bound to the given entity, if it is
@@ -360,6 +361,14 @@ public interface TableManagerSupport extends SchemaProvider, IndexDescriptionLoo
 	 * @return
 	 */
 	TableType getTableType(IdAndVersion tableId);
+
+	/**
+	 * Get the defining SQL for a defining-SQL entity (MaterializedView, VirtualTable, SearchIndex).
+	 *
+	 * @param idAndVersion
+	 * @return the defining SQL, or empty if the object has none
+	 */
+	Optional<String> getDefiningSql(IdAndVersion idAndVersion);
 
 	/**
 	 * Get the view scope type for the view with the give id
