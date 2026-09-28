@@ -144,7 +144,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	static final String READINESS_PROBE_DOC_ID = "__readiness_probe__";
 
-	private static final String SYSTEM_FIELD_ROW_ID = "_row_id";
+	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
 	// Prefix of the per-dependency row-level access-control fields (_benefactor_0, _benefactor_1,
 	// ...) written into each document's _source at build time. They drive the query-time benefactor
@@ -443,12 +443,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	/**
-	 * Build the OpenSearch index's field mappings. The per-column analyzer is whichever
-	 * TextAnalyzer wins precedence (override &gt; column-type default == primary &gt; column-type
-	 * default differs); when that TextAnalyzer declares an {@code analyzer.default_search}
-	 * entry, the field's {@code search_analyzer} is bound to its namespaced registry key so
-	 * asymmetric search-time analysis applies regardless of which lever pulled the analyzer
-	 * in.
+	 * Build the OpenSearch index's field mappings. The per-column analyzer follows the
+	 * precedence the SearchConfiguration schema documents: the column's override analyzer, else
+	 * the configuration's {@code defaultAnalyzer}, else the column type's system default. The
+	 * middle rung is expressed by emitting <i>no</i> analyzer on the field, so OpenSearch falls
+	 * through to the index-wide {@code analysis.analyzer.default} the primary TextAnalyzer was
+	 * promoted to. An override entry that carries no analyzer therefore leaves the binding
+	 * exactly as it would have been without the entry.
+	 *
+	 * <p>When the winning TextAnalyzer declares an {@code analyzer.default_search} entry, the
+	 * field's {@code search_analyzer} is bound to its namespaced registry key so asymmetric
+	 * search-time analysis applies regardless of which lever pulled the analyzer in.</p>
 	 */
 	private void buildMappings(org.opensearch.client.opensearch._types.mapping.TypeMapping.Builder m,
 			List<ColumnModel> columns, String defaultAnalyzerQname,
@@ -471,17 +476,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 			ColumnAnalyzerOverrideEntry override = overrideMap.get(columnId);
 
-			// Per-column resolution. See the per-bullet rules in the method javadoc above.
-			String effectiveQname;
-			if (override != null) {
-				effectiveQname = SearchOpaqueJsonUtil.readRef(override.getAnalyzer());
-			} else {
-				String typeDefault = ColumnTypeToOpenSearchMapping.getDefaultAnalyzerQualifiedName(columnType);
-				if (typeDefault == null || typeDefault.equals(defaultAnalyzerQname)) {
-					effectiveQname = null;
-				} else {
-					effectiveQname = typeDefault;
-				}
+			// Per-column resolution. See the precedence rules in the method javadoc above.
+			String effectiveQname = override == null
+					? null
+					: SearchOpaqueJsonUtil.readRef(override.getAnalyzer());
+			if (effectiveQname == null && defaultAnalyzerQname == null) {
+				effectiveQname = ColumnTypeToOpenSearchMapping.getDefaultAnalyzerQualifiedName(columnType);
 			}
 
 			if (effectiveQname != null) {
