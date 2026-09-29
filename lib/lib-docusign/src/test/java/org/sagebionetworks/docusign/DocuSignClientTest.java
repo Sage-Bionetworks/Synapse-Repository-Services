@@ -484,6 +484,27 @@ public class DocuSignClientTest {
 	}
 
 	@Test
+	public void testDiscardEnvelopeSuccess() {
+		// call under test
+		client.discardEnvelope("env-1");
+
+		verify(mockDocuSignEnvelopesApi).discardEnvelope("env-1");
+		// Discarding is not voiding: an unsent envelope cannot be voided, so no status change is attempted.
+		verify(mockDocuSignEnvelopesApi, never()).voidEnvelope(any(), any());
+		verify(mockDocuSignEnvelopesApi, never()).updateEnvelope(any(), any());
+	}
+
+	@Test
+	public void testDiscardEnvelopeWithNullEnvelopeId() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.discardEnvelope(null));
+
+		assertEquals("envelopeId is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
 	public void testVoidEnvelopeWithNullReason() {
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,

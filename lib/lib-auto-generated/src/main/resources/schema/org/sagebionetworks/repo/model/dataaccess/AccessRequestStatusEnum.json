@@ -9,7 +9,7 @@
         },
         {
             "name": "draft",
-            "description": "A draft eDUC envelope has been created but not yet sent for signature"
+            "description": "Deprecated and no longer reported. An eDUC envelope now exists only once it has been routed for signature, so a request awaiting routing is 'created'"
         },
         {
             "name": "sent",

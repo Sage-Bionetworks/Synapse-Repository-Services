@@ -496,6 +496,17 @@ public class DocuSignClient {
 		envelopesApi.voidEnvelope(envelopeId, reason);
 	}
 
+	/**
+	 * Throws an envelope away, leaving no record of it for recipients or for a later read.
+	 * <p>
+	 * Intended for an envelope that was only ever created in order to render its document, and never sent.
+	 * A sent envelope should be voided instead, so that it keeps its audit trail.
+	 */
+	public void discardEnvelope(String envelopeId) {
+		ValidateArgument.required(envelopeId, "envelopeId");
+		envelopesApi.discardEnvelope(envelopeId);
+	}
+
 	/*
 	 * Return the status for the given envelope.
 	 * Note, email addresses are omitted from the EDucSignatureStatus DTO though
