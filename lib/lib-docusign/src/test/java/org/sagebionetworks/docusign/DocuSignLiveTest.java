@@ -22,7 +22,9 @@ import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.docusign.esign.api.EnvelopesApi;
 import com.docusign.esign.client.ApiClient;
+import com.docusign.esign.client.ApiException;
 import com.docusign.esign.model.Envelope;
+import com.docusign.esign.model.Folder;
 import com.docusign.esign.model.LockInformation;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
@@ -418,6 +420,8 @@ public class DocuSignLiveTest {
 
 		String envelopeId = client.createEnvelope(templateId, recipients, tabValues);
 		print("created a draft to throw away", envelopeId);
+		String folderBefore = folderOf(envelopeId);
+		print("folder before the discard", folderBefore);
 
 		try {
 			// call under test
@@ -430,15 +434,35 @@ public class DocuSignLiveTest {
 			return;
 		}
 
-		// A discarded envelope should no longer be readable. Whether DocuSign 404s or reports it as deleted
-		// is what this records; either answer confirms it is gone.
+		// The move is a soft delete: DocuSign keeps the record and it stays readable by ID, so the folder it
+		// now sits in is what says whether the discard took effect.
+		String folderAfter = folderOf(envelopeId);
+		print("folder after the discard", folderAfter);
+		verdict("the envelope moved out of the folder it was created in", !folderAfter.equals(folderBefore));
+		print("status after the discard", client.getEnvelopeStatus(envelopeId).status().getDucStatus().name());
+		System.out.println("  Still 'draft' and still readable by ID — expected, since a recycled envelope is"
+				+ " retained rather than destroyed. What matters is that it was never sent, is not billed,"
+				+ " and no longer sits among the account's live drafts.");
+	}
+
+	// The folder an envelope currently sits in. Goes to the SDK directly: DocuSignClient never asks for
+	// folders, and widening it for the sake of an observation is not worth it.
+	private String folderOf(String envelopeId) {
+		EnvelopesApi envelopesApi = new EnvelopesApi(authenticatedApiClient());
+		EnvelopesApi.GetEnvelopeOptions options = envelopesApi.new GetEnvelopeOptions();
+		options.setInclude("folders");
 		try {
-			print("status after the discard", client.getEnvelopeStatus(envelopeId).status().getDucStatus().name());
-			System.out.println("  (still readable — check the DocuSign web console's Deleted folder"
-					+ " to confirm it was moved rather than left in Drafts)");
-		} catch (RuntimeException e) {
-			verdict("the discarded envelope is no longer readable", true);
-			System.out.println("  " + e.getMessage());
+			List<Folder> folders = envelopesApi.getEnvelope(config.getAccountId(), envelopeId, options).getFolders();
+			if (folders == null || folders.isEmpty()) {
+				return "<none reported>";
+			}
+			List<String> names = new ArrayList<>();
+			for (Folder folder : folders) {
+				names.add(folder.getName() + " (" + folder.getFolderId() + ")");
+			}
+			return String.join(", ", names);
+		} catch (ApiException e) {
+			return "<unreadable: " + e.getMessage() + ">";
 		}
 	}
 

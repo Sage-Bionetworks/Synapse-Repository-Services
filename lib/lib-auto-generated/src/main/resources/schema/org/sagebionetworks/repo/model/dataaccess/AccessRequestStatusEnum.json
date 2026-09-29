@@ -8,10 +8,6 @@
             "description": "The request has been created but not yet submitted or routed for eDUC signature"
         },
         {
-            "name": "draft",
-            "description": "Deprecated and no longer reported. An eDUC envelope now exists only once it has been routed for signature, so a request awaiting routing is 'created'"
-        },
-        {
             "name": "sent",
             "description": "The eDUC has been sent to recipients for signature"
         },

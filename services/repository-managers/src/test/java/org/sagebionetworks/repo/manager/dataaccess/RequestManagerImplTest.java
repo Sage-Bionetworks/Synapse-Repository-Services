@@ -912,7 +912,8 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testToAccessRequestStatusFromEnvelope() {
-		assertEquals(AccessRequestStatusEnum.draft, RequestManagerImpl.toAccessRequestStatusFromEnvelope("created"));
+		// An envelope that has been built but not routed leaves the request no further along than 'created'.
+		assertEquals(AccessRequestStatusEnum.created, RequestManagerImpl.toAccessRequestStatusFromEnvelope("created"));
 		assertEquals(AccessRequestStatusEnum.sent, RequestManagerImpl.toAccessRequestStatusFromEnvelope("sent"));
 		assertEquals(AccessRequestStatusEnum.delivered, RequestManagerImpl.toAccessRequestStatusFromEnvelope("delivered"));
 		assertEquals(AccessRequestStatusEnum.completed, RequestManagerImpl.toAccessRequestStatusFromEnvelope("completed"));

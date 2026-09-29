@@ -279,9 +279,12 @@ public class EDucManager {
 	 * already gone out for signature. Changes to a routed envelope belong to
 	 * {@link #updateRoutedEnvelope}, which corrects it in place.
 	 * <p>
-	 * A recorded envelope that is still a draft is allowed through. Routing always builds a new envelope,
-	 * so the only way to encounter one is a request whose draft was persisted by a preview taken before
-	 * previews became transient; refusing it would leave those requests unroutable.
+	 * An envelope still in draft was never sent, so it is not something that has been routed and routing
+	 * proceeds, replacing it. One is left recorded whenever the send fails: the envelope is recorded before
+	 * it is sent, and not in the same transaction, deliberately — an envelope Synapse has forgotten but
+	 * DocuSign has sent would leave signers with a document nobody could cancel or report on, which is
+	 * worse than a draft nobody sent. Refusing to route in that state would strand the request, since an
+	 * unsent envelope cannot be cancelled either.
 	 *
 	 * @throws IllegalArgumentException (HTTP 400) if the envelope exists and is past draft
 	 */
@@ -306,18 +309,10 @@ public class EDucManager {
 	 * the request.
 	 * <p>
 	 * A new envelope is always created rather than any existing one reused, so that what goes out for
-	 * signature is necessarily what the request says now.
+	 * signature is necessarily what the request says now. An envelope already recorded against the request
+	 * was never sent, so it is simply replaced.
 	 */
 	RequestInterface createDraftEDuc(RequestInterface request) {
-		String supersededEnvelopeId = request.getEDucSignatureEnvelopeId();
-		if (supersededEnvelopeId != null) {
-			// Only reachable for a request whose draft was persisted by a preview taken before previews
-			// became transient. Its content is whatever that preview captured, so it is abandoned rather
-			// than sent.
-			LOG.info("Abandoning the unsent envelope " + supersededEnvelopeId + " recorded against request "
-					+ request.getId() + " and building a new one from the request's current content.");
-		}
-
 		String envelopeId = createEnvelopeFromRequest(request);
 
 		request.setEDucSignatureEnvelopeId(envelopeId);

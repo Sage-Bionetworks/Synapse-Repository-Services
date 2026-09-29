@@ -404,8 +404,8 @@ public class EDucManagerTest {
 		assertEquals(Long.valueOf(9), result.getRemaining());
 	}
 
-	// A request whose draft was persisted by a preview taken before previews became transient. Its content
-	// is whatever that preview captured, so routing must build afresh rather than send it.
+	// An envelope is recorded before it is sent, so a failed send leaves one behind. It was never sent and
+	// its content is whatever the request said at the time, so routing replaces it rather than sending it.
 	@Test
 	public void testRouteForSignatureWithPersistedDraft() {
 		Request request = buildValidRequest();

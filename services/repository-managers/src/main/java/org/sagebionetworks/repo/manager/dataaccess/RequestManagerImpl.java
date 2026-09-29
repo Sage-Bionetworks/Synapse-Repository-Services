@@ -396,7 +396,25 @@ public class RequestManagerImpl implements RequestManager{
 
 	static AccessRequestStatusEnum toAccessRequestStatusFromEnvelope(String envelopeStatus) {
 		EDucStatusEnum ducStatus = DocuSignClient.toEDucStatusEnum(envelopeStatus);
-		return AccessRequestStatusEnum.valueOf(ducStatus.name());
+		/*
+		 * Mapped case by case rather than by name. The two enums are not the same vocabulary:
+		 * EDucStatusEnum mirrors DocuSign's envelope statuses faithfully, while this one describes how far
+		 * along the request is. An unrouted envelope leaves the request no further along than 'created' —
+		 * it is only reachable for an envelope built but not yet sent, or for a request whose draft was
+		 * persisted by a preview taken before previews became transient.
+		 *
+		 * Being a switch over every value, a status added to EDucStatusEnum stops this compiling, rather
+		 * than throwing when a request listing happens to encounter it.
+		 */
+		return switch (ducStatus) {
+			case draft -> AccessRequestStatusEnum.created;
+			case sent -> AccessRequestStatusEnum.sent;
+			case delivered -> AccessRequestStatusEnum.delivered;
+			case completed -> AccessRequestStatusEnum.completed;
+			case declined -> AccessRequestStatusEnum.declined;
+			case voided -> AccessRequestStatusEnum.voided;
+			case correct -> AccessRequestStatusEnum.correct;
+		};
 	}
 
 	@Override
