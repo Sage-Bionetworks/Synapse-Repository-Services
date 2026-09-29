@@ -78,8 +78,7 @@ public class DocuSignClient {
 		loadValidatedTemplate(templateId);
 	}
 
-	// A template together with what validating it established about where each of the values Synapse
-	// fills in belongs.
+	// A template together with it's "layout" which is the type of tab used for each field
 	private record ValidatedTemplate(EnvelopeTemplate template, EDucTemplateLayout layout) {}
 
 	private ValidatedTemplate loadValidatedTemplate(String templateId) {

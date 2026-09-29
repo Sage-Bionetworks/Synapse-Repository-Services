@@ -11,6 +11,7 @@ import com.docusign.esign.model.PrefillTabs;
 import com.docusign.esign.model.SignHere;
 import com.docusign.esign.model.Tabs;
 import com.docusign.esign.model.Text;
+import com.docusign.esign.model.Title;
 
 enum TabType {
 	TEXT {
@@ -70,6 +71,39 @@ enum TabType {
 		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
 			if (tabs.getFullNameTabs() != null) {
 				for (FullName t : tabs.getFullNameTabs()) {
+					if (Strings.CS.equals(label, t.getTabLabel())) {
+						t.setValue(value);
+						return;
+					}
+				}
+			}
+			throw new IllegalArgumentException(noSuchTabMessage(this, label));
+		}
+	},
+	TITLE {
+		@Override
+		public void addTabWithLabel(Tabs tabs, String label, String value) {
+			Title t = new Title();
+			t.setTabLabel(label);
+			t.setValue(value);
+			tabs.addTitleTabsItem(t);
+		}
+		@Override
+		public boolean hasTabWithLabel(Tabs tabs, String label) {
+			if (tabs.getTitleTabs() == null) {
+				return false;
+			}
+			for (Title t : tabs.getTitleTabs()) {
+				if (Strings.CS.equals(label, t.getTabLabel())) {
+					return true;
+				}
+			}
+			return false;
+		}
+		@Override
+		public void applyValueToTabWithLabel(Tabs tabs, String label, String value) {
+			if (tabs.getTitleTabs() != null) {
+				for (Title t : tabs.getTitleTabs()) {
 					if (Strings.CS.equals(label, t.getTabLabel())) {
 						t.setValue(value);
 						return;
