@@ -399,12 +399,12 @@ public class RequestManagerImpl implements RequestManager{
 		/*
 		 * Mapped case by case rather than by name. The two enums are not the same vocabulary:
 		 * EDucStatusEnum mirrors DocuSign's envelope statuses faithfully, while this one describes how far
-		 * along the request is. An unrouted envelope leaves the request no further along than 'created' —
-		 * it is only reachable for an envelope built but not yet sent, or for a request whose draft was
-		 * persisted by a preview taken before previews became transient.
+		 * along the request is. An envelope that exists but has not been sent leaves the request no further
+		 * along than 'created', which is also what a request with no envelope at all reports.
 		 *
-		 * Being a switch over every value, a status added to EDucStatusEnum stops this compiling, rather
-		 * than throwing when a request listing happens to encounter it.
+		 * The default is not dead code. EDucStatusEnum is generated in another module, so this can be run
+		 * against a version of it carrying a status this switch was never compiled against — which without a
+		 * default surfaces as an IncompatibleClassChangeError naming nothing useful.
 		 */
 		return switch (ducStatus) {
 			case draft -> AccessRequestStatusEnum.created;
@@ -414,6 +414,8 @@ public class RequestManagerImpl implements RequestManager{
 			case declined -> AccessRequestStatusEnum.declined;
 			case voided -> AccessRequestStatusEnum.voided;
 			case correct -> AccessRequestStatusEnum.correct;
+			default -> throw new IllegalStateException(
+					"No access request status is defined for the eDUC status: " + ducStatus + ".");
 		};
 	}
 
