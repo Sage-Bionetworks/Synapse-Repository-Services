@@ -156,6 +156,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int DELETE_INDEX_MAX_RETRIES = 10;
 	static long DELETE_INDEX_INITIAL_BACKOFF_MS = 1000L;
 
+	// Retry budget for the search / autocomplete transport call, which can hit the same transient
+	// read timeout / IOException or 429/402/5xx as createIndex. Smaller than the build-path budgets
+	// because a caller is waiting synchronously and each timed-out attempt already costs the full
+	// socket timeout. index_not_found (still building) and other 4xx are not retried.
+	static int SEARCH_MAX_RETRIES = 3;
+	static long SEARCH_INITIAL_BACKOFF_MS = 1000L;
+
 	// Cleanup retry for the readiness-probe sentinel. AOSS doesn't honor refresh=wait_for,
 	// so a single delete that fails on a transient network blip would orphan the sentinel
 	// (visible only to MATCH_ALL queries since _row_id = -1 cannot collide with real ids,
@@ -1242,30 +1249,46 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		// One-element holder: the request builder lambda can't return a value, so
 		// applyBodyToRequest reports the resolved `from` through this slot.
 		int[] effectiveFrom = new int[1];
+		SearchResponse<Map> response;
 		try {
-			SearchResponse<Map> response = openSearchClient.search(req -> {
-				req.index(indexName);
-				// Timeout defines when incomplete results should be returned, giving
-				// a 10s grace period before requests are canceled.
-				req.timeout("50s");
-				req.cancelAfterTimeInterval(t -> t.time("60s"));
-				effectiveFrom[0] = autocomplete
-						? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
-								body, ctx, req, options, defaultSize, accessFilters)
-						: SearchOpaqueJsonUtil.applyBodyToRequest(
-								body, ctx, req, options, defaultSize, maxSize, accessFilters);
-				return req;
-			}, Map.class);
-			return convertResponse(response, indexName, effectiveFrom[0], idToName, options);
-		} catch (OpenSearchException e) {
-			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-				throw new IllegalStateException("Search index is still building. Please try again later.", e);
-			}
-			throw new RuntimeException("Failed to execute search on search index: " + indexName
-					+ " (" + describeError(e.error()) + ")", e);
-		} catch (IOException e) {
+			response = TimeUtils.waitForExponentialMaxRetry(SEARCH_MAX_RETRIES, SEARCH_INITIAL_BACKOFF_MS, () -> {
+				try {
+					return openSearchClient.search(req -> {
+						req.index(indexName);
+						// Timeout defines when incomplete results should be returned, giving
+						// a 10s grace period before requests are canceled.
+						req.timeout("50s");
+						req.cancelAfterTimeInterval(t -> t.time("60s"));
+						effectiveFrom[0] = autocomplete
+								? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
+										body, ctx, req, options, defaultSize, accessFilters)
+								: SearchOpaqueJsonUtil.applyBodyToRequest(
+										body, ctx, req, options, defaultSize, maxSize, accessFilters);
+						return req;
+					}, Map.class);
+				} catch (OpenSearchException e) {
+					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+						throw new IllegalStateException("Search index is still building. Please try again later.", e);
+					}
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("search attempt failed for {} ({}), retrying", indexName, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to execute search on search index: " + indexName
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("search attempt failed for {} ({}), retrying", indexName, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to execute search on search index: " + indexName, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
 		}
+		return convertResponse(response, indexName, effectiveFrom[0], idToName, options);
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})

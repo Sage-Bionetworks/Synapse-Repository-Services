@@ -159,6 +159,7 @@ public class OpenSearchManagerImplTest {
 	private long originalCreateIndexInitialBackoffMs;
 	private long originalGetAliasInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
+	private long originalSearchInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -176,6 +177,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = 1L;
 		originalDeleteIndexInitialBackoffMs = OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
+		originalSearchInitialBackoffMs = OpenSearchManagerImpl.SEARCH_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.SEARCH_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -186,6 +189,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = originalGetAliasInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
+		OpenSearchManagerImpl.SEARCH_INITIAL_BACKOFF_MS = originalSearchInitialBackoffMs;
 	}
 
 	/**
@@ -2134,7 +2138,7 @@ public class OpenSearchManagerImplTest {
 	public void testSearchWithOpenSearchExceptionThrowsRuntime() throws IOException {
 		ErrorCause cause = ErrorCause.of(c -> c.type("search_phase_execution_exception").reason("boom"));
 		OpenSearchException openSearchException = new OpenSearchException(
-				ErrorResponse.of(er -> er.error(cause).status(500)));
+				ErrorResponse.of(er -> er.error(cause).status(400)));
 		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
 				.thenThrow(openSearchException);
 
@@ -2146,6 +2150,38 @@ public class OpenSearchManagerImplTest {
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to execute search on search index: my-index"
 				+ " (" + OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+		verify(openSearchClient, times(1)).search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
+	}
+
+	@Test
+	public void testSearchWithTransient504RetriesThenSucceeds() throws IOException {
+		OpenSearchException gatewayTimeout = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(ErrorCause.of(c -> c.type("http_exception")
+						.reason("server returned 504"))).status(504)));
+		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
+				.thenThrow(gatewayTimeout)
+				.thenReturn(emptySearchResponse());
+
+		// call under test
+		SearchQueryResults results = manager.search("my-index", matchAllBody(), Collections.emptyList(),
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+
+		assertNotNull(results);
+		verify(openSearchClient, times(2)).search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
+	}
+
+	@Test
+	public void testSearchWithReadTimeoutRetriesThenSucceeds() throws IOException {
+		when(openSearchClient.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class)))
+				.thenThrow(new java.net.SocketTimeoutException("Read timed out"))
+				.thenReturn(emptySearchResponse());
+
+		// call under test
+		SearchQueryResults results = manager.search("my-index", matchAllBody(), Collections.emptyList(),
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList());
+
+		assertNotNull(results);
+		verify(openSearchClient, times(2)).search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
 	}
 
 	@Test
@@ -2161,6 +2197,8 @@ public class OpenSearchManagerImplTest {
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to execute search on search index: my-index", ex.getMessage());
+		verify(openSearchClient, times(OpenSearchManagerImpl.SEARCH_MAX_RETRIES))
+				.search(ArgumentMatchers.<java.util.function.Function>any(), eq(Map.class));
 	}
 
 	@Test
