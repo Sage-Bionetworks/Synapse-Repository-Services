@@ -90,6 +90,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private static final int BATCH_SIZE = 1000;
 	private static final long MAX_ROWS = 500_000L;
 	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
+	private static final Set<String> NON_FINITE_DOUBLES = Set.of(Double.toString(Double.NaN),
+			Double.toString(Double.POSITIVE_INFINITY), Double.toString(Double.NEGATIVE_INFINITY));
 
 	// Build-time dynamic shard sizing for the managed OpenSearch domain. The source table's
 	// on-disk size is a conservative upper bound for the derived index (the defining SQL may
@@ -121,7 +123,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * natural Java equivalent of the JSON token — {@code Integer}/{@code Long},
 	 * {@code Double}, {@code Boolean}, {@code List}, or {@code Map} — each of which the
 	 * OpenSearch client serializes as the right JSON type. Returning the raw String for
-	 * non-string columns causes AOSS to reject the doc.
+	 * non-string columns causes AOSS to reject the doc. A non-finite double ({@code NaN},
+	 * {@code Infinity}, {@code -Infinity}) converts to {@code null} because OpenSearch
+	 * {@code double} fields accept only finite values.
 	 */
 	static Object convertForDocument(String value, ColumnType type) {
 		if (value == null) {
@@ -135,6 +139,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				|| ColumnTypeToOpenSearchMapping.isKeywordType(type)
 				|| ColumnTypeToOpenSearchMapping.isLinkType(type))) {
 			return value;
+		}
+		if (ColumnTypeToOpenSearchMapping.isDoubleType(type) && NON_FINITE_DOUBLES.contains(value)) {
+			return null;
 		}
 		try {
 			return SEARCH_DOC_MAPPER.readValue(value, Object.class);
@@ -856,10 +863,10 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// This relies on the invariant that the translated select's document-column count
 			// equals the bound-schema width, since both derive from the same defining SQL.
 			for (int i = 0; i < columns.size() && i < values.size(); i++) {
-				String value = values.get(i);
-				if (value != null) {
-					SelectColumn column = columns.get(i);
-					doc.put(column.getId(), convertForDocument(value, column.getColumnType()));
+				SelectColumn column = columns.get(i);
+				Object converted = convertForDocument(values.get(i), column.getColumnType());
+				if (converted != null) {
+					doc.put(column.getId(), converted);
 				}
 			}
 			// Write one _benefactor_N field per source dependency, in the same order the
