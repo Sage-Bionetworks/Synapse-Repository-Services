@@ -299,10 +299,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			case AVAILABLE:
 				break;
 			case PROCESSING:
-				statusDao.createOrUpdate(new SearchIndexStatus()
-						.setSearchIndexId(entityId)
-						.setState(SearchIndexState.WAITING_FOR_SOURCE));
-				LOG.info("Search index for entity {} is WAITING_FOR_SOURCE ({})", entityId, sourceId);
+				recordWaitingForSource(statusDao, entityId, sourceId);
 				return;
 			default:
 				throw new TableFailedException(sourceStatus);
@@ -326,13 +323,17 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 			// A non-exclusive lock on the direct source holds its index stable from reading its as-built
 			// snapshot through the end of row streaming, so the snapshot describes the rows streamed.
-			tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
+			boolean built = tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
 					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
-					(ProgressCallback callback) -> {
-						streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
-								config, overrides, inlineAnalyzers);
-						return null;
-					}, sourceId);
+					(ProgressCallback callback) -> streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
+							config, overrides, inlineAnalyzers), sourceId);
+			// A source without an as-built snapshot cannot be waited on by retrying the message, for the
+			// same reason as a PROCESSING source: the source's next build writes the snapshot and fires
+			// the TABLE_STATUS_EVENT(AVAILABLE) that rebuilds this index.
+			if (!built) {
+				recordWaitingForSource(statusDao, entityId, sourceId);
+				return;
+			}
 
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.
@@ -411,16 +412,20 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * snapshot, derived from it, is stored in the new slot's mapping metadata. Caller holds a
 	 * non-exclusive lock on the source.
 	 *
-	 * @throws RecoverableMessageException when the source has no as-built snapshot yet.
-	 * @throws IllegalArgumentException    when the source or any of its dependencies is AGGREGATE_DATA.
+	 * @return {@code true} once the slot is built; {@code false}, leaving the idle slot untouched, when the
+	 *         source has no as-built snapshot yet.
+	 * @throws IllegalArgumentException when the source or any of its dependencies is AGGREGATE_DATA.
 	 */
-	private void streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
+	private boolean streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
 			TableIndexDAO indexDao, SearchConfiguration config,
 			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers) throws Exception {
 		String definingSQL = searchIndex.getDefiningSQL();
-		IndexAuthorizationSnapshot sourceSnapshot = indexAuthorizationSnapshotManager.getAuthorizationSnapshot(sourceId)
-				.orElseThrow(() -> new RecoverableMessageException("Search index source " + sourceId
-						+ " has no as-built authorization snapshot yet"));
+		Optional<IndexAuthorizationSnapshot> sourceSnapshotOpt = indexAuthorizationSnapshotManager
+				.getAuthorizationSnapshot(sourceId);
+		if (sourceSnapshotOpt.isEmpty()) {
+			return false;
+		}
+		IndexAuthorizationSnapshot sourceSnapshot = sourceSnapshotOpt.get();
 
 		// SqlContext.query (not build) emits the select against the source's materialized
 		// index table; build context is rejected by table and view sources (only a
@@ -522,6 +527,14 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				idleSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
 			indexDao.queryAsStream(query, handler);
 		}
+		return true;
+	}
+
+	private static void recordWaitingForSource(SearchIndexStatusDao statusDao, String entityId, IdAndVersion sourceId) {
+		statusDao.createOrUpdate(new SearchIndexStatus()
+				.setSearchIndexId(entityId)
+				.setState(SearchIndexState.WAITING_FOR_SOURCE));
+		LOG.info("Search index for entity {} is WAITING_FOR_SOURCE ({})", entityId, sourceId);
 	}
 
 	@Override

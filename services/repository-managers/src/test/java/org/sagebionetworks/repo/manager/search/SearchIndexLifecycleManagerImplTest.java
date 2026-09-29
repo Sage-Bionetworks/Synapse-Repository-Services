@@ -1118,22 +1118,42 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
-	public void testHandleCreateWithSourceWithoutSnapshotThrowsRecoverable() throws Exception {
+	public void testHandleCreateWithSourceWithoutSnapshotRecordsWaitingForSource() throws Exception {
 		stubHappyPathThroughCreateIndex();
 		stubSourceLock();
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.empty());
 
-		RecoverableMessageException thrown = assertThrows(RecoverableMessageException.class,
-				// call under test
-				() -> manager.handleCreate(progressCallback, ENTITY_ID));
+		// call under test — must consume the message (no exception).
+		manager.handleCreate(progressCallback, ENTITY_ID);
 
-		assertEquals("Search index source syn789 has no as-built authorization snapshot yet", thrown.getMessage());
 		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
-		verify(statusDao).createOrUpdate(captor.capture());
-		assertEquals(SearchIndexState.CREATING, captor.getValue().getState());
+		verify(statusDao, times(2)).createOrUpdate(captor.capture());
+		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
+		assertEquals(SearchIndexState.WAITING_FOR_SOURCE, captor.getAllValues().get(1).getState());
 		verify(openSearchManager, never()).deleteIndex(any());
 		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
+		verify(openSearchManager, never()).swapAlias(any(), any(), any());
+	}
+
+	@Test
+	public void testHandleUpdateWithLiveIndexAndSourceWithoutSnapshotKeepsLiveIndex() throws Exception {
+		stubHappyPathThroughCreateIndex();
+		stubSourceLock();
+		String liveSlot = "search-index-" + ENTITY_ID + "-a";
+		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.of(liveSlot));
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.empty());
+
+		// call under test
+		manager.handleUpdate(progressCallback, ENTITY_ID);
+
+		// No CREATING on a rebuild; the live slot keeps serving under WAITING_FOR_SOURCE.
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao).createOrUpdate(captor.capture());
+		assertEquals(SearchIndexState.WAITING_FOR_SOURCE, captor.getValue().getState());
+		verify(openSearchManager, never()).deleteIndex(any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).swapAlias(any(), any(), any());
 	}
 
 	@Test
@@ -1801,6 +1821,42 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
 				.setErrorMessage("The defining SQL of a search index over an access-controlled source cannot include a group by clause."),
 				captor.getAllValues().get(1));
+		verify(columnModelManager, never()).createColumnModel(any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
+		verify(indexDao, never()).queryAsStream(any(), any());
+	}
+
+	@Test
+	public void testHandleCreateWithUnknownColumnRecordsFailed() throws Exception {
+		stubBuildLock();
+		stubSourceLock();
+		// A bare double-quoted string parses as a SQL identifier; "tag" is absent from the source's
+		// schema (syn789 only has "name"), so translation must fail the build rather than silently
+		// dropping it or treating it as a literal.
+		SearchIndex searchIndex = new SearchIndex()
+				.setDefiningSQL("SELECT name, \"tag\" FROM syn789").setParentId("syn100");
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
+		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
+		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
+		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
+		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(SOURCE_ID))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(indexDao.getRowCountForTable(SOURCE_ID)).thenReturn(0L);
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, times(2)).createOrUpdate(captor.capture());
+		SearchIndexStatus failed = captor.getAllValues().get(1);
+		assertEquals(SearchIndexState.FAILED, failed.getState());
+		assertTrue(failed.getErrorMessage().contains("Unknown column"),
+				"expected the unknown-column message, got: " + failed.getErrorMessage());
+		assertTrue(failed.getErrorMessage().contains("tag"),
+				"expected the unknown-column message to name 'tag', got: " + failed.getErrorMessage());
 		verify(columnModelManager, never()).createColumnModel(any());
 		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());

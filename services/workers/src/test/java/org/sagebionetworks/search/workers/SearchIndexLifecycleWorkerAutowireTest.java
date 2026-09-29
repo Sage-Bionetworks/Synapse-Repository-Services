@@ -611,6 +611,45 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
+     * Build a SearchIndex directly over an entity view, then query it as two users with different
+     * ACLs. Unlike an MV source, a view carries its single benefactor as the by-name
+     * {@code ROW_BENEFACTOR} on each streamed row rather than as spliced trailing values, so this
+     * covers the {@code _benefactor_0} path fed from {@code Row.benefactorId}. Both users can read
+     * the project (and so the view); only {@code userA} can read the own-ACL folders.
+     */
+    @Test
+    public void testSearchIndexBenefactorFilteringDiffersByUserWithEntityViewSource() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userA, userB);
+        for (String id : hierarchy.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        IdAndVersion viewId = createFolderView(hierarchy);
+
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setName("ViewBenefactorFilterSearchIndex_" + UUID.randomUUID());
+        searchIndex.setParentId(hierarchy.project.getId());
+        searchIndex.setDefiningSQL("select id, groupKey from " + viewId);
+        searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
+
+        SearchIndexQuery query = new SearchIndexQuery();
+        query.setSearchIndexId(searchIndex.getId());
+        query.setSearchQuery(new SearchQuery().setQuery(new Query().setMatch_all(new MatchAllQuery())).setSize(100L));
+        query.setResponseParts(EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS));
+
+        Set<String> idsVisibleToA = new HashSet<>(hierarchy.folderIds());
+        assertQueryWithBuildRetry(userA, searchIndex.getId(), query, (SearchQueryResults results) -> {
+            assertEquals(idsVisibleToA, hitIds(results));
+        });
+
+        Set<String> idsVisibleToB = new HashSet<>(hierarchy.folderIds());
+        idsVisibleToB.removeAll(hierarchy.ownAclFolderIds());
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), query, (SearchQueryResults results) -> {
+            assertEquals(idsVisibleToB, hitIds(results));
+        });
+    }
+
+    /**
      * The MV joins left and right on {@code groupKey}. Both hierarchies use the same groupKey layout
      * (folder i has groupKey i), so the join is row-aligned: MV row i carries left folder i's
      * benefactor as {@code __A0} and right folder i's as {@code __A1}. A user sees MV row i only if
