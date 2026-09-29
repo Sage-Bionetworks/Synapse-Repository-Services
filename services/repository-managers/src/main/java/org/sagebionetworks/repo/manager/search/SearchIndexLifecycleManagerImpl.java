@@ -432,8 +432,16 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// materialized view accepts it). No userId is supplied: a SearchIndex indexes every
 		// source row without authorization and is served to many users through per-row
 		// benefactor filtering, so there is no single current user to bind.
-		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport,
-				id -> sourceId.equals(id) ? Optional.of(sourceSnapshot) : Optional.empty());
+		// Every table the defining SQL references resolves through this lookup. A SearchIndex has
+		// exactly one source, so any other table is a broken invariant; it must not fall back to the
+		// live (unpinned) schema.
+		SchemaProvider schemaProvider = new SnapshotSchemaProvider(tableManagerSupport, id -> {
+			if (!sourceId.equals(id)) {
+				throw new IllegalStateException("Search index " + searchIndex.getId() + " references " + id
+						+ " beyond its single source " + sourceId);
+			}
+			return Optional.of(sourceSnapshot);
+		});
 		// A SearchIndex never consults the query cache, so the source's table hash needs no live
 		// change number.
 		QueryIndexDescription sourceDescription = SnapshotIndexDescription

@@ -1827,6 +1827,38 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
+	public void testHandleCreateWithDefiningSqlReferencingSecondTableRecordsFailed() throws Exception {
+		stubBuildLock();
+		stubSourceLock();
+		SearchIndex searchIndex = new SearchIndex().setId(ENTITY_ID)
+				.setDefiningSQL("SELECT name FROM syn789 UNION SELECT name FROM syn790").setParentId("syn100");
+		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(statusDao);
+		when(entityManager.getEntityWithoutAuthorization(ENTITY_ID, SearchIndex.class)).thenReturn(searchIndex);
+		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.empty());
+		when(openSearchManager.getAliasTarget("search-index-" + ENTITY_ID)).thenReturn(Optional.empty());
+		when(connectionFactory.getConnection(SOURCE_ID)).thenReturn(indexDao);
+		when(tableManagerSupport.getTableStatusOrCreateIfNotExists(SOURCE_ID))
+				.thenReturn(new TableStatus().setState(TableState.AVAILABLE));
+		when(indexDao.getRowCountForTable(SOURCE_ID)).thenReturn(0L);
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, times(2)).createOrUpdate(captor.capture());
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("Search index " + ENTITY_ID + " references syn790 beyond its single source syn789"),
+				captor.getAllValues().get(1));
+		verify(tableManagerSupport, never()).getTableSchema(any());
+		verify(tableManagerSupport, never()).getTableType(any());
+		verify(columnModelManager, never()).createColumnModel(any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), anyInt(), anyInt(), anyInt(), any());
+		verify(indexDao, never()).queryAsStream(any(), any());
+	}
+
+	@Test
 	public void testHandleCreateWithUnknownColumnRecordsFailed() throws Exception {
 		stubBuildLock();
 		stubSourceLock();
