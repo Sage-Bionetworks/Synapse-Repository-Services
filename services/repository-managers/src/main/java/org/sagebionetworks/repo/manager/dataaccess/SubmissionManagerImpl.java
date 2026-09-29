@@ -131,7 +131,11 @@ public class SubmissionManagerImpl implements SubmissionManager{
 
 		Submission submissionToCreate = new Submission();
 		submissionToCreate.setRequestId(request.getId());
-		submissionToCreate.setResearchProjectSnapshot(researchProjectDao.get(request.getResearchProjectId()));
+		// Only a request against a managed ACT requirement has a research project to snapshot; a
+		// schema based request collects the same information as part of its schemaData instead.
+		if (request.getResearchProjectId() != null) {
+			submissionToCreate.setResearchProjectSnapshot(researchProjectDao.get(request.getResearchProjectId()));
+		}
 		submissionToCreate.setSubjectId(createSubmissionRequest.getSubjectId());
 		submissionToCreate.setSubjectType(createSubmissionRequest.getSubjectType());
 

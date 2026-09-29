@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.sagebionetworks.docusign.DocuSignClient;
@@ -21,6 +22,8 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequestSummary;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
+import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dataaccess.AccessType;
@@ -74,9 +77,26 @@ public class RequestManagerImpl implements RequestManager{
 		AccessRequirement ar = accessRequirementDao.get(toCreate.getAccessRequirementId());
 		ValidateArgument.requirement(ar instanceof HasExpiration,
 				"A Request can only associate with a managed access requirement.");
+		validateResearchProject(ar, toCreate);
+		toCreate.setAccessRequirementVersionNumber(ar.getVersionNumber());
 		toCreate = prepareCreationFields(toCreate, userInfo.getId().toString());
 		Request result = requestDao.create(toCreate);
 		return result;
+	}
+
+	/**
+	 * A research project is only collected for a {@link ManagedACTAccessRequirement}. A
+	 * {@link JsonSchemaAccessRequirement} expresses the same information as schema properties, so a
+	 * request answering one carries it in the schemaData and must not reference a research project.
+	 */
+	static void validateResearchProject(AccessRequirement ar, RequestInterface request) {
+		if (ar instanceof ManagedACTAccessRequirement) {
+			ValidateArgument.required(request.getResearchProjectId(), "Request.researchProjectId");
+		} else {
+			ValidateArgument.requirement(request.getResearchProjectId() == null,
+					"A research project cannot be associated with a request for a "
+							+ ar.getClass().getSimpleName() + ".");
+		}
 	}
 
 	public Request prepareCreationFields(Request toCreate, String createdBy) {
@@ -95,7 +115,6 @@ public class RequestManagerImpl implements RequestManager{
 	public void validateRequest(RequestInterface toUpdate) {
 		ValidateArgument.required(toUpdate, "toCreate");
 		ValidateArgument.required(toUpdate.getAccessRequirementId(), "Request.accessRequirementId");
-		ValidateArgument.required(toUpdate.getResearchProjectId(), "Request.researchProjectId");
 		ValidateArgument.requirement(toUpdate.getAccessorChanges() == null
 				|| toUpdate.getAccessorChanges().isEmpty()
 				|| toUpdate.getAccessorChanges().size() <= MAX_ACCESSORS,
@@ -197,6 +216,7 @@ public class RequestManagerImpl implements RequestManager{
 		renewal.setAttachments(current.getAttachments());
 		renewal.setDucFileHandleId(current.getDucFileHandleId());
 		renewal.setIrbFileHandleId(current.getIrbFileHandleId());
+		renewal.setSchemaData(current.getSchemaData());
 		renewal.setEtag(current.getEtag());
 		return renewal;
 	}
@@ -216,7 +236,7 @@ public class RequestManagerImpl implements RequestManager{
 		ValidateArgument.requirement(toUpdate.getCreatedBy().equals(original.getCreatedBy())
 				&& toUpdate.getCreatedOn().equals(original.getCreatedOn())
 				&& toUpdate.getAccessRequirementId().equals(original.getAccessRequirementId())
-				&& toUpdate.getResearchProjectId().equals(original.getResearchProjectId()),
+				&& Objects.equals(toUpdate.getResearchProjectId(), original.getResearchProjectId()),
 				"researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.");
 
 		if (!original.getCreatedBy().equals(userInfo.getId().toString())) {
@@ -234,6 +254,12 @@ public class RequestManagerImpl implements RequestManager{
 		// validateEnvelopeCompletion so the envelope-completion check runs against the authoritative
 		// envelope id rather than whatever the client sent.
 		toUpdate.setEDucSignatureEnvelopeId(original.getEDucSignatureEnvelopeId());
+
+		// Server managed record of the version these answers were written against. Re-stamping on
+		// every save is what lets a client both raise a warning once the requirement moves on, and
+		// clear it once the requester has saved against the current form.
+		toUpdate.setAccessRequirementVersionNumber(
+				accessRequirementDao.get(original.getAccessRequirementId()).getVersionNumber());
 
 		validateEnvelopeCompletion(toUpdate);
 
@@ -264,13 +290,16 @@ public class RequestManagerImpl implements RequestManager{
 	public void updateApprovedRequest(String requestId) {
 		ValidateArgument.required(requestId, "requestId");
 		RequestInterface original = requestDao.getForUpdate(requestId);
-		original = createRenewalFromApprovedRequest(original);
+		Renewal renewal = createRenewalFromApprovedRequest(original);
+		// This bypasses update(), so the stamp is applied here by the same rule.
+		renewal.setAccessRequirementVersionNumber(
+				accessRequirementDao.get(renewal.getAccessRequirementId()).getVersionNumber());
 		/*
 		 * Note: Since this method is called when a submission is approved by
 		 * ACT, modifiedOn and modifiedBy are not changed. The dao.update() will
 		 * change the etag.
 		 */
-		requestDao.update(original);
+		requestDao.update(renewal);
 	}
 
 	/*

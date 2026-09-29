@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.table.cluster.SchemaProvider;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.util.ValidateArgument;
 
 /**
@@ -23,7 +23,7 @@ public class QueryContext {
 
 	private final String startingSql;
 	private final SchemaProvider schemaProvider;
-	private final IndexDescription indexDescription;
+	private final QueryIndexDescription indexDescription;
 	private final Long userId;
 	private final Long maxBytesPerPage;
 	private final Long maxRowsPerCall;
@@ -37,7 +37,7 @@ public class QueryContext {
 	private final AggregateDataConfiguration aggregateDataConfiguration;
 	private final List<Integer> protectedCountColumnIndexes;
 
-	public QueryContext(String startingSql, SchemaProvider schemaProvider, IndexDescription indexDescription,
+	public QueryContext(String startingSql, SchemaProvider schemaProvider, QueryIndexDescription indexDescription,
 			Long userId, Long maxBytesPerPage, Long maxRowsPerCall, List<QueryFilter> additionalFilters,
 			List<FacetColumnRequest> selectedFacets, Long selectFileColumn, Boolean includeEntityEtag, Long offset,
 			Long limit, List<SortItem> sort, AggregateDataConfiguration aggregateDataConfiguration,
@@ -82,7 +82,7 @@ public class QueryContext {
 	/**
 	 * @return the indexDescription
 	 */
-	public IndexDescription getIndexDescription() {
+	public QueryIndexDescription getIndexDescription() {
 		return indexDescription;
 	}
 
@@ -190,7 +190,7 @@ public class QueryContext {
 
 		private String startingSql;
 		private SchemaProvider schemaProvider;
-		private IndexDescription indexDescription;
+		private QueryIndexDescription indexDescription;
 		private Long userId;
 		private Long maxBytesPerPage;
 		private Long maxRowsPerCall;
@@ -223,7 +223,7 @@ public class QueryContext {
 		/**
 		 * @param indexDescription the indexDescription to set
 		 */
-		public Builder setIndexDescription(IndexDescription indexDescription) {
+		public Builder setIndexDescription(QueryIndexDescription indexDescription) {
 			this.indexDescription = indexDescription;
 			return this;
 		}

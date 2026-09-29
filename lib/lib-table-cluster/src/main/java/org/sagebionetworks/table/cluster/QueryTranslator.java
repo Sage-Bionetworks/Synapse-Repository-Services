@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -97,7 +97,7 @@ public class QueryTranslator implements TranslatedQuery {
 
 	private final List<ColumnModel> schemaOfSelect;
 
-	private final IndexDescription indexDescription;
+	private final QueryIndexDescription indexDescription;
 
 	private final SqlContext sqlContext;
 	
@@ -116,8 +116,8 @@ public class QueryTranslator implements TranslatedQuery {
 	 * @throws ParseException
 	 */
 	QueryTranslator(String startingSql, SchemaProvider schemaProvider, Long maxBytesPerPage,
-			Boolean includeEntityEtag, Long userId, IndexDescription indexDescription, SqlContext sqlContextIn, Long changeNumber,
-			CountSuppressionSpec countSuppressionSpec) {
+			Boolean includeEntityEtag, Long userId, QueryIndexDescription indexDescription, SqlContext sqlContextIn,
+			Long changeNumber, CountSuppressionSpec countSuppressionSpec) {
 		ValidateArgument.required(schemaProvider, "schemaProvider");
 		ValidateArgument.required(indexDescription, "indexDescription");
 		this.tableHash = indexDescription.getTableHash();
@@ -417,7 +417,7 @@ public class QueryTranslator implements TranslatedQuery {
 		return isIncludeSearch;
 	}
 
-	public IndexDescription getIndexDescription() {
+	public QueryIndexDescription getIndexDescription() {
 		return this.indexDescription;
 	}
 
@@ -461,7 +461,7 @@ public class QueryTranslator implements TranslatedQuery {
 		private Long maxBytesPerPage;
 		private Boolean includeEntityEtag;
 		private Long userId;
-		private IndexDescription indexDescription;
+		private QueryIndexDescription indexDescription;
 		private SqlContext sqlContext;
 		private Long changeNumber;
 		private CountSuppressionSpec countSuppressionSpec;
@@ -500,7 +500,7 @@ public class QueryTranslator implements TranslatedQuery {
 		}
 		
 		
-		public Builder indexDescription(IndexDescription indexDescription) {
+		public Builder indexDescription(QueryIndexDescription indexDescription) {
 			this.indexDescription = indexDescription;
 			return this;
 		}
