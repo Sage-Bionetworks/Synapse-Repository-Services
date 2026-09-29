@@ -151,8 +151,8 @@ public class DocuSignClient {
 			Map<String, String> valuesByLabel = documentEntry.getValue();
 
 			// An envelope created from a template is expected to inherit the template's sender fields, in
-			// which case setting a value is an update that leaves the inherited placement alone. Should one
-			// not have come across, it is created from the template's own definition, which carries the
+			// which case setting a value is an update that leaves the inherited placement alone. If a field
+			// is not defined in the DAR, it is created from the template's own definition, which carries the
 			// placement a tab needs in order to appear on the document at all.
 			Tabs envelopeTabs = envelopesApi.getDocumentTabs(envelopeId, documentId);
 			List<Text> toUpdate = new ArrayList<>();
@@ -327,8 +327,8 @@ public class DocuSignClient {
 
 		// The template is the only record of which type each of its tabs was given, and DocuSign matches a
 		// supplied tab to the template by type as well as by label, so a value written under the wrong type
-		// is silently dropped. It is therefore read for every correction, not only for those that have to
-		// add a recipient back.
+		// is silently dropped. The template is therefore read for every correction, not only for those that 
+		// have to add a recipient back.
 		ValidatedTemplate validated = loadValidatedTemplate(templateIdOf(envelopeId));
 		EDucTemplateLayout layout = validated.layout();
 
