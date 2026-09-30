@@ -11,7 +11,6 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import com.docusign.esign.model.EnvelopeTemplate;
-import com.docusign.esign.model.PrefillTabs;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
@@ -119,7 +118,9 @@ class DocuSignTemplateValidator {
 				.collect(Collectors.toMap(Signer::getRoleName, s -> s));
 
 		List<Text> senderFieldDefinitions = mergeSenderFields(documentTabs);
-		Tabs senderFields = asTabs(senderFieldDefinitions);
+		// Wrapped back up as Tabs so that TabType can look a label up in them the same way it does for a
+		// signer's tabs, rather than this class reaching into the prefill container itself.
+		Tabs senderFields = TabType.senderFieldTabs(senderFieldDefinitions);
 		Map<RoleLabelKey, TabType> resolved = new LinkedHashMap<>();
 
 		validateRole(signersByRole, SIGNING_OFFICIAL, SIGNING_OFFICIAL_TABS, senderFields, resolved);
@@ -138,23 +139,10 @@ class DocuSignTemplateValidator {
 		List<Text> merged = new ArrayList<>();
 		if (documentTabs != null) {
 			for (Tabs tabs : documentTabs) {
-				if (tabs == null || tabs.getPrefillTabs() == null || tabs.getPrefillTabs().getTextTabs() == null) {
-					continue;
-				}
-				merged.addAll(tabs.getPrefillTabs().getTextTabs());
+				merged.addAll(TabType.prefillTextTabs(tabs));
 			}
 		}
 		return merged;
-	}
-
-	// Wrapped back up as Tabs so that TabType can look a label up in them the same way it does for a
-	// signer's tabs, rather than this class reaching into the prefill container itself.
-	private static Tabs asTabs(List<Text> senderFieldDefinitions) {
-		PrefillTabs prefillTabs = new PrefillTabs();
-		prefillTabs.setTextTabs(senderFieldDefinitions);
-		Tabs tabs = new Tabs();
-		tabs.setPrefillTabs(prefillTabs);
-		return tabs;
 	}
 
 	private static void validateRole(Map<String, Signer> signersByRole, String roleName,

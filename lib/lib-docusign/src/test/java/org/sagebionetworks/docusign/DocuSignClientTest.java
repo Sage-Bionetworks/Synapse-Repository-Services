@@ -1047,8 +1047,8 @@ public class DocuSignClientTest {
 
 	@Test
 	public void testCorrectEnvelopeUpdatesAChangedSenderField() {
-		// Sender fields belong to the documents rather than to any recipient, so correcting them is a step of
-		// its own rather than something the recipient updates carry.
+		// A correction works from the envelope's current recipients, so one has to be on it for the call to
+		// get as far as the documents. This signer is only that: it is not what the tab value belongs to.
 		Signer so = existingSigner("1", "signing_official", "sent");
 		Recipients existingRecipients = new Recipients();
 		existingRecipients.setSigners(List.of(so));
@@ -1056,6 +1056,9 @@ public class DocuSignClientTest {
 		existing.setRecipients(existingRecipients);
 		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
 
+		// The institution is declared as a sender field on the document. Its label still names the signing
+		// official's role, because that is how the eDUC contract names the field — but the tab itself belongs
+		// to no recipient, and this is the distinction the assertions below pin down.
 		stubEnvelopeTemplate("env-1", "tpl-1");
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
@@ -1075,11 +1078,21 @@ public class DocuSignClientTest {
 				Map.of("signing_official", new RecipientInfo("so@example.com", "Jane Admin")),
 				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "New Institution"));
 
+		// The new value is written to the document, against the tab the envelope already carries.
 		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);
 		verify(mockDocuSignEnvelopesApi).updateDocumentTabs(eq("env-1"),
 				eq(TestTemplateHelper.DOCUMENT_ID), tabsCaptor.capture());
 		assertEquals("New Institution",
 				tabsCaptor.getValue().getPrefillTabs().getTextTabs().get(0).getValue());
+
+		// And not onto the signing official, whose own tabs come away with nothing: the only value supplied
+		// was the institution, and being a sender field it is not the signer's to carry. Were it written here
+		// as well, DocuSign would place the value twice.
+		ArgumentCaptor<Recipients> recipientsCaptor = ArgumentCaptor.forClass(Recipients.class);
+		verify(mockDocuSignEnvelopesApi).updateRecipients(eq("env-1"), recipientsCaptor.capture(), eq(true));
+		Tabs updatedSignerTabs = recipientsCaptor.getValue().getSigners().get(0).getTabs();
+		assertNull(updatedSignerTabs.getTextTabs());
+		assertNull(updatedSignerTabs.getPrefillTabs());
 	}
 
 	@Test

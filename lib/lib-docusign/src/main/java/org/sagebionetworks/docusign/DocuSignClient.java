@@ -28,7 +28,6 @@ import com.docusign.esign.model.EnvelopeDefinition;
 import com.docusign.esign.model.EnvelopeSummary;
 import com.docusign.esign.model.EnvelopeTemplate;
 import com.docusign.esign.model.EnvelopeTemplateResults;
-import com.docusign.esign.model.PrefillTabs;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
 import com.docusign.esign.model.Tabs;
@@ -169,10 +168,10 @@ public class DocuSignClient {
 				}
 			}
 			if (!toUpdate.isEmpty()) {
-				envelopesApi.updateDocumentTabs(envelopeId, documentId, senderFieldTabs(toUpdate));
+				envelopesApi.updateDocumentTabs(envelopeId, documentId, TabType.senderFieldTabs(toUpdate));
 			}
 			if (!toCreate.isEmpty()) {
-				envelopesApi.createDocumentTabs(envelopeId, documentId, senderFieldTabs(toCreate));
+				envelopesApi.createDocumentTabs(envelopeId, documentId, TabType.senderFieldTabs(toCreate));
 			}
 		}
 	}
@@ -210,10 +209,7 @@ public class DocuSignClient {
 	}
 
 	private static Text findSenderField(Tabs tabs, String tabLabel) {
-		if (tabs == null || tabs.getPrefillTabs() == null || tabs.getPrefillTabs().getTextTabs() == null) {
-			return null;
-		}
-		for (Text tab : tabs.getPrefillTabs().getTextTabs()) {
+		for (Text tab : TabType.prefillTextTabs(tabs)) {
 			if (Strings.CS.equals(tabLabel, tab.getTabLabel())) {
 				return tab;
 			}
@@ -237,14 +233,6 @@ public class DocuSignClient {
 		copy.setFontSize(definition.getFontSize());
 		copy.setValue(value);
 		return copy;
-	}
-
-	private static Tabs senderFieldTabs(List<Text> textTabs) {
-		PrefillTabs prefillTabs = new PrefillTabs();
-		prefillTabs.setTextTabs(textTabs);
-		Tabs tabs = new Tabs();
-		tabs.setPrefillTabs(prefillTabs);
-		return tabs;
 	}
 
 	/**

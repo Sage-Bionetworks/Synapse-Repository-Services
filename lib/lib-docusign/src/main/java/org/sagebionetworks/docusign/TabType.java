@@ -246,14 +246,34 @@ enum TabType {
 		return "There is no " + type.name() + " tab labeled '" + label + "'.";
 	}
 
-	// Prefill tabs sit one level deeper than every other type: Tabs holds a single PrefillTabs
-	// container rather than a list, and either it or its text tabs may be absent.
-	private static List<Text> prefillTextTabs(Tabs tabs) {
-		PrefillTabs prefillTabs = tabs.getPrefillTabs();
+	/**
+	 * The sender fields the given tabs carry, empty if they carry none.
+	 * <p>
+	 * Prefill tabs sit one level deeper than every other type: {@link Tabs} holds a single
+	 * {@link PrefillTabs} container rather than a list, and the tabs, that container and its text tabs may
+	 * each be absent. Reading them through here is what keeps every caller from repeating those checks.
+	 */
+	static List<Text> prefillTextTabs(Tabs tabs) {
+		PrefillTabs prefillTabs = tabs == null ? null : tabs.getPrefillTabs();
 		if (prefillTabs == null || prefillTabs.getTextTabs() == null) {
 			return List.of();
 		}
 		return prefillTabs.getTextTabs();
+	}
+
+	/**
+	 * The given sender fields wrapped in the {@link Tabs} that carries them, which is the shape DocuSign
+	 * accepts them in and the shape {@link #PREFILL_TEXT} reads them from.
+	 * <p>
+	 * The counterpart to {@link #prefillTextTabs}: both exist so that the nesting of a prefill tab is
+	 * described in one place rather than at each use.
+	 */
+	static Tabs senderFieldTabs(List<Text> textTabs) {
+		PrefillTabs prefillTabs = new PrefillTabs();
+		prefillTabs.setTextTabs(textTabs);
+		Tabs tabs = new Tabs();
+		tabs.setPrefillTabs(prefillTabs);
+		return tabs;
 	}
 }
 
