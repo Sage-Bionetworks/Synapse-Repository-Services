@@ -17,6 +17,8 @@ import org.apache.velocity.app.VelocityEngine;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -60,7 +62,7 @@ public class AccessReminderNotificationBuilder implements DataAccessNotification
 	}
 
 	@Override
-	public String buildSubject(ManagedACTAccessRequirement accessRequirement, AccessApproval approval,
+	public String buildSubject(AccessRequirement accessRequirement, AccessApproval approval,
 			UserInfo recipient) {
 		String prefix = "Data";
 		
@@ -72,7 +74,7 @@ public class AccessReminderNotificationBuilder implements DataAccessNotification
 	}
 
 	@Override
-	public String buildMessageBody(ManagedACTAccessRequirement accessRequirement, AccessApproval approval,
+	public String buildMessageBody(AccessRequirement accessRequirement, AccessApproval approval,
 			UserInfo recipient) {
 		
 		Template template = velocityEngine.getTemplate(TEMPLATE_FILE, StandardCharsets.UTF_8.name());
@@ -85,7 +87,7 @@ public class AccessReminderNotificationBuilder implements DataAccessNotification
 		return writer.toString();
 	}
 	
-	VelocityContext buildContext(ManagedACTAccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
+	VelocityContext buildContext(AccessRequirement accessRequirement, AccessApproval approval, UserInfo recipient) {
 		VelocityContext context = new VelocityContext();
 		
 		final UserProfile profile = userProfileManager.getUserProfile(recipient.getId().toString());
@@ -95,8 +97,10 @@ public class AccessReminderNotificationBuilder implements DataAccessNotification
 		context.put(PARAM_REQUIREMENT_ID, accessRequirement.getId());
 		context.put(PARAM_REQUIREMENT_DESCRIPTION, StringUtils.trimToNull(accessRequirement.getName()));
 		context.put(PARAM_DISPLAY_NAME, displayName);
-		context.put(PARAM_DUC_REQUIRED, accessRequirement.getIsDUCRequired());
-		context.put(PARAM_IRB_APPROVAL_REQUIRED, accessRequirement.getIsIRBApprovalRequired());
+		context.put(PARAM_DUC_REQUIRED, accessRequirement instanceof HasDataUseCertificate duc
+				&& Boolean.TRUE.equals(duc.getIsDUCRequired()));
+		context.put(PARAM_IRB_APPROVAL_REQUIRED, accessRequirement instanceof ManagedACTAccessRequirement managedAr
+				&& Boolean.TRUE.equals(managedAr.getIsIRBApprovalRequired()));
 		context.put(PARAM_RENEWAL_DATE, getFormattedDate(approval.getExpiredOn()));
 		
 		return context;

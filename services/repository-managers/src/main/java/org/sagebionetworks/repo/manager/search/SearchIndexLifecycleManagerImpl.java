@@ -21,6 +21,7 @@ import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.IndexAuthorizationSnapshotManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -155,6 +156,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final WriteReadSemaphore writeReadSemaphore;
 	private final StackConfiguration stackConfiguration;
 	private final DefiningSqlDependencyDao definingSqlDependencyDao;
+	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
@@ -166,7 +168,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			ColumnModelManager columnModelManager,
 			WriteReadSemaphore writeReadSemaphore,
 			StackConfiguration stackConfiguration,
-			DefiningSqlDependencyDao definingSqlDependencyDao) {
+			DefiningSqlDependencyDao definingSqlDependencyDao,
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
@@ -179,6 +182,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.writeReadSemaphore = writeReadSemaphore;
 		this.stackConfiguration = stackConfiguration;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
+		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
 	}
 
 	@Override
@@ -407,6 +411,15 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 					physicalSlot, selectColumns, openSearchManager)) {
 				indexDao.queryAsStream(query, handler);
 			}
+
+			// Capture the as-built authorization snapshot before the alias swap makes this index live, so
+			// a reader authorizes against the same as-built state the served bytes reflect and later drift
+			// in current truth cannot authorize access to these bytes. A SearchIndex has no IndexDescription
+			// of its own; it is authorized entirely through its source's, so the snapshot projects the
+			// source (its benefactor columns and transitive dependencies) and records the defining SQL's
+			// per-column lineage back to the source columns.
+			statusDao.saveSnapshot(KeyFactory.stringToKey(entityId), indexAuthorizationSnapshotManager
+					.buildSnapshot(sourceIndexDescription, definingSQL, selectedColumns));
 
 			// Atomically repoint the alias to the freshly-built slot. Only now does the new data
 			// become visible to queries; the old index served every query up to this instant.

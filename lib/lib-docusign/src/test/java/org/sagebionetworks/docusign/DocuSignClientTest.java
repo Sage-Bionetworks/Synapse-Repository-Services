@@ -484,6 +484,27 @@ public class DocuSignClientTest {
 	}
 
 	@Test
+	public void testDiscardEnvelopeSuccess() {
+		// call under test
+		client.discardEnvelope("env-1");
+
+		verify(mockDocuSignEnvelopesApi).discardEnvelope("env-1");
+		// Discarding is not voiding: an unsent envelope cannot be voided, so no status change is attempted.
+		verify(mockDocuSignEnvelopesApi, never()).voidEnvelope(any(), any());
+		verify(mockDocuSignEnvelopesApi, never()).updateEnvelope(any(), any());
+	}
+
+	@Test
+	public void testDiscardEnvelopeWithNullEnvelopeId() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> client.discardEnvelope(null));
+
+		assertEquals("envelopeId is required.", ex.getMessage());
+		verifyNoInteractions(mockDocuSignEnvelopesApi);
+	}
+
+	@Test
 	public void testVoidEnvelopeWithNullReason() {
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -1025,7 +1046,16 @@ public class DocuSignClientTest {
 	}
 
 	@Test
-	public void testRefreshSenderFieldsUpdatesAChangedValue() {
+	public void testCorrectEnvelopeUpdatesAChangedSenderField() {
+		// Sender fields belong to the documents rather than to any recipient, so correcting them is a step of
+		// its own rather than something the recipient updates carry.
+		Signer so = existingSigner("1", "signing_official", "sent");
+		Recipients existingRecipients = new Recipients();
+		existingRecipients.setSigners(List.of(so));
+		Envelope existing = new Envelope();
+		existing.setRecipients(existingRecipients);
+		when(mockDocuSignEnvelopesApi.getEnvelope("env-1")).thenReturn(existing);
+
 		stubEnvelopeTemplate("env-1", "tpl-1");
 		EnvelopeTemplate template = TestTemplateHelper.buildValidTemplate(0);
 		Tabs documentTabs = TestTemplateHelper.emptyDocumentTabs();
@@ -1041,7 +1071,8 @@ public class DocuSignClientTest {
 				.thenReturn(envelopeTabs);
 
 		// call under test
-		client.refreshSenderFields("env-1",
+		client.correctEnvelope("env-1",
+				Map.of("signing_official", new RecipientInfo("so@example.com", "Jane Admin")),
 				Map.of(new RoleLabelKey("signing_official", "signing_official_institution"), "New Institution"));
 
 		ArgumentCaptor<Tabs> tabsCaptor = ArgumentCaptor.forClass(Tabs.class);

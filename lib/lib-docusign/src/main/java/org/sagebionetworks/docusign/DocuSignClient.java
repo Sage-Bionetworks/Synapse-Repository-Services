@@ -178,19 +178,6 @@ public class DocuSignClient {
 	}
 
 	/**
-	 * Brings the sender fields of a draft envelope up to date with the given values.
-	 * <p>
-	 * Needed because a draft is created once and then reused: a preview taken after the request changed
-	 * would otherwise still show the values the envelope was created with. The recipients' own tabs do
-	 * not have this problem in a preview, since DocuSign does not resolve those until signing.
-	 */
-	public void refreshSenderFields(String envelopeId, Map<RoleLabelKey, String> tabValues) {
-		ValidateArgument.required(envelopeId, "envelopeId");
-		ValidateArgument.required(tabValues, "tabValues");
-		applySenderFields(envelopeId, tabValues, loadValidatedTemplate(templateIdOf(envelopeId)).layout());
-	}
-
-	/**
 	 * The sender field values to write, grouped by the document that declares each field. A template may
 	 * spread its sender fields over more than one document, and they are written a document at a time.
 	 */
@@ -668,6 +655,17 @@ public class DocuSignClient {
 		ValidateArgument.required(envelopeId, "envelopeId");
 		ValidateArgument.required(reason, "reason");
 		envelopesApi.voidEnvelope(envelopeId, reason);
+	}
+
+	/**
+	 * Throws an envelope away, leaving no record of it for recipients or for a later read.
+	 * <p>
+	 * Intended for an envelope that was only ever created in order to render its document, and never sent.
+	 * A sent envelope should be voided instead, so that it keeps its audit trail.
+	 */
+	public void discardEnvelope(String envelopeId) {
+		ValidateArgument.required(envelopeId, "envelopeId");
+		envelopesApi.discardEnvelope(envelopeId);
 	}
 
 	/*

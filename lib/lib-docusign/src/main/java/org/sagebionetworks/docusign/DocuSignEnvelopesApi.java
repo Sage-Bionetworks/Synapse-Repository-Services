@@ -15,6 +15,16 @@ interface DocuSignEnvelopesApi {
 
 	void voidEnvelope(String envelopeId, String reason);
 
+	/**
+	 * Throw an envelope away.
+	 * <p>
+	 * Not the same as voiding one. DocuSign has no endpoint that deletes an envelope; it models deletion
+	 * as a move into the account's "Deleted" folder, which only <em>voids</em> the envelope when it is
+	 * already in process. A draft moved there is simply gone, which is what this is for — voiding a draft
+	 * is refused, since an envelope has to have been sent before it can be voided.
+	 */
+	void discardEnvelope(String envelopeId);
+
 	void updateEnvelope(String envelopeId, Envelope envelope);
 
 	Envelope getEnvelope(String envelopeId);

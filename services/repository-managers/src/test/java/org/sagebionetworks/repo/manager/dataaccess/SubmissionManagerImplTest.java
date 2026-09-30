@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ApprovalState;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -499,6 +500,51 @@ public class SubmissionManagerImplTest {
 	}
 
 	@Test
+	public void testCreateWithJsonSchemaAccessRequirement() {
+		// the schema based requirement describes the IRB approval and the attachments through its bound
+		// schema, so the request level documents other than the DUC are not collected
+		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
+			.setVersionNumber(accessRequirementVersion)
+			.setIsDUCRequired(true);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
+		when(mockForumDao.getForumByObjectIdAndType(accessRequirementId, ForumObjectType.ACCESS_REQUIREMENT))
+				.thenReturn(mockForum);
+
+		// call under test
+		manager.create(mockUser, csRequest);
+
+		ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+		verify(mockSubmissionDao).createSubmission(submissionCaptor.capture());
+		Submission captured = submissionCaptor.getValue();
+		assertEquals(accessRequirementId, captured.getAccessRequirementId());
+		assertEquals(accessRequirementVersion, captured.getAccessRequirementVersion());
+		assertEquals(ducFileHandleId, captured.getDucFileHandleId());
+		assertNull(captured.getIrbFileHandleId());
+		assertNull(captured.getAttachments());
+		assertEquals(accessors, captured.getAccessorChanges());
+		assertEquals(SubmissionState.SUBMITTED, captured.getState());
+
+		verify(mockAccessAprovalManager).validateHasAccessorRequirement(jsonSchemaAr, accessorIds);
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndMissingDUC() {
+		JsonSchemaAccessRequirement jsonSchemaAr = new JsonSchemaAccessRequirement()
+			.setVersionNumber(accessRequirementVersion)
+			.setIsDUCRequired(true);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(jsonSchemaAr);
+		request.setDucFileHandleId(null);
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.create(mockUser, csRequest);
+		}).getMessage();
+
+		assertEquals("You must provide a Data Use Certification document.", message);
+		verify(mockSubmissionDao, never()).createSubmission(any());
+	}
+
+	@Test
 	public void testCreateWithNonRenewal() {
 		Request request = new Request();
 		request.setId(requestId);
@@ -904,6 +950,36 @@ public class SubmissionManagerImplTest {
 	}
 
 	@Test
+	public void testUpdateStatusApprovedWithJsonSchemaAccessRequirement() {
+		long expirationPeriod = 30*24*60*60*1000L;
+		when(mockAccessRequirementDao.get(accessRequirementId))
+			.thenReturn(new JsonSchemaAccessRequirement().setExpirationPeriod(expirationPeriod));
+		SubmissionStateChangeRequest request = new SubmissionStateChangeRequest();
+		request.setSubmissionId(submissionId);
+		request.setNewState(SubmissionState.APPROVED);
+		submission.setAccessorChanges(accessors);
+
+		when(mockSubmissionDao.getForUpdate(submissionId)).thenReturn(submission);
+		when(mockSubmissionDao.updateSubmissionStatus(eq(submissionId),
+				eq(SubmissionState.APPROVED), eq(null), eq(actUser.getId().toString()),
+				anyLong())).thenReturn(submission);
+		when(mockAuthManager.canReviewAccessRequirementSubmissions(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		// call under test
+		assertEquals(submission, manager.updateStatus(actUser, request));
+
+		ArgumentCaptor<List> captor = ArgumentCaptor.forClass(List.class);
+		verify(mockAccessApprovalDao).createOrUpdateBatch(captor.capture());
+		List<AccessApproval> approvals = captor.getValue();
+		assertEquals(1, approvals.size());
+		AccessApproval approval = approvals.get(0);
+		assertEquals(ApprovalState.APPROVED, approval.getState());
+		// the expiration period of the schema based requirement drives the approval expiration
+		assertNotNull(approval.getExpiredOn());
+		verify(mockRequestManager).updateApprovedRequest(requestId);
+	}
+
+	@Test
 	public void testListSubmissionsWithNullUserInfo() {
 		assertThrows(IllegalArgumentException.class, ()->{
 			manager.listSubmission(null, new SubmissionPageRequest());
@@ -1176,6 +1252,24 @@ public class SubmissionManagerImplTest {
 		ManagedACTAccessRequirementStatus actARStatus = (ManagedACTAccessRequirementStatus) arStatus;
 		assertEquals(mockSubmissionStatus, actARStatus.getCurrentSubmissionStatus());
 		verify(mockAccessRequirementDao).getConcreteType(accessRequirementId);
+		verify(mockSubmissionDao).getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId);
+	}
+
+	@Test
+	public void testGetAccessRequirementStatusWithJsonSchemaAR() {
+		when(mockAccessRequirementDao.getConcreteType(accessRequirementId))
+			.thenReturn(JsonSchemaAccessRequirement.class.getName());
+		when(mockSubmissionDao.getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId))
+			.thenReturn(mockSubmissionStatus);
+
+		// call under test
+		AccessRequirementStatus arStatus = manager.getAccessRequirementStatus(mockUser, accessRequirementId);
+
+		assertTrue(arStatus instanceof ManagedACTAccessRequirementStatus);
+		assertEquals(accessRequirementId, arStatus.getAccessRequirementId());
+		assertFalse(arStatus.getIsApproved());
+		assertNull(arStatus.getExpiredOn());
+		assertEquals(mockSubmissionStatus, ((ManagedACTAccessRequirementStatus) arStatus).getCurrentSubmissionStatus());
 		verify(mockSubmissionDao).getStatusByRequirementIdAndPrincipalId(accessRequirementId, userId);
 	}
 

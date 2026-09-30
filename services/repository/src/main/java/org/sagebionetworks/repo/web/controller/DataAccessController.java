@@ -479,8 +479,11 @@ public class DataAccessController {
 	}
 
 	/**
-	 * Preview the eDUC document for a data access request.
-	 * Creates a draft envelope if one doesn't exist and returns the PDF as a file handle.
+	 * Preview the eDUC document for a data access request, as a file handle for the rendered PDF.
+	 * <p>
+	 * The preview always reflects the request's current content. It leaves nothing behind: the document is
+	 * rendered from an envelope created for the purpose and discarded afterwards, so previewing neither
+	 * begins the signature process nor affects what is later routed.
 	 *
 	 * @param userId    - The ID of the user who is making the request.
 	 * @param requestId - The ID of the data access request.

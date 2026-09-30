@@ -953,6 +953,103 @@ public class OpenSearchManagerImplTest {
 		assertEquals(overrideAossKey + "__default_search", field100.path("search_analyzer").asText());
 	}
 
+	private static final String SCIENTIFIC_QNAME = "org.sagebionetworks-SCIENTIFIC";
+	private static final String KEYWORD_QNAME = "org.sagebionetworks-KEYWORD";
+	private static final String CURATOR_QNAME = "biomed-pubs";
+
+	/**
+	 * Run createIndex with the three analyzers precedence can pick between registered, and return
+	 * the applied {@code mappings.properties} block.
+	 */
+	private JsonNode createIndexAndReadProperties(List<ColumnModel> columns, String defaultAnalyzerQname,
+			List<ColumnAnalyzerOverride> overrides) throws IOException {
+		String analyzerSettings = "{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"standard\"}}}";
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = new HashMap<>();
+		resolvedAnalyzers.put(SCIENTIFIC_QNAME, toAnalysis(analyzerSettings));
+		resolvedAnalyzers.put(KEYWORD_QNAME, toAnalysis(analyzerSettings));
+		resolvedAnalyzers.put(CURATOR_QNAME, toAnalysis(analyzerSettings));
+		String indexName = "search-index-syn1";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest r) -> indexName.equals(r.index())))).thenReturn(
+				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+		Optional<String> appliedJson = manager.createIndex(indexName, columns, defaultAnalyzerQname,
+				overrides, resolvedAnalyzers, 0, 1, 0);
+		return MAPPER.readTree(appliedJson.get()).at("/mappings/properties");
+	}
+
+	private static List<ColumnAnalyzerOverride> overrideWithoutAnalyzer(String columnName) {
+		ColumnAnalyzerOverrideEntry entry = new ColumnAnalyzerOverrideEntry();
+		entry.setColumnName(columnName);
+		ColumnAnalyzerOverride override = new ColumnAnalyzerOverride();
+		override.setOverrides(Collections.singletonList(entry));
+		return Collections.singletonList(override);
+	}
+
+	private static final List<ColumnModel> TITLE_COLUMN = Collections.singletonList(
+			new ColumnModel().setId("100").setName("title").setColumnType(ColumnType.STRING));
+
+	@Test
+	public void testCreateIndexWithOverrideEntryMissingAnalyzerAndNoConfigDefault() throws IOException {
+		// call under test
+		JsonNode properties = createIndexAndReadProperties(TITLE_COLUMN, null, overrideWithoutAnalyzer("title"));
+
+		// No override analyzer and no configuration default: the column type's system default binds.
+		assertEquals(OpenSearchManagerImpl.toAossKey(SCIENTIFIC_QNAME),
+				properties.at("/100/analyzer").asText(), properties.toString());
+	}
+
+	@Test
+	public void testCreateIndexWithOverrideEntryMissingAnalyzerAndConfigDefault() throws IOException {
+		// call under test
+		JsonNode properties = createIndexAndReadProperties(TITLE_COLUMN, CURATOR_QNAME,
+				overrideWithoutAnalyzer("title"));
+
+		// The configuration default is expressed by emitting no per-field analyzer, so OpenSearch
+		// falls through to analysis.analyzer.default.
+		assertTrue(properties.at("/100/analyzer").isMissingNode(), properties.toString());
+	}
+
+	@Test
+	public void testCreateIndexWithOverrideAnalyzerAndConfigDefault() throws IOException {
+		ColumnAnalyzerOverrideEntry entry = new ColumnAnalyzerOverrideEntry();
+		entry.setColumnName("title");
+		entry.setAnalyzer(new org.json.JSONObject().put("$ref", CURATOR_QNAME));
+		ColumnAnalyzerOverride override = new ColumnAnalyzerOverride();
+		override.setOverrides(Collections.singletonList(entry));
+
+		// call under test
+		JsonNode properties = createIndexAndReadProperties(TITLE_COLUMN, SCIENTIFIC_QNAME,
+				Collections.singletonList(override));
+
+		assertEquals(OpenSearchManagerImpl.toAossKey(CURATOR_QNAME),
+				properties.at("/100/analyzer").asText(), properties.toString());
+	}
+
+	@Test
+	public void testCreateIndexWithConfigDefaultAndLinkColumn() throws IOException {
+		List<ColumnModel> columns = Collections.singletonList(
+				new ColumnModel().setId("200").setName("url").setColumnType(ColumnType.LINK));
+
+		// call under test
+		JsonNode properties = createIndexAndReadProperties(columns, SCIENTIFIC_QNAME, Collections.emptyList());
+
+		// The configuration default outranks LINK's KEYWORD type default.
+		assertTrue(properties.at("/200/analyzer").isMissingNode(), properties.toString());
+	}
+
+	@Test
+	public void testCreateIndexWithNoConfigDefaultAndLinkColumn() throws IOException {
+		List<ColumnModel> columns = Collections.singletonList(
+				new ColumnModel().setId("200").setName("url").setColumnType(ColumnType.LINK));
+
+		// call under test
+		JsonNode properties = createIndexAndReadProperties(columns, null, Collections.emptyList());
+
+		assertEquals(OpenSearchManagerImpl.toAossKey(KEYWORD_QNAME),
+				properties.at("/200/analyzer").asText(), properties.toString());
+	}
+
 	@Test
 	public void testCreateIndexWithOpenSearchException() throws IOException {
 		String indexName = "search-index-syn1";

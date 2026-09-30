@@ -15,6 +15,10 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
+import org.sagebionetworks.repo.model.HasExpiration;
+import org.sagebionetworks.repo.model.HasTwoFactorAuthRequirement;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -29,6 +33,15 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.util.ValidateArgument;
 
 public class AccessRequirementUtils {
+
+	/**
+	 * The concrete types of the access requirements that the ACT manages through a reviewed submission,
+	 * which are exactly the types implementing {@link HasExpiration}. Needed where only the name of the
+	 * type is at hand rather than the requirement itself.
+	 */
+	public static final Set<String> MANAGED_REQUIREMENT_TYPES = Set.of(ManagedACTAccessRequirement.class.getName(),
+			JsonSchemaAccessRequirement.class.getName());
+
 	private static final UnmodifiableXStream X_STREAM = UnmodifiableXStream.builder()
 			.allowTypes(AccessRequirement.class)
 			.allowTypesByWildcard(new String[] {"org.sagebionetworks.repo.model.**"})
@@ -58,9 +71,9 @@ public class AccessRequirementUtils {
 				dboRequirement.setName(dto.getId().toString());
 			}
 		}
-		if (dto instanceof ManagedACTAccessRequirement) {
-			dboRequirement.setIsTwoFaRequired(((ManagedACTAccessRequirement) dto).getIsTwoFaRequired());
-		}		
+		if (dto instanceof HasTwoFactorAuthRequirement) {
+			dboRequirement.setIsTwoFaRequired(((HasTwoFactorAuthRequirement) dto).getIsTwoFaRequired());
+		}
 		if (dboRequirement.getIsTwoFaRequired() == null) {
 			dboRequirement.setIsTwoFaRequired(false);
 		}
@@ -100,8 +113,8 @@ public class AccessRequirementUtils {
 		dto.setModifiedOn(new Date(revision.getModifiedOn()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setVersionNumber(revision.getNumber());
-		if (dto instanceof ManagedACTAccessRequirement) {
-			((ManagedACTAccessRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
+		if (dto instanceof HasTwoFactorAuthRequirement) {
+			((HasTwoFactorAuthRequirement) dto).setIsTwoFaRequired(dbo.getIsTwoFaRequired());
 		}
 		return dto;
 	}
@@ -186,13 +199,12 @@ public class AccessRequirementUtils {
 	 * @return The set of file handle ids assigned to the given access requirement
 	 */
 	public static Set<String> extractAllFileHandleIds(AccessRequirement accessRequirement) {
-		if (accessRequirement instanceof ManagedACTAccessRequirement) {
-			ManagedACTAccessRequirement actAR = (ManagedACTAccessRequirement) accessRequirement;
-			String ducFileHandleId = actAR.getDucTemplateFileHandleId();
+		if (accessRequirement instanceof HasDataUseCertificate) {
+			String ducFileHandleId = ((HasDataUseCertificate) accessRequirement).getDucTemplateFileHandleId();
 			if (ducFileHandleId != null) {
 				return Collections.singleton(ducFileHandleId);
 			}
-		}		
+		}
 		return Collections.emptySet();
 	}
 

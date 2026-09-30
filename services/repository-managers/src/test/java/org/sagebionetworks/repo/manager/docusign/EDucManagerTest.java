@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignerStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.educ.EDucTemplateValidationResult;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -329,6 +330,44 @@ public class EDucManagerTest {
 	}
 
 	@Test
+	public void testRouteForSignatureWithJsonSchemaAccessRequirement() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		// The creator is the only collaborator, so the envelope is kept minimal
+		request.setAccessorChanges(List.of());
+
+		JsonSchemaAccessRequirement ar = new JsonSchemaAccessRequirement();
+		ar.setId(1L);
+		ar.setIsDUCRequired(true);
+		ar.setEDucTemplateId("tpl-abc");
+
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(ar);
+		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
+		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
+		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
+		when(mockPrincipalAliasDao.getUserName(200L)).thenReturn("drjones");
+		when(mockPrincipalAliasDao.getUserName(100L)).thenReturn("creatoruser");
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(100L)).thenReturn("creator@example.com");
+		UserProfile creatorProfile = new UserProfile();
+		creatorProfile.setFirstName("Creator");
+		creatorProfile.setLastName("User");
+		when(mockUserProfileDao.get("100")).thenReturn(creatorProfile);
+		when(mockDocuSignClient.createEnvelope(eq("tpl-abc"), any(), any())).thenReturn("env-xyz");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+
+		// call under test
+		EDucSignatureQuota result = eDucManager.routeForSignature(user, "req-1");
+
+		assertEquals(Long.valueOf(10), result.getQuota());
+		assertEquals(Long.valueOf(9), result.getRemaining());
+
+		verify(mockDocuSignClient).createEnvelope(eq("tpl-abc"), any(), any());
+		verify(mockDocuSignClient).sendEnvelope("env-xyz");
+		verify(mockEDucQuotaDao).create(eq(100L), anyLong(), eq("env-xyz"));
+	}
+
+	@Test
 	public void testRouteForSignatureWithUnauthorizedUser() {
 		Request request = buildValidRequest();
 		when(mockRequestDao.get("req-1")).thenReturn(request);
@@ -365,22 +404,31 @@ public class EDucManagerTest {
 		assertEquals(Long.valueOf(9), result.getRemaining());
 	}
 
+	// An envelope is recorded before it is sent, so a failed send leaves one behind. It was never sent and
+	// its content is whatever the request said at the time, so routing replaces it rather than sending it.
 	@Test
-	public void testRouteForSignatureWithExistingDraft() {
+	public void testRouteForSignatureWithPersistedDraft() {
 		Request request = buildValidRequest();
-		request.setEDucSignatureEnvelopeId("existing-env");
+		request.setEDucSignatureEnvelopeId("stale-env");
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
-		// a draft envelope has not gone out for signature, so routing may still send it
-		stubEnvelopeStatus("existing-env", EDucStatusEnum.draft);
+		// a draft envelope has not gone out for signature, so routing is still allowed to proceed
+		stubEnvelopeStatus("stale-env", EDucStatusEnum.draft);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("fresh-env");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
 		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
 		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
 
-		// call under test — sends the existing draft
+		// call under test
 		EDucSignatureQuota result = eDucManager.routeForSignature(user, "req-1");
 
-		verify(mockDocuSignClient).sendEnvelope("existing-env");
+		verify(mockDocuSignClient).sendEnvelope("fresh-env");
+		verify(mockDocuSignClient, never()).sendEnvelope("stale-env");
+		assertEquals("fresh-env", request.getEDucSignatureEnvelopeId());
+		verify(mockEDucQuotaDao).create(100L, 456L, "fresh-env");
 		assertEquals(Long.valueOf(10), result.getQuota());
 		assertEquals(Long.valueOf(9), result.getRemaining());
 	}
@@ -485,7 +533,7 @@ public class EDucManagerTest {
 	}
 
 	@Test
-	public void testRouteForSignatureWithNonManagedACTRequirement() {
+	public void testRouteForSignatureWithRequirementNotSupportingDUC() {
 		Request request = buildValidRequest();
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
@@ -495,7 +543,7 @@ public class EDucManagerTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				() -> eDucManager.routeForSignature(user, "req-1"));
 
-		assertEquals("The access requirement is not a ManagedACTAccessRequirement.", ex.getMessage());
+		assertEquals("The access requirement does not support a Data Use Certificate.", ex.getMessage());
 		verifyNoInteractions(mockDocuSignClient);
 	}
 
@@ -1632,7 +1680,6 @@ public class EDucManagerTest {
 		profile.setLastName("B");
 		when(mockUserProfileDao.get(any(String.class))).thenReturn(profile);
 		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
-		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
 		when(mockDocuSignClient.getDocument("env-draft")).thenReturn(new byte[]{1, 2, 3});
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("fh-preview");
@@ -1644,55 +1691,80 @@ public class EDucManagerTest {
 
 		assertEquals("fh-preview", result.getFileHandleId());
 		verify(mockDocuSignClient).getDocument("env-draft");
+		// The envelope exists only to be rendered: it is thrown away, and nothing about it is recorded, so
+		// that it cannot later be routed carrying the content the request had at preview time.
+		verify(mockDocuSignClient).discardEnvelope("env-draft");
+		verify(mockRequestDao, never()).update(any());
+		assertNull(request.getEDucSignatureEnvelopeId());
 	}
 
 	@Test
-	public void testPreviewEDucWithExistingDraft() throws Exception {
+	public void testPreviewEDucWithRoutedEnvelope() throws Exception {
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		Request request = buildValidRequest();
-		request.setEDucSignatureEnvelopeId("env-existing");
+		request.setEDucSignatureEnvelopeId("env-routed");
 		when(mockRequestDao.get("req-1")).thenReturn(request);
 		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
 		stubContentBuildingDaos();
-		stubEnvelopeStatus("env-existing", EDucStatusEnum.draft);
-		when(mockDocuSignClient.getDocument("env-existing")).thenReturn(new byte[]{4, 5});
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-preview");
+		when(mockDocuSignClient.getDocument("env-preview")).thenReturn(new byte[]{4, 5});
 		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setId("fh-existing");
+		fileHandle.setId("fh-preview");
 		when(mockFileHandleManager.createFileFromByteArray(any(), any(), any(), any(), any(), any()))
 				.thenReturn(fileHandle);
 
 		// call under test
 		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
 
-		assertEquals("fh-existing", result.getFileHandleId());
-		// The draft is reused rather than rebuilt, so its sender fields are what would otherwise show the
-		// values the request had when the draft was first created.
-		verify(mockDocuSignClient).refreshSenderFields(eq("env-existing"), any());
-		verify(mockDocuSignClient, never()).createEnvelope(any(), any(), any());
-		verify(mockDocuSignClient).getDocument("env-existing");
+		assertEquals("fh-preview", result.getFileHandleId());
+		// A preview always shows the request as it stands now, so an envelope already routed is neither read
+		// nor disturbed.
+		verify(mockDocuSignClient).getDocument("env-preview");
+		verify(mockDocuSignClient).discardEnvelope("env-preview");
+		verify(mockDocuSignClient, never()).getDocument("env-routed");
+		verify(mockDocuSignClient, never()).discardEnvelope("env-routed");
+		assertEquals("env-routed", request.getEDucSignatureEnvelopeId());
 	}
 
 	@Test
-	public void testPreviewEDucWithAlreadyRoutedEnvelope() throws Exception {
+	public void testPreviewEDucWithFailureRenderingDocument() {
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		Request request = buildValidRequest();
-		request.setEDucSignatureEnvelopeId("env-sent");
 		when(mockRequestDao.get("req-1")).thenReturn(request);
-		stubEnvelopeStatus("env-sent", EDucStatusEnum.sent);
-		when(mockDocuSignClient.getDocument("env-sent")).thenReturn(new byte[]{6, 7});
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
+		when(mockDocuSignClient.getDocument("env-draft")).thenThrow(new IllegalStateException("DocuSign is down."));
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> eDucManager.previewEDuc(user, "req-1"));
+
+		// The envelope is still thrown away, so a failed preview does not leave one behind.
+		verify(mockDocuSignClient).discardEnvelope("env-draft");
+	}
+
+	@Test
+	public void testPreviewEDucWithFailureDiscardingEnvelope() throws Exception {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
+		when(mockDocuSignClient.getDocument("env-draft")).thenReturn(new byte[]{1, 2, 3});
+		doThrow(new IllegalStateException("DocuSign refused the delete."))
+				.when(mockDocuSignClient).discardEnvelope("env-draft");
 		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setId("fh-sent");
+		fileHandle.setId("fh-preview");
 		when(mockFileHandleManager.createFileFromByteArray(any(), any(), any(), any(), any(), any()))
 				.thenReturn(fileHandle);
 
 		// call under test
 		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
 
-		assertEquals("fh-sent", result.getFileHandleId());
-		// A routed envelope's sender fields can no longer be set, so the routed document is returned as it
-		// stands rather than an attempt being made to change it.
-		verify(mockDocuSignClient, never()).refreshSenderFields(any(), any());
-		verify(mockDocuSignClient).getDocument("env-sent");
+		// The document was already rendered, so failing to tidy up costs an abandoned draft rather than the
+		// caller's preview.
+		assertEquals("fh-preview", result.getFileHandleId());
 	}
 
 	@Test

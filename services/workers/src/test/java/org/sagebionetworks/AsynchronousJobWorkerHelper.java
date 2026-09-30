@@ -236,7 +236,17 @@ public interface AsynchronousJobWorkerHelper {
 	 * @return
 	 */
 	MaterializedView createMaterializedView(UserInfo user, String parentId, String sql, boolean searchEnabled);
-	
+
+	/**
+	 * Updates the defining SQL of an existing materialized view through the entity service, so the
+	 * metadata provider re-registers the source tables exactly as a real defining-SQL update does.
+	 *
+	 * @param viewId The id of the materialized view to update
+	 * @param user
+	 * @param sql    The new defining SQL
+	 */
+	void updateMaterializedView(String viewId, UserInfo user, String sql);
+
 	/**
 	 * Create a new VirtualTable.
 	 * 

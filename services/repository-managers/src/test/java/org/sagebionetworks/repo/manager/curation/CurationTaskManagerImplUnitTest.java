@@ -14,6 +14,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.curation.CurationTask;
@@ -80,6 +82,9 @@ public class CurationTaskManagerImplUnitTest {
     EntityManager mockEntityManager;
 
     @Mock
+    UserGroupDAO mockUserGroupDao;
+
+    @Mock
     private AuthorizationStatus mockAuthorizationStatus;
 
     @Spy
@@ -96,6 +101,7 @@ public class CurationTaskManagerImplUnitTest {
     String uploadFolderId = "syn1000";
     Long inputTaskId = 111L;
     Long destinationTaskId = 222L;
+    Long assigneePrincipalId = 888L;
 
     @BeforeEach
     public void setup() {
@@ -128,6 +134,83 @@ public class CurationTaskManagerImplUnitTest {
         CurationTask task = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setTaskProperties(new UnknownCurationTaskProperties());
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> curationTaskManager.createCurationTask(userInfo, task));
         assertTrue(ex.getMessage().contains("Unknown CurationTaskProperties concreteType"));
+    }
+
+    @Test
+    public void testCreateCurationTaskWithNonExistentAssignee() {
+        CurationTask toCreate = createCurationTask(CurationTaskPropertiesType.FILE_BASED)
+                .setAssigneePrincipalId(assigneePrincipalId.toString());
+        when(mockUserGroupDao.doesIdExist(assigneePrincipalId)).thenReturn(false);
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.createCurationTask(userInfo, toCreate));
+
+        assertEquals("The assigneePrincipalId '888' does not exist.", ex.getMessage());
+        verify(mockCurationTaskDao, never()).createCurationTask(any(), any());
+        verifyNoInteractions(mockEntityManager, mockAuthorizationManager);
+    }
+
+    @Test
+    public void testCreateCurationTaskWithExistingAssignee() {
+        CurationTask toCreate = createCurationTask(CurationTaskPropertiesType.FILE_BASED)
+                .setAssigneePrincipalId(assigneePrincipalId.toString());
+        CurationTask createdByDao = new CurationTask().setTaskId(999L);
+
+        when(mockUserGroupDao.doesIdExist(assigneePrincipalId)).thenReturn(true);
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(mockAuthorizationStatus);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.createCurationTask(eq(userId), eq(toCreate))).thenReturn(createdByDao);
+
+        // call under test
+        CurationTask result = curationTaskManager.createCurationTask(userInfo, toCreate);
+
+        assertSame(createdByDao, result);
+    }
+
+    @Test
+    public void testCreateCurationTaskWithNullAssignee() {
+        CurationTask toCreate = createCurationTask(CurationTaskPropertiesType.FILE_BASED).setAssigneePrincipalId(null);
+        CurationTask createdByDao = new CurationTask().setTaskId(999L);
+
+        when(mockAuthorizationManager.canAccess(eq(userInfo), eq(projectId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(mockAuthorizationStatus);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(fileViewId))).thenReturn(EntityType.entityview);
+        when(mockEntityManager.getEntityType(eq(userInfo), eq(uploadFolderId))).thenReturn(EntityType.folder);
+        when(mockCurationTaskDao.createCurationTask(eq(userId), eq(toCreate))).thenReturn(createdByDao);
+
+        // call under test
+        curationTaskManager.createCurationTask(userInfo, toCreate);
+
+        verify(mockUserGroupDao, never()).doesIdExist(any());
+    }
+
+    @Test
+    public void testCreateCurationTaskWithNonNumericAssignee() {
+        CurationTask toCreate = createCurationTask(CurationTaskPropertiesType.FILE_BASED)
+                .setAssigneePrincipalId("not-a-principal");
+
+        // call under test - NumberFormatException is an IllegalArgumentException, which maps to a 400
+        assertThrows(NumberFormatException.class, () -> curationTaskManager.createCurationTask(userInfo, toCreate));
+
+        verify(mockCurationTaskDao, never()).createCurationTask(any(), any());
+        verifyNoInteractions(mockUserGroupDao);
+    }
+
+    @Test
+    public void testUpdateCurationTaskWithNonExistentAssignee() {
+        CurationTask toUpdate = createCurationTask(CurationTaskPropertiesType.FILE_BASED)
+                .setTaskId(taskId)
+                .setAssigneePrincipalId(assigneePrincipalId.toString());
+        when(mockUserGroupDao.doesIdExist(assigneePrincipalId)).thenReturn(false);
+
+        // call under test
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> curationTaskManager.updateCurationTask(userInfo, toUpdate));
+
+        assertEquals("The assigneePrincipalId '888' does not exist.", ex.getMessage());
+        verify(mockCurationTaskDao, never()).getCurationTask(any());
+        verify(mockCurationTaskDao, never()).updateCurationTask(any(), any());
     }
 
     @Test

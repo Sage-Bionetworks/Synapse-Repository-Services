@@ -15,6 +15,8 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.docusign.EDucTemplateRoles;
 import org.sagebionetworks.docusign.EnvelopeRecipient;
@@ -25,7 +27,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
-import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
+import org.sagebionetworks.repo.model.HasDataUseCertificate;
 import org.sagebionetworks.repo.model.NextPageToken;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,6 +59,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EDucManager {
+
+	private static final Logger LOG = LogManager.getLogger(EDucManager.class);
 
 	static final int MAX_ENVELOPES_PER_MONTH = 10;
 	static final long THIRTY_DAYS_IN_MS = 30L * 24 * 60 * 60 * 1000;
@@ -221,16 +225,16 @@ public class EDucManager {
 			throw new UnauthorizedException("Only the request creator or an administrator can preview the eDUC.");
 		}
 
-		// A draft built by an earlier preview still holds the values it was created with, so it is brought
-		// up to date before being rendered again.
-		boolean reusingDraft = request.getEDucSignatureEnvelopeId() != null;
-		request = createDraftEDuc(request);
-		String envelopeId = request.getEDucSignatureEnvelopeId();
-		if (reusingDraft) {
-			refreshDraftSenderFields(request, envelopeId);
+		// The envelope exists only to be rendered. Nothing about it is persisted, so that a preview cannot
+		// leave behind a draft that is later routed with the content the request happened to have when the
+		// preview was taken. Its sender fields are written when it is created, so they need no refreshing.
+		String envelopeId = createEnvelopeFromRequest(request);
+		byte[] pdfBytes;
+		try {
+			pdfBytes = docuSignClient.getDocument(envelopeId);
+		} finally {
+			discardQuietly(envelopeId);
 		}
-
-		byte[] pdfBytes = docuSignClient.getDocument(envelopeId);
 
 		try {
 			S3FileHandle fileHandle = fileHandleManager.createFileFromByteArray(
@@ -245,15 +249,42 @@ public class EDucManager {
 	}
 
 	/**
+	 * Throws away an envelope that was only created in order to render it, without letting the attempt fail
+	 * the caller. The document has already been produced by this point, so a failure to tidy up costs an
+	 * abandoned draft in the DocuSign account and nothing more — which is not worth turning into an error
+	 * the requester sees.
+	 */
+	private void discardQuietly(String envelopeId) {
+		try {
+			docuSignClient.discardEnvelope(envelopeId);
+		} catch (RuntimeException e) {
+			LOG.warn("Failed to discard the envelope created to render a preview: " + envelopeId, e);
+		}
+	}
+
+	/**
+	 * Creates an envelope holding the request's current content, and returns its ID without recording it
+	 * anywhere.
+	 */
+	private String createEnvelopeFromRequest(RequestInterface request) {
+		HasDataUseCertificate dataUseCertificate = validateEDucRequest(request);
+		// Nothing is being reused, so the collaborator roles are assigned from scratch.
+		EDucContent content = buildEDucContent(request, List.of());
+		return docuSignClient.createEnvelope(dataUseCertificate.getEDucTemplateId(),
+				content.recipients(), content.tabValues());
+	}
+
+	/**
 	 * Guards {@link #routeForSignature} against being called a second time for an envelope that has
-	 * already gone out for signature.
-	 * <p>
-	 * Routing reuses an existing envelope when one is found, which is what lets a draft (built by
-	 * {@link #previewEDuc}) be sent. Once the envelope is out for signature that reuse is no longer
-	 * meaningful: the request's current content is never rebuilt, so routing again would re-send an
-	 * envelope that does not contain the caller's latest changes while still consuming a quota slot
-	 * and recording the content as applied. Changes to a routed envelope belong to
+	 * already gone out for signature. Changes to a routed envelope belong to
 	 * {@link #updateRoutedEnvelope}, which corrects it in place.
+	 * <p>
+	 * An envelope still in draft was never sent, so it is not something that has been routed and routing
+	 * proceeds, replacing it. One is left recorded whenever the send fails: the envelope is recorded before
+	 * it is sent, and not in the same transaction, deliberately — an envelope Synapse has forgotten but
+	 * DocuSign has sent would leave signers with a document nobody could cancel or report on, which is
+	 * worse than a draft nobody sent. Refusing to route in that state would strand the request, since an
+	 * unsent envelope cannot be cancelled either.
 	 *
 	 * @throws IllegalArgumentException (HTTP 400) if the envelope exists and is past draft
 	 */
@@ -273,18 +304,16 @@ public class EDucManager {
 		throw new IllegalArgumentException("This eDUC has already been routed for signature. " + remedy);
 	}
 
+	/**
+	 * Builds the envelope that is about to be routed, from the request's current content, and records it on
+	 * the request.
+	 * <p>
+	 * A new envelope is always created rather than any existing one reused, so that what goes out for
+	 * signature is necessarily what the request says now. An envelope already recorded against the request
+	 * was never sent, so it is simply replaced.
+	 */
 	RequestInterface createDraftEDuc(RequestInterface request) {
-		// if an envelope already exists then there's nothing more to do
-		if (request.getEDucSignatureEnvelopeId() != null) {
-			return request;
-		}
-
-		ManagedACTAccessRequirement managedAr = validateEDucRequest(request);
-		String templateId = managedAr.getEDucTemplateId();
-		// No envelope exists yet, so the collaborator roles are assigned from scratch.
-		EDucContent content = buildEDucContent(request, List.of());
-
-		String envelopeId = docuSignClient.createEnvelope(templateId, content.recipients(), content.tabValues());
+		String envelopeId = createEnvelopeFromRequest(request);
 
 		request.setEDucSignatureEnvelopeId(envelopeId);
 		requestDao.update(request);
@@ -292,42 +321,20 @@ public class EDucManager {
 	}
 
 	/**
-	 * Brings the sender fields of an existing draft up to date with the request, so that previewing after
-	 * a change shows the current content.
-	 * <p>
-	 * Only sender fields need this. DocuSign does not resolve a recipient's own tabs until signing, so a
-	 * preview never shows those whatever the draft holds; a sender field is resolved by the sender, which
-	 * is what makes it visible in a preview and stale if left alone. An envelope already out for signature
-	 * is left untouched — its sender fields can no longer be set, and applying changes to a routed
-	 * envelope belongs to {@link #updateRoutedEnvelope}.
-	 */
-	private void refreshDraftSenderFields(RequestInterface request, String envelopeId) {
-		EnvelopeStatusResult statusResult = docuSignClient.getEnvelopeStatus(envelopeId);
-		if (!EDucStatusEnum.draft.equals(statusResult.status().getDucStatus())) {
-			return;
-		}
-		validateEDucRequest(request);
-		// The existing recipients are read so that the collaborators keep the roles the draft gave them,
-		// and so each value is matched to the same tab it was first written to.
-		EDucContent content = buildEDucContent(request, docuSignClient.getRecipients(envelopeId));
-		docuSignClient.refreshSenderFields(envelopeId, content.tabValues());
-	}
-
-	/**
 	 * Validates that the request's access requirement supports an eDUC and that the request has
 	 * the principal investigator and signing official needed to build the envelope.
 	 *
-	 * @return the ManagedACTAccessRequirement (which carries the eDUC template ID)
+	 * @return the access requirement, which carries the eDUC template ID
 	 */
-	private ManagedACTAccessRequirement validateEDucRequest(RequestInterface request) {
+	private HasDataUseCertificate validateEDucRequest(RequestInterface request) {
 		AccessRequirement ar = accessRequirementDao.get(request.getAccessRequirementId());
-		if (!(ar instanceof ManagedACTAccessRequirement managedAr)) {
-			throw new IllegalArgumentException("The access requirement is not a ManagedACTAccessRequirement.");
+		if (!(ar instanceof HasDataUseCertificate dataUseCertificate)) {
+			throw new IllegalArgumentException("The access requirement does not support a Data Use Certificate.");
 		}
-		if (!Boolean.TRUE.equals(managedAr.getIsDUCRequired())) {
+		if (!Boolean.TRUE.equals(dataUseCertificate.getIsDUCRequired())) {
 			throw new IllegalArgumentException("The access requirement does not require a DUC.");
 		}
-		if (StringUtils.isBlank(managedAr.getEDucTemplateId())) {
+		if (StringUtils.isBlank(dataUseCertificate.getEDucTemplateId())) {
 			throw new IllegalArgumentException("The access requirement does not have an eDUC template ID configured.");
 		}
 
@@ -342,7 +349,7 @@ public class EDucManager {
 		ValidateArgument.required(so.getInstitutionalEmail(), "signingOfficial.institutionalEmail");
 		ValidateArgument.requiredNotBlank(so.getName(), "signingOfficial.name");
 
-		return managedAr;
+		return dataUseCertificate;
 	}
 
 	// The recipient identities (email + name per role) and tab values derived from a request that

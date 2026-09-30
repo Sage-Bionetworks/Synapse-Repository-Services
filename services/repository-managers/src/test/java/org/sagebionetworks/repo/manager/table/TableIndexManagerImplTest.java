@@ -141,6 +141,8 @@ public class TableIndexManagerImplTest {
 	@Mock
 	private TableRowSearchProcessor mockSearchProcessor;
 	@Mock
+	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
 	private ViewFilter mockFilter;
 	@Mock
 	private ViewFilterBuilder mockFilterBuilder;
@@ -188,7 +190,7 @@ public class TableIndexManagerImplTest {
 		objectType = ViewObjectType.ENTITY;
 		tableId = IdAndVersion.parse("syn123");
 		manager = new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory,
-				mockObjectFieldModelResolverFactory, mockSearchProcessor);
+				mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		managerSpy = Mockito.spy(manager);
 		versionNumber = 99L;
 		schema = Arrays.asList(TableModelTestUtils.createColumn(99L, "aString", ColumnType.STRING),
@@ -244,7 +246,7 @@ public class TableIndexManagerImplTest {
 	public void testNullDao() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(null, mockManagerSupport, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
@@ -252,28 +254,35 @@ public class TableIndexManagerImplTest {
 	public void testNullSupport() {
 		assertThrows(IllegalArgumentException.class, () -> {
 			new TableIndexManagerImpl(mockIndexDao, null, mockMetadataProviderFactory,
-					mockObjectFieldModelResolverFactory, mockSearchProcessor);
+					mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
 	@Test
 	public void testNullProviderFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, null, mockObjectFieldModelResolverFactory, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 
 	@Test
 	public void testNullObjectFieldFactory() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, null, mockSearchProcessor, mockIndexAuthorizationSnapshotManager);
 		});
 	}
 	
 	@Test
 	public void testNullSearchProcessor() {
 		assertThrows(IllegalArgumentException.class, () -> {
-			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null);
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, null, mockIndexAuthorizationSnapshotManager);
+		});
+	}
+
+	@Test
+	public void testNullSnapshotManager() {
+		assertThrows(IllegalArgumentException.class, () -> {
+			new TableIndexManagerImpl(mockIndexDao, mockManagerSupport, mockMetadataProviderFactory, mockObjectFieldModelResolverFactory, mockSearchProcessor, null);
 		});
 	}
 	
@@ -1463,22 +1472,62 @@ public class TableIndexManagerImplTest {
 	}
 
 	@Test
-	public void testBuildTableIndexWithLockNoSnapshot() throws Exception {
+	public void testBuildTableIndexWithLockNoTableChange() throws Exception {
 		when(mockManagerSupport.isIndexWorkRequired(tableId)).thenReturn(true);
 		String resetToken = "resetToken";
 		when(mockManagerSupport.startTableProcessing(tableId)).thenReturn(resetToken);
 
 		List<TableChangeMetaData> list = setupMockChanges();
 		Iterator<TableChangeMetaData> iterator = list.iterator();
-		// No change number for this case.
+		// A table with no columns and no rows records no table change.
 		when(mockManagerSupport.getLastTableChangeNumber(tableId)).thenReturn(Optional.empty());
+		// The empty index build is covered by its own test; stub it out here.
+		doReturn(Collections.emptyList()).when(managerSpy).resetTableIndex(any(IndexDescription.class));
+		when(mockManagerSupport.getTableVersion(tableId)).thenReturn(-1L);
 		// call under test
-		manager.buildTableIndexWithLock(mockCallback, tableId, iterator);
-		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(),
-				anyString());
+		managerSpy.buildTableIndexWithLock(mockCallback, tableId, iterator);
+		verify(managerSpy).buildEmptyTableIndex(tableId, resetToken);
+		// The empty table is set available (no etag) rather than restored or failed.
+		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
+		verify(managerSpy, never()).attemptToRestoreTableFromExistingSnapshot(any(), any(), anyLong());
 		verify(mockManagerSupport).getLastTableChangeNumber(tableId);
-		// should fail
-		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(tableId), any(Exception.class));
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToFailed(any(IdAndVersion.class),
+				any(Exception.class));
+	}
+
+	@Test
+	public void testBuildTableIndexWithLockNoChangeForVersion() throws Exception {
+		// A specific version is always bound to the change number it was snapshotted at.
+		IdAndVersion versionedId = IdAndVersion.parse("syn123.1");
+		when(mockManagerSupport.isIndexWorkRequired(versionedId)).thenReturn(true);
+		String resetToken = "resetToken";
+		when(mockManagerSupport.startTableProcessing(versionedId)).thenReturn(resetToken);
+
+		List<TableChangeMetaData> list = setupMockChanges();
+		Iterator<TableChangeMetaData> iterator = list.iterator();
+		when(mockManagerSupport.getLastTableChangeNumber(versionedId)).thenReturn(Optional.empty());
+		// call under test
+		managerSpy.buildTableIndexWithLock(mockCallback, versionedId, iterator);
+		// An absent change number for a version is a genuine anomaly - fail loudly, do not build empty.
+		verify(managerSpy, never()).buildEmptyTableIndex(any(), any());
+		verify(mockManagerSupport, never()).attemptToSetTableStatusToAvailable(any(IdAndVersion.class), anyString(),
+				any());
+		verify(mockManagerSupport).attemptToSetTableStatusToFailed(eq(versionedId), any(NotFoundException.class));
+	}
+
+	@Test
+	public void testBuildEmptyTableIndex() throws Exception {
+		String resetToken = "resetToken";
+		doReturn(Collections.emptyList()).when(managerSpy).resetTableIndex(any(IndexDescription.class));
+		when(mockManagerSupport.getTableVersion(tableId)).thenReturn(-1L);
+		// call under test
+		managerSpy.buildEmptyTableIndex(tableId, resetToken);
+		// The empty index is created/aligned and its version pinned to truth so the table is synchronized.
+		verify(managerSpy).resetTableIndex(new TableIndexDescription(tableId));
+		verify(managerSpy).setIndexVersion(tableId, -1L);
+		// The empty as-built snapshot is captured and the table is set available with no etag.
+		verify(managerSpy).saveAuthorizationSnapshot(eq(tableId), any());
+		verify(mockManagerSupport).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
 	}
 
 	@Test

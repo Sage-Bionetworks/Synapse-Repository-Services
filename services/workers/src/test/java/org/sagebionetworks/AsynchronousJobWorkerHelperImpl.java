@@ -588,6 +588,17 @@ public class AsynchronousJobWorkerHelperImpl implements AsynchronousJobWorkerHel
 	}
 	
 	@Override
+	public void updateMaterializedView(String viewId, UserInfo user, String sql) {
+		MaterializedView view = entityService.getEntity(user.getId(), viewId, MaterializedView.class);
+
+		view.setDefiningSQL(sql);
+
+		// Update through the service layer so the metadata provider re-registers the source tables,
+		// exactly as a real defining-SQL update does.
+		entityService.updateEntity(user.getId(), view, false, null);
+	}
+
+	@Override
 	public VirtualTable createVirtualTable(UserInfo user, String parentId, String sql) {
 		VirtualTable virtualTable = new VirtualTable();
 		virtualTable.setName(UUID.randomUUID().toString());
