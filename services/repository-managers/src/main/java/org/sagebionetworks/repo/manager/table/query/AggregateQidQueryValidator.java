@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.manager.table.query;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.web.RowSuppressionException;
+import org.sagebionetworks.table.cluster.SchemaProvider;
+import org.sagebionetworks.table.cluster.TableAndColumnMapper;
+import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationReference;
 import org.sagebionetworks.table.query.model.CaseExpression;
 import org.sagebionetworks.table.query.model.CastSpecification;
 import org.sagebionetworks.table.query.model.ColumnReference;
@@ -37,53 +38,47 @@ import org.sagebionetworks.util.ValidateArgument;
 public class AggregateQidQueryValidator {
 
 	/**
-	 * Validates that every configured QID column is used only in a count-only manner and
-	 * identifies the output columns whose values are participant counts protected by
-	 * cell-level k-anonymity.
+	 * Validates that every QID column is used only in a count-only manner and identifies the
+	 * output columns whose values are participant counts protected by cell-level k-anonymity.
 	 *
-	 * @param model        the parsed user query.
-	 * @param qidColumnNames the configured quasi-identifier column names.
-	 * @param sourceSchema the columns of the aggregate-only source.
+	 * @param model          the parsed user query.
+	 * @param qidColumnIds   the ids of the queried object's own columns that carry a
+	 *                       quasi-identifier.
+	 * @param schemaProvider resolves the queried object's as-built schema, so each column
+	 *                       reference in the query is bound to the same column the query
+	 *                       translation will bind it to.
 	 * @return the zero-based indexes into the select list (and therefore into each result
 	 *         row's values) of the columns that are a {@code COUNT} of a QID. These are the
 	 *         cells subject to cell-level k-anonymity suppression.
-	 * @throws IllegalStateException   if a configured QID name does not match any column of the
-	 *                                 source, which is an ACT-side configuration fault rather
-	 *                                 than a fault in the caller's request.
 	 * @throws RowSuppressionException if a QID is used in a way that is not permitted for a
 	 *                                 query requesting row results.
 	 */
-	public static List<Integer> validate(QuerySpecification model, List<String> qidColumnNames,
-			List<ColumnModel> sourceSchema) {
+	public static List<Integer> validate(QuerySpecification model, Set<String> qidColumnIds,
+			SchemaProvider schemaProvider) {
 		ValidateArgument.required(model, "model");
-		ValidateArgument.required(qidColumnNames, "qidColumnNames");
-		ValidateArgument.required(sourceSchema, "sourceSchema");
+		ValidateArgument.required(qidColumnIds, "qidColumnIds");
+		ValidateArgument.required(schemaProvider, "schemaProvider");
 
-		Set<String> qids = qidColumnNames.stream().map(AggregateQidQueryValidator::normalize)
-				.collect(Collectors.toCollection(LinkedHashSet::new));
-
-		// A QID name that does not resolve to a real source column cannot be protected. This is a
-		// fault in the ACT-bound configuration, not in the caller's request, so it is signaled as
-		// an illegal state (HTTP 500) rather than a bad request (HTTP 400).
-		Set<String> sourceColumnNames = sourceSchema.stream().map(ColumnModel::getName)
-				.map(AggregateQidQueryValidator::normalize).collect(Collectors.toSet());
-		for (String qid : qids) {
-			if (!sourceColumnNames.contains(qid)) {
-				throw new IllegalStateException(
-						"The configured quasi-identifier column does not match any column of the source: " + qid);
-			}
+		if (qidColumnIds.isEmpty()) {
+			// No output column of the queried object carries a quasi-identifier, so nothing in the
+			// results can expose one and no use of any column needs to be restricted.
+			return Collections.emptyList();
 		}
 
-		// 'select *' projects every source column, which necessarily exposes each QID.
+		// 'select *' projects every column, which necessarily exposes each QID.
 		if (Boolean.TRUE.equals(model.getSelectList().getAsterisk())) {
 			throw new RowSuppressionException(RowSuppressionReasonCode.QID_PROJECTED);
 		}
+
+		// A reference is resolved to the column it actually reads, so the restriction holds however
+		// the caller spelled it: an alias or a correlation prefix changes the text, not the column.
+		TableAndColumnMapper mapper = new TableAndColumnMapper(model, schemaProvider);
 
 		List<DerivedColumn> selectColumns = model.getSelectList().getColumns();
 		Set<Integer> protectedIndexes = new LinkedHashSet<>();
 
 		for (ColumnReference reference : model.createIterable(ColumnReference.class)) {
-			if (!isQid(reference, qids)) {
+			if (!isQid(reference, mapper, qidColumnIds)) {
 				continue;
 			}
 			classifyQidReference(reference, model, selectColumns, protectedIndexes);
@@ -171,8 +166,13 @@ public class AggregateQidQueryValidator {
 				|| column.stream(CastSpecification.class).findAny().isPresent();
 	}
 
-	private static boolean isQid(ColumnReference reference, Set<String> qids) {
-		return qids.contains(normalize(reference.getNameRHS().toSqlWithoutQuotes()));
+	/**
+	 * A reference that resolves to no column of the schema, or to a row metadata column, can never
+	 * be a QID; the query translation rejects an unresolvable reference on its own.
+	 */
+	private static boolean isQid(ColumnReference reference, TableAndColumnMapper mapper, Set<String> qidColumnIds) {
+		return mapper.lookupColumnReference(reference).flatMap(ColumnTranslationReference::getColumnId)
+				.filter(qidColumnIds::contains).isPresent();
 	}
 
 	private static int indexOfIdentity(List<DerivedColumn> columns, DerivedColumn target) {
@@ -182,10 +182,6 @@ public class AggregateQidQueryValidator {
 			}
 		}
 		return -1;
-	}
-
-	private static String normalize(String name) {
-		return name == null ? null : name.trim().toUpperCase(Locale.ROOT);
 	}
 
 }

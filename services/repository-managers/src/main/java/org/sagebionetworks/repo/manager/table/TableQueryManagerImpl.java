@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
 import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
@@ -107,9 +108,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private QueryCacheManager queryCacheManager;
 	private FacetPostProcessorProvider facetPostProcessorProvider;
 	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
+	private AggregateQidColumnResolver aggregateQidColumnResolver;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
@@ -117,6 +119,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		this.queryCacheManager = queryCacheManager;
 		this.facetPostProcessorProvider = facetPostProcessorProvider;
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
+		this.aggregateQidColumnResolver = aggregateQidColumnResolver;
 	}
 	
 	/**
@@ -306,11 +309,11 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			}
 			// The source defines quasi-identifier (QID) columns: enforce the count-only QID
 			// restriction and capture which output columns are protected participant counts. A
-			// violation withholds the rows via a RowSuppressionException. The as-built schema is used
-			// so the restriction is evaluated against the columns the served index actually contains.
-			List<ColumnModel> sourceSchema = schemaProvider.getTableSchema(idAndVersion);
-			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model,
-					quasiIdentifierColumnNames, sourceSchema);
+			// violation withholds the rows via a RowSuppressionException. The restriction is applied
+			// to the queried object's own columns that the as-built lineage derives from a QID, so a
+			// column that reaches a QID through renaming or a chain of objects is still recognized.
+			Set<String> qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
+			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model, qidColumnIds, schemaProvider);
 		}
 
 		QueryContext expansion = QueryContext.builder()
@@ -335,43 +338,15 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	}
 
 	/**
-	 * Resolve the query-time {@link IndexDescription} for an object against its as-built state rather
-	 * than current truth:
-	 * <ul>
-	 * <li>A materialized object (table/view/materialized view/record set) has an
-	 * {@link IndexAuthorizationSnapshot} captured with its index, so a {@link SnapshotIndexDescription}
-	 * reconstituted from that snapshot describes exactly what the served index contains.</li>
-	 * <li>A VirtualTable has no index of its own; it is a query over a dependent, so it is described by
-	 * a {@link VirtualTableIndexDescription} whose source is resolved through this same method — the
-	 * dependent's as-built snapshot stands in for its live index description. Recursion handles a
-	 * VirtualTable defined over another VirtualTable.</li>
-	 * </ul>
-	 * Any other object without a snapshot is an invariant violation: the caller has already confirmed
-	 * the object is AVAILABLE under the read lock, and every AVAILABLE materialized index is built with
-	 * a snapshot.
+	 * Resolve the query-time {@link IndexDescription} for a queried object. Delegates to
+	 * {@link IndexAuthorizationSnapshotManager#getSnapshotIndexDescription(IdAndVersion)} to keep the
+	 * query manager abstracted from snapshot resolution details.
 	 *
 	 * @param idAndVersion the object being queried (or a dependent inlined by a VirtualTable)
 	 * @return a snapshot-backed description
 	 */
 	IndexDescription getQueryIndexDescription(IdAndVersion idAndVersion) {
-		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
-				.getAuthorizationSnapshot(idAndVersion);
-		if (snapshot.isPresent()) {
-			// The change-number provider must yield the same value the live IndexDescription is built
-			// with (TableManagerSupport.getTableVersion): the truth change number for a table, but the
-			// index version for a view/dataset/recordset. Binding it to getLastTableChangeNumber
-			// instead would leave the query-cache hash unchanged across incremental view/dataset index
-			// updates, serving stale count/facet results.
-			return SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
-					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
-		}
-		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(idAndVersion))) {
-			String definingSql = tableManagerSupport.getDefiningSql(idAndVersion)
-					.orElseThrow(() -> new IllegalStateException("VirtualTable " + idAndVersion + " has no defining SQL"));
-			return new VirtualTableIndexDescription(idAndVersion, definingSql, this::getQueryIndexDescription);
-		}
-		throw new IllegalStateException(
-				"No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable");
+		return indexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion);
 	}
 
 	/**

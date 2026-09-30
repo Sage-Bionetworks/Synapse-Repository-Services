@@ -312,6 +312,62 @@ public class CohortBuilderAggregateIntegrationTest {
 	}
 
 	/**
+	 * PLFM-9939: the count-only quasi-identifier restriction must follow a column through a VirtualTable
+	 * that renames it. A VT built over a QID-protected source with {@code definingSql = "select PART_ID as
+	 * PART_IZ from source"} binds a column named {@code PART_IZ} whose ColumnModel id differs from the
+	 * source column's id (aliasing → re-hash). A query {@code "select MAX(PART_IZ) from vt"} must still
+	 * recognize {@code PART_IZ} as carrying the quasi-identifier of the source and reject the non-count
+	 * aggregate, even though the column's name and id have both changed.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testVirtualTableRenamingQuasiIdentifierColumn() throws Exception {
+		// A simple source table with one quasi-identifier column.
+		ColumnModel partId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("PART_ID").setColumnType(ColumnType.INTEGER));
+		ColumnModel site = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("SITE").setColumnType(ColumnType.STRING).setMaximumSize(10L));
+		String sourceId = createSourceTable(Lists.newArrayList(partId, site), Lists.newArrayList(
+				new Row().setValues(Lists.newArrayList("1", "A")),
+				new Row().setValues(Lists.newArrayList("2", "A")),
+				new Row().setValues(Lists.newArrayList("3", "B")),
+				new Row().setValues(Lists.newArrayList("4", "B")),
+				new Row().setValues(Lists.newArrayList("5", "C")),
+				new Row().setValues(Lists.newArrayList("6", "C")),
+				new Row().setValues(Lists.newArrayList("7", "C")),
+				new Row().setValues(Lists.newArrayList("8", "C"))));
+
+		// Wait for the source table's index to be built and snapshot to be captured before creating
+		// the VirtualTable, since the VT's lineage computation requires the source's snapshot.
+		waitForRowCount("select * from " + sourceId, 8);
+
+		bindAsAggregateData(sourceId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+
+		// A VirtualTable that renames PART_ID to PART_IZ. The VT's bound output column PART_IZ has a
+		// different ColumnModel id than the source column PART_ID, because getSchemaOfDerivedColumn clones
+		// the source ColumnModel with the alias as the name, and createColumnModel re-hashes.
+		String vtId = asyncHelper.createVirtualTable(adminUserInfo, projectId,
+				"select PART_ID as PART_IZ, SITE from " + sourceId).getId();
+
+		UserInfo notOwner = createAggregateOnlyUser(sourceId);
+
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		// The VT query references PART_IZ, which resolves to the VT's column id, not the source's. The
+		// lineage must map the VT column id → source column id so the query recognizes PART_IZ as carrying
+		// the quasi-identifier and rejects the non-count aggregate. Currently this FAILS OPEN: the resolver
+		// returns the source's output column id but the validator resolves PART_IZ to the VT's column id,
+		// so the QID is not recognized and the query is allowed through (leak).
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, new Query().setSql("select SITE, max(PART_IZ) from " + vtId + " group by SITE"),
+					options, (bundle) -> fail("Should have rejected MAX(PART_IZ) as a non-count aggregate of a QID"));
+		});
+		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+	}
+
+	/**
 	 * The MATERIAL MaterializedView, the PARTICIPANTS source table (the identifier-bearing table that
 	 * carries the aggregate restriction), and the file synIDs MATERIAL was built from, in file 1..9
 	 * order, so a test can key its expected per-file participant counts by the id the query returns for

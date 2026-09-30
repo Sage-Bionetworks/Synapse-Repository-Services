@@ -56,6 +56,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -182,6 +183,8 @@ public class TableQueryManagerImplTest {
 	private QueryTranslations mockQueryTranslations;
 	@Mock
 	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
+	private AggregateQidColumnResolver mockAggregateQidColumnResolver;
 
 	@Spy
 	@InjectMocks
@@ -381,6 +384,13 @@ public class TableQueryManagerImplTest {
 						.setDependencies(dependencies))
 				.setColumnLineage(lineage);
 		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(id)).thenReturn(Optional.of(snapshot));
+		// Also stub getSnapshotIndexDescription to return a description built from the snapshot,
+		// since TableQueryManagerImpl now calls that method instead of building it locally.
+		// The version provider returns empty because most tests don't actually use the version;
+		// tests that need it should stub getTableVersion individually.
+		SnapshotIndexDescription snapshotDescription = SnapshotIndexDescription.fromSnapshot(snapshot,
+				version -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(id)).thenReturn(snapshotDescription);
 		return snapshot;
 	}
 
@@ -405,7 +415,10 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightUnauthroized() throws Exception {
 		// authorization is denied against the as-built snapshot, before any schema read
-		setupSnapshot(idAndVersion, TableType.table, Collections.emptyList());
+		SnapshotIndexDescription description = new SnapshotIndexDescription(idAndVersion, TableType.table,
+				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(description);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 		Query query = new Query();
@@ -475,9 +488,57 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testQueryPreflightWithRowReturningAggregate() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		// the restriction applies to the queried object's own column that the as-built lineage
+		// derives from a quasi-identifier, identified by its ColumnModel id
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+
+		Query query = new Query();
+		query.setSql("select i0, count(i1) from " + tableId + " group by i0");
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, null, options);
+		assertTrue(result.isRowReturningAggregate());
+		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testQueryPreflightWithQidProjectedByRowReturningAggregate() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+
+		Query query = new Query();
+		query.setSql("select i0, i1 from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, null, options);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
+	}
+
+	@Test
 	public void testQueryPreflightWithAggregateDeniedNoConfig() throws Exception {
 		// denial resolved against the snapshot before any schema read
-		setupSnapshot(idAndVersion, TableType.table, Collections.emptyList());
+		SnapshotIndexDescription description = new SnapshotIndexDescription(idAndVersion, TableType.table,
+				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(description);
 		// the status reports an aggregate source, but no bound configuration is found, so
 		// the standard denial must be preserved rather than silently allowing the query
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
@@ -510,6 +571,10 @@ public class TableQueryManagerImplTest {
 				.setColumnLineage(lineage);
 		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
 				.thenReturn(Optional.of(snapshot));
+		SnapshotIndexDescription snapshotDescription = SnapshotIndexDescription.fromSnapshot(snapshot,
+				id -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
 		Query query = new Query();
@@ -529,14 +594,10 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryPreflightWithSnapshotUnauthorized() throws Exception {
-		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot()
-				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId(tableId)
-						.setTableType(TableType.table.name()).setBenefactors(Collections.emptyList())
-						.setDependencies(Collections.emptyList()))
-				.setColumnLineage(Collections.singletonList(
-						new ColumnLineageEntry().setOutputColumnId(models.get(0).getId())));
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
-				.thenReturn(Optional.of(snapshot));
+		SnapshotIndexDescription snapshotDescription = new SnapshotIndexDescription(idAndVersion, TableType.table,
+				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
@@ -553,10 +614,10 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithoutSnapshotAndNotVirtualTableThrows() throws Exception {
 		// A materialized object confirmed AVAILABLE under the read lock must have an as-built snapshot;
-		// its absence for a non-VirtualTable is an invariant violation, not a live fallback.
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
-				.thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(TableType.table);
+		// its absence for a non-VirtualTable is an invariant violation. The snapshot manager throws,
+		// and that exception propagates through the query manager.
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenThrow(new IllegalStateException("No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable"));
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -832,55 +893,6 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 )", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
-	}
-	
-	
-	@Test
-	public void testQueryPreflightWithAuthorizationVirtualTable() throws Exception{
-
-		// source view syn1 is authorized against its as-built snapshot (entityview with a benefactor)
-		IdAndVersion viewId = IdAndVersion.parse("syn1");
-		ColumnModel fooColumn = new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER).setId("11");
-		List<ColumnModel> viewSchema = List.of(fooColumn);
-		setupSnapshot(viewId, TableType.entityview, viewSchema,
-				List.of(new BenefactorColumn().setBenefactorColumnName(TableConstants.ROW_BENEFACTOR)
-						.setBenefactorType(ObjectType.ENTITY.name())),
-				Collections.emptyList());
-		when(mockTableConnectionFactory.getConnection(viewId)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
-
-		// virtual table syn2 has no snapshot; it is inlined as a query over its source view syn1
-		IdAndVersion virtualTableId = IdAndVersion.parse("syn2");
-		ColumnModel barColumn = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22");
-		List<ColumnModel> virtualSchema = List.of(barColumn);
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(virtualTableId)).thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableType(virtualTableId)).thenReturn(TableType.virtualtable);
-		when(mockTableManagerSupport.getDefiningSql(virtualTableId)).thenReturn(Optional.of("select * from syn1"));
-		when(mockTableManagerSupport.getTableSchema(virtualTableId)).thenReturn(virtualSchema);
-		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
-
-		setupColumnModelAnswer(List.of(fooColumn, barColumn));
-
-		Query query = new Query();
-		query.setSql("select count(*) from syn2");
-		Long maxBytesPerPage = null;
-		// call under test
-		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
-
-		assertNotNull(results);
-		// authorization runs once, against the virtual table whose only dependency is the snapshot-backed source view
-		ArgumentCaptor<QueryIndexDescription> captor = ArgumentCaptor.forClass(QueryIndexDescription.class);
-		verify(mockTableManagerSupport, times(1)).validateTableReadAccess(eq(user), captor.capture());
-		assertEquals(virtualTableId, captor.getValue().getIdAndVersion());
-		assertEquals(viewId, captor.getValue().getDependencies().get(0).getIdAndVersion());
-
-		// validate the benefactor filter is applied
-		assertEquals("WITH T2 (_C22_) AS "
-				+ "(SELECT _C11_ FROM T1 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 ))"
-				+ " SELECT COUNT(*) FROM T2", results.getMainQuery().getTranslator().getOutputSQL());
-		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
-		verify(mockTableIndexDAO).getDistinctLongValues(viewId, TableConstants.ROW_BENEFACTOR);
 	}
 	
 	@Test

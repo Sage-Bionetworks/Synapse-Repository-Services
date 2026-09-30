@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.query.model.SqlContext;
@@ -48,10 +50,23 @@ public class SnapshotIndexDescription implements IndexDescription {
 	private final List<BenefactorDescription> benefactors;
 	private final List<IndexDescription> dependencies;
 	private final Function<IdAndVersion, Optional<Long>> changeNumberProvider;
+	private final List<ColumnLineageEntry> columnLineage;
 
+	/**
+	 * Create a description with no column lineage. {@link #getColumnLineage()} will
+	 * throw, so this may only be used where the lineage is genuinely unavailable,
+	 * such as a flattened dependency node that the snapshot records by id and type
+	 * alone.
+	 */
 	public SnapshotIndexDescription(IdAndVersion idAndVersion, TableType tableType,
 			List<BenefactorDescription> benefactors, List<IndexDescription> dependencies,
 			Function<IdAndVersion, Optional<Long>> changeNumberProvider) {
+		this(idAndVersion, tableType, benefactors, dependencies, changeNumberProvider, null);
+	}
+
+	public SnapshotIndexDescription(IdAndVersion idAndVersion, TableType tableType,
+			List<BenefactorDescription> benefactors, List<IndexDescription> dependencies,
+			Function<IdAndVersion, Optional<Long>> changeNumberProvider, List<ColumnLineageEntry> columnLineage) {
 		super();
 		ValidateArgument.required(idAndVersion, "idAndVersion");
 		ValidateArgument.required(tableType, "tableType");
@@ -63,13 +78,15 @@ public class SnapshotIndexDescription implements IndexDescription {
 		this.benefactors = benefactors;
 		this.dependencies = dependencies;
 		this.changeNumberProvider = changeNumberProvider;
+		this.columnLineage = columnLineage;
 	}
 
 	/**
 	 * Reconstitute a query-time description from an as-built
-	 * {@link IndexDescriptionSnapshot}.
+	 * {@link IndexAuthorizationSnapshot}.
 	 *
-	 * @param snapshot             the as-built authorization projection
+	 * @param snapshot             the as-built authorization snapshot, including its
+	 *                             column lineage
 	 * @param changeNumberProvider supplies an object's live table version (drives
 	 *                             the query-cache hash so it invalidates on every
 	 *                             index update); must match the value the live
@@ -77,9 +94,11 @@ public class SnapshotIndexDescription implements IndexDescription {
 	 *                             {@code TableManagerSupport.getTableVersion}
 	 * @return a reconstituted description
 	 */
-	public static SnapshotIndexDescription fromSnapshot(IndexDescriptionSnapshot snapshot,
+	public static SnapshotIndexDescription fromSnapshot(IndexAuthorizationSnapshot authorizationSnapshot,
 			Function<IdAndVersion, Optional<Long>> changeNumberProvider) {
-		ValidateArgument.required(snapshot, "snapshot");
+		ValidateArgument.required(authorizationSnapshot, "authorizationSnapshot");
+		IndexDescriptionSnapshot snapshot = authorizationSnapshot.getIndexDescription();
+		ValidateArgument.required(snapshot, "authorizationSnapshot.indexDescription");
 		List<BenefactorDescription> benefactors = new ArrayList<>();
 		if (snapshot.getBenefactors() != null) {
 			for (BenefactorColumn column : snapshot.getBenefactors()) {
@@ -100,7 +119,8 @@ public class SnapshotIndexDescription implements IndexDescription {
 			}
 		}
 		return new SnapshotIndexDescription(toIdAndVersion(snapshot.getObjectId(), snapshot.getVersionNumber()),
-				TableType.valueOf(snapshot.getTableType()), benefactors, dependencies, changeNumberProvider);
+				TableType.valueOf(snapshot.getTableType()), benefactors, dependencies, changeNumberProvider,
+				authorizationSnapshot.getColumnLineage());
 	}
 
 	private static IdAndVersion toIdAndVersion(String objectId, Long versionNumber) {
@@ -125,6 +145,14 @@ public class SnapshotIndexDescription implements IndexDescription {
 	@Override
 	public List<IndexDescription> getDependencies() {
 		return dependencies;
+	}
+
+	@Override
+	public List<ColumnLineageEntry> getColumnLineage() {
+		if (columnLineage == null) {
+			return IndexDescription.super.getColumnLineage();
+		}
+		return columnLineage;
 	}
 
 	@Override
@@ -172,6 +200,9 @@ public class SnapshotIndexDescription implements IndexDescription {
 		return tableType.isViewEntityType();
 	}
 
+	// Equality models the authorization identity of this description: the node set the transitive
+	// ACL check evaluates. Neither the change-number provider nor the column lineage participates,
+	// because neither can change which ACLs are consulted.
 	@Override
 	public int hashCode() {
 		return Objects.hash(benefactors, dependencies, idAndVersion, tableType);

@@ -20,7 +20,11 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
+import org.sagebionetworks.repo.model.table.DerivationKind;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
+import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.query.model.SqlContext;
 
@@ -38,7 +42,7 @@ public class SnapshotIndexDescriptionTest {
 				.setDependencies(Collections.emptyList());
 
 		// call under test
-		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(snapshot, emptyChangeNumbers);
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers);
 
 		assertEquals(IdAndVersion.parse("syn123"), description.getIdAndVersion());
 		assertEquals(TableType.entityview, description.getTableType());
@@ -54,7 +58,7 @@ public class SnapshotIndexDescriptionTest {
 				.setDependencies(Collections.emptyList());
 
 		// call under test
-		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(snapshot, emptyChangeNumbers);
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers);
 
 		assertEquals(IdAndVersion.parse("syn123.4"), description.getIdAndVersion());
 	}
@@ -68,7 +72,7 @@ public class SnapshotIndexDescriptionTest {
 				.setDependencies(Collections.emptyList());
 
 		// call under test
-		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(snapshot, emptyChangeNumbers);
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers);
 
 		assertEquals(Collections.singletonList(new BenefactorDescription(ROW_BENEFACTOR, ObjectType.EVALUATION)),
 				description.getBenefactors());
@@ -80,7 +84,7 @@ public class SnapshotIndexDescriptionTest {
 				.setTableType(TableType.table.name()).setBenefactors(null).setDependencies(null);
 
 		// call under test
-		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(snapshot, emptyChangeNumbers);
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers);
 
 		assertEquals(Collections.emptyList(), description.getBenefactors());
 		assertEquals(Collections.emptyList(), description.getDependencies());
@@ -95,7 +99,7 @@ public class SnapshotIndexDescriptionTest {
 						new SourceDependency().setObjectId("syn2").setVersionNumber(7L).setTableType(TableType.table.name())));
 
 		// call under test
-		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(snapshot, emptyChangeNumbers);
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers);
 
 		List<? extends QueryIndexDescription> dependencies = description.getDependencies();
 		assertEquals(2, dependencies.size());
@@ -236,8 +240,10 @@ public class SnapshotIndexDescriptionTest {
 		Function<IdAndVersion, Optional<Long>> secondProvider = id -> IdAndVersion.parse("syn1").equals(id)
 				? Optional.of(6L) : Optional.empty();
 
-		String first = SnapshotIndexDescription.fromSnapshot(snapshot, firstProvider).getTableHash();
-		String second = SnapshotIndexDescription.fromSnapshot(snapshot, secondProvider).getTableHash();
+		String first = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), firstProvider)
+				.getTableHash();
+		String second = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot(snapshot), secondProvider)
+				.getTableHash();
 
 		assertFalse(first.equals(second));
 	}
@@ -276,7 +282,71 @@ public class SnapshotIndexDescriptionTest {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			SnapshotIndexDescription.fromSnapshot(null, emptyChangeNumbers);
 		}).getMessage();
-		assertEquals("snapshot is required.", message);
+		assertEquals("authorizationSnapshot is required.", message);
+	}
+
+	@Test
+	public void testFromSnapshotWithNullIndexDescription() {
+		IndexAuthorizationSnapshot authorizationSnapshot = new IndexAuthorizationSnapshot()
+				.setColumnLineage(Collections.emptyList());
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			SnapshotIndexDescription.fromSnapshot(authorizationSnapshot, emptyChangeNumbers);
+		}).getMessage();
+		assertEquals("authorizationSnapshot.indexDescription is required.", message);
+	}
+
+	@Test
+	public void testGetColumnLineageWithSnapshotLineage() {
+		List<ColumnLineageEntry> lineage = Arrays.asList(
+				new ColumnLineageEntry().setOutputColumnId("11").setDerivationKind(DerivationKind.IDENTITY)
+						.setInputs(Collections.singletonList(new SourceColumnReference().setSourceObjectId("syn1")
+								.setSourceColumnId("101"))),
+				new ColumnLineageEntry().setOutputColumnId("12").setDerivationKind(DerivationKind.LITERAL)
+						.setInputs(Collections.emptyList()));
+		IndexAuthorizationSnapshot authorizationSnapshot = new IndexAuthorizationSnapshot()
+				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId("syn123")
+						.setTableType(TableType.materializedview.name()))
+				.setColumnLineage(lineage);
+
+		SnapshotIndexDescription description = SnapshotIndexDescription.fromSnapshot(authorizationSnapshot,
+				emptyChangeNumbers);
+
+		// call under test
+		assertEquals(lineage, description.getColumnLineage());
+	}
+
+	@Test
+	public void testGetColumnLineageWithDependencyNode() {
+		IndexDescriptionSnapshot snapshot = new IndexDescriptionSnapshot().setObjectId("syn123")
+				.setTableType(TableType.materializedview.name())
+				.setDependencies(Collections.singletonList(
+						new SourceDependency().setObjectId("syn1").setTableType(TableType.entityview.name())));
+		QueryIndexDescription dependency = SnapshotIndexDescription
+				.fromSnapshot(authorizationSnapshot(snapshot), emptyChangeNumbers).getDependencies().get(0);
+
+		// A flattened dependency node carries no lineage of its own, so it must fail loudly rather
+		// than answer "no quasi-identifier derived columns".
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			dependency.getColumnLineage();
+		}).getMessage();
+		assertEquals("No column lineage is available for syn1 of type entityview", message);
+	}
+
+	@Test
+	public void testGetColumnLineageWithNullLineage() {
+		SnapshotIndexDescription description = tableDescription(IdAndVersion.parse("syn123"), TableType.table);
+
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			description.getColumnLineage();
+		}).getMessage();
+		assertEquals("No column lineage is available for syn123 of type table", message);
+	}
+
+	private IndexAuthorizationSnapshot authorizationSnapshot(IndexDescriptionSnapshot snapshot) {
+		return new IndexAuthorizationSnapshot().setIndexDescription(snapshot)
+				.setColumnLineage(Collections.emptyList());
 	}
 
 	private SnapshotIndexDescription viewDescription(IdAndVersion idAndVersion, TableType tableType) {
