@@ -223,8 +223,8 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	private static final List<Map.Entry<String, Set<Long>>> MATERIALIZED_VIEW_FILTERS = List.of(
-			Map.entry("_benefactor_0", Set.of(10L, -1L)),
-			Map.entry("_benefactor_1", Set.of(20L, -1L)));
+			Map.entry("_benefactor_ROW_BENEFACTOR_A0", Set.of(10L, -1L)),
+			Map.entry("_benefactor_ROW_BENEFACTOR_A1", Set.of(20L, -1L)));
 
 	private static OpenSearchException indexNotFound() {
 		return new OpenSearchException(ErrorResponse.of(b -> b.status(404)
@@ -1402,7 +1402,7 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testBuildBenefactorAccessFiltersWithMultipleBenefactors() {
 		// One terms filter per snapshot benefactor column, in snapshot order, each on field
-		// _benefactor_i and carrying the ids computeAccessibleBenefactors resolved (including -1).
+		// _benefactor_<column name> and carrying the ids computeAccessibleBenefactors resolved (including -1).
 		QueryIndexDescription source = MATERIALIZED_VIEW_DESCRIPTION;
 		when(connectionFactory.getConnection(MATERIALIZED_VIEW_ID)).thenReturn(tableIndexDao);
 		when(tableQueryManager.computeAccessibleBenefactors(user, MATERIALIZED_VIEW_DESCRIPTION,
@@ -1432,7 +1432,7 @@ public class SearchIndexQueryManagerImplTest {
 		List<org.opensearch.client.opensearch._types.query_dsl.Query> filters =
 				manager.buildBenefactorAccessFilters(user, source);
 
-		assertEquals(List.of(Map.entry("_benefactor_0", Set.of(-1L)), Map.entry("_benefactor_1", Set.of(-1L))),
+		assertEquals(List.of(Map.entry("_benefactor_ROW_BENEFACTOR_A0", Set.of(-1L)), Map.entry("_benefactor_ROW_BENEFACTOR_A1", Set.of(-1L))),
 				describeFilters(filters));
 	}
 }

@@ -46,10 +46,11 @@ public interface OpenSearchManager {
 	 *                                 {@link SearchAnalyzerJsonUtil#resolveRefs}. Each value is the
 	 *                                 {@code settings.analysis} block for one TextAnalyzer with all
 	 *                                 {@code $ref} entries already substituted.
-	 * @param benefactorCount          The number of per-dependency row-level access-control fields
-	 *                                 ({@code _benefactor_0 .. _benefactor_(N-1)}) to map as
-	 *                                 non-analyzed {@code long} fields for the row-level search ACL
-	 *                                 filter. A benefactor-less source (e.g. a table) maps zero.
+	 * @param benefactorColumnNames    The source's benefactor column names, each mapped to a
+	 *                                 non-analyzed {@code long} row-level access-control field named
+	 *                                 by {@link OpenSearchManagerImpl#benefactorFieldName(String)} for
+	 *                                 the row-level search ACL filter. Empty for a benefactor-less
+	 *                                 source (e.g. a table).
 	 * @param numberOfShards           The number of primary shards for the index, computed at build
 	 *                                 time from the source table's data size.
 	 * @param numberOfReplicas         The number of replica shards for the index (1 on prod, 0 on the
@@ -64,7 +65,7 @@ public interface OpenSearchManager {
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas,
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
 			IndexAuthorizationSnapshot snapshot);
 
 	/**

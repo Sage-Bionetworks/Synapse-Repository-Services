@@ -244,7 +244,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * so the worker can re-queue without flipping the index to FAILED.
 	 * <p>
 	 * Every source row is indexed without authorization; read access is enforced only at
-	 * query time via the per-row {@code _benefactor_<i>} filtering.
+	 * query time via the per-row {@code _benefactor_} field filtering.
 	 *
 	 * @param progressCallback     Refreshes the per-entity write lock during the build.
 	 * @param entityId             SearchIndex entity ID.
@@ -469,6 +469,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		IndexAuthorizationSnapshot snapshot = indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(
 				sourceSnapshot, definingSQL, selectedColumns, schemaProvider);
 		IndexDescriptionSnapshot indexDescription = snapshot.getIndexDescription();
+		List<String> benefactorColumnNames = indexDescription.getBenefactors().stream()
+				.map(BenefactorColumn::getBenefactorColumnName)
+				.collect(Collectors.toList());
 		// Rows of an AGGREGATE_DATA object may only be released as aggregates, which a per-row
 		// search document cannot honor.
 		List<String> closure = new ArrayList<>();
@@ -514,7 +517,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		openSearchManager.createIndex(idleSlot, selectedColumns,
 				defaultAnalyzer,
 				overrides, resolvedAnalyzers,
-				indexDescription.getBenefactors().size(), numberOfShards, numberOfReplicas, snapshot);
+				benefactorColumnNames, numberOfShards, numberOfReplicas, snapshot);
 
 		// AOSS acknowledges createIndex and returns an already-queryable index before its
 		// shards are actually ready to accept writes. Block until a real sentinel write
@@ -524,15 +527,10 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// Splice the source's per-dependency benefactor columns into the select so the handler can
 		// read them as trailing row values.
 		TranslatedQuery query = buildWithBenefactorColumns(base, indexDescription);
-		// Only a materialized view carries its benefactors as spliced trailing values; a view's
-		// single benefactor arrives by name on the Row and a table has none. The difference
-		// between the spliced header count and the document-column count is therefore the exact
-		// number of trailing values the handler must read as benefactors.
-		int trailingBenefactorColumns = query.getSelectColumns().size() - selectColumns.size();
 		// queryAsStream does not close the handler; the try-with-resources flushes the final
 		// partial batch.
 		try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				idleSlot, selectColumns, trailingBenefactorColumns, openSearchManager)) {
+				idleSlot, selectColumns, benefactorColumnNames, openSearchManager)) {
 			indexDao.queryAsStream(query, handler);
 		}
 		return true;
@@ -794,20 +792,15 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * (metadata columns are added to the SQL by name, not to the headers), so the splice index is
 	 * simply that header count.
 	 * <p>
-	 * Only a materialized view stores its per-dependency benefactors as physical columns of its index
-	 * table that must be spliced in here. A view's single benefactor is already read by name into
-	 * {@code Row.benefactorId} (via the by-name metadata columns the base query emits), and a table has
-	 * none, so for any non-materialized-view source the base query is returned unchanged.
+	 * Every benefactor column named by the snapshot is a physical column of the source's index table: a
+	 * materialized view's per-dependency benefactor columns, or a view's single {@code ROW_BENEFACTOR}. A
+	 * table has none, so its base query is returned unchanged.
 	 *
 	 * @param base   a query-context {@link QueryTranslator} built from the source's defining SQL.
 	 * @param source the source's as-built {@link IndexDescriptionSnapshot}.
 	 * @return a {@link TranslatedQuery} ready to stream through {@code TableIndexDAO.queryAsStream}.
 	 */
 	static TranslatedQuery buildWithBenefactorColumns(QueryTranslator base, IndexDescriptionSnapshot source) {
-		if (!TableType.materializedview.name().equals(source.getTableType())) {
-			return CachedQueryRequest.clone(base);
-		}
-
 		List<String> benefactorColumnNames = new ArrayList<>();
 		for (BenefactorColumn benefactor : source.getBenefactors()) {
 			benefactorColumnNames.add(benefactor.getBenefactorColumnName());
@@ -885,16 +878,16 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 
 		private final String indexName;
 		private final List<SelectColumn> columns;
-		private final int trailingBenefactorColumns;
+		private final List<String> benefactorColumnNames;
 		private final OpenSearchManager client;
 		private final List<BulkOperation> batch = new ArrayList<>();
 		private long totalRows = 0;
 
-		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, int trailingBenefactorColumns,
+		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, List<String> benefactorColumnNames,
 				OpenSearchManager client) {
 			this.indexName = indexName;
 			this.columns = columns;
-			this.trailingBenefactorColumns = trailingBenefactorColumns;
+			this.benefactorColumnNames = benefactorColumnNames;
 			this.client = client;
 		}
 
@@ -911,12 +904,12 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			// The document columns are the leading values and the benefactor columns are exactly
 			// the declared number of trailing values. Both counts are supplied by the caller rather
 			// than inferred from the row width: a row wider than expected would otherwise shift
-			// document values into the _benefactor_N slots that carry the query-time ACL filter,
+			// document values into the _benefactor_ fields that carry the query-time ACL filter,
 			// indexing every row under a benefactor it does not belong to.
-			int expectedValues = columns.size() + trailingBenefactorColumns;
+			int expectedValues = columns.size() + benefactorColumnNames.size();
 			if (values.size() != expectedValues) {
 				throw new IllegalStateException("Expected " + expectedValues + " values per row ("
-						+ columns.size() + " document columns and " + trailingBenefactorColumns
+						+ columns.size() + " document columns and " + benefactorColumnNames.size()
 						+ " benefactor columns) but the source query returned " + values.size() + ".");
 			}
 			for (int i = 0; i < columns.size(); i++) {
@@ -926,20 +919,12 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 					doc.put(column.getId(), convertForDocument(column.getName(), value, column.getColumnType()));
 				}
 			}
-			// Write one _benefactor_N field per source dependency, in the same order the
-			// query-time ACL filter expects. A materialized view appends its benefactor columns
-			// as trailing row values; a view exposes its single benefactor through the by-name
-			// scalar Row.benefactorId (nothing trails values). A plain table has no benefactor
-			// and leaves both empty.
-			if (trailingBenefactorColumns > 0) {
-				for (int i = columns.size(); i < values.size(); i++) {
-					String value = values.get(i);
-					if (value != null) {
-						doc.put("_benefactor_" + (i - columns.size()), Long.valueOf(value));
-					}
+			// The trailing values are the benefactor columns, in benefactorColumnNames order.
+			for (int i = 0; i < benefactorColumnNames.size(); i++) {
+				String value = values.get(columns.size() + i);
+				if (value != null) {
+					doc.put(OpenSearchManagerImpl.benefactorFieldName(benefactorColumnNames.get(i)), Long.valueOf(value));
 				}
-			} else if (row.getBenefactorId() != null) {
-				doc.put("_benefactor_0", row.getBenefactorId());
 			}
 			String docId = String.valueOf(row.getRowId());
 			batch.add(BulkOperation.of(op -> op

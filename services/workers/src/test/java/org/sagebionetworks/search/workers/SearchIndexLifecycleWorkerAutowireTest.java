@@ -535,7 +535,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
      * {@code SearchIndexQueryManager.buildBenefactorAccessFilters} +
      * {@code TableQueryManager.computeAccessibleBenefactors} gate actually restricts hits per user:
      * the build indexes every source row without authorization (read access is enforced only at
-     * query time via the per-row {@code _benefactor_<i>} terms filters).
+     * query time via the per-row {@code _benefactor_<column name>} terms filters).
      */
     @Test
     public void testSearchIndexBenefactorFilteringDiffersByUser() throws Exception {
@@ -612,9 +612,8 @@ public class SearchIndexLifecycleWorkerAutowireTest {
 
     /**
      * Build a SearchIndex directly over an entity view, then query it as two users with different
-     * ACLs. Unlike an MV source, a view carries its single benefactor as the by-name
-     * {@code ROW_BENEFACTOR} on each streamed row rather than as spliced trailing values, so this
-     * covers the {@code _benefactor_0} path fed from {@code Row.benefactorId}. Both users can read
+     * ACLs. Unlike an MV source, a view has a single benefactor column, {@code ROW_BENEFACTOR},
+     * spliced in as the one trailing value that feeds {@code _benefactor_ROW_BENEFACTOR}. Both users can read
      * the project (and so the view); only {@code userA} can read the own-ACL folders.
      */
     @Test

@@ -61,6 +61,7 @@ import org.opensearch.client.opensearch._types.aggregations.StringTermsAggregate
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
 import org.opensearch.client.opensearch._types.analysis.CustomAnalyzer;
+import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
@@ -612,8 +613,8 @@ public class OpenSearchManagerImplTest {
 		Map<String, Object> source = new LinkedHashMap<>();
 		source.put("_row_id", 7L);
 		source.put("_row_version", 1L);
-		source.put("_benefactor_0", 111L);
-		source.put("_benefactor_1", 222L);
+		source.put("_benefactor_ROW_BENEFACTOR__A0", 111L);
+		source.put("_benefactor_ROW_BENEFACTOR__A1", 222L);
 		source.put("100", "alpha");
 		source.put("101", "beta");
 		Hit<Map> hit = (Hit<Map>) (Hit) Hit.of(b -> b.index("idx").id("d1").source(source));
@@ -862,7 +863,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -926,7 +927,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -975,7 +976,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -1006,7 +1007,7 @@ public class OpenSearchManagerImplTest {
 				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
 						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, defaultAnalyzerQname,
-				overrides, resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
+				overrides, resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 		return MAPPER.readTree(appliedJson.get()).at("/mappings/properties");
 	}
 
@@ -1102,7 +1103,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1124,7 +1125,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertEquals(Optional.empty(), result);
 	}
@@ -1140,7 +1141,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals("Search index " + indexName + " creation was not acknowledged.",
 				ex.getMessage());
@@ -1157,7 +1158,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
@@ -1174,7 +1175,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1194,7 +1195,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1220,7 +1221,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — must not throw on the duplicate name key
 		Optional<String> result = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient).create(argThat((CreateIndexRequest req) -> indexName.equals(req.index())));
@@ -1238,17 +1239,38 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, snapshot);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, snapshot);
 
 		JsonData meta = requestCaptor.getValue().mappings().meta().get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY);
 		assertEquals(EntityFactory.createJSONStringForEntity(snapshot), meta.to(String.class));
 	}
 
 	@Test
+	public void testCreateIndexWithBenefactorColumnsMapsLongFieldPerColumn() throws Exception {
+		String indexName = "search-index-syn1";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), 1, 0,
+				createAuthorizationSnapshot());
+
+		Map<String, Property> properties = requestCaptor.getValue().mappings().properties();
+		assertEquals(Set.of("_row_id", "_row_version", "_benefactor_ROW_BENEFACTOR__A0",
+				"_benefactor_ROW_BENEFACTOR__A1"), properties.keySet());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A0").isLong());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A1").isLong());
+	}
+
+	@Test
 	public void testCreateIndexWithNullSnapshotThrows() {
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.createIndex("search-index-syn1",
-				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), 0, 1, 0, null));
+				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, null));
 
 		verifyNoMoreInteractions(openSearchClient);
 	}
@@ -1274,7 +1296,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — 3 shards, 1 replica
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 3, 1, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 3, 1, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -1471,7 +1493,7 @@ public class OpenSearchManagerImplTest {
 						.setObjectId("syn1")
 						.setTableType("searchindex")
 						.setBenefactors(List.of(new BenefactorColumn()
-								.setBenefactorColumnName("_benefactor_0")
+								.setBenefactorColumnName("ROW_BENEFACTOR")
 								.setBenefactorType("ENTITY")))
 						.setDependencies(List.of(new SourceDependency()
 								.setObjectId("syn2")

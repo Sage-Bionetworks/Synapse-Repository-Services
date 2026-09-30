@@ -175,8 +175,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
-	// Prefix of the per-dependency row-level access-control fields (_benefactor_0, _benefactor_1,
-	// ...) written into each document's _source at build time. They drive the query-time benefactor
+	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
+	// e.g. _benefactor_ROW_BENEFACTOR) written into each document's _source at build time. They drive the query-time benefactor
 	// terms filter but are not part of the entity schema, so they are stripped from returned hits.
 	private static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
@@ -236,12 +236,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		this.openSearchClient = searchIndexManagedClient;
 	}
 
+	/**
+	 * The document field that carries the row-level access-control value of a source benefactor
+	 * column. The build writes it, the index mapping declares it, and the query-time ACL filter
+	 * matches on it, so all three must derive it here.
+	 */
+	static String benefactorFieldName(String benefactorColumnName) {
+		return BENEFACTOR_FIELD_PREFIX + benefactorColumnName;
+	}
+
 	@Override
 	public Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas,
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
 			IndexAuthorizationSnapshot snapshot) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
 		ValidateArgument.required(snapshot, "snapshot");
@@ -267,7 +276,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					}))
 				.mappings(m -> {
 					buildMappings(m, columns, defaultAnalyzer,
-							overrideMap, resolvedAnalyzers, benefactorCount);
+							overrideMap, resolvedAnalyzers, benefactorColumnNames);
 					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
 					return m;
 				})
@@ -497,15 +506,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			List<ColumnModel> columns, String defaultAnalyzerQname,
 			Map<String, ColumnAnalyzerOverrideEntry> overrideMap,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount) {
+			List<String> benefactorColumnNames) {
 		Set<String> registeredAnalyzerQnames = resolvedAnalyzers.keySet();
 		m.properties(SYSTEM_FIELD_ROW_ID, p -> p.long_(l -> l));
 		m.properties(SYSTEM_FIELD_ROW_VERSION, p -> p.long_(l -> l));
 
 		// Row-level access-control fields: one per source dependency, non-analyzed long
 		// so the query-time benefactor terms filter can match them exactly.
-		for (int i = 0; i < benefactorCount; i++) {
-			m.properties(BENEFACTOR_FIELD_PREFIX + i, p -> p.long_(l -> l));
+		for (String benefactorColumnName : benefactorColumnNames) {
+			m.properties(benefactorFieldName(benefactorColumnName), p -> p.long_(l -> l));
 		}
 
 		for (ColumnModel column : columns) {
@@ -1319,7 +1328,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			searchHit.setRowVersion(toLong(source.get(SYSTEM_FIELD_ROW_VERSION)));
 
 			// _row_id / _row_version are surfaced via dedicated SearchHit fields above, and the
-			// _benefactor_N fields are internal row-level access-control values (not part of the
+			// _benefactor_ fields are internal row-level access-control values (not part of the
 			// entity schema) — exclude all of them so they are never leaked back to the caller.
 			List<SearchFieldValue> fields = source.entrySet().stream()
 					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey())

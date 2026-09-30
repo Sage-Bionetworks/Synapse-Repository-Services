@@ -164,10 +164,9 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 
 	/**
 	 * Build the per-dependency benefactor access filters for the as-built source. For each
-	 * benefactor column (in snapshot order, which matches the {@code _benefactor_i} field naming
-	 * written at build time), resolve the benefactors the user can READ, always including the
+	 * benefactor column, resolve the benefactors the user can READ, always including the
 	 * {@code -1} sentinel (the default for rows with no benefactor), and produce a {@code terms}
-	 * filter on field {@code _benefactor_i}. The filters are AND-ed at query time, so a document
+	 * filter on that column's {@link OpenSearchManagerImpl#benefactorFieldName(String) field}. The filters are AND-ed at query time, so a document
 	 * is returned only if the user can read every source dependency's benefactor. Returns an
 	 * empty list for a benefactor-less source (e.g. a table), applying no row filter; access to
 	 * such a source is enforced at the entity level.
@@ -182,9 +181,9 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		List<BenefactorAccessFilter> accessibleBenefactors =
 				tableQueryManager.computeAccessibleBenefactors(user, source, indexDao, ACCESS_TYPE.READ);
 		List<Query> filters = new ArrayList<>(accessibleBenefactors.size());
-		for (int i = 0; i < accessibleBenefactors.size(); i++) {
-			final String field = "_benefactor_" + i;
-			final Set<Long> terms = accessibleBenefactors.get(i).accessibleIds();
+		for (BenefactorAccessFilter accessible : accessibleBenefactors) {
+			final String field = OpenSearchManagerImpl.benefactorFieldName(accessible.benefactorColumnName());
+			final Set<Long> terms = accessible.accessibleIds();
 			filters.add(Query.of(tq -> tq.terms(t -> t
 					.field(field)
 					.terms(qt -> qt.value(terms.stream()
