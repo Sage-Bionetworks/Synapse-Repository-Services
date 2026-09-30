@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -1100,9 +1101,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 				result[0] = openSearchManager.search(indexName, body, columns,
 						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList());
 				return result[0].getTotalHits() != null && result[0].getTotalHits() >= expectedMinHits;
-			} catch (IllegalStateException e) {
-				// index_not_found — not ready yet
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for search results (expected at least " + expectedMinHits + " hits)");
@@ -1125,9 +1125,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList());
 				return result[0].getHits() != null && result[0].getHits().stream()
 						.anyMatch(h -> Long.valueOf(rowId).equals(h.getRowId()));
-			} catch (IllegalStateException e) {
-				// index_not_found — not ready yet
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for search to return row " + rowId);
@@ -1149,8 +1148,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 			try {
 				result[0] = openSearchManager.search(indexName, body, columns, parts, Collections.emptyList());
 				return true;
-			} catch (IllegalStateException e) {
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for search to succeed");
@@ -1174,13 +1173,24 @@ public class OpenSearchManagerImplAutoWiredTest {
 			try {
 				result[0] = openSearchManager.search(indexName, body, columns, parts, Collections.emptyList());
 				return result[0].getHits() != null && result[0].getHits().size() == expectedHits;
-			} catch (IllegalStateException e) {
-				// index_not_found — not ready yet
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for search to return " + expectedHits + " hits");
 		return result[0];
+	}
+
+	/**
+	 * Treats a search failure as "not ready yet, poll again" when the index is still building
+	 * ({@link IllegalStateException}) or the transport call failed transiently (e.g. a read timeout
+	 * surfaced as an {@link IOException} cause); rethrows anything else.
+	 */
+	private static boolean notReadyOrRethrow(RuntimeException e) {
+		if (e instanceof IllegalStateException || e.getCause() instanceof IOException) {
+			return false;
+		}
+		throw e;
 	}
 
 	private SearchQueryResults waitForAutocomplete(SearchAutocompleteBody body, List<ColumnModel> columns,
@@ -1191,8 +1201,8 @@ public class OpenSearchManagerImplAutoWiredTest {
 				result[0] = openSearchManager.autocomplete(indexName, body, columns,
 						EnumSet.allOf(SearchQueryPart.class), Collections.emptyList());
 				return result[0].getTotalHits() != null && result[0].getTotalHits() >= expectedMinHits;
-			} catch (IllegalStateException e) {
-				return false;
+			} catch (RuntimeException e) {
+				return notReadyOrRethrow(e);
 			}
 		});
 		assertTrue(success, "Timed out waiting for autocomplete results (expected at least " + expectedMinHits + " hits)");
