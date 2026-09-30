@@ -96,7 +96,7 @@ public class MessageManagerImpl implements MessageManager {
 
 	private static final String MESSAGE_TEMPLATE_DELIVERY_FAILURE = "message/DeliveryFailureTemplate.txt";
 
-	private static final String MESSAGE_TEMPLATE_PASSWORD_RESET = "message/PasswordResetTemplate.txt";
+	private static final String MESSAGE_TEMPLATE_PASSWORD_RESET = "message/PasswordResetTemplate.html";
 
 	private static final String MESSAGE_VALUE_ORIGIN_CLIENT = "Synapse";
 	
@@ -598,17 +598,16 @@ public class MessageManagerImpl implements MessageManager {
 		UserProfile userProfile = userProfileManager.getUserProfile(Long.toString(userId));
 		String displayName = EmailUtils.getDisplayName(userProfile);
 
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, MESSAGE_VALUE_ORIGIN_CLIENT);
-		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, displayName);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, username);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, resetUrl);
 
-		String messageBody = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_RESET, fieldValues);
+		String content = EmailUtils.readMailTemplate(MESSAGE_TEMPLATE_PASSWORD_RESET, fieldValues);
+		String wrappedMessageBody = EmailUtils.wrapEmailContent(content, subject);
 
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(email)
 				.withSubject(subject)
-				.withBody(messageBody, BodyType.PLAIN_TEXT)
+				.withBody(wrappedMessageBody, BodyType.HTML)
 				.withSenderUserName(username)
 				.withSenderDisplayName(displayName)
 				.withUserId(Long.toString(userId))

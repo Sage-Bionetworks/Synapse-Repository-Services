@@ -123,11 +123,12 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		Map<String,String> fieldValues = new HashMap<>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, "Synapse");
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, url);
-		String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
+		String content = EmailUtils.readMailTemplate("message/CreateAccountTemplate.html", fieldValues);
+		String wrappedMessageBody = EmailUtils.wrapEmailContent(content, subject);
 		SendRawEmailRequest sendEmailRequest = new SendRawEmailRequestBuilder()
 				.withRecipientEmail(user.getEmail())
 				.withSubject(subject)
-				.withBody(messageBody, BodyType.HTML)
+				.withBody(wrappedMessageBody, BodyType.HTML)
 				.withIsNotificationMessage(true)
 				.build();	
 		sesClient.sendRawEmail(sendEmailRequest);
