@@ -22,7 +22,9 @@ import org.sagebionetworks.StackConfigurationSingleton;
 
 import com.docusign.esign.api.EnvelopesApi;
 import com.docusign.esign.client.ApiClient;
+import com.docusign.esign.client.ApiException;
 import com.docusign.esign.model.Envelope;
+import com.docusign.esign.model.Folder;
 import com.docusign.esign.model.LockInformation;
 import com.docusign.esign.model.Recipients;
 import com.docusign.esign.model.Signer;
@@ -75,8 +77,10 @@ import com.docusign.esign.model.TemplateSummary;
  * <p>
  * The {@code stepDiag_*} methods are not part of the sequence. They report what is standing in the way
  * when a step fails: the envelope's status and edit lock, and what the template says its roles' tabs
- * are. {@code stepReset_voidAndClearState} abandons a run so another can start, and tolerates an
- * envelope too far along to void.
+ * are. {@code stepDiag_discardDraftEnvelope} stands alone and creates its own envelope, establishing that a
+ * draft can be thrown away — which is what lets a preview leave nothing behind.
+ * {@code stepReset_voidAndClearState} abandons a run so another can start, and tolerates an envelope too
+ * far along to void.
  */
 @EnabledIfSystemProperty(named = "docusign.live", matches = "true")
 @TestMethodOrder(MethodOrderer.MethodName.class)
@@ -390,6 +394,75 @@ public class DocuSignLiveTest {
 					.count();
 			print("signaturesRequested", Integer.toString(envelope.getRecipients().getSigners().size()));
 			print("signaturesAcquired", Long.toString(acquired));
+		}
+	}
+
+	/**
+	 * Whether a draft envelope can be thrown away, which is what makes a preview able to leave nothing
+	 * behind. Self-contained: it creates its own envelope, so it does not touch a run in progress.
+	 * <p>
+	 * Two things are being settled. First, that a draft can be discarded at all — voiding is refused for an
+	 * envelope that was never sent, so deletion has to go through a move to the "recyclebin" folder.
+	 * Second, whether that move needs {@code fromFolderId}: the API reference describes it as "the ID of
+	 * the folder that the envelope is being moved from" without saying it is required, and
+	 * {@link DocuSignEnvelopesApi#discardEnvelope} omits it. A failure here naming the source folder means
+	 * it is required, and the folder ID has to be resolved from {@code GET /folders} first.
+	 */
+	@Test
+	public void stepDiag_discardDraftEnvelope() {
+		String templateId = required("docusign.live.templateId");
+		Map<String, RecipientInfo> recipients = new LinkedHashMap<>();
+		recipients.put(PI, new RecipientInfo(required("docusign.live.pi.email"), "Live PI"));
+		recipients.put(SO, new RecipientInfo(required("docusign.live.so.email"), "Live SO"));
+		Map<RoleLabelKey, String> tabValues = new LinkedHashMap<>();
+		tabValues.put(new RoleLabelKey(PI, PI + "_name"), "Live PI");
+		tabValues.put(new RoleLabelKey(SO, SO + "_name"), "Live SO");
+
+		String envelopeId = client.createEnvelope(templateId, recipients, tabValues);
+		print("created a draft to throw away", envelopeId);
+		String folderBefore = folderOf(envelopeId);
+		print("folder before the discard", folderBefore);
+
+		try {
+			// call under test
+			client.discardEnvelope(envelopeId);
+			System.out.println("discard was accepted with envelopeIds only (no fromFolderId)");
+		} catch (RuntimeException e) {
+			System.out.println("discard was REFUSED: " + e.getMessage());
+			System.out.println("  If this names the source folder, fromFolderId is required —"
+					+ " resolve the Drafts folder from GET /folders and pass it in FoldersRequest.");
+			return;
+		}
+
+		// The move is a soft delete: DocuSign keeps the record and it stays readable by ID, so the folder it
+		// now sits in is what says whether the discard took effect.
+		String folderAfter = folderOf(envelopeId);
+		print("folder after the discard", folderAfter);
+		verdict("the envelope moved out of the folder it was created in", !folderAfter.equals(folderBefore));
+		print("status after the discard", client.getEnvelopeStatus(envelopeId).status().getDucStatus().name());
+		System.out.println("  Still 'draft' and still readable by ID — expected, since a recycled envelope is"
+				+ " retained rather than destroyed. What matters is that it was never sent, is not billed,"
+				+ " and no longer sits among the account's live drafts.");
+	}
+
+	// The folder an envelope currently sits in. Goes to the SDK directly: DocuSignClient never asks for
+	// folders, and widening it for the sake of an observation is not worth it.
+	private String folderOf(String envelopeId) {
+		EnvelopesApi envelopesApi = new EnvelopesApi(authenticatedApiClient());
+		EnvelopesApi.GetEnvelopeOptions options = envelopesApi.new GetEnvelopeOptions();
+		options.setInclude("folders");
+		try {
+			List<Folder> folders = envelopesApi.getEnvelope(config.getAccountId(), envelopeId, options).getFolders();
+			if (folders == null || folders.isEmpty()) {
+				return "<none reported>";
+			}
+			List<String> names = new ArrayList<>();
+			for (Folder folder : folders) {
+				names.add(folder.getName() + " (" + folder.getFolderId() + ")");
+			}
+			return String.join(", ", names);
+		} catch (ApiException e) {
+			return "<unreadable: " + e.getMessage() + ">";
 		}
 	}
 
