@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -13,9 +14,11 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +51,8 @@ import org.sagebionetworks.repo.model.grid.node.ConstantNode;
 import org.sagebionetworks.repo.model.grid.patch.ConType;
 import org.sagebionetworks.repo.model.grid.patch.ConValue;
 import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
+import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
@@ -264,6 +269,50 @@ public class GridCsvImporterImplTest {
 		verifyImportSequence(expectedMapping);
 	}
 	
+	/**
+	 * A blank cell becomes a null value only for a column the grid's bound JSON
+	 * schema requires. For any other column it becomes an undefined value, so that
+	 * a value the user left empty is omitted from the row rather than validated as
+	 * a null.
+	 */
+	@Test
+	public void testImportCsvWithBlankRequiredAndOptionalCells() {
+		session.setGridJsonSchema$Id("my.org-Record-1.0.0");
+
+		request.setSchema(List.of(
+			new ColumnModel().setName("a").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setName("b").setColumnType(ColumnType.INTEGER),
+			new ColumnModel().setName("c").setColumnType(ColumnType.INTEGER)
+		));
+
+		csvContent =
+			"a,b,c" + System.lineSeparator() +
+			"0,," + System.lineSeparator();
+
+		when(mockJsonSchemaManager.getValidationSchema("my.org-Record-1.0.0")).thenReturn(new JsonSchema()
+			.setProperties(Map.of(
+				"b", new JsonSchema().setType(Type.integer),
+				"c", new JsonSchema().setType(Type.integer)))
+			.setRequired(List.of("c")));
+
+		setupFullMocks();
+
+		// The stream must be read while the importer still holds the CSV reader open
+		List<Object[]> importedRows = new ArrayList<>();
+
+		doAnswer(invocation -> {
+			invocation.getArgument(1, DataStream.class).forEachRemaining(importedRows::add);
+			return null;
+		}).when(mockImportDao).streamToCsvTempTable(eq(sessionId), any(), any());
+
+		// call under test
+		importer.importCsv(user, request, mockCallback);
+
+		// The cells of a mapped row hold the compact form of each non-key value: "b" is
+		// optional so its blank cell is undefined, while the required "c" is null.
+		assertEquals(List.of("[0, [0,0], [null]]"), importedRows.stream().map(row -> Arrays.toString(row)).toList());
+	}
+
 	@Test
 	public void testImportCsvWithEmptyCsv() {
 		csvContent = "" + System.lineSeparator();
