@@ -589,7 +589,12 @@ public class DataAccessController {
 	}
 
 	/**
-	 * Cancel a routed eDUC envelope.
+	 * Cancel a routed eDUC envelope, releasing the request from it.
+	 * <p>
+	 * The request stops referring to the envelope whatever state the envelope is in, so that it can be
+	 * routed again or fall back to having a data use certificate attached by hand. Voiding the envelope at
+	 * the signing service is attempted as well, but only an envelope still out for signature can be voided,
+	 * and a refusal does not fail the call.
 	 *
 	 * @param userId    - The ID of the user who is making the request.
 	 * @param requestId - The ID of the data access request.
