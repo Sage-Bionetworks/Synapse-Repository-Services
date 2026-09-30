@@ -7,7 +7,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_USER_REQUEST_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DATA_ACCESS_REQUEST_USER_USER_ID;
@@ -82,6 +84,17 @@ public class DBORequestDAOImpl implements RequestDAO {
 			+ " FROM " + TABLE_DATA_ACCESS_REQUEST
 			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
 
+	public static final String SQL_GET_CONTENT_HASH = "SELECT " + COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH
+			+ " FROM " + TABLE_DATA_ACCESS_REQUEST
+			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
+
+	// The etag is rotated with the hash so the row is seen to have changed: migration between stacks
+	// detects changed rows by etag alone, so a hash written without a new etag would never migrate.
+	public static final String SQL_SET_CONTENT_HASH = "UPDATE " + TABLE_DATA_ACCESS_REQUEST
+			+ " SET " + COL_DATA_ACCESS_REQUEST_EDUC_CONTENT_HASH + " = ?"
+			+ ", " + COL_DATA_ACCESS_REQUEST_ETAG + " = UUID()"
+			+ " WHERE " + COL_DATA_ACCESS_REQUEST_ID + " = ?";
+
 	public static final String SQL_GET_FOR_UPDATE = SQL_GET_BY_ID + " FOR UPDATE";
 
 	private static final String SQL_DELETE_REQUEST_USERS = "DELETE FROM " + TABLE_DATA_ACCESS_REQUEST_USER
@@ -154,6 +167,10 @@ public class DBORequestDAOImpl implements RequestDAO {
 		DBORequest dbo = new DBORequest();
 		RequestUtils.copyDtoToDbo(toUpdate, dbo);
 		dbo.setEtag(UUID.randomUUID().toString());
+		// The content hash is server-managed and not carried on the request DTO. Preserve the
+		// existing value so a routine request edit does not clear it; only routing/correcting an
+		// envelope changes the hash (via setEDucContentHash).
+		dbo.setEDucContentHash(getEDucContentHash(toUpdate.getId()));
 		basicDao.update(dbo);
 		populateRequestUsers(toUpdate);
 		return getUserOwnCurrentRequest(toUpdate.getAccessRequirementId(), toUpdate.getCreatedBy());
@@ -196,12 +213,44 @@ public class DBORequestDAOImpl implements RequestDAO {
 		}
 	}
 
+	@WriteTransaction
 	@Override
-	public List<RequestUserInfo> getUserRequests(Long userId, long limit, long offset,
-			AccessRequestSortField sortBy, SortDirection sortDirection) {
-		String orderBy = toOrderByClause(sortBy, sortDirection);
-		String sql = SQL_GET_USER_REQUESTS_BASE + orderBy + " LIMIT ? OFFSET ?";
-		return jdbcTemplate.query(sql, USER_REQUEST_MAPPER, userId, limit, offset);
+	public void setEDucContentHash(String requestId, String hash) {
+		jdbcTemplate.update(SQL_SET_CONTENT_HASH, hash, requestId);
+	}
+
+	@Override
+	public String getEDucContentHash(String requestId) {
+		try {
+			return jdbcTemplate.queryForObject(SQL_GET_CONTENT_HASH, String.class, requestId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(String.format(DATA_ACCESS_REQUEST_DOES_NOT_EXIST, requestId));
+		}
+	}
+
+	@Override
+	public List<RequestUserInfo> getUserRequests(Long userId, Boolean isEDuc, Long accessRequirementId, long limit,
+			long offset, AccessRequestSortField sortBy, SortDirection sortDirection) {
+		StringBuilder sql = new StringBuilder(SQL_GET_USER_REQUESTS_BASE);
+		List<Object> parameters = new ArrayList<>();
+		parameters.add(userId);
+
+		// Filtering here rather than over the returned page keeps the page size and the next-page
+		// token counting only the rows the caller asked for.
+		if (isEDuc != null) {
+			// A request is an eDUC once it has an envelope, which is how the summary reports it.
+			sql.append(" AND r.").append(COL_DATA_ACCESS_REQUEST_EDUC_ENVELOPE_ID)
+					.append(isEDuc ? " IS NOT NULL" : " IS NULL");
+		}
+		if (accessRequirementId != null) {
+			sql.append(" AND r.").append(COL_DATA_ACCESS_REQUEST_ACCESS_REQUIREMENT_ID).append(" = ?");
+			parameters.add(accessRequirementId);
+		}
+
+		sql.append(toOrderByClause(sortBy, sortDirection)).append(" LIMIT ? OFFSET ?");
+		parameters.add(limit);
+		parameters.add(offset);
+		return jdbcTemplate.query(sql.toString(), USER_REQUEST_MAPPER, parameters.toArray());
 	}
 
 	static String toOrderByClause(AccessRequestSortField sortBy, SortDirection sortDirection) {

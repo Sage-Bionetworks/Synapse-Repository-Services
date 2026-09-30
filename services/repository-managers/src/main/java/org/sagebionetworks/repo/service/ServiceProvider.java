@@ -83,7 +83,9 @@ public interface ServiceProvider {
 	public DataAccessService getDataAccessService();
 
 	public EDucService getEDucService();
-	
+
+	public FormTemplateService getFormTemplateService();
+
 	public OpenIDConnectService getOpenIDConnectService();
 	
 	public StatisticsService getStatisticsService();

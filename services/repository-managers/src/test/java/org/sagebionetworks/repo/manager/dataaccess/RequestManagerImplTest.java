@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.educ.EDucSignatureStatus;
 import org.sagebionetworks.repo.model.educ.EDucStatusEnum;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -89,6 +91,7 @@ public class RequestManagerImplTest {
 	private String etag;
 	private Request request;
 	private Renewal renewal;
+	private Map<String, Object> schemaData;
 
 
 	@BeforeEach
@@ -100,6 +103,7 @@ public class RequestManagerImplTest {
 		createdOn = new Date();
 		modifiedOn = new Date();
 		etag = "etag";
+		schemaData = Map.of("projectLead", "Dr. Lead", "institution", Map.of("name", "Sage"));
 		request = createNewRequest();
 		renewal = manager.createRenewalFromApprovedRequest(request);
 
@@ -145,11 +149,31 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testCreateWithNullResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
 		Request toCreate = createNewRequest();
 		toCreate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.create(mockUser, toCreate);
-		});
+		}).getMessage();
+
+		assertEquals("Request.researchProjectId is required.", message);
+		verify(mockRequestDao, never()).create(any());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirementAndResearchProjectId() {
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(new JsonSchemaAccessRequirement());
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
+			manager.create(mockUser, createNewRequest());
+		}).getMessage();
+
+		assertEquals("A research project cannot be associated with a request for a JsonSchemaAccessRequirement.",
+				message);
+		verify(mockRequestDao, never()).create(any());
 	}
 
 	@Test
@@ -177,7 +201,8 @@ public class RequestManagerImplTest {
 		when(mockUser.getId()).thenReturn(1L);
 		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
 		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
-		
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(5L);
+
 		assertEquals(request, manager.create(mockUser, createNewRequest()));
 		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
 		verify(mockRequestDao).create(captor.capture());
@@ -185,6 +210,35 @@ public class RequestManagerImplTest {
 		assertEquals(requestId, toCreate.getId());
 		assertEquals(userId, toCreate.getCreatedBy());
 		assertEquals(userId, toCreate.getModifiedBy());
+		// The requirement version answering started on is stamped by the server
+		assertEquals(5L, toCreate.getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testCreateWithJsonSchemaAccessRequirement() {
+		JsonSchemaAccessRequirement accessRequirement = new JsonSchemaAccessRequirement();
+		accessRequirement.setVersionNumber(2L);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.create(any(Request.class))).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(accessRequirement);
+
+		Request toCreate = createNewRequest();
+		// A schema based request answers the bound schema instead of a research project
+		toCreate.setResearchProjectId(null);
+		toCreate.setSchemaData(schemaData);
+		// A client supplied stamp must be ignored in favour of the requirement's current version
+		toCreate.setAccessRequirementVersionNumber(99L);
+
+		// call under test
+		assertEquals(request, manager.create(mockUser, toCreate));
+
+		ArgumentCaptor<Request> captor = ArgumentCaptor.forClass(Request.class);
+		verify(mockRequestDao).create(captor.capture());
+		Request created = captor.getValue();
+		assertEquals(schemaData, created.getSchemaData());
+		assertEquals(2L, created.getAccessRequirementVersionNumber().longValue());
+		assertNull(created.getResearchProjectId());
 	}
 
 	@Test
@@ -253,7 +307,11 @@ public class RequestManagerImplTest {
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRequest() {
+		request.setSchemaData(schemaData);
+		request.setAccessRequirementVersionNumber(1L);
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -276,16 +334,22 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		// The answers already given are carried forward as the starting point for the renewal
+		assertEquals(schemaData, renewal.getSchemaData());
+		// Answering starts over, so the stamp moves onto the requirement's current version
+		assertEquals(7L, renewal.getAccessRequirementVersionNumber().longValue());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 	}
-	
+
 	/**
 	 * For this case the current request is a renewal.
 	 */
 	@Test
 	public void testUpdateApprovedRequestCurrentRenewal() {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(renewal);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		// call under test
 		manager.updateApprovedRequest(requestId);
 		verify(mockRequestDao).getForUpdate(requestId);
@@ -329,11 +393,20 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testUpdateWithNullResearchProjectId() {
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+
 		Request toUpdate = createNewRequest();
+		// Clearing the research project is as much an edit of it as changing it
 		toUpdate.setResearchProjectId(null);
-		assertThrows(IllegalArgumentException.class, ()->{
+
+		String message = assertThrows(IllegalArgumentException.class, ()->{
+			// call under test
 			manager.update(mockUser, toUpdate);
-		});
+		}).getMessage();
+
+		assertEquals("researchProjectId, accessRequirementId, createdOn and createdBy fields cannot be edited.",
+				message);
+		verify(mockRequestDao, never()).update(any());
 	}
 
 	@Test
@@ -447,6 +520,8 @@ public class RequestManagerImplTest {
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		toUpdate.setDucFileHandleId("777");
 		// call under test.
@@ -458,6 +533,7 @@ public class RequestManagerImplTest {
 		assertEquals(userId, updated.getCreatedBy());
 		assertEquals(userId, updated.getModifiedBy());
 		assertEquals("777", updated.getDucFileHandleId());
+		assertEquals(7L, updated.getAccessRequirementVersionNumber().longValue());
 	}
 
 	@Test
@@ -469,6 +545,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		// A stale client copy tries to send a different envelope id.
@@ -496,6 +574,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		// A stale client omits the envelope id and tries to attach a signed DUC document. The
 		// completion check must run against the server's (in-flight) envelope, not the client's
@@ -521,6 +601,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
 		when(mockRequestDao.update(any())).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		// A stale client copy still carries the old envelope id.
@@ -533,6 +615,55 @@ public class RequestManagerImplTest {
 		verify(mockRequestDao).update(captor.capture());
 		// The cleared value is not resurrected from the stale client copy.
 		assertNull(captor.getValue().getEDucSignatureEnvelopeId());
+	}
+
+	@Test
+	public void testUpdateWithClientSuppliedAccessRequirementVersionNumber() {
+		// The saved answers were last written against version one, and the requirement has since
+		// moved on to version seven.
+		request.setAccessRequirementVersionNumber(1L);
+
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setAccessRequirementVersionNumber(9L);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		// The client's own value is ignored in favour of the requirement's current version, which
+		// is what lets a client stop warning about drift once this save lands.
+		assertEquals(7L, captor.getValue().getAccessRequirementVersionNumber().longValue());
+	}
+
+	@Test
+	public void testUpdateWithPartialSchemaData() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getForUpdate(requestId)).thenReturn(request);
+		when(mockRequestDao.update(any())).thenReturn(request);
+		when(mockSubmissionDao.hasSubmissionWithState(any(), any(), any())).thenReturn(false);
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
+
+		// Saving progress must accept data that the bound schema would reject, since answers are
+		// only validated when the request is submitted.
+		Map<String, Object> partialSchemaData = Map.of("institution", Map.of(), "notASchemaProperty", 42);
+		Renewal toUpdate = RequestManagerImpl.createRenewalFromApprovedRequest(request);
+		toUpdate.setSchemaData(partialSchemaData);
+
+		// call under test
+		manager.update(mockUser, toUpdate);
+
+		ArgumentCaptor<Renewal> captor = ArgumentCaptor.forClass(Renewal.class);
+		verify(mockRequestDao).update(captor.capture());
+		assertEquals(partialSchemaData, captor.getValue().getSchemaData());
 	}
 
 	@Test
@@ -549,6 +680,7 @@ public class RequestManagerImplTest {
 		change3.setType(AccessType.REVOKE_ACCESS);
 		request.setAccessorChanges(Arrays.asList(change1, change2, change3));
 		request.setDucFileHandleId("ducFileHandleId");
+		request.setSchemaData(schemaData);
 		Renewal renewal = RequestManagerImpl.createRenewalFromApprovedRequest(request);
 		assertEquals(requestId, renewal.getId());
 		assertEquals(userId, renewal.getCreatedBy());
@@ -561,6 +693,7 @@ public class RequestManagerImplTest {
 		assertEquals(request.getDucFileHandleId(), renewal.getDucFileHandleId());
 		assertEquals(request.getIrbFileHandleId(), renewal.getIrbFileHandleId());
 		assertEquals(request.getAttachments(), renewal.getAttachments());
+		assertEquals(schemaData, renewal.getSchemaData());
 		assertNull(renewal.getSummaryOfUse());
 		assertNull(renewal.getPublication());
 		change1.setType(AccessType.RENEW_ACCESS);
@@ -607,6 +740,8 @@ public class RequestManagerImplTest {
 		when(mockRequestDao.update(any(RequestInterface.class))).thenReturn(request);
 		when(mockSubmissionDao.hasSubmissionWithState(userId, accessRequirementId, SubmissionState.SUBMITTED)).thenReturn(false);
 		when(mockFileHandleAuthorizationManager.canAccessRawFileHandleById(any(), any())).thenReturn(AuthorizationStatus.authorized());
+		when(mockAccessRequirementDao.get(accessRequirementId)).thenReturn(mockAccessRequirement);
+		when(mockAccessRequirement.getVersionNumber()).thenReturn(7L);
 
 		Request toUpdate = createNewRequest();
 		toUpdate.setDucFileHandleId("777");
@@ -777,7 +912,8 @@ public class RequestManagerImplTest {
 
 	@Test
 	public void testToAccessRequestStatusFromEnvelope() {
-		assertEquals(AccessRequestStatusEnum.draft, RequestManagerImpl.toAccessRequestStatusFromEnvelope("created"));
+		// An envelope that has been built but not routed leaves the request no further along than 'created'.
+		assertEquals(AccessRequestStatusEnum.created, RequestManagerImpl.toAccessRequestStatusFromEnvelope("created"));
 		assertEquals(AccessRequestStatusEnum.sent, RequestManagerImpl.toAccessRequestStatusFromEnvelope("sent"));
 		assertEquals(AccessRequestStatusEnum.delivered, RequestManagerImpl.toAccessRequestStatusFromEnvelope("delivered"));
 		assertEquals(AccessRequestStatusEnum.completed, RequestManagerImpl.toAccessRequestStatusFromEnvelope("completed"));
@@ -806,7 +942,7 @@ public class RequestManagerImplTest {
 	@Test
 	public void testListUserRequestsWithNoRequests() {
 		when(mockUser.getId()).thenReturn(1L);
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of());
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of());
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -831,7 +967,7 @@ public class RequestManagerImplTest {
 		info.setSubmittedOn(new Date(1000L));
 		info.setModifiedOn(new Date(2000L));
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -861,7 +997,7 @@ public class RequestManagerImplTest {
 		info.setSubmissionStatus(null);
 		info.setEnvelopeId("env-abc");
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		Signer signer1 = new Signer();
 		signer1.setStatus("completed");
@@ -895,6 +1031,36 @@ public class RequestManagerImplTest {
 	}
 
 	@Test
+	public void testListUserRequestsWithEnvelopeMissingRecipients() {
+		// An envelope read that does not carry recipients yields a status but no signature counts. This
+		// is what a caller sees if the bulk read ever stops asking DocuSign to include recipients.
+		when(mockUser.getId()).thenReturn(1L);
+
+		RequestUserInfo info = new RequestUserInfo();
+		info.setRequestId("200");
+		info.setEnvelopeId("env-abc");
+		info.setSubmissionStatus(null);
+
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
+
+		Envelope envelope = new Envelope();
+		envelope.setEnvelopeId("env-abc");
+		envelope.setStatus("completed");
+		envelope.setRecipients(null);
+
+		when(mockDocuSignClient.listEnvelopeStatuses(List.of("env-abc"))).thenReturn(List.of(envelope));
+
+		// call under test
+		AccessRequestList result = manager.listUserRequests(mockUser, new AccessRequestListRequest());
+
+		AccessRequestSummary summary = result.getResults().get(0);
+		assertEquals(AccessRequestStatusEnum.completed, summary.getStatus());
+		assertEquals(true, summary.getIsEDuc());
+		assertNull(summary.getSignaturesRequested());
+		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
 	public void testListUserRequestsWithNoSubmissionAndNoEnvelope() {
 		when(mockUser.getId()).thenReturn(1L);
 
@@ -904,7 +1070,7 @@ public class RequestManagerImplTest {
 		info.setSubmissionStatus(null);
 		info.setEnvelopeId(null);
 
-		when(mockRequestDao.getUserRequests(1L, 51L, 0L, null, null)).thenReturn(List.of(info));
+		when(mockRequestDao.getUserRequests(1L, null, null, 51L, 0L, null, null)).thenReturn(List.of(info));
 
 		AccessRequestListRequest listRequest = new AccessRequestListRequest();
 
@@ -918,6 +1084,77 @@ public class RequestManagerImplTest {
 		assertEquals(false, summary.getIsEDuc());
 		assertNull(summary.getSignaturesRequested());
 		assertNull(summary.getSignaturesAcquired());
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucTrue() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithIsEDucFalse() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, false, null, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(false);
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		// false must reach the DAO as a filter rather than being treated as "no filter"
+		verify(mockRequestDao).getUserRequests(1L, false, null, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithAccessRequirementId() {
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, null, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, null, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithBothFilters() {
+		// the two filters are independent and may be combined
+		when(mockUser.getId()).thenReturn(1L);
+		when(mockRequestDao.getUserRequests(1L, true, 55L, 51L, 0L, null, null)).thenReturn(List.of());
+
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setIsEDuc(true);
+		listRequest.setAccessRequirementId("55");
+
+		// call under test
+		manager.listUserRequests(mockUser, listRequest);
+
+		verify(mockRequestDao).getUserRequests(1L, true, 55L, 51L, 0L, null, null);
+	}
+
+	@Test
+	public void testListUserRequestsWithNonNumericAccessRequirementId() {
+		AccessRequestListRequest listRequest = new AccessRequestListRequest();
+		listRequest.setAccessRequirementId("not-a-number");
+
+		// call under test — NumberFormatException extends IllegalArgumentException, so this is a 400
+		assertThrows(NumberFormatException.class,
+				() -> manager.listUserRequests(mockUser, listRequest));
+
+		verifyNoInteractions(mockRequestDao);
 	}
 
 	@Test

@@ -1,0 +1,24 @@
+{
+	"description": "The as-built authorization state of a defining-SQL object's index (MaterializedView, VirtualTable, SearchIndex), captured at build time and stored so it swaps atomically with the index it describes. It holds everything needed to authorize access to what the index actually contains, so that later drift in the object's current defining SQL, transitive definitions, schema, or benefactors cannot authorize access to data the served index does not reflect - the PLFM-9977 class of bug. Two parts: (1) indexDescription - the as-built authorization projection of the runtime IndexDescription, reconstituted at query time to drive the transitive-dependency ACL check and benefactor row-level filter through the same code path used for current-truth state; and (2) columnLineage - each output column's flattened lineage to leaf source columns, for live QID/k-anonymity evaluation (the QID verdict itself is read live from the source's current configuration, never captured here).",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The id of the object this snapshot describes (e.g. 'syn123'). Equal to indexDescription.objectId."
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The version of the object this snapshot describes, or null for the current version."
+		},
+		"indexDescription": {
+			"$ref": "org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot",
+			"description": "The as-built authorization projection of the object's IndexDescription: table type, baked-in benefactor columns, and the recursive dependency tree."
+		},
+		"columnLineage": {
+			"type": "array",
+			"description": "One entry per output column, in select-list order, giving each column's flattened lineage to leaf source columns.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnLineageEntry"
+			}
+		}
+	}
+}

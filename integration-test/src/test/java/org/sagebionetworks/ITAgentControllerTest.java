@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Disabled;
@@ -10,11 +11,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.client.AsynchJobType;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentChatResponse;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.CreateAgentSessionRequest;
@@ -69,6 +75,47 @@ public class ITAgentControllerTest {
 		TraceEventsResponse trace = synapse.getAgentTrace(new TraceEventsRequest().setJobId(jobResult.getJobToken()));
 		assertNotNull(trace);
 		assertEquals(jobResult.getJobToken(), trace.getJobId());
+	}
+
+	@Test
+	public void testAgentRegistrationActSettingsAndAnonymousSession() throws SynapseException {
+		// Register a custom agent (registration is just metadata; no model invocation needed here).
+		AgentRegistration reg = adminSynapse.createOrGetAgentRegistration(
+				new AgentRegistrationRequest().setAwsAgentId(config.getCustomHelloWorldBedrockAgentId()));
+		assertNotNull(reg.getAgentRegistrationId());
+
+		// An admin is a member of the ACT, so they may set the ACT-managed settings. First write has no etag.
+		AgentRegistrationActSettingsBundle bundle = adminSynapse
+				.updateAgentRegistrationActSettings(new AgentRegistrationActSettingsRequest()
+						.setAgentRegistrationId(reg.getAgentRegistrationId())
+						.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(true)));
+		assertEquals(reg.getAgentRegistrationId(), bundle.getAgentRegistrationId());
+		assertNotNull(bundle.getEtag());
+		assertNotNull(bundle.getModifiedOn());
+		assertNotNull(bundle.getModifiedBy());
+		assertEquals(Boolean.TRUE, bundle.getSettings().getAllowAnonymousChatSession());
+
+		// The GET returns the stored settings.
+		AgentRegistrationActSettingsBundle fromGet = adminSynapse
+				.getAgentRegistrationActSettings(reg.getAgentRegistrationId());
+		assertEquals(bundle, fromGet);
+
+		// A non-ACT user may neither read nor write the settings.
+		assertThrows(SynapseForbiddenException.class, () -> synapse
+				.getAgentRegistrationActSettings(reg.getAgentRegistrationId()));
+		assertThrows(SynapseForbiddenException.class,
+				() -> synapse.updateAgentRegistrationActSettings(new AgentRegistrationActSettingsRequest()
+						.setAgentRegistrationId(reg.getAgentRegistrationId())
+						.setSettings(new AgentRegistrationActSettings().setAllowAnonymousChatSession(false))));
+
+		// An anonymous client may now start a session against this registration; the session is forced to public.
+		SynapseClient anonymousSynapse = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymousSynapse);
+		AgentSession anonymousSession = anonymousSynapse
+				.createAgentSession(new CreateAgentSessionRequest().setAgentRegistrationId(reg.getAgentRegistrationId())
+						.setAgentAccessLevel(AgentAccessLevel.WRITE_YOUR_PRIVATE_DATA));
+		assertNotNull(anonymousSession.getSessionId());
+		assertEquals(AgentAccessLevel.PUBLICLY_ACCESSIBLE, anonymousSession.getAgentAccessLevel());
 	}
 
 	@Disabled // We disabled this test as the custom agent (id= 0O3IDUIR36 ) uses a model that has "reached the end of its life".

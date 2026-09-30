@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.IdAndChecksum;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnModelPage;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ObjectDataDTO;
 import org.sagebionetworks.repo.model.table.ReplicationType;
 import org.sagebionetworks.repo.model.table.ViewScope;
@@ -20,6 +21,7 @@ import org.sagebionetworks.table.cluster.ColumnChangeDetails;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.ViewUpdateHandler;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.view.filter.ViewFilter;
 import org.sagebionetworks.table.model.SparseChangeSet;
 import org.sagebionetworks.util.progress.ProgressCallback;
@@ -104,7 +106,24 @@ public interface TableIndexManager {
 	 * @param indexVersion
 	 */
 	void setIndexVersion(IdAndVersion tableId, Long indexVersion);
-	
+
+	/**
+	 * Save the as-built index authorization snapshot for the index. Stored so it swaps atomically with
+	 * the index it describes.
+	 *
+	 * @param tableId  The id (and optional version) the index is built for.
+	 * @param snapshot The as-built authorization snapshot to persist.
+	 */
+	void saveAuthorizationSnapshot(IdAndVersion tableId, IndexAuthorizationSnapshot snapshot);
+
+	/**
+	 * Get the as-built index authorization snapshot for the index.
+	 *
+	 * @param tableId The id (and optional version) of the index.
+	 * @return Optional.empty() if no snapshot has been captured for this index.
+	 */
+	Optional<IndexAuthorizationSnapshot> getAuthorizationSnapshot(IdAndVersion tableId);
+
 	/**
 	 * Sets the status of the search flag for the given table
 	 * 
@@ -316,7 +335,7 @@ public interface TableIndexManager {
 	 * @param index
 	 * @return A version representing the sum of the current versions of all the dependencies for the given index
 	 */
-	long getVersionFromIndexDependencies(IndexDescription index);
+	long getVersionFromIndexDependencies(QueryIndexDescription index);
 
 	/**
 	 * Find all Views IDs that have a scope that overlaps with provided path.

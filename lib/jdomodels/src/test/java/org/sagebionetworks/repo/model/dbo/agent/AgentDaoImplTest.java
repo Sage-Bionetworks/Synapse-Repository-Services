@@ -19,9 +19,12 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.agent.AgentAccessLevel;
 import org.sagebionetworks.repo.model.agent.AgentChatRequest;
 import org.sagebionetworks.repo.model.agent.AgentRegistration;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettings;
+import org.sagebionetworks.repo.model.agent.AgentRegistrationActSettingsBundle;
 import org.sagebionetworks.repo.model.agent.AgentRegistrationRequest;
 import org.sagebionetworks.repo.model.agent.AgentSession;
 import org.sagebionetworks.repo.model.agent.AgentType;
@@ -443,5 +446,119 @@ public class AgentDaoImplTest {
 			agentDao.createOrGetRegistration(type, registrationRequest);
 		}).getMessage();
 		assertEquals("request.awsAliasId is required.", message);
+	}
+
+	@Test
+	public void testSetAndGetAgentRegistrationActSettings() {
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.CUSTOM, registrationRequest);
+		String regId = registration.getAgentRegistrationId();
+		AgentRegistrationActSettings settings = new AgentRegistrationActSettings().setAllowAnonymousChatSession(true);
+
+		// call under test
+		AgentRegistrationActSettingsBundle bundle = agentDao.setAgentRegistrationActSettings(regId, adminUserId, null,
+				settings);
+
+		assertNotNull(bundle);
+		assertEquals(regId, bundle.getAgentRegistrationId());
+		assertNotNull(bundle.getEtag());
+		assertNotNull(bundle.getModifiedOn());
+		assertEquals(adminUserId.toString(), bundle.getModifiedBy());
+		assertEquals(settings, bundle.getSettings());
+
+		// the get returns the same bundle
+		assertEquals(Optional.of(bundle), agentDao.getAgentRegistrationActSettings(regId));
+	}
+
+	@Test
+	public void testSetAgentRegistrationActSettingsUpdate() throws InterruptedException {
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.CUSTOM, registrationRequest);
+		String regId = registration.getAgentRegistrationId();
+		AgentRegistrationActSettingsBundle first = agentDao.setAgentRegistrationActSettings(regId, adminUserId, null,
+				new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+
+		Thread.sleep(10L);
+		AgentRegistrationActSettings changed = new AgentRegistrationActSettings().setAllowAnonymousChatSession(false);
+		Long otherModifiedBy = 456L;
+
+		// call under test: update using the current etag
+		AgentRegistrationActSettingsBundle updated = agentDao.setAgentRegistrationActSettings(regId, otherModifiedBy,
+				first.getEtag(), changed);
+
+		assertEquals(regId, updated.getAgentRegistrationId());
+		assertNotEquals(first.getEtag(), updated.getEtag());
+		assertEquals(otherModifiedBy.toString(), updated.getModifiedBy());
+		assertEquals(changed, updated.getSettings());
+		assertEquals(Optional.of(updated), agentDao.getAgentRegistrationActSettings(regId));
+	}
+
+	@Test
+	public void testSetAgentRegistrationActSettingsWithStaleEtag() {
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.CUSTOM, registrationRequest);
+		String regId = registration.getAgentRegistrationId();
+		agentDao.setAgentRegistrationActSettings(regId, adminUserId, null,
+				new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+
+		// call under test: a stale etag must be rejected
+		assertThrows(ConflictingUpdateException.class, () -> {
+			agentDao.setAgentRegistrationActSettings(regId, adminUserId, "stale-etag",
+					new AgentRegistrationActSettings().setAllowAnonymousChatSession(false));
+		});
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithNotFound() {
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.CUSTOM, registrationRequest);
+		// call under test
+		assertEquals(Optional.empty(),
+				agentDao.getAgentRegistrationActSettings(registration.getAgentRegistrationId()));
+	}
+
+	@Test
+	public void testTruncateAllClearsActSettings() {
+		AgentRegistration registration = agentDao.createOrGetRegistration(AgentType.CUSTOM, registrationRequest);
+		String regId = registration.getAgentRegistrationId();
+		agentDao.setAgentRegistrationActSettings(regId, adminUserId, null,
+				new AgentRegistrationActSettings().setAllowAnonymousChatSession(true));
+
+		// call under test
+		agentDao.truncateAll();
+
+		assertEquals(Optional.empty(), agentDao.getAgentRegistrationActSettings(regId));
+	}
+
+	@Test
+	public void testSetAgentRegistrationActSettingsWithNullRegistrationId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.setAgentRegistrationActSettings(null, adminUserId, null, new AgentRegistrationActSettings());
+		}).getMessage();
+		assertEquals("registrationId is required.", message);
+	}
+
+	@Test
+	public void testSetAgentRegistrationActSettingsWithNullModifiedBy() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.setAgentRegistrationActSettings("123", null, null, new AgentRegistrationActSettings());
+		}).getMessage();
+		assertEquals("modifiedBy is required.", message);
+	}
+
+	@Test
+	public void testSetAgentRegistrationActSettingsWithNullSettings() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.setAgentRegistrationActSettings("123", adminUserId, null, null);
+		}).getMessage();
+		assertEquals("settings is required.", message);
+	}
+
+	@Test
+	public void testGetAgentRegistrationActSettingsWithNullRegistrationId() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			agentDao.getAgentRegistrationActSettings(null);
+		}).getMessage();
+		assertEquals("registrationId is required.", message);
 	}
 }

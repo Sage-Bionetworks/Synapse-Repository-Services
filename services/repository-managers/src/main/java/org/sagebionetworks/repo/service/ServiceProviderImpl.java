@@ -90,6 +90,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private EDucService eDucService;
 	@Autowired
+	private FormTemplateService formTemplateService;
+	@Autowired
 	private OpenIDConnectService openIDConnectService;
 	@Autowired
 	private StatisticsService statisticsService;
@@ -233,6 +235,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public EDucService getEDucService() {
 		return eDucService;
+	}
+	@Override
+	public FormTemplateService getFormTemplateService() {
+		return formTemplateService;
 	}
 	@Override
 	public OpenIDConnectService getOpenIDConnectService() {

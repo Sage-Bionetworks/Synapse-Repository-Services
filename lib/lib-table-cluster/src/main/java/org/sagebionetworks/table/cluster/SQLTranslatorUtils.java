@@ -39,7 +39,7 @@ import org.sagebionetworks.table.cluster.columntranslation.ColumnTranslationRefe
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.ColumnToAdd;
-import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
 import org.sagebionetworks.table.cluster.stats.ElementStats;
 import org.sagebionetworks.table.cluster.stats.StatGenerator;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -1543,7 +1543,7 @@ public class SQLTranslatorUtils {
 	 * @param indexDescription
 	 * @return
 	 */
-	public static String createMaterializedViewInsertSql(List<ColumnModel> schemaOfSelect, String outputSQL, IndexDescription indexDescription) {
+	public static String createMaterializedViewInsertSql(List<ColumnModel> schemaOfSelect, String outputSQL, QueryIndexDescription indexDescription) {
 		String tableName = SQLUtils.getTableNameForId(indexDescription.getIdAndVersion(), TableIndexType.INDEX);
 		StringJoiner joiner = new StringJoiner(",");
 		// start with the columns from the select

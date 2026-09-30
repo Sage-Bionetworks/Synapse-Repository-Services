@@ -1,0 +1,17 @@
+{
+	"description": "A single source object (table or view) that a defining-SQL object's index was built from, by id, optional pinned version, and table type. The dependencies of an IndexDescriptionSnapshot are the flattened transitive closure of the object's dependencies; each carries the table type because the transitive READ authorization check keys on (id, type).",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description": "The id of the depended source object (e.g. 'syn123')."
+		},
+		"versionNumber": {
+			"type": "integer",
+			"description": "The pinned version of the source object, or null when the source is not version-pinned."
+		},
+		"tableType": {
+			"type": "string",
+			"description": "The org.sagebionetworks.repo.model.dao.table.TableType of the source object, by enum name."
+		}
+	}
+}

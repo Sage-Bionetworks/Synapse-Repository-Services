@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.AccessRequirementStats;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.JsonSchemaAccessRequirement;
 import org.sagebionetworks.repo.model.LockAccessRequirement;
 import org.sagebionetworks.repo.model.ManagedACTAccessRequirement;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.model.dataaccess.AccessRequirementSortField;
 import org.sagebionetworks.repo.model.dataaccess.Request;
 import org.sagebionetworks.repo.model.dataaccess.ResearchProject;
 import org.sagebionetworks.repo.model.dataaccess.SortDirection;
+import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateReference;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestDAO;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.RequestTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.dataaccess.ResearchProjectDAO;
@@ -340,6 +342,34 @@ public class DBOAccessRequirementDAOImplTest {
 		assertTrue(stats.getRequirementIdSet().contains(accessRequirement2.getId().toString()));
 
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+	}
+
+	@Test
+	public void testGetAccessRequirementStatsWithJsonSchemaAR() {
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+
+		JsonSchemaAccessRequirement jsonSchemaAR = new JsonSchemaAccessRequirement();
+		jsonSchemaAR.setCreatedBy(individualGroup.getId());
+		jsonSchemaAR.setCreatedOn(new Date());
+		jsonSchemaAR.setModifiedBy(individualGroup.getId());
+		jsonSchemaAR.setModifiedOn(new Date());
+		jsonSchemaAR.setEtag("etag");
+		jsonSchemaAR.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		jsonSchemaAR.setSubjectIds(Arrays.asList(rod));
+		jsonSchemaAR.setIsTwoFaRequired(false);
+		jsonSchemaAR.setFormTemplateRef(new FormTemplateReference().setTemplateId("123").setTemplateVersionNumber(1L));
+		jsonSchemaAR = accessRequirementDAO.create(jsonSchemaAR);
+
+		// call under test
+		AccessRequirementStats stats = accessRequirementDAO
+				.getAccessRequirementStats(Arrays.asList(KeyFactory.stringToKey(node.getId())), RestrictableObjectType.ENTITY);
+
+		assertTrue(stats.getHasACT());
+		assertFalse(stats.getHasToU());
+		assertFalse(stats.getHasLock());
+		assertEquals(Set.of(jsonSchemaAR.getId().toString()), stats.getRequirementIdSet());
+
+		accessRequirementDAO.delete(jsonSchemaAR.getId().toString());
 	}
 
 	/*
