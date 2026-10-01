@@ -27,4 +27,13 @@ public interface IndexDescription extends QueryIndexDescription {
 	@Override
 	List<IndexDescription> getDependencies();
 
+	/**
+	 * Capture the minimal state needed to reconstruct this IndexDescription. Used during
+	 * snapshot capture so a future query can reconstitute the same description (with all
+	 * its type-specific behavior) from the captured state plus a lookup function.
+	 *
+	 * @return the state of this description
+	 */
+	IndexDescriptionState getState();
+
 }
