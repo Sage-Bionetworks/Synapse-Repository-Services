@@ -1197,7 +1197,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setBenefactors(List.of(
 						new BenefactorColumn().setBenefactorColumnName("SNAPSHOT_BENEFACTOR_0").setBenefactorType("ENTITY"),
 						new BenefactorColumn().setBenefactorColumnName("SNAPSHOT_BENEFACTOR_1").setBenefactorType("ENTITY")))
-				.setDependencies(List.of());
+				.setDependencies(List.of(new SourceDependency().setObjectId("syn10").setTableType(TableType.table.name())))
+				.setDefiningSql("SELECT * FROM syn10");
 		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
 		IndexAuthorizationSnapshot searchIndexSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
@@ -1809,7 +1810,8 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setTableType(TableType.materializedview.name())
 				.setBenefactors(List.of(new BenefactorColumn().setBenefactorColumnName("ROW_BENEFACTOR_A0")
 						.setBenefactorType(ObjectType.ENTITY.name())))
-				.setDependencies(List.of()));
+				.setDependencies(List.of(new SourceDependency().setObjectId("syn10").setTableType(TableType.table.name())))
+				.setDefiningSql("SELECT * FROM syn10"));
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(mvSnapshot));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 

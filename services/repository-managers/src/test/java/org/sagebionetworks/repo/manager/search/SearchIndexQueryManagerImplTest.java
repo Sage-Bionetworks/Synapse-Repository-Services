@@ -172,10 +172,10 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	private static final QueryIndexDescription TABLE_DESCRIPTION = SnapshotIndexDescription
-			.fromSnapshot(tableSnapshot().getIndexDescription(), id -> Optional.empty());
+			.fromSnapshot(tableSnapshot(), id -> Optional.empty());
 
 	private static final QueryIndexDescription MATERIALIZED_VIEW_DESCRIPTION = SnapshotIndexDescription
-			.fromSnapshot(materializedViewSnapshot().getIndexDescription(), id -> Optional.empty());
+			.fromSnapshot(materializedViewSnapshot(), id -> Optional.empty());
 
 	private static List<ColumnLineageEntry> lineage(String... columnIds) {
 		return Arrays.stream(columnIds).map(id -> new ColumnLineageEntry().setOutputColumnId(id))

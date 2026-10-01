@@ -146,8 +146,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		IndexAuthorizationSnapshot snapshot = liveIndex.snapshot();
 		// The search path never consults the query cache, so the source's table hash needs no live
 		// change number.
-		QueryIndexDescription source = SnapshotIndexDescription.fromSnapshot(snapshot.getIndexDescription(),
-				id -> Optional.empty());
+		QueryIndexDescription source = SnapshotIndexDescription.fromSnapshot(snapshot, id -> Optional.empty());
 		// Authorize before consulting the build status so a caller without access to the served
 		// source never sees status detail. A search document cannot be released as an aggregate, so
 		// aggregate-only access is a denial.

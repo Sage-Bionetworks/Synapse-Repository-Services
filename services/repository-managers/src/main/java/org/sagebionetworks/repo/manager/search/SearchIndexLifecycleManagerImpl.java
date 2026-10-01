@@ -445,7 +445,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// A SearchIndex never consults the query cache, so the source's table hash needs no live
 		// change number.
 		QueryIndexDescription sourceDescription = SnapshotIndexDescription
-				.fromSnapshot(sourceSnapshot.getIndexDescription(), id -> Optional.empty());
+				.fromSnapshot(sourceSnapshot, id -> Optional.empty());
 		QueryTranslator base = QueryTranslator.builder()
 				.sql(definingSQL)
 				.schemaProvider(schemaProvider)
