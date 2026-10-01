@@ -15,6 +15,16 @@ interface DocuSignEnvelopesApi {
 
 	void voidEnvelope(String envelopeId, String reason);
 
+	/**
+	 * Throw an envelope away.
+	 * <p>
+	 * Not the same as voiding one. DocuSign has no endpoint that deletes an envelope; it models deletion
+	 * as a move into the account's "Deleted" folder, which only <em>voids</em> the envelope when it is
+	 * already in process. A draft moved there is simply gone, which is what this is for — voiding a draft
+	 * is refused, since an envelope has to have been sent before it can be voided.
+	 */
+	void discardEnvelope(String envelopeId);
+
 	void updateEnvelope(String envelopeId, Envelope envelope);
 
 	Envelope getEnvelope(String envelopeId);
@@ -60,4 +70,22 @@ interface DocuSignEnvelopesApi {
 	 * nested in it, so they have to be created in their own request.
 	 */
 	void createTabs(String envelopeId, String recipientId, Tabs tabs);
+
+	/**
+	 * The tabs belonging to one of an envelope's documents rather than to a recipient, which is where an
+	 * envelope keeps its sender fields.
+	 */
+	Tabs getDocumentTabs(String envelopeId, String documentId);
+
+	/**
+	 * Set the values of sender fields already on an envelope's document, leaving their placement alone.
+	 */
+	void updateDocumentTabs(String envelopeId, String documentId, Tabs tabs);
+
+	/**
+	 * Add tabs to an envelope's document. Needed only when an envelope created from a template did not
+	 * inherit the template's sender fields, in which case they are placed from the template's own
+	 * definitions.
+	 */
+	void createDocumentTabs(String envelopeId, String documentId, Tabs tabs);
 }

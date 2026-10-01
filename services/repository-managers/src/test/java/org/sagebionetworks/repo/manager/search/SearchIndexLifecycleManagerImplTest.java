@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.InjectMocks;
@@ -916,6 +917,13 @@ public class SearchIndexLifecycleManagerImplTest {
 		Object result = SearchIndexLifecycleManagerImpl.convertForDocument("aCol", "3.14", ColumnType.DOUBLE);
 
 		assertEquals(3.14d, ((Number) result).doubleValue(), 1e-9);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"NaN", "Infinity", "-Infinity"})
+	public void testConvertForDocumentWithNonFiniteDoubleReturnsNull(String value) {
+		// call under test — OpenSearch double fields reject non-finite values, so the field is left out.
+		assertNull(SearchIndexLifecycleManagerImpl.convertForDocument("aCol", value, ColumnType.DOUBLE));
 	}
 
 	@Test

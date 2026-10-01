@@ -11,8 +11,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -645,6 +647,63 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         idsVisibleToB.removeAll(hierarchy.ownAclFolderIds());
         assertQueryWithBuildRetry(userB, searchIndex.getId(), query, (SearchQueryResults results) -> {
             assertEquals(idsVisibleToB, hitIds(results));
+        });
+    }
+
+    /**
+     * OpenSearch double fields accept only finite values, so a non-finite double must be left out of
+     * its document rather than failing the build: every row is indexed and only the finite value is
+     * returned.
+     */
+    @Test
+    public void testSearchIndexWithNonFiniteDoubles() throws Exception {
+        Project project = entityService.createEntity(adminUser.getId(),
+                new Project().setName("NonFiniteDoubleProject_" + UUID.randomUUID()), null);
+        entitiesToDelete.add(project);
+        grantPublicRead(project.getId());
+
+        List<ColumnModel> tableSchema = columnModelManager.createColumnModels(adminUser, Arrays.asList(
+                new ColumnModel().setName("label").setColumnType(ColumnType.STRING).setMaximumSize(50L),
+                new ColumnModel().setName("measure").setColumnType(ColumnType.DOUBLE)));
+        TableEntity table = new TableEntity();
+        table.setName("NonFiniteDoubleTable_" + UUID.randomUUID());
+        table.setParentId(project.getId());
+        table.setColumnIds(tableSchema.stream().map(ColumnModel::getId).collect(Collectors.toList()));
+        table = entityService.createEntity(adminUser.getId(), table, null);
+        entitiesToDelete.add(table);
+        entityService.changeEntityDataType(adminUser.getId(), table.getId(), DataType.OPEN_DATA);
+        asyncHelper.appendRowsToTable(adminUser, tableSchema, table.getId(), Arrays.asList(
+                new Row().setValues(Arrays.asList("finite", "1.5")),
+                new Row().setValues(Arrays.asList("nan", "NaN")),
+                new Row().setValues(Arrays.asList("infinity", "Infinity")),
+                new Row().setValues(Arrays.asList("negativeInfinity", "-Infinity"))), MAX_APPEND_TIMEOUT_MS);
+
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setName("NonFiniteDoubleSearchIndex_" + UUID.randomUUID());
+        searchIndex.setParentId(project.getId());
+        searchIndex.setDefiningSQL("select label, measure from " + table.getId());
+        searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
+        entitiesToDelete.add(searchIndex);
+
+        SearchIndexQuery query = new SearchIndexQuery();
+        query.setSearchIndexId(searchIndex.getId());
+        query.setSearchQuery(new SearchQuery().setQuery(new Query().setMatch_all(new MatchAllQuery())));
+        query.setResponseParts(EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS));
+
+        Map<String, String> expected = new HashMap<>();
+        expected.put("finite", "1.5");
+        expected.put("nan", null);
+        expected.put("infinity", null);
+        expected.put("negativeInfinity", null);
+
+        // call under test
+        assertQueryWithBuildRetry(adminUser, searchIndex.getId(), query, (SearchQueryResults results) -> {
+            assertEquals(4L, (long) results.getTotalHits());
+            Map<String, String> measures = new HashMap<>();
+            for (SearchHit hit : results.getHits()) {
+                measures.put(fieldValue(hit, "label"), fieldValue(hit, "measure"));
+            }
+            assertEquals(expected, measures);
         });
     }
 

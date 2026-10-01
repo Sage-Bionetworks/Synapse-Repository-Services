@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.docusign.DocuSignClient;
@@ -404,22 +406,31 @@ public class EDucManagerTest {
 		assertEquals(Long.valueOf(9), result.getRemaining());
 	}
 
+	// An envelope is recorded before it is sent, so a failed send leaves one behind. It was never sent and
+	// its content is whatever the request said at the time, so routing replaces it rather than sending it.
 	@Test
-	public void testRouteForSignatureWithExistingDraft() {
+	public void testRouteForSignatureWithPersistedDraft() {
 		Request request = buildValidRequest();
-		request.setEDucSignatureEnvelopeId("existing-env");
+		request.setEDucSignatureEnvelopeId("stale-env");
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		when(mockRequestDao.get("req-1")).thenReturn(request);
-		// a draft envelope has not gone out for signature, so routing may still send it
-		stubEnvelopeStatus("existing-env", EDucStatusEnum.draft);
+		// a draft envelope has not gone out for signature, so routing is still allowed to proceed
+		stubEnvelopeStatus("stale-env", EDucStatusEnum.draft);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("fresh-env");
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
 		when(mockClock.currentTimeMillis()).thenReturn(JULY_15_2026_MS);
 		when(mockEDucQuotaDao.getCount(eq(100L), anyLong(), anyLong(), anyLong())).thenReturn(0L);
 		when(mockEDucQuotaDao.getGlobalCount(anyLong(), anyLong())).thenReturn(0L);
 
-		// call under test — sends the existing draft
+		// call under test
 		EDucSignatureQuota result = eDucManager.routeForSignature(user, "req-1");
 
-		verify(mockDocuSignClient).sendEnvelope("existing-env");
+		verify(mockDocuSignClient).sendEnvelope("fresh-env");
+		verify(mockDocuSignClient, never()).sendEnvelope("stale-env");
+		assertEquals("fresh-env", request.getEDucSignatureEnvelopeId());
+		verify(mockEDucQuotaDao).create(100L, 456L, "fresh-env");
 		assertEquals(Long.valueOf(10), result.getQuota());
 		assertEquals(Long.valueOf(9), result.getRemaining());
 	}
@@ -1567,6 +1578,34 @@ public class EDucManagerTest {
 		verify(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
 		verify(mockRequestDao).update(request);
 		assertNull(request.getEDucSignatureEnvelopeId());
+		// Releasing the request comes first, so that a refusal or an outage at DocuSign cannot leave the
+		// requester unable to abandon the envelope.
+		InOrder order = inOrder(mockRequestDao, mockDocuSignClient);
+		order.verify(mockRequestDao).update(request);
+		order.verify(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
+	}
+
+	// The reported bug: DocuSign accepts a void only for an envelope still out for signature, so one already
+	// voided, declined, completed, or never sent is refused with a 400 that used to surface as a 500 and left
+	// the requester unable to start over.
+	@Test
+	public void testCancelSignatureWithEnvelopeThatCannotBeVoided() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		request.setEDucSignatureEnvelopeId("env-cancel");
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
+		doThrow(new IllegalStateException(
+				"DocuSign API error 400. {\"errorCode\":\"ENVELOPE_CANNOT_VOID_INVALID_STATE\"}"))
+				.when(mockDocuSignClient).voidEnvelope("env-cancel", "Cancelled by user.");
+
+		// call under test — the refusal must not reach the caller
+		eDucManager.cancelSignature(user, "req-1");
+
+		// The request is released either way, which is what lets it be routed again or fall back to a DUC
+		// attached by hand.
+		verify(mockRequestDao).update(request);
+		assertNull(request.getEDucSignatureEnvelopeId());
 	}
 
 	@Test
@@ -1671,7 +1710,6 @@ public class EDucManagerTest {
 		profile.setLastName("B");
 		when(mockUserProfileDao.get(any(String.class))).thenReturn(profile);
 		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
-		when(mockRequestDao.update(any())).thenAnswer(i -> i.getArgument(0));
 		when(mockDocuSignClient.getDocument("env-draft")).thenReturn(new byte[]{1, 2, 3});
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setId("fh-preview");
@@ -1683,25 +1721,80 @@ public class EDucManagerTest {
 
 		assertEquals("fh-preview", result.getFileHandleId());
 		verify(mockDocuSignClient).getDocument("env-draft");
+		// The envelope exists only to be rendered: it is thrown away, and nothing about it is recorded, so
+		// that it cannot later be routed carrying the content the request had at preview time.
+		verify(mockDocuSignClient).discardEnvelope("env-draft");
+		verify(mockRequestDao, never()).update(any());
+		assertNull(request.getEDucSignatureEnvelopeId());
 	}
 
 	@Test
-	public void testPreviewEDucWithExistingDraft() throws Exception {
+	public void testPreviewEDucWithRoutedEnvelope() throws Exception {
 		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
 		Request request = buildValidRequest();
-		request.setEDucSignatureEnvelopeId("env-existing");
+		request.setEDucSignatureEnvelopeId("env-routed");
 		when(mockRequestDao.get("req-1")).thenReturn(request);
-		when(mockDocuSignClient.getDocument("env-existing")).thenReturn(new byte[]{4, 5});
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-preview");
+		when(mockDocuSignClient.getDocument("env-preview")).thenReturn(new byte[]{4, 5});
 		S3FileHandle fileHandle = new S3FileHandle();
-		fileHandle.setId("fh-existing");
+		fileHandle.setId("fh-preview");
 		when(mockFileHandleManager.createFileFromByteArray(any(), any(), any(), any(), any(), any()))
 				.thenReturn(fileHandle);
 
 		// call under test
 		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
 
-		assertEquals("fh-existing", result.getFileHandleId());
-		verify(mockDocuSignClient).getDocument("env-existing");
+		assertEquals("fh-preview", result.getFileHandleId());
+		// A preview always shows the request as it stands now, so an envelope already routed is neither read
+		// nor disturbed.
+		verify(mockDocuSignClient).getDocument("env-preview");
+		verify(mockDocuSignClient).discardEnvelope("env-preview");
+		verify(mockDocuSignClient, never()).getDocument("env-routed");
+		verify(mockDocuSignClient, never()).discardEnvelope("env-routed");
+		assertEquals("env-routed", request.getEDucSignatureEnvelopeId());
+	}
+
+	@Test
+	public void testPreviewEDucWithFailureRenderingDocument() {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
+		when(mockDocuSignClient.getDocument("env-draft")).thenThrow(new IllegalStateException("DocuSign is down."));
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> eDucManager.previewEDuc(user, "req-1"));
+
+		// The envelope is still thrown away, so a failed preview does not leave one behind.
+		verify(mockDocuSignClient).discardEnvelope("env-draft");
+	}
+
+	@Test
+	public void testPreviewEDucWithFailureDiscardingEnvelope() throws Exception {
+		UserInfo user = new UserInfo(false, 100L, DEFAULT_REALM_ID);
+		Request request = buildValidRequest();
+		when(mockRequestDao.get("req-1")).thenReturn(request);
+		when(mockAccessRequirementDao.get("456")).thenReturn(buildValidAccessRequirement());
+		stubContentBuildingDaos();
+		when(mockDocuSignClient.createEnvelope(any(), any(), any())).thenReturn("env-draft");
+		when(mockDocuSignClient.getDocument("env-draft")).thenReturn(new byte[]{1, 2, 3});
+		doThrow(new IllegalStateException("DocuSign refused the delete."))
+				.when(mockDocuSignClient).discardEnvelope("env-draft");
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setId("fh-preview");
+		when(mockFileHandleManager.createFileFromByteArray(any(), any(), any(), any(), any(), any()))
+				.thenReturn(fileHandle);
+
+		// call under test
+		EDucFileHandleId result = eDucManager.previewEDuc(user, "req-1");
+
+		// The document was already rendered, so failing to tidy up costs an abandoned draft rather than the
+		// caller's preview.
+		assertEquals("fh-preview", result.getFileHandleId());
 	}
 
 	@Test

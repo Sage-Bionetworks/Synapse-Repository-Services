@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.junit.jupiter.api.AfterEach;
@@ -135,7 +136,7 @@ public class GridCsvImportDaoImplTest {
 		start = System.currentTimeMillis();
 		
 		CSVReader reader = CSVUtils.createCSVReader(new StringReader(csvContent), null, null);
-		CsvDataStream csvDataStream = new CsvDataStream(reader, columnMapping);
+		CsvDataStream csvDataStream = new CsvDataStream(reader, columnMapping, Collections.emptySet());
 		
 		try (reader) {
 			importDao.streamToCsvTempTable(sessionId, csvDataStream, columnMapping);
@@ -147,7 +148,8 @@ public class GridCsvImportDaoImplTest {
 		rowId = 0;
 		
 		while (it.hasNext()) {
-			String expectedCsvJson = "[false,\"bar" + rowId + "\"]";
+			// Each non-key cell is stored in its compact form
+			String expectedCsvJson = "[[false],[\"bar" + rowId + "\"]]";
 			
 			assertArrayEquals(
 				// Note that column e is omitted as not present in the grid and the columns that are not
@@ -201,6 +203,39 @@ public class GridCsvImportDaoImplTest {
 		importDao.dropTemporaryTables(sessionId);
 	}
 	
+	/**
+	 * A blank cell becomes an undefined value for a column the bound JSON schema
+	 * does not require and a null value for one it does. Both are the same JSON
+	 * text, so the join must report each one back with the type it was imported as.
+	 */
+	@Test
+	public void testJoinWithBlankRequiredAndOptionalCells() throws IOException {
+		ColumnMapping[] mapping = new ColumnMapping[] {
+			new ColumnMapping("a", ColumnType.INTEGER, 0, 0, true),
+			new ColumnMapping("optional", ColumnType.INTEGER, 1, 1, false),
+			new ColumnMapping("required", ColumnType.INTEGER, 2, 2, false)
+		};
+
+		try (CSVReader reader = CSVUtils.createCSVReader(new StringReader("1,," + System.lineSeparator()), null, null)) {
+			importDao.streamToCsvTempTable(sessionId, new CsvDataStream(reader, mapping, Set.of("required")), mapping);
+		}
+
+		// The join needs the grid's temp table to exist, even with nothing in the grid to match
+		importDao.streamToGridTempTable(sessionId, new GridDataStream(Collections.<RowView>emptyIterator(), mapping), mapping);
+
+		List<JoinedRow> joinedRows = new ArrayList<>();
+
+		importDao.getJoinedTempTableIterator(sessionId, mapping).forEachRemaining(joinedRows::add);
+
+		assertEquals(List.of(new JoinedRow(List.of(
+			new ConValue(ConType.LONG, 1L),
+			new ConValue(ConType.UNDEFINED, null),
+			new ConValue(ConType.NULL, null)
+		), null)), joinedRows);
+
+		importDao.dropTemporaryTables(sessionId);
+	}
+
 	void writeGridData() throws IOException {
 		long start = System.currentTimeMillis();
 		
