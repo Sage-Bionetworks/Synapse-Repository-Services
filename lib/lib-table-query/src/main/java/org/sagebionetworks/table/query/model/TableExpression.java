@@ -10,6 +10,7 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	FromClause fromClause;
 	WhereClause whereClause;
 	GroupByClause groupByClause;
+	HavingClause havingClause;
 	OrderByClause orderByClause;
 	Pagination pagination;
 	DefiningClause definingClause;
@@ -33,6 +34,10 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 
 	public GroupByClause getGroupByClause() {
 		return groupByClause;
+	}
+
+	public HavingClause getHavingClause() {
+		return havingClause;
 	}
 
 	public Pagination getPagination() {
@@ -62,6 +67,10 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 			builder.append(" ");
 			groupByClause.toSql(builder, parameters);
 		}
+		if(havingClause != null){
+			builder.append(" ");
+			havingClause.toSql(builder, parameters);
+		}
 		if(orderByClause != null){
 			builder.append(" ");
 			orderByClause.toSql(builder, parameters);
@@ -74,7 +83,7 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	
 	@Override
 	public Iterable<Element> getChildren() {
-		return SQLElement.buildChildren(fromClause, whereClause, groupByClause, orderByClause, pagination, definingClause);
+		return SQLElement.buildChildren(fromClause, whereClause, groupByClause, havingClause, orderByClause, pagination, definingClause);
 	}
 
 	@Override
@@ -112,6 +121,14 @@ public class TableExpression extends SQLElement implements HasAggregate, HasSing
 	 */
 	public void replaceGroupBy(GroupByClause replacement) {
 		this.groupByClause = Replaceable.prepareToReplace(this.groupByClause, replacement, this);
+	}
+
+	/**
+	 * Replace the existing Having clause.
+	 * @param replacement
+	 */
+	public void replaceHaving(HavingClause replacement) {
+		this.havingClause = Replaceable.prepareToReplace(this.havingClause, replacement, this);
 	}
 	
 	/**

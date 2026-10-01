@@ -37,6 +37,10 @@
 		{
 			"name": "BELOW_THRESHOLD",
 			"description": "An aggregate query against a restricted source matched a non-zero number of rows that is below the configured suppression threshold, so the result is suppressed."
+		},
+		{
+			"name": "ROW_SUPPRESSED",
+			"description": "A query against an aggregate-only source requested row results but referenced a quasi-identifier column in a way that would expose it as more than a count, so the row results are withheld."
 		}
 	]
 }

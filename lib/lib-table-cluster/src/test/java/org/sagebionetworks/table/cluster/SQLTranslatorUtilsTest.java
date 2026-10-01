@@ -41,6 +41,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.model.AggregateCountSuppressionStrategy;
 import org.sagebionetworks.repo.model.dao.table.TableType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
@@ -4969,5 +4970,107 @@ public class SQLTranslatorUtilsTest {
 	public void testAllTheSameSizeWithDifferentSizes() {
 		List<List<String>> lists = List.of(List.of("a","b"),List.of("c","d"),List.of("e"));
 		assertFalse(SQLTranslatorUtils.hasSameSize(lists));
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMask() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+				List.of(1));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 5 THEN -1 ELSE COUNT(bar) END FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithMaskPreservesAlias() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) as c from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 3L,
+				List.of(1));
+		assertEquals(
+				"SELECT foo, CASE WHEN COUNT(bar) > 0 AND COUNT(bar) < 3 THEN -1 ELSE COUNT(bar) END AS c FROM syn123 GROUP BY foo",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExclude() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L, List.of(1));
+		assertEquals(
+				"SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 5)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithExcludeMultipleProtectedCounts() throws ParseException {
+		QuerySpecification model = new TableQueryParser(
+				"select foo, count(bar), count(distinct baz) from syn123 group by foo").querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 10L,
+				List.of(1, 2));
+		assertEquals(
+				"SELECT foo, COUNT(bar), COUNT(DISTINCT baz) FROM syn123 GROUP BY foo"
+						+ " HAVING (COUNT(bar) = 0 OR COUNT(bar) >= 10) AND (COUNT(DISTINCT baz) = 0 OR COUNT(DISTINCT baz) >= 10)",
+				model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithNullStrategyIsNoOp() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, null, 5L, List.of(1));
+		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithEmptyIndexesIsNoOp() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		// call under test
+		SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L, List.of());
+		assertEquals("SELECT foo, COUNT(bar) FROM syn123 GROUP BY foo", model.toSql());
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithNullQuerySpec() {
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(null, AggregateCountSuppressionStrategy.EXCLUDE_ROW, 5L,
+					List.of(1));
+		}).getMessage();
+		assertEquals("querySpec is required.", message);
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithIndexOutOfBounds() throws ParseException {
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+					List.of(2));
+		}).getMessage();
+		assertEquals("Protected count column index is out of bounds for the select list: 2", message);
+	}
+
+	@Test
+	public void testApplyCountSuppressionWithIndexNotACount() throws ParseException {
+		// Index 0 is 'foo', not a COUNT, so the positional guard fails rather than masking the
+		// wrong column.
+		QuerySpecification model = new TableQueryParser("select foo, count(bar) from syn123 group by foo")
+				.querySpecification();
+		String message = assertThrows(IllegalStateException.class, () -> {
+			// call under test
+			SQLTranslatorUtils.applyCountSuppression(model, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD, 5L,
+					List.of(0));
+		}).getMessage();
+		assertEquals("Protected count column index does not reference a COUNT aggregate: 0", message);
 	}
 }

@@ -227,7 +227,7 @@ public class EDucManager {
 
 		// The envelope exists only to be rendered. Nothing about it is persisted, so that a preview cannot
 		// leave behind a draft that is later routed with the content the request happened to have when the
-		// preview was taken.
+		// preview was taken. Its sender fields are written when it is created, so they need no refreshing.
 		String envelopeId = createEnvelopeFromRequest(request);
 		byte[] pdfBytes;
 		try {
@@ -565,9 +565,30 @@ public class EDucManager {
 			throw new IllegalArgumentException("This request does not have a routed DUC.");
 		}
 
-		docuSignClient.voidEnvelope(envelopeId, "Cancelled by user.");
+		// Releasing the request is what cancelling is for: it is what frees the requester to route a new
+		// envelope or to go back to attaching a DUC by hand. It is recorded before DocuSign is asked to void
+		// anything, so that neither a refusal nor an outage can leave them unable to abandon an envelope.
 		request.setEDucSignatureEnvelopeId(null);
 		requestDao.update(request);
+
+		voidQuietly(envelopeId);
+	}
+
+	/**
+	 * Asks DocuSign to void an envelope, without letting a refusal reach the caller.
+	 * <p>
+	 * Only an envelope that is out for signature can be voided. A draft nobody was sent, and one that has
+	 * reached a state no signer can act on — already voided, declined, completed — are each refused. None of
+	 * them needs voiding: what the caller wanted was to stop using the envelope, and that is already
+	 * recorded by the time this runs.
+	 */
+	private void voidQuietly(String envelopeId) {
+		try {
+			docuSignClient.voidEnvelope(envelopeId, "Cancelled by user.");
+		} catch (RuntimeException e) {
+			LOG.warn("Could not void the cancelled envelope " + envelopeId
+					+ "; the request no longer references it.", e);
+		}
 	}
 
 	public EDucFileHandleId getSignedDocumentFileHandle(UserInfo userInfo, String requestId) {

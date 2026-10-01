@@ -130,6 +130,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.SparseRowDto;
@@ -144,6 +145,7 @@ import org.sagebionetworks.repo.model.table.TextMatchesMode;
 import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -3051,8 +3053,18 @@ public class TableWorkerIntegrationTest {
 				new ChangeDataTypeRequest().setDataType(DataType.AGGREGATE_DATA)
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(2L)));
 
-		// The count is over the threshold, so it is returned; the individual rows are suppressed.
-		waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (bundle) -> {
+		// The source defines no quasi-identifier columns, so it can never return row-level results:
+		// a request for rows is rejected rather than silently returning only the count.
+		RowSuppressionException suppressed = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+				fail("Should not have received a result");
+			});
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, suppressed.getReasonCode());
+
+		// Requesting only the count returns it because it is over the threshold.
+		QueryOptions countOnly = new QueryOptions().withRunCount(true);
+		waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (bundle) -> {
 			assertEquals(4L, bundle.getQueryCount());
 			assertNull(bundle.getQueryResult());
 		});
@@ -3064,7 +3076,7 @@ public class TableWorkerIntegrationTest {
 						.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(10L)));
 
 		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
-			waitForConsistentQueryBundle(notOwner, aggregateQuery, options, (response) -> {
+			waitForConsistentQueryBundle(notOwner, aggregateQuery, countOnly, (response) -> {
 				fail("Should not have received a result");
 			});
 		});
@@ -3123,16 +3135,17 @@ public class TableWorkerIntegrationTest {
 
 		Query query = new Query().setSql("select * from " + tableId);
 
-		// ROUNDING preview: rows are suppressed, the range facet is dropped and the enumeration
-		// counts are floored into bins.
+		// ROUNDING preview: the preview shows exactly what an aggregate-only user sees, so rows are
+		// not requested (a row request would be rejected); the range facet is dropped and the
+		// enumeration counts are floored into bins.
 		AggregateDataConfiguration rounding = new AggregateDataConfiguration().setSuppressionThreshold(5L)
 				.setFacetPostProcessingConfig(new FacetPostProcessingConfig()
 						.setAlgorithm(FacetPostProcessingAlgorithm.ROUNDING)
 						.setParameters(new FacetRoundingParameters().setRoundTo(5L)));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
-				new QueryOptions().withRunQuery(true).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
-			// The preview behaves exactly like an aggregate-only read: rows are suppressed.
+				new QueryOptions().withRunQuery(false).withReturnFacets(true).withAggregateDataPreview(rounding), (bundle) -> {
+			// No rows are returned: the preview mirrors the aggregate-only response.
 			assertNull(bundle.getQueryResult());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
@@ -3154,7 +3167,7 @@ public class TableWorkerIntegrationTest {
 						.setParameters(new FacetNoiseParameters().setEpsilon(1.0)));
 
 		waitForConsistentQueryBundle(adminUserInfo, query,
-				new QueryOptions().withRunQuery(true).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
+				new QueryOptions().withRunQuery(false).withReturnFacets(true).withAggregateDataPreview(noise), (bundle) -> {
 			assertNull(bundle.getQueryResult());
 			assertEquals(Boolean.TRUE, bundle.getFacetPostProcessingApplied());
 			List<FacetColumnResult> facets = bundle.getFacets();
@@ -3224,7 +3237,9 @@ public class TableWorkerIntegrationTest {
 		accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
 		Query query = new Query().setSql("select * from " + tableId);
-		QueryOptions options = new QueryOptions().withRunQuery(true).withReturnFacets(true);
+		// The source defines no quasi-identifier columns, so it never returns rows: the aggregate-only
+		// response (gated count + obscured facets) is obtained by NOT requesting rows.
+		QueryOptions options = new QueryOptions().withRunQuery(false).withReturnFacets(true);
 
 		// Fail closed: bound as AGGREGATE_DATA with NO facet post-processing configuration, an
 		// aggregate-only facet query must not leak the exact counts, so it errors instead.
@@ -3237,6 +3252,14 @@ public class TableWorkerIntegrationTest {
 				fail("An aggregate-only facet query without a post-processing configuration must not return facets");
 			});
 		});
+
+		// Requesting rows against this no-quasi-identifier source is rejected rather than degrading to
+		// the aggregate-only response.
+		RowSuppressionException rowsRejected = assertThrows(RowSuppressionException.class, () -> {
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true).withReturnFacets(true),
+					(response) -> fail("A row request against a no-quasi-identifier source must be rejected"));
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, rowsRejected.getReasonCode());
 
 		// Bind a ROUNDING configuration: the aggregate-only user now receives obscured, binned counts.
 		entityManager.changeEntityDataType(adminUserInfo, tableId,
