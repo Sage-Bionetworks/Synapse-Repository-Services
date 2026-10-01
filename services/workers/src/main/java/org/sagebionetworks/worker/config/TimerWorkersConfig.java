@@ -1,9 +1,14 @@
 package org.sagebionetworks.worker.config;
 
+import org.sagebionetworks.LoggerProvider;
 import org.sagebionetworks.auth.workers.ExpiredAccessTokenWorker;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
+import org.sagebionetworks.dataaccess.workers.EDucSignatureNotificationWorker;
+import org.sagebionetworks.docusign.DocuSignClient;
 import org.sagebionetworks.file.worker.FileHandleAssociationScanDispatcherWorker;
 import org.sagebionetworks.principal.worker.InactiveUsersWorker;
+import org.sagebionetworks.repo.manager.docusign.EDucSignatureNotificationManager;
+import org.sagebionetworks.repo.manager.stack.StackStatusManager;
 import org.sagebionetworks.table.worker.ReplicatedToViewConsumerWorker;
 import org.sagebionetworks.tos.workers.TermsOfServiceLatestVersionRefreshWorker;
 import org.sagebionetworks.worker.SemaphoreGarbageCollection;
@@ -29,6 +34,38 @@ public class TimerWorkersConfig {
 		this.countingSemaphore = countingSemaphore;
 	}
 	
+	/*
+	 * Declared here rather than discovered by component scan: org.sagebionetworks.dataaccess.workers is not
+	 * among the scanned packages, and adding it would re-register the beans dataaccess-worker-spb.xml
+	 * already declares.
+	 */
+	@Bean
+	public EDucSignatureNotificationWorker eDucSignatureNotificationWorker(
+			EDucSignatureNotificationManager notificationManager, DocuSignClient docuSignClient,
+			StackStatusManager stackStatusManager, LoggerProvider loggerProvider) {
+		EDucSignatureNotificationWorker worker = new EDucSignatureNotificationWorker(notificationManager,
+				docuSignClient, stackStatusManager);
+		worker.configureLogger(loggerProvider);
+		return worker;
+	}
+
+	@Bean
+	public SimpleTriggerFactoryBean eDucSignatureNotificationWorkerTrigger(EDucSignatureNotificationWorker worker) {
+		SemaphoreGatedWorkerStackConfiguration config = new SemaphoreGatedWorkerStackConfiguration();
+
+		config.setSemaphoreLockKey("eDucSignatureNotificationWorker");
+		config.setProgressingRunner(worker);
+		config.setSemaphoreMaxLockCount(1);
+		config.setSemaphoreLockTimeoutSec(60);
+		config.setGate(stackStatusGate);
+
+		return new WorkerTriggerBuilder()
+			.withStack(new SemaphoreGatedWorkerStack(countingSemaphore, config))
+			.withRepeatInterval(5 * 60 * 1000)
+			.withStartDelay(17_000)
+			.build();
+	}
+
 	@Bean
 	public SimpleTriggerFactoryBean fileHandleAssociationScanDispatcherWorkerTrigger(FileHandleAssociationScanDispatcherWorker fileHandleAssociationScanDispatcherWorker) {
 		

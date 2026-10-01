@@ -96,6 +96,7 @@ public enum IdType {
 	SEARCH_CONFIG_BINDING_ID(null),
 	SYNONYM_SET_ID(null),
 	EDUC_QUOTA_ID(null),
+	EDUC_ENVELOPE_NOTIFICATION_ID(null),
 	FORM_TEMPLATE_ID(null)
 	;
 

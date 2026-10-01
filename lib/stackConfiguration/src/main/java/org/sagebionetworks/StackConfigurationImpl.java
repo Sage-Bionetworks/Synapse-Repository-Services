@@ -1100,6 +1100,10 @@ public class StackConfigurationImpl implements StackConfiguration {
 		return configuration.getProperty("org.sagebionetworks.profile.setting.portal.endpoint");
 	}
 
+	public String getPortalBaseEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.portal.base.endpoint");
+	}
+
 	/*
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */
