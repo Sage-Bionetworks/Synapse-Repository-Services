@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
@@ -44,6 +45,7 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer {
 		// time, naming the offending key, rather than silently dropping it.
 		set.add(SearchIndexQuery.class);
 		set.add(SearchAutocompleteRequest.class);
+		set.add(NamedSearchPipeline.class);
 		jsonEntityConverter = new JSONEntityHttpMessageConverter(set);
 		jacksonConverter = new MappingJackson2HttpMessageConverter();
 	}

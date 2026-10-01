@@ -1,0 +1,9 @@
+{
+	"description": "The normalization stage of a <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/normalization-processor/\">normalization processor</a>.",
+	"properties": {
+		"technique": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique",
+			"description": "Optional. Defaults to <code>min_max</code>."
+		}
+	}
+}

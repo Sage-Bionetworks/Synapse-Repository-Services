@@ -1,0 +1,12 @@
+{
+	"description": "Parameters of the combination stage.",
+	"properties": {
+		"weights": {
+			"type": "array",
+			"description": "<p>Optional. The weight of each hybrid query clause, positional against <code>hybrid.queries</code>. When set, must hold exactly 5 entries &mdash; the maximum <code>hybrid.queries</code> length &mdash; each in the <code>[0.0, 1.0]</code> range, with a sum greater than 0. The closer a weight is to 1.0, the more weight is given to its clause. If not provided, every clause is given equal weight.</p>",
+			"items": {
+				"type": "number"
+			}
+		}
+	}
+}

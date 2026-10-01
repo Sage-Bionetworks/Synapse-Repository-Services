@@ -547,6 +547,10 @@
 			"description": "Table that stores synonym sets for search"
 		},
 		{
+			"name": "SEARCH_PIPELINE",
+			"description": "Table that stores named search pipelines for search"
+		},
+		{
 			"name": "SEARCH_CONFIGURATION",
 			"description": "Table that stores search configurations for search"
 		},
