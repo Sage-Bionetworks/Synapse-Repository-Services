@@ -27,6 +27,7 @@ import org.sagebionetworks.table.cluster.TableAndColumnMapper;
 import org.sagebionetworks.table.cluster.columntranslation.SchemaColumnTranslationReference;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionState;
 import org.sagebionetworks.table.cluster.description.SnapshotIndexDescription;
 import org.sagebionetworks.table.cluster.description.VirtualTableIndexDescription;
 import org.sagebionetworks.table.query.ParseException;
@@ -248,12 +249,13 @@ public class IndexAuthorizationSnapshotManager {
 
 	/**
 	 * Project the runtime index description onto the authorization-relevant data preflight consumes: the
-	 * root's id/version/type, its baked-in benefactor columns, and the flattened transitive closure of
-	 * its dependencies. Reconstituting the root with these childless dependencies reproduces the exact
-	 * node set {@code TableManagerSupportImpl.collectTableNodes} evaluates.
+	 * root's id/version/type, its baked-in benefactor columns, the flattened transitive closure of
+	 * its dependencies, and the minimal state needed to reconstruct the real IndexDescription with all
+	 * its type-specific behavior.
 	 */
 	IndexDescriptionSnapshot buildIndexDescriptionSnapshot(IndexDescription indexDescription) {
 		IdAndVersion object = indexDescription.getIdAndVersion();
+		IndexDescriptionState state = indexDescription.getState();
 		List<BenefactorColumn> benefactors = indexDescription.getBenefactors().stream()
 				.map(IndexAuthorizationSnapshotManager::toBenefactorColumn).collect(Collectors.toList());
 		LinkedHashMap<IdAndVersion, SourceDependency> dependencies = new LinkedHashMap<>();
@@ -263,7 +265,9 @@ public class IndexAuthorizationSnapshotManager {
 				.setVersionNumber(object.getVersion().orElse(null))
 				.setTableType(indexDescription.getTableType().name())
 				.setBenefactors(benefactors)
-				.setDependencies(new ArrayList<>(dependencies.values()));
+				.setDependencies(new ArrayList<>(dependencies.values()))
+				.setDefiningSql(state.getDefiningSql().orElse(null))
+				.setIndexVersion(state.getIndexVersion().orElse(null));
 	}
 
 	private static BenefactorColumn toBenefactorColumn(BenefactorDescription description) {

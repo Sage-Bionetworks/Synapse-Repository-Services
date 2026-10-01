@@ -402,6 +402,26 @@ public class TableQueryManagerImplTest {
 	}
 
 	/**
+	 * The description {@link #setupSnapshot} resolves for an object with no dependencies, for use as
+	 * the expected argument of the authorization check.
+	 */
+	SnapshotIndexDescription snapshotDescription(IdAndVersion id, TableType tableType) {
+		return snapshotDescription(id, tableType, Collections.emptyList());
+	}
+
+	SnapshotIndexDescription snapshotDescription(IdAndVersion id, TableType tableType,
+			List<BenefactorColumn> benefactors) {
+		return SnapshotIndexDescription.fromSnapshot(new IndexAuthorizationSnapshot()
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn" + id.getId())
+						.setVersionNumber(id.getVersion().orElse(null))
+						.setTableType(tableType.name())
+						.setBenefactors(benefactors)
+						.setDependencies(Collections.emptyList())),
+				version -> Optional.empty());
+	}
+
+	/**
 	 * Resolve each output-column id back to its {@link ColumnModel}, exactly as
 	 * {@code SnapshotSchemaProvider} does when reconstituting the as-built schema.
 	 */
@@ -415,8 +435,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightUnauthroized() throws Exception {
 		// authorization is denied against the as-built snapshot, before any schema read
-		SnapshotIndexDescription description = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
 		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
 				.thenReturn(description);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
@@ -437,8 +456,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null, queryOptions);
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 	}
 
@@ -535,8 +553,7 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithAggregateDeniedNoConfig() throws Exception {
 		// denial resolved against the snapshot before any schema read
-		SnapshotIndexDescription description = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
 		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
 				.thenReturn(description);
 		// the status reports an aggregate source, but no bound configuration is found, so
@@ -584,8 +601,7 @@ public class TableQueryManagerImplTest {
 		manager.queryPreflight(user, query, null, queryOptions);
 
 		// Authorization runs against the reconstituted snapshot description, not the live index description.
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// The live index description and live schema count are never consulted on the snapshot path.
 		verify(mockTableManagerSupport, never()).getIndexDescription(any());
@@ -594,10 +610,9 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryPreflightWithSnapshotUnauthorized() throws Exception {
-		SnapshotIndexDescription snapshotDescription = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
 		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
-				.thenReturn(snapshotDescription);
+				.thenReturn(description);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
@@ -855,8 +870,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 		manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// a benefactor check should not occur for TableEntities
@@ -882,9 +896,9 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(results);
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.entityview,
-				List.of(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
-				Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.entityview,
+				List.of(new BenefactorColumn().setBenefactorColumnName(TableConstants.ROW_BENEFACTOR)
+						.setBenefactorType(ObjectType.ENTITY.name())));
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// a benefactor check must occur for FileViews
@@ -1892,8 +1906,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(LOWER(_C13_),LOWER(JSON_ARRAY(:b0,:b1))) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
-		verify(mockTableManagerSupport).validateTableReadAccess(user, new SnapshotIndexDescription(idAndVersion,
-				TableType.table, Collections.emptyList(), Collections.emptyList(), id -> Optional.empty()));
+		verify(mockTableManagerSupport).validateTableReadAccess(user, snapshotDescription(idAndVersion, TableType.table));
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b0"));
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
@@ -1946,8 +1959,7 @@ public class TableQueryManagerImplTest {
 				mockProgressCallbackVoid, user, request, writer);
 		assertNotNull(results);
 
-		verify(mockTableManagerSupport).validateTableReadAccess(user, new SnapshotIndexDescription(idAndVersion,
-				TableType.table, Collections.emptyList(), Collections.emptyList(), id -> Optional.empty()));
+		verify(mockTableManagerSupport).validateTableReadAccess(user, snapshotDescription(idAndVersion, TableType.table));
 		assertEquals(11, writtenLines.size());
 	}
 	

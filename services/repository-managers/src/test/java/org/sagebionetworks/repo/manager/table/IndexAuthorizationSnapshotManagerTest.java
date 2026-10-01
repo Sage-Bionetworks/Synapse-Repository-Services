@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.table.SourceColumnReference;
 import org.sagebionetworks.repo.model.table.SourceDependency;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
+import org.sagebionetworks.table.cluster.description.IndexDescriptionState;
 
 @ExtendWith(MockitoExtension.class)
 public class IndexAuthorizationSnapshotManagerTest {
@@ -275,7 +276,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 		IndexDescription table123 = mockNode("syn123", TableType.table);
 		IndexDescription table456 = mockNode("syn456", TableType.table);
 		IndexDescription mv2 = mockNode("syn2", TableType.materializedview, table123);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, table456);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select * from syn2 join syn456",
+				mv2, table456);
 		when(root.getBenefactors()).thenReturn(Arrays.asList(
 				new BenefactorDescription("ROW_BENEFACTOR", ObjectType.ENTITY),
 				new BenefactorDescription("ROW_BENEFACTOR_B", ObjectType.EVALUATION)));
@@ -295,7 +297,9 @@ public class IndexAuthorizationSnapshotManagerTest {
 				.setDependencies(Arrays.asList(
 						new SourceDependency().setObjectId("syn2").setVersionNumber(null).setTableType(TableType.materializedview.name()),
 						new SourceDependency().setObjectId("syn123").setVersionNumber(null).setTableType(TableType.table.name()),
-						new SourceDependency().setObjectId("syn456").setVersionNumber(null).setTableType(TableType.table.name()))),
+						new SourceDependency().setObjectId("syn456").setVersionNumber(null).setTableType(TableType.table.name())))
+				// The state needed to rebuild the real MaterializedViewIndexDescription at query time.
+				.setDefiningSql("select * from syn2 join syn456"),
 				snapshot);
 	}
 
@@ -305,7 +309,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 		IndexDescription table123 = mockNode("syn123", TableType.table);
 		IndexDescription mv2 = mockNode("syn2", TableType.materializedview, table123);
 		IndexDescription mv3 = mockNode("syn3", TableType.materializedview, table123);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, mv3);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select * from syn2 join syn3", mv2, mv3);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 
@@ -329,7 +333,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 		IndexDescription shared50 = mockNode("syn50", TableType.materializedview, deep60);
 		IndexDescription mv2 = mockNode("syn2", TableType.materializedview, shared50);
 		IndexDescription mv3 = mockNode("syn3", TableType.materializedview, shared50);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, mv3);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select * from syn2 join syn3", mv2, mv3);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 
@@ -356,7 +360,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 		// the base table syn123. The output must flatten to an EXPRESSION over the leaf column syn123.foo.
 		IndexDescription table123 = mockNode("syn123", TableType.table);
 		IndexDescription mv2 = mockNode("syn2", TableType.materializedview, table123);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select a from syn2", mv2);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 
@@ -385,7 +389,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 	public void testBuildSnapshotKeepsLeafSourceReferenceWhenSourceHasNoDefiningSql() {
 		// syn999 reads directly from the base table syn123: the input stays a leaf reference, IDENTITY.
 		IndexDescription table123 = mockNode("syn123", TableType.table);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, table123);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select foo from syn123", table123);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
@@ -412,7 +416,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 		// negated build-target id, or a query resolving the snapshot would parse 'syn-999' and fail to find
 		// the object.
 		IndexDescription table123 = mockNode("syn123", TableType.table);
-		IndexDescription root = mockNode("syn-999", TableType.materializedview, table123);
+		IndexDescription root = mockRoot("syn-999", TableType.materializedview, "select foo from syn123", table123);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
@@ -436,7 +440,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 		// the root's as-built lineage. Neither syn2's defining SQL nor syn123's schema is stubbed, proving
 		// the recompute path is never taken.
 		IndexDescription mv2 = mockLeaf("syn2", TableType.materializedview);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select a from syn2", mv2);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 
 		IndexAuthorizationSnapshot syn2Snapshot = new IndexAuthorizationSnapshot()
@@ -485,7 +489,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 		// AGGREGATE/MAX). Both children still contribute their leaf inputs.
 		IndexDescription mv2 = mockLeaf("syn2", TableType.materializedview);
 		IndexDescription mv3 = mockLeaf("syn3", TableType.materializedview);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, mv2, mv3);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview,
+				"select a from syn2 union select b from syn3", mv2, mv3);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 
 		IndexAuthorizationSnapshot syn2Snapshot = new IndexAuthorizationSnapshot()
@@ -536,7 +541,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 	@Test
 	public void testBuildSnapshotWithBoundSchemaSizeMismatch() {
 		IndexDescription table123 = mockNode("syn123", TableType.table);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, table123);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select foo, bar from syn123", table123);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
@@ -553,7 +558,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 	@Test
 	public void testBuildSnapshotWithBoundSchemaNameMismatch() {
 		IndexDescription table123 = mockNode("syn123", TableType.table);
-		IndexDescription root = mockNode("syn999", TableType.materializedview, table123);
+		IndexDescription root = mockRoot("syn999", TableType.materializedview, "select foo, bar as bar_out from syn123",
+				table123);
 		when(root.getBenefactors()).thenReturn(Collections.emptyList());
 		stubNoPersistedSnapshots();
 		when(mockTableManagerSupport.getTableSchema(IdAndVersion.parse("syn123"))).thenReturn(syn123Schema);
@@ -575,7 +581,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 	public void testBuildSnapshotForBaseTableIsIdentityLineageWithNoDependencies() {
 		// A plain table selects its own columns: each output column is an identity of itself, and it has no
 		// benefactors or dependencies of its own.
-		IndexDescription table = mockNode("syn123", TableType.table);
+		IndexDescription table = mockRoot("syn123", TableType.table, null);
 		when(table.getBenefactors()).thenReturn(Collections.emptyList());
 
 		// call under test
@@ -601,7 +607,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 	@Test
 	public void testBuildSnapshotForBaseViewCarriesItsBenefactorColumn() {
 		// A view selects its own columns like a table but carries a single row-level benefactor column.
-		IndexDescription view = mockNode("syn123.4", TableType.entityview);
+		IndexDescription view = mockRoot("syn123.4", TableType.entityview, null);
 		when(view.getBenefactors()).thenReturn(Collections
 				.singletonList(new BenefactorDescription("ROW_BENEFACTOR", ObjectType.ENTITY)));
 
@@ -663,6 +669,19 @@ public class IndexAuthorizationSnapshotManagerTest {
 		when(node.getIdAndVersion()).thenReturn(IdAndVersion.parse(idAndVersion));
 		when(node.getTableType()).thenReturn(tableType);
 		when(node.getDependencies()).thenReturn(Arrays.asList(dependencies));
+		return node;
+	}
+
+	/**
+	 * A mock of the object a snapshot is being captured for. Only the root contributes its own
+	 * {@link IndexDescriptionState}, so that stub belongs here rather than on every dependency node.
+	 * A base index type passes a null defining SQL.
+	 */
+	private IndexDescription mockRoot(String idAndVersion, TableType tableType, String definingSql,
+			IndexDescription... dependencies) {
+		IndexDescription node = mockNode(idAndVersion, tableType, dependencies);
+		when(node.getState()).thenReturn(
+				new IndexDescriptionState(IdAndVersion.parse(idAndVersion), tableType, definingSql, null));
 		return node;
 	}
 
@@ -859,7 +878,8 @@ public class IndexAuthorizationSnapshotManagerTest {
 
 		// MV1 depends on MV2. Use mockLeaf for mv2Desc since its dependencies are never walked (pre-loaded).
 		IndexDescription mv2Desc = mockLeaf("syn456", TableType.materializedview);
-		IndexDescription mv1Desc = mockNode("syn789", TableType.materializedview, mv2Desc);
+		IndexDescription mv1Desc = mockRoot("syn789", TableType.materializedview,
+				"select bar + 1 as result from syn456", mv2Desc);
 		when(mv1Desc.getBenefactors()).thenReturn(Collections.emptyList());
 
 		ColumnModel mv1Column = TableModelTestUtils.createColumn(333L, "result", ColumnType.INTEGER);
@@ -895,7 +915,7 @@ public class IndexAuthorizationSnapshotManagerTest {
 
 		// MV depends on the physical leaf. Use mockLeaf for the leaf since it has no dependencies.
 		IndexDescription leafDesc = mockLeaf("syn123", TableType.table);
-		IndexDescription mvDesc = mockNode("syn789", TableType.materializedview, leafDesc);
+		IndexDescription mvDesc = mockRoot("syn789", TableType.materializedview, "select foo from syn123", leafDesc);
 		when(mvDesc.getBenefactors()).thenReturn(Collections.emptyList());
 
 		when(mockTableManagerSupport.getTableSchema(leafId)).thenReturn(syn123Schema);

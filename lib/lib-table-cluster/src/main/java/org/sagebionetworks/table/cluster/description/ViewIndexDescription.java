@@ -127,4 +127,9 @@ public class ViewIndexDescription implements IndexDescription {
 				+ ", indexVersion=" + indexVersion + "]";
 	}
 
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, viewType, null, indexVersion);
+	}
+
 }

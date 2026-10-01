@@ -82,4 +82,9 @@ public class VirtualTableIndexDescription implements IndexDescription {
 		return true;
 	}
 
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, TableType.virtualtable, definingSql, null);
+	}
+
 }
