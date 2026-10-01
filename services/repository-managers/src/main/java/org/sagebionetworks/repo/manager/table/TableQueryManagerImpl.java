@@ -14,6 +14,8 @@ import java.util.stream.Collectors;
 
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
 import org.sagebionetworks.repo.manager.table.query.ActionsRequiredQuery;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidQueryValidator;
 import org.sagebionetworks.repo.manager.table.query.BasicQuery;
 import org.sagebionetworks.repo.manager.table.query.CacheableQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
@@ -26,8 +28,8 @@ import org.sagebionetworks.repo.manager.table.query.StreamingQueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.SumFileSizesQuery;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AggregateDataConfiguration;
-import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FacetPostProcessingConfig;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -40,12 +42,12 @@ import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResult;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
@@ -54,6 +56,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SumFileSizes;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -63,12 +66,13 @@ import org.sagebionetworks.repo.model.table.TableUnavailableException;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.CombinedQuery;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.SchemaProvider;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
 import org.sagebionetworks.table.cluster.description.IndexDescription;
 import org.sagebionetworks.table.cluster.description.QueryIndexDescription;
@@ -104,9 +108,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 	private QueryCacheManager queryCacheManager;
 	private FacetPostProcessorProvider facetPostProcessorProvider;
 	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
+	private AggregateQidColumnResolver aggregateQidColumnResolver;
 
 	@Autowired
-	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
+	public TableQueryManagerImpl(TableManagerSupport tableManagerSupport, ConnectionFactory tableConnectionFactory, EntityAuthorizationManager entityAuthorizationManager, ExecutorService cachedThreadPool, QueryCacheManager queryCacheManager, FacetPostProcessorProvider facetPostProcessorProvider, IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager, AggregateQidColumnResolver aggregateQidColumnResolver) {
 		this.tableManagerSupport = tableManagerSupport;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.entityAuthorizationManager = entityAuthorizationManager;
@@ -114,6 +119,7 @@ public class TableQueryManagerImpl implements TableQueryManager {
 		this.queryCacheManager = queryCacheManager;
 		this.facetPostProcessorProvider = facetPostProcessorProvider;
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
+		this.aggregateQidColumnResolver = aggregateQidColumnResolver;
 	}
 	
 	/**
@@ -289,6 +295,27 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			addRowLevelFilter(user, qs, filterDescription, types);
 		}
 
+		// 5. When this request asks for rows against an aggregate-only source, decide whether any
+		// row-level results may be returned. A request that does not ask for rows always degrades to
+		// the aggregate-only response (gated count + obscured facets) and imposes no restriction.
+		List<Integer> protectedCountColumnIndexes = Collections.emptyList();
+		if (options.runQuery() && aggregateDataConfiguration != null) {
+			List<String> quasiIdentifierColumnNames = aggregateDataConfiguration.getQuasiIdentifierColumnNames();
+			if (quasiIdentifierColumnNames == null || quasiIdentifierColumnNames.isEmpty()) {
+				// The source defines no quasi-identifier columns, so it can never return row-level
+				// results. Reject the row request explicitly rather than silently degrading to the
+				// aggregate-only response, mirroring the QID-misuse rejection below.
+				throw new RowSuppressionException(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS);
+			}
+			// The source defines quasi-identifier (QID) columns: enforce the count-only QID
+			// restriction and capture which output columns are protected participant counts. A
+			// violation withholds the rows via a RowSuppressionException. The restriction is applied
+			// to the queried object's own columns that the as-built lineage derives from a QID, so a
+			// column that reaches a QID through renaming or a chain of objects is still recognized.
+			Set<String> qidColumnIds = aggregateQidColumnResolver.resolve(indexDescription);
+			protectedCountColumnIndexes = AggregateQidQueryValidator.validate(model, qidColumnIds, schemaProvider);
+		}
+
 		QueryContext expansion = QueryContext.builder()
 			.setStartingSql(preprocessedModel.toSql())
 			.setUserId(user.getId())
@@ -304,54 +331,22 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			.setSort(query.getSort())
 			.setIncludeEntityEtag(query.getIncludeEntityEtag())
 			.setAggregateDataConfiguration(aggregateDataConfiguration)
+			.setProtectedCountColumnIndexes(protectedCountColumnIndexes)
 		.build();
 
-		// Aggregate-only queries currently suppress all row data (see executeQuery), so a
-		// restricted row-level column in the outer SELECT leaks nothing here. The structural
-		// column restriction (reject a bare row-level source column, allowing only aggregate
-		// expressions and GROUP BY keys) becomes load-bearing in PLFM-9757, where aggregate
-		// result rows are actually returned; it is deferred to that ticket.
 		return new QueryTranslations(expansion, options);
 	}
 
 	/**
-	 * Resolve the query-time {@link IndexDescription} for an object against its as-built state rather
-	 * than current truth:
-	 * <ul>
-	 * <li>A materialized object (table/view/materialized view/record set) has an
-	 * {@link IndexAuthorizationSnapshot} captured with its index, so a {@link SnapshotIndexDescription}
-	 * reconstituted from that snapshot describes exactly what the served index contains.</li>
-	 * <li>A VirtualTable has no index of its own; it is a query over a dependent, so it is described by
-	 * a {@link VirtualTableIndexDescription} whose source is resolved through this same method — the
-	 * dependent's as-built snapshot stands in for its live index description. Recursion handles a
-	 * VirtualTable defined over another VirtualTable.</li>
-	 * </ul>
-	 * Any other object without a snapshot is an invariant violation: the caller has already confirmed
-	 * the object is AVAILABLE under the read lock, and every AVAILABLE materialized index is built with
-	 * a snapshot.
+	 * Resolve the query-time {@link IndexDescription} for a queried object. Delegates to
+	 * {@link IndexAuthorizationSnapshotManager#getSnapshotIndexDescription(IdAndVersion)} to keep the
+	 * query manager abstracted from snapshot resolution details.
 	 *
 	 * @param idAndVersion the object being queried (or a dependent inlined by a VirtualTable)
 	 * @return a snapshot-backed description
 	 */
 	IndexDescription getQueryIndexDescription(IdAndVersion idAndVersion) {
-		Optional<IndexAuthorizationSnapshot> snapshot = indexAuthorizationSnapshotManager
-				.getAuthorizationSnapshot(idAndVersion);
-		if (snapshot.isPresent()) {
-			// The change-number provider must yield the same value the live IndexDescription is built
-			// with (TableManagerSupport.getTableVersion): the truth change number for a table, but the
-			// index version for a view/dataset/recordset. Binding it to getLastTableChangeNumber
-			// instead would leave the query-cache hash unchanged across incremental view/dataset index
-			// updates, serving stale count/facet results.
-			return SnapshotIndexDescription.fromSnapshot(snapshot.get().getIndexDescription(),
-					id -> Optional.of(tableManagerSupport.getTableVersion(id)));
-		}
-		if (TableType.virtualtable.equals(tableManagerSupport.getTableType(idAndVersion))) {
-			String definingSql = tableManagerSupport.getDefiningSql(idAndVersion)
-					.orElseThrow(() -> new IllegalStateException("VirtualTable " + idAndVersion + " has no defining SQL"));
-			return new VirtualTableIndexDescription(idAndVersion, definingSql, this::getQueryIndexDescription);
-		}
-		throw new IllegalStateException(
-				"No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable");
+		return indexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion);
 	}
 
 	/**
@@ -496,17 +491,10 @@ public class TableQueryManagerImpl implements TableQueryManager {
 			throw new IllegalArgumentException("Invalid use of " + TextMatchesPredicate.KEYWORD + ". Full text search is not enabled on table " + idAndVersion + ".");
 		}
 
-		// run the actual query if needed. Aggregate-only queries never return rows.
-		if (options.runQuery() && !query.isAggregateOnly()) {
-			// run the query
-			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
-			QueryResult queryResult = new QueryResult();
-			queryResult.setQueryResults(rowSet);
-			bundle.setQueryResult(queryResult);
-		}
-
-		// run the count query if needed. An aggregate-only query always runs the count
-		// to enforce the suppression gate against the number of matched rows.
+		// Run the count first. An aggregate-only query always runs the count to enforce the
+		// suppression gate against the number of matched rows. That gate must run before the main
+		// query so that a below-threshold cohort withholds its rows without first computing them
+		// (and, on the streaming path, emitting them to the row handler) only to discard the work.
 		if (options.runCount() || query.isAggregateOnly()) {
 			// count requested.
 			Long count = runCountQuery(query.getCountQuery().orElseThrow(()-> new IllegalStateException("Expected a count query")), indexDao);
@@ -522,6 +510,26 @@ public class TableQueryManagerImpl implements TableQueryManager {
 				}
 			}
 			bundle.setQueryCount(count);
+		}
+
+		// run the actual query if needed.
+		if (options.runQuery()) {
+			// Pre-flight rejects a row request against an aggregate-only source that defines no
+			// quasi-identifier columns (RowSuppressionException), so reaching here with runQuery
+			// always means rows may be returned: either full read access, or an aggregate-only source
+			// that defines quasi-identifier columns and passed the count-only QID validation. In the
+			// latter case cell-level k-anonymity has already been pushed into the executed SQL, so the
+			// rows returned here are already suppressed regardless of whether they were materialized or
+			// streamed. Reaching this point without either condition would silently drop the row
+			// request, so fail loudly instead.
+			if (query.isAggregateOnly() && !query.isRowReturningAggregate()) {
+				throw new IllegalStateException(
+						"A row request against an aggregate-only source without quasi-identifier columns must be rejected during pre-flight");
+			}
+			RowSet rowSet = runMainQuery(queryExecutor, indexDao, query.getMainQuery().getTranslator());
+			QueryResult queryResult = new QueryResult();
+			queryResult.setQueryResults(rowSet);
+			bundle.setQueryResult(queryResult);
 		}
 
 		if (options.returnFacets()) {

@@ -56,6 +56,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
@@ -105,6 +106,7 @@ import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.SelectColumn;
 import org.sagebionetworks.repo.model.table.SortDirection;
 import org.sagebionetworks.repo.model.table.SortItem;
@@ -119,6 +121,7 @@ import org.sagebionetworks.repo.model.table.TextMatchesQueryFilter;
 import org.sagebionetworks.repo.model.table.ViewObjectType;
 import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
@@ -180,6 +183,8 @@ public class TableQueryManagerImplTest {
 	private QueryTranslations mockQueryTranslations;
 	@Mock
 	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
+	@Mock
+	private AggregateQidColumnResolver mockAggregateQidColumnResolver;
 
 	@Spy
 	@InjectMocks
@@ -379,6 +384,13 @@ public class TableQueryManagerImplTest {
 						.setDependencies(dependencies))
 				.setColumnLineage(lineage);
 		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(id)).thenReturn(Optional.of(snapshot));
+		// Also stub getSnapshotIndexDescription to return a description built from the snapshot,
+		// since TableQueryManagerImpl now calls that method instead of building it locally.
+		// The version provider returns empty because most tests don't actually use the version;
+		// tests that need it should stub getTableVersion individually.
+		SnapshotIndexDescription snapshotDescription = SnapshotIndexDescription.fromSnapshot(snapshot,
+				version -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(id)).thenReturn(snapshotDescription);
 		return snapshot;
 	}
 
@@ -387,6 +399,26 @@ public class TableQueryManagerImplTest {
 	 */
 	IndexAuthorizationSnapshot setupSnapshot(IdAndVersion id, TableType tableType, List<ColumnModel> schema) {
 		return setupSnapshot(id, tableType, schema, Collections.emptyList(), Collections.emptyList());
+	}
+
+	/**
+	 * The description {@link #setupSnapshot} resolves for an object with no dependencies, for use as
+	 * the expected argument of the authorization check.
+	 */
+	SnapshotIndexDescription snapshotDescription(IdAndVersion id, TableType tableType) {
+		return snapshotDescription(id, tableType, Collections.emptyList());
+	}
+
+	SnapshotIndexDescription snapshotDescription(IdAndVersion id, TableType tableType,
+			List<BenefactorColumn> benefactors) {
+		return SnapshotIndexDescription.fromSnapshot(new IndexAuthorizationSnapshot()
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn" + id.getId())
+						.setVersionNumber(id.getVersion().orElse(null))
+						.setTableType(tableType.name())
+						.setBenefactors(benefactors)
+						.setDependencies(Collections.emptyList())),
+				version -> Optional.empty());
 	}
 
 	/**
@@ -403,7 +435,9 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightUnauthroized() throws Exception {
 		// authorization is denied against the as-built snapshot, before any schema read
-		setupSnapshot(idAndVersion, TableType.table, Collections.emptyList());
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(description);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 		Query query = new Query();
@@ -422,8 +456,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		manager.queryPreflight(user, query, null, queryOptions);
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 	}
 
@@ -439,9 +472,12 @@ public class TableQueryManagerImplTest {
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
+		// The source defines no quasi-identifiers, so only the aggregate-only response is available:
+		// request the gated count rather than rows to avoid the row-suppression rejection.
+		QueryOptions options = new QueryOptions().withRunCount(true);
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, null, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, null, options);
 		assertNotNull(result);
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
@@ -449,9 +485,77 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testQueryPreflightWithAggregateNoQuasiIdentifiersAndRunQuery() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		// the bound configuration defines no quasi-identifier columns
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test: a row request against a source with no quasi-identifiers is rejected
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, null, options);
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, thrown.getReasonCode());
+	}
+
+	@Test
+	public void testQueryPreflightWithRowReturningAggregate() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		// the restriction applies to the queried object's own column that the as-built lineage
+		// derives from a quasi-identifier, identified by its ColumnModel id
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+
+		Query query = new Query();
+		query.setSql("select i0, count(i1) from " + tableId + " group by i0");
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, null, options);
+		assertTrue(result.isRowReturningAggregate());
+		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
+	}
+
+	@Test
+	public void testQueryPreflightWithQidProjectedByRowReturningAggregate() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(Set.of("1"));
+
+		Query query = new Query();
+		query.setSql("select i0, i1 from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, null, options);
+		});
+		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
+	}
+
+	@Test
 	public void testQueryPreflightWithAggregateDeniedNoConfig() throws Exception {
 		// denial resolved against the snapshot before any schema read
-		setupSnapshot(idAndVersion, TableType.table, Collections.emptyList());
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(description);
 		// the status reports an aggregate source, but no bound configuration is found, so
 		// the standard denial must be preserved rather than silently allowing the query
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
@@ -484,6 +588,10 @@ public class TableQueryManagerImplTest {
 				.setColumnLineage(lineage);
 		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
 				.thenReturn(Optional.of(snapshot));
+		SnapshotIndexDescription snapshotDescription = SnapshotIndexDescription.fromSnapshot(snapshot,
+				id -> Optional.empty());
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(snapshotDescription);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
 
 		Query query = new Query();
@@ -493,8 +601,7 @@ public class TableQueryManagerImplTest {
 		manager.queryPreflight(user, query, null, queryOptions);
 
 		// Authorization runs against the reconstituted snapshot description, not the live index description.
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// The live index description and live schema count are never consulted on the snapshot path.
 		verify(mockTableManagerSupport, never()).getIndexDescription(any());
@@ -503,14 +610,9 @@ public class TableQueryManagerImplTest {
 
 	@Test
 	public void testQueryPreflightWithSnapshotUnauthorized() throws Exception {
-		IndexAuthorizationSnapshot snapshot = new IndexAuthorizationSnapshot()
-				.setIndexDescription(new IndexDescriptionSnapshot().setObjectId(tableId)
-						.setTableType(TableType.table.name()).setBenefactors(Collections.emptyList())
-						.setDependencies(Collections.emptyList()))
-				.setColumnLineage(Collections.singletonList(
-						new ColumnLineageEntry().setOutputColumnId(models.get(0).getId())));
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
-				.thenReturn(Optional.of(snapshot));
+		SnapshotIndexDescription description = snapshotDescription(idAndVersion, TableType.table);
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenReturn(description);
 		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
 				.thenReturn(AuthorizationStatus.accessDenied("no access"));
 
@@ -527,10 +629,10 @@ public class TableQueryManagerImplTest {
 	@Test
 	public void testQueryPreflightWithoutSnapshotAndNotVirtualTableThrows() throws Exception {
 		// A materialized object confirmed AVAILABLE under the read lock must have an as-built snapshot;
-		// its absence for a non-VirtualTable is an invariant violation, not a live fallback.
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(idAndVersion))
-				.thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableType(idAndVersion)).thenReturn(TableType.table);
+		// its absence for a non-VirtualTable is an invariant violation. The snapshot manager throws,
+		// and that exception propagates through the query manager.
+		when(mockIndexAuthorizationSnapshotManager.getSnapshotIndexDescription(idAndVersion))
+				.thenThrow(new IllegalStateException("No authorization snapshot exists for " + idAndVersion + " and it is not a VirtualTable"));
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
@@ -768,8 +870,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 		manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.table,
-				Collections.emptyList(), Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// a benefactor check should not occur for TableEntities
@@ -795,9 +896,9 @@ public class TableQueryManagerImplTest {
 		// call under test
 		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
 		assertNotNull(results);
-		QueryIndexDescription expected = new SnapshotIndexDescription(idAndVersion, TableType.entityview,
-				List.of(new BenefactorDescription(TableConstants.ROW_BENEFACTOR, ObjectType.ENTITY)),
-				Collections.emptyList(), id -> Optional.empty());
+		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.entityview,
+				List.of(new BenefactorColumn().setBenefactorColumnName(TableConstants.ROW_BENEFACTOR)
+						.setBenefactorType(ObjectType.ENTITY.name())));
 		// auth check should occur
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 		// a benefactor check must occur for FileViews
@@ -806,55 +907,6 @@ public class TableQueryManagerImplTest {
 		assertEquals("SELECT COUNT(*) FROM T123 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 )", results.getMainQuery().getTranslator().getOutputSQL());
 		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
 		verify(mockTableIndexDAO).getDistinctLongValues(idAndVersion, TableConstants.ROW_BENEFACTOR);
-	}
-	
-	
-	@Test
-	public void testQueryPreflightWithAuthorizationVirtualTable() throws Exception{
-
-		// source view syn1 is authorized against its as-built snapshot (entityview with a benefactor)
-		IdAndVersion viewId = IdAndVersion.parse("syn1");
-		ColumnModel fooColumn = new ColumnModel().setName("foo").setColumnType(ColumnType.INTEGER).setId("11");
-		List<ColumnModel> viewSchema = List.of(fooColumn);
-		setupSnapshot(viewId, TableType.entityview, viewSchema,
-				List.of(new BenefactorColumn().setBenefactorColumnName(TableConstants.ROW_BENEFACTOR)
-						.setBenefactorType(ObjectType.ENTITY.name())),
-				Collections.emptyList());
-		when(mockTableConnectionFactory.getConnection(viewId)).thenReturn(mockTableIndexDAO);
-		when(mockTableIndexDAO.getDistinctLongValues(any(), any())).thenReturn(benfactors);
-		when(mockTableManagerSupport.getAccessibleBenefactors(any(), any(), any())).thenReturn(subSet);
-
-		// virtual table syn2 has no snapshot; it is inlined as a query over its source view syn1
-		IdAndVersion virtualTableId = IdAndVersion.parse("syn2");
-		ColumnModel barColumn = new ColumnModel().setName("bar").setColumnType(ColumnType.INTEGER).setId("22");
-		List<ColumnModel> virtualSchema = List.of(barColumn);
-		when(mockIndexAuthorizationSnapshotManager.getAuthorizationSnapshot(virtualTableId)).thenReturn(Optional.empty());
-		when(mockTableManagerSupport.getTableType(virtualTableId)).thenReturn(TableType.virtualtable);
-		when(mockTableManagerSupport.getDefiningSql(virtualTableId)).thenReturn(Optional.of("select * from syn1"));
-		when(mockTableManagerSupport.getTableSchema(virtualTableId)).thenReturn(virtualSchema);
-		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
-
-		setupColumnModelAnswer(List.of(fooColumn, barColumn));
-
-		Query query = new Query();
-		query.setSql("select count(*) from syn2");
-		Long maxBytesPerPage = null;
-		// call under test
-		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
-
-		assertNotNull(results);
-		// authorization runs once, against the virtual table whose only dependency is the snapshot-backed source view
-		ArgumentCaptor<QueryIndexDescription> captor = ArgumentCaptor.forClass(QueryIndexDescription.class);
-		verify(mockTableManagerSupport, times(1)).validateTableReadAccess(eq(user), captor.capture());
-		assertEquals(virtualTableId, captor.getValue().getIdAndVersion());
-		assertEquals(viewId, captor.getValue().getDependencies().get(0).getIdAndVersion());
-
-		// validate the benefactor filter is applied
-		assertEquals("WITH T2 (_C22_) AS "
-				+ "(SELECT _C11_ FROM T1 WHERE ROW_BENEFACTOR IN ( -:b0, :b1 ))"
-				+ " SELECT COUNT(*) FROM T2", results.getMainQuery().getTranslator().getOutputSQL());
-		verify(mockTableManagerSupport).getAccessibleBenefactors(user, ObjectType.ENTITY, benfactors);
-		verify(mockTableIndexDAO).getDistinctLongValues(viewId, TableConstants.ROW_BENEFACTOR);
 	}
 	
 	@Test
@@ -978,8 +1030,8 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		// aggregate-only forces a count query even though only runQuery was requested
-		queryOptions = new QueryOptions().withRunQuery(true);
+		// a count is requested against an aggregate-only source with no quasi-identifiers
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
@@ -1000,7 +1052,7 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(count)).build(), queryOptions);
 
@@ -1021,7 +1073,7 @@ public class TableQueryManagerImplTest {
 		// the count query matches 201 rows
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
@@ -1042,7 +1094,7 @@ public class TableQueryManagerImplTest {
 		RowSet emptyCountRowSet = new RowSet().setRows(List.of(new Row().setValues(List.of("0"))));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(emptyCountRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(500L)).build(), queryOptions);
 
@@ -1056,6 +1108,108 @@ public class TableQueryManagerImplTest {
 	}
 
 	@Test
+	public void testExecuteQueryAggregateOnlyRunQueryWithoutQuasiIdentifiers() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count is above the threshold, so the count gate passes and control reaches the row block
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		// A row request against an aggregate-only source with no quasi-identifiers must be rejected in
+		// pre-flight; if it ever reaches executeQuery the invariant guard fails loudly rather than
+		// silently dropping the row request.
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
+				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
+
+		// call under test
+		assertThrows(IllegalStateException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryRowReturningAggregate() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the aggregate-only gate still runs a count against the cohort size
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		// the row-returning aggregate executes the main query; suppression is already in the SQL
+		when(mockQueryExecutor.executeQuery(any(), any())).thenReturn(rowSet);
+
+		// A source that defines quasi-identifier columns turns an aggregate-only read into a
+		// row-returning aggregate: rows are returned once each protected count has been suppressed.
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		assertNotNull(results);
+		// rows are returned (already suppressed in SQL) and the gated cohort count is included
+		assertNotNull(results.getQueryResult());
+		assertEquals(rowSet, results.getQueryResult().getQueryResults());
+		assertEquals(count, results.getQueryCount());
+		verify(mockQueryExecutor).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryRowReturningAggregateBelowThreshold() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the count query matches 201 rows, which is below the threshold
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			manager.executeQuery(user, query, queryOptions, mockQueryExecutor);
+		});
+		assertEquals(500L, thrown.getSuppressionThreshold());
+		// the gate runs before the main query, so a below-threshold cohort never materializes rows
+		verify(mockQueryExecutor, never()).executeQuery(any(), any());
+	}
+
+	@Test
+	public void testExecuteQueryRowReturningAggregateStreaming() throws Exception {
+		when(mockTableConnectionFactory.getConnection(idAndVersion)).thenReturn(mockTableIndexDAO);
+		when(mockSchemaProvider.getTableSchema(any())).thenReturn(models);
+		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
+		// the aggregate-only gate still runs a count against the cohort size
+		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
+		// streaming pushes each already-suppressed row through the handler
+		setupQueryCallback();
+
+		AggregateDataConfiguration config = new AggregateDataConfiguration().setSuppressionThreshold(5L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		queryOptions = new QueryOptions().withRunQuery(true);
+		QueryTranslations query = new QueryTranslations(queriesBuilder
+				.setStartingSql("select i0, count(i1) from " + tableId + " group by i0")
+				.setAggregateDataConfiguration(config).setProtectedCountColumnIndexes(List.of(1)).build(), queryOptions);
+
+		// call under test
+		QueryResultBundle results = manager.executeQuery(user, query, queryOptions,
+				new StreamingQueryExecutor(mockRowHandler));
+		assertNotNull(results);
+		assertNotNull(results.getQueryResult());
+		assertEquals(count, results.getQueryCount());
+		// every row is streamed to the handler
+		verify(mockTableIndexDAO).queryAsStream(any(QueryTranslator.class), any(RowHandler.class));
+	}
+
+	@Test
 	public void testQueryAfterAuthorizationAggregateOnly() throws Exception {
 		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
 		setupNonExclusiveLock();
@@ -1064,7 +1218,7 @@ public class TableQueryManagerImplTest {
 		when(mockSchemaProvider.getColumnModel(any())).thenReturn(models.get(0));
 		when(mockQueryCacheManager.getQueryResults(any(), any())).thenReturn(countRowSet);
 
-		queryOptions = new QueryOptions().withRunQuery(true);
+		queryOptions = new QueryOptions().withRunCount(true);
 		QueryTranslations translated = new QueryTranslations(queriesBuilder.setStartingSql("select * from " + tableId)
 				.setAggregateDataConfiguration(new AggregateDataConfiguration().setSuppressionThreshold(100L)).build(), queryOptions);
 
@@ -1752,8 +1906,7 @@ public class TableQueryManagerImplTest {
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(LOWER(_C13_),LOWER(JSON_ARRAY(:b0,:b1))) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
-		verify(mockTableManagerSupport).validateTableReadAccess(user, new SnapshotIndexDescription(idAndVersion,
-				TableType.table, Collections.emptyList(), Collections.emptyList(), id -> Optional.empty()));
+		verify(mockTableManagerSupport).validateTableReadAccess(user, snapshotDescription(idAndVersion, TableType.table));
 		assertEquals("bar", result.getMainQuery().getTranslator().getParameters().get("b0"));
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b1"));
 	}
@@ -1806,8 +1959,7 @@ public class TableQueryManagerImplTest {
 				mockProgressCallbackVoid, user, request, writer);
 		assertNotNull(results);
 
-		verify(mockTableManagerSupport).validateTableReadAccess(user, new SnapshotIndexDescription(idAndVersion,
-				TableType.table, Collections.emptyList(), Collections.emptyList(), id -> Optional.empty()));
+		verify(mockTableManagerSupport).validateTableReadAccess(user, snapshotDescription(idAndVersion, TableType.table));
 		assertEquals(11, writtenLines.size());
 	}
 	

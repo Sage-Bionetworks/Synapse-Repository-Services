@@ -17,6 +17,14 @@ public class DerivedColumn extends SQLElement {
 		return valueExpression;
 	}
 
+	/**
+	 * Replace the value expression of this column with the provided replacement.
+	 * @param replacement
+	 */
+	public void replaceValueExpression(ValueExpression replacement) {
+		this.valueExpression = Replaceable.prepareToReplace(this.valueExpression, replacement, this);
+	}
+
 	public AsClause getAsClause() {
 		return asClause;
 	}

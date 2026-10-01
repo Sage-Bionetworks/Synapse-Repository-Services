@@ -104,4 +104,9 @@ public class RecordSetIndexDescription implements IndexDescription {
 		return "RecordSetIndexDescription [idAndVersion=" + idAndVersion + ", lastTableChangeNumber="
 				+ lastTableChangeNumber + "]";
 	}
+
+	@Override
+	public IndexDescriptionState getState() {
+		return new IndexDescriptionState(idAndVersion, TableType.recordset, null, lastTableChangeNumber);
+	}
 }
