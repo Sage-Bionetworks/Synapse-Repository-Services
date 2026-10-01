@@ -227,7 +227,7 @@ public class EDucManager {
 
 		// The envelope exists only to be rendered. Nothing about it is persisted, so that a preview cannot
 		// leave behind a draft that is later routed with the content the request happened to have when the
-		// preview was taken.
+		// preview was taken. Its sender fields are written when it is created, so they need no refreshing.
 		String envelopeId = createEnvelopeFromRequest(request);
 		byte[] pdfBytes;
 		try {
