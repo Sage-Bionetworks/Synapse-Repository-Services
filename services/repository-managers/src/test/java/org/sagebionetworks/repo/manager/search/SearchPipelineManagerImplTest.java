@@ -33,12 +33,16 @@ import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.schema.Organization;
 import org.sagebionetworks.repo.model.search.dsl.Combination;
 import org.sagebionetworks.repo.model.search.dsl.CombinationParameters;
+import org.sagebionetworks.repo.model.search.dsl.BoundMode;
 import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.LowerBound;
 import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationParameters;
 import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
 import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
 import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.UpperBound;
 import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesRequest;
 import org.sagebionetworks.repo.model.search.table.ListNamedSearchPipelinesResponse;
 import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
@@ -50,6 +54,8 @@ public class SearchPipelineManagerImplTest {
 	private static final String ORG_NAME = "test.org";
 	private static final String ORG_ID = "42";
 	private static final String WEIGHTS_FIELD = "settings.combination.parameters.weights";
+	private static final String LOWER_BOUNDS_FIELD = "settings.normalization.parameters.lower_bounds";
+	private static final String UPPER_BOUNDS_FIELD = "settings.normalization.parameters.upper_bounds";
 
 	@Mock
 	private SearchPipelineDao mockSearchPipelineDao;
@@ -233,7 +239,19 @@ public class SearchPipelineManagerImplTest {
 	@Test
 	public void testCreateWithAllZeroWeights() {
 		assertCreateRejected(weightedSettings(0.0, 0.0, 0.0, 0.0, 0.0),
-				WEIGHTS_FIELD + " must sum to more than 0");
+				WEIGHTS_FIELD + " must sum to 1.0; found 0.0");
+	}
+
+	@Test
+	public void testCreateWithWeightsSummingBelowOne() {
+		assertCreateRejected(weightedSettings(0.2, 0.2, 0.2, 0.2, 0.1),
+				WEIGHTS_FIELD + " must sum to 1.0; found 0.9");
+	}
+
+	@Test
+	public void testCreateWithWeightsSummingAboveOne() {
+		assertCreateRejected(weightedSettings(0.5, 0.5, 0.5, 0.5, 0.5),
+				WEIGHTS_FIELD + " must sum to 1.0; found 2.5");
 	}
 
 	@Test
@@ -316,6 +334,90 @@ public class SearchPipelineManagerImplTest {
 		manager.create(admin, request);
 
 		verify(mockSearchPipelineDao).create(1L, request);
+	}
+
+	@Test
+	public void testCreateWithBounds() {
+		NamedSearchPipeline request = validPipeline().setSettings(boundedSettings(null,
+				List.of(lower(BoundMode.apply, 0.0), lower(BoundMode.clip, -10000.0), lower(BoundMode.ignore, null),
+						lower(null, 2.5), new LowerBound()),
+				List.of(upper(BoundMode.apply, 1.0), upper(BoundMode.clip, 10000.0), upper(BoundMode.ignore, null),
+						upper(null, 25.0), new UpperBound())));
+		when(mockSearchPipelineDao.create(1L, request)).thenReturn(request);
+
+		// call under test
+		manager.create(admin, request);
+
+		verify(mockSearchPipelineDao).create(1L, request);
+	}
+
+	@Test
+	public void testCreateWithLowerBoundsOnlyAndMinMax() {
+		NamedSearchPipeline request = validPipeline().setSettings(boundedSettings(NormalizationTechnique.min_max,
+				fiveLowerBounds(0.5), null));
+		when(mockSearchPipelineDao.create(1L, request)).thenReturn(request);
+
+		// call under test
+		manager.create(admin, request);
+
+		verify(mockSearchPipelineDao).create(1L, request);
+	}
+
+	@Test
+	public void testCreateWithParametersWithoutBounds() {
+		NamedSearchPipeline request = validPipeline().setSettings(boundedSettings(null, null, null));
+		when(mockSearchPipelineDao.create(1L, request)).thenReturn(request);
+
+		// call under test
+		manager.create(admin, request);
+
+		verify(mockSearchPipelineDao).create(1L, request);
+	}
+
+	@Test
+	public void testCreateWithFourLowerBounds() {
+		assertCreateRejected(boundedSettings(null, fiveLowerBounds(0.0).subList(0, 4), null),
+				LOWER_BOUNDS_FIELD + " must contain exactly 5 entries; found 4");
+	}
+
+	@Test
+	public void testCreateWithSixUpperBounds() {
+		List<UpperBound> bounds = new ArrayList<>(fiveUpperBounds(1.0));
+		bounds.add(upper(BoundMode.apply, 1.0));
+		assertCreateRejected(boundedSettings(null, null, bounds),
+				UPPER_BOUNDS_FIELD + " must contain exactly 5 entries; found 6");
+	}
+
+	@Test
+	public void testCreateWithNullLowerBound() {
+		List<LowerBound> bounds = new ArrayList<>(fiveLowerBounds(0.0));
+		bounds.set(2, null);
+		assertCreateRejected(boundedSettings(null, bounds, null),
+				LOWER_BOUNDS_FIELD + " entries must not be null");
+	}
+
+	@Test
+	public void testCreateWithLowerBoundBelowRange() {
+		assertCreateRejected(boundedSettings(null, fiveLowerBounds(-10000.5), null),
+				LOWER_BOUNDS_FIELD + " scores must be in the range [-10000.0, 10000.0]; found -10000.5");
+	}
+
+	@Test
+	public void testCreateWithUpperBoundAboveRange() {
+		assertCreateRejected(boundedSettings(null, null, fiveUpperBounds(10000.5)),
+				UPPER_BOUNDS_FIELD + " scores must be in the range [-10000.0, 10000.0]; found 10000.5");
+	}
+
+	@Test
+	public void testCreateWithBoundsAndL2() {
+		assertCreateRejected(boundedSettings(NormalizationTechnique.l2, fiveLowerBounds(0.0), null),
+				"settings.normalization.parameters bounds only apply to the 'min_max' normalization technique");
+	}
+
+	@Test
+	public void testCreateWithBoundsAndZScore() {
+		assertCreateRejected(boundedSettings(NormalizationTechnique.z_score, null, fiveUpperBounds(1.0)),
+				"settings.normalization.parameters bounds only apply to the 'min_max' normalization technique");
 	}
 
 	// --- get ---
@@ -550,6 +652,30 @@ public class SearchPipelineManagerImplTest {
 	private static SearchPipeline weightedSettings(Double... weights) {
 		return settings(new NormalizationProcessor()
 				.setCombination(new Combination().setParameters(new CombinationParameters().setWeights(Arrays.asList(weights)))));
+	}
+
+	private static SearchPipeline boundedSettings(NormalizationTechnique technique, List<LowerBound> lowerBounds,
+			List<UpperBound> upperBounds) {
+		return settings(new NormalizationProcessor().setNormalization(new Normalization().setTechnique(technique)
+				.setParameters(new NormalizationParameters().setLower_bounds(lowerBounds).setUpper_bounds(upperBounds))));
+	}
+
+	private static LowerBound lower(BoundMode mode, Double minScore) {
+		return new LowerBound().setMode(mode).setMin_score(minScore);
+	}
+
+	private static UpperBound upper(BoundMode mode, Double maxScore) {
+		return new UpperBound().setMode(mode).setMax_score(maxScore);
+	}
+
+	private static List<LowerBound> fiveLowerBounds(Double minScore) {
+		return List.of(lower(BoundMode.apply, 0.0), lower(BoundMode.apply, 0.0), lower(BoundMode.apply, 0.0),
+				lower(BoundMode.apply, 0.0), lower(BoundMode.clip, minScore));
+	}
+
+	private static List<UpperBound> fiveUpperBounds(Double maxScore) {
+		return List.of(upper(BoundMode.apply, 1.0), upper(BoundMode.apply, 1.0), upper(BoundMode.apply, 1.0),
+				upper(BoundMode.apply, 1.0), upper(BoundMode.clip, maxScore));
 	}
 
 	private static SearchPipeline zScoreSettings(CombinationTechnique combinationTechnique) {
