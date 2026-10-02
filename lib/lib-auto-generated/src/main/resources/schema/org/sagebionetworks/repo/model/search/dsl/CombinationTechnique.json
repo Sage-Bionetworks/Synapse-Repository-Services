@@ -1,0 +1,18 @@
+{
+	"description": "How the normalized per-clause scores are combined into one score per document.",
+	"type": "string",
+	"enum": [
+		{
+			"name": "arithmetic_mean",
+			"description": "Weighted <a href=\"https://en.wikipedia.org/wiki/Arithmetic_mean\">mean</a>. Rewards a document that scores strongly on any one clause, and halves the score of a document matching only one of two clauses."
+		},
+		{
+			"name": "harmonic_mean",
+			"description": "Weighted <a href=\"https://en.wikipedia.org/wiki/Harmonic_mean\">harmonic mean</a>. Penalizes a document that scores weakly on any clause, favouring documents that match every clause."
+		},
+		{
+			"name": "geometric_mean",
+			"description": "Weighted <a href=\"https://en.wikipedia.org/wiki/Geometric_mean\">geometric mean</a>. Penalizes a document that scores weakly on any clause, favouring documents that match every clause."
+		}
+	]
+}

@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.opensearch.client.opensearch._types.SortOptions;
@@ -41,8 +42,19 @@ import org.opensearch.client.opensearch.core.search.HighlightField;
 import org.opensearch.client.opensearch.core.search.HighlighterType;
 import org.opensearch.client.opensearch.core.search.Rescore;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.search.dsl.Combination;
+import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.LowerBound;
+import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationParameters;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.UpperBound;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -136,6 +148,26 @@ final class SearchDslValidator {
 	 * time to run against every term in the index.
 	 */
 	static final int MAX_DETERMINIZED_STATES = 10000;
+
+	/**
+	 * Maximum number of clauses in a {@code hybrid.queries} array. A saved search pipeline's
+	 * {@code combination.parameters.weights} and {@code normalization.parameters} bounds must hold
+	 * exactly this many entries, since the pipeline cannot know the clause count of every query that
+	 * will use it.
+	 */
+	static final int MAX_HYBRID_QUERIES = 5;
+
+	/**
+	 * Tolerance on the {@code combination.parameters.weights} sum, so decimal weights such as
+	 * {@code 0.4, 0.3, 0.1, 0.1, 0.1} that do not add to exactly 1.0 in floating point are accepted.
+	 */
+	static final double WEIGHTS_SUM_TOLERANCE = 1e-6;
+
+	/**
+	 * Magnitude limit of a {@code normalization.parameters} bound score, matching OpenSearch's
+	 * {@code [-10000.0, 10000.0]} range.
+	 */
+	static final double MAX_BOUND_SCORE = 10000.0;
 
 	// --------------------------------------------------------------
 	// Kind allowlists.
@@ -683,6 +715,108 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("sort kind is not allowed: '" + option._kind()
 						+ "'. Allowed kinds: " + ALLOWED_SORT_KINDS);
 			}
+		}
+	}
+
+	/**
+	 * Validate a search pipeline that is saved ahead of the queries that will use it.
+	 *
+	 * @param pipeline  the pipeline to validate
+	 * @param fieldName the request field holding the pipeline, used to prefix error messages
+	 * @throws IllegalArgumentException if {@code phase_results_processors} does not hold exactly one
+	 *         {@code normalization-processor}, if {@code weights} is set without exactly
+	 *         {@link #MAX_HYBRID_QUERIES} entries in {@code [0.0, 1.0]} summing to 1.0, if
+	 *         {@code lower_bounds} or {@code upper_bounds} is set without exactly
+	 *         {@link #MAX_HYBRID_QUERIES} entries with scores in {@code [-10000.0, 10000.0]} or with a
+	 *         normalization technique other than {@code min_max}, or if {@code z_score}
+	 *         normalization is combined with anything but {@code arithmetic_mean}
+	 */
+	static void validateSavedSearchPipeline(SearchPipeline pipeline, String fieldName) {
+		ValidateArgument.required(pipeline, fieldName);
+		List<PhaseResultsProcessor> processors = pipeline.getPhase_results_processors();
+		if (processors == null || processors.size() != 1 || processors.get(0) == null
+				|| processors.get(0).getNormalizationProcessor() == null) {
+			throw new IllegalArgumentException(fieldName
+					+ ".phase_results_processors must contain exactly one entry with 'normalization-processor' set");
+		}
+		NormalizationProcessor processor = processors.get(0).getNormalizationProcessor();
+		validateSavedNormalization(processor.getNormalization(), fieldName);
+		Combination combination = processor.getCombination();
+		if (combination != null && combination.getParameters() != null) {
+			validateSavedWeights(combination.getParameters().getWeights(), fieldName);
+		}
+		// OpenSearch defaults an absent combination technique to arithmetic_mean.
+		boolean zScore = processor.getNormalization() != null
+				&& processor.getNormalization().getTechnique() == NormalizationTechnique.z_score;
+		CombinationTechnique combinationTechnique = combination == null ? null : combination.getTechnique();
+		if (zScore && combinationTechnique != null && combinationTechnique != CombinationTechnique.arithmetic_mean) {
+			throw new IllegalArgumentException(fieldName
+					+ ": the 'z_score' normalization technique only supports the 'arithmetic_mean' combination technique");
+		}
+	}
+
+	static void validateSavedWeights(List<Double> weights, String fieldName) {
+		if (weights == null) {
+			return;
+		}
+		String label = fieldName + ".combination.parameters.weights";
+		if (weights.size() != MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException(label + " must contain exactly " + MAX_HYBRID_QUERIES
+					+ " entries; found " + weights.size());
+		}
+		double sum = 0;
+		for (Double weight : weights) {
+			if (weight == null || weight < 0.0 || weight > 1.0) {
+				throw new IllegalArgumentException(label + " entries must be in the range [0.0, 1.0]; found " + weight);
+			}
+			sum += weight;
+		}
+		if (Math.abs(sum - 1.0) > WEIGHTS_SUM_TOLERANCE) {
+			throw new IllegalArgumentException(label + " must sum to 1.0; found " + sum);
+		}
+	}
+
+	static void validateSavedNormalization(Normalization normalization, String fieldName) {
+		if (normalization == null || normalization.getParameters() == null) {
+			return;
+		}
+		NormalizationParameters parameters = normalization.getParameters();
+		List<LowerBound> lowerBounds = parameters.getLower_bounds();
+		List<UpperBound> upperBounds = parameters.getUpper_bounds();
+		if (lowerBounds == null && upperBounds == null) {
+			return;
+		}
+		// OpenSearch defaults an absent normalization technique to min_max, the only technique with bounds.
+		NormalizationTechnique technique = normalization.getTechnique();
+		if (technique != null && technique != NormalizationTechnique.min_max) {
+			throw new IllegalArgumentException(fieldName
+					+ ".normalization.parameters bounds only apply to the 'min_max' normalization technique");
+		}
+		String label = fieldName + ".normalization.parameters";
+		if (lowerBounds != null) {
+			validateSavedBoundCount(lowerBounds, label + ".lower_bounds");
+			lowerBounds.forEach(bound -> validateSavedBoundScore(bound.getMin_score(), label + ".lower_bounds"));
+		}
+		if (upperBounds != null) {
+			validateSavedBoundCount(upperBounds, label + ".upper_bounds");
+			upperBounds.forEach(bound -> validateSavedBoundScore(bound.getMax_score(), label + ".upper_bounds"));
+		}
+	}
+
+	static void validateSavedBoundCount(List<?> bounds, String label) {
+		if (bounds.size() != MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException(label + " must contain exactly " + MAX_HYBRID_QUERIES
+					+ " entries; found " + bounds.size());
+		}
+		if (bounds.stream().anyMatch(Objects::isNull)) {
+			throw new IllegalArgumentException(label + " entries must not be null");
+		}
+	}
+
+	static void validateSavedBoundScore(Double score, String label) {
+		// An absent score takes OpenSearch's default bound.
+		if (score != null && Math.abs(score) > MAX_BOUND_SCORE) {
+			throw new IllegalArgumentException(label + " scores must be in the range [-10000.0, 10000.0]; found " + score);
 		}
 	}
 

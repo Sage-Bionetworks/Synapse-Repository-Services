@@ -1,0 +1,48 @@
+{
+	"description": "<p>A shareable, named <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">search pipeline</a>: how a <code>hybrid</code> query's per-clause scores are normalized and combined. NamedSearchPipelines belong to an Organization and are identified by the qualified name <code>{organizationName}-{name}</code>.</p><p>Example:</p><pre><code>{\n  \"organizationName\": \"biomed\",\n  \"name\": \"keyword_heavy\",\n  \"settings\": {\n    \"phase_results_processors\": [\n      {\n        \"normalization-processor\": {\n          \"normalization\": { \"technique\": \"min_max\" },\n          \"combination\": {\n            \"technique\": \"arithmetic_mean\",\n            \"parameters\": { \"weights\": [0.4, 0.3, 0.1, 0.1, 0.1] }\n          }\n        }\n      }\n    ]\n  }\n}</code></pre>",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique ID of this search pipeline."
+		},
+		"organizationName": {
+			"type": "string",
+			"description": "The name of the Organization this resource belongs to. Immutable after creation."
+		},
+		"name": {
+			"type": "string",
+			"description": "The resource name. Must start with a letter and contain only letters, digits, and underscores. Unique within the organization and immutable after creation. Used as part of the qualified name ({organizationName}-{name}) when referenced by other resources."
+		},
+		"description": {
+			"type": "string",
+			"description": "Optional description of the search pipeline."
+		},
+		"settings": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.SearchPipeline",
+			"description": "<p>Required. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">search pipeline</a> this resource holds. On save: <code>phase_results_processors</code> must hold exactly one entry that sets <code>normalization-processor</code>; <code>combination.parameters.weights</code>, when set, must hold exactly 5 entries, each in <code>[0.0, 1.0]</code>, with a sum greater than 0; and the <code>z_score</code> normalization technique is only allowed with the <code>arithmetic_mean</code> combination technique.</p>",
+			"required": true
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme."
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this resource."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this resource was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The ID of the user that last modified this resource."
+		}
+	}
+}
