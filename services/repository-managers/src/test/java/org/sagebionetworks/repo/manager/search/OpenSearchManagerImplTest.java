@@ -61,6 +61,7 @@ import org.opensearch.client.opensearch._types.aggregations.StringTermsAggregate
 import org.opensearch.client.opensearch._types.aggregations.StringTermsBucket;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
 import org.opensearch.client.opensearch._types.analysis.CustomAnalyzer;
+import org.opensearch.client.opensearch._types.mapping.Property;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
@@ -79,10 +80,12 @@ import org.opensearch.client.opensearch.core.search.TotalHitsRelation;
 import org.opensearch.client.opensearch.core.search.TrackHits;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 import org.opensearch.client.opensearch.indices.UpdateAliasesRequest;
 import org.opensearch.client.opensearch.indices.get_alias.IndexAliases;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.update_aliases.Action;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
@@ -103,7 +106,16 @@ import org.sagebionetworks.repo.model.search.dsl.TermsAggregation;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DerivationKind;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
+import org.sagebionetworks.repo.model.table.SourceColumnReference;
+import org.sagebionetworks.repo.model.table.SourceDependency;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -601,8 +613,8 @@ public class OpenSearchManagerImplTest {
 		Map<String, Object> source = new LinkedHashMap<>();
 		source.put("_row_id", 7L);
 		source.put("_row_version", 1L);
-		source.put("_benefactor_0", 111L);
-		source.put("_benefactor_1", 222L);
+		source.put("_benefactor_ROW_BENEFACTOR__A0", 111L);
+		source.put("_benefactor_ROW_BENEFACTOR__A1", 222L);
 		source.put("100", "alpha");
 		source.put("101", "beta");
 		Hit<Map> hit = (Hit<Map>) (Hit) Hit.of(b -> b.index("idx").id("d1").source(source));
@@ -735,6 +747,27 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testRedactFieldValuesWithValueBearingMessages() {
+		String message = "doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
+				+ " in document with id '5'. Preview of field's value: 'it's secret'"
+				+ " caused by illegal_argument_exception: For input string: \"secret\""
+				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
+				+ " Preview of field's value: 'secret'"
+				+ " caused by illegal_argument_exception: Failed to parse value [secret] as only [true] or [false] are allowed.";
+
+		// call under test
+		String redacted = OpenSearchManagerImpl.redactFieldValues(message);
+
+		assertEquals("doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
+				+ " in document with id '5'. Preview of field's value: '[value redacted]'"
+				+ " caused by illegal_argument_exception: For input string: \"[value redacted]\""
+				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
+				+ " Preview of field's value: '[value redacted]'"
+				+ " caused by illegal_argument_exception: Failed to parse value [[value redacted]] as only [true] or [false] are allowed.",
+				redacted);
+	}
+
+	@Test
 	public void testDescribeErrorWithSingleCause() {
 		ErrorCause cause = ErrorCause.of(b -> b
 				.type("mapper_parsing_exception")
@@ -830,7 +863,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -894,7 +927,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -943,7 +976,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, 0, 1, 0);
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -974,7 +1007,7 @@ public class OpenSearchManagerImplTest {
 				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
 						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, defaultAnalyzerQname,
-				overrides, resolvedAnalyzers, 0, 1, 0);
+				overrides, resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 		return MAPPER.readTree(appliedJson.get()).at("/mappings/properties");
 	}
 
@@ -1070,7 +1103,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1092,7 +1125,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertEquals(Optional.empty(), result);
 	}
@@ -1108,7 +1141,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals("Search index " + indexName + " creation was not acknowledged.",
 				ex.getMessage());
@@ -1125,7 +1158,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), 0, 1, 0));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
@@ -1142,7 +1175,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1162,7 +1195,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), 0, 1, 0);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1188,10 +1221,66 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — must not throw on the duplicate name key
 		Optional<String> result = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 1, 0);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
 
 		assertTrue(result.isPresent());
 		verify(indicesClient).create(argThat((CreateIndexRequest req) -> indexName.equals(req.index())));
+	}
+
+	@Test
+	public void testCreateIndexWithSnapshotAndColumnIdsInMeta() throws Exception {
+		String indexName = "search-index-syn1";
+		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		// Select-list order, deliberately not the lexicographic order of the ids.
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("20").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("100").setName("count").setColumnType(ColumnType.INTEGER));
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap("org.sagebionetworks-KEYWORD",
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"keyword\"}}}"));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, columns, null,
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, snapshot);
+
+		Map<String, JsonData> meta = requestCaptor.getValue().mappings().meta();
+		assertEquals(EntityFactory.createJSONStringForEntity(snapshot),
+				meta.get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY).to(String.class));
+		assertEquals("20,100", meta.get(OpenSearchManagerImpl.COLUMN_IDS_META_KEY).to(String.class));
+	}
+
+	@Test
+	public void testCreateIndexWithBenefactorColumnsMapsLongFieldPerColumn() throws Exception {
+		String indexName = "search-index-syn1";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
+		when(indicesClient.create(requestCaptor.capture()))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), 1, 0,
+				createAuthorizationSnapshot());
+
+		Map<String, Property> properties = requestCaptor.getValue().mappings().properties();
+		assertEquals(Set.of("_row_id", "_row_version", "_benefactor_ROW_BENEFACTOR__A0",
+				"_benefactor_ROW_BENEFACTOR__A1"), properties.keySet());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A0").isLong());
+		assertTrue(properties.get("_benefactor_ROW_BENEFACTOR__A1").isLong());
+	}
+
+	@Test
+	public void testCreateIndexWithNullSnapshotThrows() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> manager.createIndex("search-index-syn1",
+				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, null));
+
+		verifyNoMoreInteractions(openSearchClient);
 	}
 
 	@Test
@@ -1215,7 +1304,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — 3 shards, 1 replica
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, 0, 3, 1);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 3, 1, createAuthorizationSnapshot());
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -1399,6 +1488,114 @@ public class OpenSearchManagerImplTest {
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to resolve alias: search-index-syn1", ex.getMessage());
+	}
+
+	/**
+	 * An as-built snapshot with a real payload in every section, shared with
+	 * {@link OpenSearchManagerImplAutoWiredTest}.
+	 */
+	static IndexAuthorizationSnapshot createAuthorizationSnapshot() {
+		return new IndexAuthorizationSnapshot()
+				.setObjectId("syn1")
+				.setIndexDescription(new IndexDescriptionSnapshot()
+						.setObjectId("syn1")
+						.setTableType("searchindex")
+						.setBenefactors(List.of(new BenefactorColumn()
+								.setBenefactorColumnName("ROW_BENEFACTOR")
+								.setBenefactorType("ENTITY")))
+						.setDependencies(List.of(new SourceDependency()
+								.setObjectId("syn2")
+								.setVersionNumber(3L)
+								.setTableType("entityview"))))
+				.setColumnLineage(List.of(
+						new ColumnLineageEntry()
+								.setOutputColumnId("11")
+								.setDerivationKind(DerivationKind.IDENTITY)
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn2")
+										.setSourceVersionNumber(3L)
+										.setSourceColumnId("21"))),
+						new ColumnLineageEntry()
+								.setOutputColumnId("12")
+								.setDerivationKind(DerivationKind.AGGREGATE)
+								.setSetFunctionType("COUNT")
+								.setInputs(List.of(new SourceColumnReference()
+										.setSourceObjectId("syn2")
+										.setSourceVersionNumber(3L)
+										.setSourceColumnId("22")))));
+	}
+
+	private void stubGetMapping(GetMappingResponse response) throws IOException {
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.getMapping(ArgumentMatchers.<java.util.function.Function>any())).thenReturn(response);
+	}
+
+	@Test
+	public void testGetLiveIndexWithSnapshot() throws IOException, JSONObjectAdapterException {
+		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		String snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson),
+						OpenSearchManagerImpl.COLUMN_IDS_META_KEY, JsonData.of("20,100"))))))));
+
+		// call under test
+		Optional<OpenSearchManager.LiveIndex> result = manager.getLiveIndex("search-index-syn1");
+
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot, List.of("20", "100"))),
+				result);
+	}
+
+	@Test
+	public void testGetLiveIndexWithMetaMissingColumnIdsKey() throws IOException, JSONObjectAdapterException {
+		String snapshotJson = EntityFactory.createJSONStringForEntity(createAuthorizationSnapshot());
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson))))))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMissingAlias() throws IOException {
+		OpenSearchException notFound = new OpenSearchException(ErrorResponse.of(er -> er
+				.error(ErrorCause.of(c -> c.type("index_not_found_exception").reason("missing")))
+				.status(404)));
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.getMapping(ArgumentMatchers.<java.util.function.Function>any())).thenThrow(notFound);
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithNoMeta() throws IOException {
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a",
+				IndexMappingRecord.of(m -> m.mappings(t -> t)))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMetaMissingSnapshotKey() throws IOException {
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of("other", JsonData.of("value"))))))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
+	}
+
+	@Test
+	public void testGetLiveIndexWithMultipleIndices() throws IOException {
+		Map<String, IndexMappingRecord> result = new LinkedHashMap<>();
+		result.put("search-index-syn1-a", IndexMappingRecord.of(m -> m.mappings(t -> t)));
+		result.put("search-index-syn1-b", IndexMappingRecord.of(m -> m.mappings(t -> t)));
+		stubGetMapping(GetMappingResponse.of(r -> r.result(result)));
+
+		// call under test
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> manager.getLiveIndex("search-index-syn1"));
+		assertTrue(ex.getMessage().contains("resolves to multiple indices"));
 	}
 
 	@Test

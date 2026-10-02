@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.*;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
@@ -41,6 +45,8 @@ import org.opensearch.client.opensearch.indices.AnalyzeRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
 import org.opensearch.client.opensearch.indices.GetAliasResponse;
+import org.opensearch.client.opensearch.indices.GetMappingResponse;
+import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
@@ -53,6 +59,9 @@ import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
@@ -86,6 +95,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	// embedded in the thrown RuntimeException message so the reason reaches the user
 	// via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS.
 	static final int MAX_FAILURE_SAMPLES = 5;
+
+	static final String REDACTED_VALUE = "[value redacted]";
+
+	/**
+	 * Document-parsing errors quote the offending field value, and permanent bulk failures are
+	 * persisted to SEARCH_INDEX_STATUS.ERROR_MESSAGE, which is shown to any caller who can read the
+	 * SearchIndex. A build reads rows across many benefactors, so that value can belong to a row the
+	 * caller is not authorized to see. Each pattern captures the text before (group 1) and after
+	 * (group 2) the quoted value.
+	 */
+	private static final List<Pattern> VALUE_BEARING_PATTERNS = List.of(
+			Pattern.compile("(Preview of field's value: ').*?('(?=$|]|,| caused by | \\[))"),
+			Pattern.compile("(For input string: \").*?(\"(?=$|]|,| caused by | \\[))"),
+			Pattern.compile("(Failed to parse value \\[).*?(] as only \\[true] or \\[false] are allowed)"));
+
 	static final int MAX_BULK_ERROR_MESSAGE_CHARS = 2500;
 	static final String TRUNCATION_MARKER = "...[truncated]";
 
@@ -144,10 +168,23 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 	static final String READINESS_PROBE_DOC_ID = "__readiness_probe__";
 
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores its as-built
+	 * {@link IndexAuthorizationSnapshot}, serialized as a JSON string.
+	 */
+	static final String AUTHORIZATION_SNAPSHOT_META_KEY = "authorizationSnapshot";
+
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores the ids of its output
+	 * columns in select-list order, comma-separated. The mapping's own properties cannot stand in
+	 * for this: OpenSearch returns them sorted by name, losing the select-list order.
+	 */
+	static final String COLUMN_IDS_META_KEY = "columnIds";
+
 	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
-	// Prefix of the per-dependency row-level access-control fields (_benefactor_0, _benefactor_1,
-	// ...) written into each document's _source at build time. They drive the query-time benefactor
+	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
+	// e.g. _benefactor_ROW_BENEFACTOR) written into each document's _source at build time. They drive the query-time benefactor
 	// terms filter but are not part of the entity schema, so they are stripped from returned hits.
 	private static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
@@ -207,13 +244,30 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		this.openSearchClient = searchIndexManagedClient;
 	}
 
+	/**
+	 * The document field that carries the row-level access-control value of a source benefactor
+	 * column. The build writes it, the index mapping declares it, and the query-time ACL filter
+	 * matches on it, so all three must derive it here.
+	 */
+	static String benefactorFieldName(String benefactorColumnName) {
+		return BENEFACTOR_FIELD_PREFIX + benefactorColumnName;
+	}
+
 	@Override
 	public Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas) {
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
+		ValidateArgument.required(snapshot, "snapshot");
+		String snapshotJson;
+		try {
+			snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("Failed to serialize the authorization snapshot for index " + indexName, e);
+		}
 
 		Map<String, String> nameToId = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a2, b) -> a2));
@@ -230,7 +284,10 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					}))
 				.mappings(m -> {
 					buildMappings(m, columns, defaultAnalyzer,
-							overrideMap, resolvedAnalyzers, benefactorCount);
+							overrideMap, resolvedAnalyzers, benefactorColumnNames);
+					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
+					m.meta(COLUMN_IDS_META_KEY, JsonData.of(
+							columns.stream().map(ColumnModel::getId).collect(Collectors.joining(","))));
 					return m;
 				})
 		);
@@ -459,15 +516,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			List<ColumnModel> columns, String defaultAnalyzerQname,
 			Map<String, ColumnAnalyzerOverrideEntry> overrideMap,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount) {
+			List<String> benefactorColumnNames) {
 		Set<String> registeredAnalyzerQnames = resolvedAnalyzers.keySet();
 		m.properties(SYSTEM_FIELD_ROW_ID, p -> p.long_(l -> l));
 		m.properties(SYSTEM_FIELD_ROW_VERSION, p -> p.long_(l -> l));
 
 		// Row-level access-control fields: one per source dependency, non-analyzed long
 		// so the query-time benefactor terms filter can match them exactly.
-		for (int i = 0; i < benefactorCount; i++) {
-			m.properties(BENEFACTOR_FIELD_PREFIX + i, p -> p.long_(l -> l));
+		for (String benefactorColumnName : benefactorColumnNames) {
+			m.properties(benefactorFieldName(benefactorColumnName), p -> p.long_(l -> l));
 		}
 
 		for (ColumnModel column : columns) {
@@ -583,6 +640,71 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to resolve alias: " + aliasName, e);
 		}
+	}
+
+	@Override
+	public Optional<LiveIndex> getLiveIndex(String alias) {
+		ValidateArgument.required(alias, "alias");
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(GET_ALIAS_MAX_RETRIES,
+					GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+				try {
+					// Keyed by the physical index(es) the alias resolves to.
+					GetMappingResponse response = openSearchClient.indices().getMapping(req -> req.index(alias));
+					Map<String, IndexMappingRecord> targets = response.result();
+					if (targets.isEmpty()) {
+						return Optional.<LiveIndex>empty();
+					}
+					if (targets.size() > 1) {
+						throw new IllegalStateException("Alias " + alias
+								+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
+					}
+					Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
+					return readLiveIndex(target.getKey(), target.getValue());
+				} catch (OpenSearchException e) {
+					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
+						return Optional.<LiveIndex>empty();
+					}
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to resolve alias: " + alias
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to resolve alias: " + alias, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to resolve alias: " + alias, e);
+		}
+	}
+
+	private static Optional<LiveIndex> readLiveIndex(String physicalIndex, IndexMappingRecord mapping) {
+		if (mapping.mappings() == null) {
+			return Optional.empty();
+		}
+		JsonData snapshotValue = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
+		JsonData columnIdsValue = mapping.mappings().meta().get(COLUMN_IDS_META_KEY);
+		if (snapshotValue == null || columnIdsValue == null) {
+			return Optional.empty();
+		}
+		IndexAuthorizationSnapshot snapshot;
+		try {
+			snapshot = EntityFactory.createEntityFromJSONString(snapshotValue.to(String.class),
+					IndexAuthorizationSnapshot.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalStateException("Index " + physicalIndex + " has an unreadable "
+					+ AUTHORIZATION_SNAPSHOT_META_KEY + " in its mapping _meta", e);
+		}
+		String joinedColumnIds = columnIdsValue.to(String.class);
+		List<String> columnIds = joinedColumnIds.isEmpty() ? List.of() : Arrays.asList(joinedColumnIds.split(","));
+		return Optional.of(new LiveIndex(physicalIndex, snapshot, columnIds));
 	}
 
 	@Override
@@ -793,7 +915,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				String descriptor = describeBulkItemFailure(item);
 				LOG.error("Bulk index item failed in {}: {}", indexName, descriptor);
 				if (c.permanentSamples.size() < MAX_FAILURE_SAMPLES) {
-					c.permanentSamples.add(descriptor);
+					c.permanentSamples.add(redactFieldValues(descriptor));
 				}
 			}
 		}
@@ -921,6 +1043,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		if (c.stackTrace() != null) {
 			sb.append(" [stackTrace=").append(c.stackTrace()).append("]");
 		}
+	}
+
+	/**
+	 * Replace every field value quoted by a known value-bearing OpenSearch document-parsing error
+	 * with {@link #REDACTED_VALUE}, leaving the field name, type, and document id intact.
+	 * <p>
+	 * Known limitation: a value that itself contains the closing delimiter of its pattern is only
+	 * partially redacted.
+	 */
+	static String redactFieldValues(String message) {
+		String result = message;
+		for (Pattern pattern : VALUE_BEARING_PATTERNS) {
+			result = pattern.matcher(result).replaceAll("$1" + Matcher.quoteReplacement(REDACTED_VALUE) + "$2");
+		}
+		return result;
 	}
 
 	/**
@@ -1204,7 +1341,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			searchHit.setRowVersion(toLong(source.get(SYSTEM_FIELD_ROW_VERSION)));
 
 			// _row_id / _row_version are surfaced via dedicated SearchHit fields above, and the
-			// _benefactor_N fields are internal row-level access-control values (not part of the
+			// _benefactor_ fields are internal row-level access-control values (not part of the
 			// entity schema) — exclude all of them so they are never leaked back to the caller.
 			List<SearchFieldValue> fields = source.entrySet().stream()
 					.filter(e -> !SYSTEM_FIELD_ROW_ID.equals(e.getKey())

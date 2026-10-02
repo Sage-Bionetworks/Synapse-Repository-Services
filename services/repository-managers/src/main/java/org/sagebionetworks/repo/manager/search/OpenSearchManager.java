@@ -9,6 +9,7 @@ import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
@@ -45,21 +46,28 @@ public interface OpenSearchManager {
 	 *                                 {@link SearchAnalyzerJsonUtil#resolveRefs}. Each value is the
 	 *                                 {@code settings.analysis} block for one TextAnalyzer with all
 	 *                                 {@code $ref} entries already substituted.
-	 * @param benefactorCount          The number of per-dependency row-level access-control fields
-	 *                                 ({@code _benefactor_0 .. _benefactor_(N-1)}) to map as
-	 *                                 non-analyzed {@code long} fields for the row-level search ACL
-	 *                                 filter. A benefactor-less source (e.g. a table) maps zero.
+	 * @param benefactorColumnNames    The source's benefactor column names, each mapped to a
+	 *                                 non-analyzed {@code long} row-level access-control field named
+	 *                                 by {@link OpenSearchManagerImpl#benefactorFieldName(String)} for
+	 *                                 the row-level search ACL filter. Empty for a benefactor-less
+	 *                                 source (e.g. a table).
 	 * @param numberOfShards           The number of primary shards for the index, computed at build
 	 *                                 time from the source table's data size.
 	 * @param numberOfReplicas         The number of replica shards for the index (1 on prod, 0 on the
 	 *                                 single-node dev domain).
+	 * @param snapshot                 The as-built {@link IndexAuthorizationSnapshot} of the source the
+	 *                                 index is built from. Stored in the index's mapping {@code _meta},
+	 *                                 together with the ids of {@code columns} in order, so
+	 *                                 {@link #getLiveIndex(String)} can read both back alongside the
+	 *                                 physical index they describe. Required.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
 			String defaultAnalyzer,
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
-			int benefactorCount, int numberOfShards, int numberOfReplicas);
+			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
+			IndexAuthorizationSnapshot snapshot);
 
 	/**
 	 * Delete an OpenSearch index. No-op if the index does not exist.
@@ -86,6 +94,29 @@ public interface OpenSearchManager {
 	 *         blue-green invariant is exactly one live index per alias.
 	 */
 	Optional<String> getAliasTarget(String aliasName);
+
+	/**
+	 * The physical index a query alias currently points at, together with the source
+	 * {@link IndexAuthorizationSnapshot} and the output columns that physical index was built with.
+	 *
+	 * @param physicalIndex The concrete index name behind the alias.
+	 * @param snapshot      The source's as-built authorization snapshot stored in that index's mapping metadata.
+	 * @param columnIds     The ids of the index's output columns, in select-list order.
+	 */
+	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds) {
+	}
+
+	/**
+	 * Resolve the physical index a query alias currently points at and read the as-built
+	 * {@link IndexAuthorizationSnapshot} stored in that index's mapping metadata.
+	 *
+	 * @param alias The alias name.
+	 * @return The live physical index and its snapshot, or empty when the alias does not exist or
+	 *         the live index carries no snapshot (the caller must treat either as not yet built).
+	 * @throws IllegalStateException when the alias resolves to more than one concrete index, or the
+	 *         stored snapshot cannot be parsed.
+	 */
+	Optional<LiveIndex> getLiveIndex(String alias);
 
 	/**
 	 * Atomically repoint a query alias from its current concrete index to a newly-built one.
