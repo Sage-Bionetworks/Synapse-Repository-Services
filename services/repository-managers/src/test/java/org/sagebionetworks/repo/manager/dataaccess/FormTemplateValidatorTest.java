@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateField;
 import org.sagebionetworks.repo.model.dataaccess.schema.FormTemplateStep;
 import org.sagebionetworks.repo.model.dataaccess.schema.SubmissionContext;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.Type;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -50,7 +51,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidate() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/institution/name"),
 				field("/irbApproval").setTemplateFileHandleId("987"));
 
@@ -60,7 +61,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithFileWidget() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"),
 				field("/irbApproval").setUiDefinition(uiDefinition("{\"ui:widget\":\"file\"}")));
 
@@ -107,6 +108,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithNoFields() {
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"));
 		template.getSteps().get(0).setFields(List.of());
 
@@ -148,7 +150,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithUnknownPath() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/notAProperty"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -162,7 +164,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithPathThatIsNotARelativePointer() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -176,7 +178,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithPointerDelimitersInPropertyNames() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(newSchemaWithDelimitedPropertyNames());
+		setupSchema(newSchemaWithDelimitedPropertyNames());
 		FormTemplate template = newTemplate(field("/a~1b"), field("/~01"));
 
 		// call under test
@@ -185,7 +187,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithUnescapedPointerDelimiterInPath() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(newSchemaWithDelimitedPropertyNames());
+		setupSchema(newSchemaWithDelimitedPropertyNames());
 		// A raw '/' reads as a step down into a nested property rather than as part of the name.
 		FormTemplate template = newTemplate(field("/a/b"), field("/~01"));
 
@@ -200,7 +202,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithPathToAnObject() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/institution"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -214,7 +216,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithDuplicatePath() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead"), field("/projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -228,7 +230,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithUncoveredRequiredProperty() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -244,7 +246,7 @@ public class FormTemplateValidatorTest {
 		// The requirement is declared by a schema that the root composes rather than by the root itself.
 		schema.setRequired(null).setAllOf(List.of(new JsonSchema().set$ref("#/definitions/" + INSTITUTION_DEFINITION)));
 		schema.getDefinitions().get(INSTITUTION_DEFINITION).setRequired(List.of("projectLead"));
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -257,7 +259,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithFileHandleIdOnANonFileProperty() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/projectLead").setTemplateFileHandleId("987"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -271,7 +273,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithFileWidgetOnANonFileProperty() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(
 				field("/projectLead").setUiDefinition(uiDefinition("{\"ui:widget\":\"file\"}")));
 
@@ -286,7 +288,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithNonFileWidgetOnAFileProperty() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		// A file handle id may also be supplied by something other than an upload widget.
 		FormTemplate template = newTemplate(field("/projectLead"),
 				field("/irbApproval").setUiDefinition(uiDefinition("{\"ui:widget\":\"updown\"}")));
@@ -297,7 +299,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithUiDefinitionThatIsNotAnObject() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		// A uiDefinition sent as a JSON scalar is deserialized as a String rather than an adapter.
 		FormTemplate template = newTemplate(field("/projectLead").setUiDefinition("ui:autofocus"));
 
@@ -312,7 +314,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithMultipleProblems() {
-		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(schema);
+		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/notAProperty"), field("/institution"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -323,6 +325,128 @@ public class FormTemplateValidatorTest {
 		assertEquals("The form template is invalid: The path '/notAProperty' does not resolve to a property of the"
 				+ " schema. The path '/institution' resolves to an object rather than a single value."
 				+ " No field covers the required property '/projectLead'.", message);
+	}
+
+	@Test
+	public void testValidateWithRequiredSubmissionContext() {
+		// The base schema requires the submission context, which the system supplies at submission
+		// time, so no field may be expected to cover it.
+		schema.setRequired(List.of("projectLead", JsonSchemaConstants.SUBMISSION_CONTEXT_PROPERTY));
+		setupSchema(schema);
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		// call under test
+		validator.validate(template);
+	}
+
+	@Test
+	public void testValidateWithoutBaseSchemaAllOf() {
+		setupSchema(schema, new JsonSchema().set$id(SCHEMA_ID).setType(Type.object));
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem(), message);
+	}
+
+	@Test
+	public void testValidateWithBaseSchemaReferenceOfAnotherVersion() {
+		setupSchema(schema, newRawSchema(
+				new JsonSchema().set$ref("org.sagebionetworks-AccessRequirementBaseSchema-1.0.1")));
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem(), message);
+	}
+
+	@Test
+	public void testValidateWithUnversionedBaseSchemaReference() {
+		setupSchema(schema,
+				newRawSchema(new JsonSchema().set$ref("org.sagebionetworks-AccessRequirementBaseSchema")));
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem(), message);
+	}
+
+	@Test
+	public void testValidateWithNestedBaseSchemaReference() {
+		// The reference is reached through another entry of the 'allOf' rather than being one of its
+		// entries, which leaves it conditional on how that entry composes.
+		setupSchema(schema, newRawSchema(new JsonSchema().setAllOf(
+				List.of(new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))));
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem(), message);
+	}
+
+	@Test
+	public void testValidateWithBaseSchemaReferenceAlongsideOthers() {
+		setupSchema(schema, newRawSchema(new JsonSchema().set$ref("org.sagebionetworks.act-SharedTerms-2.1.0"),
+				new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)));
+		FormTemplate template = newTemplate(field("/projectLead"));
+
+		// call under test
+		validator.validate(template);
+	}
+
+	@Test
+	public void testValidateWithoutBaseSchemaAndOtherProblems() {
+		setupSchema(schema, new JsonSchema().set$id(SCHEMA_ID).setType(Type.object));
+		FormTemplate template = newTemplate(field("/notAProperty"));
+
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			validator.validate(template);
+		}).getMessage();
+
+		assertEquals("The form template is invalid: " + expectedMissingBaseSchemaProblem()
+				+ " The path '/notAProperty' does not resolve to a property of the schema."
+				+ " No field covers the required property '/projectLead'.", message);
+	}
+
+	private static String expectedMissingBaseSchemaProblem() {
+		return "The schema '" + SCHEMA_ID + "' must extend '"
+				+ JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID
+				+ "' by naming it in a top level 'allOf' reference.";
+	}
+
+	/**
+	 * Stub both views of the schema the template is bound to: the validation schema that field paths
+	 * are followed through, and the raw schema that the base schema reference is read from.
+	 */
+	private void setupSchema(JsonSchema validationSchema) {
+		setupSchema(validationSchema, newRawSchema(new JsonSchema()
+				.set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)));
+	}
+
+	private void setupSchema(JsonSchema validationSchema, JsonSchema rawSchema) {
+		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(validationSchema);
+		when(mockJsonSchemaManager.getSchema(SCHEMA_ID, false)).thenReturn(rawSchema);
+	}
+
+	/**
+	 * The schema as it was authored, where references are still the ids they were written as. Only
+	 * the composition of the root matters to the validator.
+	 */
+	private static JsonSchema newRawSchema(JsonSchema... allOf) {
+		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setAllOf(List.of(allOf));
 	}
 
 	/**
