@@ -8,7 +8,9 @@ import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createRe
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,11 +59,13 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Dataset;
+import org.sagebionetworks.repo.model.table.EntityView;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.SnapshotRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionRequest;
 import org.sagebionetworks.repo.model.table.TableUpdateTransactionResponse;
+import org.sagebionetworks.repo.model.table.ViewTypeMask;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -630,6 +634,162 @@ public class DownloadListWorkerIntegrationTest {
 		
 	}
 	
+
+	/**
+	 * A File|Dataset view query submitted through the async workers. The Dataset holds two files from
+	 * outside the view and one file that is also a row of the view, so the stats and the add must both
+	 * report the 2 file rows plus the 3 Dataset files, minus the 1 counted both ways.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithViewQueryAndDatasetRows() throws Exception {
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node fileOne = createFile(project.getId(), "fileOne");
+		Node fileTwo = createFile(project.getId(), "fileTwo");
+		Node otherProject = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node memberOne = createFile(otherProject.getId(), "memberOne");
+		Node memberTwo = createFile(otherProject.getId(), "memberTwo");
+		createDataset(project.getId(), List.of(memberOne, memberTwo, fileOne));
+
+		String viewId = createFileAndDatasetView(project.getId());
+		waitForViewRowCount(viewId, 3);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + viewId));
+
+		// call under test
+		AddToDownloadListStatsResponse stats = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new AddToDownloadListStatsRequest().setRequest(addRequest), (AddToDownloadListStatsResponse response) -> {
+					assertEquals(4L, response.getFileCount());
+					assertFalse(response.getIsFileCountAndSizeEstimate());
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(stats.getFileCount(), response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+
+		assertEquals(Set.of(fileOne.getId(), fileTwo.getId(), memberOne.getId(), memberTwo.getId()), getAvailableFileIds());
+	}
+
+	/**
+	 * The user can read a Dataset and one of its files, but not the other file. Both files are added
+	 * and counted, since access is enforced when the download list is read rather than when files are
+	 * added: only the readable file is available, and the other requires action.
+	 */
+	@Test
+	public void testAddToDownloadListWorkerWithViewQueryAndDatasetMemberWithoutRead() throws Exception {
+		Node project = createProject(ACCESS_TYPE.READ, ACCESS_TYPE.DOWNLOAD);
+		Node readableFile = createFile(project.getId(), "readableFile");
+		Node restrictedProject = createProject();
+		Node restrictedFile = createFile(restrictedProject.getId(), "restrictedFile");
+		createDataset(project.getId(), List.of(readableFile, restrictedFile));
+
+		String viewId = createFileAndDatasetView(project.getId());
+		waitForViewRowCount(viewId, 2);
+
+		AddToDownloadListRequest addRequest = new AddToDownloadListRequest()
+				.setQuery(new Query().setSql("SELECT * FROM " + viewId));
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, new AddToDownloadListStatsRequest().setRequest(addRequest),
+				(AddToDownloadListStatsResponse response) -> {
+					assertEquals(2L, response.getFileCount());
+				}, MAX_WAIT_MS, MAX_RETRIES);
+
+		// call under test
+		asynchronousJobWorkerHelper.assertJobResponse(user, addRequest, (AddToDownloadListResponse response) -> {
+			assertEquals(2L, response.getNumberOfFilesAdded());
+		}, MAX_WAIT_MS, MAX_RETRIES);
+
+		assertEquals(Set.of(readableFile.getId()), getAvailableFileIds());
+
+		asynchronousJobWorkerHelper.assertJobResponse(user,
+				new DownloadListQueryRequest().setRequestDetails(new FilesStatisticsRequest()), (DownloadListQueryResponse response) -> {
+					FilesStatisticsResponse details = (FilesStatisticsResponse) response.getResponseDetails();
+					assertEquals(2L, details.getTotalNumberOfFiles());
+					assertEquals(1L, details.getNumberOfFilesAvailableForDownload());
+					assertEquals(1L, details.getNumberOfFilesRequiringAction());
+				}, MAX_WAIT_MS, MAX_RETRIES);
+	}
+
+	/**
+	 * Helper to create a project whose ACL grants the user the given access types. With no access
+	 * types, the user has no access to the project or anything in it.
+	 */
+	Node createProject(ACCESS_TYPE... accessTypes) {
+		Node project = nodeDaoHelper.create((n) -> {
+			n.setNodeType(EntityType.project);
+			n.setName("project-" + UUID.randomUUID());
+		});
+		aclHelper.create((a) -> {
+			a.setId(project.getId());
+			if (accessTypes.length > 0) {
+				a.getResourceAccess().add(createResourceAccess(user.getId(), accessTypes));
+			}
+		});
+		return project;
+	}
+
+	/**
+	 * Helper to create a file with its own file handle in the given parent.
+	 */
+	Node createFile(String parentId, String name) {
+		FileHandle fh = fileHandleDaoHelper.create((f) -> {
+			f.setFileName(name);
+			f.setContentSize(123L);
+		});
+		return nodeDaoHelper.create((n) -> {
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.file);
+			n.setName(name);
+			n.setFileHandleId(fh.getId());
+		});
+	}
+
+	/**
+	 * Helper to create a Dataset in the given parent holding the current version of each given file.
+	 */
+	Node createDataset(String parentId, List<Node> files) {
+		List<EntityRef> items = files.stream()
+				.map(f -> new EntityRef().setEntityId(f.getId()).setVersionNumber(f.getVersionNumber()))
+				.collect(Collectors.toList());
+		return nodeDaoHelper.create(n -> {
+			n.setName("dataset-" + UUID.randomUUID());
+			n.setParentId(parentId);
+			n.setNodeType(EntityType.dataset);
+			n.setItems(items);
+		});
+	}
+
+	/**
+	 * Helper to create a File|Dataset entity view scoped to the given container.
+	 */
+	String createFileAndDatasetView(String containerId) {
+		EntityView view = asynchronousJobWorkerHelper.createEntityView(adminUser, "view-" + UUID.randomUUID(), containerId,
+				List.of(containerId), ViewTypeMask.File.getMask() | ViewTypeMask.Dataset.getMask());
+		return view.getId();
+	}
+
+	/**
+	 * Helper to wait until the user's query of the given view returns the given number of rows.
+	 */
+	void waitForViewRowCount(String viewId, int expectedRowCount) throws Exception {
+		asynchronousJobWorkerHelper.assertQueryResult(user, "SELECT * FROM " + viewId, (QueryResultBundle result) -> {
+			assertEquals(expectedRowCount, result.getQueryResult().getQueryResults().getRows().size());
+		}, MAX_WAIT_MS);
+	}
+
+	/**
+	 * Helper to get the ids of the files on the user's download list that the user can download.
+	 */
+	Set<String> getAvailableFileIds() throws Exception {
+		DownloadListQueryResponse response = asynchronousJobWorkerHelper.assertJobResponse(user,
+				new DownloadListQueryRequest().setRequestDetails(new AvailableFilesRequest()),
+				(DownloadListQueryResponse r) -> {
+				}, MAX_WAIT_MS, MAX_RETRIES).getResponse();
+		return ((AvailableFilesResponse) response.getResponseDetails()).getPage().stream()
+				.map(DownloadListItemResult::getFileEntityId).collect(Collectors.toSet());
+	}
 
 	/**
 	 * Helper to create a single file in a project with an ACL that grants download
