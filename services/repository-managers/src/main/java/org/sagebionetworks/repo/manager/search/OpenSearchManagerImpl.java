@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.json.JsonData;
+import org.opensearch.client.json.JsonpDeserializer;
+import org.opensearch.client.json.JsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.*;
 import org.opensearch.client.opensearch._types.analysis.Analyzer;
@@ -37,10 +39,15 @@ import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.BulkResponse;
 import org.opensearch.client.opensearch.core.DeleteRequest;
 import org.opensearch.client.opensearch.core.IndexRequest;
+import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.SearchResponse;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.core.bulk.BulkResponseItem;
 import org.opensearch.client.opensearch.core.search.Hit;
+import org.opensearch.client.opensearch.generic.Bodies;
+import org.opensearch.client.opensearch.generic.Body;
+import org.opensearch.client.opensearch.generic.Requests;
+import org.opensearch.client.opensearch.generic.Response;
 import org.opensearch.client.opensearch.indices.AnalyzeRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexRequest;
 import org.opensearch.client.opensearch.indices.CreateIndexResponse;
@@ -237,6 +244,20 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
 	private static final int AUTOCOMPLETE_MAX_LIMIT = 8;
+
+	@SuppressWarnings("rawtypes")
+	private static final JsonpDeserializer<SearchResponse<Map>> SEARCH_RESPONSE_DESERIALIZER =
+			SearchResponse.createSearchResponseDeserializer(JsonpDeserializer.of(Map.class));
+
+	/**
+	 * Query parameters of the {@code _search} request. The typed search endpoint adds these itself;
+	 * a request posted through the generic client must restate them. {@code typed_keys} makes
+	 * OpenSearch key each aggregation as {@code type#name}, the only form
+	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read.
+	 */
+	static final Map<String, String> SEARCH_QUERY_PARAMETERS = Map.of(
+			"typed_keys", "true",
+			"cancel_after_time_interval", "60s");
 
 	private final OpenSearchClient openSearchClient;
 
@@ -1261,24 +1282,29 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		Map<String, String> idToName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName, (a2, b) -> a2));
 		SearchFieldRewriter.RoutingContext ctx = routingContextFor(columns);
-		// One-element holder: the request builder lambda can't return a value, so
-		// applyBodyToRequest reports the resolved `from` through this slot.
-		int[] effectiveFrom = new int[1];
-		try {
-			SearchResponse<Map> response = openSearchClient.search(req -> {
-				req.index(indexName);
+		SearchRequest.Builder req = new SearchRequest.Builder()
+				.index(indexName)
 				// Timeout defines when incomplete results should be returned, giving
-				// a 10s grace period before requests are canceled.
-				req.timeout("50s");
-				req.cancelAfterTimeInterval(t -> t.time("60s"));
-				effectiveFrom[0] = autocomplete
-						? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
-								body, ctx, req, options, defaultSize, accessFilters)
-						: SearchOpaqueJsonUtil.applyBodyToRequest(
-								body, ctx, req, options, defaultSize, maxSize, accessFilters);
-				return req;
-			}, Map.class);
-			return convertResponse(response, indexName, effectiveFrom[0], idToName, options);
+				// a 10s grace period before requests are canceled (cancel_after_time_interval).
+				.timeout("50s");
+		int from = autocomplete
+				? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
+						body, ctx, req, options, defaultSize, accessFilters)
+				: SearchOpaqueJsonUtil.applyBodyToRequest(
+						body, ctx, req, options, defaultSize, maxSize, accessFilters);
+		JsonpMapper mapper = openSearchClient._transport().jsonpMapper();
+		try (Response response = openSearchClient.generic().execute(Requests.builder()
+				.method("POST")
+				.endpoint("/" + indexName + "/_search")
+				.query(SEARCH_QUERY_PARAMETERS)
+				.json(req.build(), mapper)
+				.build())) {
+			if (response.getStatus() >= 400) {
+				throw new OpenSearchException(readErrorResponse(response, mapper));
+			}
+			SearchResponse<Map> searchResponse = Bodies.json(response.getBody().orElseThrow(),
+					SEARCH_RESPONSE_DESERIALIZER, mapper);
+			return convertResponse(searchResponse, indexName, from, idToName, options);
 		} catch (OpenSearchException e) {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
@@ -1288,6 +1314,24 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
 		}
+	}
+
+	/**
+	 * The {@link ErrorResponse} of a failed generic-client request. A missing or unparseable body
+	 * (e.g. an HTML gateway page) yields the same {@code http_exception} the typed transport reports.
+	 */
+	private static ErrorResponse readErrorResponse(Response response, JsonpMapper mapper) {
+		Optional<Body> body = response.getBody();
+		if (body.isPresent()) {
+			try {
+				return Bodies.json(body.get(), ErrorResponse._DESERIALIZER, mapper);
+			} catch (RuntimeException unparseable) {
+				// fall through to the generic error
+			}
+		}
+		int status = response.getStatus();
+		return ErrorResponse.of(err -> err.status(status)
+				.error(cause -> cause.type("http_exception").reason("server returned " + status)));
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
