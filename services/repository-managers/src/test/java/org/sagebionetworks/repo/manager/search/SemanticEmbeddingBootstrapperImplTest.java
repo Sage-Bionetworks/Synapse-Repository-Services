@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -79,11 +78,35 @@ public class SemanticEmbeddingBootstrapperImplTest {
 	}
 
 	@Test
-	public void testGetModelWithoutBootstrapMakesNoCall() {
+	public void testGetModelWithEmptyCacheResolvesModelOnce() throws IOException {
+		stubGenericClient();
+		Response search = response(MODEL_HIT);
+		Response connector = response(CONNECTOR);
+		when(genericClient.execute(argThat(isModelSearch()))).thenReturn(search);
+		when(genericClient.execute(argThat(isConnectorGet()))).thenReturn(connector);
+
+		// call under test
+		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+
+		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+		verify(genericClient, times(2)).execute(any(Request.class));
+	}
+
+	@Test
+	public void testGetModelWithNoDeployedModelRetriesEachCall() throws IOException {
+		stubGenericClient();
+		Response noHits = response("{\"hits\":{\"hits\":[]}}");
+		Response modelHit = response(MODEL_HIT);
+		Response connector = response(CONNECTOR);
+		when(genericClient.execute(argThat(isModelSearch())))
+				.thenReturn(noHits)
+				.thenReturn(modelHit);
+		when(genericClient.execute(argThat(isConnectorGet()))).thenReturn(connector);
+
 		// call under test
 		assertEquals(Optional.empty(), bootstrapper.getModel());
 
-		verifyNoInteractions(openSearchClient);
+		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
 	}
 
 	@Test

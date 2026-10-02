@@ -32,16 +32,15 @@ public interface SemanticEmbeddingBootstrapper {
 	}
 
 	/**
-	 * The model cached by the last {@link #bootstrapSemanticEmbedding()}, or empty when none is
-	 * deployed or none has been resolved yet. Never calls the domain.
+	 * The model cached by the last {@link #bootstrapSemanticEmbedding()}. Calls the domain only while
+	 * nothing is cached, then returns empty if no model is deployed.
 	 */
 	Optional<SemanticEmbeddingModel> getModel();
 
 	/**
 	 * Re-resolve the deployed model and replace this node's cached one: picks up a model provisioned
 	 * or re-registered since the last call, and clears the cache when the model is no longer deployed.
-	 * A failed lookup keeps the cached model. Read-only on the domain, so every node calls it on its
-	 * own schedule.
+	 * A failed lookup keeps the cached model.
 	 */
 	void bootstrapSemanticEmbedding();
 }

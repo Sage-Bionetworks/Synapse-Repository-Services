@@ -56,6 +56,11 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 
 	@Override
 	public Optional<SemanticEmbeddingModel> getModel() {
+		// The periodic refresh is a cluster singleton, so a node it has not run on fills its own
+		// cache here.
+		if (model == null) {
+			bootstrapSemanticEmbedding();
+		}
 		return Optional.ofNullable(model);
 	}
 

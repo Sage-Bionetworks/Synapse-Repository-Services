@@ -173,7 +173,6 @@
 		<!-- Refresh project storage data event trigger -->
 		<ref bean="projectStorageDataRefreshWorkerTrigger"/>
 		<ref bean="projectStorageAccessTrigger"/>
-		<ref bean="semanticEmbeddingBootstrapTrigger"/>
 		
 		<!-- Grid workers-->
 		<ref bean="gridMessageBrokerWorkerTrigger"/>

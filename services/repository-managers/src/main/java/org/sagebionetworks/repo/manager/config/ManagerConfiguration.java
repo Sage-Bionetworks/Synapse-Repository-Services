@@ -487,16 +487,6 @@ public class ManagerConfiguration {
 	}
 
 	/**
-	 * Refreshes this node's cached embedding model. It is not semaphore-gated because the cache is
-	 * per JVM: every node that builds or queries a search index must refresh its own.
-	 */
-	@Bean
-	public SimpleTriggerFactoryBean semanticEmbeddingBootstrapTrigger(SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper) {
-		return new SimpleTriggerBuilder().withRepeatInterval(5 * 60 * 1000).withStartDelay(1_000)
-				.withTargetObject(semanticEmbeddingBootstrapper).withTargetMethod("bootstrapSemanticEmbedding").build();
-	}
-
-	/**
 	 * Workaround for OpenSearch SDK 3.7.0 lazy initialization race condition.
 	 * Warms up the analysis deserializers by deserializing sample token filter definitions.
 	 * This ensures all deserializer classes are loaded in the current thread before concurrent
