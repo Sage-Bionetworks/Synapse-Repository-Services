@@ -415,8 +415,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * Create the idle physical slot and stream every source row into it. The source's as-built
 	 * {@link IndexAuthorizationSnapshot} is the single source of truth for the build: it supplies the
 	 * source schema the defining SQL is translated against, the benefactor columns spliced into the
-	 * streamed rows, and the dependency closure checked for AGGREGATE_DATA. The SearchIndex's own
-	 * snapshot, derived from it, is stored in the new slot's mapping metadata. Caller holds a
+	 * streamed rows, and the dependency closure checked for AGGREGATE_DATA. It is stored unchanged in the
+	 * new slot's mapping metadata, alongside the SearchIndex's own output columns. Caller holds a
 	 * non-exclusive lock on the source.
 	 *
 	 * @return {@code true} once the slot is built; {@code false}, leaving the idle slot untouched, when the
@@ -473,9 +473,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				.collect(Collectors.toList());
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
 
-		IndexAuthorizationSnapshot snapshot = indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(
-				sourceSnapshot, definingSQL, selectedColumns, schemaProvider);
-		IndexDescriptionSnapshot indexDescription = snapshot.getIndexDescription();
+		IndexDescriptionSnapshot indexDescription = sourceSnapshot.getIndexDescription();
 		List<String> benefactorColumnNames = indexDescription.getBenefactors().stream()
 				.map(BenefactorColumn::getBenefactorColumnName)
 				.collect(Collectors.toList());
@@ -524,7 +522,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		openSearchManager.createIndex(idleSlot, selectedColumns,
 				defaultAnalyzer,
 				overrides, resolvedAnalyzers,
-				benefactorColumnNames, numberOfShards, numberOfReplicas, snapshot);
+				benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot);
 
 		// AOSS acknowledges createIndex and returns an already-queryable index before its
 		// shards are actually ready to accept writes. Block until a real sentinel write

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -180,6 +181,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 */
 	static final String AUTHORIZATION_SNAPSHOT_META_KEY = "authorizationSnapshot";
 
+	/**
+	 * Mapping {@code _meta} key under which each physical index stores the ids of its output
+	 * columns in select-list order, comma-separated. The mapping's own properties cannot stand in
+	 * for this: OpenSearch returns them sorted by name, losing the select-list order.
+	 */
+	static final String COLUMN_IDS_META_KEY = "columnIds";
+
 	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
 	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
@@ -299,6 +307,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					buildMappings(m, columns, defaultAnalyzer,
 							overrideMap, resolvedAnalyzers, benefactorColumnNames);
 					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
+					m.meta(COLUMN_IDS_META_KEY, JsonData.of(
+							columns.stream().map(ColumnModel::getId).collect(Collectors.joining(","))));
 					return m;
 				})
 		);
@@ -671,8 +681,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 								+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
 					}
 					Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
-					return readAuthorizationSnapshot(target.getKey(), target.getValue())
-							.map(snapshot -> new LiveIndex(target.getKey(), snapshot));
+					return readLiveIndex(target.getKey(), target.getValue());
 				} catch (OpenSearchException e) {
 					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
 						return Optional.<LiveIndex>empty();
@@ -697,22 +706,26 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 	}
 
-	private static Optional<IndexAuthorizationSnapshot> readAuthorizationSnapshot(String physicalIndex,
-			IndexMappingRecord mapping) {
+	private static Optional<LiveIndex> readLiveIndex(String physicalIndex, IndexMappingRecord mapping) {
 		if (mapping.mappings() == null) {
 			return Optional.empty();
 		}
-		JsonData value = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
-		if (value == null) {
+		JsonData snapshotValue = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
+		JsonData columnIdsValue = mapping.mappings().meta().get(COLUMN_IDS_META_KEY);
+		if (snapshotValue == null || columnIdsValue == null) {
 			return Optional.empty();
 		}
+		IndexAuthorizationSnapshot snapshot;
 		try {
-			return Optional.of(EntityFactory.createEntityFromJSONString(value.to(String.class),
-					IndexAuthorizationSnapshot.class));
+			snapshot = EntityFactory.createEntityFromJSONString(snapshotValue.to(String.class),
+					IndexAuthorizationSnapshot.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new IllegalStateException("Index " + physicalIndex + " has an unreadable "
 					+ AUTHORIZATION_SNAPSHOT_META_KEY + " in its mapping _meta", e);
 		}
+		String joinedColumnIds = columnIdsValue.to(String.class);
+		List<String> columnIds = joinedColumnIds.isEmpty() ? List.of() : Arrays.asList(joinedColumnIds.split(","));
+		return Optional.of(new LiveIndex(physicalIndex, snapshot, columnIds));
 	}
 
 	@Override

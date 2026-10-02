@@ -1260,9 +1260,15 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testCreateIndexWithSnapshotInMeta() throws Exception {
+	public void testCreateIndexWithSnapshotAndColumnIdsInMeta() throws Exception {
 		String indexName = "search-index-syn1";
 		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
+		// Select-list order, deliberately not the lexicographic order of the ids.
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("20").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("100").setName("count").setColumnType(ColumnType.INTEGER));
+		Map<String, IndexSettingsAnalysis> resolvedAnalyzers = Collections.singletonMap("org.sagebionetworks-KEYWORD",
+				toAnalysis("{\"analyzer\":{\"default\":{\"type\":\"custom\",\"tokenizer\":\"keyword\"}}}"));
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		ArgumentCaptor<CreateIndexRequest> requestCaptor = ArgumentCaptor.forClass(CreateIndexRequest.class);
 		when(indicesClient.create(requestCaptor.capture()))
@@ -1270,11 +1276,13 @@ public class OpenSearchManagerImplTest {
 						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
 
 		// call under test
-		manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, snapshot);
+		manager.createIndex(indexName, columns, null,
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, snapshot);
 
-		JsonData meta = requestCaptor.getValue().mappings().meta().get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY);
-		assertEquals(EntityFactory.createJSONStringForEntity(snapshot), meta.to(String.class));
+		Map<String, JsonData> meta = requestCaptor.getValue().mappings().meta();
+		assertEquals(EntityFactory.createJSONStringForEntity(snapshot),
+				meta.get(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY).to(String.class));
+		assertEquals("20,100", meta.get(OpenSearchManagerImpl.COLUMN_IDS_META_KEY).to(String.class));
 	}
 
 	@Test
@@ -1559,12 +1567,24 @@ public class OpenSearchManagerImplTest {
 		IndexAuthorizationSnapshot snapshot = createAuthorizationSnapshot();
 		String snapshotJson = EntityFactory.createJSONStringForEntity(snapshot);
 		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
-				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson))))))));
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson),
+						OpenSearchManagerImpl.COLUMN_IDS_META_KEY, JsonData.of("20,100"))))))));
 
 		// call under test
 		Optional<OpenSearchManager.LiveIndex> result = manager.getLiveIndex("search-index-syn1");
 
-		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot)), result);
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot, List.of("20", "100"))),
+				result);
+	}
+
+	@Test
+	public void testGetLiveIndexWithMetaMissingColumnIdsKey() throws IOException, JSONObjectAdapterException {
+		String snapshotJson = EntityFactory.createJSONStringForEntity(createAuthorizationSnapshot());
+		stubGetMapping(GetMappingResponse.of(r -> r.putResult("search-index-syn1-a", IndexMappingRecord.of(m -> m
+				.mappings(t -> t.meta(Map.of(OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson))))))));
+
+		// call under test
+		assertEquals(Optional.empty(), manager.getLiveIndex("search-index-syn1"));
 	}
 
 	@Test
