@@ -4,6 +4,10 @@
 		"technique": {
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique",
 			"description": "Optional. Defaults to <code>min_max</code>."
+		},
+		"parameters": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.NormalizationParameters",
+			"description": "Optional. Per-clause score bounds. Applies only when <code>technique</code> is <code>min_max</code>."
 		}
 	}
 }
