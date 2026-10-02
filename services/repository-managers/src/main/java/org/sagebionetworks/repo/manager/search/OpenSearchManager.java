@@ -8,6 +8,7 @@ import java.util.Set;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
@@ -60,6 +61,14 @@ public interface OpenSearchManager {
 	 *                                 together with the ids of {@code columns} in order, so
 	 *                                 {@link #getLiveIndex(String)} can read both back alongside the
 	 *                                 physical index they describe. Required.
+	 * @param semanticModel            The embedding model that fills the index's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_FIELD} vector, or {@code null}
+	 *                                 when no column is flagged semantic. When set, the index gets a
+	 *                                 {@code knn_vector} field of the model's dimension, an ingestion
+	 *                                 pipeline that embeds each document's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_TEXT_FIELD} with the model, and
+	 *                                 the model's {@link SemanticEmbeddingModel#spec()} in its mapping
+	 *                                 {@code _meta}.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
@@ -67,10 +76,11 @@ public interface OpenSearchManager {
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
 			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
-			IndexAuthorizationSnapshot snapshot);
+			IndexAuthorizationSnapshot snapshot, SemanticEmbeddingModel semanticModel);
 
 	/**
-	 * Delete an OpenSearch index. No-op if the index does not exist.
+	 * Delete an OpenSearch index and the ingestion pipeline {@link #createIndex} attached to it. No-op
+	 * for whichever of the two does not exist.
 	 * If AOSS rejects the delete because another delete is already in progress
 	 * for the same index, the underlying {@link org.opensearch.client.opensearch._types.OpenSearchException}
 	 * is re-thrown unwrapped so the caller can recognize the concurrent-delete case
@@ -102,8 +112,11 @@ public interface OpenSearchManager {
 	 * @param physicalIndex The concrete index name behind the alias.
 	 * @param snapshot      The source's as-built authorization snapshot stored in that index's mapping metadata.
 	 * @param columnIds     The ids of the index's output columns, in select-list order.
+	 * @param semanticSpec  The {@link SemanticEmbeddingModel#spec()} the index's vectors were built with,
+	 *                      or {@code null} when the index has no semantic field.
 	 */
-	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds) {
+	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds,
+			String semanticSpec) {
 	}
 
 	/**

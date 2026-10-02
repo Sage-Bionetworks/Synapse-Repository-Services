@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -46,6 +48,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.ArgumentMatchers;
+import org.mockito.InOrder;
 import org.mockito.stubbing.OngoingStubbing;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -93,11 +96,16 @@ import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
+import org.opensearch.client.opensearch.ingest.DeletePipelineRequest;
+import org.opensearch.client.opensearch.ingest.OpenSearchIngestClient;
+import org.opensearch.client.opensearch.ingest.PutPipelineRequest;
 import org.opensearch.client.opensearch.indices.UpdateAliasesRequest;
 import org.opensearch.client.opensearch.indices.get_alias.IndexAliases;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.update_aliases.Action;
 import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.util.ObjectBuilder;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
@@ -145,6 +153,8 @@ public class OpenSearchManagerImplTest {
 	private OpenSearchClient openSearchClient;
 	@Mock
 	private OpenSearchIndicesClient indicesClient;
+	@Mock
+	private OpenSearchIngestClient ingestClient;
 	@Mock
 	private OpenSearchGenericClient genericClient;
 	@Mock
@@ -895,7 +905,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -959,7 +969,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		// Parse the applied JSON and assert on the typed shape rather than JSON-token order
@@ -1008,7 +1018,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, primaryQname,
-				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.singletonList(override), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		JsonNode field100 = MAPPER.readTree(appliedJson.get())
@@ -1039,7 +1049,7 @@ public class OpenSearchManagerImplTest {
 				org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
 						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, defaultAnalyzerQname,
-				overrides, resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
+				overrides, resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 		return MAPPER.readTree(appliedJson.get()).at("/mappings/properties");
 	}
 
@@ -1135,7 +1145,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals(openSearchException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName
@@ -1157,7 +1167,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertEquals(Optional.empty(), result);
 	}
@@ -1173,7 +1183,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals("Search index " + indexName + " creation was not acknowledged.",
 				ex.getMessage());
@@ -1190,7 +1200,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.createIndex(indexName, Collections.emptyList(), null,
-						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot()));
+						Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null));
 
 		assertEquals(ioException, ex.getCause());
 		assertEquals("Failed to create search index: " + indexName, ex.getMessage());
@@ -1207,7 +1217,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1227,7 +1237,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient, times(2)).create(any(CreateIndexRequest.class));
@@ -1253,7 +1263,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — must not throw on the duplicate name key
 		Optional<String> result = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, createAuthorizationSnapshot(), null);
 
 		assertTrue(result.isPresent());
 		verify(indicesClient).create(argThat((CreateIndexRequest req) -> indexName.equals(req.index())));
@@ -1277,7 +1287,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test
 		manager.createIndex(indexName, columns, null,
-				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, snapshot);
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 1, 0, snapshot, null);
 
 		Map<String, JsonData> meta = requestCaptor.getValue().mappings().meta();
 		assertEquals(EntityFactory.createJSONStringForEntity(snapshot),
@@ -1297,7 +1307,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
 				Collections.emptyMap(), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), 1, 0,
-				createAuthorizationSnapshot());
+				createAuthorizationSnapshot(), null);
 
 		Map<String, Property> properties = requestCaptor.getValue().mappings().properties();
 		assertEquals(Set.of("_row_id", "_row_version", "_benefactor_ROW_BENEFACTOR__A0",
@@ -1310,7 +1320,7 @@ public class OpenSearchManagerImplTest {
 	public void testCreateIndexWithNullSnapshotThrows() {
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> manager.createIndex("search-index-syn1",
-				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, null));
+				Collections.emptyList(), null, Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, null, null));
 
 		verifyNoMoreInteractions(openSearchClient);
 	}
@@ -1336,7 +1346,7 @@ public class OpenSearchManagerImplTest {
 
 		// call under test — 3 shards, 1 replica
 		Optional<String> appliedJson = manager.createIndex(indexName, columns, qname,
-				Collections.emptyList(), resolvedAnalyzers, List.of(), 3, 1, createAuthorizationSnapshot());
+				Collections.emptyList(), resolvedAnalyzers, List.of(), 3, 1, createAuthorizationSnapshot(), null);
 
 		assertTrue(appliedJson.isPresent());
 		String applied = appliedJson.get();
@@ -1350,11 +1360,103 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testCreateIndexWithSemanticModelMapsVectorAndPutsEmbedPipeline() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<PutPipelineRequest.Builder, ObjectBuilder<PutPipelineRequest>>> pipelineCaptor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.putPipeline(pipelineCaptor.capture())).thenReturn(null);
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(any(CreateIndexRequest.class)))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		String applied = manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel).get();
+
+		JsonNode index = MAPPER.readTree(applied);
+		assertTrue(index.at("/settings/knn").asBoolean());
+		assertEquals("search-index-syn1-a-embed", index.at("/settings/default_pipeline").asText());
+		assertEquals(MAPPER.readTree("{\"type\":\"knn_vector\",\"dimension\":1024,"
+				+ "\"method\":{\"name\":\"hnsw\",\"engine\":\"faiss\",\"space_type\":\"cosinesimil\"}}"),
+				index.at("/mappings/properties/semantic_search"));
+		assertEquals(MAPPER.readTree("{\"excludes\":[\"semantic_search\"]}"), index.at("/mappings/_source"));
+		assertEquals("amazon.titan-embed-text-v2:0/1024", index.at("/mappings/_meta/semanticSpec").asText());
+		PutPipelineRequest pipeline = pipelineCaptor.getValue().apply(new PutPipelineRequest.Builder()).build();
+		assertEquals(MAPPER.readTree("{\"description\":\"Embeds the semantic text of documents written to search-index-syn1-a\","
+				+ "\"processors\":[{\"text_embedding\":{\"model_id\":\"model-1\",\"field_map\":{\"semantic_search_text\":\"semantic_search\"}}},"
+				+ "{\"remove\":{\"field\":[\"semantic_search_text\"],\"ignore_missing\":true}}]}"),
+				MAPPER.readTree(pipeline.toJsonString()));
+		assertEquals("search-index-syn1-a-embed", pipeline.id());
+		InOrder order = inOrder(ingestClient, indicesClient);
+		order.verify(ingestClient).putPipeline(any(Function.class));
+		order.verify(indicesClient).create(any(CreateIndexRequest.class));
+	}
+
+	@Test
+	public void testCreateIndexWithoutSemanticModelHasNoVectorOrPipeline() throws Exception {
+		String indexName = "search-index-syn1-a";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(any(CreateIndexRequest.class)))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(b -> b
+						.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		String applied = manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+				Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), null).get();
+
+		JsonNode index = MAPPER.readTree(applied);
+		assertTrue(index.at("/settings/default_pipeline").isMissingNode());
+		assertTrue(index.at("/mappings/properties/semantic_search").isMissingNode());
+		assertTrue(index.at("/mappings/_meta/semanticSpec").isMissingNode());
+		verify(openSearchClient, never()).ingest();
+	}
+
+	@Test
+	public void testDeleteIndexWithPipelineDeleteFailureStillSucceeds() throws IOException {
+		String indexName = "search-index-syn1-a";
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		ArgumentCaptor<Function<DeletePipelineRequest.Builder, ObjectBuilder<DeletePipelineRequest>>> captor =
+				ArgumentCaptor.forClass(Function.class);
+		when(ingestClient.deletePipeline(captor.capture())).thenThrow(new OpenSearchException(ErrorResponse.of(er -> er
+				.error(ErrorCause.of(c -> c.type("exception").reason("boom"))).status(500))));
+
+		// call under test
+		manager.deleteIndex(indexName);
+
+		verify(indicesClient).delete(ArgumentMatchers.<java.util.function.Function>any());
+		assertEquals("search-index-syn1-a-embed",
+				captor.getValue().apply(new DeletePipelineRequest.Builder()).build().id());
+	}
+
+	@Test
+	public void testResolveSemanticColumnIdsWithMixedOverrides() {
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING),
+				new ColumnModel().setId("2").setName("body").setColumnType(ColumnType.LARGETEXT),
+				new ColumnModel().setId("3").setName("tags").setColumnType(ColumnType.STRING_LIST));
+		List<ColumnAnalyzerOverride> overrides = List.of(
+				new ColumnAnalyzerOverride().setOverrides(List.of(
+						new ColumnAnalyzerOverrideEntry().setColumnName("title").setSemantic(true),
+						new ColumnAnalyzerOverrideEntry().setColumnName("body").setSemantic(false),
+						new ColumnAnalyzerOverrideEntry().setColumnName("missing").setSemantic(true))),
+				new ColumnAnalyzerOverride().setOverrides(List.of(
+						new ColumnAnalyzerOverrideEntry().setColumnName("tags").setSemantic(true))));
+
+		// call under test
+		assertEquals(Set.of("1", "3"), OpenSearchManagerImpl.resolveSemanticColumnIds(columns, overrides));
+	}
+
+	@Test
 	public void testDeleteIndexWithIndexNotFoundIsNoOp() throws IOException {
 		String indexName = "search-index-syn1";
 		OpenSearchException notFound = new OpenSearchException(ErrorResponse.of(er -> er
 				.error(ErrorCause.of(c -> c.type("index_not_found_exception").reason("missing")))
 				.status(404)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		when(indicesClient.delete(ArgumentMatchers.<java.util.function.Function>any())).thenThrow(notFound);
 
@@ -1402,6 +1504,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchException gatewayTimeout = new OpenSearchException(
 				ErrorResponse.of(er -> er.error(ErrorCause.of(c -> c.type("http_exception")
 						.reason("server returned 504"))).status(504)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
 		when(openSearchClient.indices()).thenReturn(indicesClient);
 		when(indicesClient.delete(ArgumentMatchers.<java.util.function.Function>any()))
 				.thenThrow(gatewayTimeout)
@@ -1573,7 +1676,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		Optional<OpenSearchManager.LiveIndex> result = manager.getLiveIndex("search-index-syn1");
 
-		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot, List.of("20", "100"))),
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex("search-index-syn1-a", snapshot, List.of("20", "100"), null)),
 				result);
 	}
 

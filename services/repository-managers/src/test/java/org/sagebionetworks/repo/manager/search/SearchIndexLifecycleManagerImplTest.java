@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -32,8 +33,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,6 +56,7 @@ import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.search.SearchIndexLifecycleManagerImpl.SearchIndexRowHandler;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.IndexAuthorizationSnapshotManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
@@ -162,6 +168,8 @@ public class SearchIndexLifecycleManagerImplTest {
 	private DefiningSqlDependencyDao definingSqlDependencyDao;
 	@Mock
 	private IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
+	@Mock
+	private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
 
 	@InjectMocks
 	private SearchIndexLifecycleManagerImpl manager;
@@ -351,7 +359,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(SearchIndexState.CREATING, captor.getValue().getState());
 		// The pre-build deleteIndex was attempted (it threw); createIndex / row stream never ran.
 		verify(openSearchManager).deleteIndex("search-index-" + ENTITY_ID + "-a");
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -379,7 +387,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(statusDao, times(2)).createOrUpdate(captor.capture());
 		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
 		assertEquals(SearchIndexState.WAITING_FOR_SOURCE, captor.getAllValues().get(1).getState());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -510,7 +518,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		verify(statusDao, never()).createOrUpdate(any());
 		verify(openSearchManager, never()).deleteIndex(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 	}
 
 	@Test
@@ -551,7 +559,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(openSearchManager, indexDao);
 		order.verify(openSearchManager).deleteIndex("search-index-" + ENTITY_ID + "-a");
 		order.verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"),
-				any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+				any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 		order.verify(openSearchManager).waitForIndexWritable("search-index-" + ENTITY_ID + "-a");
 		order.verify(indexDao).queryAsStream(any(), any());
 		order.verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
@@ -594,7 +602,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col2.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(col1, col2);
 		SearchIndexRowHandler handler =
-				new SearchIndexRowHandler("test-index", columns, List.of(), openSearchManager);
+				new SearchIndexRowHandler("test-index", columns, List.of(), Set.of(), openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -618,7 +626,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col2.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(col1, col2);
 		SearchIndexRowHandler handler =
-				new SearchIndexRowHandler("test-index", columns, List.of(), openSearchManager);
+				new SearchIndexRowHandler("test-index", columns, List.of(), Set.of(), openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -642,7 +650,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		col.setId("100");
 		col.setColumnType(ColumnType.STRING);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), List.of(), openSearchManager);
+				"test-index", Collections.singletonList(col), List.of(), Set.of(), openSearchManager);
 
 		// 3 rows — well under the 1000 batch size
 		for (long i = 1; i <= 3; i++) {
@@ -664,7 +672,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		SelectColumn col = new SelectColumn();
 		col.setId("100");
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), List.of(), openSearchManager);
+				"test-index", Collections.singletonList(col), List.of(), Set.of(), openSearchManager);
 
 		// call under test
 		handler.close();
@@ -688,7 +696,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		realIdCol.setColumnType(ColumnType.STRING);
 		List<SelectColumn> columns = Arrays.asList(nullIdCol, realIdCol);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", columns, List.of(), openSearchManager);
+				"test-index", columns, List.of(), Set.of(), openSearchManager);
 
 		Row row = new Row();
 		row.setRowId(42L);
@@ -716,7 +724,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// 1500 rows → BATCH_SIZE is 1000 → first flush happens at row 1000, second on close().
 		SelectColumn col = new SelectColumn().setId("col-1").setName("title").setColumnType(ColumnType.STRING);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"search-index-syn1", Collections.singletonList(col), List.of(), openSearchManager);
+				"search-index-syn1", Collections.singletonList(col), List.of(), Set.of(), openSearchManager);
 
 		for (int i = 0; i < 1500; i++) {
 			Row row = new Row().setRowId((long) i).setVersionNumber(1L)
@@ -736,7 +744,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// A view's single ROW_BENEFACTOR is spliced in as one trailing value. The by-name
 		// Row.benefactorId is not consulted, so a differing value there must not reach the document.
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), List.of("ROW_BENEFACTOR"), openSearchManager);
+				"test-index", Collections.singletonList(col), List.of("ROW_BENEFACTOR"), Set.of(), openSearchManager);
 
 		Row row = new Row().setRowId(42L).setVersionNumber(1L).setBenefactorId(55L)
 				.setValues(Arrays.asList("hello", "99"));
@@ -762,7 +770,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// trailing positional values, in the order of the snapshot's benefactor column names.
 		// The document is keyed by ROW_ID.
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), openSearchManager);
+				"test-index", Collections.singletonList(col), List.of("ROW_BENEFACTOR__A0", "ROW_BENEFACTOR__A1"), Set.of(), openSearchManager);
 
 		// values = [ title, benefactor_0, benefactor_1 ]
 		Row row = new Row().setRowId(7L).setVersionNumber(1L)
@@ -790,7 +798,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// to whenever that value happens to parse as a long, so the handler fails closed.
 		SelectColumn col = new SelectColumn().setId("100").setName("title").setColumnType(ColumnType.STRING);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Collections.singletonList(col), List.of(), openSearchManager);
+				"test-index", Collections.singletonList(col), List.of(), Set.of(), openSearchManager);
 
 		Row row = new Row().setRowId(7L).setVersionNumber(1L)
 				.setValues(Arrays.asList("hello", "1500"));
@@ -809,7 +817,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		SelectColumn title = new SelectColumn().setId("100").setName("title").setColumnType(ColumnType.STRING);
 		SelectColumn tags = new SelectColumn().setId("101").setName("tags").setColumnType(ColumnType.STRING_LIST);
 		SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				"test-index", Arrays.asList(title, tags), List.of("ROW_BENEFACTOR"), openSearchManager);
+				"test-index", Arrays.asList(title, tags), List.of("ROW_BENEFACTOR"), Set.of(), openSearchManager);
 
 		Row row = new Row().setRowId(7L).setVersionNumber(1L)
 				.setValues(Arrays.asList("hello", "[\"a\"]"));
@@ -821,6 +829,193 @@ public class SearchIndexLifecycleManagerImplTest {
 				+ " but the source query returned 2.", e.getMessage());
 		handler.close();
 		verify(openSearchManager, never()).bulkIndex(any(), any());
+	}
+
+	@Test
+	public void testRowHandlerNextRowWithSemanticColumnsWritesJoinedText() throws IOException {
+		SelectColumn title = new SelectColumn().setId("100").setName("title").setColumnType(ColumnType.STRING);
+		SelectColumn tags = new SelectColumn().setId("101").setName("tags").setColumnType(ColumnType.STRING_LIST);
+		SelectColumn count = new SelectColumn().setId("102").setName("count").setColumnType(ColumnType.INTEGER);
+		SelectColumn notes = new SelectColumn().setId("103").setName("notes").setColumnType(ColumnType.STRING);
+		SearchIndexRowHandler handler = new SearchIndexRowHandler("test-index", Arrays.asList(title, tags, count, notes),
+				List.of(), Set.of("100", "101", "103"), openSearchManager);
+
+		// call under test
+		handler.nextRow(new Row().setRowId(7L).setVersionNumber(1L)
+				.setValues(Arrays.asList("hello", "[\"a\",\" \",\"b\"]", "5", " ")));
+		// call under test
+		handler.nextRow(new Row().setRowId(8L).setVersionNumber(1L)
+				.setValues(Arrays.asList(null, null, "6", null)));
+		handler.close();
+
+		ArgumentCaptor<List<BulkOperation>> captor = ArgumentCaptor.forClass(List.class);
+		verify(openSearchManager).bulkIndex(eq("test-index"), captor.capture());
+		Map<String, Object> withText = new HashMap<>();
+		withText.put("_row_id", 7L);
+		withText.put("_row_version", 1L);
+		withText.put("100", "hello");
+		withText.put("101", List.of("a", " ", "b"));
+		withText.put("102", 5);
+		withText.put("103", " ");
+		withText.put(OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD, "title: hello\ntags: a, b");
+		assertEquals(withText, captor.getValue().get(0).index().document());
+		assertEquals(Map.of("_row_id", 8L, "_row_version", 1L, "102", 6), captor.getValue().get(1).index().document());
+	}
+
+	@Test
+	public void testTruncateSemanticTextWithTextOverTokenLimit() {
+		Encoding encoding = Encodings.newLazyEncodingRegistry().getEncoding(EncodingType.CL100K_BASE);
+		String text = "word ".repeat(10_000);
+
+		// call under test
+		String truncated = SearchIndexLifecycleManagerImpl.truncateSemanticText(text);
+
+		assertTrue(text.startsWith(truncated));
+		assertEquals(SearchIndexLifecycleManagerImpl.MAX_SEMANTIC_TEXT_TOKENS, encoding.countTokens(truncated));
+	}
+
+	@Test
+	public void testTruncateSemanticTextWithTextUnderTokenLimit() {
+		String text = "title: hello";
+
+		// call under test
+		assertSame(text, SearchIndexLifecycleManagerImpl.truncateSemanticText(text));
+	}
+
+	// -------- buildIndex — semantic columns --------
+
+	private static final SemanticEmbeddingModel SEMANTIC_MODEL =
+			new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+
+	/** A SearchConfiguration flagging the source's "name" column semantic. */
+	private void stubSemanticNameColumn() throws Exception {
+		SearchConfiguration config = new SearchConfiguration().setColumnAnalyzerOverrides(List.of(
+				Map.of("overrides", List.of(Map.of("columnName", "name", "semantic", true)))));
+		when(searchConfigurationResolver.resolve(any(), any())).thenReturn(Optional.of(config));
+	}
+
+	private SearchIndexStatus captureLastStatus() {
+		ArgumentCaptor<SearchIndexStatus> captor = ArgumentCaptor.forClass(SearchIndexStatus.class);
+		verify(statusDao, atLeastOnce()).createOrUpdate(captor.capture());
+		return captor.getValue();
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticColumnCreatesIndexWithModel() throws Exception {
+		stubHappyPathThroughStream();
+		stubSemanticNameColumn();
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.of(SEMANTIC_MODEL));
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(NAME_COLUMN)),
+				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(SOURCE_SNAPSHOT), eq(SEMANTIC_MODEL));
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.ACTIVE),
+				captureLastStatus());
+		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticColumnOfUnsupportedTypeMarksFailed() throws Exception {
+		stubHappyPathThroughCreateIndex();
+		stubSourceLock();
+		stubSemanticNameColumn();
+		ColumnModel integerName = new ColumnModel().setId("100").setName("name").setColumnType(ColumnType.INTEGER);
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(integerName);
+		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
+				.thenReturn(integerName);
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("Column 'name' is of type INTEGER and cannot be flagged 'semantic'; only "
+						+ "[STRING, LINK, MEDIUMTEXT, LARGETEXT, STRING_LIST] columns can."),
+				captureLastStatus());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
+		verifyNoInteractions(semanticEmbeddingBootstrapper);
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticColumnAboveRowCeilingMarksFailed() throws Exception {
+		stubHappyPathThroughCreateIndex();
+		stubSourceLock();
+		stubSemanticNameColumn();
+		when(indexDao.getRowCountForTable(SOURCE_ID)).thenReturn(SearchIndexLifecycleManagerImpl.SEMANTIC_MAX_ROWS + 1);
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
+				.thenReturn(NAME_COLUMN);
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("Search index with semantic columns would exceed maximum of 50000 rows. Row count: 50001"),
+				captureLastStatus());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
+		verifyNoInteractions(semanticEmbeddingBootstrapper);
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticColumnAndNoModelThrowsRecoverable() throws Exception {
+		stubHappyPathThroughCreateIndex();
+		stubSourceLock();
+		stubSemanticNameColumn();
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
+				.thenReturn(NAME_COLUMN);
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.empty());
+
+		// call under test
+		RecoverableMessageException e = assertThrows(RecoverableMessageException.class,
+				() -> manager.handleCreate(progressCallback, ENTITY_ID));
+
+		assertEquals("No semantic embedding model is deployed yet for search index null", e.getMessage());
+		assertEquals(SearchIndexState.CREATING, captureLastStatus().getState());
+		verify(openSearchManager, never()).deleteIndex(any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
+		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticModelReplacedMidBuildThrowsRecoverable() throws Exception {
+		stubHappyPathThroughStream();
+		stubSemanticNameColumn();
+		SemanticEmbeddingModel reRegistered = new SemanticEmbeddingModel("model-2", "amazon.titan-embed-text-v2:0", 1024);
+		when(semanticEmbeddingBootstrapper.getModel())
+				.thenReturn(Optional.of(SEMANTIC_MODEL))
+				.thenReturn(Optional.of(reRegistered));
+		RuntimeException writeRejected = new RuntimeException("model-1 not found");
+		doThrow(writeRejected).when(indexDao).queryAsStream(any(), any());
+
+		// call under test
+		RecoverableMessageException e = assertThrows(RecoverableMessageException.class,
+				() -> manager.handleCreate(progressCallback, ENTITY_ID));
+
+		assertSame(writeRejected, e.getCause());
+		assertEquals(SearchIndexState.CREATING, captureLastStatus().getState());
+		verify(openSearchManager, never()).swapAlias(any(), any(), any());
+		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
+	}
+
+	@Test
+	public void testHandleCreateWithSemanticModelUnchangedMidBuildFailureMarksFailed() throws Exception {
+		stubHappyPathThroughStream();
+		stubSemanticNameColumn();
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.of(SEMANTIC_MODEL));
+		doThrow(new RuntimeException("mapper_parsing_exception")).when(indexDao).queryAsStream(any(), any());
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("mapper_parsing_exception"), captureLastStatus());
+		verify(openSearchManager, never()).swapAlias(any(), any(), any());
+		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
 	}
 
 	// -------- resolveAnalyzers --------
@@ -1053,7 +1248,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(NAME_COLUMN, ageColumn)),
-				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot));
+				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot), isNull());
 		verify(tableManagerSupport, never()).getTableSchema(any());
 	}
 
@@ -1075,7 +1270,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(builtNameColumn)),
-				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot));
+				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot), isNull());
 		verify(tableManagerSupport, never()).getTableSchema(any());
 	}
 
@@ -1096,7 +1291,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		InOrder order = inOrder(openSearchManager, indexDao);
 		order.verify(openSearchManager).createIndex("search-index-" + ENTITY_ID + "-a", List.of(NAME_COLUMN), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, SOURCE_SNAPSHOT);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, SOURCE_SNAPSHOT, null);
 		order.verify(indexDao).queryAsStream(any(), any());
 		order.verify(openSearchManager).swapAlias("search-index-" + ENTITY_ID, "search-index-" + ENTITY_ID + "-a",
 				Optional.empty());
@@ -1129,7 +1324,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(SearchIndexState.CREATING, captor.getAllValues().get(0).getState());
 		assertEquals(SearchIndexState.WAITING_FOR_SOURCE, captor.getAllValues().get(1).getState());
 		verify(openSearchManager, never()).deleteIndex(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 		verify(openSearchManager, never()).swapAlias(any(), any(), any());
 	}
@@ -1150,7 +1345,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(statusDao).createOrUpdate(captor.capture());
 		assertEquals(SearchIndexState.WAITING_FOR_SOURCE, captor.getValue().getState());
 		verify(openSearchManager, never()).deleteIndex(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(openSearchManager, never()).swapAlias(any(), any(), any());
 	}
 
@@ -1176,7 +1371,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
 				.setErrorMessage("Search index source syn789 depends on AGGREGATE_DATA object syn800"),
 				captor.getAllValues().get(1));
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -1210,7 +1405,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(studyColumn)),
-				any(), any(), any(), eq(List.of("SNAPSHOT_BENEFACTOR_0", "SNAPSHOT_BENEFACTOR_1")), anyInt(), anyInt(), eq(sourceSnapshot));
+				any(), any(), any(), eq(List.of("SNAPSHOT_BENEFACTOR_0", "SNAPSHOT_BENEFACTOR_1")), anyInt(), anyInt(), eq(sourceSnapshot), isNull());
 		ArgumentCaptor<TranslatedQuery> queryCaptor = ArgumentCaptor.forClass(TranslatedQuery.class);
 		verify(indexDao).queryAsStream(queryCaptor.capture(), any());
 		assertEquals("SELECT _C703_, SNAPSHOT_BENEFACTOR_0, SNAPSHOT_BENEFACTOR_1, ROW_ID, ROW_VERSION FROM T789",
@@ -1250,7 +1445,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
-		verify(openSearchManager).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 	}
 
 	@Test
@@ -1273,7 +1468,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
-		verify(openSearchManager).createIndex(any(), any(), eq(defaultQname), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager).createIndex(any(), any(), eq(defaultQname), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 	}
 
 	@Test
@@ -1817,7 +2012,7 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setErrorMessage("The defining SQL of a search index over an access-controlled source cannot include a group by clause."),
 				captor.getAllValues().get(1));
 		verify(columnModelManager, never()).createColumnModel(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -1849,7 +2044,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		verify(tableManagerSupport, never()).getTableSchema(any());
 		verify(tableManagerSupport, never()).getTableType(any());
 		verify(columnModelManager, never()).createColumnModel(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -1885,7 +2080,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertTrue(failed.getErrorMessage().contains("tag"),
 				"expected the unknown-column message to name 'tag', got: " + failed.getErrorMessage());
 		verify(columnModelManager, never()).createColumnModel(any());
-		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verify(indexDao, never()).queryAsStream(any(), any());
 	}
 
@@ -2161,7 +2356,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		manager.rebuildIfStale(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-b"),
-				any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+				any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
 				eq("search-index-" + ENTITY_ID + "-b"), eq(Optional.of("search-index-" + ENTITY_ID + "-a")));
 		// A rebuild does not write CREATING — the live index stays ACTIVE-visible until the swap.
@@ -2201,7 +2396,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		verify(openSearchManager).deleteIndex("search-index-" + ENTITY_ID + "-b");
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-b"),
-				any(), any(), any(), any(), any(), anyInt(), anyInt(), any());
+				any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), isNull());
 		verify(openSearchManager).swapAlias(eq("search-index-" + ENTITY_ID),
 				eq("search-index-" + ENTITY_ID + "-b"), eq(Optional.of("search-index-" + ENTITY_ID + "-a")));
 		org.mockito.InOrder order = org.mockito.Mockito.inOrder(openSearchManager);

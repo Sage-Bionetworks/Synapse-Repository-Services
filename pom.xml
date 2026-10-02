@@ -838,6 +838,15 @@
 				<scope>import</scope>
 			</dependency>
 
+			<!-- cl100k tokenizer, used to bound the text sent to Bedrock for embedding. Also
+			     arrives transitively through spring-ai-commons; declared so a Spring AI upgrade
+			     that drops it fails the build rather than the classpath. -->
+			<dependency>
+				<groupId>com.knuddels</groupId>
+				<artifactId>jtokkit</artifactId>
+				<version>${jtokkit.version}</version>
+			</dependency>
+
 			<!-- Spring AI Community AgentCore BOM -->
 			<dependency>
 				<groupId>org.springaicommunity</groupId>
@@ -1207,6 +1216,7 @@
 		<auth0.java-jwt.version>3.4.1</auth0.java-jwt.version>
 		<spring-ai.version>1.1.7</spring-ai.version>
 		<spring-ai-agentcore.version>1.0.0</spring-ai-agentcore.version>
+		<jtokkit.version>1.1.0</jtokkit.version>
 	</properties>
 
 	<distributionManagement>

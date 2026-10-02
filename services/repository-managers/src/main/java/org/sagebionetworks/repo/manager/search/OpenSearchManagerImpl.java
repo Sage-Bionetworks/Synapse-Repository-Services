@@ -55,6 +55,8 @@ import org.opensearch.client.opensearch.indices.GetAliasResponse;
 import org.opensearch.client.opensearch.indices.GetMappingResponse;
 import org.opensearch.client.opensearch.indices.get_mapping.IndexMappingRecord;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.opensearch.client.opensearch.ingest.Processor;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHighlight;
 import org.sagebionetworks.repo.model.search.SearchHit;
@@ -188,6 +190,32 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 */
 	static final String COLUMN_IDS_META_KEY = "columnIds";
 
+	/**
+	 * Mapping {@code _meta} key under which a physical index with a {@link #SEMANTIC_FIELD} stores the
+	 * {@link SemanticEmbeddingModel#spec()} its vectors were built with. Absent on an index without one.
+	 */
+	static final String SEMANTIC_SPEC_META_KEY = "semanticSpec";
+
+	/**
+	 * Dense-vector field holding one embedding per document, built from the columns flagged
+	 * {@code semantic}. Excluded from {@code _source}: a full embedding per hit would dominate the
+	 * response payload and mean nothing to a caller.
+	 */
+	static final String SEMANTIC_FIELD = "semantic_search";
+
+	/**
+	 * Transient document field carrying a row's joined semantic text. The index's ingestion pipeline
+	 * embeds it into {@link #SEMANTIC_FIELD} and then removes it, so it is never stored.
+	 */
+	static final String SEMANTIC_TEXT_FIELD = "semantic_search_text";
+
+	/**
+	 * faiss space for {@link #SEMANTIC_FIELD}. Bedrock returns unit-normalized vectors, so
+	 * {@code cosinesimil} orders like {@code innerproduct}, while keeping one score formula for both
+	 * the approximate search and the exact search faiss falls back to on a small pre-filtered set.
+	 */
+	private static final String SEMANTIC_SPACE_TYPE = "cosinesimil";
+
 	static final String SYSTEM_FIELD_ROW_ID = "_row_id";
 	private static final String SYSTEM_FIELD_ROW_VERSION = "_row_version";
 	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
@@ -230,6 +258,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * (e.g. {@code org.sage-A.B}).</p>
 	 */
 	static final String DOT_ENCODING = "__dot__";
+
+	/**
+	 * The ingestion pipeline that embeds documents written into the physical index {@code indexName}.
+	 * One pipeline per physical slot, so a rebuild into the idle slot never rewrites the pipeline the
+	 * live slot was built with.
+	 */
+	static String embedPipelineName(String indexName) {
+		return indexName + "-embed";
+	}
 
 	static String toAossKey(String qualifiedName) {
 		return qualifiedName == null ? null : qualifiedName.replace(".", DOT_ENCODING);
@@ -280,7 +317,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
 			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
-			IndexAuthorizationSnapshot snapshot) {
+			IndexAuthorizationSnapshot snapshot, SemanticEmbeddingModel semanticModel) {
 		ValidateArgument.required(resolvedAnalyzers, "resolvedAnalyzers");
 		ValidateArgument.required(snapshot, "snapshot");
 		String snapshotJson;
@@ -296,24 +333,46 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 
 		CreateIndexRequest request = CreateIndexRequest.of(req -> req
 				.index(indexName)
-				.settings(s -> s
-					.numberOfShards(numberOfShards)
-					.numberOfReplicas(numberOfReplicas)
-					.analysis(a -> {
-						buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
-						return a;
-					}))
+				.settings(s -> {
+					s.numberOfShards(numberOfShards)
+						.numberOfReplicas(numberOfReplicas)
+						.analysis(a -> {
+							buildAnalysisSettings(a, resolvedAnalyzers, defaultAnalyzer);
+							return a;
+						});
+					if (semanticModel != null) {
+						// knn enables the k-NN plugin on the index, which a knn_vector property requires.
+						s.knn(true).defaultPipeline(embedPipelineName(indexName));
+					}
+					return s;
+				})
 				.mappings(m -> {
 					buildMappings(m, columns, defaultAnalyzer,
 							overrideMap, resolvedAnalyzers, benefactorColumnNames);
 					m.meta(AUTHORIZATION_SNAPSHOT_META_KEY, JsonData.of(snapshotJson));
 					m.meta(COLUMN_IDS_META_KEY, JsonData.of(
 							columns.stream().map(ColumnModel::getId).collect(Collectors.joining(","))));
+					if (semanticModel != null) {
+						m.properties(SEMANTIC_FIELD, p -> p.knnVector(kv -> kv
+								.dimension(semanticModel.dimension())
+								.method(method -> method
+										.name("hnsw")
+										.engine("faiss")
+										.spaceType(SEMANTIC_SPACE_TYPE))));
+						m.source(sf -> sf.excludes(List.of(SEMANTIC_FIELD)));
+						m.meta(SEMANTIC_SPEC_META_KEY, JsonData.of(semanticModel.spec()));
+					}
 					return m;
 				})
 		);
 
 		String appliedConfigJson = request.toJsonString();
+
+		// The pipeline must exist before the index that names it as its default pipeline, or the
+		// index's first write is rejected.
+		if (semanticModel != null) {
+			putEmbedPipeline(indexName, semanticModel.modelId());
+		}
 
 		try {
 			return TimeUtils.waitForExponentialMaxRetry(CREATE_INDEX_MAX_RETRIES,
@@ -581,8 +640,58 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return resolved != null && resolved.analyzer().containsKey(DEFAULT_SEARCH_ANALYZER_NAME);
 	}
 
+	/**
+	 * Create (or overwrite) the ingestion pipeline that embeds every document written to one physical
+	 * index: a {@code text_embedding} processor turns {@link #SEMANTIC_TEXT_FIELD} into
+	 * {@link #SEMANTIC_FIELD}, then a {@code remove} drops the text so it never reaches
+	 * {@code _source}. A row with no semantic text carries neither field, so both processors tolerate
+	 * its absence.
+	 */
+	private void putEmbedPipeline(String indexName, String modelId) {
+		String pipelineName = embedPipelineName(indexName);
+		try {
+			openSearchClient.ingest().putPipeline(req -> req
+					.id(pipelineName)
+					.description("Embeds the semantic text of documents written to " + indexName)
+					.processors(
+							Processor.of(p -> p.textEmbedding(te -> te
+									.modelId(modelId)
+									.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
+							Processor.of(p -> p.remove(r -> r
+									.field(SEMANTIC_TEXT_FIELD)
+									.ignoreMissing(true)))));
+		} catch (OpenSearchException e) {
+			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName
+					+ " (" + describeError(e.error()) + ")", e);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName, e);
+		}
+	}
+
 	@Override
 	public void deleteIndex(String indexName) {
+		deletePhysicalIndex(indexName);
+		deleteEmbedPipeline(indexName);
+	}
+
+	/**
+	 * Best-effort: an index built without semantic columns never had a pipeline, and a pipeline left
+	 * behind is inert once its index is gone and is overwritten by the next build into the slot.
+	 */
+	private void deleteEmbedPipeline(String indexName) {
+		String pipelineName = embedPipelineName(indexName);
+		try {
+			openSearchClient.ingest().deletePipeline(req -> req.id(pipelineName));
+		} catch (OpenSearchException e) {
+			if (!Integer.valueOf(404).equals(e.status())) {
+				LOG.warn("Failed to delete ingestion pipeline {} ({})", pipelineName, describeError(e.error()));
+			}
+		} catch (IOException e) {
+			LOG.warn("Failed to delete ingestion pipeline {} ({})", pipelineName, e.getMessage());
+		}
+	}
+
+	private void deletePhysicalIndex(String indexName) {
 		try {
 			TimeUtils.waitForExponentialMaxRetry(DELETE_INDEX_MAX_RETRIES,
 					DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
@@ -712,6 +821,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 		JsonData snapshotValue = mapping.mappings().meta().get(AUTHORIZATION_SNAPSHOT_META_KEY);
 		JsonData columnIdsValue = mapping.mappings().meta().get(COLUMN_IDS_META_KEY);
+		JsonData semanticSpecValue = mapping.mappings().meta().get(SEMANTIC_SPEC_META_KEY);
 		if (snapshotValue == null || columnIdsValue == null) {
 			return Optional.empty();
 		}
@@ -725,7 +835,8 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}
 		String joinedColumnIds = columnIdsValue.to(String.class);
 		List<String> columnIds = joinedColumnIds.isEmpty() ? List.of() : Arrays.asList(joinedColumnIds.split(","));
-		return Optional.of(new LiveIndex(physicalIndex, snapshot, columnIds));
+		String semanticSpec = semanticSpecValue == null ? null : semanticSpecValue.to(String.class);
+		return Optional.of(new LiveIndex(physicalIndex, snapshot, columnIds, semanticSpec));
 	}
 
 	@Override
@@ -1518,7 +1629,21 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		}));
 	}
 
-	Map<String, ColumnAnalyzerOverrideEntry> buildOverrideMap(
+	/**
+	 * The ids of the columns flagged {@code semantic}, resolved with the same first-bundle-wins rule
+	 * {@link #createIndex} uses to pick each column's override entry.
+	 */
+	static Set<String> resolveSemanticColumnIds(List<ColumnModel> columns,
+			List<ColumnAnalyzerOverride> overrides) {
+		Map<String, String> nameToId = columns.stream()
+				.collect(Collectors.toMap(ColumnModel::getName, ColumnModel::getId, (a, b) -> a));
+		return buildOverrideMap(overrides, nameToId).entrySet().stream()
+				.filter(e -> Boolean.TRUE.equals(e.getValue().getSemantic()))
+				.map(Map.Entry::getKey)
+				.collect(Collectors.toSet());
+	}
+
+	static Map<String, ColumnAnalyzerOverrideEntry> buildOverrideMap(
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides, Map<String, String> nameToId) {
 		Map<String, ColumnAnalyzerOverrideEntry> map = new HashMap<>();
 		if (columnAnalyzerOverrides == null) {
