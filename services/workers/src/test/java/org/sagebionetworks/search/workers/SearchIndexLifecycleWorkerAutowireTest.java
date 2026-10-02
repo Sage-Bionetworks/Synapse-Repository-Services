@@ -56,7 +56,6 @@ import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
-import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.EntityView;
@@ -236,10 +235,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                             "definingSQL projects four columns: geneName, tag, gene_with_concat, \"hyphen-name\"");
                     List<String> selectColumnNames = results.getSelectColumns().stream()
                             .map(sc -> sc.getName()).collect(Collectors.toList());
-                    assertTrue(selectColumnNames.contains("geneName"));
-                    assertTrue(selectColumnNames.contains("tag"));
-                    assertTrue(selectColumnNames.contains("gene_with_concat"));
-                    assertTrue(selectColumnNames.contains("hyphen-name"));
+                    assertEquals(List.of("geneName", "tag", "gene_with_concat", "hyphen-name"), selectColumnNames);
 
                     assertEquals(3, results.getHits().size());
                     for (SearchHit hit : results.getHits()) {
@@ -346,14 +342,14 @@ public class SearchIndexLifecycleWorkerAutowireTest {
             assertNotEquals(SearchIndexState.FAILED, current.getState(),
                     "the rebuild triggered by the source schema change must not fail: "
                             + current.getErrorMessage());
-            // The rebuild only counts once the live slot's snapshot carries the widened schema,
+            // The rebuild only counts once the live slot carries the widened schema,
             // since ACTIVE is still the state of the index that was serving before the drift.
             boolean rebuilt = SearchIndexState.ACTIVE.equals(current.getState())
-                    && liveSnapshotColumnIds(searchIndexIdString).size() == 3;
+                    && liveColumnIds(searchIndexIdString).size() == 3;
             return new Pair<Boolean, SearchIndexStatus>(rebuilt, current);
         });
         assertEquals(SearchIndexState.ACTIVE, status.getState());
-        // The SearchIndex snapshot is rooted at its source.
+        // The live slot stores its source's snapshot.
         assertEquals(mv.getId(), liveSnapshot(searchIndexIdString).getObjectId());
 
         asyncHelper.assertJobResponse(adminUser, query, (SearchQueryResults results) -> {
@@ -448,7 +444,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                     "the rebuild triggered by the source type change must not fail: "
                             + current.getErrorMessage());
             boolean rebuilt = SearchIndexState.ACTIVE.equals(current.getState())
-                    && ColumnType.INTEGER.equals(liveSnapshotColumnType(searchIndexIdString, "score"));
+                    && ColumnType.INTEGER.equals(liveColumnType(searchIndexIdString, "score"));
             return new Pair<Boolean, SearchIndexStatus>(rebuilt, current);
         });
         assertEquals(SearchIndexState.ACTIVE, status.getState());
@@ -468,17 +464,13 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                 .map(OpenSearchManager.LiveIndex::snapshot).orElse(null);
     }
 
-    private List<String> liveSnapshotColumnIds(String searchIndexId) {
-        IndexAuthorizationSnapshot snapshot = liveSnapshot(searchIndexId);
-        if (snapshot == null) {
-            return Collections.emptyList();
-        }
-        return snapshot.getColumnLineage().stream()
-                .map(ColumnLineageEntry::getOutputColumnId).collect(Collectors.toList());
+    private List<String> liveColumnIds(String searchIndexId) {
+        return openSearchManager.getLiveIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId)
+                .map(OpenSearchManager.LiveIndex::columnIds).orElse(Collections.emptyList());
     }
 
-    private ColumnType liveSnapshotColumnType(String searchIndexId, String columnName) {
-        List<String> ids = liveSnapshotColumnIds(searchIndexId);
+    private ColumnType liveColumnType(String searchIndexId, String columnName) {
+        List<String> ids = liveColumnIds(searchIndexId);
         if (ids.isEmpty()) {
             return null;
         }

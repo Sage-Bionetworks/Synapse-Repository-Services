@@ -127,10 +127,6 @@ public class SearchIndexLifecycleManagerImplTest {
 	private static final ColumnModel NAME_COLUMN = new ColumnModel().setId("100").setName("name")
 			.setColumnType(ColumnType.STRING).setMaximumSize(50L);
 	private static final IndexAuthorizationSnapshot SOURCE_SNAPSHOT = tableSnapshot("100");
-	// Distinct from the source snapshot so a test can tell which one reached createIndex.
-	private static final IndexAuthorizationSnapshot SEARCH_INDEX_SNAPSHOT = tableSnapshot("100")
-			.setColumnLineage(List.of(new ColumnLineageEntry().setOutputColumnId("100")
-					.setDerivationKind(DerivationKind.EXPRESSION)));
 
 	@Mock
 	private ConnectionFactory connectionFactory;
@@ -234,8 +230,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		// buildIndex persists each selected column through createColumnModel.
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
 				.thenReturn(NAME_COLUMN);
-		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(SOURCE_SNAPSHOT), eq(DEFINING_SQL),
-				eq(List.of(NAME_COLUMN)), any(SchemaProvider.class))).thenReturn(SEARCH_INDEX_SNAPSHOT);
 		when(tableManagerSupport.getAggregateDataConfiguration("syn789")).thenReturn(Optional.empty());
 	}
 
@@ -1053,15 +1047,13 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getColumnModel("101")).thenReturn(ageColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "age".equals(cm.getName())))).thenReturn(ageColumn);
-		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(sourceSnapshot), eq(DEFINING_SQL),
-				eq(List.of(NAME_COLUMN, ageColumn)), any(SchemaProvider.class))).thenReturn(SEARCH_INDEX_SNAPSHOT);
 		when(tableManagerSupport.getAggregateDataConfiguration("syn789")).thenReturn(Optional.empty());
 
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(NAME_COLUMN, ageColumn)),
-				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(SEARCH_INDEX_SNAPSHOT));
+				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot));
 		verify(tableManagerSupport, never()).getTableSchema(any());
 	}
 
@@ -1077,15 +1069,13 @@ public class SearchIndexLifecycleManagerImplTest {
 		when(tableManagerSupport.getColumnModel("102")).thenReturn(builtNameColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> ColumnType.INTEGER.equals(cm.getColumnType()))))
 				.thenReturn(builtNameColumn);
-		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(sourceSnapshot), eq(DEFINING_SQL),
-				eq(List.of(builtNameColumn)), any(SchemaProvider.class))).thenReturn(SEARCH_INDEX_SNAPSHOT);
 		when(tableManagerSupport.getAggregateDataConfiguration("syn789")).thenReturn(Optional.empty());
 
 		// call under test
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(builtNameColumn)),
-				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(SEARCH_INDEX_SNAPSHOT));
+				any(), any(), any(), eq(List.of()), anyInt(), anyInt(), eq(sourceSnapshot));
 		verify(tableManagerSupport, never()).getTableSchema(any());
 	}
 
@@ -1106,7 +1096,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		InOrder order = inOrder(openSearchManager, indexDao);
 		order.verify(openSearchManager).createIndex("search-index-" + ENTITY_ID + "-a", List.of(NAME_COLUMN), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, SEARCH_INDEX_SNAPSHOT);
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, SOURCE_SNAPSHOT);
 		order.verify(indexDao).queryAsStream(any(), any());
 		order.verify(openSearchManager).swapAlias("search-index-" + ENTITY_ID, "search-index-" + ENTITY_ID + "-a",
 				Optional.empty());
@@ -1168,14 +1158,12 @@ public class SearchIndexLifecycleManagerImplTest {
 	public void testHandleCreateWithAggregateDataDependencyRecordsFailed() throws Exception {
 		stubHappyPathThroughCreateIndex();
 		stubSourceLock();
-		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("100");
+		sourceSnapshot.getIndexDescription().setDependencies(List.of(
+				new SourceDependency().setObjectId("syn800").setTableType(TableType.entityview.name())));
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
 		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
 		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName())))).thenReturn(NAME_COLUMN);
-		IndexAuthorizationSnapshot searchIndexSnapshot = tableSnapshot("100");
-		searchIndexSnapshot.getIndexDescription().setDependencies(List.of(
-				new SourceDependency().setObjectId("syn800").setTableType(TableType.entityview.name())));
-		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(SOURCE_SNAPSHOT), eq(DEFINING_SQL),
-				eq(List.of(NAME_COLUMN)), any(SchemaProvider.class))).thenReturn(searchIndexSnapshot);
 		when(tableManagerSupport.getAggregateDataConfiguration("syn789")).thenReturn(Optional.empty());
 		when(tableManagerSupport.getAggregateDataConfiguration("syn800"))
 				.thenReturn(Optional.of(new AggregateDataConfiguration().setSuppressionThreshold(5L)));
@@ -1208,12 +1196,9 @@ public class SearchIndexLifecycleManagerImplTest {
 				.setDependencies(List.of(new SourceDependency().setObjectId("syn10").setTableType(TableType.table.name())))
 				.setDefiningSql("SELECT * FROM syn10");
 		IndexAuthorizationSnapshot sourceSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
-		IndexAuthorizationSnapshot searchIndexSnapshot = tableSnapshot("703").setIndexDescription(mvDescription);
 		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(sourceSnapshot));
 		when(tableManagerSupport.getColumnModel("703")).thenReturn(studyColumn);
 		when(columnModelManager.createColumnModel(argThat(cm -> "studyId".equals(cm.getName())))).thenReturn(studyColumn);
-		when(indexAuthorizationSnapshotManager.buildSearchIndexSnapshot(eq(sourceSnapshot), eq(DEFINING_SQL),
-				eq(List.of(studyColumn)), any(SchemaProvider.class))).thenReturn(searchIndexSnapshot);
 		when(tableManagerSupport.getAggregateDataConfiguration("syn789")).thenReturn(Optional.empty());
 		doAnswer(invocation -> {
 			RowHandler handler = invocation.getArgument(1);
@@ -1225,7 +1210,7 @@ public class SearchIndexLifecycleManagerImplTest {
 		manager.handleCreate(progressCallback, ENTITY_ID);
 
 		verify(openSearchManager).createIndex(eq("search-index-" + ENTITY_ID + "-a"), eq(List.of(studyColumn)),
-				any(), any(), any(), eq(List.of("SNAPSHOT_BENEFACTOR_0", "SNAPSHOT_BENEFACTOR_1")), anyInt(), anyInt(), eq(searchIndexSnapshot));
+				any(), any(), any(), eq(List.of("SNAPSHOT_BENEFACTOR_0", "SNAPSHOT_BENEFACTOR_1")), anyInt(), anyInt(), eq(sourceSnapshot));
 		ArgumentCaptor<TranslatedQuery> queryCaptor = ArgumentCaptor.forClass(TranslatedQuery.class);
 		verify(indexDao).queryAsStream(queryCaptor.capture(), any());
 		assertEquals("SELECT _C703_, SNAPSHOT_BENEFACTOR_0, SNAPSHOT_BENEFACTOR_1, ROW_ID, ROW_VERSION FROM T789",

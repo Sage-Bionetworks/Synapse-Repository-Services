@@ -9,7 +9,8 @@ OpenSearch-backed search: index lifecycle/build, the query surface, and DSL vali
 - **Endpoint is discovered via `describeDomain`**, not injected from config — code must resolve it at runtime.
 - **Shard count is computed from the source table's byte size** at build time (clamped to a max), so index topology tracks data size.
 - **The source's as-built `IndexAuthorizationSnapshot` is the build's single source of truth.** `buildIndex` holds a non-exclusive lock on the direct source from reading its snapshot through the end of row streaming, translates the defining SQL against a `SchemaProvider` that resolves the source's schema from the snapshot's column ids (so `select *` and column types match the rows streamed), and splices benefactor columns from the snapshot.
-- **Each physical slot carries its own snapshot in its mapping `_meta`** (`OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY`), written by `createIndex` into the idle slot before the alias swap. The live slot's `_meta` is never modified. The snapshot is rooted at the source (`IndexAuthorizationSnapshotManager.buildSearchIndexSnapshot`), with lineage flattened through the source's snapshot.
+- **Each physical slot carries its own snapshot in its mapping `_meta`** (`OpenSearchManagerImpl.AUTHORIZATION_SNAPSHOT_META_KEY`), written by `createIndex` into the idle slot before the alias swap. The live slot's `_meta` is never modified. The stored snapshot is the source's own as-built snapshot, unchanged; its lineage describes the source's columns, not the SearchIndex's.
+The slot's output columns are stored separately under `COLUMN_IDS_META_KEY`, in select-list order — the mapping's properties cannot stand in, because OpenSearch returns them sorted by name.
 - **A source with an AGGREGATE_DATA object anywhere in its snapshot closure fails the build**, because a per-row search document cannot honor aggregate-only release.
 
 ## Row-level access control

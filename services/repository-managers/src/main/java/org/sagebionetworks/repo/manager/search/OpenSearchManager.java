@@ -55,10 +55,11 @@ public interface OpenSearchManager {
 	 *                                 time from the source table's data size.
 	 * @param numberOfReplicas         The number of replica shards for the index (1 on prod, 0 on the
 	 *                                 single-node dev domain).
-	 * @param snapshot                 The as-built {@link IndexAuthorizationSnapshot} the index is built
-	 *                                 with. Stored in the index's mapping {@code _meta} so
-	 *                                 {@link #getLiveIndex(String)} can read it back alongside the
-	 *                                 physical index it describes. Required.
+	 * @param snapshot                 The as-built {@link IndexAuthorizationSnapshot} of the source the
+	 *                                 index is built from. Stored in the index's mapping {@code _meta},
+	 *                                 together with the ids of {@code columns} in order, so
+	 *                                 {@link #getLiveIndex(String)} can read both back alongside the
+	 *                                 physical index they describe. Required.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
@@ -95,13 +96,14 @@ public interface OpenSearchManager {
 	Optional<String> getAliasTarget(String aliasName);
 
 	/**
-	 * The physical index a query alias currently points at, together with the
-	 * {@link IndexAuthorizationSnapshot} that physical index was built with.
+	 * The physical index a query alias currently points at, together with the source
+	 * {@link IndexAuthorizationSnapshot} and the output columns that physical index was built with.
 	 *
 	 * @param physicalIndex The concrete index name behind the alias.
-	 * @param snapshot      The as-built authorization snapshot stored in that index's mapping metadata.
+	 * @param snapshot      The source's as-built authorization snapshot stored in that index's mapping metadata.
+	 * @param columnIds     The ids of the index's output columns, in select-list order.
 	 */
-	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot) {
+	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds) {
 	}
 
 	/**
