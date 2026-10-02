@@ -5,6 +5,10 @@
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
 			"description": "<p>Required. The <a href=\"https://docs.opensearch.org/latest/query-dsl/\">OpenSearch query DSL</a> clause. Use <a href=\"https://docs.opensearch.org/latest/query-dsl/match-all/\"><code>{\"match_all\":{}}</code></a> to match all documents. See <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a> for the full set of supported clause kinds, and <a href=\"https://docs.opensearch.org/latest/query-dsl/query-filter-context/\">query vs. filter context</a>.</p>"
 		},
+		"search_pipeline": {
+			"type": "object",
+			"description": "<p>Optional. The <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/index/\">search pipeline</a> that normalizes and combines the per-clause scores of a <code>hybrid</code> query. Either a reference to a saved <a href=\"${org.sagebionetworks.repo.model.search.table.NamedSearchPipeline}\">NamedSearchPipeline</a> written as <code>{\"$ref\": \"{organizationName}-{name}\"}</code>, or an inline <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">SearchPipeline</a> literal.</p>"
+		},
 		"post_filter": {
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
 			"description": "Optional. Same DSL shape as <code>query</code> (see <a href=\"${org.sagebionetworks.repo.model.search.dsl.Query}\">Query</a>), applied <i>after</i> aggregations are computed. For the distinction between filtering hits and filtering aggregations, see <a href=\"https://docs.opensearch.org/latest/query-dsl/query-filter-context/\">query vs. filter context</a>."

@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 
 /**
  * Build-time guard for {@link SearchDslValidator}'s schema-guided opaque-leaf gate: fails the
- * build the moment a new {@code "type":"object"} leaf appears anywhere under the {@code dsl.Query}
- * or {@code dsl.Aggregation} schema without an explicit accounting here.
+ * build the moment a new {@code "type":"object"} leaf appears anywhere under the {@code dsl.Query},
+ * {@code dsl.Aggregation} or {@code dsl.SearchPipeline} schema without an explicit accounting here.
  *
  * <p>Every opaque leaf is scalar-enforced by default (see {@link SearchDslValidator}), so a newly
  * added leaf needs no code change to be safely rejected if non-scalar. This test exists purely so
@@ -93,5 +95,11 @@ public class SearchDslOpaqueLeafCoverageTest {
 		// call under test
 		assertEquals(KNOWN_AGGREGATION_LEAVES,
 				SearchDslValidator.collectOpaqueLeafKeys(SearchDslValidator.AGGREGATION_SCHEMA));
+	}
+
+	@Test
+	public void testSearchPipelineSchemaOpaqueLeavesMatchKnownSet() {
+		// call under test
+		assertEquals(Set.of(), SearchDslValidator.collectOpaqueLeafKeys(SchemaCache.getSchema(SearchPipeline.class)));
 	}
 }
