@@ -7,7 +7,7 @@
 	],
 	"properties": {
 		"query": {
-			"description": "Results from this view query will be added to the user's download list.  This parameter should be excluded when adding files from a folder.",
+			"description": "Results from this view query will be added to the user's download list. When a result row references a Dataset, the files contained in that dataset are added as well. Rows referencing any other entity type are ignored. This parameter should be excluded when adding files from a folder.",
 			"$ref": "org.sagebionetworks.repo.model.table.Query"
 		},
 		"parentId": {
@@ -15,11 +15,11 @@
 			"type": "string"
 		},
 		"recursive": {
-			"description": "When the parentId is specified and this property is set to true all the files in a folder or project will be added to the user's download list, including files contained in sub-folders. When set to false (default) only the direct children of the provided parentId will be added to the download list. Note: the property cannot be true when a query is specified or when the parentId is a dataset.",
+			"description": "When the parentId is specified and this property is set to true all the files in a folder or project will be added to the user's download list, including files contained in sub-folders. When set to false (default) only the direct children of the provided parentId will be added to the download list. Note: the property cannot be true when a query is specified, since files contained in any Dataset referenced by the query results are always added regardless of this flag, or when the parentId is a dataset.",
 			"type": "boolean"
 		},
 		"useVersionNumber": {
-			"description": "When true (default), the version number will be included for each file added to the user's download list.  When set to false, the version number will be excluded, indicating that the 'current' version should always be downloaded.",
+			"description": "When true (default), the version number will be included for each file added to the user's download list.  When set to false, the version number will be excluded, indicating that the 'current' version should always be downloaded. Note: this does not apply to files contributed by a Dataset (whether the dataset is referenced by parentId or appears in a query result) or by a DatasetCollection referenced by parentId. Those files are always added at the specific version recorded in the dataset's items.",
 			"type": "boolean"
 		}
 	}
