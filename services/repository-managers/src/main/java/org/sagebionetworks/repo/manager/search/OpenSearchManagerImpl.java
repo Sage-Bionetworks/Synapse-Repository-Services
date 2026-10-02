@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.search.SearchHit;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
@@ -1346,8 +1347,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	@Override
 	public SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
 			Set<SearchQueryPart> options,
-			List<Query> accessFilters) {
-		return executeSearch(indexName, body, columns, options, DEFAULT_LIMIT, MAX_LIMIT, false, accessFilters);
+			List<Query> accessFilters, String semanticModelId, SearchPipeline savedPipeline) {
+		return executeSearch(indexName, body, columns, options, DEFAULT_LIMIT, MAX_LIMIT, false, accessFilters,
+				semanticModelId, savedPipeline);
 	}
 
 	@Override
@@ -1357,7 +1359,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		// Autocomplete does not accept a caller-supplied size; force the server cap as both
 		// default and ceiling.
 		return executeSearch(indexName, body, columns, options,
-				AUTOCOMPLETE_MAX_LIMIT, AUTOCOMPLETE_MAX_LIMIT, true, accessFilters);
+				AUTOCOMPLETE_MAX_LIMIT, AUTOCOMPLETE_MAX_LIMIT, true, accessFilters, null, null);
 	}
 
 	// ---- Private helpers ----
@@ -1389,7 +1391,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	@SuppressWarnings("rawtypes")
 	SearchQueryResults executeSearch(String indexName, Object body, List<ColumnModel> columns,
 			Set<SearchQueryPart> options, int defaultSize, int maxSize, boolean autocomplete,
-			List<Query> accessFilters) {
+			List<Query> accessFilters, String semanticModelId, SearchPipeline savedPipeline) {
 		Map<String, String> idToName = columns.stream()
 				.collect(Collectors.toMap(ColumnModel::getId, ColumnModel::getName, (a2, b) -> a2));
 		SearchFieldRewriter.RoutingContext ctx = routingContextFor(columns);
@@ -1398,32 +1400,60 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				// Timeout defines when incomplete results should be returned, giving
 				// a 10s grace period before requests are canceled (cancel_after_time_interval).
 				.timeout("50s");
-		int from = autocomplete
-				? SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
-						body, ctx, req, options, defaultSize, accessFilters)
+		SearchOpaqueJsonUtil.AppliedBody applied = autocomplete
+				? new SearchOpaqueJsonUtil.AppliedBody(SearchOpaqueJsonUtil.applyAutocompleteBodyToRequest(
+						body, ctx, req, options, defaultSize, accessFilters), null, null)
 				: SearchOpaqueJsonUtil.applyBodyToRequest(
-						body, ctx, req, options, defaultSize, maxSize, accessFilters);
+						body, ctx, req, options, defaultSize, maxSize, accessFilters, semanticModelId, savedPipeline);
 		JsonpMapper mapper = openSearchClient._transport().jsonpMapper();
 		try (Response response = openSearchClient.generic().execute(Requests.builder()
 				.method("POST")
 				.endpoint("/" + indexName + "/_search")
 				.query(SEARCH_QUERY_PARAMETERS)
-				.json(req.build(), mapper)
+				.json(searchRequestBody(req.build(), applied))
 				.build())) {
 			if (response.getStatus() >= 400) {
 				throw new OpenSearchException(readErrorResponse(response, mapper));
 			}
 			SearchResponse<Map> searchResponse = Bodies.json(response.getBody().orElseThrow(),
 					SEARCH_RESPONSE_DESERIALIZER, mapper);
-			return convertResponse(searchResponse, indexName, from, idToName, options);
+			return convertResponse(searchResponse, indexName, applied.from(), idToName, options);
 		} catch (OpenSearchException e) {
 			if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
 				throw new IllegalStateException("Search index is still building. Please try again later.", e);
+			}
+			// The validator cannot anticipate every rejection (e.g. a field type mismatch);
+			// OpenSearch's message is the more specific one for the caller.
+			if (e.status() == 400) {
+				throw new IllegalArgumentException(describeError(e.error()), e);
 			}
 			throw new RuntimeException("Failed to execute search on search index: " + indexName
 					+ " (" + describeError(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to execute search on search index: " + indexName, e);
+		}
+	}
+
+	/**
+	 * The JSON body of a search request. The typed client has no {@code search_pipeline} body key
+	 * and no {@code hybrid.min_score}, so both are spliced into the serialized request.
+	 */
+	static String searchRequestBody(SearchRequest request, SearchOpaqueJsonUtil.AppliedBody applied) {
+		String json = request.toJsonString();
+		if (applied.searchPipeline() == null && applied.hybridMinScore() == null) {
+			return json;
+		}
+		try {
+			ObjectNode root = (ObjectNode) FIELD_VALUE_MAPPER.readTree(json);
+			if (applied.searchPipeline() != null) {
+				root.set("search_pipeline", applied.searchPipeline());
+			}
+			if (applied.hybridMinScore() != null) {
+				((ObjectNode) root.get("query").get("hybrid")).set("min_score", applied.hybridMinScore());
+			}
+			return FIELD_VALUE_MAPPER.writeValueAsString(root);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException(e);
 		}
 	}
 

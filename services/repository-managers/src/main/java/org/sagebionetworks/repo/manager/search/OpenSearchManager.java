@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -189,6 +190,10 @@ public interface OpenSearchManager {
 	 * enforces row-level benefactor access control; a benefactor-less source passes an empty
 	 * list, applying no row filter.</p>
 	 *
+	 * <p>A {@code hybrid} body is sent with its resolved search pipeline: an inline
+	 * {@code body.search_pipeline}, else {@code savedPipeline}, else min_max normalization with an
+	 * arithmetic mean of equal weights.</p>
+	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchQuery} envelope; each slot's contents are the
 	 *                   opaque OpenSearch DSL.
@@ -196,17 +201,22 @@ public interface OpenSearchManager {
 	 * @param options    The response options requested; must be non-null and non-empty.
 	 * @param accessFilters Pre-built OpenSearch filter queries (e.g. one benefactor
 	 *                      {@code terms} clause per source dependency). Must not be null.
+	 * @param semanticModelId The deployed embedding model id stamped on each neural clause, or null
+	 *                        when the index has no semantic field (neural clauses are then dropped).
+	 * @param savedPipeline The saved pipeline settings resolved for a hybrid body, or null.
 	 * @return The search results — only fields corresponding to requested options are populated.
+	 * @throws IllegalArgumentException if the body is invalid or OpenSearch rejects it.
 	 */
 	SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options, List<Query> accessFilters);
+			Set<SearchQueryPart> options, List<Query> accessFilters, String semanticModelId,
+			SearchPipeline savedPipeline);
 
 	/**
 	 * Execute an autocomplete query against the OpenSearch index. The body's allowlist is
 	 * narrowed to the autocomplete subset (prefix-flavored {@code query} plus optional
 	 * {@code _source}); page size is capped at the autocomplete server-side limit. The
 	 * {@code accessFilters} are AND-ed with the caller's query exactly as in
-	 * {@link #search(String, SearchQuery, List, Set, List)}.
+	 * {@link #search(String, SearchQuery, List, Set, List, String, SearchPipeline)}.
 	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchAutocompleteBody} envelope.

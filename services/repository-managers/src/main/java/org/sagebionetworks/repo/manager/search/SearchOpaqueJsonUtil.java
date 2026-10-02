@@ -27,6 +27,7 @@ import org.opensearch.client.opensearch._types.FieldValue;
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.SortOrder;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
+import org.opensearch.client.opensearch._types.query_dsl.HybridQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.search.FieldCollapse;
@@ -239,6 +240,9 @@ public final class SearchOpaqueJsonUtil {
 	 * the caller's query, so a document must satisfy both the query and every filter. A
 	 * benefactor-less source passes an empty list, applying no access filter.</p>
 	 *
+	 * <p>A {@code hybrid} body becomes the request's root query instead; see
+	 * {@link #buildHybridQuery} and {@link #resolveSearchPipeline}.</p>
+	 *
 	 * @param opaque       the caller's body, in any of the shapes {@link #parse(Object)} accepts
 	 * @param ctx          the column-name &rarr; column-id routing context for the target index
 	 * @param req          the target {@link SearchRequest.Builder} (mutated in place)
@@ -246,13 +250,35 @@ public final class SearchOpaqueJsonUtil {
 	 * @param defaultSize  default {@code size} when the body omits it
 	 * @param maxSize      upper bound on {@code size}; larger values clamp
 	 * @param accessFilters server-side access-control filters to AND with the query; must not be null
-	 * @return             the effective {@code from} written to {@code req} (echoed back to
-	 *                     the caller as {@code SearchQueryResults.offset})
+	 * @param semanticModelId the embedding model to place on every {@code neural} clause, or
+	 *                     {@code null} when the index has no semantic field and every {@code neural}
+	 *                     clause is dropped
+	 * @param savedPipeline the saved search pipeline a {@code hybrid} body runs with when it carries
+	 *                     no inline one: the target of its {@code $ref}, else the index's default;
+	 *                     {@code null} for the system default
 	 */
-	static int applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
+	static AppliedBody applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
 			SearchRequest.Builder req, Set<SearchQueryPart> options,
-			int defaultSize, int maxSize, List<Query> accessFilters) {
-		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, maxSize, false, accessFilters);
+			int defaultSize, int maxSize, List<Query> accessFilters, String semanticModelId,
+			SearchPipeline savedPipeline) {
+		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, maxSize, false, accessFilters,
+				semanticModelId, savedPipeline);
+	}
+
+	/**
+	 * What {@link #applyBodyToRequest} hands back to the transport.
+	 *
+	 * @param from           the effective {@code from} written to {@code req}, echoed to the caller
+	 *                       as {@code SearchQueryResults.offset}
+	 * @param searchPipeline the {@code search_pipeline} block to splice into the request body, or
+	 *                       {@code null} for a non-hybrid body. The typed client only names a
+	 *                       registered pipeline, as a query parameter, so an inline one travels
+	 *                       separately.
+	 * @param hybridMinScore the caller's {@code hybrid.min_score}, or {@code null}. The typed
+	 *                       client's {@code HybridQuery} has no {@code min_score} property, so it
+	 *                       travels separately to be spliced into {@code query.hybrid.min_score}.
+	 */
+	record AppliedBody(int from, JsonNode searchPipeline, JsonNode hybridMinScore) {
 	}
 
 	/**
@@ -263,28 +289,42 @@ public final class SearchOpaqueJsonUtil {
 	static int applyAutocompleteBodyToRequest(Object opaque,
 			SearchFieldRewriter.RoutingContext ctx, SearchRequest.Builder req,
 			Set<SearchQueryPart> options, int defaultSize, List<Query> accessFilters) {
-		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, defaultSize, true, accessFilters);
+		return applyBodyToRequest(opaque, ctx, req, options, defaultSize, defaultSize, true, accessFilters,
+				null, null).from();
 	}
 
-	private static int applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
+	private static AppliedBody applyBodyToRequest(Object opaque, SearchFieldRewriter.RoutingContext ctx,
 			SearchRequest.Builder req, Set<SearchQueryPart> options,
-			int defaultSize, int maxSize, boolean autocomplete, List<Query> accessFilters) {
+			int defaultSize, int maxSize, boolean autocomplete, List<Query> accessFilters,
+			String semanticModelId, SearchPipeline savedPipeline) {
 		// The body is the generated SearchQuery / SearchAutocompleteBody POJO, so any key outside the
 		// schema was already rejected with HTTP 400 at the request boundary, and each surface with an
 		// opaque slot is forbidden-key scanned individually as it is parsed below.
 		JsonNode body = parse(opaque);
+		List<Query> filters = accessFilters == null ? Collections.emptyList() : accessFilters;
 
-		Query query = parseRequiredQuery(body, ctx, autocomplete);
-		// Wrap the caller's allowlist-validated query in a server-controlled bool: the caller's
-		// query goes in must, and every server-side access-control filter goes in filter (AND
-		// semantics) so a document must satisfy the query and every benefactor filter.
-		req.query(q -> q.bool(b -> {
-			b.must(query);
-			if (accessFilters != null && !accessFilters.isEmpty()) {
-				b.filter(accessFilters);
-			}
-			return b;
-		}));
+		JsonNode hybrid = null;
+		if (!autocomplete) {
+			SearchDslValidator.validateTopLevelQueryChoice(body);
+			hybrid = nodeOrNull(body, "hybrid");
+		}
+		boolean hybridRelevanceRanked = hybrid != null && SearchDslValidator.isRelevanceRanked(body);
+		JsonNode searchPipeline = null;
+		JsonNode hybridMinScore = null;
+		if (hybrid != null) {
+			List<Integer> sentPositions = sentClausePositions(hybrid, semanticModelId);
+			searchPipeline = resolveSearchPipeline(nodeOrNull(body, "search_pipeline"),
+					savedPipeline == null ? null : parse(savedPipeline), hybrid.get("queries").size(), sentPositions);
+			hybridMinScore = nodeOrNull(hybrid, "min_score");
+			((ObjectNode) hybrid).remove("min_score");
+			req.query(buildHybridQuery(hybrid, sentPositions, ctx, filters, semanticModelId, hybridRelevanceRanked));
+		} else {
+			Query query = parseRequiredQuery(body, ctx, autocomplete);
+			// Wrap the caller's allowlist-validated query in a server-controlled bool: the caller's
+			// query goes in must, and every server-side access-control filter goes in filter (AND
+			// semantics) so a document must satisfy the query and every benefactor filter.
+			req.query(wrapWithAccessFilters(query, filters));
+		}
 
 		if (!autocomplete) {
 			JsonNode postFilter = body.get("post_filter");
@@ -303,6 +343,10 @@ public final class SearchOpaqueJsonUtil {
 		boolean usingCursor = !searchAfter.isEmpty();
 		int from = usingCursor ? 0 : SearchDslValidator.resolveFrom(body);
 		int size = SearchDslValidator.resolveSize(body, defaultSize, maxSize);
+		if (hybridRelevanceRanked) {
+			SearchDslValidator.validateHybridPageDepth(from, size);
+			SearchDslValidator.validateHybridSearchAfter(usingCursor);
+		}
 
 		req.from(from);
 		req.size(returnHits ? size : 0);
@@ -336,7 +380,238 @@ public final class SearchOpaqueJsonUtil {
 				}
 			}
 		}
-		return from;
+		return new AppliedBody(from, searchPipeline, hybridMinScore);
+	}
+
+	private static Query wrapWithAccessFilters(Query query, List<Query> filters) {
+		return Query.of(q -> q.bool(b -> {
+			b.must(query);
+			if (!filters.isEmpty()) {
+				b.filter(filters);
+			}
+			return b;
+		}));
+	}
+
+	/** The value at {@code key}, or {@code null} when the key is absent or explicitly JSON null. */
+	static JsonNode nodeOrNull(JsonNode body, String key) {
+		JsonNode node = body.get(key);
+		return (node == null || node.isNull()) ? null : node;
+	}
+
+	// ---------- hybrid query ----------
+
+	/**
+	 * The pipeline a hybrid query runs with when neither the request nor the index supplies one.
+	 * Carries no {@code weights}, so OpenSearch weights every clause it receives equally.
+	 */
+	private static final JsonNode SYSTEM_DEFAULT_PIPELINE = parse("""
+			{"phase_results_processors": [{"normalization-processor": {
+				"normalization": {"technique": "min_max"},
+				"combination": {"technique": "arithmetic_mean"}}}]}""");
+
+	/**
+	 * The positions in {@code hybrid.queries} of the clauses sent to OpenSearch, in order. Every
+	 * clause is sent, except that a {@code neural} clause is dropped when {@code semanticModelId} is
+	 * {@code null}: the index has no semantic field, so the query is answered by its other clauses.
+	 *
+	 * @throws IllegalArgumentException when the clause count is out of range, a {@code neural}
+	 *         clause names an unknown vector field, or every clause would be dropped
+	 */
+	static List<Integer> sentClausePositions(JsonNode hybrid, String semanticModelId) {
+		JsonNode queries = hybrid.get("queries");
+		SearchDslValidator.validateHybridClauseCount(queries);
+		List<Integer> sent = new ArrayList<>(queries.size());
+		for (int i = 0; i < queries.size(); i++) {
+			if (!SearchDslValidator.isNeuralClause(queries.get(i)) || semanticModelId != null) {
+				sent.add(i);
+			}
+		}
+		if (sent.isEmpty()) {
+			throw new IllegalArgumentException("every clause of body.hybrid.queries is a neural clause, but"
+					+ " this search index has no semantic field. Flag at least one column 'semantic' in its"
+					+ " search configuration, or add a keyword clause.");
+		}
+		return sent;
+	}
+
+	/**
+	 * The {@code search_pipeline} block a hybrid request runs with, narrowed to the clauses sent.
+	 *
+	 * <p>An inline request pipeline was authored against the request's own clauses, so it is used
+	 * as given, and its weights and bounds are left for OpenSearch to check against them. Otherwise
+	 * the saved pipeline is used, falling back to the system default; a saved pipeline holds
+	 * {@link SearchDslValidator#MAX_HYBRID_QUERIES} weights and bounds because it cannot know the
+	 * clause count of the queries that will use it.</p>
+	 *
+	 * <p>Either way, each weights or bounds array keeps only the entries at the positions of the
+	 * clauses sent, and the kept weights are rescaled to sum to 1.0, as OpenSearch requires one entry
+	 * per clause and weights that sum to 1.0. Absent arrays stay absent.</p>
+	 *
+	 * @param requestPipeline the body's {@code search_pipeline}, or {@code null}
+	 * @param savedPipeline   the saved pipeline, or {@code null} for the system default
+	 * @param clauseCount     the number of clauses in {@code hybrid.queries}
+	 * @param sentPositions   the positions of the clauses sent, from {@link #sentClausePositions}
+	 * @throws IllegalArgumentException when an inline pipeline is malformed, or the clauses sent
+	 *         leave weights that sum to 0
+	 */
+	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline, int clauseCount,
+			List<Integer> sentPositions) {
+		if (requestPipeline != null && readRef(requestPipeline) == null) {
+			toInlineSearchPipeline(requestPipeline, "body.search_pipeline");
+			if (sentPositions.size() == clauseCount) {
+				return requestPipeline;
+			}
+			// Dropped clauses leave entries OpenSearch would count against the clauses sent.
+			JsonNode narrowed = requestPipeline.deepCopy();
+			narrowToSentClauses(narrowed, clauseCount, sentPositions);
+			return narrowed;
+		}
+		// Copied so the weights can be rewritten without touching the shared system default.
+		JsonNode resolved = (savedPipeline == null ? SYSTEM_DEFAULT_PIPELINE : savedPipeline).deepCopy();
+		narrowToSentClauses(resolved, SearchDslValidator.MAX_HYBRID_QUERIES, sentPositions);
+		return resolved;
+	}
+
+	private static void narrowToSentClauses(JsonNode pipeline, int entryCount, List<Integer> sentPositions) {
+		for (JsonNode processor : pipeline.path("phase_results_processors")) {
+			JsonNode normalizationProcessor = processor.path("normalization-processor");
+			JsonNode normalizationParameters = normalizationProcessor.path("normalization").path("parameters");
+			selectPositions(normalizationParameters, "lower_bounds", entryCount, sentPositions, false);
+			selectPositions(normalizationParameters, "upper_bounds", entryCount, sentPositions, false);
+			selectPositions(normalizationProcessor.path("combination").path("parameters"), "weights", entryCount,
+					sentPositions, true);
+		}
+	}
+
+	/**
+	 * Replace {@code parameters[key]}, when present, with its entries at {@code sentPositions},
+	 * rescaled to sum to 1.0 when {@code rescale}.
+	 */
+	private static void selectPositions(JsonNode parameters, String key, int entryCount, List<Integer> sentPositions,
+			boolean rescale) {
+		JsonNode entries = parameters.get(key);
+		if (entries == null || !entries.isArray()) {
+			return;
+		}
+		if (entries.size() != entryCount) {
+			throw new IllegalArgumentException("the search pipeline's " + key + " must hold exactly " + entryCount
+					+ " entries; found " + entries.size());
+		}
+		com.fasterxml.jackson.databind.node.ArrayNode selected = arrayNode();
+		for (int position : sentPositions) {
+			selected.add(entries.get(position));
+		}
+		((ObjectNode) parameters).set(key, rescale ? rescaleToUnitSum(selected) : selected);
+	}
+
+	private static com.fasterxml.jackson.databind.node.ArrayNode rescaleToUnitSum(
+			com.fasterxml.jackson.databind.node.ArrayNode weights) {
+		double total = 0.0;
+		for (JsonNode weight : weights) {
+			total += weight.asDouble();
+		}
+		if (total <= 0.0) {
+			throw new IllegalArgumentException("the search pipeline's weights for the clauses of this query"
+					+ " sum to 0, leaving no way to weight them");
+		}
+		com.fasterxml.jackson.databind.node.ArrayNode rescaled = arrayNode();
+		for (JsonNode weight : weights) {
+			rescaled.add(weight.asDouble() / total);
+		}
+		return rescaled;
+	}
+
+	/**
+	 * Build the {@code hybrid} clause that becomes the request's root query from the clauses at
+	 * {@code sentPositions}. The clause is never wrapped in another query: OpenSearch rejects a
+	 * hybrid clause nested in most compounds, and for the few it accepts it silently ignores the
+	 * search pipeline.
+	 *
+	 * <p>Access filters are applied twice &mdash; AND-ed into {@code hybrid.filter}, which
+	 * pre-filters every clause including the vector search, and again inside each clause. Either
+	 * placement alone is sufficient, so no single slot is the only thing enforcing row-level access.
+	 * A caller's own {@code hybrid.filter} is AND-ed with them rather than replaced.</p>
+	 *
+	 * <p>{@code pagination_depth} is set only when ranking by relevance; see
+	 * {@link SearchDslValidator#HYBRID_PAGINATION_DEPTH}.</p>
+	 */
+	private static Query buildHybridQuery(JsonNode hybridNode, List<Integer> sentPositions,
+			SearchFieldRewriter.RoutingContext ctx, List<Query> accessFilters, String semanticModelId,
+			boolean relevanceRanked) {
+		JsonNode queries = hybridNode.get("queries");
+		com.fasterxml.jackson.databind.node.ArrayNode sent = arrayNode();
+		for (int position : sentPositions) {
+			sent.add(queries.get(position));
+		}
+		((ObjectNode) hybridNode).set("queries", sent);
+		SearchDslValidator.validateHybridLeafShapes(hybridNode);
+		SearchFieldRewriter.rewriteRequestFields(hybridNode, ctx, SearchFieldRewriter.Surface.QUERY);
+		HybridQuery hybrid = fromJsonpTree(hybridNode, HybridQuery._DESERIALIZER);
+		SearchDslValidator.validateHybrid(hybrid);
+
+		List<Query> hybridFilters = new ArrayList<>();
+		if (hybrid.filter() != null) {
+			hybridFilters.add(hybrid.filter());
+		}
+		hybridFilters.addAll(accessFilters);
+		Query combinedFilter = andFilters(hybridFilters);
+		List<Query> clauses = new ArrayList<>(hybrid.queries().size());
+		for (Query clause : hybrid.queries()) {
+			clauses.add(applyClauseFilters(clause, accessFilters, semanticModelId));
+		}
+		return Query.of(q -> q.hybrid(h -> {
+			h.queries(clauses);
+			if (combinedFilter != null) {
+				h.filter(combinedFilter);
+			}
+			if (relevanceRanked) {
+				h.paginationDepth(SearchDslValidator.HYBRID_PAGINATION_DEPTH);
+			}
+			return h;
+		}));
+	}
+
+	/**
+	 * Push the access filters into one hybrid clause, and place the platform's embedding model on
+	 * a {@code neural} clause.
+	 *
+	 * <p>A {@code neural} clause carries them in {@code neural.filter}, where OpenSearch pre-filters
+	 * the vector search so the candidates are drawn from the readable subset; the caller's own filter
+	 * is AND-ed with them in a single conjunction, since {@code NeuralQuery.Builder.filter} is a plain
+	 * setter. Any other clause is wrapped in a {@code bool} whose {@code must} holds the clause, which
+	 * leaves its score untouched.</p>
+	 *
+	 * <p>{@code model_id} is a platform value rather than caller input, so a stale id cannot score
+	 * against an incompatible embedding space.</p>
+	 */
+	private static Query applyClauseFilters(Query clause, List<Query> accessFilters, String semanticModelId) {
+		if (clause.isNeural()) {
+			List<Query> neuralFilters = new ArrayList<>();
+			if (clause.neural().filter() != null) {
+				neuralFilters.add(clause.neural().filter());
+			}
+			neuralFilters.addAll(accessFilters);
+			return Query.of(q -> q.neural(clause.neural().toBuilder()
+					.modelId(semanticModelId)
+					.filter(andFilters(neuralFilters))
+					.build()));
+		}
+		if (accessFilters.isEmpty()) {
+			return clause;
+		}
+		return Query.of(q -> q.bool(b -> b.must(clause).filter(accessFilters)));
+	}
+
+	/**
+	 * Combine filter clauses into one {@code bool} carrying them all in {@code filter}, or
+	 * {@code null} when there are none.
+	 */
+	private static Query andFilters(List<Query> filters) {
+		if (filters.isEmpty()) {
+			return null;
+		}
+		return Query.of(q -> q.bool(b -> b.filter(filters)));
 	}
 
 	static Query parseRequiredQuery(JsonNode body,
@@ -420,14 +695,16 @@ public final class SearchOpaqueJsonUtil {
 	 * {@code _geo_distance}, and {@code _doc} sort kinds are rejected by not being on the allowlist.
 	 *
 	 * <p>The sort ends in {@code _row_id asc} (see {@link #withRowIdTiebreak}) unless the body
-	 * carries a {@code rescore}, which OpenSearch will not combine with a non-relevance sort.</p>
+	 * carries a {@code rescore}, which OpenSearch will not combine with a non-relevance sort, or is a
+	 * relevance-ranked {@code hybrid} query, which OpenSearch will not sort by {@code _score} and
+	 * another key at once.</p>
 	 */
 	static List<SortOptions> parseSort(JsonNode body, SearchFieldRewriter.RoutingContext ctx) {
-		// "Cannot use [sort] option in conjunction with [rescore]": OpenSearch allows a rescoring
-		// query to sort by relevance only, so such a caller cannot be given the tiebreak and
-		// forfeits deterministic search_after paging.
-		JsonNode rescore = body.get("rescore");
-		boolean tiebreak = rescore == null || rescore.isNull();
+		// "Cannot use [sort] option in conjunction with [rescore]" for a rescoring query, and "_score
+		// sort criteria cannot be applied with any other criteria" for a hybrid one: such a caller
+		// cannot be given the tiebreak and forfeits deterministic search_after paging.
+		boolean relevanceRankedHybrid = nodeOrNull(body, "hybrid") != null && SearchDslValidator.isRelevanceRanked(body);
+		boolean tiebreak = nodeOrNull(body, "rescore") == null && !relevanceRankedHybrid;
 		JsonNode node = body.get("sort");
 		if (node == null || node.isNull() || (node.isArray() && node.isEmpty())) {
 			// Default: relevance descending. Mirrors the OpenSearch default sort when

@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.manager.search;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 
 /**
@@ -101,5 +103,15 @@ public class SearchDslOpaqueLeafCoverageTest {
 	public void testSearchPipelineSchemaOpaqueLeavesMatchKnownSet() {
 		// call under test
 		assertEquals(Set.of(), SearchDslValidator.collectOpaqueLeafKeys(SchemaCache.getSchema(SearchPipeline.class)));
+	}
+
+	@Test
+	public void testHybridQuerySchemaOpaqueLeavesMatchKnownSet() {
+		// Each clause is validated against the Query schema, which covers HybridClause#terms as Query#terms.
+		Set<String> expected = new HashSet<>(KNOWN_QUERY_LEAVES);
+		expected.add("HybridClause#terms");
+
+		// call under test
+		assertEquals(expected, SearchDslValidator.collectOpaqueLeafKeys(SchemaCache.getSchema(HybridQuery.class)));
 	}
 }

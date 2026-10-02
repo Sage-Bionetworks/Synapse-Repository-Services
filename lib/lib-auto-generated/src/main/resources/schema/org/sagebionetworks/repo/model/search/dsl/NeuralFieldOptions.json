@@ -1,0 +1,25 @@
+{
+	"description": "<p>The per-field options of a <a href=\"https://docs.opensearch.org/latest/query-dsl/specialized/neural/\"><code>neural</code></a> clause &mdash; semantic (vector) matching. The platform embeds <code>query_text</code> with its own registered model, so the caller supplies text rather than a vector; a caller-supplied raw vector is not accepted because there would be no way to detect an embedding-space mismatch.</p><p>At most one of <code>k</code>, <code>min_score</code>, and <code>max_distance</code> may be set.</p><p><code>filter</code> restricts the candidates of <i>this</i> clause, and is applied <a href=\"https://docs.opensearch.org/latest/vector-search/filter-search-knn/efficient-knn-filtering/\">during</a> the vector search rather than after it, so a selective filter still yields <code>k</code> results. Use it only when the semantic clause must draw from a narrower subset than the rest of the query: a narrowing meant for every clause belongs in <code>hybrid.filter</code>, which is combined with this filter rather than replacing it. Server-side access-control filters are AND-ed in here as well. Narrowing one clause also rescales it &mdash; each clause is normalized over its own returned candidates, so the best document within the subset takes the top normalized score however weak its absolute similarity.</p>",
+	"properties": {
+		"query_text": {
+			"type": "string",
+			"description": "Required. The query text from which to generate vector embeddings."
+		},
+		"k": {
+			"type": "integer",
+			"description": "Optional. The number of results returned by the k nearest neighbours search. Only one variable, either <code>k</code>, <code>min_score</code>, or <code>max_distance</code>, can be specified. If a variable is not specified, the default is <code>k</code> with a value of 10. A number in the range of 100 to 200 is recommended for datasets up to 10M documents; raising it beyond that increases latency without improving relevance."
+		},
+		"min_score": {
+			"type": "number",
+			"description": "Optional. The minimum score threshold for the search results. Only one variable, either <code>k</code>, <code>min_score</code>, or <code>max_distance</code>, can be specified. For more information, see <a href=\"https://docs.opensearch.org/latest/vector-search/specialized-operations/radial-search-knn/\">radial search</a>."
+		},
+		"max_distance": {
+			"type": "number",
+			"description": "Optional. The maximum distance threshold for the search results. Only one variable, either <code>k</code>, <code>min_score</code>, or <code>max_distance</code>, can be specified. For more information, see <a href=\"https://docs.opensearch.org/latest/vector-search/specialized-operations/radial-search-knn/\">radial search</a>."
+		},
+		"filter": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Optional. A clause every candidate of this clause must match, evaluated in filter context."
+		}
+	}
+}

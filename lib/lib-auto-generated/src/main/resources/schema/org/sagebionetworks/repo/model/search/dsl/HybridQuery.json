@@ -1,0 +1,20 @@
+{
+	"description": "<p>A <a href=\"https://docs.opensearch.org/latest/query-dsl/compound/hybrid/\"><code>hybrid</code></a> query &mdash; several independently-scored clauses whose scores are normalized onto a common scale and then combined, so keyword and semantic relevance can be blended meaningfully. Supplied as <code>SearchQuery.hybrid</code> rather than inside <code>query</code>, because OpenSearch requires a hybrid query to be the top-level query.</p><p>The scores are normalized and combined by <code>SearchQuery.search_pipeline</code>; when it is omitted, the search configuration's default search pipeline is used, and failing that <code>min_max</code> normalization with an <code>arithmetic_mean</code> combination of equally-weighted clauses.</p><p>Results are ranked by relevance unless <code>sort</code> names a column. Relevance-ranked pages are requested with <code>from</code> / <code>size</code> and are capped at <code>from + size &lt;= 10000</code>; <code>nextSearchAfter</code> is not emitted, and <code>search_after</code> is rejected. Sorting by a column instead switches to <code>search_after</code> paging with no depth cap.</p>",
+	"properties": {
+		"queries": {
+			"type": "array",
+			"description": "Required. An array of one or more <a href=\"${org.sagebionetworks.repo.model.search.dsl.HybridClause}\">query clauses</a> that are used to match documents. A document must match at least one query clause in order to be returned in the results. The documents' relevance scores from all query clauses are combined into one score by applying a search pipeline. The maximum number of query clauses is 5.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.dsl.HybridClause"
+			}
+		},
+		"filter": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Query",
+			"description": "Optional. A filter to apply to all the subqueries of the hybrid query. The filter must be a single query object. To apply multiple filter conditions, combine them in a Boolean query (<a href=\"https://docs.opensearch.org/latest/query-dsl/compound/bool/\">bool</a>). Server-side access-control filters are AND-ed into this slot. This is also the correct place for a caller's own filtering: <code>post_filter</code> runs after candidate selection and would starve a semantic clause of results."
+		},
+		"min_score": {
+			"type": "number",
+			"description": "Optional. Drop hits whose fused score &mdash; after normalization and combination &mdash; is below this value. Distinct from a leg's own <code>neural.min_score</code>, which bounds which candidates that leg contributes rather than the final combined score."
+		}
+	}
+}

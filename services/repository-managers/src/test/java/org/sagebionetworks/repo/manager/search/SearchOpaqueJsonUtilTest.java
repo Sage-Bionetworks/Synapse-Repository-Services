@@ -1147,7 +1147,7 @@ public class SearchOpaqueJsonUtilTest {
 		SearchRequest.Builder req =
 				new SearchRequest.Builder().index("test-index");
 		SearchOpaqueJsonUtil.applyBodyToRequest(json, nameOnly(Function.identity()), req, options,
-				APPLY_DEFAULT_SIZE, APPLY_MAX_SIZE, Collections.emptyList());
+				APPLY_DEFAULT_SIZE, APPLY_MAX_SIZE, Collections.emptyList(), null, null);
 		return req.build();
 	}
 
@@ -1426,5 +1426,279 @@ public class SearchOpaqueJsonUtilTest {
 		assertEquals(2, refs.size(), "duplicates across branches collapse");
 		assertTrue(refs.contains("org.sagebionetworks-X"));
 		assertTrue(refs.contains("org.sagebionetworks-Y"));
+	}
+
+	// ===================== hybrid =====================
+
+	private static final String MATCH_CLAUSE = "{\"match\":{\"title\":\"cancer\"}}";
+	private static final String NEURAL_CLAUSE =
+			"{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"query_text\":\"tumor\",\"k\":10}}}";
+	private static final Query BENEFACTOR_FILTER =
+			Query.of(q -> q.term(t -> t.field("benefactor").value(FieldValue.of(1))));
+
+	private static JsonNode hybridOf(String... clauses) {
+		return SearchOpaqueJsonUtil.parse("{\"queries\":[" + String.join(",", clauses) + "]}");
+	}
+
+	/** A pipeline whose normalization lower_bounds and combination weights hold the given entries. */
+	private static JsonNode pipelineWith(String lowerBounds, String weights) {
+		return SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"min_max\",\"parameters\":{\"lower_bounds\":" + lowerBounds + "}},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":" + weights + "}}}}]}");
+	}
+
+	private static final String FIVE_LOWER_BOUNDS = "[{\"mode\":\"apply\",\"min_score\":0.1},"
+			+ "{\"mode\":\"clip\",\"min_score\":0.2},{\"mode\":\"apply\",\"min_score\":0.3},"
+			+ "{\"mode\":\"apply\",\"min_score\":0.4},{\"mode\":\"apply\",\"min_score\":0.5}]";
+
+	private static List<Double> weightsOf(JsonNode pipeline) {
+		JsonNode weights = pipeline.get("phase_results_processors").get(0).get("normalization-processor")
+				.get("combination").get("parameters").get("weights");
+		return MAPPER.convertValue(weights, MAPPER.getTypeFactory().constructCollectionType(List.class, Double.class));
+	}
+
+	private static JsonNode lowerBoundsOf(JsonNode pipeline) {
+		return pipeline.get("phase_results_processors").get(0).get("normalization-processor")
+				.get("normalization").get("parameters").get("lower_bounds");
+	}
+
+	private static void assertWeights(List<Double> expected, List<Double> actual) {
+		assertEquals(expected.size(), actual.size());
+		for (int i = 0; i < expected.size(); i++) {
+			assertEquals(expected.get(i), actual.get(i), 1e-6);
+		}
+	}
+
+	@Test
+	public void testSentClausePositionsWithModelSendsEveryClause() {
+		// call under test
+		List<Integer> sent = SearchOpaqueJsonUtil.sentClausePositions(hybridOf(MATCH_CLAUSE, NEURAL_CLAUSE), "model-1");
+
+		assertEquals(List.of(0, 1), sent);
+	}
+
+	@Test
+	public void testSentClausePositionsWithoutModelDropsNeuralClauses() {
+		// call under test
+		List<Integer> sent = SearchOpaqueJsonUtil.sentClausePositions(
+				hybridOf(MATCH_CLAUSE, NEURAL_CLAUSE, MATCH_CLAUSE), null);
+
+		assertEquals(List.of(0, 2), sent);
+	}
+
+	@Test
+	public void testSentClausePositionsWithoutModelAndOnlyNeuralClausesThrows() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.sentClausePositions(hybridOf(NEURAL_CLAUSE, NEURAL_CLAUSE), null));
+
+		assertTrue(ex.getMessage().startsWith("every clause of body.hybrid.queries is a neural clause"), ex.getMessage());
+	}
+
+	@Test
+	public void testSentClausePositionsWithNeuralClauseOnUnknownFieldThrows() {
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> SearchOpaqueJsonUtil.sentClausePositions(
+				hybridOf("{\"neural\":{\"title\":{\"query_text\":\"tumor\"}}}"), "model-1"));
+	}
+
+	@Test
+	public void testSentClausePositionsWithSixClausesThrows() {
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.sentClausePositions(hybridOf(MATCH_CLAUSE, MATCH_CLAUSE, MATCH_CLAUSE,
+						MATCH_CLAUSE, MATCH_CLAUSE, MATCH_CLAUSE), "model-1"));
+
+		assertEquals("body.hybrid.queries must hold 1 to 5 clauses; found 6", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineAndOneClause() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 1, List.of(0));
+
+		assertEquals(List.of(1.0), weightsOf(resolved));
+		assertEquals(SearchOpaqueJsonUtil.parse("[{\"mode\":\"apply\",\"min_score\":0.1}]"), lowerBoundsOf(resolved));
+		// The saved pipeline itself is left untouched.
+		assertEquals(pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]"), saved);
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineSelectsSentPositions() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 3, List.of(0, 2));
+
+		assertWeights(List.of(0.625, 0.375), weightsOf(resolved));
+		assertEquals(SearchOpaqueJsonUtil.parse(
+				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"apply\",\"min_score\":0.3}]"),
+				lowerBoundsOf(resolved));
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineAndZeroSentWeightsThrows() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.0,1.0,0.0,0.0,0.0]");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 1, List.of(0)));
+
+		assertEquals("the search pipeline's weights for the clauses of this query sum to 0,"
+				+ " leaving no way to weight them", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithSavedPipelineOfWrongLengthThrows() {
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.5]");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 2, List.of(0, 1)));
+
+		assertEquals("the search pipeline's weights must hold exactly 5 entries; found 2", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithNoPipelineUsesSystemDefault() {
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, 2, List.of(0, 1));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"min_max\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\"}}}]}"), resolved);
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithInlinePipelineUsesItAsGiven() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.7,0.3]}}}}]}");
+		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, saved, 2, List.of(0, 1));
+
+		assertSame(inline, resolved);
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithInlinePipelineAndDroppedClauseNarrowsIt() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.6,0.2,0.2]}}}}]}");
+
+		// call under test
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 3, List.of(0, 2));
+
+		assertWeights(List.of(0.75, 0.25), weightsOf(resolved));
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithInlinePipelineOfWrongLengthAndDroppedClauseThrows() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
+				+ "\"normalization\":{\"technique\":\"l2\"},"
+				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.5,0.5]}}}}]}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 3, List.of(0, 2)));
+
+		assertEquals("the search pipeline's weights must hold exactly 3 entries; found 2", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSearchPipelineWithMalformedInlinePipelineThrows() {
+		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[],\"unknown\":1}");
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 1, List.of(0)));
+
+		assertEquals("JSON Element in Entity is Unsupported: unknown", ex.getMessage());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBody() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "],\"min_score\":0.2}}";
+		SearchRequest.Builder req = new SearchRequest.Builder().index("test-index");
+
+		// call under test
+		SearchOpaqueJsonUtil.AppliedBody applied = SearchOpaqueJsonUtil.applyBodyToRequest(json,
+				nameOnly(Function.identity()), req, EnumSet.of(SearchQueryPart.HITS), APPLY_DEFAULT_SIZE,
+				APPLY_MAX_SIZE, List.of(BENEFACTOR_FILTER), "model-1", null);
+
+		String benefactor = "{\"term\":{\"benefactor\":{\"value\":1}}}";
+		String accessOnly = "{\"bool\":{\"filter\":[" + benefactor + "]}}";
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{"
+				+ "\"filter\":" + accessOnly + ","
+				+ "\"pagination_depth\":10000,"
+				+ "\"queries\":["
+				+ "{\"bool\":{\"filter\":[" + benefactor + "],\"must\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}},"
+				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"filter\":" + accessOnly
+				+ ",\"k\":10,\"model_id\":\"model-1\",\"query_text\":\"tumor\"}}}"
+				+ "]}}"), SearchOpaqueJsonUtil.parse(req.build().query().toJsonString()));
+		assertEquals(new SearchOpaqueJsonUtil.AppliedBody(0,
+				SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, 2, List.of(0, 1)),
+				SearchOpaqueJsonUtil.parse("0.2")), applied);
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodyOnNonSemanticIndexDropsNeuralClause() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "]}}";
+
+		// call under test
+		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":10000,"
+				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
+				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodySortedByColumnOmitsPaginationDepth() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"]}";
+
+		// call under test
+		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{"
+				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
+				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
+		// A column sort keeps the row-id tiebreak, so search_after pages stay deterministic.
+		assertEquals(2, req.sort().size());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodyPastPaginationDepthThrows() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"from\":9995,\"size\":10}";
+
+		// call under test
+		assertThrows(IllegalArgumentException.class, () -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithQueryAndHybridThrows() {
+		String json = "{\"query\":{\"match_all\":{}},\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]}}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("exactly one of body.query and body.hybrid is required"
+				+ " (use {\"match_all\":{}} to match all documents)", ex.getMessage());
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithSearchPipelineWithoutHybridThrows() {
+		String json = "{\"query\":{\"match_all\":{}},\"search_pipeline\":{\"$ref\":\"org-p\"}}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("body.search_pipeline is only accepted with body.hybrid", ex.getMessage());
 	}
 }
