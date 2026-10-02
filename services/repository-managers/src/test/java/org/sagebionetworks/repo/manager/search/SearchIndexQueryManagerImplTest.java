@@ -203,7 +203,7 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(physicalIndex, materializedViewSnapshot())));
+				new OpenSearchManager.LiveIndex(physicalIndex, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
@@ -303,7 +303,7 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		return schema;
@@ -412,7 +412,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithNoReadOnSnapshotSource() {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot())));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.accessDenied("no access to source"));
 
@@ -428,7 +428,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithLiveIndexAndFailedStatus() {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot())));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
@@ -509,8 +509,8 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
-				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))),
-				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID))));
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID))).thenReturn(schema.subList(0, 1));
@@ -574,8 +574,8 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
-				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))),
-				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		SearchAutocompleteRequest request = buildAutocompleteRequest();
@@ -844,14 +844,14 @@ public class SearchIndexQueryManagerImplTest {
 	// --- buildQueryMetadata ---
 
 	@Test
-	public void testBuildQueryMetadataWithColumnLineage() {
+	public void testBuildQueryMetadataWithColumnIds() {
 		List<ColumnModel> columns = Arrays.asList(
 				new ColumnModel().setId("2").setName("year").setColumnType(ColumnType.INTEGER),
 				new ColumnModel().setId("1").setName("title").setColumnType(ColumnType.STRING));
 		when(columnModelManager.getAndValidateColumnModels(List.of("2", "1"))).thenReturn(columns);
 
 		// call under test
-		SearchIndexQueryManagerImpl.QueryMetadata metadata = manager.buildQueryMetadata(lineage("2", "1"));
+		SearchIndexQueryManagerImpl.QueryMetadata metadata = manager.buildQueryMetadata(List.of("2", "1"));
 
 		assertEquals(columns, metadata.getColumns());
 		assertEquals(List.of("year", "title"), metadata.getSelectColumns().stream()
@@ -1262,7 +1262,7 @@ public class SearchIndexQueryManagerImplTest {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(NAME_COLUMN_ID, "999"))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, "999"))));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		ColumnModel nameCol = TableModelTestUtils.createColumn(
 				Long.parseLong(NAME_COLUMN_ID), NAME_COLUMN, ColumnType.STRING);

@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
-import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.SelectColumn;
@@ -152,7 +151,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		// aggregate-only access is a denial.
 		tableManagerSupport.validateTableReadAccess(user, source).checkAuthorizationOrElseThrow();
 		checkIndexStatus(searchIndexId);
-		return new LiveQueryTarget(liveIndex.physicalIndex(), buildQueryMetadata(snapshot.getColumnLineage()),
+		return new LiveQueryTarget(liveIndex.physicalIndex(), buildQueryMetadata(liveIndex.columnIds()),
 				buildBenefactorAccessFilters(user, source));
 	}
 
@@ -272,13 +271,10 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	}
 
 	/**
-	 * Loads the {@link ColumnModel} list of the indexed output columns named by the as-built
-	 * column lineage (in lineage order) and the parallel {@link SelectColumn} list used by
-	 * response serialization.
+	 * Loads the {@link ColumnModel} list of the indexed output columns (in select-list order) and
+	 * the parallel {@link SelectColumn} list used by response serialization.
 	 */
-	QueryMetadata buildQueryMetadata(List<ColumnLineageEntry> columnLineage) {
-		List<String> columnIds = columnLineage.stream().map(ColumnLineageEntry::getOutputColumnId)
-				.collect(Collectors.toList());
+	QueryMetadata buildQueryMetadata(List<String> columnIds) {
 		List<ColumnModel> columns = columnModelManager.getAndValidateColumnModels(columnIds);
 		return new QueryMetadata(columns, TableModelUtils.getSelectColumns(columns));
 	}

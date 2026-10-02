@@ -182,14 +182,18 @@ public class OpenSearchManagerImplAutoWiredTest {
 	public void testGetLiveIndexWithSnapshotFromCreateIndex() throws Exception {
 		IndexAuthorizationSnapshot snapshot = OpenSearchManagerImplTest.createAuthorizationSnapshot();
 		String alias = indexName + "-alias";
-		openSearchManager.createIndex(indexName, Collections.emptyList(), null,
-				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, snapshot);
+		// Select-list order, deliberately not the order OpenSearch returns mapping properties in.
+		List<ColumnModel> columns = List.of(
+				new ColumnModel().setId("20").setName("year").setColumnType(ColumnType.INTEGER),
+				new ColumnModel().setId("100").setName("count").setColumnType(ColumnType.INTEGER));
+		openSearchManager.createIndex(indexName, columns, null,
+				Collections.emptyList(), defaultAnalyzers, List.of(), 1, 0, snapshot);
 		openSearchManager.swapAlias(alias, indexName, Optional.empty());
 
 		// call under test
 		Optional<OpenSearchManager.LiveIndex> result = openSearchManager.getLiveIndex(alias);
 
-		assertEquals(Optional.of(new OpenSearchManager.LiveIndex(indexName, snapshot)), result);
+		assertEquals(Optional.of(new OpenSearchManager.LiveIndex(indexName, snapshot, List.of("20", "100"))), result);
 	}
 
 	@Test
