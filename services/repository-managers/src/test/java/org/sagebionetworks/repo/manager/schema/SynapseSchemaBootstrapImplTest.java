@@ -13,8 +13,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrapImpl.OBJECTS_TO_BOOTSTRAP;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,18 +26,24 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.schema.CreateOrganizationRequest;
 import org.sagebionetworks.repo.model.schema.CreateSchemaRequest;
 import org.sagebionetworks.repo.model.schema.JsonSchema;
+import org.sagebionetworks.repo.model.schema.JsonSchemaConstants;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.schema.NormalizedJsonSchema;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
@@ -291,25 +299,125 @@ public class SynapseSchemaBootstrapImplTest {
 	}
 	
 	@Test
+	public void testCreateActOrganizationIfDoesNotExist() {
+		Organization actOrganization = new Organization().setId("8")
+				.setName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any())).thenReturn(actOrganization);
+		doNothing().when(bootstrapSpy).grantActTeamAccess(any(), any());
+
+		// call under test
+		assertEquals(actOrganization, bootstrapSpy.createActOrganizationIfDoesNotExist(admin));
+
+		verify(mockJsonSchemaManager).getOrganizationByName(admin,
+				SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		verify(bootstrapSpy).grantActTeamAccess(admin, actOrganization);
+		verifyNoMoreInteractions(mockJsonSchemaManager);
+	}
+
+	@Test
+	public void testCreateActOrganizationIfDoesNotExistWithNotFound() {
+		Organization actOrganization = new Organization().setId("8")
+				.setName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		when(mockJsonSchemaManager.getOrganizationByName(any(), any()))
+				.thenThrow(new NotFoundException("does not exist"));
+		when(mockJsonSchemaManager.createOrganziation(any(), any(), any())).thenReturn(actOrganization);
+		doNothing().when(bootstrapSpy).grantActTeamAccess(any(), any());
+
+		// call under test
+		assertEquals(actOrganization, bootstrapSpy.createActOrganizationIfDoesNotExist(admin));
+
+		CreateOrganizationRequest expectedRequest = new CreateOrganizationRequest()
+				.setOrganizationName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
+		// The id is pinned so that the organization lands on the same row on every stack.
+		verify(mockJsonSchemaManager).createOrganziation(admin, expectedRequest,
+				SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT_ID);
+		verify(bootstrapSpy).grantActTeamAccess(admin, actOrganization);
+	}
+
+	@Test
+	public void testGrantActTeamAccess() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(
+				Set.of(AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ))));
+		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+
+		AccessControlList expected = new AccessControlList().setId("8").setResourceAccess(Set.of(
+				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
+				actAdminAccess()));
+		verify(mockJsonSchemaManager).updateOrganizationAcl(admin, "8", expected);
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithAccessAlreadyGranted() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
+				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
+				actAdminAccess())));
+		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+
+		// Running the bootstrap again must not rotate the etag of an ACL that is already correct.
+		verify(mockJsonSchemaManager, never()).updateOrganizationAcl(any(), any(), any());
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithNarrowerAccessGranted() {
+		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
+				AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID, ACCESS_TYPE.READ))));
+		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+
+		AccessControlList expected = new AccessControlList().setId("8")
+				.setResourceAccess(Set.of(actAdminAccess()));
+		verify(mockJsonSchemaManager).updateOrganizationAcl(admin, "8", expected);
+	}
+
+	@Test
+	public void testLoadAccessRequirementBaseSchema() {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
+		when(mockTranslator.loadJsonSchemaFromClasspath(
+				SynapseSchemaBootstrapImpl.ACCESS_REQUIREMENT_BASE_SCHEMA_FILE)).thenReturn(baseSchema);
+
+		// call under test
+		JsonSchema loaded = bootstrap.loadAccessRequirementBaseSchema();
+
+		assertEquals(baseSchema, loaded);
+	}
+
+	@Test
 	public void testBootstrapSynapseSchemas() throws RecoverableMessageException {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
 		when(mockUserManager.getUserInfo(any())).thenReturn(admin);
 		doReturn(objectSchemas).when(bootstrapSpy).loadAllSchemasAndReferences(any());
 		when(mockTranslator.translate(any())).thenReturn(jsonSchema, jsonSchemaTwo);
 		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(),any());
 		doReturn(new Organization()).when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
+		doReturn(new Organization()).when(bootstrapSpy).createActOrganizationIfDoesNotExist(any());
+		doReturn(baseSchema).when(bootstrapSpy).loadAccessRequirementBaseSchema();
 		doNothing().when(bootstrapSpy).replaceReferencesWithLatestVersion(any());
 		// call under test
 		bootstrapSpy.bootstrapSynapseSchemas();
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
 		verify(mockTranslator).translate(objectSchemaOne);
 		verify(mockTranslator).translate(objectSchemaTwo);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchema);
 		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, jsonSchemaTwo);
+		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
 		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchema);
 		verify(bootstrapSpy).replaceReferencesWithLatestVersion(jsonSchemaTwo);
+		// The base schema is hand written rather than translated, so it is registered as it was loaded.
+		verify(bootstrapSpy, never()).replaceReferencesWithLatestVersion(baseSchema);
 	}
-	
+
 	@Test
 	public void testReplaceReferencesWithNoSubSchema() {
 		//call under test
@@ -359,6 +467,14 @@ public class SynapseSchemaBootstrapImplTest {
 		assertEquals(jsonSchema.getAllOf().get(0).get$ref(), versionInfo.get$id());
 	}
 
+
+	/**
+	 * The entry the bootstrap must leave on the ACL of the ACT organization.
+	 */
+	private static ResourceAccess actAdminAccess() {
+		return new ResourceAccess().setPrincipalId(TeamConstants.ACT_TEAM_ID)
+				.setAccessType(new HashSet<>(JsonSchemaManagerImpl.ADMIN_PERMISSIONS));
+	}
 
 	@Test
 	public void testBootstrapSchemasForAllEntityTypes() {
