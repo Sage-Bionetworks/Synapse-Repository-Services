@@ -21,8 +21,10 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 import au.com.bytecode.opencsv.CSVReader;
 
@@ -61,15 +63,16 @@ public class TableCSVAppenderPreviewWorker implements AsyncJobRunner<UploadToTab
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, request.getUploadFileHandleId());
 			// Get the metadat for this file
-			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
+			HeadObjectResponse fileMetadata = s3Client.getObjectMetadataV2(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
-			final long progressTotal = fileMetadata.getContentLength();
+			final long progressTotal = fileMetadata.contentLength();
 			// Start the progress
 			jobProgressCallback.updateProgress("Starting...", progressCurrent, progressTotal);
 			// Open a stream to the file in S3.
-			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
+			ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObjectV2(
+					GetObjectRequest.builder().bucket(fileHandle.getBucketName()).key(fileHandle.getKey()).build());
 			// Create a reader from the passed parameters
-			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object.getObjectContent(), "UTF-8"), request.getCsvTableDescriptor(),
+			reader = CSVUtils.createCSVReader(new InputStreamReader(s3Object, "UTF-8"), request.getCsvTableDescriptor(),
 					request.getLinesToSkip());
 
 			// Listen to progress events.
