@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.IOException;
 import java.io.StringWriter;
 
 import org.junit.jupiter.api.Test;
@@ -113,5 +114,50 @@ public class CSVWriterProviderImplTest {
             csvWriterProvider.createWriter(reader, csvTableDescriptor);
         }).getMessage();
         assertEquals("CsvTableDescriptor.quoteCharacter must be exactly one character.", message);
+    }
+
+    @Test
+    public void testCreateCSVWriterWithExplicitEscapeUsesEscapeForQuote() throws IOException {
+        // descriptor explicitly sets escapeCharacter — the writer must use it to escape embedded quote chars
+        CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor()
+                .setQuoteCharacter("'")
+                .setEscapeCharacter("/");
+        StringWriter sw = new StringWriter();
+        // call under test
+        try (CSVWriter csvWriter = csvWriterProvider.createWriter(sw, csvTableDescriptor)) {
+            csvWriter.writeNext(new String[] { "it's_test.csv" });
+        }
+        assertEquals("'it/'s_test.csv'" + Constants.DEFAULT_LINE_END, sw.toString());
+    }
+
+    @Test
+    public void testCreateCSVWriterWithoutExplicitEscapePreservesLegacyDoubling() throws IOException {
+        // descriptor leaves escapeCharacter null — embedded quote must still be doubled (RFC 4180),
+        // matching the byte-for-byte output every existing CSV consumer depends on
+        CsvTableDescriptor csvTableDescriptor = new CsvTableDescriptor().setQuoteCharacter("'");
+        StringWriter sw = new StringWriter();
+        // call under test
+        try (CSVWriter csvWriter = csvWriterProvider.createWriter(sw, csvTableDescriptor)) {
+            csvWriter.writeNext(new String[] { "it's_test.csv" });
+        }
+        assertEquals("'it''s_test.csv'" + Constants.DEFAULT_LINE_END, sw.toString());
+    }
+
+    @Test
+    public void testCreateCSVWriterWithNullDescriptorPreservesLegacyDoubling() throws IOException {
+        // null descriptor — defaults across the board. Default quote char is '"', so an embedded
+        // '"' must be doubled (RFC 4180). Built from a char constant rather than escaped string
+        // literals so the assertion stays readable.
+        //   input:    she said "hi"
+        //   expected: "she said ""hi"""
+        char q = Constants.DEFAULT_QUOTE_CHARACTER;
+        String input = "she said " + q + "hi" + q;
+        String expected = "" + q + "she said " + q + q + "hi" + q + q + q + Constants.DEFAULT_LINE_END;
+        StringWriter sw = new StringWriter();
+        // call under test
+        try (CSVWriter csvWriter = csvWriterProvider.createWriter(sw, null)) {
+            csvWriter.writeNext(new String[] { input });
+        }
+        assertEquals(expected, sw.toString());
     }
 }
