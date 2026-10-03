@@ -11,13 +11,18 @@ import org.sagebionetworks.repo.model.grid.GridSession;
 public interface CopyHandlerProvider {
 
 	/**
-	 * Creates a new CopyHandler for reading the state of a grid copy during
-	 * synchronization. The handler provides read-only access to the copy's schema,
-	 * rows, and CRDT metadata.
+	 * Creates a new {@link CopyHandler} for the given session. The returned handler
+	 * captures a consistent, disk-backed snapshot of the grid rows at
+	 * {@code REPEATABLE_READ} isolation before any patch is published, so the merge
+	 * can never read its own enqueued writes or a concurrent replica's writes.
+	 *
+	 * <p>
+	 * The caller is responsible for closing the returned handler (preferably via
+	 * try-with-resources), which releases the snapshot temp file.
 	 *
 	 * @param session the grid session containing connection information and user
 	 *                context for accessing the copy
-	 * @return a CopyHandler instance for reading from the specified copy
+	 * @return a CopyHandler instance ready for synchronization
 	 */
 	CopyHandler createCopyHandler(GridSession session);
 }
