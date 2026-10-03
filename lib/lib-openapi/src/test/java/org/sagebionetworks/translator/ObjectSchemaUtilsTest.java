@@ -59,6 +59,28 @@ public class ObjectSchemaUtilsTest {
 		assertEquals(expected, util.getConcreteClasses(autoGen.getKeySetIterator()));
 	}
 	
+	/**
+	 * A schema with no {@code $recursiveAnchor} of its own has an entry in {@code anchorMap}
+	 * pointing at the enclosing anchor it was reached through. A {@code $recursiveRef: "#"} on one
+	 * of its properties must resolve to that anchor, not to the schema itself.
+	 */
+	@Test
+	public void testGetPropertyAsJsonSchemaWithRecursiveRefInsideInlineNamedTypeResolvesToEnclosingAnchor() {
+		String inlineTypeId = "org.example.InlineType";
+		String anchorId = "org.example.Anchor";
+
+		ObjectSchema anchor = new ObjectSchemaImpl();
+		anchor.setId(anchorId);
+		util.anchorMap.put(inlineTypeId, anchor);
+
+		ObjectSchema recursiveRef = new ObjectSchemaImpl();
+		recursiveRef.set$recursiveRef("#");
+
+		// call under test
+		OpenApiJsonSchema result = util.getPropertyAsJsonSchema(recursiveRef, inlineTypeId);
+		assertEquals("#/components/schemas/" + anchorId, result.get$ref());
+	}
+
 	@Test
 	public void testGetClassNameToJsonSchema() throws JSONObjectAdapterException {
 		Map<String, ObjectSchema> classNameToObjectSchema = new HashMap<>();
