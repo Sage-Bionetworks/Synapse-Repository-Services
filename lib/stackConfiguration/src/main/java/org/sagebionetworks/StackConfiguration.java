@@ -740,6 +740,12 @@ public interface StackConfiguration {
 
 	public String getDefaultPortalProfileSettingEndpoint();
 
+	/**
+	 * The base URL of the Synapse web portal, with no trailing slash, from which deep links in notification
+	 * emails are composed.
+	 */
+	public String getPortalBaseEndpoint();
+
 	/*
 	 * Credentials used by Docker Registry to send events to the repo services.
 	 */

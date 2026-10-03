@@ -41,6 +41,10 @@
 		{
 			"name": "DISABLE_INACTIVE_USERS",
 			"description": "When enabled (default), users that have been inactive for more than 180 days will be disabled."
+		},
+		{
+			"name": "EDUC_SIGNATURE_NOTIFICATIONS",
+			"description": "Notify the creator of a data access request when its eDUC signature envelope reaches a terminal state"
 		}
     ]
 }
