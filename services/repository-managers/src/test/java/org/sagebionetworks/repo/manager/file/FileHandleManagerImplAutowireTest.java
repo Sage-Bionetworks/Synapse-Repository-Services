@@ -25,6 +25,7 @@ import org.sagebionetworks.aws.SynapseS3Client;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
+import org.sagebionetworks.repo.manager.S3TestUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.manager.storagelocation.processors.ProxyStorageLocationProcessor;
@@ -403,9 +404,7 @@ public class FileHandleManagerImplAutowireTest {
 		externalS3LocationSetting.setBucket(StackConfigurationSingleton.singleton().getExternalS3TestBucketName());
 		externalS3LocationSetting.setBaseKey(testBase);
 
-		if (! s3Client.doesBucketExist(externalS3LocationSetting.getBucket())) {
-			s3Client.createBucket(externalS3LocationSetting.getBucket());
-		}
+		S3TestUtils.createBucketIfMissing(externalS3LocationSetting.getBucket());
 
 		String nothing = "";
 		ObjectMetadata metadata = new ObjectMetadata();
