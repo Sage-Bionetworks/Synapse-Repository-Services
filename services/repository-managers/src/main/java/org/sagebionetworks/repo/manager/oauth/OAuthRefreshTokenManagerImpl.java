@@ -5,10 +5,10 @@ import java.util.UUID;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.manager.PrivateFieldUtils;
-import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
@@ -60,7 +60,8 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 
 	@WriteTransaction
 	@Override
-	public OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims) {
+	public OAuthRefreshTokenAndMetadata createRefreshToken(UserInfo userInfo, String clientId, List<OAuthScope> scopes, OIDCClaimsRequest claims,
+			IdentityProviderName identityProviderName) {
 		String userId = userInfo.getId().toString();
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(clientId, "clientId");
@@ -87,6 +88,7 @@ public class OAuthRefreshTokenManagerImpl implements OAuthRefreshTokenManager {
 		tokenMetadata.setClientId(clientId);
 		tokenMetadata.setScopes(scopes);
 		tokenMetadata.setClaims(claims);
+		tokenMetadata.setIdentityProviderName(identityProviderName);
 		tokenMetadata.setName(UUID.randomUUID().toString());
 		tokenMetadata.setLastUsed(clock.now());
 		tokenMetadata.setAuthorizedOn(clock.now());
