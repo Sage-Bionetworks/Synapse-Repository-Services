@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.NextPageToken;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthRefreshTokenDao;
 import org.sagebionetworks.repo.model.auth.SectorIdentifier;
@@ -143,7 +144,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 		metadata.setLastUsed(lastUsedDate);
 		metadata.setAuthorizedOn(new Date());
 		metadata.setEtag(UUID.randomUUID().toString());
-		metadata.setIdentityProvider("ORCID");
+		metadata.setIdentityProviderName(IdentityProviderName.ORCID);
 
 		OAuthRefreshTokenInformation token = oauthRefreshTokenDao.createRefreshToken(hash, metadata);
 		tokenIdsToDelete.add(token.getTokenId());
@@ -195,7 +196,7 @@ public class OAuthRefreshTokenDaoAutowiredTest {
 
 		dto.setClientId("888888");
 		dto.setPrincipalId("999999");
-		dto.setIdentityProvider("ORCID");
+		dto.setIdentityProviderName(IdentityProviderName.ORCID);
 		dto.setModifiedOn(new Date());
 		dto.setAuthorizedOn(new Date());
 		dto.setLastUsed(new Date());

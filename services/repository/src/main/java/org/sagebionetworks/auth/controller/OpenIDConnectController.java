@@ -9,6 +9,7 @@ import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.OAuthClientNotVerifiedException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -366,10 +367,10 @@ public class OpenIDConnectController {
 	public @ResponseBody
 	OAuthAuthorizationResponse authorizeClient(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader(value = AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME, required = false) String identityProvider,
+			@RequestHeader(value = AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME, required = false) IdentityProviderName identityProviderName,
 			@RequestBody OIDCAuthorizationRequest authorizationRequest 
 			) throws NotFoundException, OAuthClientNotVerifiedException {
-		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest, identityProvider);
+		return serviceProvider.getOpenIDConnectService().authorizeClient(userId, authorizationRequest, identityProviderName);
 	}
 	
 	/**

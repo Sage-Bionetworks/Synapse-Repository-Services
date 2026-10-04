@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,11 +31,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.auth.HttpAuthUtil;
 import org.sagebionetworks.repo.manager.oauth.OpenIDConnectManager;
 import org.sagebionetworks.repo.manager.oauth.ValidatedAccessToken;
 import org.sagebionetworks.repo.model.AuthenticationMethod;
@@ -84,6 +88,7 @@ public class AuthenticationFilterTest {
 	private static final String BEARER_TOKEN;
 	private static final String BEARER_TOKEN_HEADER;
 	private static final List<String> HEADER_NAMES = Collections.singletonList("Authorization");
+	private static final String FORGED_HEADER_VALUE = "forged-by-the-caller";
 	private PrincipalAlias pa;
 	
 	static {
@@ -219,26 +224,34 @@ public class AuthenticationFilterTest {
 		assertEquals(AuthenticationMethod.SESSIONTOKEN.name(), requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_AUTHENTICATION_METHOD_HEADER_NAME));
 	}
 
-	@Test
-	public void noExternalIdentityProviderHeader() throws Exception {
-		// user is trying to 'sneak in' an identity provider
-		List<String> headerNames = new java.util.ArrayList<>(HEADER_NAMES);
-		headerNames.add(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM)).thenReturn(null);
-		when(mockHttpRequest.getHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME)).thenReturn(BEARER_TOKEN_HEADER);
-		when(mockHttpRequest.getHeaderNames()).thenReturn(Collections.enumeration(headerNames));
-		when(mockHttpRequest.getHeaders("Authorization")).thenReturn(Collections.enumeration(Collections.singletonList(BEARER_TOKEN_HEADER)));
+	/**
+	 * No header Synapse uses to carry an authenticated identity may be supplied by the caller. Driven from
+	 * the real list, so a header added to it is covered here without touching this test.
+	 */
+	@ParameterizedTest
+	@MethodSource("authorizationHeaders")
+	public void noExternalAuthorizationHeader(String headerName) throws Exception {
+		// A real request, so that the forged header genuinely carries a value the filter could pass on.
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader(AuthorizationConstants.AUTHORIZATION_HEADER_NAME, BEARER_TOKEN_HEADER);
+		// user is trying to 'sneak in' an authenticated identity
+		request.addHeader(headerName, FORGED_HEADER_VALUE);
 		// the token itself names no identity provider
 		when(mockOidcManager.validateAccessToken(anyString())).thenReturn(new ValidatedAccessToken(""+userId, null));
 		when(mockRealmDao.getRealmForAnonymousPrincipal(""+userId)).thenReturn(Optional.empty());
 
 		// method under test
-		filter.doFilter(mockHttpRequest, mockHttpResponse, mockFilterChain);
+		filter.doFilter(request, mockHttpResponse, mockFilterChain);
 
 		verify(mockFilterChain).doFilter(requestCaptor.capture(), (ServletResponse)any());
 
-		// stripped along with the other authorization headers, rather than passed to the controllers
-		assertNull(requestCaptor.getValue().getHeader(AuthorizationConstants.SYNAPSE_IDENTITY_PROVIDER_HEADER_NAME));
+		// Discarded rather than passed to the controllers. Headers the filter goes on to set itself hold the
+		// value it derived, never the one the caller sent, so what the caller sent can never be read back.
+		assertNotEquals(FORGED_HEADER_VALUE, requestCaptor.getValue().getHeader(headerName));
+	}
+
+	private static List<String> authorizationHeaders() {
+		return HttpAuthUtil.AUTHORIZATION_HEADERS_LOWER_CASE;
 	}
 
 	@Test

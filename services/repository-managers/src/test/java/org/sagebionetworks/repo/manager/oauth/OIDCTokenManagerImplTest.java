@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.dbo.auth.OIDCAccessTokenData;
 import org.sagebionetworks.repo.model.oauth.JsonWebKey;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeyRSA;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimsRequestDetails;
@@ -481,7 +482,7 @@ public class OIDCTokenManagerImplTest {
 			jwtBuilder.createSignedJWT((Claims) invocation.getArgument(0)));
 
 		// method under test
-		String accessToken = oidcTokenManager.createClientTotalAccessToken(101L, ISSUER, "ORCID");
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(101L, ISSUER, IdentityProviderName.ORCID);
 
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		assertEquals("ORCID", claims.get(OIDCClaimName.identity_provider.name(), String.class));
@@ -508,7 +509,7 @@ public class OIDCTokenManagerImplTest {
 
 		// method under test
 		String accessToken = oidcTokenManager.createOIDCaccessToken(USER_ID, ISSUER, SUBJECT_ID, CLIENT_ID, NOW,
-				ONE_DAY_MILLIS, AUTH_TIME, REFRESH_TOKEN_ID, TOKEN_ID, "GOOGLE_OAUTH_2_0",
+				ONE_DAY_MILLIS, AUTH_TIME, REFRESH_TOKEN_ID, TOKEN_ID, IdentityProviderName.GOOGLE_OAUTH_2_0,
 				Collections.singletonList(OAuthScope.openid), Collections.emptyMap());
 
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
@@ -522,7 +523,7 @@ public class OIDCTokenManagerImplTest {
 
 		// method under test
 		String idToken = oidcTokenManager.createOIDCIdToken(ISSUER, SUBJECT_ID, CLIENT_ID, NOW, null, AUTH_TIME,
-				TOKEN_ID, "NIH_RESEARCHER_AUTH_SERVICE", Collections.emptyMap());
+				TOKEN_ID, IdentityProviderName.NIH_RESEARCHER_AUTH_SERVICE, Collections.emptyMap());
 
 		Claims claims = jwtParser.parseClaimsJws(idToken).getBody();
 		assertEquals("NIH_RESEARCHER_AUTH_SERVICE", claims.get(OIDCClaimName.identity_provider.name(), String.class));
@@ -540,7 +541,7 @@ public class OIDCTokenManagerImplTest {
 		record.setUserInfoClaims(Collections.emptyMap());
 
 		// method under test — the provider that authenticated the session creating the token
-		String accessToken = oidcTokenManager.createPersonalAccessToken(ISSUER, record, "SYNAPSE");
+		String accessToken = oidcTokenManager.createPersonalAccessToken(ISSUER, record, IdentityProviderName.SYNAPSE);
 
 		Claims claims = jwtParser.parseClaimsJws(accessToken).getBody();
 		assertEquals("SYNAPSE", claims.get(OIDCClaimName.identity_provider.name(), String.class));

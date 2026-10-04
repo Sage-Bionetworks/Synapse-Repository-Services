@@ -37,7 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.token.TokenGenerator;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -295,7 +295,7 @@ public class PrincipalManagerImplUnitTest {
 		assertEquals(USER_NAME, user.getUserName());
 		assertEquals(EMAIL, user.getEmail());
 		verify(mockAuthManager).setPassword(USER_ID, PASSWORD);
-		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID, ISSUER, new SynapseIdentityProvider());
+		verify(mockAuthManager).loginWithNoPasswordCheck(USER_ID, ISSUER, IdentityProviderName.SYNAPSE);
 	}
 
 	@Test

@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.TokenType;
@@ -594,10 +595,10 @@ public class OpenIDConnectManagerImplUnitTest {
 		when(mockOauthDao.lookupAuthorizationConsent(any(), any(), any(), any())).thenReturn(true);
 
 		// method under test
-		openIDConnectManagerImpl.authorizeClient(userInfo, createAuthorizationRequest(), "ORCID");
+		openIDConnectManagerImpl.authorizeClient(userInfo, createAuthorizationRequest(), IdentityProviderName.ORCID);
 
 		verify(mockOauthDao).createAuthorizationCode(authorizationCodeCaptor.capture(), authorizationRequestCaptor.capture());
-		assertEquals("ORCID", authorizationRequestCaptor.getValue().getIdentityProvider());
+		assertEquals(IdentityProviderName.ORCID, authorizationRequestCaptor.getValue().getIdentityProviderName());
 	}
 
 	@Test

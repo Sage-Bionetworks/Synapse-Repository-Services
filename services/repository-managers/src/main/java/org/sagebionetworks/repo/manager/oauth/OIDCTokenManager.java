@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthScope;
 import org.sagebionetworks.repo.model.oauth.OIDCClaimName;
@@ -31,7 +32,7 @@ public interface OIDCTokenManager {
 	 * @return a serialized JSON Web Token
 	 */
 	String createOIDCIdToken(String issuer, String subject, String oauthClientId, long now, String nonce,
-			Date authTime, String tokenId, String identityProvider, Map<OIDCClaimName, Object> userInfo);
+			Date authTime, String tokenId, IdentityProviderName identityProviderName, Map<OIDCClaimName, Object> userInfo);
 
 	/**
 	 * Create an OIDC access token which is used as an OAuth bearer token to authorize requests.  The
@@ -47,25 +48,25 @@ public interface OIDCTokenManager {
 	 * @param authTime The timestamp for the event in which the user most recently logged in to Synapse
 	 * @param refreshTokenId the ID of an associated refresh token, if one exists. can be null.
 	 * @param accessTokenId a unique ID for this token
-	 * @param identityProvider the name of the identity provider that authenticated the user, or null if
+	 * @param identityProviderName the name of the identity provider that authenticated the user, or null if
 	 *        none did
 	 * @param scopes the authorized scopes.  To retrieve user info' claims, the 'openid' scope is required
 	 * @param oidcClaims the fine-grained details about what user info can be accessed by this access token
 	 * @return a serialized JSON Web Token
 	 */
 	String createOIDCaccessToken(Long userId, String issuer, String subject, String oauthClientId, long now, long expirationTimeSeconds, Date authTime,
-			String refreshTokenId, String accessTokenId, String identityProvider, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
+			String refreshTokenId, String accessTokenId, IdentityProviderName identityProviderName, List<OAuthScope> scopes, Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims);
 
 	/**
 	 * Create a personal access token which is used as a bearer token to authorize requests.  The
 	 * authority is specified by the 'scopes' and 'oidcClaims' param's.
 	 * @param issuer the token issuer, Synapse
 	 * @param record the record of the personal access token
-	 * @param identityProvider the name of the identity provider that authenticated the user creating the
+	 * @param identityProviderName the name of the identity provider that authenticated the user creating the
 	 *        token, or null if none did
 	 * @return a serialized JSON Web Token
 	 */
-	String createPersonalAccessToken(String issuer, AccessTokenRecord record, String identityProvider);
+	String createPersonalAccessToken(String issuer, AccessTokenRecord record, IdentityProviderName identityProviderName);
 
 	/**
 	 * 
@@ -123,7 +124,7 @@ public interface OIDCTokenManager {
 	 *        none did, as for an anonymous access token
 	 * @return
 	 */
-	String createClientTotalAccessToken(final Long principalId, final String issuer, final String identityProvider);
+	String createClientTotalAccessToken(final Long principalId, final String issuer, final IdentityProviderName identityProviderName);
 	
 	/**
 	 * 

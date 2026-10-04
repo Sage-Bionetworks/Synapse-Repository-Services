@@ -10,7 +10,6 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.SendRawEmailRequestBuilder;
@@ -27,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.admin.UpdateNotificationEmailRequest;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -153,7 +153,7 @@ public class PrincipalManagerImpl implements PrincipalManager, PrincipalNameProv
 		}
 		authManager.setPassword(newPrincipalId, accountSetupInfo.getPassword());
 		// The account was created with a password in the default Synapse realm, so Synapse is the provider
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, new SynapseIdentityProvider());
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer, IdentityProviderName.SYNAPSE);
 	}
 
 	@Override

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.manager.oauth.claimprovider.OIDCClaimProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.OAuthClientDao;
 import org.sagebionetworks.repo.model.auth.OAuthDao;
 import org.sagebionetworks.repo.model.auth.TokenType;
@@ -254,7 +255,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 	@Override
 	@WriteTransaction
 	public OAuthAuthorizationResponse authorizeClient(UserInfo userInfo,
-			OIDCAuthorizationRequest authorizationRequest, String identityProvider) {
+			OIDCAuthorizationRequest authorizationRequest, IdentityProviderName identityProviderName) {
 		if (userInfo.isUserAnonymous()) {
 			throw new OAuthUnauthenticatedException(OAuthErrorCode.login_required, "Anonymous users may not provide access to OAuth clients.");
 		}
@@ -275,7 +276,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		authorizationRequest.setAuthenticatedAt(authDao.getAuthenticatedOn(userInfo.getId()));
 		// An authorization code is a UUID and cannot carry this itself, so it is recorded on the request
 		// persisted against the code, for the token endpoint to read when the code is redeemed.
-		authorizationRequest.setIdentityProvider(identityProvider);
+		authorizationRequest.setIdentityProviderName(identityProviderName);
 		
 		String authorizationCode = UUID.randomUUID().toString();
 		oauthDao.createAuthorizationCode(authorizationCode, authorizationRequest);
@@ -447,7 +448,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(authorizationRequest.getUserId(), ppid,
 					scopes, EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getId_token(), OIDCClaimName.class), oauthEndpoint);
 			String idToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, 
-					authorizationRequest.getNonce(), authTime, idTokenId, authorizationRequest.getIdentityProvider(), userInfo);
+					authorizationRequest.getNonce(), authTime, idTokenId, authorizationRequest.getIdentityProviderName(), userInfo);
 			result.setId_token(idToken);
 		}
 
@@ -461,7 +462,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 							oauthClientId,
 							scopes,
 							normalizedClaims,
-							authorizationRequest.getIdentityProvider()
+							authorizationRequest.getIdentityProviderName()
 					);
 			refreshTokenId = refreshToken.getMetadata().getTokenId();
 			result.setRefresh_token(refreshToken.getRefreshToken());
@@ -470,7 +471,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenManager.createOIDCaccessToken(Long.valueOf(authorizationRequest.getUserId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS, authTime, refreshTokenId, accessTokenId,
-				authorizationRequest.getIdentityProvider(), scopes,
+				authorizationRequest.getIdentityProviderName(), scopes,
 				EnumKeyedJsonMapUtil.convertKeysToEnums(normalizedClaims.getUserinfo(), OIDCClaimName.class));
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
@@ -527,7 +528,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			String idTokenId = UUID.randomUUID().toString();
 			Map<OIDCClaimName,Object> userInfo = getUserInfo(refreshTokenMetadata.getPrincipalId(), ppid, scopes, idTokenClaims, oauthEndpoint);
 			String idToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, now, null, authTime, idTokenId,
-					refreshTokenMetadata.getIdentityProvider(), userInfo);
+					refreshTokenMetadata.getIdentityProviderName(), userInfo);
 			result.setId_token(idToken);
 		} else {
 			idTokenClaims = Collections.emptyMap();
@@ -537,7 +538,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String accessTokenId = UUID.randomUUID().toString();
 		String accessToken = oidcTokenManager.createOIDCaccessToken(Long.valueOf(refreshTokenMetadata.getPrincipalId()), oauthEndpoint, ppid,
 				oauthClientId, now, AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS,  authTime, refreshTokenMetadata.getTokenId(), accessTokenId,
-				refreshTokenMetadata.getIdentityProvider(), scopes, userInfoClaims);
+				refreshTokenMetadata.getIdentityProviderName(), scopes, userInfoClaims);
 		result.setAccess_token(accessToken);
 		result.setToken_type(TOKEN_TYPE_BEARER);
 		result.setExpires_in(AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS);
@@ -617,8 +618,11 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 		String ppid = accessTokenClaims.getSubject();
 
 		// The provider that authenticated the user is carried by the access token being presented, so a
-		// signed response repeats it rather than asserting nothing.
-		String identityProvider = accessTokenClaims.get(OIDCClaimName.identity_provider.name(), String.class);
+		// signed response repeats it rather than asserting nothing. A token issued without one — one
+		// predating this claim, or obtained with no provider involved — carries no name to repeat.
+		String identityProviderClaim = accessTokenClaims.get(OIDCClaimName.identity_provider.name(), String.class);
+		IdentityProviderName identityProviderName = identityProviderClaim == null ? null
+				: IdentityProviderName.valueOf(identityProviderClaim);
 
 		// userId is used to retrieve the user info
 		String userId = getUserIdFromPPID(ppid, oauthClientId);
@@ -659,7 +663,7 @@ public class OpenIDConnectManagerImpl implements OpenIDConnectManager {
 			Date authTime = authDao.getAuthenticatedOn(Long.parseLong(userId));
 
 			String jwtIdToken = oidcTokenManager.createOIDCIdToken(oauthEndpoint, ppid, oauthClientId, clock.currentTimeMillis(), null,
-					authTime, UUID.randomUUID().toString(), identityProvider, userInfo);
+					authTime, UUID.randomUUID().toString(), identityProviderName, userInfo);
 
 			return new JWTWrapper(jwtIdToken);
 		}

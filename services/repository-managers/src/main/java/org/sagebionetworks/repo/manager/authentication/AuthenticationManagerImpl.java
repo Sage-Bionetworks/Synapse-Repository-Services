@@ -23,11 +23,9 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordWithCurrentPassword;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithToken;
 import org.sagebionetworks.repo.model.auth.ChangePasswordWithTwoFactorAuthToken;
 import org.sagebionetworks.repo.model.auth.HasTwoFactorAuthToken;
-import org.sagebionetworks.repo.model.auth.IdentityProvider;
-import org.sagebionetworks.repo.model.auth.IdentityProviderUtils;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
-import org.sagebionetworks.repo.model.auth.SynapseIdentityProvider;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
 import org.sagebionetworks.repo.model.auth.RealmPrincipal;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthDisableRequest;
@@ -231,39 +229,39 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		// Synapse itself verified the password
-		return loginWithNoPasswordCheckInternal(user, tokenIssuer, new SynapseIdentityProvider());
+		return loginWithNoPasswordCheckInternal(user, tokenIssuer, IdentityProviderName.SYNAPSE);
 	}
 
 	@Override
-	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer, IdentityProvider identityProvider) {
+	public LoginResponse loginWithNoPasswordCheck(long principalId, String issuer, IdentityProviderName identityProviderName) {
 		UserInfo user = userManager.getUserInfo(principalId);
-		return loginWithNoPasswordCheckInternal(user, issuer, identityProvider);
+		return loginWithNoPasswordCheckInternal(user, issuer, identityProviderName);
 	}
 	
-	private LoginResponse loginWithNoPasswordCheckInternal(UserInfo user, String issuer, IdentityProvider identityProvider) {
+	private LoginResponse loginWithNoPasswordCheckInternal(UserInfo user, String issuer, IdentityProviderName identityProviderName) {
 		long principalId = user.getId();
 		if (user.hasTwoFactorAuthEnabled()) {
 			// The access token is not issued until the second factor is supplied, so the 2FA token carries
 			// the provider that authenticated this attempt through to loginWith2Fa.
 			throw new TwoFactorAuthRequiredException(principalId,
-					twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, identityProvider));
+					twoFaManager.generate2FaToken(user, TwoFactorAuthTokenContext.AUTHENTICATION, identityProviderName));
 		}
 		
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProvider);
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProviderName);
 	}
 	
 	@Override
 	public LoginResponse loginWithNoPasswordOrTwoFaCheck(UserInfo user, String issuer) {
 		// Only an administrator reaches this, and it is Synapse that authorized them to do so.
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, new SynapseIdentityProvider());
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, IdentityProviderName.SYNAPSE);
 	}
 	
 	@Override
 	public LoginResponse loginWith2Fa(TwoFactorAuthLoginRequest request, String issuer) {
 		validateTwoFactorAuthTokenRequest(request, TwoFactorAuthTokenContext.AUTHENTICATION);
 		UserInfo user = userManager.getUserInfo(request.getUserId());
-		IdentityProvider identityProvider = twoFaManager.getIdentityProviderFrom2FaToken(request.getTwoFaToken());
-		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProvider);
+		IdentityProviderName identityProviderName = twoFaManager.getIdentityProviderFrom2FaToken(request.getTwoFaToken());
+		return getLoginResponseAfterSuccessfulAuthentication(user, issuer, identityProviderName);
 	}
 	
 	@Override
@@ -272,8 +270,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		String principalId = realmPrincipals.getAnonymousUser();
 		// this is the same type of token created at log-in, except it's for the 'anonymous' user, whom no
 		// identity provider authenticated
-		String identityProvider = null;
-		String accessToken = oidcTokenManager.createClientTotalAccessToken(Long.parseLong(principalId), issuer, identityProvider);
+		IdentityProviderName identityProviderName = null;
+		String accessToken = oidcTokenManager.createClientTotalAccessToken(Long.parseLong(principalId), issuer, identityProviderName);
 		AccessTokenResponse response = new AccessTokenResponse();
 		response.setAccessToken(accessToken);
 		return response;
@@ -411,13 +409,13 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	LoginResponse getLoginResponseAfterSuccessfulAuthentication(UserInfo userInfo, String issuer,
-			IdentityProvider identityProvider) {
+			IdentityProviderName identityProviderName) {
 		long principalId = userInfo.getId();
 		validateAccountStatus(principalId);
 		
 		String newAuthenticationReceipt = authenticationReceiptTokenGenerator.createNewAuthenticationReciept(principalId);
 		String accessToken = oidcTokenManager.createClientTotalAccessToken(principalId, issuer,
-				IdentityProviderUtils.toName(identityProvider));
+				identityProviderName);
 		boolean acceptsTermsOfService = tosManager.hasUserAcceptedTermsOfService(userInfo);
 		authDAO.setAuthenticatedOn(principalId, clock.now());
 		return createLoginResponse(accessToken, acceptsTermsOfService, newAuthenticationReceipt);

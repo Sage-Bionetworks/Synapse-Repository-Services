@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.service.auth;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.JsonWebKeySet;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthClient;
@@ -137,7 +138,7 @@ public interface OpenIDConnectService {
 	 * @param authorizationRequest
 	 * @return authorization code
 	 */
-	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest, String identityProvider);
+	public OAuthAuthorizationResponse authorizeClient(Long userId,  OIDCAuthorizationRequest authorizationRequest, IdentityProviderName identityProviderName);
 	
 	/**
 	 * 

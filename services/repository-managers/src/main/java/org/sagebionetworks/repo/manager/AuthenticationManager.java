@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
-import org.sagebionetworks.repo.model.auth.IdentityProvider;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.PasswordResetSignedToken;
@@ -63,11 +63,11 @@ public interface AuthenticationManager {
 	 * 
 	 * @param principalId
 	 * @param tokenIssuer
-	 * @param identityProvider the provider that authenticated the user, recorded in the access token
+	 * @param identityProviderName the provider that authenticated the user, recorded in the access token
 	 * @return
 	 * @throws TwoFactorAuthRequiredException If the user has 2FA enabled
 	 */
-	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer, IdentityProvider identityProvider);
+	LoginResponse loginWithNoPasswordCheck(long principalId, String tokenIssuer, IdentityProviderName identityProviderName);
 	
 	/**
 	 * Bypass password and 2fa check and just create a login response for the user. Only an

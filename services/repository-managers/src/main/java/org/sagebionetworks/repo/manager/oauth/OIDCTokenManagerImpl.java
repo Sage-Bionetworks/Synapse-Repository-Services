@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.KeyPairUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.SessionIdThreadLocal;
 import org.sagebionetworks.repo.model.auth.AccessTokenRecord;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.JSONWebTokenHelper;
 import org.sagebionetworks.repo.model.auth.TokenType;
 import org.sagebionetworks.repo.model.dbo.auth.OAuthAccessTokenDao;
@@ -74,7 +75,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			String nonce, 
 			Date authTime,
 			String tokenId,
-			String identityProvider,
+			IdentityProviderName identityProviderName,
 			Map<OIDCClaimName,Object> userInfo) {
 		
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
@@ -94,7 +95,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ID_TOKEN);
 
-		addIdentityProvider(claims, identityProvider);
+		addIdentityProvider(claims, identityProviderName);
 
 		if (nonce!=null) claims.put(NONCE, nonce);
 
@@ -111,7 +112,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			Date authTime,
 			String refreshTokenId,
 			String accessTokenId,
-			String identityProvider,
+			IdentityProviderName identityProviderName,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims,
 			boolean persistToken) {
@@ -131,7 +132,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.OIDC_ACCESS_TOKEN);
 
-		addIdentityProvider(claims, identityProvider);
+		addIdentityProvider(claims, identityProviderName);
 
 		if (refreshTokenId!=null) {
 			claims.put(OIDCClaimName.refresh_token_id.name(), refreshTokenId);
@@ -164,24 +165,24 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 			Date authTime,
 			String refreshTokenId,
 			String accessTokenId,
-			String identityProvider,
+			IdentityProviderName identityProviderName,
 			List<OAuthScope> scopes,
 			Map<OIDCClaimName, OIDCClaimsRequestDetails> oidcClaims) {
 		
 		boolean persistToken = true;
 		
-		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, identityProvider, scopes, oidcClaims, persistToken);
+		return createOIDCaccessToken(userId, issuer, subject, oauthClientId, now, expirationTimeSeconds, authTime, refreshTokenId, accessTokenId, identityProviderName, scopes, oidcClaims, persistToken);
 	}
 
 	@Override
-	public String createPersonalAccessToken(String issuer, AccessTokenRecord record, String identityProvider) {
+	public String createPersonalAccessToken(String issuer, AccessTokenRecord record, IdentityProviderName identityProviderName) {
 		ClaimsWithAuthTime claims = ClaimsWithAuthTime.newClaims();
 
 		ClaimsJsonUtil.addAccessClaims(record.getScopes(), EnumKeyedJsonMapUtil.convertKeysToEnums(record.getUserInfoClaims(), OIDCClaimName.class), claims);
 
 		claims.put(OIDCClaimName.token_type.name(), TokenType.PERSONAL_ACCESS_TOKEN);
 
-		addIdentityProvider(claims, identityProvider);
+		addIdentityProvider(claims, identityProviderName);
 
 		claims.setIssuer(issuer)
 				.setAudience(AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID)
@@ -203,21 +204,21 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		// This is a token used internally created ad-hoc and not returned to the user
 		boolean persistToken = false;
-		String identityProvider = null; // nothing authenticated to obtain this token
+		IdentityProviderName identityProviderName = null; // nothing authenticated to obtain this token
 		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
-				null, tokenId, identityProvider, allScopes, Collections.emptyMap(), persistToken);
+				null, tokenId, identityProviderName, allScopes, Collections.emptyMap(), persistToken);
 	}
 
 	@Override
 	@WriteTransaction
-	public String createClientTotalAccessToken(final Long principalId, final String issuer, final String identityProvider) {
+	public String createClientTotalAccessToken(final Long principalId, final String issuer, final IdentityProviderName identityProviderName) {
 		String subject = principalId.toString(); // we don't encrypt the subject
 		String oauthClientId = ""+AuthorizationConstants.SYNAPSE_OAUTH_CLIENT_ID;
 		String tokenId = UUID.randomUUID().toString();
 		List<OAuthScope> allScopes = Arrays.asList(OAuthScope.values());  // everything!
 		long expirationInSeconds = AuthorizationConstants.ACCESS_TOKEN_EXPIRATION_TIME_SECONDS;
 		return createOIDCaccessToken(principalId, issuer, subject, oauthClientId, clock.currentTimeMillis(), expirationInSeconds, null,
-				null, tokenId, identityProvider, allScopes, Collections.emptyMap());
+				null, tokenId, identityProviderName, allScopes, Collections.emptyMap());
 	}
 	
 	/**
@@ -225,7 +226,7 @@ public class OIDCTokenManagerImpl implements OIDCTokenManager {
 	 * identity provider — an anonymous access token, or one created for internal use — carries no such
 	 * claim rather than a claim naming nothing.
 	 */
-	private static void addIdentityProvider(ClaimsWithAuthTime claims, String identityProvider) {
+	private static void addIdentityProvider(ClaimsWithAuthTime claims, IdentityProviderName identityProvider) {
 		if (identityProvider != null) {
 			claims.put(OIDCClaimName.identity_provider.name(), identityProvider);
 		}
