@@ -244,7 +244,8 @@ public class FormTemplateValidatorTest {
 	@Test
 	public void testValidateWithRequiredPropertyOfAReferencedSchema() {
 		// The requirement is declared by a schema that the root composes rather than by the root itself.
-		schema.setRequired(null).setAllOf(List.of(new JsonSchema().set$ref("#/definitions/" + INSTITUTION_DEFINITION)));
+		schema.setRequired(null).setAllOf(List.of(localRef(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID),
+				localRef(INSTITUTION_DEFINITION)));
 		schema.getDefinitions().get(INSTITUTION_DEFINITION).setRequired(List.of("projectLead"));
 		setupSchema(schema);
 		FormTemplate template = newTemplate(field("/irbApproval").setTemplateFileHandleId("987"));
@@ -341,7 +342,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithoutBaseSchemaAllOf() {
-		setupSchema(schema, new JsonSchema().set$id(SCHEMA_ID).setType(Type.object));
+		setupSchema(schema.setAllOf(null));
 		FormTemplate template = newTemplate(field("/projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -354,8 +355,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithBaseSchemaReferenceOfAnotherVersion() {
-		setupSchema(schema, newRawSchema(
-				new JsonSchema().set$ref("org.sagebionetworks-AccessRequirementBaseSchema-1.0.1")));
+		setupSchema(schema.setAllOf(List.of(localRef("org.sagebionetworks-AccessRequirementBaseSchema-1.0.1"))));
 		FormTemplate template = newTemplate(field("/projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -368,8 +368,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithUnversionedBaseSchemaReference() {
-		setupSchema(schema,
-				newRawSchema(new JsonSchema().set$ref("org.sagebionetworks-AccessRequirementBaseSchema")));
+		setupSchema(schema.setAllOf(List.of(localRef("org.sagebionetworks-AccessRequirementBaseSchema"))));
 		FormTemplate template = newTemplate(field("/projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -384,8 +383,8 @@ public class FormTemplateValidatorTest {
 	public void testValidateWithNestedBaseSchemaReference() {
 		// The reference is reached through another entry of the 'allOf' rather than being one of its
 		// entries, which leaves it conditional on how that entry composes.
-		setupSchema(schema, newRawSchema(new JsonSchema().setAllOf(
-				List.of(new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))));
+		setupSchema(schema.setAllOf(List.of(new JsonSchema()
+				.setAllOf(List.of(localRef(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID))))));
 		FormTemplate template = newTemplate(field("/projectLead"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -398,8 +397,8 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithBaseSchemaReferenceAlongsideOthers() {
-		setupSchema(schema, newRawSchema(new JsonSchema().set$ref("org.sagebionetworks.act-SharedTerms-2.1.0"),
-				new JsonSchema().set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)));
+		setupSchema(schema.setAllOf(List.of(localRef("org.sagebionetworks.act-SharedTerms-2.1.0"),
+				localRef(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID))));
 		FormTemplate template = newTemplate(field("/projectLead"));
 
 		// call under test
@@ -408,7 +407,7 @@ public class FormTemplateValidatorTest {
 
 	@Test
 	public void testValidateWithoutBaseSchemaAndOtherProblems() {
-		setupSchema(schema, new JsonSchema().set$id(SCHEMA_ID).setType(Type.object));
+		setupSchema(schema.setAllOf(null));
 		FormTemplate template = newTemplate(field("/notAProperty"));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
@@ -427,26 +426,16 @@ public class FormTemplateValidatorTest {
 				+ "' by naming it in a top level 'allOf' reference.";
 	}
 
-	/**
-	 * Stub both views of the schema the template is bound to: the validation schema that field paths
-	 * are followed through, and the raw schema that the base schema reference is read from.
-	 */
 	private void setupSchema(JsonSchema validationSchema) {
-		setupSchema(validationSchema, newRawSchema(new JsonSchema()
-				.set$ref(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)));
-	}
-
-	private void setupSchema(JsonSchema validationSchema, JsonSchema rawSchema) {
 		when(mockJsonSchemaManager.getValidationSchema(SCHEMA_ID)).thenReturn(validationSchema);
-		when(mockJsonSchemaManager.getSchema(SCHEMA_ID, false)).thenReturn(rawSchema);
 	}
 
 	/**
-	 * The schema as it was authored, where references are still the ids they were written as. Only
-	 * the composition of the root matters to the validator.
+	 * The entry of a top level 'allOf' that names the given schema, as a validation schema renders
+	 * it: a pointer to the definition keyed by the reference the author wrote.
 	 */
-	private static JsonSchema newRawSchema(JsonSchema... allOf) {
-		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setAllOf(List.of(allOf));
+	private static JsonSchema localRef(String reference) {
+		return new JsonSchema().set$ref("#/definitions/" + reference);
 	}
 
 	/**
@@ -458,13 +447,14 @@ public class FormTemplateValidatorTest {
 		properties.put("projectLead", new JsonSchema().setType(Type.string));
 		properties.put("irbApproval",
 				new JsonSchema().setType(Type.integer).setFormat(FormTemplateValidator.FILE_HANDLE_FORMAT));
-		properties.put("institution", new JsonSchema().set$ref("#/definitions/" + INSTITUTION_DEFINITION));
+		properties.put("institution", localRef(INSTITUTION_DEFINITION));
 
 		JsonSchema institution = new JsonSchema().setType(Type.object)
 				.setProperties(Map.of("name", new JsonSchema().setType(Type.string)));
 
-		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setProperties(properties)
-				.setRequired(List.of("projectLead"))
+		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object)
+				.setAllOf(List.of(localRef(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
+				.setProperties(properties).setRequired(List.of("projectLead"))
 				.setDefinitions(new LinkedHashMap<>(Map.of(INSTITUTION_DEFINITION, institution)));
 	}
 
@@ -478,8 +468,9 @@ public class FormTemplateValidatorTest {
 		properties.put("a/b", new JsonSchema().setType(Type.string));
 		properties.put("~1", new JsonSchema().setType(Type.string));
 
-		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object).setProperties(properties)
-				.setRequired(List.of("a/b", "~1"));
+		return new JsonSchema().set$id(SCHEMA_ID).setType(Type.object)
+				.setAllOf(List.of(localRef(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID)))
+				.setProperties(properties).setRequired(List.of("a/b", "~1"));
 	}
 
 	private static FormTemplate newTemplate(FormTemplateField... fields) {
