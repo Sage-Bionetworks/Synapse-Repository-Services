@@ -70,7 +70,7 @@ public class FormTemplateValidator {
 		List<String> problems = new ArrayList<>();
 		Set<String> coveredPaths = new HashSet<>();
 
-		if (!extendsAccessRequirementBaseSchema(template.getSchema$id())) {
+		if (!extendsAccessRequirementBaseSchema(schema)) {
 			problems.add("The schema '" + template.getSchema$id() + "' must extend '"
 					+ JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID
 					+ "' by naming it in a top level 'allOf' reference.");
@@ -116,14 +116,14 @@ public class FormTemplateValidator {
 	 * Whether the schema composes the pinned access requirement base schema, which is how an
 	 * authored schema picks up the submission context convention instead of re-declaring it.
 	 */
-	private boolean extendsAccessRequirementBaseSchema(String schema$id) {
-		// The raw schema is read rather than the validation schema because building the validation
-		// schema rewrites every reference as a pointer into its own definitions, which loses the
-		// version that the reference named. A reference buried inside another entry of the 'allOf'
-		// does not count, so only the direct entries are examined.
-		List<JsonSchema> allOf = jsonSchemaManager.getSchema(schema$id, false).getAllOf();
-		return allOf != null && allOf.stream()
-				.anyMatch(entry -> JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID.equals(entry.get$ref()));
+	private static boolean extendsAccessRequirementBaseSchema(JsonSchema schema) {
+		// Building the validation schema keys the definitions by the reference the author wrote and
+		// rewrites each reference as a pointer to that key, so the version a reference named survives
+		// as part of the pointer. A reference buried inside another entry of the 'allOf' does not
+		// count, so only the direct entries are examined.
+		String reference = LOCAL_REF_PREFIX + JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID;
+		List<JsonSchema> allOf = schema.getAllOf();
+		return allOf != null && allOf.stream().anyMatch(entry -> reference.equals(entry.get$ref()));
 	}
 
 	private void validateStep(FormTemplateStep step, int stepIndex, JsonSchema schema, Set<String> coveredPaths,
