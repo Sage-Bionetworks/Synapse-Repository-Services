@@ -21,8 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -86,7 +89,11 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class WebhookWorkerIntegrationTest {
 	
+	private static final Logger LOG = LogManager.getLogger(WebhookWorkerIntegrationTest.class);
+
 	private static final int TIMEOUT = 300_000;
+
+	private static final int ENDPOINT_STATUS_REQUIRED_CONSECUTIVE_MATCHES = 3;
 	
 	private static ApiGatewayV2Client apiGatewayClient;
 	private static AmazonSQS sqsClient;
@@ -424,6 +431,13 @@ public class WebhookWorkerIntegrationTest {
 				.connectTimeout(Duration.ofSeconds(2))
 				.build();
 		
+		// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
+		int expectedStatus = enabled ? 503 : 404;
+
+		// API Gateway applies disableExecuteApiEndpoint gradually across its nodes, so a single matching
+		// response does not mean that every request will see the new state
+		AtomicInteger consecutiveMatches = new AtomicInteger();
+
 		TimeUtils.waitFor(TIMEOUT, 1000, () -> {
 			HttpRequest request = HttpRequest.newBuilder(URI.create(testApi.apiEndpoint() + "/failing"))
 				.POST(BodyPublishers.ofString("{ \"message\": \"ping\" }"))
@@ -431,8 +445,12 @@ public class WebhookWorkerIntegrationTest {
 			
 			HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
 			
-			// The /failing API returns a 503 from the lambda, if the endpoint is disabled we receive a 404
-			return Pair.create((enabled ? 503 : 404) == response.statusCode(), null);
+			int matches = expectedStatus == response.statusCode() ? consecutiveMatches.incrementAndGet() : 0;
+			consecutiveMatches.set(matches);
+
+			LOG.info("Webhook test API /failing probe: status {} (expected {}), consecutive matches {}", response.statusCode(), expectedStatus, matches);
+
+			return Pair.create(matches >= ENDPOINT_STATUS_REQUIRED_CONSECUTIVE_MATCHES, null);
 		});
 	}
 	
