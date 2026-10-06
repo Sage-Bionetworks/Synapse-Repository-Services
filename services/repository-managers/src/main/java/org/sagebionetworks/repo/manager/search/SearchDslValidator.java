@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.opensearch.client.opensearch._types.SortOptions;
 import org.opensearch.client.opensearch._types.aggregations.Aggregation;
@@ -149,13 +150,14 @@ final class SearchDslValidator {
 	 */
 	static final int MAX_DETERMINIZED_STATES = 10000;
 
-	/**
-	 * Maximum number of clauses in a {@code hybrid.queries} array. A saved search pipeline's
-	 * {@code combination.parameters.weights} and {@code normalization.parameters} bounds must hold
-	 * exactly this many entries, since the pipeline cannot know the clause count of every query that
-	 * will use it.
-	 */
+	/** Maximum number of clauses in a {@code hybrid.queries} array. */
 	static final int MAX_HYBRID_QUERIES = 5;
+
+	/**
+	 * Minimum number of entries in a saved search pipeline's {@code combination.parameters.weights}
+	 * and {@code normalization.parameters} bounds: a pipeline exists to combine at least two clauses.
+	 */
+	static final int MIN_SAVED_PIPELINE_ENTRIES = 2;
 
 	/**
 	 * Tolerance on the {@code combination.parameters.weights} sum, so decimal weights such as
@@ -724,12 +726,14 @@ final class SearchDslValidator {
 	 * @param pipeline  the pipeline to validate
 	 * @param fieldName the request field holding the pipeline, used to prefix error messages
 	 * @throws IllegalArgumentException if {@code phase_results_processors} does not hold exactly one
-	 *         {@code normalization-processor}, if {@code weights} is set without exactly
-	 *         {@link #MAX_HYBRID_QUERIES} entries in {@code [0.0, 1.0]} summing to 1.0, if
-	 *         {@code lower_bounds} or {@code upper_bounds} is set without exactly
-	 *         {@link #MAX_HYBRID_QUERIES} entries with scores in {@code [-10000.0, 10000.0]} or with a
-	 *         normalization technique other than {@code min_max}, or if {@code z_score}
-	 *         normalization is combined with anything but {@code arithmetic_mean}
+	 *         {@code normalization-processor}, if {@code weights} is set without
+	 *         {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries in
+	 *         {@code [0.0, 1.0]} summing to 1.0, if {@code lower_bounds} or {@code upper_bounds} is set
+	 *         without {@link #MIN_SAVED_PIPELINE_ENTRIES} to {@link #MAX_HYBRID_QUERIES} entries with
+	 *         scores in {@code [-10000.0, 10000.0]} or with a normalization technique other than
+	 *         {@code min_max}, if the set {@code weights}, {@code lower_bounds} and {@code upper_bounds}
+	 *         differ in size, or if {@code z_score} normalization is combined with anything but
+	 *         {@code arithmetic_mean}
 	 */
 	static void validateSavedSearchPipeline(SearchPipeline pipeline, String fieldName) {
 		ValidateArgument.required(pipeline, fieldName);
@@ -742,9 +746,10 @@ final class SearchDslValidator {
 		NormalizationProcessor processor = processors.get(0).getNormalizationProcessor();
 		validateSavedNormalization(processor.getNormalization(), fieldName);
 		Combination combination = processor.getCombination();
-		if (combination != null && combination.getParameters() != null) {
-			validateSavedWeights(combination.getParameters().getWeights(), fieldName);
-		}
+		List<Double> weights = combination == null || combination.getParameters() == null
+				? null : combination.getParameters().getWeights();
+		validateSavedWeights(weights, fieldName);
+		validateSavedEntryCountsMatch(weights, processor.getNormalization(), fieldName);
 		// OpenSearch defaults an absent combination technique to arithmetic_mean.
 		boolean zScore = processor.getNormalization() != null
 				&& processor.getNormalization().getTechnique() == NormalizationTechnique.z_score;
@@ -760,10 +765,7 @@ final class SearchDslValidator {
 			return;
 		}
 		String label = fieldName + ".combination.parameters.weights";
-		if (weights.size() != MAX_HYBRID_QUERIES) {
-			throw new IllegalArgumentException(label + " must contain exactly " + MAX_HYBRID_QUERIES
-					+ " entries; found " + weights.size());
-		}
+		validateSavedEntryCount(weights, label);
 		double sum = 0;
 		for (Double weight : weights) {
 			if (weight == null || weight < 0.0 || weight > 1.0) {
@@ -794,22 +796,39 @@ final class SearchDslValidator {
 		}
 		String label = fieldName + ".normalization.parameters";
 		if (lowerBounds != null) {
-			validateSavedBoundCount(lowerBounds, label + ".lower_bounds");
+			validateSavedEntryCount(lowerBounds, label + ".lower_bounds");
 			lowerBounds.forEach(bound -> validateSavedBoundScore(bound.getMin_score(), label + ".lower_bounds"));
 		}
 		if (upperBounds != null) {
-			validateSavedBoundCount(upperBounds, label + ".upper_bounds");
+			validateSavedEntryCount(upperBounds, label + ".upper_bounds");
 			upperBounds.forEach(bound -> validateSavedBoundScore(bound.getMax_score(), label + ".upper_bounds"));
 		}
 	}
 
-	static void validateSavedBoundCount(List<?> bounds, String label) {
-		if (bounds.size() != MAX_HYBRID_QUERIES) {
-			throw new IllegalArgumentException(label + " must contain exactly " + MAX_HYBRID_QUERIES
-					+ " entries; found " + bounds.size());
+	static void validateSavedEntryCount(List<?> entries, String label) {
+		if (entries.size() < MIN_SAVED_PIPELINE_ENTRIES || entries.size() > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException(label + " must contain " + MIN_SAVED_PIPELINE_ENTRIES + " to "
+					+ MAX_HYBRID_QUERIES + " entries; found " + entries.size());
 		}
-		if (bounds.stream().anyMatch(Objects::isNull)) {
+		if (entries.stream().anyMatch(Objects::isNull)) {
 			throw new IllegalArgumentException(label + " entries must not be null");
+		}
+	}
+
+	/**
+	 * Weights and bounds are positional against the same clauses, so every one of them that is set
+	 * must hold the same number of entries.
+	 */
+	static void validateSavedEntryCountsMatch(List<Double> weights, Normalization normalization, String fieldName) {
+		NormalizationParameters parameters = normalization == null ? null : normalization.getParameters();
+		List<Integer> sizes = Stream.of(weights,
+				parameters == null ? null : parameters.getLower_bounds(),
+				parameters == null ? null : parameters.getUpper_bounds())
+				.filter(Objects::nonNull).map(List::size).distinct().toList();
+		if (sizes.size() > 1) {
+			throw new IllegalArgumentException(fieldName
+					+ ": combination.parameters.weights, normalization.parameters.lower_bounds and"
+					+ " normalization.parameters.upper_bounds must contain the same number of entries");
 		}
 	}
 

@@ -3,14 +3,14 @@
 	"properties": {
 		"lower_bounds": {
 			"type": "array",
-			"description": "<p>Optional. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.LowerBound}\">lower bound</a> of each hybrid query clause, positional against <code>hybrid.queries</code>. When set, must hold exactly 5 entries &mdash; the maximum <code>hybrid.queries</code> length. When a query has fewer than 5 clauses, only the bounds of the clauses it provides are used. If not provided, no lower bound is applied and each clause's actual minimum score is used for normalization.</p>",
+			"description": "<p>Optional. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.LowerBound}\">lower bound</a> of each hybrid query clause, positional against <code>hybrid.queries</code>. When set, must hold 2 to 5 entries &mdash; 5 being the maximum <code>hybrid.queries</code> length &mdash; and as many entries as any other set weights or bounds. A query may send fewer clauses than there are bounds, in which case only the bounds of the clauses it sends are used; a query that sends more clauses than there are bounds is rejected. If not provided, no lower bound is applied and each clause's actual minimum score is used for normalization.</p>",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.dsl.LowerBound"
 			}
 		},
 		"upper_bounds": {
 			"type": "array",
-			"description": "<p>Optional. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.UpperBound}\">upper bound</a> of each hybrid query clause, positional against <code>hybrid.queries</code>. When set, must hold exactly 5 entries &mdash; the maximum <code>hybrid.queries</code> length. When a query has fewer than 5 clauses, only the bounds of the clauses it provides are used. If not provided, no upper bound is applied and each clause's actual maximum score is used for normalization.</p>",
+			"description": "<p>Optional. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.UpperBound}\">upper bound</a> of each hybrid query clause, positional against <code>hybrid.queries</code>. When set, must hold 2 to 5 entries &mdash; 5 being the maximum <code>hybrid.queries</code> length &mdash; and as many entries as any other set weights or bounds. A query may send fewer clauses than there are bounds, in which case only the bounds of the clauses it sends are used; a query that sends more clauses than there are bounds is rejected. If not provided, no upper bound is applied and each clause's actual maximum score is used for normalization.</p>",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.search.dsl.UpperBound"
 			}

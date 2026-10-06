@@ -19,7 +19,7 @@
 		},
 		"settings": {
 			"$ref": "org.sagebionetworks.repo.model.search.dsl.SearchPipeline",
-			"description": "<p>Required. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">search pipeline</a> this resource holds. On save: <code>phase_results_processors</code> must hold exactly one entry that sets <code>normalization-processor</code>; <code>combination.parameters.weights</code>, when set, must hold exactly 5 entries, each in <code>[0.0, 1.0]</code>, with a sum greater than 0; and the <code>z_score</code> normalization technique is only allowed with the <code>arithmetic_mean</code> combination technique.</p>",
+			"description": "<p>Required. The <a href=\"${org.sagebionetworks.repo.model.search.dsl.SearchPipeline}\">search pipeline</a> this resource holds. On save: <code>phase_results_processors</code> must hold exactly one entry that sets <code>normalization-processor</code>; <code>combination.parameters.weights</code>, when set, must hold 2 to 5 entries, each in <code>[0.0, 1.0]</code>, with a sum equal to 1.0; <code>normalization.parameters.lower_bounds</code> and <code>upper_bounds</code>, when set, must hold 2 to 5 entries; the set weights and bounds must hold the same number of entries; and the <code>z_score</code> normalization technique is only allowed with the <code>arithmetic_mean</code> combination technique.</p>",
 			"required": true
 		},
 		"etag": {
