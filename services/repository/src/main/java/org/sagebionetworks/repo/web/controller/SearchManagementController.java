@@ -667,8 +667,10 @@ public class SearchManagementController {
 	 * </p>
 	 * <p>
 	 * The <code>settings</code> must hold exactly one <code>normalization-processor</code>;
-	 * <code>weights</code>, when set, must hold exactly 5 entries in <code>[0.0, 1.0]</code> summing to more
-	 * than 0; and <code>z_score</code> normalization requires the <code>arithmetic_mean</code> combination.
+	 * <code>weights</code>, when set, must hold 2 to 5 entries in <code>[0.0, 1.0]</code> summing to 1.0;
+	 * <code>lower_bounds</code> and <code>upper_bounds</code>, when set, must hold 2 to 5 entries; the set
+	 * weights and bounds must hold the same number of entries; and <code>z_score</code> normalization
+	 * requires the <code>arithmetic_mean</code> combination.
 	 * </p>
 	 *
 	 * @param userId The ID of the authenticated user.

@@ -207,15 +207,26 @@ public class SearchPipelineManagerImplTest {
 	}
 
 	@Test
-	public void testCreateWithFourWeights() {
-		assertCreateRejected(weightedSettings(0.25, 0.25, 0.25, 0.25),
-				WEIGHTS_FIELD + " must contain exactly 5 entries; found 4");
+	public void testCreateWithOneWeight() {
+		assertCreateRejected(weightedSettings(1.0),
+				WEIGHTS_FIELD + " must contain 2 to 5 entries; found 1");
+	}
+
+	@Test
+	public void testCreateWithTwoWeights() {
+		NamedSearchPipeline request = validPipeline().setSettings(weightedSettings(0.7, 0.3));
+		when(mockSearchPipelineDao.create(1L, request)).thenReturn(request);
+
+		// call under test
+		manager.create(admin, request);
+
+		verify(mockSearchPipelineDao).create(1L, request);
 	}
 
 	@Test
 	public void testCreateWithSixWeights() {
 		assertCreateRejected(weightedSettings(0.1, 0.1, 0.1, 0.1, 0.1, 0.5),
-				WEIGHTS_FIELD + " must contain exactly 5 entries; found 6");
+				WEIGHTS_FIELD + " must contain 2 to 5 entries; found 6");
 	}
 
 	@Test
@@ -233,7 +244,7 @@ public class SearchPipelineManagerImplTest {
 	@Test
 	public void testCreateWithNullWeight() {
 		assertCreateRejected(weightedSettings(0.5, null, 0.2, 0.2, 0.1),
-				WEIGHTS_FIELD + " entries must be in the range [0.0, 1.0]; found null");
+				WEIGHTS_FIELD + " entries must not be null");
 	}
 
 	@Test
@@ -375,9 +386,43 @@ public class SearchPipelineManagerImplTest {
 	}
 
 	@Test
-	public void testCreateWithFourLowerBounds() {
-		assertCreateRejected(boundedSettings(null, fiveLowerBounds(0.0).subList(0, 4), null),
-				LOWER_BOUNDS_FIELD + " must contain exactly 5 entries; found 4");
+	public void testCreateWithOneLowerBound() {
+		assertCreateRejected(boundedSettings(null, fiveLowerBounds(0.0).subList(0, 1), null),
+				LOWER_BOUNDS_FIELD + " must contain 2 to 5 entries; found 1");
+	}
+
+	@Test
+	public void testCreateWithTwoWeightsAndTwoBounds() {
+		NamedSearchPipeline request = validPipeline().setSettings(settings(new NormalizationProcessor()
+				.setNormalization(new Normalization().setParameters(new NormalizationParameters()
+						.setLower_bounds(fiveLowerBounds(0.0).subList(3, 5))
+						.setUpper_bounds(fiveUpperBounds(1.0).subList(3, 5))))
+				.setCombination(new Combination().setParameters(new CombinationParameters()
+						.setWeights(List.of(0.7, 0.3))))));
+		when(mockSearchPipelineDao.create(1L, request)).thenReturn(request);
+
+		// call under test
+		manager.create(admin, request);
+
+		verify(mockSearchPipelineDao).create(1L, request);
+	}
+
+	@Test
+	public void testCreateWithWeightAndBoundCountMismatch() {
+		assertCreateRejected(settings(new NormalizationProcessor()
+				.setNormalization(new Normalization().setParameters(new NormalizationParameters()
+						.setLower_bounds(fiveLowerBounds(0.0).subList(0, 3))))
+				.setCombination(new Combination().setParameters(new CombinationParameters()
+						.setWeights(List.of(0.7, 0.3))))),
+				"settings: combination.parameters.weights, normalization.parameters.lower_bounds and"
+						+ " normalization.parameters.upper_bounds must contain the same number of entries");
+	}
+
+	@Test
+	public void testCreateWithLowerAndUpperBoundCountMismatch() {
+		assertCreateRejected(boundedSettings(null, fiveLowerBounds(0.0).subList(0, 2), fiveUpperBounds(1.0)),
+				"settings: combination.parameters.weights, normalization.parameters.lower_bounds and"
+						+ " normalization.parameters.upper_bounds must contain the same number of entries");
 	}
 
 	@Test
@@ -385,7 +430,7 @@ public class SearchPipelineManagerImplTest {
 		List<UpperBound> bounds = new ArrayList<>(fiveUpperBounds(1.0));
 		bounds.add(upper(BoundMode.apply, 1.0));
 		assertCreateRejected(boundedSettings(null, null, bounds),
-				UPPER_BOUNDS_FIELD + " must contain exactly 5 entries; found 6");
+				UPPER_BOUNDS_FIELD + " must contain 2 to 5 entries; found 6");
 	}
 
 	@Test
@@ -512,14 +557,14 @@ public class SearchPipelineManagerImplTest {
 
 	@Test
 	public void testUpdateWithInvalidSettings() {
-		NamedSearchPipeline request = validPipeline().setId("1").setSettings(weightedSettings(0.5, 0.5));
+		NamedSearchPipeline request = validPipeline().setId("1").setSettings(weightedSettings(1.0));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test
 			manager.update(admin, request);
 		}).getMessage();
 
-		assertEquals(WEIGHTS_FIELD + " must contain exactly 5 entries; found 2", message);
+		assertEquals(WEIGHTS_FIELD + " must contain 2 to 5 entries; found 1", message);
 		verifyNoInteractions(mockSearchPipelineDao);
 	}
 
