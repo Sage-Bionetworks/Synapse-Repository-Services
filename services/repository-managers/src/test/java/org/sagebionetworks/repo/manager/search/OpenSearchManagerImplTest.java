@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import jakarta.json.stream.JsonParsingException;
+
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -2376,6 +2378,24 @@ public class OpenSearchManagerImplTest {
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
 		assertEquals(502, cause.status());
 		assertEquals(1, cause.getSuppressed().length);
+		assertInstanceOf(JsonParsingException.class, cause.getSuppressed()[0]);
+	}
+
+	@Test
+	public void testSearchWithEmptyErrorBodyThrowsRuntime() throws IOException {
+		stubSearchTransport();
+		Response response = genericResponse(503, null);
+		when(genericClient.execute(argThat(isSearchOn("my-index")))).thenReturn(response);
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
+
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals(503, cause.status());
+		assertEquals(ErrorCause.of(c -> c.type("http_exception").reason("server returned 503")), cause.error());
+		assertEquals(0, cause.getSuppressed().length);
 	}
 
 	@Test
@@ -2389,7 +2409,7 @@ public class OpenSearchManagerImplTest {
 						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
-		assertEquals("server returned 502: " + kept + "...", cause.error().reason());
+		assertEquals("server returned 502: " + kept + OpenSearchManagerImpl.TRUNCATION_MARKER, cause.error().reason());
 	}
 
 	@Test
