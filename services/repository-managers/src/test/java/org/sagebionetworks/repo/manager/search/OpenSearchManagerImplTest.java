@@ -2250,11 +2250,27 @@ public class OpenSearchManagerImplTest {
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
 						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
 
-		ErrorCause expected = ErrorCause.of(c -> c.type("http_exception").reason("server returned 502"));
+		ErrorCause expected = ErrorCause.of(c -> c.type("http_exception")
+				.reason("server returned 502: <html>Bad Gateway</html>"));
 		assertEquals("Failed to execute search on search index: my-index"
 				+ " (" + OpenSearchManagerImpl.describeError(expected) + ")", ex.getMessage());
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
 		assertEquals(502, cause.status());
+		assertEquals(1, cause.getSuppressed().length);
+	}
+
+	@Test
+	public void testSearchWithOversizedUnparseableErrorBodyTruncatesReason() throws IOException {
+		String kept = "x".repeat(OpenSearchManagerImpl.MAX_ERROR_BODY_LENGTH);
+		stubSearchError("my-index", 502, kept + "dropped");
+
+		// call under test
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+
+		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
+		assertEquals("server returned 502: " + kept + "...", cause.error().reason());
 	}
 
 	@Test
