@@ -363,7 +363,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			boolean built = tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
 					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
 					(ProgressCallback callback) -> streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
-							config, overrides, inlineAnalyzers), sourceId);
+							config, overrides, inlineAnalyzers, rowCount), sourceId);
 			// A source without an as-built snapshot cannot be waited on by retrying the message, for the
 			// same reason as a PROCESSING source: the source's next build writes the snapshot and fires
 			// the TABLE_STATUS_EVENT(AVAILABLE) that rebuilds this index.
@@ -456,11 +456,12 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * @throws IllegalStateException when a column is flagged semantic on a source above
 	 *         {@link #SEMANTIC_MAX_ROWS}.
 	 * @throws RecoverableMessageException when a column is flagged semantic and no embedding model is
-	 *         deployed, or the model the build embedded with stopped being deployed mid-build.
+	 *         deployed.
 	 */
 	private boolean streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
 			TableIndexDAO indexDao, SearchConfiguration config,
-			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers) throws Exception {
+			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers, Long rowCount)
+			throws Exception {
 		String definingSQL = searchIndex.getDefiningSQL();
 		Optional<IndexAuthorizationSnapshot> sourceSnapshotOpt = indexAuthorizationSnapshotManager
 				.getAuthorizationSnapshot(sourceId);
@@ -508,10 +509,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				.collect(Collectors.toList());
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
 		Set<String> semanticColumnIds = OpenSearchManagerImpl.resolveSemanticColumnIds(selectedColumns, overrides);
-		// Re-read under the lock: the source may have been rebuilt since the pre-lock MAX_ROWS check, and
-		// the row handler has no SEMANTIC_MAX_ROWS backstop.
 		SemanticEmbeddingModel semanticModel = resolveSemanticModel(searchIndex.getId(), selectedColumns,
-				semanticColumnIds, indexDao.getRowCountForTable(sourceId));
+				semanticColumnIds, rowCount);
 
 		IndexDescriptionSnapshot indexDescription = sourceSnapshot.getIndexDescription();
 		List<String> benefactorColumnNames = indexDescription.getBenefactors().stream()
