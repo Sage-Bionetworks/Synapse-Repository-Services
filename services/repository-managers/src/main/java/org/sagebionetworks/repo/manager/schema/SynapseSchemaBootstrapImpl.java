@@ -104,7 +104,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		UserInfo adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		createOrganizationIfDoesNotExist(adminUser);
-		createActOrganizationIfDoesNotExist(adminUser);
+		// Reconciles what the startup bootstrapper already did, so that a stack whose startup
+		// predates a change to the base schema still picks it up.
+		bootstrapAccessRequirementBaseSchema(adminUser);
 
 		List<ObjectSchema> allSchemasToBootstrap = loadAllSchemasAndReferences(OBJECTS_TO_BOOTSTRAP);
 
@@ -113,7 +115,12 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 			replaceReferencesWithLatestVersion(jsonSchema);
 			registerSchemaIfDoesNotExist(adminUser, jsonSchema);
 		}
+	}
 
+	@WriteTransaction
+	@Override
+	public void bootstrapAccessRequirementBaseSchema(UserInfo adminUser) {
+		createActOrganizationIfDoesNotExist(adminUser);
 		registerSchemaIfDoesNotExist(adminUser, loadAccessRequirementBaseSchema());
 	}
 

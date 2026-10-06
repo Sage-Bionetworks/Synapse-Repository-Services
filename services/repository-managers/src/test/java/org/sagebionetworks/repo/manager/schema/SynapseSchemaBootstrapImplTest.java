@@ -391,6 +391,21 @@ public class SynapseSchemaBootstrapImplTest {
 	}
 
 	@Test
+	public void testBootstrapAccessRequirementBaseSchema() {
+		JsonSchema baseSchema = new JsonSchema()
+				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
+		doReturn(new Organization()).when(bootstrapSpy).createActOrganizationIfDoesNotExist(any());
+		doReturn(baseSchema).when(bootstrapSpy).loadAccessRequirementBaseSchema();
+		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(), any());
+
+		// call under test
+		bootstrapSpy.bootstrapAccessRequirementBaseSchema(admin);
+
+		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
+		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
+	}
+
+	@Test
 	public void testBootstrapSynapseSchemas() throws RecoverableMessageException {
 		JsonSchema baseSchema = new JsonSchema()
 				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
