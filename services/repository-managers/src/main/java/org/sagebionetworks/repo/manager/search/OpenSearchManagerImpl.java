@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -293,6 +294,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 * OpenSearch key each aggregation as {@code type#name}, the only form
 	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read.
 	 */
+	/** Longest error body kept in the reason of an unparseable error response. */
+	static final int MAX_ERROR_BODY_LENGTH = 1024;
+
 	static final Map<String, String> SEARCH_QUERY_PARAMETERS = Map.of(
 			"typed_keys", "true",
 			"cancel_after_time_interval", "60s");
@@ -1413,7 +1417,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				.json(searchRequestBody(req.build(), applied))
 				.build())) {
 			if (response.getStatus() >= 400) {
-				throw new OpenSearchException(readErrorResponse(response, mapper));
+				throw readErrorResponse(response, mapper);
 			}
 			SearchResponse<Map> searchResponse = Bodies.json(response.getBody().orElseThrow(),
 					SEARCH_RESPONSE_DESERIALIZER, mapper);
@@ -1458,21 +1462,35 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	/**
-	 * The {@link ErrorResponse} of a failed generic-client request. A missing or unparseable body
-	 * (e.g. an HTML gateway page) yields the same {@code http_exception} the typed transport reports.
+	 * The {@link OpenSearchException} of a failed generic-client request. A missing or unparseable
+	 * body (e.g. an HTML gateway page) yields an {@code http_exception} whose reason carries the raw
+	 * body, truncated to {@link #MAX_ERROR_BODY_LENGTH} characters, with the parse failure attached
+	 * as a suppressed exception.
 	 */
-	private static ErrorResponse readErrorResponse(Response response, JsonpMapper mapper) {
-		Optional<Body> body = response.getBody();
-		if (body.isPresent()) {
-			try {
-				return Bodies.json(body.get(), ErrorResponse._DESERIALIZER, mapper);
-			} catch (RuntimeException unparseable) {
-				// fall through to the generic error
-			}
-		}
+	static OpenSearchException readErrorResponse(Response response, JsonpMapper mapper) {
 		int status = response.getStatus();
-		return ErrorResponse.of(err -> err.status(status)
-				.error(cause -> cause.type("http_exception").reason("server returned " + status)));
+		Optional<Body> body = response.getBody();
+		if (body.isEmpty()) {
+			return httpException(status, "server returned " + status);
+		}
+		byte[] bytes = body.get().bodyAsBytes();
+		try {
+			return new OpenSearchException(Bodies.json(Body.from(bytes, body.get().contentType()),
+					ErrorResponse._DESERIALIZER, mapper));
+		} catch (RuntimeException unparseable) {
+			String text = new String(bytes, StandardCharsets.UTF_8);
+			if (text.length() > MAX_ERROR_BODY_LENGTH) {
+				text = text.substring(0, MAX_ERROR_BODY_LENGTH) + "...";
+			}
+			OpenSearchException exception = httpException(status, "server returned " + status + ": " + text);
+			exception.addSuppressed(unparseable);
+			return exception;
+		}
+	}
+
+	private static OpenSearchException httpException(int status, String reason) {
+		return new OpenSearchException(ErrorResponse.of(err -> err.status(status)
+				.error(cause -> cause.type("http_exception").reason(reason))));
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})
