@@ -2386,7 +2386,7 @@ public class OpenSearchManagerImplTest {
 		// call under test
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.search("my-index", matchAllBody(), Collections.emptyList(),
-						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()));
+						EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null));
 
 		OpenSearchException cause = assertInstanceOf(OpenSearchException.class, ex.getCause());
 		assertEquals("server returned 502: " + kept + "...", cause.error().reason());

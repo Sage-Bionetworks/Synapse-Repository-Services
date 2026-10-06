@@ -314,7 +314,7 @@ public final class SearchOpaqueJsonUtil {
 		if (hybrid != null) {
 			List<Integer> sentPositions = sentClausePositions(hybrid, semanticModelId);
 			searchPipeline = resolveSearchPipeline(nodeOrNull(body, "search_pipeline"),
-					savedPipeline == null ? null : parse(savedPipeline), hybrid.get("queries").size(), sentPositions);
+					savedPipeline == null ? null : parse(savedPipeline), sentPositions.size());
 			hybridMinScore = nodeOrNull(hybrid, "min_score");
 			((ObjectNode) hybrid).remove("min_score");
 			req.query(buildHybridQuery(hybrid, sentPositions, ctx, filters, semanticModelId, hybridRelevanceRanked));
@@ -438,71 +438,58 @@ public final class SearchOpaqueJsonUtil {
 	/**
 	 * The {@code search_pipeline} block a hybrid request runs with, narrowed to the clauses sent.
 	 *
-	 * <p>An inline request pipeline was authored against the request's own clauses, so it is used
-	 * as given, and its weights and bounds are left for OpenSearch to check against them. Otherwise
-	 * the saved pipeline is used, falling back to the system default; a saved pipeline holds
-	 * {@link SearchDslValidator#MAX_HYBRID_QUERIES} weights and bounds because it cannot know the
-	 * clause count of the queries that will use it.</p>
-	 *
-	 * <p>Either way, each weights or bounds array keeps only the entries at the positions of the
-	 * clauses sent, and the kept weights are rescaled to sum to 1.0, as OpenSearch requires one entry
-	 * per clause and weights that sum to 1.0. Absent arrays stay absent.</p>
+	 * <p>The pipeline is the request's inline pipeline when given, otherwise the saved pipeline,
+	 * falling back to the system default. Its weights and bounds are positional against the clauses
+	 * sent: each array keeps its first {@code sentCount} entries, and the kept weights are rescaled
+	 * to sum to 1.0, as OpenSearch requires one entry per clause and weights that sum to 1.0. A
+	 * pipeline may so hold more entries than a query sends clauses, e.g. when a {@code neural} clause
+	 * is dropped, but never fewer. Absent arrays stay absent.</p>
 	 *
 	 * @param requestPipeline the body's {@code search_pipeline}, or {@code null}
 	 * @param savedPipeline   the saved pipeline, or {@code null} for the system default
-	 * @param clauseCount     the number of clauses in {@code hybrid.queries}
-	 * @param sentPositions   the positions of the clauses sent, from {@link #sentClausePositions}
-	 * @throws IllegalArgumentException when an inline pipeline is malformed, or the clauses sent
-	 *         leave weights that sum to 0
+	 * @param sentCount       the number of clauses sent, from {@link #sentClausePositions}
+	 * @throws IllegalArgumentException when an inline pipeline is malformed, a weights or bounds
+	 *         array holds fewer entries than {@code sentCount}, or the kept weights sum to 0
 	 */
-	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline, int clauseCount,
-			List<Integer> sentPositions) {
+	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline, int sentCount) {
+		JsonNode pipeline;
 		if (requestPipeline != null && readRef(requestPipeline) == null) {
 			toInlineSearchPipeline(requestPipeline, "body.search_pipeline");
-			if (sentPositions.size() == clauseCount) {
-				return requestPipeline;
-			}
-			// Dropped clauses leave entries OpenSearch would count against the clauses sent.
-			JsonNode narrowed = requestPipeline.deepCopy();
-			narrowToSentClauses(narrowed, clauseCount, sentPositions);
-			return narrowed;
+			pipeline = requestPipeline;
+		} else {
+			pipeline = savedPipeline == null ? SYSTEM_DEFAULT_PIPELINE : savedPipeline;
 		}
-		// Copied so the weights can be rewritten without touching the shared system default.
-		JsonNode resolved = (savedPipeline == null ? SYSTEM_DEFAULT_PIPELINE : savedPipeline).deepCopy();
-		narrowToSentClauses(resolved, SearchDslValidator.MAX_HYBRID_QUERIES, sentPositions);
+		// Copied so the arrays can be rewritten without touching the caller's or the shared default pipeline.
+		JsonNode resolved = pipeline.deepCopy();
+		for (JsonNode processor : resolved.path("phase_results_processors")) {
+			JsonNode normalizationProcessor = processor.path("normalization-processor");
+			JsonNode normalizationParameters = normalizationProcessor.path("normalization").path("parameters");
+			keepFirstEntries(normalizationParameters, "lower_bounds", sentCount, false);
+			keepFirstEntries(normalizationParameters, "upper_bounds", sentCount, false);
+			keepFirstEntries(normalizationProcessor.path("combination").path("parameters"), "weights", sentCount,
+					true);
+		}
 		return resolved;
 	}
 
-	private static void narrowToSentClauses(JsonNode pipeline, int entryCount, List<Integer> sentPositions) {
-		for (JsonNode processor : pipeline.path("phase_results_processors")) {
-			JsonNode normalizationProcessor = processor.path("normalization-processor");
-			JsonNode normalizationParameters = normalizationProcessor.path("normalization").path("parameters");
-			selectPositions(normalizationParameters, "lower_bounds", entryCount, sentPositions, false);
-			selectPositions(normalizationParameters, "upper_bounds", entryCount, sentPositions, false);
-			selectPositions(normalizationProcessor.path("combination").path("parameters"), "weights", entryCount,
-					sentPositions, true);
-		}
-	}
-
 	/**
-	 * Replace {@code parameters[key]}, when present, with its entries at {@code sentPositions},
+	 * Replace {@code parameters[key]}, when present, with its first {@code sentCount} entries,
 	 * rescaled to sum to 1.0 when {@code rescale}.
 	 */
-	private static void selectPositions(JsonNode parameters, String key, int entryCount, List<Integer> sentPositions,
-			boolean rescale) {
+	private static void keepFirstEntries(JsonNode parameters, String key, int sentCount, boolean rescale) {
 		JsonNode entries = parameters.get(key);
 		if (entries == null || !entries.isArray()) {
 			return;
 		}
-		if (entries.size() != entryCount) {
-			throw new IllegalArgumentException("the search pipeline's " + key + " must hold exactly " + entryCount
-					+ " entries; found " + entries.size());
+		if (entries.size() < sentCount) {
+			throw new IllegalArgumentException("this query sends " + sentCount + " hybrid clauses, but the search"
+					+ " pipeline's " + key + " hold only " + entries.size() + " entries");
 		}
-		com.fasterxml.jackson.databind.node.ArrayNode selected = arrayNode();
-		for (int position : sentPositions) {
-			selected.add(entries.get(position));
+		com.fasterxml.jackson.databind.node.ArrayNode kept = arrayNode();
+		for (int i = 0; i < sentCount; i++) {
+			kept.add(entries.get(i));
 		}
-		((ObjectNode) parameters).set(key, rescale ? rescaleToUnitSum(selected) : selected);
+		((ObjectNode) parameters).set(key, rescale ? rescaleToUnitSum(kept) : kept);
 	}
 
 	private static com.fasterxml.jackson.databind.node.ArrayNode rescaleToUnitSum(

@@ -721,9 +721,9 @@ public class SearchConfigurationManagerImplTest {
 				// call under test
 				manager.create(admin, new SearchConfiguration()
 						.setOrganizationName("test-org").setName("MyConfig")
-						.setDefaultSearchPipeline(inlinePipeline(List.of(0.7, 0.3)))));
+						.setDefaultSearchPipeline(inlinePipeline(List.of(1.0)))));
 
-		assertEquals("defaultSearchPipeline.combination.parameters.weights must contain exactly 5 entries; found 2",
+		assertEquals("defaultSearchPipeline.combination.parameters.weights must contain 2 to 5 entries; found 1",
 				ex.getMessage());
 		verifyNoMoreInteractions(searchConfigurationDao);
 	}
