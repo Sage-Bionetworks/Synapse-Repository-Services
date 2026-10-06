@@ -1518,7 +1518,7 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
 
 		// call under test
-		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 1);
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0));
 
 		assertEquals(List.of(1.0), weightsOf(resolved));
 		assertEquals(SearchOpaqueJsonUtil.parse("[{\"mode\":\"apply\",\"min_score\":0.1}]"), lowerBoundsOf(resolved));
@@ -1527,15 +1527,15 @@ public class SearchOpaqueJsonUtilTest {
 	}
 
 	@Test
-	public void testResolveSearchPipelineWithSavedPipelineKeepsFirstEntries() {
+	public void testResolveSearchPipelineWithSavedPipelineKeepsSentPositions() {
 		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.3,0.2,0.0,0.0]");
 
 		// call under test
-		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 2);
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0, 2));
 
-		assertWeights(List.of(0.625, 0.375), weightsOf(resolved));
+		assertWeights(List.of(0.5 / 0.7, 0.2 / 0.7), weightsOf(resolved));
 		assertEquals(SearchOpaqueJsonUtil.parse(
-				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"clip\",\"min_score\":0.2}]"),
+				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"apply\",\"min_score\":0.3}]"),
 				lowerBoundsOf(resolved));
 	}
 
@@ -1545,7 +1545,7 @@ public class SearchOpaqueJsonUtilTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 1));
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0)));
 
 		assertEquals("the search pipeline's weights for the clauses of this query sum to 0,"
 				+ " leaving no way to weight them", ex.getMessage());
@@ -1557,16 +1557,16 @@ public class SearchOpaqueJsonUtilTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, 3));
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(null, saved, List.of(0, 1, 2)));
 
-		assertEquals("this query sends 3 hybrid clauses, but the search pipeline's weights hold only 2 entries",
+		assertEquals("this query sends the hybrid clause at position 2, but the search pipeline's weights hold only 2 entries",
 				ex.getMessage());
 	}
 
 	@Test
 	public void testResolveSearchPipelineWithNoPipelineUsesSystemDefault() {
 		// call under test
-		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, 2);
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, List.of(0, 1));
 
 		assertEquals(SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[{\"normalization-processor\":{"
 				+ "\"normalization\":{\"technique\":\"min_max\"},"
@@ -1581,7 +1581,7 @@ public class SearchOpaqueJsonUtilTest {
 		JsonNode saved = pipelineWith(FIVE_LOWER_BOUNDS, "[0.5,0.2,0.3,0.0,0.0]");
 
 		// call under test
-		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, saved, 2);
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, saved, List.of(0, 1));
 
 		assertEquals("l2", resolved.at("/phase_results_processors/0/normalization-processor/normalization/technique")
 				.asText());
@@ -1595,7 +1595,7 @@ public class SearchOpaqueJsonUtilTest {
 				+ "\"combination\":{\"technique\":\"arithmetic_mean\",\"parameters\":{\"weights\":[0.6,0.2,0.2]}}}}]}");
 
 		// call under test
-		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 2);
+		JsonNode resolved = SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0, 1));
 
 		assertWeights(List.of(0.75, 0.25), weightsOf(resolved));
 	}
@@ -1608,9 +1608,9 @@ public class SearchOpaqueJsonUtilTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 3));
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0, 1, 2)));
 
-		assertEquals("this query sends 3 hybrid clauses, but the search pipeline's weights hold only 2 entries",
+		assertEquals("this query sends the hybrid clause at position 2, but the search pipeline's weights hold only 2 entries",
 				ex.getMessage());
 	}
 
@@ -1620,7 +1620,7 @@ public class SearchOpaqueJsonUtilTest {
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, 1));
+				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0)));
 
 		assertEquals("JSON Element in Entity is Unsupported: unknown", ex.getMessage());
 	}
@@ -1646,12 +1646,12 @@ public class SearchOpaqueJsonUtilTest {
 				+ ",\"k\":10,\"model_id\":\"model-1\",\"query_text\":\"tumor\"}}}"
 				+ "]}}"), SearchOpaqueJsonUtil.parse(req.build().query().toJsonString()));
 		assertEquals(new SearchOpaqueJsonUtil.AppliedBody(0,
-				SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, 2),
+				SearchOpaqueJsonUtil.resolveSearchPipeline(null, null, List.of(0, 1)),
 				SearchOpaqueJsonUtil.parse("0.2")), applied);
 	}
 
 	@Test
-	public void testApplyBodyToRequestWithDroppedMiddleNeuralClauseKeepsFirstSavedWeights() {
+	public void testApplyBodyToRequestWithDroppedMiddleNeuralClauseKeepsSentClausesSavedWeights() {
 		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "," + MATCH_CLAUSE + "]}}";
 		SearchPipeline saved = SearchOpaqueJsonUtil.toInlineSearchPipeline(
 				pipelineWith("[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"clip\",\"min_score\":0.2},"
@@ -1663,9 +1663,9 @@ public class SearchOpaqueJsonUtilTest {
 				nameOnly(Function.identity()), req, EnumSet.of(SearchQueryPart.HITS), APPLY_DEFAULT_SIZE,
 				APPLY_MAX_SIZE, List.of(), null, saved);
 
-		assertWeights(List.of(0.6 / 0.9, 0.3 / 0.9), weightsOf(applied.searchPipeline()));
+		assertWeights(List.of(0.6 / 0.7, 0.1 / 0.7), weightsOf(applied.searchPipeline()));
 		assertEquals(SearchOpaqueJsonUtil.parse(
-				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"clip\",\"min_score\":0.2}]"),
+				"[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"apply\",\"min_score\":0.3}]"),
 				lowerBoundsOf(applied.searchPipeline()));
 	}
 

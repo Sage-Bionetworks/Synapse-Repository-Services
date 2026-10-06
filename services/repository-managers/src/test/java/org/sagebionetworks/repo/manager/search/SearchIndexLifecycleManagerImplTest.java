@@ -960,6 +960,29 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
+	public void testHandleCreateWithSemanticColumnAndSourceGrownPastRowCeilingUnderLockMarksFailed() throws Exception {
+		stubHappyPathThroughCreateIndex();
+		stubSourceLock();
+		stubSemanticNameColumn();
+		// The pre-lock read sees the source before a rebuild that lands before the lock is taken.
+		when(indexDao.getRowCountForTable(SOURCE_ID)).thenReturn(0L, SearchIndexLifecycleManagerImpl.SEMANTIC_MAX_ROWS + 1);
+		when(indexAuthorizationSnapshotManager.getAuthorizationSnapshot(SOURCE_ID)).thenReturn(Optional.of(SOURCE_SNAPSHOT));
+		when(tableManagerSupport.getColumnModel("100")).thenReturn(NAME_COLUMN);
+		when(columnModelManager.createColumnModel(argThat(cm -> cm != null && "name".equals(cm.getName()))))
+				.thenReturn(NAME_COLUMN);
+
+		// call under test
+		manager.handleCreate(progressCallback, ENTITY_ID);
+
+		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
+				.setErrorMessage("Search index with semantic columns would exceed maximum of 50000 rows. Row count: 50001"),
+				captureLastStatus());
+		verify(indexDao, times(2)).getRowCountForTable(SOURCE_ID);
+		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
+		verifyNoInteractions(semanticEmbeddingBootstrapper);
+	}
+
+	@Test
 	public void testHandleCreateWithSemanticColumnAndNoModelThrowsRecoverable() throws Exception {
 		stubHappyPathThroughCreateIndex();
 		stubSourceLock();

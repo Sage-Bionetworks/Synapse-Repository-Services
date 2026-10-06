@@ -174,6 +174,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	}
 
 	private SearchPipeline getNamedPipelineSettings(String qualifiedName, String fieldName) {
+		SearchResourceConstants.validateQualifiedNameFormat(qualifiedName, fieldName);
 		return searchPipelineDao.getByQualifiedName(qualifiedName)
 				.map(NamedSearchPipeline::getSettings)
 				.orElseThrow(() -> new IllegalArgumentException(

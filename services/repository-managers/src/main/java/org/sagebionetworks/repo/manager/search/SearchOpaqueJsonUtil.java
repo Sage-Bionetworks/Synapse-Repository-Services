@@ -314,7 +314,7 @@ public final class SearchOpaqueJsonUtil {
 		if (hybrid != null) {
 			List<Integer> sentPositions = sentClausePositions(hybrid, semanticModelId);
 			searchPipeline = resolveSearchPipeline(nodeOrNull(body, "search_pipeline"),
-					savedPipeline == null ? null : parse(savedPipeline), sentPositions.size());
+					savedPipeline == null ? null : parse(savedPipeline), sentPositions);
 			hybridMinScore = nodeOrNull(hybrid, "min_score");
 			((ObjectNode) hybrid).remove("min_score");
 			req.query(buildHybridQuery(hybrid, sentPositions, ctx, filters, semanticModelId, hybridRelevanceRanked));
@@ -440,18 +440,19 @@ public final class SearchOpaqueJsonUtil {
 	 *
 	 * <p>The pipeline is the request's inline pipeline when given, otherwise the saved pipeline,
 	 * falling back to the system default. Its weights and bounds are positional against the clauses
-	 * sent: each array keeps its first {@code sentCount} entries, and the kept weights are rescaled
-	 * to sum to 1.0, as OpenSearch requires one entry per clause and weights that sum to 1.0. A
-	 * pipeline may so hold more entries than a query sends clauses, e.g. when a {@code neural} clause
-	 * is dropped, but never fewer. Absent arrays stay absent.</p>
+	 * of {@code body.hybrid.queries}: each array keeps the entries at the sent clauses' positions, and
+	 * the kept weights are rescaled to sum to 1.0, as OpenSearch requires one entry per clause and
+	 * weights that sum to 1.0. A dropped {@code neural} clause so takes its own weight and bounds with
+	 * it. Absent arrays stay absent.</p>
 	 *
 	 * @param requestPipeline the body's {@code search_pipeline}, or {@code null}
 	 * @param savedPipeline   the saved pipeline, or {@code null} for the system default
-	 * @param sentCount       the number of clauses sent, from {@link #sentClausePositions}
+	 * @param sentPositions   the ascending positions of the clauses sent, from {@link #sentClausePositions}
 	 * @throws IllegalArgumentException when an inline pipeline is malformed, a weights or bounds
-	 *         array holds fewer entries than {@code sentCount}, or the kept weights sum to 0
+	 *         array has no entry at a sent position, or the kept weights sum to 0
 	 */
-	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline, int sentCount) {
+	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline,
+			List<Integer> sentPositions) {
 		JsonNode pipeline;
 		if (requestPipeline != null && readRef(requestPipeline) == null) {
 			toInlineSearchPipeline(requestPipeline, "body.search_pipeline");
@@ -464,30 +465,32 @@ public final class SearchOpaqueJsonUtil {
 		for (JsonNode processor : resolved.path("phase_results_processors")) {
 			JsonNode normalizationProcessor = processor.path("normalization-processor");
 			JsonNode normalizationParameters = normalizationProcessor.path("normalization").path("parameters");
-			keepFirstEntries(normalizationParameters, "lower_bounds", sentCount, false);
-			keepFirstEntries(normalizationParameters, "upper_bounds", sentCount, false);
-			keepFirstEntries(normalizationProcessor.path("combination").path("parameters"), "weights", sentCount,
-					true);
+			keepSentEntries(normalizationParameters, "lower_bounds", sentPositions, false);
+			keepSentEntries(normalizationParameters, "upper_bounds", sentPositions, false);
+			keepSentEntries(normalizationProcessor.path("combination").path("parameters"), "weights",
+					sentPositions, true);
 		}
 		return resolved;
 	}
 
 	/**
-	 * Replace {@code parameters[key]}, when present, with its first {@code sentCount} entries,
+	 * Replace {@code parameters[key]}, when present, with its entries at {@code sentPositions},
 	 * rescaled to sum to 1.0 when {@code rescale}.
 	 */
-	private static void keepFirstEntries(JsonNode parameters, String key, int sentCount, boolean rescale) {
+	private static void keepSentEntries(JsonNode parameters, String key, List<Integer> sentPositions,
+			boolean rescale) {
 		JsonNode entries = parameters.get(key);
 		if (entries == null || !entries.isArray()) {
 			return;
 		}
-		if (entries.size() < sentCount) {
-			throw new IllegalArgumentException("this query sends " + sentCount + " hybrid clauses, but the search"
-					+ " pipeline's " + key + " hold only " + entries.size() + " entries");
+		int lastPosition = sentPositions.get(sentPositions.size() - 1);
+		if (entries.size() <= lastPosition) {
+			throw new IllegalArgumentException("this query sends the hybrid clause at position " + lastPosition
+					+ ", but the search pipeline's " + key + " hold only " + entries.size() + " entries");
 		}
 		com.fasterxml.jackson.databind.node.ArrayNode kept = arrayNode();
-		for (int i = 0; i < sentCount; i++) {
-			kept.add(entries.get(i));
+		for (int position : sentPositions) {
+			kept.add(entries.get(position));
 		}
 		((ObjectNode) parameters).set(key, rescale ? rescaleToUnitSum(kept) : kept);
 	}

@@ -1564,6 +1564,21 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
+	public void testResolveSavedPipelineWithMalformedRequestRef() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(Map.of("$ref", "no_separator"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("Invalid qualified name format for 'body.search_pipeline': 'no_separator'."
+				+ " Expected format: '{organizationName}-{resourceName}' (e.g., 'org.sagebionetworks-SCIENTIFIC').",
+				ex.getMessage());
+		verifyNoInteractions(searchPipelineDao, searchConfigurationResolver);
+	}
+
+	@Test
 	public void testResolveSavedPipelineWithConfigDefaultRef() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
 		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.of(
