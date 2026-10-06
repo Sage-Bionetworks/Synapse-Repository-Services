@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.search;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -250,15 +249,15 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final JsonpDeserializer<SearchResponse<Map>> SEARCH_RESPONSE_DESERIALIZER =
 			SearchResponse.createSearchResponseDeserializer(JsonpDeserializer.of(Map.class));
 
+	/** Longest error body kept in the reason of an unparseable error response. */
+	static final int MAX_ERROR_BODY_LENGTH = 1024;
+
 	/**
 	 * Query parameters of the {@code _search} request. The typed search endpoint adds these itself;
 	 * a request posted through the generic client must restate them. {@code typed_keys} makes
 	 * OpenSearch key each aggregation as {@code type#name}, the only form
 	 * {@link #SEARCH_RESPONSE_DESERIALIZER} can read.
 	 */
-	/** Longest error body kept in the reason of an unparseable error response. */
-	static final int MAX_ERROR_BODY_LENGTH = 1024;
-
 	static final Map<String, String> SEARCH_QUERY_PARAMETERS = Map.of(
 			"typed_keys", "true",
 			"cancel_after_time_interval", "60s");
@@ -1332,14 +1331,12 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		if (body.isEmpty()) {
 			return httpException(status, "server returned " + status);
 		}
-		byte[] bytes = body.get().bodyAsBytes();
 		try {
-			return new OpenSearchException(Bodies.json(Body.from(bytes, body.get().contentType()),
-					ErrorResponse._DESERIALIZER, mapper));
+			return new OpenSearchException(Bodies.json(body.get(), ErrorResponse._DESERIALIZER, mapper));
 		} catch (RuntimeException unparseable) {
-			String text = new String(bytes, StandardCharsets.UTF_8);
+			String text = body.get().bodyAsString();
 			if (text.length() > MAX_ERROR_BODY_LENGTH) {
-				text = text.substring(0, MAX_ERROR_BODY_LENGTH) + "...";
+				text = text.substring(0, MAX_ERROR_BODY_LENGTH) + TRUNCATION_MARKER;
 			}
 			OpenSearchException exception = httpException(status, "server returned " + status + ": " + text);
 			exception.addSuppressed(unparseable);
