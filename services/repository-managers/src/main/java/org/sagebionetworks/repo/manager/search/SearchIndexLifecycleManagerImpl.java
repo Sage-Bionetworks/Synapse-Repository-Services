@@ -105,7 +105,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private static final long MAX_ROWS = 500_000L;
 	static final long SEMANTIC_MAX_ROWS = 50_000L;
 	static final Set<ColumnType> SEMANTIC_COLUMN_TYPES = EnumSet.of(ColumnType.STRING, ColumnType.STRING_LIST,
-			ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT, ColumnType.LINK);
+			ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT, ColumnType.LINK, ColumnType.JSON);
 	/**
 	 * Token budget for a row's semantic text. Titan Text Embeddings V2 rejects input over 8,192
 	 * tokens; the margin absorbs the drift between cl100k and Titan's own tokenizer.
@@ -556,39 +556,27 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		int numberOfShards = computeShardCount(dataSizeBytes);
 		int numberOfReplicas = stackConfiguration.isProductionStack() ? 1 : 0;
 
-		try {
-			// createIndex is delete-then-create on the fixed slot name, so any orphan left in the idle
-			// slot by a previously-failed build is overwritten here.
-			openSearchManager.deleteIndex(idleSlot);
-			openSearchManager.createIndex(idleSlot, selectedColumns,
-					defaultAnalyzer,
-					overrides, resolvedAnalyzers,
-					benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot, semanticModel);
+		// createIndex is delete-then-create on the fixed slot name, so any orphan left in the idle
+		// slot by a previously-failed build is overwritten here.
+		openSearchManager.deleteIndex(idleSlot);
+		openSearchManager.createIndex(idleSlot, selectedColumns,
+				defaultAnalyzer,
+				overrides, resolvedAnalyzers,
+				benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot, semanticModel);
 
-			// AOSS acknowledges createIndex and returns an already-queryable index before its
-			// shards are actually ready to accept writes. Block until a real sentinel write
-			// succeeds so the bulk stream below does not race against index_not_found_exception.
-			openSearchManager.waitForIndexWritable(idleSlot);
+		// AOSS acknowledges createIndex and returns an already-queryable index before its
+		// shards are actually ready to accept writes. Block until a real sentinel write
+		// succeeds so the bulk stream below does not race against index_not_found_exception.
+		openSearchManager.waitForIndexWritable(idleSlot);
 
-			// Splice the source's per-dependency benefactor columns into the select so the handler can
-			// read them as trailing row values.
-			TranslatedQuery query = buildWithBenefactorColumns(base, indexDescription);
-			// queryAsStream does not close the handler; the try-with-resources flushes the final
-			// partial batch.
-			try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-					idleSlot, selectColumns, benefactorColumnNames, semanticColumnIds, openSearchManager)) {
-				indexDao.queryAsStream(query, handler);
-			}
-		} catch (RuntimeException e) {
-			// Every document is embedded through the model, so a model that was undeployed or
-			// re-registered mid-build rejects the writes. That is an infrastructure change rather than
-			// a defect in the index, so the build is retried against the model the periodic refresh
-			// resolved since.
-			if (semanticModel != null && !semanticEmbeddingBootstrapper.getModel().filter(semanticModel::equals).isPresent()) {
-				throw new RecoverableMessageException("Semantic embedding model " + semanticModel.modelId()
-						+ " stopped being deployed while building search index " + searchIndex.getId(), e);
-			}
-			throw e;
+		// Splice the source's per-dependency benefactor columns into the select so the handler can
+		// read them as trailing row values.
+		TranslatedQuery query = buildWithBenefactorColumns(base, indexDescription);
+		// queryAsStream does not close the handler; the try-with-resources flushes the final
+		// partial batch.
+		try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
+				idleSlot, selectColumns, benefactorColumnNames, semanticColumnIds, openSearchManager)) {
+			indexDao.queryAsStream(query, handler);
 		}
 		return true;
 	}
@@ -1006,7 +994,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				if (converted != null) {
 					doc.put(column.getId(), converted);
 					if (column.getId() != null && semanticColumnIds.contains(column.getId())) {
-						appendSemanticLine(semanticLines, column.getName(), converted);
+						// A JSON value embeds as its source text; the parsed Map would render as Java's toString.
+						appendSemanticLine(semanticLines, column.getName(),
+								ColumnType.JSON.equals(column.getColumnType()) ? values.get(i) : converted);
 					}
 				}
 			}

@@ -837,15 +837,16 @@ public class SearchIndexLifecycleManagerImplTest {
 		SelectColumn tags = new SelectColumn().setId("101").setName("tags").setColumnType(ColumnType.STRING_LIST);
 		SelectColumn count = new SelectColumn().setId("102").setName("count").setColumnType(ColumnType.INTEGER);
 		SelectColumn notes = new SelectColumn().setId("103").setName("notes").setColumnType(ColumnType.STRING);
-		SearchIndexRowHandler handler = new SearchIndexRowHandler("test-index", Arrays.asList(title, tags, count, notes),
-				List.of(), Set.of("100", "101", "103"), openSearchManager);
+		SelectColumn meta = new SelectColumn().setId("104").setName("meta").setColumnType(ColumnType.JSON);
+		SearchIndexRowHandler handler = new SearchIndexRowHandler("test-index", Arrays.asList(title, tags, count, notes, meta),
+				List.of(), Set.of("100", "101", "103", "104"), openSearchManager);
 
 		// call under test
 		handler.nextRow(new Row().setRowId(7L).setVersionNumber(1L)
-				.setValues(Arrays.asList("hello", "[\"a\",\" \",\"b\"]", "5", " ")));
+				.setValues(Arrays.asList("hello", "[\"a\",\" \",\"b\"]", "5", " ", "{\"species\":\"mouse\"}")));
 		// call under test
 		handler.nextRow(new Row().setRowId(8L).setVersionNumber(1L)
-				.setValues(Arrays.asList(null, null, "6", null)));
+				.setValues(Arrays.asList(null, null, "6", null, null)));
 		handler.close();
 
 		ArgumentCaptor<List<BulkOperation>> captor = ArgumentCaptor.forClass(List.class);
@@ -857,7 +858,8 @@ public class SearchIndexLifecycleManagerImplTest {
 		withText.put("101", List.of("a", " ", "b"));
 		withText.put("102", 5);
 		withText.put("103", " ");
-		withText.put(OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD, "title: hello\ntags: a, b");
+		withText.put("104", Map.of("species", "mouse"));
+		withText.put(OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD, "title: hello\ntags: a, b\nmeta: {\"species\":\"mouse\"}");
 		assertEquals(withText, captor.getValue().get(0).index().document());
 		assertEquals(Map.of("_row_id", 8L, "_row_version", 1L, "102", 6), captor.getValue().get(1).index().document());
 	}
@@ -932,7 +934,7 @@ public class SearchIndexLifecycleManagerImplTest {
 
 		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
 				.setErrorMessage("Column 'name' is of type INTEGER and cannot be flagged 'semantic'; only "
-						+ "[STRING, LINK, MEDIUMTEXT, LARGETEXT, STRING_LIST] columns can."),
+						+ "[STRING, LINK, MEDIUMTEXT, LARGETEXT, STRING_LIST, JSON] columns can."),
 				captureLastStatus());
 		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
 		verifyNoInteractions(semanticEmbeddingBootstrapper);
@@ -1001,43 +1003,6 @@ public class SearchIndexLifecycleManagerImplTest {
 		assertEquals(SearchIndexState.CREATING, captureLastStatus().getState());
 		verify(openSearchManager, never()).deleteIndex(any());
 		verify(openSearchManager, never()).createIndex(any(), any(), any(), any(), any(), any(), anyInt(), anyInt(), any(), any());
-		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
-	}
-
-	@Test
-	public void testHandleCreateWithSemanticModelReplacedMidBuildThrowsRecoverable() throws Exception {
-		stubHappyPathThroughStream();
-		stubSemanticNameColumn();
-		SemanticEmbeddingModel reRegistered = new SemanticEmbeddingModel("model-2", "amazon.titan-embed-text-v2:0", 1024);
-		when(semanticEmbeddingBootstrapper.getModel())
-				.thenReturn(Optional.of(SEMANTIC_MODEL))
-				.thenReturn(Optional.of(reRegistered));
-		RuntimeException writeRejected = new RuntimeException("model-1 not found");
-		doThrow(writeRejected).when(indexDao).queryAsStream(any(), any());
-
-		// call under test
-		RecoverableMessageException e = assertThrows(RecoverableMessageException.class,
-				() -> manager.handleCreate(progressCallback, ENTITY_ID));
-
-		assertSame(writeRejected, e.getCause());
-		assertEquals(SearchIndexState.CREATING, captureLastStatus().getState());
-		verify(openSearchManager, never()).swapAlias(any(), any(), any());
-		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
-	}
-
-	@Test
-	public void testHandleCreateWithSemanticModelUnchangedMidBuildFailureMarksFailed() throws Exception {
-		stubHappyPathThroughStream();
-		stubSemanticNameColumn();
-		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.of(SEMANTIC_MODEL));
-		doThrow(new RuntimeException("mapper_parsing_exception")).when(indexDao).queryAsStream(any(), any());
-
-		// call under test
-		manager.handleCreate(progressCallback, ENTITY_ID);
-
-		assertEquals(new SearchIndexStatus().setSearchIndexId(ENTITY_ID).setState(SearchIndexState.FAILED)
-				.setErrorMessage("mapper_parsing_exception"), captureLastStatus());
-		verify(openSearchManager, never()).swapAlias(any(), any(), any());
 		verify(semanticEmbeddingBootstrapper, never()).bootstrapSemanticEmbedding();
 	}
 
