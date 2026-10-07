@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -430,6 +432,7 @@ public class SynapseSchemaBootstrapImplTest {
 	public void testBootstrapAccessRequirementBaseSchema() {
 		JsonSchema baseSchema = new JsonSchema()
 				.set$id(JsonSchemaConstants.ACCESS_REQUIREMENT_BASE_SCHEMA_ID);
+		doReturn(new Organization()).when(bootstrapSpy).createOrganizationIfDoesNotExist(any());
 		doReturn(new Organization()).when(bootstrapSpy).createActOrganizationIfDoesNotExist(any());
 		doReturn(baseSchema).when(bootstrapSpy).loadAccessRequirementBaseSchema();
 		doNothing().when(bootstrapSpy).registerSchemaIfDoesNotExist(any(), any());
@@ -437,8 +440,12 @@ public class SynapseSchemaBootstrapImplTest {
 		// call under test
 		bootstrapSpy.bootstrapAccessRequirementBaseSchema(admin);
 
+		// The base schema belongs to 'org.sagebionetworks', so its organization has to be created
+		// here too: nothing orders this bootstrapper after the one that otherwise creates it.
+		InOrder order = Mockito.inOrder(bootstrapSpy);
+		order.verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		order.verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
 		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
-		verify(bootstrapSpy).registerSchemaIfDoesNotExist(admin, baseSchema);
 	}
 
 	@Test
@@ -456,7 +463,9 @@ public class SynapseSchemaBootstrapImplTest {
 		// call under test
 		bootstrapSpy.bootstrapSynapseSchemas();
 		verify(mockUserManager).getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		verify(bootstrapSpy).createOrganizationIfDoesNotExist(admin);
+		// Creating the organization is idempotent, and both this method and the base schema
+		// bootstrap need it in place, so each asks for it independently.
+		verify(bootstrapSpy, atLeastOnce()).createOrganizationIfDoesNotExist(admin);
 		verify(bootstrapSpy).createActOrganizationIfDoesNotExist(admin);
 		verify(mockTranslator).translate(objectSchemaOne);
 		verify(mockTranslator).translate(objectSchemaTwo);
