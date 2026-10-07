@@ -133,6 +133,43 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
+	public void testCreateSnapshotIfPatchCountIsExceededWithFewLargePatches() throws Exception {
+		connection.setCreatedBy(789L);
+		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
+
+		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
+		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(447);
+		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), any()))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD);
+
+		File tempFile = File.createTempFile("test-", ".cbor");
+		tempFile.deleteOnExit();
+		when(mockFileProvider.createTempFile(any(), any())).thenReturn(tempFile);
+
+		ClockTable clockTable = new ClockTable(List.of(clockEntry));
+		when(mockGridIndexManager.exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class))).thenReturn(clockTable);
+
+		// call under test
+		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 1000);
+
+		verify(mockSnapshotStore).saveSnapshot(eq(sessionId), eq(clockTable), eq(789L), any(File.class));
+	}
+
+	@Test
+	public void testCreateSnapshotIfPatchCountIsExceededWithFewSmallPatches() {
+		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
+		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(447);
+		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), any()))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD - 1);
+
+		// call under test
+		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 1000);
+
+		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
+		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
+	}
+
+	@Test
 	public void testOnExportSnapshotCleansUpOnFailure() throws Exception {
 		connection.setCreatedBy(789L);
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);

@@ -556,6 +556,39 @@ public class GridDaoImplTest {
 	}
 
 	@Test
+	public void testSumMissingPatchBytes() {
+		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+
+		// Replica 1 and 2, sequence numbers 1 and 3; each patch is 100 bytes more than the previous
+		LogicalTimestamp r1s1 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(1L);
+		LogicalTimestamp r1s3 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L);
+		LogicalTimestamp r2s1 = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(1L);
+		LogicalTimestamp r2s3 = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(3L);
+		String sessionId = sessionOne.getSessionId();
+		assertTrue(dao.savePatch(sessionId, r1s1, "k1", 100L));
+		assertTrue(dao.savePatch(sessionId, r1s3, "k2", 200L));
+		assertTrue(dao.savePatch(sessionId, r2s1, "k3", 300L));
+		assertTrue(dao.savePatch(sessionId, r2s3, "k4", 400L));
+		// Another session must not be included
+		assertTrue(dao.savePatch(sessionTwo.getSessionId(), r1s1, "k5", 5000L));
+
+		// call under test
+		assertEquals(1000L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
+
+		// Patches at or after the clock sequence for their replica are missing
+		List<LogicalTimestamp> clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(2L));
+		// call under test
+		assertEquals(200L + 400L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+
+		clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L));
+		// call under test
+		assertEquals(0L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+	}
+
+	@Test
 	public void testListActiveSession() throws InterruptedException {
 		assertEquals(Collections.emptyList(), dao.listActiveGridSession(adminUserId, limit, offset));
 

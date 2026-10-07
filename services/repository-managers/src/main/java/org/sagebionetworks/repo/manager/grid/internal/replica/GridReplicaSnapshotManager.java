@@ -24,6 +24,12 @@ public class GridReplicaSnapshotManager {
 
 	public static final int PATCH_COUNT_SNAPSHOT_THRESHOLD = 1000;
 
+	/**
+	 * Patches can be large (a CSV import produces patches close to the maximum patch size), so a count alone
+	 * can leave a client replaying many megabytes one websocket round trip at a time.
+	 */
+	public static final long PATCH_BYTES_SNAPSHOT_THRESHOLD = 5L * 1024 * 1024;
+
 	private final GridIndexManager gridIndexManager;
 	private final SnapshotStore snapshotStore;
 	private final FileProvider fileProvider;
@@ -52,10 +58,9 @@ public class GridReplicaSnapshotManager {
 			snapshotClock = latestSnapshot.get().getClockTable().getClocks();
 		}
 
-		int patchesSinceSnapshot = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
-		if (patchesSinceSnapshot < patchCountSnapshotThreshold) {
-			log.info("Session {} has {} new patches since latest snapshot (threshold: {}). Skipping export.",
-					sessionId, patchesSinceSnapshot, patchCountSnapshotThreshold);
+		if (!isSnapshotNeeded(gridDao, sessionId, snapshotClock, patchCountSnapshotThreshold)) {
+			log.info("Session {} has fewer than {} new patches and {} new patch bytes since latest snapshot. Skipping export.",
+					sessionId, patchCountSnapshotThreshold, PATCH_BYTES_SNAPSHOT_THRESHOLD);
 			return;
 		}
 
@@ -74,6 +79,16 @@ public class GridReplicaSnapshotManager {
 			}
 		}
 	}
+
+	/**
+	 * @return True if either the number or the total size of the patches newer than the given snapshot clock
+	 *         reaches its threshold.
+	 */
+	public static boolean isSnapshotNeeded(GridDao gridDao, String sessionId, List<LogicalTimestamp> snapshotClock,
+			int patchCountThreshold) {
+		if (gridDao.countMissingPatchesForClock(sessionId, snapshotClock) >= patchCountThreshold) {
+			return true;
+		}
+		return gridDao.sumMissingPatchBytesForClock(sessionId, snapshotClock) >= PATCH_BYTES_SNAPSHOT_THRESHOLD;
+	}
 }
-
-

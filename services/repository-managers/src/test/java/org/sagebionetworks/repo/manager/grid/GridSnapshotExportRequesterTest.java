@@ -104,6 +104,39 @@ public class GridSnapshotExportRequesterTest {
 	}
 
 	@Test
+	public void testRequestSnapshotExportIfNeededBelowCountThresholdAtByteThreshold() {
+		GridConnectionInfo internalConnection = new GridConnectionInfo().setSessionId(sessionId)
+				.setConnectionId(internalConnectionId);
+		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
+		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), eq(List.of()))).thenReturn(447);
+		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), eq(List.of())))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD);
+		when(mockGridDao.getSingletonConnection(sessionId, EventSource.INTERNAL))
+				.thenReturn(Optional.of(internalConnection));
+
+		// call under test
+		requester.requestSnapshotExportIfNeeded(sessionId);
+
+		verify(mockPublisher).publishEventResponse(
+				new EventContext(EventType.MESSAGE, EventSource.INTERNAL, internalConnectionId),
+				JsonRxMessageType.Notification, "new-snapshot");
+	}
+
+	@Test
+	public void testRequestSnapshotExportIfNeededBelowBothThresholds() {
+		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
+		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), eq(List.of()))).thenReturn(447);
+		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), eq(List.of())))
+				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD - 1);
+
+		// call under test
+		requester.requestSnapshotExportIfNeeded(sessionId);
+
+		verify(mockGridDao, never()).getSingletonConnection(any(), any());
+		verifyNoMoreInteractions(mockPublisher);
+	}
+
+	@Test
 	public void testRequestSnapshotExportIfNeededWithNullSessionId() {
 		String message = assertThrows(IllegalArgumentException.class, () -> {
 			// call under test

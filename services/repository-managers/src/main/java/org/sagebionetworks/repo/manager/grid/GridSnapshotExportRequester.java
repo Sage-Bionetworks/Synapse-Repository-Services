@@ -29,8 +29,8 @@ public class GridSnapshotExportRequester {
 		List<LogicalTimestamp> snapshotClock = gridDao.getLatestSnapshot(sessionId)
 				.map(snapshot -> snapshot.getClockTable().getClocks())
 				.orElse(List.of());
-		int missing = gridDao.countMissingPatchesForClock(sessionId, snapshotClock);
-		if (missing < GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD) {
+		if (!GridReplicaSnapshotManager.isSnapshotNeeded(gridDao, sessionId, snapshotClock,
+				GridReplicaSnapshotManager.PATCH_COUNT_SNAPSHOT_THRESHOLD)) {
 			return;
 		}
 		gridDao.getSingletonConnection(sessionId, EventSource.INTERNAL).ifPresent(internal ->

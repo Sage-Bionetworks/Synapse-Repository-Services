@@ -497,6 +497,23 @@ public class GridDaoImpl implements GridDao {
 	}
 
 	@Override
+	public long sumMissingPatchBytesForClock(String sessionId, List<LogicalTimestamp> clock) {
+		ValidateArgument.required(sessionId, "sessionId");
+		ValidateArgument.required(clock, "clock");
+		if (clock.isEmpty()) {
+			clock = List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L));
+		}
+		StringJoiner rows = new StringJoiner(",");
+		clock.forEach(id -> {
+			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
+		});
+		// Patches without a recorded size contribute nothing to the sum
+		String sql = "SELECT COALESCE(SUM(mp.SIZE_BYTES), 0) FROM (" + String.format(LIST_MISSING_PATCHES, rows)
+				+ ") as mp;";
+		return jdbcTemplate.queryForObject(sql, Long.class, sessionId);
+	}
+
+	@Override
 	public List<GridSession> listActiveGridSession(Long userId, String sourceIdString, Long limit, Long offset) {
 		ValidateArgument.required(userId, "userId");
 		ValidateArgument.required(sourceIdString, "sourceId");
