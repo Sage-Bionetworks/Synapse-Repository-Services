@@ -395,8 +395,19 @@ final class SearchFieldRewriter {
 	 *
 	 * <p>If the bare-name segment isn't in the schema, the input is returned unchanged
 	 * &mdash; unknown references go to AOSS as-is so the error message surfaces the typo.</p>
+	 *
+	 * @throws IllegalArgumentException if the bare-name segment is not a column and names (or is a
+	 *         pattern over) a row-level access-control field.
 	 */
 	static String rewriteFieldRef(String raw, RoutingContext ctx, RoutingMode mode) {
+		String rewritten = mapFieldRef(raw, ctx, mode);
+		if (rewritten != null && rewritten.equals(raw)) {
+			rejectInternalField(raw);
+		}
+		return rewritten;
+	}
+
+	private static String mapFieldRef(String raw, RoutingContext ctx, RoutingMode mode) {
 		if (raw == null) {
 			return null;
 		}
@@ -434,6 +445,17 @@ final class SearchFieldRewriter {
 			return subField.isEmpty() ? raw : namePart + subField + boost;
 		}
 		return mapped + subField + boost;
+	}
+
+	/**
+	 * The benefactor fields carry the row-level access-control values. They are not columns, so a
+	 * caller has no reason to name one, and a reference to one can reveal benefactor ids of rows the
+	 * caller cannot read.
+	 */
+	private static void rejectInternalField(String name) {
+		if (name.startsWith(OpenSearchManagerImpl.BENEFACTOR_FIELD_PREFIX)) {
+			throw new IllegalArgumentException("'" + name + "' is not a column of this search index");
+		}
 	}
 
 	// ---------- query_string clause rewrite (column references inside a Lucene expression) ----------
@@ -553,7 +575,7 @@ final class SearchFieldRewriter {
 	 * rejection message.
 	 */
 	static String resolveColumnReference(String name, String label, RoutingContext ctx) {
-		String rewritten = rewriteFieldRef(name, ctx, RoutingMode.BARE);
+		String rewritten = mapFieldRef(name, ctx, RoutingMode.BARE);
 		if (rewritten.equals(name)) {
 			throw new IllegalArgumentException("'" + label + "' references an unknown column: '" + name + "'");
 		}

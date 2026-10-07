@@ -91,6 +91,29 @@ public class SearchFieldRewriterTest {
 	}
 
 	@Test
+	public void testRewriteFieldRefWithInternalFieldRejected() {
+		for (String internal : List.of("_benefactor_ROW_BENEFACTOR", "_benefactor_*", "_benefactor_ROW_BENEFACTOR.keyword",
+				"_benefactor_ROW_BENEFACTOR^2")) {
+			IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+					// call under test
+					() -> SearchFieldRewriter.rewriteFieldRef(internal, NAME_ONLY, RoutingMode.KEYWORD_FOR_TEXT), internal);
+			assertTrue(ex.getMessage().endsWith("is not a column of this search index"), ex.getMessage());
+		}
+	}
+
+	@Test
+	public void testRewriteFieldRefWithColumnNamedLikeInternalFieldResolves() {
+		RoutingContext ctx = new RoutingContext() {
+			@Override public String mapName(String name) {
+				return "_benefactor_note".equals(name) ? "200" : name;
+			}
+			@Override public boolean isTextLike(String columnId) { return false; }
+		};
+		// call under test
+		assertEquals("200", SearchFieldRewriter.rewriteFieldRef("_benefactor_note", ctx, RoutingMode.BARE));
+	}
+
+	@Test
 	public void testRewriteFieldRefWithUnknownNamePassesThrough() {
 		// Unknown names go to AOSS as-is so the error message surfaces the typo.
 		assertEquals("ghost.keyword",
