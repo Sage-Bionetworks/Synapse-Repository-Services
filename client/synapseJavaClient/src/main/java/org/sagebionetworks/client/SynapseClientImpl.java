@@ -286,6 +286,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.ListGridReplicasRequest;
@@ -511,6 +512,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
 	private static final String PROJECTS_URI_PATH = "/projects";
+
+	private static final String GRID_SESSION = "/grid/session";
+	private static final String GRID_SOURCE_STATUS_SUFFIX = "/source/status";
 
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL + "/available";
@@ -6736,7 +6740,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public GridSession getGridSession(String sessionId) throws SynapseException {
 		return getJSONEntity(getRepoEndpoint(), "/grid/session/"+ sessionId, GridSession.class);
 	}
-	
+
+	@Override
+	public GridSourceStatus getGridSourceStatus(String sessionId) throws SynapseException {
+		ValidateArgument.required(sessionId, "sessionId");
+		return getJSONEntity(getRepoEndpoint(), GRID_SESSION + "/" + sessionId + GRID_SOURCE_STATUS_SUFFIX,
+				GridSourceStatus.class);
+	}
+
 	@Override
 	public CreateReplicaResponse createGridReplica(CreateReplicaRequest request) throws SynapseException {
 		return postJSONEntity(getRepoEndpoint(), "/grid/session/" + request.getGridSessionId() + "/replica", request,
