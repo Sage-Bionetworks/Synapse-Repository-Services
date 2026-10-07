@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.grid.GridRecordSetExportRequest;
 import org.sagebionetworks.repo.model.grid.GridRecordSetExportResponse;
 import org.sagebionetworks.repo.model.grid.GridReplica;
 import org.sagebionetworks.repo.model.grid.GridSession;
+import org.sagebionetworks.repo.model.grid.GridSourceStatus;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobRequest;
 import org.sagebionetworks.repo.model.grid.GridUpdateJobResponse;
 import org.sagebionetworks.repo.model.grid.GridReplicaInfo;
@@ -334,6 +335,40 @@ public class ITGridControllerTest {
 
 		assertEquals(1, resTwo.size());
 		assertNotNull(resTwo.get(0).getPreSignedURL());
+    }
+
+    @Test
+    public void testGetGridSourceStatus() throws Exception {
+    	File csvFile = new File(ITRecordSetTest.class.getClassLoader().getResource("docs/test.csv").getFile().replaceAll("%20", " "));
+
+    	FileHandle csvFileHandle = synapse.multipartUpload(csvFile, null, false, true);
+
+    	RecordSet recordSet = new RecordSet();
+		recordSet.setParentId(project.getId());
+		recordSet.setName("Record Set");
+		recordSet.setUpsertKey(List.of("a", "b"));
+		recordSet.setDataFileHandleId(csvFileHandle.getId());
+		recordSet = synapse.createEntity(recordSet);
+
+		entitiesToDelete.add(recordSet);
+
+		CreateGridResponse createGridResponse = (CreateGridResponse) AsyncJobHelper.assertAysncJobResult(synapse, AsynchJobType.CreateGrid,
+			new CreateGridRequest().setRecordSetId(recordSet.getId()), body -> {
+                assertInstanceOf(CreateGridResponse.class, body);
+                CreateGridResponse r = (CreateGridResponse) body;
+                assertNotNull(r.getGridSession());
+                assertNotNull(r.getGridSession().getSessionId());
+            }, MAX_TME_MS, AsyncJobHelper.INFINITE_RETRIES).getResponse();
+
+		GridSession session = createGridResponse.getGridSession();
+
+		// Call under test
+		GridSourceStatus status = synapse.getGridSourceStatus(session.getSessionId());
+
+		assertEquals(new GridSourceStatus().setGridSessionId(session.getSessionId())
+				.setSourceEntityId(recordSet.getId()).setBaselineVersionNumber(recordSet.getVersionNumber())
+				.setCurrentVersionNumber(recordSet.getVersionNumber()).setHasChanges(false).setChanges(List.of()),
+			status);
     }
 
     @Test
