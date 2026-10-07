@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -62,6 +63,8 @@ public class GridDaoImplTest {
 	private GridDao dao;
 	@Autowired
 	private NodeDAO nodeDao;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private boolean isAgent;
 	private EventSource eventSource;
@@ -586,6 +589,28 @@ public class GridDaoImplTest {
 				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L));
 		// call under test
 		assertEquals(0L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+	}
+
+	@Test
+	public void testSumMissingPatchBytesWithNullSizes() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp r1s1 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(1L);
+		LogicalTimestamp r1s2 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L);
+		assertTrue(dao.savePatch(sessionId, r1s1, "k1", 100L));
+		assertTrue(dao.savePatch(sessionId, r1s2, "k2", 200L));
+
+		// Patches written before sizes were recorded have a NULL size
+		jdbcTemplate.update("UPDATE GRID_PATCH SET SIZE_BYTES = NULL WHERE SESSION_ID = ? AND PATCH_ID_SEQ = 1",
+				sessionId);
+
+		// call under test
+		assertEquals(200L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
+
+		jdbcTemplate.update("UPDATE GRID_PATCH SET SIZE_BYTES = NULL WHERE SESSION_ID = ?", sessionId);
+
+		// call under test
+		assertEquals(0L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
 	}
 
 	@Test
