@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.schema;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,10 +9,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Link;
@@ -92,6 +95,9 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	private JsonSchemaManager jsonSchemaManager;
 
 	@Autowired
+	private AccessControlListManager aclManager;
+
+	@Autowired
 	private UserManager userManager;
 
 	@Autowired
@@ -166,21 +172,37 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 
 	/**
 	 * Replace the ACT team's entry on the given organization's ACL with the full set of
-	 * permissions, leaving every other entry alone. Does nothing if the entry is already in place,
-	 * so that a repeated bootstrap does not rotate the ACL etag.
+	 * permissions, leaving every other entry alone. Creates the ACL if the organization does not
+	 * have one. Does nothing if the entry is already in place.
 	 */
 	void grantActTeamAccess(UserInfo adminUser, Organization organization) {
-		AccessControlList acl = jsonSchemaManager.getOrganizationAcl(adminUser, organization.getId());
+		// The ACL is reached directly rather than through the permission checked JsonSchemaManager
+		// methods, because this runs as the stack starts and must not be able to fail: the ACT team
+		// holds CHANGE_PERMISSIONS here and so can revoke the admin's own entry, and the ACL may be
+		// missing entirely. Either case would otherwise abort the bootstrap.
+		Long createdBy = Long.parseLong(organization.getCreatedBy());
 		ResourceAccess actEntry = AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID,
 				JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0]));
+
+		Optional<AccessControlList> existingAcl = aclManager.getAcl(organization.getId(), ObjectType.ORGANIZATION);
+		if (existingAcl.isEmpty()) {
+			AccessControlList acl = AccessControlListUtil.createACL(organization.getId(), adminUser,
+					JsonSchemaManagerImpl.ADMIN_PERMISSIONS, new Date());
+			acl.getResourceAccess().add(actEntry);
+			aclManager.create(adminUser, acl, ObjectType.ORGANIZATION, createdBy);
+			return;
+		}
+
+		AccessControlList acl = existingAcl.get();
+		// Leaving the ACL untouched when the entry already matches keeps a repeated bootstrap from
+		// rotating the etag.
 		if (acl.getResourceAccess().contains(actEntry)) {
 			return;
 		}
 		Set<ResourceAccess> resourceAccess = new HashSet<>(acl.getResourceAccess());
 		resourceAccess.removeIf(entry -> TeamConstants.ACT_TEAM_ID.equals(entry.getPrincipalId()));
 		resourceAccess.add(actEntry);
-		jsonSchemaManager.updateOrganizationAcl(adminUser, organization.getId(),
-				acl.setResourceAccess(resourceAccess));
+		aclManager.update(adminUser, acl.setResourceAccess(resourceAccess), ObjectType.ORGANIZATION, createdBy);
 	}
 
 	/**
