@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -21,10 +22,12 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sagebionetworks.repo.manager.AccessControlListManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -33,6 +36,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityTypeUtils;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TeamConstants;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -57,6 +61,9 @@ public class SynapseSchemaBootstrapImplTest {
 
 	@Mock
 	private JsonSchemaManager mockJsonSchemaManager;
+
+	@Mock
+	private AccessControlListManager mockAclManager;
 
 	@Mock
 	private UserManager mockUserManager;
@@ -338,15 +345,16 @@ public class SynapseSchemaBootstrapImplTest {
 	public void testGrantActTeamAccess() {
 		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(
 				Set.of(AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ))));
-		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
 
 		// call under test
-		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+		bootstrap.grantActTeamAccess(admin, actOrganization());
 
 		AccessControlList expected = new AccessControlList().setId("8").setResourceAccess(Set.of(
 				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
 				actAdminAccess()));
-		verify(mockJsonSchemaManager).updateOrganizationAcl(admin, "8", expected);
+		verify(mockAclManager).getAcl("8", ObjectType.ORGANIZATION);
+		verify(mockAclManager).update(admin, expected, ObjectType.ORGANIZATION, admin.getId());
 	}
 
 	@Test
@@ -354,27 +362,55 @@ public class SynapseSchemaBootstrapImplTest {
 		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
 				AccessControlListUtil.createResourceAccess(admin.getId(), ACCESS_TYPE.READ),
 				actAdminAccess())));
-		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
 
 		// call under test
-		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+		bootstrap.grantActTeamAccess(admin, actOrganization());
 
 		// Running the bootstrap again must not rotate the etag of an ACL that is already correct.
-		verify(mockJsonSchemaManager, never()).updateOrganizationAcl(any(), any(), any());
+		verify(mockAclManager, never()).update(any(), any(), any(), any());
+		verify(mockAclManager, never()).create(any(), any(), any(), any());
 	}
 
 	@Test
 	public void testGrantActTeamAccessWithNarrowerAccessGranted() {
 		AccessControlList acl = new AccessControlList().setId("8").setResourceAccess(new HashSet<>(Set.of(
 				AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID, ACCESS_TYPE.READ))));
-		when(mockJsonSchemaManager.getOrganizationAcl(any(), any())).thenReturn(acl);
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.of(acl));
 
 		// call under test
-		bootstrap.grantActTeamAccess(admin, new Organization().setId("8"));
+		bootstrap.grantActTeamAccess(admin, actOrganization());
 
 		AccessControlList expected = new AccessControlList().setId("8")
 				.setResourceAccess(Set.of(actAdminAccess()));
-		verify(mockJsonSchemaManager).updateOrganizationAcl(admin, "8", expected);
+		verify(mockAclManager).update(admin, expected, ObjectType.ORGANIZATION, admin.getId());
+	}
+
+	@Test
+	public void testGrantActTeamAccessWithoutAcl() {
+		when(mockAclManager.getAcl(any(), any())).thenReturn(Optional.empty());
+
+		// call under test
+		bootstrap.grantActTeamAccess(admin, actOrganization());
+
+		// The bootstrap cannot read the ACL through a permission check, so an organization left
+		// without an ACL has to be repaired here rather than aborting the start of the stack.
+		ArgumentCaptor<AccessControlList> captor = ArgumentCaptor.forClass(AccessControlList.class);
+		verify(mockAclManager).create(eq(admin), captor.capture(), eq(ObjectType.ORGANIZATION),
+				eq(admin.getId()));
+		verify(mockAclManager, never()).update(any(), any(), any(), any());
+		assertEquals("8", captor.getValue().getId());
+		assertEquals(Set.of(AccessControlListUtil.createResourceAccess(admin.getId(),
+				JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0])), actAdminAccess()),
+				captor.getValue().getResourceAccess());
+	}
+
+	/**
+	 * The ACT organization as the bootstrap finds it, created by the admin that runs the bootstrap.
+	 */
+	private Organization actOrganization() {
+		return new Organization().setId("8").setCreatedBy(admin.getId().toString())
+				.setName(SynapseSchemaBootstrapImpl.ORG_SAGEBIONETWORKS_ACT);
 	}
 
 	@Test
