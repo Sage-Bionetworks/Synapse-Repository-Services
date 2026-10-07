@@ -1639,7 +1639,7 @@ public class SearchOpaqueJsonUtilTest {
 		String accessOnly = "{\"bool\":{\"filter\":[" + benefactor + "]}}";
 		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{"
 				+ "\"filter\":" + accessOnly + ","
-				+ "\"pagination_depth\":10000,"
+				+ "\"pagination_depth\":1000,"
 				+ "\"queries\":["
 				+ "{\"bool\":{\"filter\":[" + benefactor + "],\"must\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}},"
 				+ "{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD + "\":{\"filter\":" + accessOnly
@@ -1676,7 +1676,7 @@ public class SearchOpaqueJsonUtilTest {
 		// call under test
 		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
 
-		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":10000,"
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":1000,"
 				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
 				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
 	}

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Optional;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,10 +43,18 @@ public class SemanticEmbeddingBootstrapperImplTest {
 	private OpenSearchGenericClient genericClient;
 
 	private SemanticEmbeddingBootstrapperImpl bootstrapper;
+	private long originalBackoffMs;
 
 	@BeforeEach
 	public void before() {
+		originalBackoffMs = SemanticEmbeddingBootstrapperImpl.ML_REQUEST_INITIAL_BACKOFF_MS;
+		SemanticEmbeddingBootstrapperImpl.ML_REQUEST_INITIAL_BACKOFF_MS = 1L;
 		bootstrapper = new SemanticEmbeddingBootstrapperImpl(openSearchClient);
+	}
+
+	@AfterEach
+	public void after() {
+		SemanticEmbeddingBootstrapperImpl.ML_REQUEST_INITIAL_BACKOFF_MS = originalBackoffMs;
 	}
 
 	private void stubGenericClient() {
@@ -180,6 +189,42 @@ public class SemanticEmbeddingBootstrapperImplTest {
 		bootstrapper.bootstrapSemanticEmbedding();
 
 		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+		verify(genericClient, times(1 + SemanticEmbeddingBootstrapperImpl.ML_REQUEST_MAX_RETRIES))
+				.execute(argThat(isModelSearch()));
+	}
+
+	@Test
+	public void testBootstrapSemanticEmbeddingWithTransientFailuresRetriesThenCachesModel() throws IOException {
+		stubGenericClient();
+		OpenSearchClientException serviceUnavailable = httpError(503);
+		Response modelHit = response(MODEL_HIT);
+		Response connector = response(CONNECTOR);
+		when(genericClient.execute(argThat(isModelSearch())))
+				.thenThrow(serviceUnavailable)
+				.thenReturn(modelHit);
+		when(genericClient.execute(argThat(isConnectorGet())))
+				.thenThrow(new IOException("read timed out"))
+				.thenReturn(connector);
+
+		// call under test
+		bootstrapper.bootstrapSemanticEmbedding();
+
+		assertEquals(Optional.of(MODEL), bootstrapper.getModel());
+		verify(genericClient, times(2)).execute(argThat(isModelSearch()));
+		verify(genericClient, times(2)).execute(argThat(isConnectorGet()));
+	}
+
+	@Test
+	public void testBootstrapSemanticEmbeddingWithClientErrorDoesNotRetry() throws IOException {
+		stubGenericClient();
+		OpenSearchClientException forbidden = httpError(403);
+		when(genericClient.execute(argThat(isModelSearch()))).thenThrow(forbidden);
+
+		// call under test
+		bootstrapper.bootstrapSemanticEmbedding();
+
+		verify(genericClient).execute(argThat(isModelSearch()));
+		verify(genericClient, never()).execute(argThat(isConnectorGet()));
 	}
 
 	@Test

@@ -188,6 +188,7 @@ public class OpenSearchManagerImplTest {
 	private long originalCreateIndexInitialBackoffMs;
 	private long originalGetAliasInitialBackoffMs;
 	private long originalDeleteIndexInitialBackoffMs;
+	private long originalPutPipelineInitialBackoffMs;
 
 	@BeforeEach
 	public void setUp() {
@@ -205,6 +206,8 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = 1L;
 		originalDeleteIndexInitialBackoffMs = OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = 1L;
+		originalPutPipelineInitialBackoffMs = OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS;
+		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = 1L;
 	}
 
 	@AfterEach
@@ -215,6 +218,7 @@ public class OpenSearchManagerImplTest {
 		OpenSearchManagerImpl.CREATE_INDEX_INITIAL_BACKOFF_MS = originalCreateIndexInitialBackoffMs;
 		OpenSearchManagerImpl.GET_ALIAS_INITIAL_BACKOFF_MS = originalGetAliasInitialBackoffMs;
 		OpenSearchManagerImpl.DELETE_INDEX_INITIAL_BACKOFF_MS = originalDeleteIndexInitialBackoffMs;
+		OpenSearchManagerImpl.PUT_PIPELINE_INITIAL_BACKOFF_MS = originalPutPipelineInitialBackoffMs;
 	}
 
 	/**
@@ -1398,6 +1402,72 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
+	public void testCreateIndexWithTransientPutPipeline504RetriesThenSucceeds() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		OpenSearchException gatewayTimeout = new OpenSearchException(
+				ErrorResponse.of(er -> er.error(ErrorCause.of(c -> c.type("http_exception")
+						.reason("server returned 504"))).status(504)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class)))
+				.thenThrow(gatewayTimeout)
+				.thenThrow(new IOException("read timed out"))
+				.thenReturn(null);
+		when(openSearchClient.indices()).thenReturn(indicesClient);
+		when(indicesClient.create(argThat((CreateIndexRequest req) -> indexName.equals(req.index()))))
+				.thenReturn(org.opensearch.client.opensearch.indices.CreateIndexResponse.of(
+						r -> r.acknowledged(true).shardsAcknowledged(true).index(indexName)));
+
+		// call under test
+		Optional<String> result = manager.createIndex(indexName, Collections.emptyList(), null,
+				Collections.emptyList(), Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel);
+
+		assertTrue(result.isPresent());
+		verify(ingestClient, times(3)).putPipeline(any(Function.class));
+		verify(indicesClient).create(any(CreateIndexRequest.class));
+	}
+
+	@Test
+	public void testCreateIndexWithPersistentPutPipelineIOExceptionThrowsAfterRetries() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		IOException ioException = new IOException("connection reset");
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class))).thenThrow(ioException);
+
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				// call under test
+				() -> manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+						Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel));
+
+		assertEquals(ioException, ex.getCause());
+		assertEquals("Failed to create ingestion pipeline: search-index-syn1-a-embed", ex.getMessage());
+		verify(ingestClient, times(OpenSearchManagerImpl.PUT_PIPELINE_MAX_RETRIES)).putPipeline(any(Function.class));
+		verify(openSearchClient, never()).indices();
+	}
+
+	@Test
+	public void testCreateIndexWithPutPipeline400ThrowsWithoutRetry() throws Exception {
+		String indexName = "search-index-syn1-a";
+		SemanticEmbeddingModel semanticModel = new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024);
+		ErrorCause cause = ErrorCause.of(c -> c.type("illegal_argument_exception").reason("unknown model"));
+		OpenSearchException badRequest = new OpenSearchException(ErrorResponse.of(er -> er.error(cause).status(400)));
+		when(openSearchClient.ingest()).thenReturn(ingestClient);
+		when(ingestClient.putPipeline(any(Function.class))).thenThrow(badRequest);
+
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				// call under test
+				() -> manager.createIndex(indexName, Collections.emptyList(), null, Collections.emptyList(),
+						Collections.emptyMap(), List.of(), 1, 0, createAuthorizationSnapshot(), semanticModel));
+
+		assertEquals(badRequest, ex.getCause());
+		assertEquals("Failed to create ingestion pipeline: search-index-syn1-a-embed ("
+				+ OpenSearchManagerImpl.describeError(cause) + ")", ex.getMessage());
+		verify(ingestClient).putPipeline(any(Function.class));
+		verify(openSearchClient, never()).indices();
+	}
+
+	@Test
 	public void testCreateIndexWithoutSemanticModelHasNoVectorOrPipeline() throws Exception {
 		String indexName = "search-index-syn1-a";
 		when(openSearchClient.indices()).thenReturn(indicesClient);
@@ -2437,7 +2507,7 @@ public class OpenSearchManagerImplTest {
 				new SearchOpaqueJsonUtil.AppliedBody(0, pipeline, SearchOpaqueJsonUtil.parse("0.2"));
 
 		// call under test
-		String body = OpenSearchManagerImpl.searchRequestBody(request, applied);
+		String body = OpenSearchManagerImpl.searchRequestBody(request, applied, JSONP_MAPPER);
 
 		assertEquals(SearchOpaqueJsonUtil.parse("{\"query\":{\"hybrid\":{\"queries\":[{\"match_all\":{}}],"
 				+ "\"min_score\":0.2}},\"search_pipeline\":{\"phase_results_processors\":[]}}"),
@@ -2451,9 +2521,27 @@ public class OpenSearchManagerImplTest {
 				.build();
 
 		// call under test
-		String body = OpenSearchManagerImpl.searchRequestBody(request, new SearchOpaqueJsonUtil.AppliedBody(0, null, null));
+		String body = OpenSearchManagerImpl.searchRequestBody(request, new SearchOpaqueJsonUtil.AppliedBody(0, null, null),
+				JSONP_MAPPER);
 
 		assertEquals(request.toJsonString(), body);
+	}
+
+	@Test
+	public void testSearchRequestBodyWithHistogramExtendedBounds() {
+		SearchRequest request = new SearchRequest.Builder().index("my-index")
+				.query(Query.of(m -> m.matchAll(a -> a)))
+				.aggregations("byGroup", a -> a.histogram(h -> h.field("2").interval(1.0).minDocCount(0)
+						.extendedBounds(b -> b.min(0.0).max(5.0))))
+				.build();
+
+		// call under test
+		String body = OpenSearchManagerImpl.searchRequestBody(request, new SearchOpaqueJsonUtil.AppliedBody(0, null, null),
+				JSONP_MAPPER);
+
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"aggregations\":{\"byGroup\":{\"histogram\":{\"extended_bounds\":"
+				+ "{\"max\":5.0,\"min\":0.0},\"field\":\"2\",\"interval\":1.0,\"min_doc_count\":0}}},"
+				+ "\"query\":{\"match_all\":{}}}"), SearchOpaqueJsonUtil.parse(body));
 	}
 
 	@Test

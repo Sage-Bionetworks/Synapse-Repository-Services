@@ -163,7 +163,7 @@ final class SearchDslValidator {
 	 * others entirely. It is server-controlled rather than caller-supplied for that reason, which
 	 * also means a caller cannot raise it to page deeper.</p>
 	 */
-	static final int HYBRID_PAGINATION_DEPTH = 10000;
+	static final int HYBRID_PAGINATION_DEPTH = 1000;
 
 	/**
 	 * Minimum number of entries in a saved search pipeline's {@code combination.parameters.weights}

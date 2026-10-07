@@ -1851,4 +1851,19 @@ public class SearchDslValidatorTest {
 						MAPPER.readTree("{\"bad\":1}"), "label"));
 		assertTrue(ex.getMessage().contains("label must be a number, string, or boolean, or an array"));
 	}
+
+	@Test
+	public void testValidateHybridPageDepthWithPageEndingAtDepthAccepted() {
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridPageDepth(900, 100));
+	}
+
+	@Test
+	public void testValidateHybridPageDepthWithPageEndingPastDepthRejected() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridPageDepth(901, 100));
+		assertEquals("from + size must not exceed 1000 for a relevance-ranked hybrid query; sort by a"
+				+ " column to page deeper", ex.getMessage());
+	}
 }

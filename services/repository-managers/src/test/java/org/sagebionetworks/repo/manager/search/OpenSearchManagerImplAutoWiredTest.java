@@ -1894,4 +1894,54 @@ public class OpenSearchManagerImplAutoWiredTest {
 		assertTrue(rowIds.contains(4L), "the keyword clause matches row 4: " + rowIds);
 		assertTrue(rowIds.stream().anyMatch(id -> id != 4L), "the neural clause adds a disease row: " + rowIds);
 	}
+
+	/**
+	 * A neural clause draws its nearest neighbours only from rows the caller can read. Row 1 is the
+	 * closest match for the query text but sits under an unreadable benefactor: unfiltered it is
+	 * returned, and filtered it is excluded under every neural variant while readable rows still fill
+	 * the result.
+	 */
+	@Test
+	public void testSearchWithHybridNeuralClauseWithUnreadableNearestNeighbor() throws Exception {
+		semanticEmbeddingBootstrapper.bootstrapSemanticEmbedding();
+		SemanticEmbeddingModel model = semanticEmbeddingBootstrapper.getModel()
+				.orElseThrow(() -> new AssertionError("no embedding model is deployed on the domain"));
+		String benefactorColumn = "ROW_BENEFACTOR";
+		String benefactorField = OpenSearchManagerImpl.benefactorFieldName(benefactorColumn);
+		long readableBenefactor = 1L;
+		long unreadableBenefactor = 2L;
+		openSearchManager.createIndex(indexName, HYBRID_COLUMNS, null, Collections.emptyList(), defaultAnalyzers,
+				List.of(benefactorColumn), 1, 0, OpenSearchManagerImplTest.createAuthorizationSnapshot(), model);
+		openSearchManager.waitForIndexWritable(indexName);
+		openSearchManager.bulkIndex(indexName, List.of(
+				benefactorRow(1L, "malignant neoplasm", benefactorField, unreadableBenefactor),
+				benefactorRow(2L, "cancer research", benefactorField, readableBenefactor),
+				benefactorRow(3L, "tumor biology", benefactorField, readableBenefactor),
+				benefactorRow(4L, "heart disease", benefactorField, readableBenefactor)));
+		waitForSearch(matchAllBody(), HYBRID_COLUMNS, 4);
+		// The shape SearchIndexQueryManagerImpl.buildBenefactorAccessFilters produces, -1 sentinel included.
+		org.opensearch.client.opensearch._types.query_dsl.Query readable =
+				org.opensearch.client.opensearch._types.query_dsl.Query.of(q -> q.terms(t -> t.field(benefactorField)
+						.terms(v -> v.value(List.of(FieldValue.of(readableBenefactor), FieldValue.of(-1L))))));
+		String neuralTemplate = "{\"hybrid\":{\"queries\":[{\"neural\":{\"" + OpenSearchManagerImpl.SEMANTIC_FIELD
+				+ "\":{\"query_text\":\"malignant neoplasm\",%s}}}]}}";
+
+		List<Long> unfiltered = rowIds(searchHybrid(bodyOf(String.format(neuralTemplate, "\"k\":1")),
+				Collections.emptyList(), model.modelId(), null));
+		assertEquals(List.of(1L), unfiltered, "row 1 must be the nearest neighbour for the test to mean anything");
+
+		for (String option : List.of("\"k\":1", "\"min_score\":0.01", "\"max_distance\":2.0")) {
+			// call under test
+			List<Long> rowIds = rowIds(searchHybrid(bodyOf(String.format(neuralTemplate, option)),
+					List.of(readable), model.modelId(), null));
+
+			assertFalse(rowIds.contains(1L), option + " returned the unreadable row: " + rowIds);
+			assertFalse(rowIds.isEmpty(), option + " must still return readable rows");
+		}
+	}
+
+	private BulkOperation benefactorRow(long rowId, String title, String benefactorField, long benefactor) {
+		return buildBulkOp(indexName, String.valueOf(rowId), Map.of("_row_id", rowId, "_row_version", 1L,
+				"1", title, "2", 1L, benefactorField, benefactor, OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD, title));
+	}
 }

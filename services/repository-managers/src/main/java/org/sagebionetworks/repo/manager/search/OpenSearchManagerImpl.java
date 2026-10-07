@@ -167,6 +167,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	static int DELETE_INDEX_MAX_RETRIES = 10;
 	static long DELETE_INDEX_INITIAL_BACKOFF_MS = 1000L;
 
+	// Retry budget for the putPipeline transport call that precedes createIndex on a semantic
+	// build. It can hit the same transient read timeout / IOException or 429/402/5xx as
+	// createIndex; those are retried so a single blip doesn't fail the build. Other 4xx are
+	// permanent. The put is idempotent, so a retry after a dropped response is harmless.
+	static int PUT_PIPELINE_MAX_RETRIES = 10;
+	static long PUT_PIPELINE_INITIAL_BACKOFF_MS = 1000L;
+
 	// Cleanup retry for the readiness-probe sentinel. AOSS doesn't honor refresh=wait_for,
 	// so a single delete that fails on a transient network blip would orphan the sentinel
 	// (visible only to MATCH_ALL queries since _row_id = -1 cannot collide with real ids,
@@ -654,20 +661,37 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private void putEmbedPipeline(String indexName, String modelId) {
 		String pipelineName = embedPipelineName(indexName);
 		try {
-			openSearchClient.ingest().putPipeline(req -> req
-					.id(pipelineName)
-					.description("Embeds the semantic text of documents written to " + indexName)
-					.processors(
-							Processor.of(p -> p.textEmbedding(te -> te
-									.modelId(modelId)
-									.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
-							Processor.of(p -> p.remove(r -> r
-									.field(SEMANTIC_TEXT_FIELD)
-									.ignoreMissing(true)))));
-		} catch (OpenSearchException e) {
-			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName
-					+ " (" + describeError(e.error()) + ")", e);
-		} catch (IOException e) {
+			TimeUtils.waitForExponentialMaxRetry(PUT_PIPELINE_MAX_RETRIES,
+					PUT_PIPELINE_INITIAL_BACKOFF_MS, () -> {
+				try {
+					openSearchClient.ingest().putPipeline(req -> req
+							.id(pipelineName)
+							.description("Embeds the semantic text of documents written to " + indexName)
+							.processors(
+									Processor.of(p -> p.textEmbedding(te -> te
+											.modelId(modelId)
+											.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
+									Processor.of(p -> p.remove(r -> r
+											.field(SEMANTIC_TEXT_FIELD)
+											.ignoreMissing(true)))));
+					return Boolean.TRUE;
+				} catch (OpenSearchException e) {
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("putPipeline attempt failed for {} ({}), retrying", pipelineName, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("putPipeline attempt failed for {} ({}), retrying", pipelineName, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName, e);
 		}
 	}
@@ -1413,7 +1437,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				.method("POST")
 				.endpoint("/" + indexName + "/_search")
 				.query(SEARCH_QUERY_PARAMETERS)
-				.json(searchRequestBody(req.build(), applied))
+				.json(searchRequestBody(req.build(), applied, mapper))
 				.build())) {
 			if (response.getStatus() >= 400) {
 				throw readErrorResponse(response, mapper);
@@ -1438,15 +1462,18 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	/**
-	 * The JSON body of a search request. The typed client has no {@code search_pipeline} body key
-	 * and no {@code hybrid.min_score}, so both are spliced into the serialized request.
+	 * The JSON body of a search request, serialized with the transport's {@code mapper}: the default
+	 * mapper behind {@code toJsonString()} cannot serialize generic values such as a histogram's
+	 * {@code extended_bounds}. The typed client has no {@code search_pipeline} body key and no
+	 * {@code hybrid.min_score}, so both are spliced into the serialized request.
 	 */
-	static String searchRequestBody(SearchRequest request, SearchOpaqueJsonUtil.AppliedBody applied) {
-		String json = request.toJsonString();
-		if (applied.searchPipeline() == null && applied.hybridMinScore() == null) {
-			return json;
-		}
+	static String searchRequestBody(SearchRequest request, SearchOpaqueJsonUtil.AppliedBody applied,
+			JsonpMapper mapper) {
 		try {
+			String json = Bodies.json(request, mapper).bodyAsString();
+			if (applied.searchPipeline() == null && applied.hybridMinScore() == null) {
+				return json;
+			}
 			ObjectNode root = (ObjectNode) FIELD_VALUE_MAPPER.readTree(json);
 			if (applied.searchPipeline() != null) {
 				root.set("search_pipeline", applied.searchPipeline());
@@ -1455,7 +1482,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				((ObjectNode) root.get("query").get("hybrid")).set("min_score", applied.hybridMinScore());
 			}
 			return FIELD_VALUE_MAPPER.writeValueAsString(root);
-		} catch (JsonProcessingException e) {
+		} catch (IOException e) {
 			throw new IllegalStateException(e);
 		}
 	}

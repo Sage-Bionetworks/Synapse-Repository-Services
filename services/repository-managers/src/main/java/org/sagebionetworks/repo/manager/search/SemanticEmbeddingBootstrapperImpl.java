@@ -10,7 +10,10 @@ import org.opensearch.client.opensearch.generic.OpenSearchClientException;
 import org.opensearch.client.opensearch.generic.OpenSearchGenericClient.ClientOptions;
 import org.opensearch.client.opensearch.generic.Requests;
 import org.opensearch.client.opensearch.generic.Response;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.TimeUtils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -42,6 +45,13 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 			"sort":[{"created_time":{"order":"desc"}}]}""".formatted(MODEL_NAME);
 
 	private static final int HTTP_NOT_FOUND = 404;
+
+	// Retry budget for each ML-Commons call. A transient read timeout / IOException or 429/402/5xx
+	// is retried so a single blip doesn't drop semantic search until the next hourly refresh. The
+	// budget is smaller than the build-path calls' because a cache miss resolves the model inline
+	// on a search job. Non-final so unit tests can lower the backoff.
+	static int ML_REQUEST_MAX_RETRIES = 5;
+	static long ML_REQUEST_INITIAL_BACKOFF_MS = 1000L;
 	private static final ObjectMapper MAPPER = new ObjectMapper();
 
 	private final OpenSearchClient openSearchClient;
@@ -120,6 +130,19 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 	 * coverage, so the call goes through the generic client.
 	 */
 	private JsonNode execute(String method, String endpoint, String requestBody) {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(ML_REQUEST_MAX_RETRIES, ML_REQUEST_INITIAL_BACKOFF_MS,
+					() -> executeOnce(method, endpoint, requestBody));
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed ML-Commons request to " + endpoint, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed ML-Commons request to " + endpoint, e);
+		}
+	}
+
+	private JsonNode executeOnce(String method, String endpoint, String requestBody) throws RetryException {
 		Requests.JsonBodyBuilder request = Requests.builder().method(method).endpoint(endpoint);
 		if (requestBody != null) {
 			request.json(requestBody);
@@ -132,8 +155,17 @@ public class SemanticEmbeddingBootstrapperImpl implements SemanticEmbeddingBoots
 			return MAPPER.readTree(response.getBody()
 					.orElseThrow(() -> new IllegalStateException("Empty response from " + endpoint))
 					.bodyAsString());
+		} catch (OpenSearchClientException e) {
+			if (OpenSearchManagerImpl.isRetryableItemStatus(e.status())) {
+				LOG.warn("ML-Commons request to {} failed with status {}, retrying", endpoint, e.status());
+				throw new RetryException(e);
+			}
+			throw e;
+		} catch (JsonProcessingException e) {
+			throw new RuntimeException("Unparseable ML-Commons response from " + endpoint, e);
 		} catch (IOException e) {
-			throw new RuntimeException("Failed ML-Commons request to " + endpoint, e);
+			LOG.warn("ML-Commons request to {} failed ({}), retrying", endpoint, e.getMessage());
+			throw new RetryException(e);
 		}
 	}
 }
