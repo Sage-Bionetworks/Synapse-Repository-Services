@@ -877,6 +877,14 @@ public class SearchIndexLifecycleManagerImplTest {
 	}
 
 	@Test
+	public void testTruncateSemanticTextWithSpecialTokenText() {
+		String text = "notes: generated text ends with <|endoftext|>";
+
+		// call under test
+		assertSame(text, SearchIndexLifecycleManagerImpl.truncateSemanticText(text));
+	}
+
+	@Test
 	public void testTruncateSemanticTextWithTextUnderTokenLimit() {
 		String text = "title: hello";
 

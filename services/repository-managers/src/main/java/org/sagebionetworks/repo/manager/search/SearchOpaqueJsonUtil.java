@@ -317,7 +317,7 @@ public final class SearchOpaqueJsonUtil {
 					savedPipeline == null ? null : parse(savedPipeline), sentPositions);
 			hybridMinScore = nodeOrNull(hybrid, "min_score");
 			((ObjectNode) hybrid).remove("min_score");
-			req.query(buildHybridQuery(hybrid, sentPositions, ctx, filters, semanticModelId, hybridRelevanceRanked));
+			req.query(buildHybridQuery(hybrid, sentPositions, ctx, filters, semanticModelId));
 		} else {
 			Query query = parseRequiredQuery(body, ctx, autocomplete);
 			// Wrap the caller's allowlist-validated query in a server-controlled bool: the caller's
@@ -343,8 +343,10 @@ public final class SearchOpaqueJsonUtil {
 		boolean usingCursor = !searchAfter.isEmpty();
 		int from = usingCursor ? 0 : SearchDslValidator.resolveFrom(body);
 		int size = SearchDslValidator.resolveSize(body, defaultSize, maxSize);
-		if (hybridRelevanceRanked) {
+		if (hybrid != null) {
 			SearchDslValidator.validateHybridPageDepth(from, size);
+		}
+		if (hybridRelevanceRanked) {
 			SearchDslValidator.validateHybridSearchAfter(usingCursor);
 		}
 
@@ -523,12 +525,10 @@ public final class SearchOpaqueJsonUtil {
 	 * placement alone is sufficient, so no single slot is the only thing enforcing row-level access.
 	 * A caller's own {@code hybrid.filter} is AND-ed with them rather than replaced.</p>
 	 *
-	 * <p>{@code pagination_depth} is set only when ranking by relevance; see
-	 * {@link SearchDslValidator#HYBRID_PAGINATION_DEPTH}.</p>
+	 * <p>{@code pagination_depth} is always {@link SearchDslValidator#HYBRID_PAGINATION_DEPTH}.</p>
 	 */
 	private static Query buildHybridQuery(JsonNode hybridNode, List<Integer> sentPositions,
-			SearchFieldRewriter.RoutingContext ctx, List<Query> accessFilters, String semanticModelId,
-			boolean relevanceRanked) {
+			SearchFieldRewriter.RoutingContext ctx, List<Query> accessFilters, String semanticModelId) {
 		JsonNode queries = hybridNode.get("queries");
 		com.fasterxml.jackson.databind.node.ArrayNode sent = arrayNode();
 		for (int position : sentPositions) {
@@ -555,9 +555,7 @@ public final class SearchOpaqueJsonUtil {
 			if (combinedFilter != null) {
 				h.filter(combinedFilter);
 			}
-			if (relevanceRanked) {
-				h.paginationDepth(SearchDslValidator.HYBRID_PAGINATION_DEPTH);
-			}
+			h.paginationDepth(SearchDslValidator.HYBRID_PAGINATION_DEPTH);
 			return h;
 		}));
 	}

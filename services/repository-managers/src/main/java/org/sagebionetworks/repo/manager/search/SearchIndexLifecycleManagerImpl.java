@@ -145,7 +145,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 * Trim {@code text} to {@link #MAX_SEMANTIC_TEXT_TOKENS}, keeping the leading tokens.
 	 */
 	static String truncateSemanticText(String text) {
-		EncodingResult encoded = SEMANTIC_TEXT_ENCODING.encode(text, MAX_SEMANTIC_TEXT_TOKENS);
+		EncodingResult encoded = SEMANTIC_TEXT_ENCODING.encodeOrdinary(text, MAX_SEMANTIC_TEXT_TOKENS);
 		return encoded.isTruncated() ? SEMANTIC_TEXT_ENCODING.decode(encoded.getTokens()) : text;
 	}
 

@@ -1863,7 +1863,6 @@ public class SearchDslValidatorTest {
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
 				// call under test
 				() -> SearchDslValidator.validateHybridPageDepth(901, 100));
-		assertEquals("from + size must not exceed 1000 for a relevance-ranked hybrid query; sort by a"
-				+ " column to page deeper", ex.getMessage());
+		assertEquals("from + size must not exceed 1000 for a hybrid query", ex.getMessage());
 	}
 }

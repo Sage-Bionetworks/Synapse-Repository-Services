@@ -155,8 +155,8 @@ final class SearchDslValidator {
 	static final int MAX_HYBRID_QUERIES = 5;
 
 	/**
-	 * The {@code pagination_depth} injected on every relevance-ranked {@code hybrid} query, and
-	 * therefore the ceiling on {@code from + size} for one.
+	 * The {@code pagination_depth} injected on every {@code hybrid} query, and therefore the ceiling
+	 * on {@code from + size} for one.
 	 *
 	 * <p>The depth must be identical on every page of a result set: OpenSearch derives each clause's
 	 * candidate pool from it, so varying it per page duplicates some rows across pages and drops
@@ -359,15 +359,14 @@ final class SearchDslValidator {
 	}
 
 	/**
-	 * Cap the requested page of a relevance-ranked {@code hybrid} query at
+	 * Cap the requested page of a {@code hybrid} query at
 	 * {@link #HYBRID_PAGINATION_DEPTH}. Rejected here rather than at OpenSearch because OpenSearch's
 	 * own error tells the caller to raise {@code pagination_depth}, a knob only the server sets.
 	 */
 	static void validateHybridPageDepth(int from, int size) {
 		if ((long) from + size > HYBRID_PAGINATION_DEPTH) {
 			throw new IllegalArgumentException("from + size must not exceed "
-					+ HYBRID_PAGINATION_DEPTH + " for a relevance-ranked hybrid query; sort by a"
-					+ " column to page deeper");
+					+ HYBRID_PAGINATION_DEPTH + " for a hybrid query");
 		}
 	}
 

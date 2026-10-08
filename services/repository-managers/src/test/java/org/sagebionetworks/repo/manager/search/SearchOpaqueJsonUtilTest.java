@@ -1682,13 +1682,13 @@ public class SearchOpaqueJsonUtilTest {
 	}
 
 	@Test
-	public void testApplyBodyToRequestWithHybridBodySortedByColumnOmitsPaginationDepth() {
-		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"]}";
+	public void testApplyBodyToRequestWithHybridBodySortedByColumnSetsPaginationDepth() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"],\"from\":20}";
 
 		// call under test
 		SearchRequest req = applyBody(json, EnumSet.of(SearchQueryPart.HITS));
 
-		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{"
+		assertEquals(SearchOpaqueJsonUtil.parse("{\"hybrid\":{\"pagination_depth\":1000,"
 				+ "\"queries\":[{\"match\":{\"title\":{\"query\":\"cancer\"}}}]}}"),
 				SearchOpaqueJsonUtil.parse(req.query().toJsonString()));
 		// A column sort keeps the row-id tiebreak, so search_after pages stay deterministic.
@@ -1701,6 +1701,18 @@ public class SearchOpaqueJsonUtilTest {
 
 		// call under test
 		assertThrows(IllegalArgumentException.class, () -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+	}
+
+	@Test
+	public void testApplyBodyToRequestWithHybridBodySortedByColumnPastPaginationDepthThrows() {
+		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "]},\"sort\":[\"title\"],"
+				+ "\"from\":995,\"size\":10}";
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> applyBody(json, EnumSet.of(SearchQueryPart.HITS)));
+
+		assertEquals("from + size must not exceed 1000 for a hybrid query", ex.getMessage());
 	}
 
 	@Test
