@@ -32,7 +32,7 @@ An in-expression name that resolves to nothing must be rejected rather than pass
 
 ## Anti-Patterns — Do NOT
 
-- **Do NOT allow a `terms` aggregation's `min_doc_count` / `shard_min_doc_count` below 1.** OpenSearch fills zero-count buckets from every document in the shard, not the query's matches, so they list values of rows the benefactor ACL filter excludes. For the same reason a caller-supplied field reference must never resolve to an internal `_benefactor_*` field (`SearchFieldRewriter.rewriteFieldRef` rejects them).
+- **Do NOT allow a `terms` aggregation's `min_doc_count` / `shard_min_doc_count` below 1.** OpenSearch fills zero-count buckets from every document in the shard, not the query's matches, so they list values of rows the benefactor ACL filter excludes.
 - **Do NOT add `Global` aggregations to the `SearchDslValidator` allowlist.** A `Global` aggregation escapes the top-level query scope and would bypass the row-level benefactor ACL filter injected there (evidence: `SearchDslValidator.java:152`).
 - **Do NOT add a new opaque (`"type":"object"`) property to the `dsl.Query` / `dsl.Aggregation` schema family without updating `SearchDslOpaqueLeafCoverageTest`'s frozen leaf set.** The build fails until the addition is accounted for; if the new leaf is not a plain scalar, also add it to `SearchDslValidator.OPAQUE_LEAF_EXCEPTIONS`.
 - **Do NOT emit a query without the benefactor `accessFilters`** — see row-level access control above.

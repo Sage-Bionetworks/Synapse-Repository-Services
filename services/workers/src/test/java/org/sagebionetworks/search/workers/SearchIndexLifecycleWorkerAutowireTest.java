@@ -714,8 +714,8 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     /**
      * A {@code terms} aggregation with {@code min_doc_count: 0} fills its zero-count buckets from every
      * document in the shard, not just the query's matches, so it would list values that exist only in
-     * rows the caller cannot read. It is rejected, as is any reference to the internal benefactor field,
-     * while the same aggregation at the default {@code min_doc_count} returns only the readable values.
+     * rows the caller cannot read. It is rejected, while the same aggregation at the default
+     * {@code min_doc_count} returns only the readable values, including over the benefactor field itself.
      */
     @Test
     public void testSearchIndexWithTermsAggregationMinDocCountZeroWithUnreadableBenefactor() throws Exception {
@@ -738,14 +738,13 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                 () -> runQueryOnce(userB, queryOf(searchIndex.getId(),
                         "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"groupKeys\":"
                         + "{\"terms\":{\"field\":\"groupKey\",\"size\":100,\"min_doc_count\":0}}}}")));
-        IllegalArgumentException benefactorField = assertThrows(IllegalArgumentException.class,
-                () -> runQueryOnce(userB, queryOf(searchIndex.getId(),
-                        "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"benefactors\":"
-                        + "{\"terms\":{\"field\":\"" + VIEW_BENEFACTOR_FIELD + "\",\"size\":100}}}}")));
+        SearchQueryResults benefactors = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"benefactors\":"
+                + "{\"terms\":{\"field\":\"" + VIEW_BENEFACTOR_FIELD + "\",\"size\":100}}}}"));
 
         assertTrue(minDocCount.getMessage().contains("'min_doc_count' must be at least 1"), minDocCount.getMessage());
-        assertTrue(benefactorField.getMessage().contains(VIEW_BENEFACTOR_FIELD + "' is not a column"),
-                benefactorField.getMessage());
+        assertEquals(Set.of(KeyFactory.stringToKey(hierarchy.project.getId()).toString()),
+                aggregationBucketKeys(benefactors, "benefactors"));
     }
 
     /**
