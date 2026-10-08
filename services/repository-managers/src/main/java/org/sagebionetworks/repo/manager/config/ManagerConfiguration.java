@@ -35,6 +35,7 @@ import org.opensearch.client.transport.aws.AwsSdk2TransportOptions;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.avro.pfb.model.Metadata;
+import org.sagebionetworks.aws.v2.AwsClientFactoryV2;
 import org.sagebionetworks.aws.v2.AwsCredentialsProviderV2;
 import org.sagebionetworks.database.semaphore.CountingSemaphore;
 import org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO;
@@ -628,8 +629,8 @@ public class ManagerConfiguration {
 	}
 
 	@Bean
-	public S3Client createS3Client(AwsCredentialsProvider credentialProvider) {
-		return S3Client.builder().credentialsProvider(credentialProvider).region(Region.US_EAST_1).build();
+	public S3Client createS3Client() {
+		return AwsClientFactoryV2.createS3Client();
 	}
 
 	@Bean
