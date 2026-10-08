@@ -760,15 +760,20 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         assertQueryWithBuildRetry(userB, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
                 (SearchQueryResults results) -> assertEquals(hierarchy.projectBenefactorFolderIds(), hitIds(results)));
 
-        // call under test
-        SearchQueryResults results = runQueryOnce(userB, queryOf(searchIndex.getId(),
-                "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"groupKeys\":"
-                + "{\"histogram\":{\"field\":\"groupKey\",\"interval\":1,\"min_doc_count\":0,"
-                + "\"extended_bounds\":{\"min\":0,\"max\":5}}}}}"));
+        Map<String, Long> expected = Map.of("0", 1L, "1", 0L, "2", 1L, "3", 0L, "4", 0L, "5", 0L);
 
-        assertEquals(Map.of("0", 1L, "1", 0L, "2", 1L, "3", 0L, "4", 0L, "5", 0L),
-                aggregationBucketCounts(results, "groupKeys"),
-                results.getAggregationResults().toString());
+        // call under test — retry the same query (no rebuild) since a fresh aggregation can
+        // transiently lag the hits view on an AOSS replica that has not yet caught up.
+        Map<String, Long> counts = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+            SearchQueryResults results = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                    "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"groupKeys\":"
+                    + "{\"histogram\":{\"field\":\"groupKey\",\"interval\":1,\"min_doc_count\":0,"
+                    + "\"extended_bounds\":{\"min\":0,\"max\":5}}}}}"));
+            Map<String, Long> current = aggregationBucketCounts(results, "groupKeys");
+            return new Pair<Boolean, Map<String, Long>>(expected.equals(current), current);
+        });
+
+        assertEquals(expected, counts);
     }
 
     /**
