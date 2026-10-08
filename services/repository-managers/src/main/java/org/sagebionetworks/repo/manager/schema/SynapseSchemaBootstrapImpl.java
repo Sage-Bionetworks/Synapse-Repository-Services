@@ -199,8 +199,6 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 		}
 
 		AccessControlList acl = existingAcl.get();
-		// Leaving the ACL untouched when the entry already matches keeps a repeated bootstrap from
-		// rotating the etag.
 		if (acl.getResourceAccess().contains(actEntry)) {
 			return;
 		}
