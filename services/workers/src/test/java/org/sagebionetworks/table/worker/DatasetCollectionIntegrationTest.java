@@ -147,6 +147,56 @@ public class DatasetCollectionIntegrationTest {
 	}
 
 	@Test
+	public void testCreateAndQueryDatasetCollectionWithItemWithoutVersion() throws Exception {
+		Dataset dataset = createDatasetAndSnapshot();
+
+		// An item without a version number always references the latest version of the dataset (PLFM-8384).
+		DatasetCollection collection = asyncHelper.createDatasetCollection(userInfo, new DatasetCollection()
+			.setParentId(project.getId())
+			.setName("Dataset Collection")
+			.setColumnIds(defaultColumnIdList)
+			.setItems(List.of(
+				new EntityRef().setEntityId(dataset.getId())
+			)));
+
+		Long projectBenefactorId = KeyFactory.stringToKey(project.getId());
+
+		// The collection must show the current version of the dataset, not the snapshot.
+		Dataset latestDataset = entityManager.getEntity(userInfo, dataset.getId(), Dataset.class);
+
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + collection.getId(), (QueryResultBundle result) -> {
+			assertEquals(List.of(expectedRow(latestDataset, projectBenefactorId)), result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+
+		// Create a new version of the dataset: the collection should automatically reflect the new version.
+		SnapshotRequest snapshotOptions = new SnapshotRequest();
+		snapshotOptions.setSnapshotComment("Second dataset snapshot");
+
+		TableUpdateTransactionRequest transactionRequest = new TableUpdateTransactionRequest();
+		transactionRequest.setEntityId(dataset.getId());
+		transactionRequest.setCreateSnapshot(true);
+		transactionRequest.setSnapshotOptions(snapshotOptions);
+
+		asyncHelper.assertJobResponse(userInfo, transactionRequest, (TableUpdateTransactionResponse response) -> {
+			assertEquals(2L, response.getSnapshotVersionNumber());
+		}, MAX_WAIT);
+
+		Dataset newLatestDataset = entityManager.getEntity(userInfo, dataset.getId(), Dataset.class);
+
+		asyncHelper.assertQueryResult(userInfo, "SELECT * FROM " + collection.getId(), (QueryResultBundle result) -> {
+			assertEquals(List.of(expectedRow(newLatestDataset, projectBenefactorId)), result.getQueryResult().getQueryResults().getRows());
+		}, MAX_WAIT);
+	}
+
+	private static Row expectedRow(Dataset dataset, Long benefactorId) {
+		return new Row().setRowId(KeyFactory.stringToKey(dataset.getId())).setVersionNumber(dataset.getVersionNumber())
+				.setEtag(dataset.getEtag()).setBenefactorId(benefactorId).setValues(Arrays.asList(dataset.getId(), dataset.getName(),
+						dataset.getDescription(), Long.toString(dataset.getCreatedOn().getTime()), dataset.getCreatedBy(),
+						dataset.getEtag(), Long.toString(dataset.getModifiedOn().getTime()), dataset.getModifiedBy(),
+						dataset.getSize().toString(), dataset.getChecksum(), dataset.getCount().toString()));
+	}
+
+	@Test
 	public void testCreateAndQueryDatasetCollectionHavingDatasetWithNoItem() throws Exception {
 		Dataset datasetOne = asyncHelper.createDataset(userInfo, new Dataset()
 				.setParentId(project.getId())
