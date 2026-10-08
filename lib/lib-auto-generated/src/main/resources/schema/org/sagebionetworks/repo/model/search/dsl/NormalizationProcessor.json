@@ -1,0 +1,13 @@
+{
+	"description": "A <a href=\"https://docs.opensearch.org/latest/search-plugins/search-pipelines/normalization-processor/\">normalization processor</a>: normalizes each hybrid clause's scores onto a common scale, then combines them.",
+	"properties": {
+		"normalization": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Normalization",
+			"description": "Optional. How per-clause scores are rescaled."
+		},
+		"combination": {
+			"$ref": "org.sagebionetworks.repo.model.search.dsl.Combination",
+			"description": "Optional. How the rescaled per-clause scores are merged."
+		}
+	}
+}

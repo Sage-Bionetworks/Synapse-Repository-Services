@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -20,6 +22,7 @@ import org.sagebionetworks.reflection.model.PaginatedResults;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -179,6 +182,22 @@ public class ObjectTypeSerializerTest {
 		JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(outString);
 		PaginatedResults<EntityHeader> clone = PaginatedResults.createFromJSONObjectAdapter(adapter, EntityHeader.class);
 		assertEquals(paged, clone);
+	}
+
+	@Test
+	public void testDeserializeNamedSearchPipelineWithUnknownSettingsKey() {
+		String json = "{\"organizationName\":\"org\",\"name\":\"pipeline\",\"settings\":{\"phase_results_processors\":"
+				+ "[{\"normalization-processor\":{\"normalization\":{\"technique\":\"min_max\",\"lower_bounds\":[]}}}]}}";
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Content-Type", "application/json; charset=UTF-8");
+		ByteArrayInputStream in = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			objectTypeSerializer.deserialize(in, headers, NamedSearchPipeline.class, MediaType.APPLICATION_JSON);
+		});
+
+		assertEquals("JSON Element in Entity is Unsupported: lower_bounds", e.getMessage());
 	}
 
 }

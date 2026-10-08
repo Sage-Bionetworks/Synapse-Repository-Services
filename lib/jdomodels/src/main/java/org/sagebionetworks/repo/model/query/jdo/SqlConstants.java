@@ -1576,6 +1576,20 @@ public class SqlConstants {
 	public static final String COL_SYNSET_MODIFIED_ON				= "MODIFIED_ON";
 	public static final String DDL_SYNONYM_SET						= "schema/SynonymSet-ddl.sql";
 
+	// Search Pipeline
+	public static final String TABLE_SEARCH_PIPELINE				= "SEARCH_PIPELINE";
+	public static final String COL_SEARCH_PIPELINE_ID				= "ID";
+	public static final String COL_SEARCH_PIPELINE_ETAG				= "ETAG";
+	public static final String COL_SEARCH_PIPELINE_ORGANIZATION_NAME	= "ORGANIZATION_NAME";
+	public static final String COL_SEARCH_PIPELINE_NAME				= "NAME";
+	public static final String COL_SEARCH_PIPELINE_DESCRIPTION		= "DESCRIPTION";
+	public static final String COL_SEARCH_PIPELINE_SETTINGS			= "SETTINGS";
+	public static final String COL_SEARCH_PIPELINE_CREATED_BY		= "CREATED_BY";
+	public static final String COL_SEARCH_PIPELINE_CREATED_ON		= "CREATED_ON";
+	public static final String COL_SEARCH_PIPELINE_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String COL_SEARCH_PIPELINE_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String DDL_SEARCH_PIPELINE					= "schema/SearchPipeline-ddl.sql";
+
 	// Search Configuration
 	public static final String TABLE_SEARCH_CONFIGURATION			= "SEARCH_CONFIGURATION";
 	public static final String COL_SEARCH_CONFIG_ID					= "ID";
