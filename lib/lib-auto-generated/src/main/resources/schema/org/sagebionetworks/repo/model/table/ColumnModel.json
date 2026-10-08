@@ -13,7 +13,7 @@
 		},
 		"defaultValue": {
 			"type": "string",
-			"description": "The default value for this column. Columns of type ENTITYID, FILEHANDLEID, USERID, and LARGETEXT are not allowed to have default values."
+			"description": "The default value for this column. Columns of type ENTITYID, ENTITYID_LIST, EVALUATIONID, FILEHANDLEID, MEDIUMTEXT, LARGETEXT, SUBMISSIONID, USERID, and USERID_LIST are not allowed to have default values."
 		},
 		"maximumSize": {
 			"type": "integer",
