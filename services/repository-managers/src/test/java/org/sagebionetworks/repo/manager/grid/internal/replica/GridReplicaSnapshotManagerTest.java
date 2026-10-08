@@ -55,7 +55,7 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
-	public void testCreateSnapshotIfPatchCountIsExceededSuccess() throws Exception {
+	public void testCreateSnapshotIfNeededSuccess() throws Exception {
 		connection.setCreatedBy(789L);
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 		List<LogicalTimestamp> latestSnapshotClock = List.of(clockEntry);
@@ -73,7 +73,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridIndexManager.exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class))).thenReturn(clockTable);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 500);
+		snapshotManager.createSnapshotIfNeeded(connection, 500);
 
 		verify(mockGridIndexManager).exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class));
 		verify(mockSnapshotStore).saveSnapshot(eq(sessionId), eq(clockTable), eq(789L), any(File.class));
@@ -81,7 +81,7 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
-	public void testCreateSnapshotIfPatchCountIsExceededWithNoSnapshotAndHasPatches() throws Exception {
+	public void testCreateSnapshotIfNeededWithNoSnapshotAndHasPatches() throws Exception {
 		connection.setCreatedBy(789L);
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 
@@ -96,7 +96,7 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridIndexManager.exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class))).thenReturn(clockTable);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 9);
+		snapshotManager.createSnapshotIfNeeded(connection, 9);
 
 		verify(mockGridIndexManager).exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class));
 		verify(mockSnapshotStore).saveSnapshot(eq(sessionId), eq(clockTable), eq(789L), any(File.class));
@@ -104,19 +104,19 @@ public class GridReplicaSnapshotManagerTest {
 	}
 
 	@Test
-	public void testCreateSnapshotIfPatchCountIsExceededWithNoSnapshotAndNoPatches() {
+	public void testCreateSnapshotIfNeededWithNoSnapshotAndNoPatches() {
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
 		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(0);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 10);
+		snapshotManager.createSnapshotIfNeeded(connection, 10);
 
 		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
 	}
 
 	@Test
-	public void testCreateSnapshotWithNoPatchesSinceLatestSnapshotIfPatchCountIsExceeded() {
+	public void testCreateSnapshotIfNeededWithNoPatchesSinceLatestSnapshot() {
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 		List<LogicalTimestamp> latestSnapshotClock = List.of(clockEntry);
 
@@ -126,14 +126,14 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridDao.countMissingPatchesForClock(sessionId, latestSnapshotClock)).thenReturn(0);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 500);
+		snapshotManager.createSnapshotIfNeeded(connection, 500);
 
 		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
 	}
 
 	@Test
-	public void testCreateSnapshotIfPatchCountIsExceededWithFewLargePatches() throws Exception {
+	public void testCreateSnapshotIfNeededWithFewLargePatches() throws Exception {
 		connection.setCreatedBy(789L);
 		LogicalTimestamp clockEntry = new LogicalTimestamp().setReplicaId(replicaId).setSequenceNumber(100L);
 
@@ -150,20 +150,20 @@ public class GridReplicaSnapshotManagerTest {
 		when(mockGridIndexManager.exportSnapshot(eq(sessionId), eq(replicaId), any(Path.class))).thenReturn(clockTable);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 1000);
+		snapshotManager.createSnapshotIfNeeded(connection, 1000);
 
 		verify(mockSnapshotStore).saveSnapshot(eq(sessionId), eq(clockTable), eq(789L), any(File.class));
 	}
 
 	@Test
-	public void testCreateSnapshotIfPatchCountIsExceededWithFewSmallPatches() {
+	public void testCreateSnapshotIfNeededWithFewSmallPatches() {
 		when(mockGridDao.getLatestSnapshot(sessionId)).thenReturn(Optional.empty());
 		when(mockGridDao.countMissingPatchesForClock(eq(sessionId), any())).thenReturn(447);
 		when(mockGridDao.sumMissingPatchBytesForClock(eq(sessionId), any()))
 				.thenReturn(GridReplicaSnapshotManager.PATCH_BYTES_SNAPSHOT_THRESHOLD - 1);
 
 		// call under test
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 1000);
+		snapshotManager.createSnapshotIfNeeded(connection, 1000);
 
 		verify(mockGridIndexManager, never()).exportSnapshot(any(), any(), any());
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());
@@ -189,7 +189,7 @@ public class GridReplicaSnapshotManagerTest {
 
 		// call under test
 		assertThrows(RuntimeException.class, () -> {
-			snapshotManager.createSnapshotIfPatchCountIsExceeded(connection, 500);
+			snapshotManager.createSnapshotIfNeeded(connection, 500);
 		});
 
 		verify(mockSnapshotStore, never()).saveSnapshot(any(), any(), any(), any());

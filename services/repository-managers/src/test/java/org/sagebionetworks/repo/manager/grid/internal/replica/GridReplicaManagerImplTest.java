@@ -124,7 +124,7 @@ public class GridReplicaManagerImplTest {
 	public void testOnExportSnapshot() {
 		// call under test
 		manager.onExportSnapshot(mockCallback, connection);
-		verify(mockSnapshotManager).createSnapshotIfPatchCountIsExceeded(connection);
+		verify(mockSnapshotManager).createSnapshotIfNeeded(connection);
 	}
 
 	@Test

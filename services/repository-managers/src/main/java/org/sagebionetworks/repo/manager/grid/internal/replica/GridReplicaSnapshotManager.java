@@ -43,11 +43,11 @@ public class GridReplicaSnapshotManager {
 		this.gridDao = gridDao;
 	}
 
-	public void createSnapshotIfPatchCountIsExceeded(GridConnectionInfo connection) {
-		createSnapshotIfPatchCountIsExceeded(connection, PATCH_COUNT_SNAPSHOT_THRESHOLD);
+	public void createSnapshotIfNeeded(GridConnectionInfo connection) {
+		createSnapshotIfNeeded(connection, PATCH_COUNT_SNAPSHOT_THRESHOLD);
 	}
 
-	void createSnapshotIfPatchCountIsExceeded(GridConnectionInfo connection, int patchCountSnapshotThreshold) {
+	void createSnapshotIfNeeded(GridConnectionInfo connection, int patchCountSnapshotThreshold) {
 		String sessionId = connection.getSessionId();
 		Long replicaId = connection.getReplicaId();
 		Long createdByUserId = connection.getCreatedBy();
