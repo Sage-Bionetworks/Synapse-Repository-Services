@@ -40,6 +40,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYP
 
 import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -466,44 +467,60 @@ public class GridDaoImpl implements GridDao {
 	@Override
 	public List<PatchInfo> listMissingPatchInfoForClock(String sessionId, List<LogicalTimestamp> clock, long limit) {
 		ValidateArgument.required(sessionId, "sessionId");
-		ValidateArgument.required(clock, "clock");
-		if (clock.isEmpty()) {
-			clock = List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L));
-		}
-		StringJoiner rows = new StringJoiner(",");
-		clock.forEach(id -> {
-			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
-		});
-		String sql = String.format(LIST_MISSING_PATCHES, rows.toString());
-		sql += " LIMIT ?;";
-		return jdbcTemplate.query(sql, PATCH_INFO_MAPPER, sessionId, limit);
+		List<Object> args = new ArrayList<>();
+		args.add(sessionId);
+		String sql = String.format(LIST_MISSING_PATCHES, buildMissingPatchesPredicate(clock, args)) + " LIMIT ?;";
+		args.add(limit);
+		return jdbcTemplate.query(sql, PATCH_INFO_MAPPER, args.toArray());
 	}
 
 	@Override
 	public int countMissingPatchesForClock(String sessionId, List<LogicalTimestamp> clock) {
-		String sql = "SELECT COUNT(*) FROM (" + buildMissingPatchesSql(sessionId, clock) + ") as mp;";
-		return jdbcTemplate.queryForObject(sql, Integer.class, sessionId);
+		ValidateArgument.required(sessionId, "sessionId");
+		List<Object> args = new ArrayList<>();
+		args.add(sessionId);
+		String sql = "SELECT COUNT(*) FROM GRID_PATCH AS gp WHERE gp.SESSION_ID = ? AND ("
+				+ buildMissingPatchesPredicate(clock, args) + ")";
+		return jdbcTemplate.queryForObject(sql, Integer.class, args.toArray());
 	}
 
 	@Override
 	public long sumMissingPatchBytesForClock(String sessionId, List<LogicalTimestamp> clock) {
+		ValidateArgument.required(sessionId, "sessionId");
+		List<Object> args = new ArrayList<>();
+		args.add(sessionId);
 		// Patches without a recorded size contribute nothing to the sum
-		String sql = "SELECT COALESCE(SUM(mp.SIZE_BYTES), 0) FROM (" + buildMissingPatchesSql(sessionId, clock)
-				+ ") as mp;";
-		return jdbcTemplate.queryForObject(sql, Long.class, sessionId);
+		String sql = "SELECT COALESCE(SUM(gp.SIZE_BYTES), 0) FROM GRID_PATCH AS gp WHERE gp.SESSION_ID = ? AND ("
+				+ buildMissingPatchesPredicate(clock, args) + ")";
+		return jdbcTemplate.queryForObject(sql, Long.class, args.toArray());
 	}
 
-	private static String buildMissingPatchesSql(String sessionId, List<LogicalTimestamp> clock) {
-		ValidateArgument.required(sessionId, "sessionId");
+	/**
+	 * Builds a predicate over GRID_PATCH (aliased as gp) matching the patches not covered by the given clock. It is
+	 * expressed as one range per replica so that, together with a SESSION_ID equality, the unique index on
+	 * (SESSION_ID, PATCH_ID_REP, PATCH_ID_SEQ) reads only the missing patches rather than every patch in the
+	 * session. Patches from replicas absent from the clock are all missing.
+	 *
+	 * @param args Receives the bind values, in placeholder order.
+	 */
+	private static String buildMissingPatchesPredicate(List<LogicalTimestamp> clock, List<Object> args) {
 		ValidateArgument.required(clock, "clock");
 		if (clock.isEmpty()) {
 			clock = List.of(new LogicalTimestamp().setReplicaId(0L).setSequenceNumber(0L));
 		}
-		StringJoiner rows = new StringJoiner(",");
-		clock.forEach(id -> {
-			rows.add(String.format("ROW(%d,%d)", id.getReplicaId(), id.getSequenceNumber()));
-		});
-		return String.format(LIST_MISSING_PATCHES, rows);
+		StringJoiner predicate = new StringJoiner(" OR ");
+		StringJoiner knownReplicaPlaceholders = new StringJoiner(",");
+		List<Object> knownReplicaIds = new ArrayList<>();
+		for (LogicalTimestamp timestamp : clock) {
+			predicate.add("(gp.PATCH_ID_REP = ? AND gp.PATCH_ID_SEQ >= ?)");
+			args.add(timestamp.getReplicaId());
+			args.add(timestamp.getSequenceNumber());
+			knownReplicaPlaceholders.add("?");
+			knownReplicaIds.add(timestamp.getReplicaId());
+		}
+		predicate.add("gp.PATCH_ID_REP NOT IN (" + knownReplicaPlaceholders + ")");
+		args.addAll(knownReplicaIds);
+		return predicate.toString();
 	}
 
 	@Override
