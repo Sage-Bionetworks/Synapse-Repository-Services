@@ -173,6 +173,6 @@ public class GridReplicaManagerImpl implements GridReplicaManager {
 
 	@Override
 	public void onExportSnapshot(ProgressCallback callback, GridConnectionInfo connection) {
-		snapshotManager.createSnapshotIfPatchCountIsExceeded(connection);
+		snapshotManager.createSnapshotIfNeeded(connection);
 	}
 }

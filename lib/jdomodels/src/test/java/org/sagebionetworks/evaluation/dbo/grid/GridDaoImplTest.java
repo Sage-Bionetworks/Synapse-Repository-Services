@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.grid.patch.LogicalTimestamp;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -62,6 +63,8 @@ public class GridDaoImplTest {
 	private GridDao dao;
 	@Autowired
 	private NodeDAO nodeDao;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private boolean isAgent;
 	private EventSource eventSource;
@@ -553,6 +556,92 @@ public class GridDaoImplTest {
 
 		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
 		assertEquals(expectedPatchIds.size(), count);
+
+		// Replica 3 is absent from the clock, so all of its patches are missing
+		clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L));
+		expectedPatchIds = patchIdsSortedBySeq.stream().filter(p -> p.getReplicaId().equals(3L))
+				.collect(Collectors.toList());
+		// call under test
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), clock, 100);
+		count = dao.countMissingPatchesForClock(sessionOne.getSessionId(), clock);
+		assertFalse(expectedPatchIds.isEmpty());
+		assertEquals(expectedPatchIds, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		assertEquals(expectedPatchIds.size(), count);
+
+		// A clock naming only a replica without patches leaves every patch missing
+		clock = List.of(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L));
+		// call under test
+		list = dao.listMissingPatchInfoForClock(sessionOne.getSessionId(), clock, 100);
+		count = dao.countMissingPatchesForClock(sessionOne.getSessionId(), clock);
+		assertEquals(patchIdsSortedBySeq, list.stream().map(PatchInfo::getPatchId).collect(Collectors.toList()));
+		assertEquals(patchIds.size(), count);
+	}
+
+	@Test
+	public void testSumMissingPatchBytesForClockWithMultipleReplicas() {
+		GridSession sessionOne = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		GridSession sessionTwo = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+
+		// Replica 1 and 2, sequence numbers 1 and 3; each patch is 100 bytes more than the previous
+		LogicalTimestamp r1s1 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(1L);
+		LogicalTimestamp r1s3 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L);
+		LogicalTimestamp r2s1 = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(1L);
+		LogicalTimestamp r2s3 = new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(3L);
+		String sessionId = sessionOne.getSessionId();
+		assertTrue(dao.savePatch(sessionId, r1s1, "k1", 100L));
+		assertTrue(dao.savePatch(sessionId, r1s3, "k2", 200L));
+		assertTrue(dao.savePatch(sessionId, r2s1, "k3", 300L));
+		assertTrue(dao.savePatch(sessionId, r2s3, "k4", 400L));
+		// Another session must not be included
+		assertTrue(dao.savePatch(sessionTwo.getSessionId(), r1s1, "k5", 5000L));
+
+		// call under test
+		assertEquals(1000L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
+
+		// Patches at or after the clock sequence for their replica are missing
+		List<LogicalTimestamp> clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(3L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(2L));
+		// call under test
+		assertEquals(200L + 400L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+
+		clock = List.of(new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(9L),
+				new LogicalTimestamp().setReplicaId(2L).setSequenceNumber(9L));
+		// call under test
+		assertEquals(0L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+
+		// Patches from a replica absent from the clock are all missing
+		LogicalTimestamp r3s2 = new LogicalTimestamp().setReplicaId(3L).setSequenceNumber(2L);
+		assertTrue(dao.savePatch(sessionId, r3s2, "k6", 500L));
+		// call under test
+		assertEquals(500L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+
+		// A clock naming only a replica without patches leaves every patch missing
+		clock = List.of(new LogicalTimestamp().setReplicaId(99L).setSequenceNumber(1L));
+		// call under test
+		assertEquals(1500L, dao.sumMissingPatchBytesForClock(sessionId, clock));
+	}
+
+	@Test
+	public void testSumMissingPatchBytesForClockWithNullSizes() {
+		GridSession session = dao.createGridSession(new CreateGridSession().setUserId(adminUserId));
+		String sessionId = session.getSessionId();
+		LogicalTimestamp r1s1 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(1L);
+		LogicalTimestamp r1s2 = new LogicalTimestamp().setReplicaId(1L).setSequenceNumber(2L);
+		assertTrue(dao.savePatch(sessionId, r1s1, "k1", 100L));
+		assertTrue(dao.savePatch(sessionId, r1s2, "k2", 200L));
+
+		// Patches written before sizes were recorded have a NULL size
+		jdbcTemplate.update("UPDATE GRID_PATCH SET SIZE_BYTES = NULL WHERE SESSION_ID = ? AND PATCH_ID_SEQ = 1",
+				sessionId);
+
+		// call under test
+		assertEquals(200L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
+
+		jdbcTemplate.update("UPDATE GRID_PATCH SET SIZE_BYTES = NULL WHERE SESSION_ID = ?", sessionId);
+
+		// call under test
+		assertEquals(0L, dao.sumMissingPatchBytesForClock(sessionId, List.of()));
 	}
 
 	@Test
