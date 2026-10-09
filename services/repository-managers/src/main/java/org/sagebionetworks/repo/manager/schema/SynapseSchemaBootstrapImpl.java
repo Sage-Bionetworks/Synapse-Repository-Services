@@ -128,7 +128,7 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	public void bootstrapAccessRequirementBaseSchema(UserInfo adminUser) {
 		// The base schema belongs to 'org.sagebionetworks', and registering a schema requires CREATE
 		// on its organization, so that organization and its ACL must be in place first. It is
-		// created here rather than relying on whichever other bootstrapper also creates it, because
+		// created  here rather than relying on whichever other bootstrapper also creates it, because
 		// the order the context instantiates beans in is not defined.
 		createOrganizationIfDoesNotExist(adminUser);
 		createActOrganizationIfDoesNotExist(adminUser);
