@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
 import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
 import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.dsl.UpperBound;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -886,6 +887,19 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("sort kind is not allowed: '" + option._kind()
 						+ "'. Allowed kinds: " + ALLOWED_SORT_KINDS);
 			}
+		}
+	}
+
+	/**
+	 * Require a search-pipeline binding to be either a reference or an inline pipeline.
+	 *
+	 * @throws IllegalArgumentException unless exactly one of {@code $ref} and
+	 *         {@code phase_results_processors} is set
+	 */
+	static void validateSearchPipelineBinding(SearchPipelineBinding binding, String fieldName) {
+		if ((binding.get$ref() == null) == (binding.getPhase_results_processors() == null)) {
+			throw new IllegalArgumentException(
+					fieldName + " requires exactly one of '$ref' and 'phase_results_processors'");
 		}
 	}
 

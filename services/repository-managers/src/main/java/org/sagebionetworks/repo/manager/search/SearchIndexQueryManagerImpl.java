@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
@@ -156,21 +157,20 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	 * {@code defaultSearchPipeline}. Null when an inline pipeline or the system default applies.
 	 */
 	SearchPipeline resolveSavedPipeline(SearchQuery body, SearchIndex searchIndex) {
-		if (body.getSearch_pipeline() != null) {
-			String ref = SearchOpaqueJsonUtil.readRef(body.getSearch_pipeline());
-			return ref == null ? null : getNamedPipelineSettings(ref, "body.search_pipeline");
+		SearchPipelineBinding requested = body.getSearch_pipeline();
+		if (requested != null) {
+			SearchDslValidator.validateSearchPipelineBinding(requested, "body.search_pipeline");
+			return requested.get$ref() == null ? null
+					: getNamedPipelineSettings(requested.get$ref(), "body.search_pipeline");
 		}
-		Object binding = searchConfigurationResolver
+		SearchPipelineBinding binding = searchConfigurationResolver
 				.resolve(searchIndex.getSearchConfigurationId(), searchIndex.getParentId())
 				.map(SearchConfiguration::getDefaultSearchPipeline)
 				.orElse(null);
 		if (binding == null) {
 			return null;
 		}
-		String ref = SearchOpaqueJsonUtil.readRef(binding);
-		return ref == null
-				? SearchOpaqueJsonUtil.toInlineSearchPipeline(binding, "defaultSearchPipeline")
-				: getNamedPipelineSettings(ref, "defaultSearchPipeline");
+		return binding.get$ref() == null ? binding : getNamedPipelineSettings(binding.get$ref(), "defaultSearchPipeline");
 	}
 
 	private SearchPipeline getNamedPipelineSettings(String qualifiedName, String fieldName) {

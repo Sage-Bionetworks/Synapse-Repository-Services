@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.Sem
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.dbo.search.SynonymSetDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHit;
@@ -1867,7 +1868,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		// call under test
 		SearchQueryResults results = searchHybrid(body, List.of(readableBenefactorFilter()), null,
-				SearchOpaqueJsonUtil.toInlineSearchPipeline(SAVED_PIPELINE_JSON, "settings"));
+				JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON));
 
 		// Row 2 matches but sits under the unreadable benefactor.
 		assertEquals(Set.of(1L, 3L), Set.copyOf(rowIds(results)));
@@ -1880,7 +1881,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		// call under test
 		SearchQueryResults results = searchHybrid(body, Collections.emptyList(), null,
-				SearchOpaqueJsonUtil.toInlineSearchPipeline(SAVED_PIPELINE_JSON, "settings"));
+				JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON));
 
 		assertEquals(Set.of(1L, 2L), Set.copyOf(rowIds(results)));
 	}

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
 import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
@@ -271,11 +272,12 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 	 * A {@code $ref} must name a saved NamedSearchPipeline, whose settings were validated when it
 	 * was saved; an inline literal is held to the same saved-pipeline rules here.
 	 */
-	private void validateDefaultSearchPipeline(Object binding) {
+	private void validateDefaultSearchPipeline(SearchPipelineBinding binding) {
 		if (binding == null) {
 			return;
 		}
-		String ref = SearchOpaqueJsonUtil.readRef(binding);
+		SearchDslValidator.validateSearchPipelineBinding(binding, DEFAULT_SEARCH_PIPELINE_FIELD);
+		String ref = binding.get$ref();
 		if (ref != null) {
 			SearchResourceConstants.validateQualifiedNameFormat(ref, DEFAULT_SEARCH_PIPELINE_FIELD);
 			if (searchPipelineDao.getByQualifiedName(ref).isEmpty()) {
@@ -283,9 +285,7 @@ public class SearchConfigurationManagerImpl implements SearchConfigurationManage
 			}
 			return;
 		}
-		SearchDslValidator.validateSavedSearchPipeline(
-				SearchOpaqueJsonUtil.toInlineSearchPipeline(binding, DEFAULT_SEARCH_PIPELINE_FIELD),
-				DEFAULT_SEARCH_PIPELINE_FIELD);
+		SearchDslValidator.validateSavedSearchPipeline(binding, DEFAULT_SEARCH_PIPELINE_FIELD);
 	}
 
 	/**

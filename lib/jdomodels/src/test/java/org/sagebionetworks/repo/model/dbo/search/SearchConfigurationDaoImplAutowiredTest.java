@@ -23,7 +23,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dbo.schema.OrganizationDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverrideEntry;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
@@ -254,14 +256,15 @@ public class SearchConfigurationDaoImplAutowiredTest {
 
 	@Test
 	public void testCRUDWithDefaultSearchPipeline() {
-		JSONObject inlinePipeline = searchPipelineDefinition("min_max", new JSONArray().put(0.7).put(0.3).put(0.0).put(0.0).put(0.0));
+		SearchPipelineBinding inlinePipeline = JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipelineBinding.class,
+				searchPipelineDefinition("min_max", new JSONArray().put(0.7).put(0.3).put(0.0).put(0.0).put(0.0)).toString());
 		SearchConfiguration toCreate = newConfig(org1Name, "pipeline_crud", "inline default search pipeline")
 				.setDefaultSearchPipeline(inlinePipeline);
 
 		// call under test
 		SearchConfiguration created = searchConfigurationDao.create(adminUserId, toCreate);
 
-		assertJsonEquals(inlinePipeline, created.getDefaultSearchPipeline());
+		assertEquals(inlinePipeline, created.getDefaultSearchPipeline());
 
 		// call under test
 		Optional<SearchConfiguration> fetched = searchConfigurationDao.get(created.getId());
@@ -269,13 +272,13 @@ public class SearchConfigurationDaoImplAutowiredTest {
 		assertTrue(fetched.isPresent());
 		assertSearchConfigurationsEqual(created, fetched.get());
 
-		JSONObject refPipeline = new JSONObject().put("$ref", org1Name + "-keyword_heavy");
+		SearchPipelineBinding refPipeline = new SearchPipelineBinding().set$ref(org1Name + "-keyword_heavy");
 		created.setDefaultSearchPipeline(refPipeline);
 
 		// call under test
 		SearchConfiguration updated = searchConfigurationDao.update(adminUserId, created);
 
-		assertJsonEquals(refPipeline, updated.getDefaultSearchPipeline());
+		assertEquals(refPipeline, updated.getDefaultSearchPipeline());
 
 		updated.setDefaultSearchPipeline(null);
 
@@ -544,7 +547,7 @@ public class SearchConfigurationDaoImplAutowiredTest {
 		assertEquals(expected.getModifiedBy(), actual.getModifiedBy());
 		assertEquals(expected.getModifiedOn(), actual.getModifiedOn());
 		assertJsonEquals(expected.getDefaultAnalyzer(), actual.getDefaultAnalyzer());
-		assertJsonEquals(expected.getDefaultSearchPipeline(), actual.getDefaultSearchPipeline());
+		assertEquals(expected.getDefaultSearchPipeline(), actual.getDefaultSearchPipeline());
 		assertJsonListEquals(
 				expected.getColumnAnalyzerOverrides(), actual.getColumnAnalyzerOverrides());
 	}

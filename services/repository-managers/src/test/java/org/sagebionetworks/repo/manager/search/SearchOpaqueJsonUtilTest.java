@@ -32,6 +32,7 @@ import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.core.search.Rescore;
 import org.opensearch.client.opensearch.core.search.TrackHits;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
@@ -1615,17 +1616,6 @@ public class SearchOpaqueJsonUtilTest {
 	}
 
 	@Test
-	public void testResolveSearchPipelineWithMalformedInlinePipelineThrows() {
-		JsonNode inline = SearchOpaqueJsonUtil.parse("{\"phase_results_processors\":[],\"unknown\":1}");
-
-		// call under test
-		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-				() -> SearchOpaqueJsonUtil.resolveSearchPipeline(inline, null, List.of(0)));
-
-		assertEquals("JSON Element in Entity is Unsupported: unknown", ex.getMessage());
-	}
-
-	@Test
 	public void testApplyBodyToRequestWithHybridBody() {
 		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "],\"min_score\":0.2}}";
 		SearchRequest.Builder req = new SearchRequest.Builder().index("test-index");
@@ -1653,9 +1643,9 @@ public class SearchOpaqueJsonUtilTest {
 	@Test
 	public void testApplyBodyToRequestWithDroppedMiddleNeuralClauseKeepsSentClausesSavedWeights() {
 		String json = "{\"hybrid\":{\"queries\":[" + MATCH_CLAUSE + "," + NEURAL_CLAUSE + "," + MATCH_CLAUSE + "]}}";
-		SearchPipeline saved = SearchOpaqueJsonUtil.toInlineSearchPipeline(
+		SearchPipeline saved = JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class,
 				pipelineWith("[{\"mode\":\"apply\",\"min_score\":0.1},{\"mode\":\"clip\",\"min_score\":0.2},"
-						+ "{\"mode\":\"apply\",\"min_score\":0.3}]", "[0.6,0.3,0.1]"), "saved");
+						+ "{\"mode\":\"apply\",\"min_score\":0.3}]", "[0.6,0.3,0.1]").toString());
 		SearchRequest.Builder req = new SearchRequest.Builder().index("test-index");
 
 		// call under test

@@ -16,7 +16,6 @@ import jakarta.json.stream.JsonGenerator;
 import jakarta.json.stream.JsonParser;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.client.json.JsonpDeserializer;
 import org.opensearch.client.json.JsonpMapper;
@@ -37,7 +36,6 @@ import org.opensearch.client.opensearch.core.search.SourceConfig;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
-import org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverterHelper;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -450,14 +448,13 @@ public final class SearchOpaqueJsonUtil {
 	 * @param requestPipeline the body's {@code search_pipeline}, or {@code null}
 	 * @param savedPipeline   the saved pipeline, or {@code null} for the system default
 	 * @param sentPositions   the ascending positions of the clauses sent, from {@link #sentClausePositions}
-	 * @throws IllegalArgumentException when an inline pipeline is malformed, a weights or bounds
-	 *         array has no entry at a sent position, or the kept weights sum to 0
+	 * @throws IllegalArgumentException when a weights or bounds array has no entry at a sent
+	 *         position, or the kept weights sum to 0
 	 */
 	static JsonNode resolveSearchPipeline(JsonNode requestPipeline, JsonNode savedPipeline,
 			List<Integer> sentPositions) {
 		JsonNode pipeline;
 		if (requestPipeline != null && readRef(requestPipeline) == null) {
-			toInlineSearchPipeline(requestPipeline, "body.search_pipeline");
 			pipeline = requestPipeline;
 		} else {
 			pipeline = savedPipeline == null ? SYSTEM_DEFAULT_PIPELINE : savedPipeline;
@@ -906,25 +903,6 @@ public final class SearchOpaqueJsonUtil {
 		} catch (IllegalArgumentException | JsonProcessingException e) {
 			throw new IllegalArgumentException(
 					"Invalid inline " + clazz.getSimpleName() + ": " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Strictly parse an inline search-pipeline literal into a typed {@link SearchPipeline}.
-	 * Plain Jackson cannot map the hyphenated {@code normalization-processor} key onto the
-	 * generated POJO, so the literal goes through the schema adapter instead, and any key the
-	 * schema does not declare is rejected rather than silently dropped.
-	 *
-	 * @throws IllegalArgumentException when the literal is malformed or carries an unknown key.
-	 */
-	public static SearchPipeline toInlineSearchPipeline(Object value, String fieldName) {
-		String json = asJsonString(value);
-		try {
-			SearchPipeline pipeline = EntityFactory.createEntityFromJSONString(json, SearchPipeline.class);
-			JSONEntityHttpMessageConverterHelper.validateJSONEntity(pipeline, json);
-			return pipeline;
-		} catch (JSONObjectAdapterException | JSONException e) {
-			throw new IllegalArgumentException("Invalid inline " + fieldName + ": " + e.getMessage(), e);
 		}
 	}
 

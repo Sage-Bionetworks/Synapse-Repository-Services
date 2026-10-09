@@ -44,6 +44,14 @@ import org.sagebionetworks.repo.model.dbo.search.SearchConfigurationDao;
 import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.dbo.search.TextAnalyzerDao;
 import org.sagebionetworks.repo.model.schema.Organization;
+import org.sagebionetworks.repo.model.search.dsl.Combination;
+import org.sagebionetworks.repo.model.search.dsl.CombinationParameters;
+import org.sagebionetworks.repo.model.search.dsl.CombinationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.Normalization;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
+import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
+import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.BindSearchConfigToEntityRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsRequest;
 import org.sagebionetworks.repo.model.search.table.ListSearchConfigurationsResponse;
@@ -643,7 +651,7 @@ public class SearchConfigurationManagerImplTest {
 				.thenReturn(Optional.of(new NamedSearchPipeline().setId("7")));
 		SearchConfiguration toCreate = new SearchConfiguration()
 				.setOrganizationName("test-org").setName("MyConfig")
-				.setDefaultSearchPipeline(Map.of("$ref", "biomed-keyword_heavy"));
+				.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-keyword_heavy"));
 		when(searchConfigurationDao.create(1L, toCreate)).thenReturn(toCreate);
 
 		// call under test
@@ -661,7 +669,7 @@ public class SearchConfigurationManagerImplTest {
 				// call under test
 				manager.create(admin, new SearchConfiguration()
 						.setOrganizationName("test-org").setName("MyConfig")
-						.setDefaultSearchPipeline(Map.of("$ref", "biomed-MISSING"))));
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-MISSING"))));
 
 		assertEquals("The following search pipeline name does not exist: biomed-MISSING", ex.getMessage());
 		verifyNoMoreInteractions(searchConfigurationDao);
@@ -675,7 +683,7 @@ public class SearchConfigurationManagerImplTest {
 				// call under test
 				manager.create(admin, new SearchConfiguration()
 						.setOrganizationName("test-org").setName("MyConfig")
-						.setDefaultSearchPipeline(Map.of("$ref", "no_separator"))));
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("no_separator"))));
 
 		assertTrue(ex.getMessage().contains("Invalid qualified name format for 'defaultSearchPipeline'"), ex.getMessage());
 		verifyNoMoreInteractions(searchPipelineDao);
@@ -698,10 +706,9 @@ public class SearchConfigurationManagerImplTest {
 	}
 
 	@Test
-	public void testCreateWithInlineDefaultSearchPipelineWithUnknownKey() {
+	public void testCreateWithDefaultSearchPipelineWithBothRefAndInline() {
 		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
-		Map<String, Object> pipeline = Map.of("phase_results_processors", List.of(
-				Map.of("normalization-processor", Map.of("normalization", Map.of("technique", "min_max", "bogus", 1)))));
+		SearchPipelineBinding pipeline = inlinePipeline(List.of(0.7, 0.3)).set$ref("biomed-keyword_heavy");
 
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
 				// call under test
@@ -709,7 +716,25 @@ public class SearchConfigurationManagerImplTest {
 						.setOrganizationName("test-org").setName("MyConfig")
 						.setDefaultSearchPipeline(pipeline)));
 
-		assertEquals("JSON Element in Entity is Unsupported: bogus", ex.getMessage());
+		assertEquals("defaultSearchPipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoMoreInteractions(searchPipelineDao);
+		verifyNoMoreInteractions(searchConfigurationDao);
+	}
+
+	@Test
+	public void testCreateWithDefaultSearchPipelineWithNeitherRefNorInline() {
+		UserInfo admin = new UserInfo(true, 1L, AuthorizationConstants.DEFAULT_REALM_ID);
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+				// call under test
+				manager.create(admin, new SearchConfiguration()
+						.setOrganizationName("test-org").setName("MyConfig")
+						.setDefaultSearchPipeline(new SearchPipelineBinding())));
+
+		assertEquals("defaultSearchPipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoMoreInteractions(searchPipelineDao);
 		verifyNoMoreInteractions(searchConfigurationDao);
 	}
 
@@ -739,18 +764,20 @@ public class SearchConfigurationManagerImplTest {
 				// call under test
 				manager.update(admin, new SearchConfiguration().setId("1")
 						.setOrganizationName("test-org").setName("MyConfig")
-						.setDefaultSearchPipeline(Map.of("$ref", "biomed-MISSING"))));
+						.setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("biomed-MISSING"))));
 
 		assertEquals("The following search pipeline name does not exist: biomed-MISSING", ex.getMessage());
 		verify(searchConfigurationDao, never()).update(anyLong(), any());
 	}
 
-	private static Map<String, Object> inlinePipeline(List<Double> weights) {
-		return Map.of("phase_results_processors", List.of(
-				Map.of("normalization-processor", Map.of(
-						"normalization", Map.of("technique", "min_max"),
-						"combination", Map.of("technique", "arithmetic_mean",
-								"parameters", Map.of("weights", weights))))));
+	private static SearchPipelineBinding inlinePipeline(List<Double> weights) {
+		SearchPipelineBinding binding = new SearchPipelineBinding();
+		binding.setPhase_results_processors(List.of(new PhaseResultsProcessor().setNormalizationProcessor(
+				new NormalizationProcessor()
+						.setNormalization(new Normalization().setTechnique(NormalizationTechnique.min_max))
+						.setCombination(new Combination().setTechnique(CombinationTechnique.arithmetic_mean)
+								.setParameters(new CombinationParameters().setWeights(weights))))));
+		return binding;
 	}
 
 	// --- bindSearchConfigToEntity authorization & user.isAdmin shortcuts ---

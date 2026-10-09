@@ -286,6 +286,55 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 		return reason != null && reason.contains(CONCURRENT_DELETES_MARKER);
 	}
 
+	private static boolean isNotFound(OpenSearchException e) {
+		return INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status());
+	}
+
+	@FunctionalInterface
+	private interface OpenSearchCall<T> {
+		T call() throws IOException;
+	}
+
+	/**
+	 * Run {@code call}, retrying with exponential backoff while it fails with an I/O error or a
+	 * retryable status.
+	 *
+	 * @param operation names the call in failure messages, e.g. {@code "delete search index"}
+	 * @param target    the index, alias or pipeline the call acts on
+	 * @throws OpenSearchException unwrapped when it is a concurrent-delete rejection, so callers can
+	 *         recognize it via {@link #isConcurrentDeleteError}
+	 * @throws RuntimeException {@code "Failed to <operation>: <target>"} on any other failure
+	 */
+	private <T> T callWithRetry(String operation, String target, int maxRetries, long initialBackoffMs,
+			OpenSearchCall<T> call) {
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(maxRetries, initialBackoffMs, () -> {
+				try {
+					return call.call();
+				} catch (OpenSearchException e) {
+					if (isConcurrentDeleteError(e)) {
+						throw e;
+					}
+					if (isRetryableItemStatus(e.status())) {
+						LOG.warn("Attempt to {} {} failed ({}), retrying", operation, target, describeError(e.error()));
+						throw new RetryException(e);
+					}
+					throw new RuntimeException("Failed to " + operation + ": " + target
+							+ " (" + describeError(e.error()) + ")", e);
+				} catch (IOException e) {
+					LOG.warn("Attempt to {} {} failed ({}), retrying", operation, target, e.getMessage());
+					throw new RetryException(e);
+				}
+			});
+		} catch (RetryException e) {
+			throw new RuntimeException("Failed to " + operation + ": " + target, e.getCause());
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to " + operation + ": " + target, e);
+		}
+	}
+
 	private static final int DEFAULT_LIMIT = 25;
 	private static final int MAX_LIMIT = 100;
 	private static final int AUTOCOMPLETE_MAX_LIMIT = 8;
@@ -385,38 +434,22 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 			putEmbedPipeline(indexName, semanticModel.modelId());
 		}
 
-		try {
-			return TimeUtils.waitForExponentialMaxRetry(CREATE_INDEX_MAX_RETRIES,
-					CREATE_INDEX_INITIAL_BACKOFF_MS, () -> {
-				try {
-					CreateIndexResponse response = openSearchClient.indices().create(request);
-					if (!response.acknowledged()) {
-						throw new IllegalStateException(
-								"Search index " + indexName + " creation was not acknowledged.");
-					}
-					return Optional.of(appliedConfigJson);
-				} catch (OpenSearchException e) {
-					if ("resource_already_exists_exception".equals(e.error().type())) {
-						return Optional.<String>empty();
-					}
-					if (isRetryableItemStatus(e.status())) {
-						LOG.warn("createIndex attempt failed for {} ({}), retrying", indexName, describeError(e.error()));
-						throw new RetryException(e);
-					}
-					throw new RuntimeException("Failed to create search index: " + indexName
-							+ " (" + describeError(e.error()) + ")", e);
-				} catch (IOException e) {
-					LOG.warn("createIndex attempt failed for {} ({}), retrying", indexName, e.getMessage());
-					throw new RetryException(e);
+		return callWithRetry("create search index", indexName, CREATE_INDEX_MAX_RETRIES,
+				CREATE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				CreateIndexResponse response = openSearchClient.indices().create(request);
+				if (!response.acknowledged()) {
+					throw new IllegalStateException(
+							"Search index " + indexName + " creation was not acknowledged.");
 				}
-			});
-		} catch (RetryException e) {
-			throw new RuntimeException("Failed to create search index: " + indexName, e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to create search index: " + indexName, e);
-		}
+				return Optional.of(appliedConfigJson);
+			} catch (OpenSearchException e) {
+				if ("resource_already_exists_exception".equals(e.error().type())) {
+					return Optional.<String>empty();
+				}
+				throw e;
+			}
+		});
 	}
 
 	/**
@@ -660,40 +693,17 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	 */
 	private void putEmbedPipeline(String indexName, String modelId) {
 		String pipelineName = embedPipelineName(indexName);
-		try {
-			TimeUtils.waitForExponentialMaxRetry(PUT_PIPELINE_MAX_RETRIES,
-					PUT_PIPELINE_INITIAL_BACKOFF_MS, () -> {
-				try {
-					openSearchClient.ingest().putPipeline(req -> req
-							.id(pipelineName)
-							.description("Embeds the semantic text of documents written to " + indexName)
-							.processors(
-									Processor.of(p -> p.textEmbedding(te -> te
-											.modelId(modelId)
-											.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
-									Processor.of(p -> p.remove(r -> r
-											.field(SEMANTIC_TEXT_FIELD)
-											.ignoreMissing(true)))));
-					return Boolean.TRUE;
-				} catch (OpenSearchException e) {
-					if (isRetryableItemStatus(e.status())) {
-						LOG.warn("putPipeline attempt failed for {} ({}), retrying", pipelineName, describeError(e.error()));
-						throw new RetryException(e);
-					}
-					throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName
-							+ " (" + describeError(e.error()) + ")", e);
-				} catch (IOException e) {
-					LOG.warn("putPipeline attempt failed for {} ({}), retrying", pipelineName, e.getMessage());
-					throw new RetryException(e);
-				}
-			});
-		} catch (RetryException e) {
-			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName, e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to create ingestion pipeline: " + pipelineName, e);
-		}
+		callWithRetry("create ingestion pipeline", pipelineName, PUT_PIPELINE_MAX_RETRIES,
+				PUT_PIPELINE_INITIAL_BACKOFF_MS, () -> openSearchClient.ingest().putPipeline(req -> req
+						.id(pipelineName)
+						.description("Embeds the semantic text of documents written to " + indexName)
+						.processors(
+								Processor.of(p -> p.textEmbedding(te -> te
+										.modelId(modelId)
+										.fieldMap(SEMANTIC_TEXT_FIELD, SEMANTIC_FIELD))),
+								Processor.of(p -> p.remove(r -> r
+										.field(SEMANTIC_TEXT_FIELD)
+										.ignoreMissing(true))))));
 	}
 
 	@Override
@@ -720,127 +730,72 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	private void deletePhysicalIndex(String indexName) {
-		try {
-			TimeUtils.waitForExponentialMaxRetry(DELETE_INDEX_MAX_RETRIES,
-					DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
-				try {
-					openSearchClient.indices().delete(req -> req.index(indexName));
-					return Boolean.TRUE;
-				} catch (OpenSearchException e) {
-					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
-						return Boolean.TRUE;
-					}
-					// Concurrent deletes: rethrow the OpenSearchException (a RuntimeException)
-					// unwrapped so callers can recognize this case via isConcurrentDeleteError
-					// and translate to a recoverable SQS retry.
-					if (isConcurrentDeleteError(e)) {
-						throw e;
-					}
-					if (isRetryableItemStatus(e.status())) {
-						LOG.warn("deleteIndex attempt failed for {} ({}), retrying", indexName, describeError(e.error()));
-						throw new RetryException(e);
-					}
-					throw new RuntimeException("Failed to delete search index: " + indexName
-							+ " (" + describeError(e.error()) + ")", e);
-				} catch (IOException e) {
-					LOG.warn("deleteIndex attempt failed for {} ({}), retrying", indexName, e.getMessage());
-					throw new RetryException(e);
+		callWithRetry("delete search index", indexName, DELETE_INDEX_MAX_RETRIES,
+				DELETE_INDEX_INITIAL_BACKOFF_MS, () -> {
+			try {
+				openSearchClient.indices().delete(req -> req.index(indexName));
+			} catch (OpenSearchException e) {
+				if (!INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type())) {
+					throw e;
 				}
-			});
-		} catch (RetryException e) {
-			throw new RuntimeException("Failed to delete search index: " + indexName, e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to delete search index: " + indexName, e);
-		}
+			}
+			return Boolean.TRUE;
+		});
 	}
 
 	@Override
 	public Optional<String> getAliasTarget(String aliasName) {
 		ValidateArgument.required(aliasName, "aliasName");
-		try {
-			return TimeUtils.waitForExponentialMaxRetry(GET_ALIAS_MAX_RETRIES,
-					GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
-				try {
-					GetAliasResponse response = openSearchClient.indices().getAlias(req -> req.name(aliasName));
-					// The response maps each concrete index carrying the alias to its alias definitions;
-					// the key set is therefore the set of physical indices the alias resolves to.
-					Set<String> targets = response.result().keySet();
-					if (targets.isEmpty()) {
-						return Optional.<String>empty();
-					}
-					if (targets.size() > 1) {
-						throw new IllegalStateException("Alias " + aliasName
-								+ " resolves to multiple indices " + targets + "; expected exactly one.");
-					}
-					return Optional.of(targets.iterator().next());
-				} catch (OpenSearchException e) {
-					// A missing alias is reported as a 404; treat it as "no live index yet" (first build).
-					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
-						return Optional.<String>empty();
-					}
-					if (isRetryableItemStatus(e.status())) {
-						LOG.warn("getAliasTarget attempt failed for {} ({}), retrying", aliasName, describeError(e.error()));
-						throw new RetryException(e);
-					}
-					throw new RuntimeException("Failed to resolve alias: " + aliasName
-							+ " (" + describeError(e.error()) + ")", e);
-				} catch (IOException e) {
-					LOG.warn("getAliasTarget attempt failed for {} ({}), retrying", aliasName, e.getMessage());
-					throw new RetryException(e);
+		return callWithRetry("resolve alias", aliasName, GET_ALIAS_MAX_RETRIES,
+				GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+			try {
+				GetAliasResponse response = openSearchClient.indices().getAlias(req -> req.name(aliasName));
+				// The response maps each concrete index carrying the alias to its alias definitions;
+				// the key set is therefore the set of physical indices the alias resolves to.
+				Set<String> targets = response.result().keySet();
+				if (targets.isEmpty()) {
+					return Optional.<String>empty();
 				}
-			});
-		} catch (RetryException e) {
-			throw new RuntimeException("Failed to resolve alias: " + aliasName, e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to resolve alias: " + aliasName, e);
-		}
+				if (targets.size() > 1) {
+					throw new IllegalStateException("Alias " + aliasName
+							+ " resolves to multiple indices " + targets + "; expected exactly one.");
+				}
+				return Optional.of(targets.iterator().next());
+			} catch (OpenSearchException e) {
+				// A missing alias is reported as a 404; treat it as "no live index yet" (first build).
+				if (isNotFound(e)) {
+					return Optional.<String>empty();
+				}
+				throw e;
+			}
+		});
 	}
 
 	@Override
 	public Optional<LiveIndex> getLiveIndex(String alias) {
 		ValidateArgument.required(alias, "alias");
-		try {
-			return TimeUtils.waitForExponentialMaxRetry(GET_ALIAS_MAX_RETRIES,
-					GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
-				try {
-					// Keyed by the physical index(es) the alias resolves to.
-					GetMappingResponse response = openSearchClient.indices().getMapping(req -> req.index(alias));
-					Map<String, IndexMappingRecord> targets = response.result();
-					if (targets.isEmpty()) {
-						return Optional.<LiveIndex>empty();
-					}
-					if (targets.size() > 1) {
-						throw new IllegalStateException("Alias " + alias
-								+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
-					}
-					Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
-					return readLiveIndex(target.getKey(), target.getValue());
-				} catch (OpenSearchException e) {
-					if (INDEX_NOT_FOUND_EXCEPTION.equals(e.error().type()) || Integer.valueOf(404).equals(e.status())) {
-						return Optional.<LiveIndex>empty();
-					}
-					if (isRetryableItemStatus(e.status())) {
-						LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, describeError(e.error()));
-						throw new RetryException(e);
-					}
-					throw new RuntimeException("Failed to resolve alias: " + alias
-							+ " (" + describeError(e.error()) + ")", e);
-				} catch (IOException e) {
-					LOG.warn("getLiveIndex attempt failed for {} ({}), retrying", alias, e.getMessage());
-					throw new RetryException(e);
+		return callWithRetry("resolve alias", alias, GET_ALIAS_MAX_RETRIES,
+				GET_ALIAS_INITIAL_BACKOFF_MS, () -> {
+			try {
+				// Keyed by the physical index(es) the alias resolves to.
+				GetMappingResponse response = openSearchClient.indices().getMapping(req -> req.index(alias));
+				Map<String, IndexMappingRecord> targets = response.result();
+				if (targets.isEmpty()) {
+					return Optional.<LiveIndex>empty();
 				}
-			});
-		} catch (RetryException e) {
-			throw new RuntimeException("Failed to resolve alias: " + alias, e.getCause());
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to resolve alias: " + alias, e);
-		}
+				if (targets.size() > 1) {
+					throw new IllegalStateException("Alias " + alias
+							+ " resolves to multiple indices " + targets.keySet() + "; expected exactly one.");
+				}
+				Map.Entry<String, IndexMappingRecord> target = targets.entrySet().iterator().next();
+				return readLiveIndex(target.getKey(), target.getValue());
+			} catch (OpenSearchException e) {
+				if (isNotFound(e)) {
+					return Optional.<LiveIndex>empty();
+				}
+				throw e;
+			}
+		});
 	}
 
 	private static Optional<LiveIndex> readLiveIndex(String physicalIndex, IndexMappingRecord mapping) {

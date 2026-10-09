@@ -27,6 +27,8 @@ import java.util.Optional;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -43,7 +45,6 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 
 	private static final String DEFAULT_ANALYZER_FIELD = "SearchConfiguration.defaultAnalyzer";
 	private static final String OVERRIDES_FIELD = "SearchConfiguration.columnAnalyzerOverrides";
-	private static final String DEFAULT_SEARCH_PIPELINE_FIELD = "SearchConfiguration.defaultSearchPipeline";
 
 	private static final RowMapper<SearchConfiguration> ROW_MAPPER = (ResultSet rs, int rowNum) -> {
 		SearchConfiguration config = new SearchConfiguration();
@@ -56,8 +57,8 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 				rs.getString(COL_SEARCH_CONFIG_DEFAULT_ANALYZER), DEFAULT_ANALYZER_FIELD));
 		config.setColumnAnalyzerOverrides(OpaqueJsonColumnCodecUtil.deserializeList(
 				rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES), OVERRIDES_FIELD));
-		config.setDefaultSearchPipeline(OpaqueJsonColumnCodecUtil.deserialize(
-				rs.getString(COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE), DEFAULT_SEARCH_PIPELINE_FIELD));
+		config.setDefaultSearchPipeline(JDOSecondaryPropertyUtils.createObjectFromJSON(
+				SearchPipelineBinding.class, rs.getString(COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE)));
 		config.setCreatedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY)));
 		config.setCreatedOn(new Date(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON).getTime()));
 		config.setModifiedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY)));
@@ -106,7 +107,7 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
-					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultSearchPipeline(), DEFAULT_SEARCH_PIPELINE_FIELD),
+					JDOSecondaryPropertyUtils.createJSONFromObject(config.getDefaultSearchPipeline()),
 					createdBy,
 					createdBy
 			);
@@ -156,7 +157,7 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
-					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultSearchPipeline(), DEFAULT_SEARCH_PIPELINE_FIELD),
+					JDOSecondaryPropertyUtils.createJSONFromObject(config.getDefaultSearchPipeline()),
 					modifiedBy,
 					id
 			);

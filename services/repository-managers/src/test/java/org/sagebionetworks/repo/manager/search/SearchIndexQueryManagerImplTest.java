@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -69,6 +70,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.dsl.NeuralFieldOptions;
 import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
 import org.sagebionetworks.repo.model.search.dsl.HybridClause;
@@ -1466,7 +1468,11 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	private static SearchPipeline savedPipeline() {
-		return SearchOpaqueJsonUtil.toInlineSearchPipeline(SAVED_PIPELINE_JSON, "settings");
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON);
+	}
+
+	private static SearchPipelineBinding inlineBinding() {
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipelineBinding.class, SAVED_PIPELINE_JSON);
 	}
 
 	private static SearchIndex searchIndexInConfig() {
@@ -1528,7 +1534,7 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testResolveSavedPipelineWithInlineRequestPipeline() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
-				.setSearch_pipeline(Map.of("phase_results_processors", List.of()));
+				.setSearch_pipeline(inlineBinding());
 
 		// call under test
 		assertNull(manager.resolveSavedPipeline(body, searchIndexInConfig()));
@@ -1537,9 +1543,37 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
+	public void testResolveSavedPipelineWithRequestRefAndInline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(inlineBinding().set$ref("org-pipeline"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("body.search_pipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoInteractions(searchConfigurationResolver, searchPipelineDao);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithRequestNeitherRefNorInline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(new SearchPipelineBinding());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("body.search_pipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoInteractions(searchConfigurationResolver, searchPipelineDao);
+	}
+
+	@Test
 	public void testResolveSavedPipelineWithRequestRef() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
-				.setSearch_pipeline(Map.of("$ref", "org-pipeline"));
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("org-pipeline"));
 		when(searchPipelineDao.getByQualifiedName("org-pipeline"))
 				.thenReturn(Optional.of(new NamedSearchPipeline().setSettings(savedPipeline())));
 
@@ -1552,7 +1586,7 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testResolveSavedPipelineWithMissingRequestRef() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
-				.setSearch_pipeline(Map.of("$ref", "org-missing"));
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("org-missing"));
 		when(searchPipelineDao.getByQualifiedName("org-missing")).thenReturn(Optional.empty());
 
 		// call under test
@@ -1566,7 +1600,7 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testResolveSavedPipelineWithMalformedRequestRef() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
-				.setSearch_pipeline(Map.of("$ref", "no_separator"));
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("no_separator"));
 
 		// call under test
 		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
@@ -1582,7 +1616,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testResolveSavedPipelineWithConfigDefaultRef() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
 		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.of(
-				new SearchConfiguration().setDefaultSearchPipeline(Map.of("$ref", "org-pipeline"))));
+				new SearchConfiguration().setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("org-pipeline"))));
 		when(searchPipelineDao.getByQualifiedName("org-pipeline"))
 				.thenReturn(Optional.of(new NamedSearchPipeline().setSettings(savedPipeline())));
 
@@ -1593,11 +1627,12 @@ public class SearchIndexQueryManagerImplTest {
 	@Test
 	public void testResolveSavedPipelineWithConfigDefaultInline() {
 		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
+		SearchPipelineBinding binding = inlineBinding();
 		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.of(
-				new SearchConfiguration().setDefaultSearchPipeline(SAVED_PIPELINE_JSON)));
+				new SearchConfiguration().setDefaultSearchPipeline(binding)));
 
 		// call under test
-		assertEquals(savedPipeline(), manager.resolveSavedPipeline(body, searchIndexInConfig()));
+		assertEquals(binding, manager.resolveSavedPipeline(body, searchIndexInConfig()));
 
 		verifyNoInteractions(searchPipelineDao);
 	}
