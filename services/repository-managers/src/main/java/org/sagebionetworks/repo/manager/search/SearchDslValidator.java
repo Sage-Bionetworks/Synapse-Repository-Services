@@ -1117,6 +1117,10 @@ final class SearchDslValidator {
 	static void validateTermsAgg(TermsAggregation terms) {
 		checkAggSize(terms.size(), "terms", "size");
 		checkAggSize(terms.shardSize(), "terms", "shard_size");
+		// A zero-count bucket is filled from every document in the shard rather than from the query's
+		// matches, so it would list the values of rows the benefactor access filter excludes.
+		checkMinDocCount(terms.minDocCount(), "min_doc_count");
+		checkMinDocCount(terms.shardMinDocCount(), "shard_min_doc_count");
 		TermsInclude include = terms.include();
 		if (include != null && include.isTerms()) {
 			List<String> list = include.terms();
@@ -1132,6 +1136,13 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("'terms' aggregation 'exclude' has "
 						+ list.size() + " entries; max is " + MAX_VALUES_PER_CLAUSE);
 			}
+		}
+	}
+
+	private static void checkMinDocCount(Integer minDocCount, String fieldName) {
+		if (minDocCount != null && minDocCount < 1) {
+			throw new IllegalArgumentException("'terms' aggregation '" + fieldName + "' must be at least 1; found "
+					+ minDocCount);
 		}
 	}
 

@@ -203,7 +203,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 	}
 
 	@Test
-	public void testBulkIndexWithUnparseableFieldValuesRedactsValues() {
+	public void testBulkIndexWithUnparseableFieldValuesOmitsValues() {
 		List<ColumnModel> columns = List.of(
 				new ColumnModel().setId("1").setName("count").setColumnType(ColumnType.INTEGER),
 				new ColumnModel().setId("2").setName("score").setColumnType(ColumnType.DOUBLE),
@@ -222,7 +222,7 @@ public class OpenSearchManagerImplAutoWiredTest {
 
 		assertTrue(ex.getMessage().contains("3 permanent"), ex.getMessage());
 		assertFalse(ex.getMessage().contains("secret"), ex.getMessage());
-		assertTrue(ex.getMessage().contains(OpenSearchManagerImpl.REDACTED_VALUE), ex.getMessage());
+		assertTrue(ex.getMessage().contains("mapper_parsing_exception"), ex.getMessage());
 	}
 
 	@Test
