@@ -159,52 +159,67 @@ public class SynapseSchemaBootstrapImpl implements SynapseSchemaBootstrap {
 	}
 
 	private Organization createOrganizationIfDoesNotExist(UserInfo adminUser, String name, Long id) {
+		Organization organization;
 		try {
 			// attempt to get the organization to determine if it exists
-			return jsonSchemaManager.getOrganizationByName(adminUser, name);
+			organization = jsonSchemaManager.getOrganizationByName(adminUser, name);
 		} catch (NotFoundException e) {
 			// Need to create the organization
 			try {
 				CreateOrganizationRequest request = new CreateOrganizationRequest();
 				request.setOrganizationName(name);
+				// Creating an organization also creates its ACL, granting the admin everything.
 				return jsonSchemaManager.createOrganziation(adminUser, request, id);
 			} catch (IllegalArgumentException ex) {
 				// The organization was created between our check and insert attempt
-				return jsonSchemaManager.getOrganizationByName(adminUser, name);
+				organization = jsonSchemaManager.getOrganizationByName(adminUser, name);
 			}
 		}
+		// An organization and its ACL are separate rows, so the organization can outlive its ACL.
+		// Registering a schema requires CREATE on the organization and nothing else restores a
+		// missing entry, so it is repaired here rather than aborting the start of the stack.
+		grantAdminPermissions(adminUser, organization, adminUser.getId());
+		return organization;
 	}
 
 	/**
-	 * Replace the ACT team's entry on the given organization's ACL with the full set of
+	 * Grant the ACT team every permission on the given organization, so that it can author access
+	 * requirement schemas under it.
+	 */
+	void grantActTeamAccess(UserInfo adminUser, Organization organization) {
+		grantAdminPermissions(adminUser, organization, TeamConstants.ACT_TEAM_ID);
+	}
+
+	/**
+	 * Replace the given principal's entry on the organization's ACL with the full set of
 	 * permissions, leaving every other entry alone. Creates the ACL if the organization does not
 	 * have one. Does nothing if the entry is already in place.
 	 */
-	void grantActTeamAccess(UserInfo adminUser, Organization organization) {
+	void grantAdminPermissions(UserInfo adminUser, Organization organization, Long principalId) {
 		// The ACL is reached directly rather than through the permission checked JsonSchemaManager
 		// methods, because this runs as the stack starts and must not be able to fail: the ACT team
 		// holds CHANGE_PERMISSIONS here and so can revoke the admin's own entry, and the ACL may be
 		// missing entirely. Either case would otherwise abort the bootstrap.
 		Long createdBy = Long.parseLong(organization.getCreatedBy());
-		ResourceAccess actEntry = AccessControlListUtil.createResourceAccess(TeamConstants.ACT_TEAM_ID,
+		ResourceAccess entryToGrant = AccessControlListUtil.createResourceAccess(principalId,
 				JsonSchemaManagerImpl.ADMIN_PERMISSIONS.toArray(new ACCESS_TYPE[0]));
 
 		Optional<AccessControlList> existingAcl = aclManager.getAcl(organization.getId(), ObjectType.ORGANIZATION);
 		if (existingAcl.isEmpty()) {
 			AccessControlList acl = AccessControlListUtil.createACL(organization.getId(), adminUser,
 					JsonSchemaManagerImpl.ADMIN_PERMISSIONS, new Date());
-			acl.getResourceAccess().add(actEntry);
+			acl.getResourceAccess().add(entryToGrant);
 			aclManager.create(adminUser, acl, ObjectType.ORGANIZATION, createdBy);
 			return;
 		}
 
 		AccessControlList acl = existingAcl.get();
-		if (acl.getResourceAccess().contains(actEntry)) {
+		if (acl.getResourceAccess().contains(entryToGrant)) {
 			return;
 		}
 		Set<ResourceAccess> resourceAccess = new HashSet<>(acl.getResourceAccess());
-		resourceAccess.removeIf(entry -> TeamConstants.ACT_TEAM_ID.equals(entry.getPrincipalId()));
-		resourceAccess.add(actEntry);
+		resourceAccess.removeIf(entry -> principalId.equals(entry.getPrincipalId()));
+		resourceAccess.add(entryToGrant);
 		aclManager.update(adminUser, acl.setResourceAccess(resourceAccess), ObjectType.ORGANIZATION, createdBy);
 	}
 
