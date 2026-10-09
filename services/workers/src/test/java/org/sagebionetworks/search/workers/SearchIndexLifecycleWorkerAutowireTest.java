@@ -137,6 +137,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private SynapseSchemaBootstrap synapseSchemaBootstrap;
     @Autowired
     private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+    @Autowired
     private SearchIndexQueryManager searchIndexQueryManager;
 
     private SearchIndexStatusDao searchIndexStatusDao;
