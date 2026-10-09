@@ -1,12 +1,15 @@
 package org.sagebionetworks.search.workers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.sagebionetworks.repo.model.util.AccessControlListUtil.createResourceAccess;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
 import org.junit.jupiter.api.AfterEach;
@@ -35,6 +39,8 @@ import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.manager.search.OpenSearchManager;
 import org.sagebionetworks.repo.manager.search.SearchConfigurationManager;
 import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
+import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
+import org.sagebionetworks.repo.manager.search.SearchOpaqueJsonUtil;
 import org.sagebionetworks.repo.manager.search.TextAnalyzerBootstrap;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -52,12 +58,14 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchFieldValue;
 import org.sagebionetworks.repo.model.search.SearchHit;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
+import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
@@ -105,6 +113,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     // Number of times the query wait re-fires the index build (via an entity update) before failing.
     private static final int BUILD_RETRY_ATTEMPTS = 3;
     private static final String SEARCH_INDEX_ALIAS_PREFIX = "search-index-";
+    private static final String VIEW_BENEFACTOR_FIELD = "_benefactor_ROW_BENEFACTOR";
 
     @Autowired
     private EntityService entityService;
@@ -128,6 +137,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private SynapseSchemaBootstrap synapseSchemaBootstrap;
     @Autowired
     private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+    private SearchIndexQueryManager searchIndexQueryManager;
 
     private SearchIndexStatusDao searchIndexStatusDao;
     private UserInfo adminUser;
@@ -763,6 +773,300 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
+     * A {@code terms} aggregation with {@code min_doc_count: 0} fills its zero-count buckets from every
+     * document in the shard, not just the query's matches, so it would list values that exist only in
+     * rows the caller cannot read. It is rejected, while the same aggregation at the default
+     * {@code min_doc_count} returns only the readable values, including over the benefactor field itself.
+     */
+    @Test
+    public void testSearchIndexWithTermsAggregationMinDocCountZeroWithUnreadableBenefactor() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userA, userB);
+        for (String id : hierarchy.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        SearchIndex searchIndex = createSearchIndexOverView(hierarchy, createFolderView(hierarchy));
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
+                (SearchQueryResults results) -> assertEquals(hierarchy.projectBenefactorFolderIds(), hitIds(results)));
+
+        SearchQueryResults control = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                "{\"query\":{\"match_all\":{}},\"size\":100,"
+                + "\"aggregations\":{\"groupKeys\":{\"terms\":{\"field\":\"groupKey\",\"size\":100}}}}"));
+        assertEquals(Set.of("0", "2"), aggregationBucketKeys(control, "groupKeys"));
+
+        // call under test
+        IllegalArgumentException minDocCount = assertThrows(IllegalArgumentException.class,
+                () -> runQueryOnce(userB, queryOf(searchIndex.getId(),
+                        "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"groupKeys\":"
+                        + "{\"terms\":{\"field\":\"groupKey\",\"size\":100,\"min_doc_count\":0}}}}")));
+        SearchQueryResults benefactors = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"benefactors\":"
+                + "{\"terms\":{\"field\":\"" + VIEW_BENEFACTOR_FIELD + "\",\"size\":100}}}}"));
+
+        assertTrue(minDocCount.getMessage().contains("'min_doc_count' must be at least 1"), minDocCount.getMessage());
+        assertEquals(Set.of(KeyFactory.stringToKey(hierarchy.project.getId()).toString()),
+                aggregationBucketKeys(benefactors, "benefactors"));
+    }
+
+    /**
+     * A {@code histogram} with {@code min_doc_count: 0} emits every bucket of the caller-chosen
+     * {@code extended_bounds} grid, whatever the data, so a bucket's presence reveals nothing; its
+     * count must still come only from readable rows. userB reads groupKeys 0 and 2, not 1 and 3.
+     */
+    @Test
+    public void testSearchIndexWithHistogramMinDocCountZeroWithUnreadableBenefactor() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userB);
+        SearchIndex searchIndex = createSearchIndexOverView(hierarchy, createFolderView(hierarchy));
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
+                (SearchQueryResults results) -> assertEquals(hierarchy.projectBenefactorFolderIds(), hitIds(results)));
+
+        Map<String, Long> expected = Map.of("0", 1L, "1", 0L, "2", 1L, "3", 0L, "4", 0L, "5", 0L);
+
+        // call under test — retry the same query (no rebuild) since a fresh aggregation can
+        // transiently lag the hits view on an AOSS replica that has not yet caught up.
+        Map<String, Long> counts = TimeUtils.waitFor(MAX_WAIT_MS, 1000L, () -> {
+            SearchQueryResults results = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                    "{\"query\":{\"match_all\":{}},\"size\":100,\"aggregations\":{\"groupKeys\":"
+                    + "{\"histogram\":{\"field\":\"groupKey\",\"interval\":1,\"min_doc_count\":0,"
+                    + "\"extended_bounds\":{\"min\":0,\"max\":5}}}}}"));
+            Map<String, Long> current = aggregationBucketCounts(results, "groupKeys");
+            return new Pair<Boolean, Map<String, Long>>(expected.equals(current), current);
+        });
+
+        assertEquals(expected, counts);
+    }
+
+    /**
+     * A wildcard field pattern can reach the internal benefactor field without naming it, but it is
+     * evaluated inside the benefactor access filter, so it can only match rows the caller can read,
+     * and the benefactor values are never returned in a hit. The project-benefactor query is the
+     * control showing the pattern does reach the benefactor field.
+     */
+    @Test
+    public void testSearchIndexWithWildcardFieldPatternsWithUnreadableBenefactor() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userB);
+        SearchIndex searchIndex = createSearchIndexOverView(hierarchy, createFolderView(hierarchy));
+        Set<String> readable = hierarchy.projectBenefactorFolderIds();
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
+                (SearchQueryResults results) -> assertEquals(readable, hitIds(results)));
+        String projectBenefactor = KeyFactory.stringToKey(hierarchy.project.getId()).toString();
+        String privateBenefactor = KeyFactory.stringToKey(hierarchy.folders.get(1).getId()).toString();
+        String template = "{\"query\":{\"simple_query_string\":{\"query\":\"%s\",\"fields\":[\"%s\"],"
+                + "\"lenient\":true}},\"size\":100}";
+
+        SearchQueryResults control = runQueryOnce(userB,
+                queryOf(searchIndex.getId(), String.format(template, projectBenefactor, "_bene*")));
+        assertEquals(readable, hitIds(control));
+
+        // call under test
+        SearchQueryResults privateByPrefix = runQueryOnce(userB,
+                queryOf(searchIndex.getId(), String.format(template, privateBenefactor, "_bene*")));
+        SearchQueryResults privateByStar = runQueryOnce(userB,
+                queryOf(searchIndex.getId(), String.format(template, privateBenefactor, "*")));
+        SearchQueryResults sourceByStar = runQueryOnce(userB, queryOf(searchIndex.getId(),
+                "{\"query\":{\"match_all\":{}},\"size\":100,\"_source\":{\"includes\":[\"*\",\"_bene*\"]}}"));
+
+        assertEquals(Collections.emptySet(), hitIds(privateByPrefix));
+        assertEquals(Collections.emptySet(), hitIds(privateByStar));
+        assertEquals(readable, hitIds(sourceByStar));
+        for (SearchHit hit : sourceByStar.getHits()) {
+            for (SearchFieldValue field : hit.getFields()) {
+                assertFalse(field.getName().startsWith("_benefactor_"), field.getName());
+            }
+        }
+    }
+
+    /**
+     * A row of a source with several benefactor columns is visible only when the caller can read the
+     * benefactor in every one of them. Each own-ACL MV row pairs a readable benefactor on one side with
+     * an unreadable one on the other, so OR-ed filters would return those rows to userB.
+     */
+    @Test
+    public void testSearchIndexBenefactorFilteringWithMultipleBenefactorColumnsWithOneUnreadable() throws Exception {
+        Hierarchy left = createProjectHierachy(4);
+        Hierarchy right = createProjectHierachy(4);
+        grantRead(left.project.getId(), userA, userB);
+        grantRead(right.project.getId(), userA, userB);
+        for (String id : left.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        for (String id : right.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        // MV row 1 = (left folder 1 readable, right folder 1 unreadable);
+        // MV row 3 = (left folder 3 unreadable, right folder 3 readable).
+        grantRead(left.folders.get(1).getId(), userB);
+        grantRead(right.folders.get(3).getId(), userB);
+
+        IdAndVersion leftViewId = createFolderView(left);
+        IdAndVersion rightViewId = createFolderView(right);
+        MaterializedView mv = asyncHelper.createMaterializedView(adminUser, left.project.getId(), String.format(
+                "select l.id as id, l.groupKey as groupKey from %s l join %s r on (l.groupKey = r.groupKey)",
+                leftViewId, rightViewId), false);
+        IdAndVersion mvId = KeyFactory.idAndVersion(mv.getId(), null);
+        asyncHelper.assertQueryResult(adminUser, "select count(*) from " + mvId, (results) -> {
+            assertNotNull(results.getQueryResult().getQueryResults().getRows());
+        }, MAX_WAIT_MS);
+
+        SearchIndex searchIndex = entityService.createEntity(adminUser.getId(), new SearchIndex()
+                .setName("MultiBenefactorSearchIndex_" + UUID.randomUUID())
+                .setParentId(left.project.getId())
+                .setDefiningSQL("select id, groupKey from " + mvId), null);
+        SearchIndexQuery query = matchAllQuery(searchIndex.getId());
+        assertQueryWithBuildRetry(userA, searchIndex.getId(), query,
+                (SearchQueryResults results) -> assertEquals(new HashSet<>(left.folderIds()), hitIds(results)));
+
+        // call under test
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), query,
+                (SearchQueryResults results) -> assertEquals(left.projectBenefactorFolderIds(), hitIds(results)));
+    }
+
+    /**
+     * Revoking a caller's READ on a benefactor hides its rows from the next query, served by the same
+     * physical index, without waiting for a rebuild.
+     */
+    @Test
+    public void testSearchIndexWithAclRevokedAfterBuild() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userB);
+        for (String id : hierarchy.ownAclFolderIds()) {
+            grantRead(id, userB);
+        }
+        SearchIndex searchIndex = createSearchIndexOverView(hierarchy, createFolderView(hierarchy));
+        SearchIndexQuery query = matchAllQuery(searchIndex.getId());
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), query,
+                (SearchQueryResults results) -> assertEquals(new HashSet<>(hierarchy.folderIds()), hitIds(results)));
+        String physicalIndexBeforeRevoke = livePhysicalIndex(searchIndex.getId());
+
+        String revokedFolderId = hierarchy.folders.get(1).getId();
+        revokeRead(revokedFolderId, userB);
+        Set<String> expected = new HashSet<>(hierarchy.folderIds());
+        expected.remove(revokedFolderId);
+
+        // call under test
+        SearchQueryResults results = runQueryOnce(userB, query);
+
+        assertEquals(expected, hitIds(results));
+        assertEquals(physicalIndexBeforeRevoke, livePhysicalIndex(searchIndex.getId()),
+                "the query must have been served by the index built before the revoke");
+    }
+
+    /**
+     * A row whose benefactor changes to one the caller cannot read stops being returned once the
+     * change propagates, without anyone touching the SearchIndex.
+     */
+    @Test
+    public void testSearchIndexWithRowMovedToUnreadableBenefactor() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userB);
+        SearchIndex searchIndex = createSearchIndexOverView(hierarchy, createFolderView(hierarchy));
+        SearchIndexQuery query = matchAllQuery(searchIndex.getId());
+        assertQueryWithBuildRetry(userB, searchIndex.getId(), query,
+                (SearchQueryResults results) -> assertEquals(hierarchy.projectBenefactorFolderIds(), hitIds(results)));
+
+        // Folder 0 inherits the project benefactor; an admin-only ACL makes it its own, unreadable benefactor.
+        String movedFolderId = hierarchy.folders.get(0).getId();
+        entityAclManager.overrideInheritance(AccessControlListUtil.createACL(movedFolderId, adminUser,
+                new HashSet<>(Arrays.asList(ACCESS_TYPE.READ, ACCESS_TYPE.CHANGE_PERMISSIONS)), new Date()), adminUser);
+        Set<String> expected = hierarchy.projectBenefactorFolderIds();
+        expected.remove(movedFolderId);
+
+        // call under test
+        asyncHelper.assertJobResponse(userB, query,
+                (SearchQueryResults results) -> assertEquals(expected, hitIds(results)),
+                MAX_WAIT_MS, AsynchronousJobWorkerHelper.INFINITE_RETRIES);
+    }
+
+    /**
+     * Autocomplete applies the same benefactor filter as search: a prefix that matches only rows the
+     * caller cannot read returns nothing, while a caller who can read them gets them back.
+     */
+    @Test
+    public void testSearchIndexAutocompleteWithUnreadableBenefactor() throws Exception {
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userA, userB);
+        for (String id : hierarchy.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        SearchIndex searchIndex = entityService.createEntity(adminUser.getId(), new SearchIndex()
+                .setName("AutocompleteBenefactorSearchIndex_" + UUID.randomUUID())
+                .setParentId(hierarchy.project.getId())
+                .setDefiningSQL("select id, name from " + createFolderView(hierarchy)), null);
+        assertQueryWithBuildRetry(userA, searchIndex.getId(), matchAllQuery(searchIndex.getId()),
+                (SearchQueryResults results) -> assertEquals(new HashSet<>(hierarchy.folderIds()), hitIds(results)));
+        SearchAutocompleteRequest request = new SearchAutocompleteRequest()
+                .setSearchIndexId(searchIndex.getId())
+                .setSearchQuery(EntityFactory.createEntityFromJSONString(
+                        "{\"query\":{\"match_phrase_prefix\":{\"name\":{\"query\":\"" + Hierarchy.OWN_ACL_NAME_PREFIX + "\"}}}}",
+                        SearchAutocompleteBody.class));
+
+        assertEquals(new HashSet<>(hierarchy.ownAclFolderIds()), hitIds(searchIndexQueryManager.autocomplete(userA, request)));
+        // call under test
+        assertEquals(Collections.emptySet(), hitIds(searchIndexQueryManager.autocomplete(userB, request)));
+    }
+
+    private SearchIndex createSearchIndexOverView(Hierarchy hierarchy, IdAndVersion viewId) {
+        return entityService.createEntity(adminUser.getId(), new SearchIndex()
+                .setName("BenefactorSearchIndex_" + UUID.randomUUID())
+                .setParentId(hierarchy.project.getId())
+                .setDefiningSQL("select id, groupKey from " + viewId), null);
+    }
+
+    private static SearchIndexQuery matchAllQuery(String searchIndexId) {
+        return new SearchIndexQuery()
+                .setSearchIndexId(searchIndexId)
+                .setSearchQuery(new SearchQuery().setQuery(new Query().setMatch_all(new MatchAllQuery())).setSize(100L))
+                .setResponseParts(EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS));
+    }
+
+    private static SearchIndexQuery queryOf(String searchIndexId, String searchQueryJson) throws Exception {
+        return new SearchIndexQuery()
+                .setSearchIndexId(searchIndexId)
+                .setSearchQuery(EntityFactory.createEntityFromJSONString(searchQueryJson, SearchQuery.class))
+                .setResponseParts(EnumSet.of(SearchQueryPart.HITS, SearchQueryPart.TOTAL_HITS));
+    }
+
+    /** Run a query exactly once through the async worker, after its index is known to be built. */
+    private SearchQueryResults runQueryOnce(UserInfo user, SearchIndexQuery query) throws Exception {
+        return asyncHelper.<SearchIndexQuery, SearchQueryResults>assertJobResponse(user, query,
+                (SearchQueryResults results) -> {}, MAX_WAIT_MS, 1).getResponse();
+    }
+
+    private static Set<String> aggregationBucketKeys(SearchQueryResults results, String aggregationName) {
+        return aggregationBucketCounts(results, aggregationName).keySet();
+    }
+
+    /** The bucket key to doc count of a top-level aggregation, located by name with or without its typed-key prefix. */
+    private static Map<String, Long> aggregationBucketCounts(SearchQueryResults results, String aggregationName) {
+        assertNotNull(results.getAggregationResults(), "aggregations were requested");
+        JsonNode root = SearchOpaqueJsonUtil.parse(results.getAggregationResults());
+        Iterator<Map.Entry<String, JsonNode>> fields = root.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            if (field.getKey().equals(aggregationName) || field.getKey().endsWith("#" + aggregationName)) {
+                Map<String, Long> counts = new HashMap<>();
+                field.getValue().path("buckets").forEach(
+                        bucket -> counts.put(bucket.path("key").asText(), bucket.path("doc_count").asLong()));
+                return counts;
+            }
+        }
+        throw new AssertionError("no aggregation named " + aggregationName + " in " + results.getAggregationResults());
+    }
+
+    private String livePhysicalIndex(String searchIndexId) {
+        return openSearchManager.getLiveIndex(SEARCH_INDEX_ALIAS_PREFIX + searchIndexId)
+                .map(OpenSearchManager.LiveIndex::physicalIndex).orElse(null);
+    }
+
+    private void revokeRead(String entityId, UserInfo user) throws Exception {
+        AccessControlList acl = entityAclManager.getACL(entityId, adminUser);
+        acl.getResourceAccess().removeIf(ra -> user.getId().equals(ra.getPrincipalId()));
+        entityAclManager.updateACL(acl, adminUser);
+    }
+
+    /**
      * The MV joins left and right on {@code groupKey}. Both hierarchies use the same groupKey layout
      * (folder i has groupKey i), so the join is row-aligned: MV row i carries left folder i's
      * benefactor as {@code __A0} and right folder i's as {@code __A1}. A user sees MV row i only if
@@ -838,7 +1142,8 @@ public class SearchIndexLifecycleWorkerAutowireTest {
         List<Folder> folders = new ArrayList<>(numberOfFolders);
         for (int i = 0; i < numberOfFolders; i++) {
             Folder folder = entityService.createEntity(adminUser.getId(),
-                    new Folder().setName("folder_" + i).setParentId(project.getId()), null);
+                    new Folder().setName((i % 2 == 0 ? "shared_" : Hierarchy.OWN_ACL_NAME_PREFIX) + i)
+                            .setParentId(project.getId()), null);
             if (i % 2 != 0) {
                 // An own ACL (admin only for now) makes the folder its own benefactor rather than
                 // inheriting the project. Per-user READ is granted by the test as needed.
@@ -852,6 +1157,8 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     private static class Hierarchy {
+        /** Name prefix of the own-ACL folders, which no project-benefactor folder name shares. */
+        static final String OWN_ACL_NAME_PREFIX = "restricted_";
         final Project project;
         final List<Folder> folders;
 
@@ -871,6 +1178,12 @@ public class SearchIndexLifecycleWorkerAutowireTest {
                     ids.add(folders.get(i).getId());
                 }
             }
+            return ids;
+        }
+
+        Set<String> projectBenefactorFolderIds() {
+            Set<String> ids = new HashSet<>(folderIds());
+            ids.removeAll(ownAclFolderIds());
             return ids;
         }
 

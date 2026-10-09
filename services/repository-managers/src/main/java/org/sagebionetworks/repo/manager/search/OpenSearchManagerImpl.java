@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -101,24 +99,13 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 	private static final int HTTP_MAX_SERVER_ERROR = 599;
 
-	// Per-item bulk-failure descriptors are logged in full, but the first N are also
-	// embedded in the thrown RuntimeException message so the reason reaches the user
-	// via SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS.
+	// Per-item bulk-failure descriptors are logged in full, but the first N are also embedded in
+	// the thrown RuntimeException message so the failure reaches the user via
+	// SEARCH_INDEX_STATUS.ERROR_MESSAGE (VARCHAR(3000)) and ASYNCH_JOB_STATUS. That message is shown
+	// to any caller who can read the source, while a build reads rows across many benefactors, and
+	// OpenSearch error reasons quote document values in shapes no pattern list can enumerate. So
+	// the persisted form carries only the error types, never a reason.
 	static final int MAX_FAILURE_SAMPLES = 5;
-
-	static final String REDACTED_VALUE = "[value redacted]";
-
-	/**
-	 * Document-parsing errors quote the offending field value, and permanent bulk failures are
-	 * persisted to SEARCH_INDEX_STATUS.ERROR_MESSAGE, which is shown to any caller who can read the
-	 * SearchIndex. A build reads rows across many benefactors, so that value can belong to a row the
-	 * caller is not authorized to see. Each pattern captures the text before (group 1) and after
-	 * (group 2) the quoted value.
-	 */
-	private static final List<Pattern> VALUE_BEARING_PATTERNS = List.of(
-			Pattern.compile("(Preview of field's value: ').*?('(?=$|]|,| caused by | \\[))"),
-			Pattern.compile("(For input string: \").*?(\"(?=$|]|,| caused by | \\[))"),
-			Pattern.compile("(Failed to parse value \\[).*?(] as only \\[true] or \\[false] are allowed)"));
 
 	static final int MAX_BULK_ERROR_MESSAGE_CHARS = 2500;
 	static final String TRUNCATION_MARKER = "...[truncated]";
@@ -229,7 +216,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	// Prefix of the per-dependency row-level access-control fields (one per source benefactor column,
 	// e.g. _benefactor_ROW_BENEFACTOR) written into each document's _source at build time. They drive the query-time benefactor
 	// terms filter but are not part of the entity schema, so they are stripped from returned hits.
-	private static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
+	static final String BENEFACTOR_FIELD_PREFIX = "_benefactor_";
 	private static final String SUB_FIELD_KEYWORD = "keyword";
 	private static final String INDEX_NOT_FOUND_EXCEPTION = "index_not_found_exception";
 	// Reason-text fragment AOSS includes when a concurrent index-delete is in flight;
@@ -1030,7 +1017,7 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 				String descriptor = describeBulkItemFailure(item);
 				LOG.error("Bulk index item failed in {}: {}", indexName, descriptor);
 				if (c.permanentSamples.size() < MAX_FAILURE_SAMPLES) {
-					c.permanentSamples.add(redactFieldValues(descriptor));
+					c.permanentSamples.add(describeBulkItemFailureTypes(item));
 				}
 			}
 		}
@@ -1066,7 +1053,9 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 					|| INDEX_NOT_FOUND_EXCEPTION.equals(type)) {
 				throw new RetryException(detail, e);
 			}
-			throw new RuntimeException(detail, e);
+			LOG.error(detail);
+			throw new RuntimeException("Failed to bulk index to search index: " + indexName
+					+ " (" + describeErrorTypes(e.error()) + ")", e);
 		} catch (IOException e) {
 			throw new RetryException("Failed to bulk index to search index: " + indexName, e);
 		}
@@ -1161,18 +1150,25 @@ public class OpenSearchManagerImpl implements OpenSearchManager {
 	}
 
 	/**
-	 * Replace every field value quoted by a known value-bearing OpenSearch document-parsing error
-	 * with {@link #REDACTED_VALUE}, leaving the field name, type, and document id intact.
-	 * <p>
-	 * Known limitation: a value that itself contains the closing delimiter of its pattern is only
-	 * partially redacted.
+	 * The error type of {@code error} and of each cause in its chain, without any reason text.
 	 */
-	static String redactFieldValues(String message) {
-		String result = message;
-		for (Pattern pattern : VALUE_BEARING_PATTERNS) {
-			result = pattern.matcher(result).replaceAll("$1" + Matcher.quoteReplacement(REDACTED_VALUE) + "$2");
+	static String describeErrorTypes(ErrorCause error) {
+		StringBuilder sb = new StringBuilder();
+		for (ErrorCause current = error; current != null; current = current.causedBy()) {
+			if (sb.length() > 0) {
+				sb.append(" caused by ");
+			}
+			sb.append(current.type() == null ? "?" : current.type());
 		}
-		return result;
+		return sb.length() == 0 ? "?" : sb.toString();
+	}
+
+	/**
+	 * A failed {@link BulkResponseItem} as its document id, status, and error types, without any
+	 * reason text.
+	 */
+	static String describeBulkItemFailureTypes(BulkResponseItem item) {
+		return "doc " + item.id() + " [status=" + item.status() + "]: " + describeErrorTypes(item.error());
 	}
 
 	/**

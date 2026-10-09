@@ -795,24 +795,27 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testRedactFieldValuesWithValueBearingMessages() {
-		String message = "doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
-				+ " in document with id '5'. Preview of field's value: 'it's secret'"
-				+ " caused by illegal_argument_exception: For input string: \"secret\""
-				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
-				+ " Preview of field's value: 'secret'"
-				+ " caused by illegal_argument_exception: Failed to parse value [secret] as only [true] or [false] are allowed.";
+	public void testDescribeBulkItemFailureTypesWithValueBearingReasons() {
+		BulkResponseItem item = BulkResponseItem.of(b -> b
+				.index("search-index-syn1")
+				.id("5")
+				.status(400)
+				.operationType(org.opensearch.client.opensearch.core.bulk.OperationType.Index)
+				.error(ErrorCause.of(e -> e
+						.type("mapper_parsing_exception")
+						.reason("failed to parse field [3] of type [long]. Preview of field's value: 'secret'")
+						.causedBy(c -> c.type("illegal_argument_exception").reason("For input string: \"secret\"")))));
 
 		// call under test
-		String redacted = OpenSearchManagerImpl.redactFieldValues(message);
+		String result = OpenSearchManagerImpl.describeBulkItemFailureTypes(item);
 
-		assertEquals("doc 5 [status=400]: mapper_parsing_exception: failed to parse field [3] of type [long]"
-				+ " in document with id '5'. Preview of field's value: '[value redacted]'"
-				+ " caused by illegal_argument_exception: For input string: \"[value redacted]\""
-				+ ", mapper_parsing_exception: failed to parse field [4] of type [boolean] in document with id '6'."
-				+ " Preview of field's value: '[value redacted]'"
-				+ " caused by illegal_argument_exception: Failed to parse value [[value redacted]] as only [true] or [false] are allowed.",
-				redacted);
+		assertEquals("doc 5 [status=400]: mapper_parsing_exception caused by illegal_argument_exception", result);
+	}
+
+	@Test
+	public void testDescribeErrorTypesWithNullError() {
+		// call under test
+		assertEquals("?", OpenSearchManagerImpl.describeErrorTypes(null));
 	}
 
 	@Test
@@ -2032,7 +2035,7 @@ public class OpenSearchManagerImplTest {
 	}
 
 	@Test
-	public void testBulkIndexPermanentMessageIncludesSampleFailures() throws Exception {
+	public void testBulkIndexPermanentMessageIncludesSampleFailureTypesWithoutReasons() throws Exception {
 		BulkResponse response = bulkResponseOf(
 				failedItem("1", 400, "mapper_parsing_exception", "failed to parse field [geneName]"),
 				failedItem("2", 400, "mapper_parsing_exception", "failed to parse field [geneLength]"),
@@ -2045,14 +2048,11 @@ public class OpenSearchManagerImplTest {
 				() -> manager.bulkIndex("search-index-syn1",
 						Arrays.asList(bulkOp("1"), bulkOp("2"), bulkOp("3"))));
 		assertFalse(ex instanceof RecoverableMessageException, ex.getClass().getName());
-		String msg = ex.getMessage();
-		assertTrue(msg.contains("Sample failures:"), msg);
-		assertTrue(msg.contains("doc 1 [status=400]"), msg);
-		assertTrue(msg.contains("doc 2 [status=400]"), msg);
-		assertTrue(msg.contains("doc 3 [status=400]"), msg);
-		assertTrue(msg.contains("failed to parse field [geneName]"), msg);
-		assertTrue(msg.contains("failed to parse field [geneLength]"), msg);
-		assertTrue(msg.contains("unexpected character"), msg);
+		assertEquals("Bulk index to search-index-syn1 failed: 3 document(s) rejected out of 3 (0 retryable, 3 permanent)."
+				+ " Sample failures:"
+				+ "\n - doc 1 [status=400]: mapper_parsing_exception"
+				+ "\n - doc 2 [status=400]: mapper_parsing_exception"
+				+ "\n - doc 3 [status=400]: document_parsing_exception", ex.getMessage());
 	}
 
 	@Test
@@ -2101,25 +2101,6 @@ public class OpenSearchManagerImplTest {
 		assertFalse(msg.contains("doc 1 [status=429]"), msg);
 		assertFalse(msg.contains("doc 2 [status=429]"), msg);
 		assertFalse(msg.contains("rate limited"), msg);
-	}
-
-	@Test
-	public void testBulkIndexPermanentMessageTruncatesWhenOverBudget() throws Exception {
-		char[] huge = new char[2000];
-		Arrays.fill(huge, 'x');
-		String bigReason = new String(huge);
-		BulkResponse response = bulkResponseOf(
-				failedItem("1", 400, "mapper_parsing_exception", bigReason),
-				failedItem("2", 400, "mapper_parsing_exception", bigReason));
-		when(openSearchClient.bulk(argThat((BulkRequest req) -> req != null)))
-				.thenReturn(response);
-
-		// call under test
-		RuntimeException ex = assertThrows(RuntimeException.class,
-				() -> manager.bulkIndex("search-index-syn1", Arrays.asList(bulkOp("1"), bulkOp("2"))));
-		String msg = ex.getMessage();
-		assertEquals(2500, msg.length(), "message length=" + msg.length());
-		assertTrue(msg.endsWith("...[truncated]"), msg.substring(msg.length() - 20));
 	}
 
 	@ParameterizedTest
@@ -2203,6 +2184,7 @@ public class OpenSearchManagerImplTest {
 		RuntimeException ex = assertThrows(RuntimeException.class,
 				() -> manager.bulkIndex("search-index-syn1", Arrays.asList(bulkOp("1"))));
 		assertFalse(ex instanceof RecoverableMessageException, ex.getClass().getName());
+		assertEquals("Failed to bulk index to search index: search-index-syn1 (illegal_argument_exception)", ex.getMessage());
 		verify(openSearchClient, times(1))
 				.bulk(argThat((BulkRequest req) -> req != null));
 	}

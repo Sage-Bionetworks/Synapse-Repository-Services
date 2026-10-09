@@ -370,6 +370,35 @@ public class SearchDslValidatorTest {
 	}
 
 	@Test
+	public void testValidateAggregationsWithTermsMinDocCountZeroRejected() {
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b.filter(f -> f.matchAll(m -> m))
+				.aggregations("nested", c -> c.terms(t -> t.field("f").minDocCount(0)))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertEquals("'terms' aggregation 'min_doc_count' must be at least 1; found 0", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateAggregationsWithTermsShardMinDocCountZeroRejected() {
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b.terms(t -> t.field("f").shardMinDocCount(0))));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateAggregations(aggs));
+		assertEquals("'terms' aggregation 'shard_min_doc_count' must be at least 1; found 0", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateAggregationsWithTermsMinDocCountOneAccepted() {
+		Map<String, Aggregation> aggs = new LinkedHashMap<>();
+		aggs.put("a", Aggregation.of(b -> b.terms(t -> t.field("f").minDocCount(1).shardMinDocCount(1))));
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateAggregations(aggs));
+	}
+
+	@Test
 	public void testValidateAggregationsWithRangeRangesAtCap() {
 		List<AggregationRange> ranges = new ArrayList<>();
 		for (int i = 0; i <= SearchDslValidator.MAX_VALUES_PER_CLAUSE; i++) {
