@@ -3,16 +3,22 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.knuddels.jtokkit.Encodings;
+import com.knuddels.jtokkit.api.Encoding;
+import com.knuddels.jtokkit.api.EncodingResult;
+import com.knuddels.jtokkit.api.EncodingType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.opensearch._types.OpenSearchException;
@@ -45,6 +51,7 @@ import org.sagebionetworks.repo.model.semaphore.LockContext;
 import org.sagebionetworks.repo.model.semaphore.LockContext.ContextType;
 import org.sagebionetworks.repo.model.table.BenefactorColumn;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
@@ -96,6 +103,18 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private static final int MAX_ERROR_MESSAGE_LENGTH = 3000;
 	private static final int BATCH_SIZE = 1000;
 	private static final long MAX_ROWS = 500_000L;
+	static final long SEMANTIC_MAX_ROWS = 50_000L;
+	static final Set<ColumnType> SEMANTIC_COLUMN_TYPES = EnumSet.of(ColumnType.STRING, ColumnType.STRING_LIST,
+			ColumnType.MEDIUMTEXT, ColumnType.LARGETEXT, ColumnType.LINK, ColumnType.JSON);
+	/**
+	 * Token budget for a row's semantic text. Titan Text Embeddings V2 rejects input over 8,192
+	 * tokens; the margin absorbs the drift between cl100k and Titan's own tokenizer.
+	 */
+	static final int MAX_SEMANTIC_TEXT_TOKENS = 8_000;
+	// Loading an encoding parses its full BPE table, so the one encoding is held for the life of the
+	// process.
+	private static final Encoding SEMANTIC_TEXT_ENCODING = Encodings.newLazyEncodingRegistry()
+			.getEncoding(EncodingType.CL100K_BASE);
 	private static final ObjectMapper SEARCH_DOC_MAPPER = new ObjectMapper();
 	private static final Set<String> NON_FINITE_DOUBLES = Set.of(Double.toString(Double.NaN),
 			Double.toString(Double.POSITIVE_INFINITY), Double.toString(Double.NEGATIVE_INFINITY));
@@ -120,6 +139,14 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		}
 		long shards = ((dataSizeBytes + TARGET_SHARD_BYTES) - 1) / TARGET_SHARD_BYTES;
 		return (int) Math.max(1, Math.min(shards, MAX_SHARDS));
+	}
+
+	/**
+	 * Trim {@code text} to {@link #MAX_SEMANTIC_TEXT_TOKENS}, keeping the leading tokens.
+	 */
+	static String truncateSemanticText(String text) {
+		EncodingResult encoded = SEMANTIC_TEXT_ENCODING.encodeOrdinary(text, MAX_SEMANTIC_TEXT_TOKENS);
+		return encoded.isTruncated() ? SEMANTIC_TEXT_ENCODING.decode(encoded.getTokens()) : text;
 	}
 
     /**
@@ -171,6 +198,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	private final StackConfiguration stackConfiguration;
 	private final DefiningSqlDependencyDao definingSqlDependencyDao;
 	private final IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager;
+	private final SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
 
 	public SearchIndexLifecycleManagerImpl(ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
@@ -183,7 +211,8 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			WriteReadSemaphore writeReadSemaphore,
 			StackConfiguration stackConfiguration,
 			DefiningSqlDependencyDao definingSqlDependencyDao,
-			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager) {
+			IndexAuthorizationSnapshotManager indexAuthorizationSnapshotManager,
+			SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper) {
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.searchConfigurationResolver = searchConfigurationResolver;
@@ -197,6 +226,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		this.stackConfiguration = stackConfiguration;
 		this.definingSqlDependencyDao = definingSqlDependencyDao;
 		this.indexAuthorizationSnapshotManager = indexAuthorizationSnapshotManager;
+		this.semanticEmbeddingBootstrapper = semanticEmbeddingBootstrapper;
 	}
 
 	@Override
@@ -333,7 +363,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			boolean built = tableManagerSupport.tryRunWithTableNonExclusiveLock(progressCallback,
 					new LockContext(ContextType.SearchIndexLifecycle, IdAndVersion.parse(entityId)),
 					(ProgressCallback callback) -> streamIntoIdleSlot(idleSlot, searchIndex, sourceId, indexDao,
-							config, overrides, inlineAnalyzers), sourceId);
+							config, overrides, inlineAnalyzers, rowCount), sourceId);
 			// A source without an as-built snapshot cannot be waited on by retrying the message, for the
 			// same reason as a PROCESSING source: the source's next build writes the snapshot and fires
 			// the TABLE_STATUS_EVENT(AVAILABLE) that rebuilds this index.
@@ -421,11 +451,17 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 	 *
 	 * @return {@code true} once the slot is built; {@code false}, leaving the idle slot untouched, when the
 	 *         source has no as-built snapshot yet.
-	 * @throws IllegalArgumentException when the source or any of its dependencies is AGGREGATE_DATA.
+	 * @throws IllegalArgumentException when the source or any of its dependencies is AGGREGATE_DATA, or a
+	 *         column whose type cannot be embedded is flagged semantic.
+	 * @throws IllegalStateException when a column is flagged semantic on a source above
+	 *         {@link #SEMANTIC_MAX_ROWS}.
+	 * @throws RecoverableMessageException when a column is flagged semantic and no embedding model is
+	 *         deployed.
 	 */
 	private boolean streamIntoIdleSlot(String idleSlot, SearchIndex searchIndex, IdAndVersion sourceId,
 			TableIndexDAO indexDao, SearchConfiguration config,
-			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers) throws Exception {
+			List<ColumnAnalyzerOverride> overrides, Map<String, TextAnalyzer> inlineAnalyzers, Long rowCount)
+			throws Exception {
 		String definingSQL = searchIndex.getDefiningSQL();
 		Optional<IndexAuthorizationSnapshot> sourceSnapshotOpt = indexAuthorizationSnapshotManager
 				.getAuthorizationSnapshot(sourceId);
@@ -472,6 +508,9 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 				.map(columnModelManager::createColumnModel)
 				.collect(Collectors.toList());
 		List<SelectColumn> selectColumns = TableModelUtils.getSelectColumns(selectedColumns);
+		Set<String> semanticColumnIds = OpenSearchManagerImpl.resolveSemanticColumnIds(selectedColumns, overrides);
+		SemanticEmbeddingModel semanticModel = resolveSemanticModel(searchIndex.getId(), selectedColumns,
+				semanticColumnIds, rowCount);
 
 		IndexDescriptionSnapshot indexDescription = sourceSnapshot.getIndexDescription();
 		List<String> benefactorColumnNames = indexDescription.getBenefactors().stream()
@@ -522,7 +561,7 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		openSearchManager.createIndex(idleSlot, selectedColumns,
 				defaultAnalyzer,
 				overrides, resolvedAnalyzers,
-				benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot);
+				benefactorColumnNames, numberOfShards, numberOfReplicas, sourceSnapshot, semanticModel);
 
 		// AOSS acknowledges createIndex and returns an already-queryable index before its
 		// shards are actually ready to accept writes. Block until a real sentinel write
@@ -535,10 +574,36 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		// queryAsStream does not close the handler; the try-with-resources flushes the final
 		// partial batch.
 		try (SearchIndexRowHandler handler = new SearchIndexRowHandler(
-				idleSlot, selectColumns, benefactorColumnNames, openSearchManager)) {
+				idleSlot, selectColumns, benefactorColumnNames, semanticColumnIds, openSearchManager)) {
 			indexDao.queryAsStream(query, handler);
 		}
 		return true;
+	}
+
+	/**
+	 * The embedding model to build the index's semantic field with, or {@code null} when no column is
+	 * flagged semantic. The configuration checks run before the availability check, so a build that can
+	 * never succeed fails instead of being retried until a model is deployed.
+	 */
+	private SemanticEmbeddingModel resolveSemanticModel(String entityId, List<ColumnModel> selectedColumns,
+			Set<String> semanticColumnIds, Long rowCount) {
+		if (semanticColumnIds.isEmpty()) {
+			return null;
+		}
+		for (ColumnModel column : selectedColumns) {
+			if (column.getId() != null && semanticColumnIds.contains(column.getId())
+					&& !SEMANTIC_COLUMN_TYPES.contains(column.getColumnType())) {
+				throw new IllegalArgumentException("Column '" + column.getName() + "' is of type "
+						+ column.getColumnType() + " and cannot be flagged 'semantic'; only " + SEMANTIC_COLUMN_TYPES
+						+ " columns can.");
+			}
+		}
+		if (rowCount != null && rowCount > SEMANTIC_MAX_ROWS) {
+			throw new IllegalStateException("Search index with semantic columns would exceed maximum of "
+					+ SEMANTIC_MAX_ROWS + " rows. Row count: " + rowCount);
+		}
+		return semanticEmbeddingBootstrapper.getModel().orElseThrow(() -> new RecoverableMessageException(
+				"No semantic embedding model is deployed yet for search index " + entityId));
 	}
 
 	private static void recordWaitingForSource(SearchIndexStatusDao statusDao, String entityId, IdAndVersion sourceId) {
@@ -884,15 +949,17 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 		private final String indexName;
 		private final List<SelectColumn> columns;
 		private final List<String> benefactorColumnNames;
+		private final Set<String> semanticColumnIds;
 		private final OpenSearchManager client;
 		private final List<BulkOperation> batch = new ArrayList<>();
 		private long totalRows = 0;
 
 		SearchIndexRowHandler(String indexName, List<SelectColumn> columns, List<String> benefactorColumnNames,
-				OpenSearchManager client) {
+				Set<String> semanticColumnIds, OpenSearchManager client) {
 			this.indexName = indexName;
 			this.columns = columns;
 			this.benefactorColumnNames = benefactorColumnNames;
+			this.semanticColumnIds = semanticColumnIds;
 			this.client = client;
 		}
 
@@ -917,12 +984,27 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 						+ columns.size() + " document columns and " + benefactorColumnNames.size()
 						+ " benefactor columns) but the source query returned " + values.size() + ".");
 			}
+			// Collected in select-list order so the same row content produces the same vector across
+			// rebuilds.
+			List<String> semanticLines = new ArrayList<>();
 			for (int i = 0; i < columns.size(); i++) {
 				SelectColumn column = columns.get(i);
 				Object converted = convertForDocument(column.getName(), values.get(i), column.getColumnType());
 				if (converted != null) {
 					doc.put(column.getId(), converted);
+					if (column.getId() != null && semanticColumnIds.contains(column.getId())) {
+						// A JSON value embeds as its source text; the parsed Map would render as Java's toString.
+						appendSemanticLine(semanticLines, column.getName(),
+								ColumnType.JSON.equals(column.getColumnType()) ? values.get(i) : converted);
+					}
 				}
+			}
+			// A row with no semantic text carries no vector: the cosinesimil space rejects a zero
+			// vector, and an embedding of the empty string would be a point every such row clusters on.
+			if (!semanticLines.isEmpty()) {
+				// Stripped after truncation, since a cut mid-value can itself end on a newline.
+				doc.put(OpenSearchManagerImpl.SEMANTIC_TEXT_FIELD,
+						truncateSemanticText(String.join("\n", semanticLines)).stripTrailing());
 			}
 			// The trailing values are the benefactor columns, in benefactorColumnNames order.
 			for (int i = 0; i < benefactorColumnNames.size(); i++) {
@@ -940,6 +1022,23 @@ public class SearchIndexLifecycleManagerImpl implements SearchIndexLifecycleMana
 			totalRows++;
 			if (batch.size() >= BATCH_SIZE) {
 				flush();
+			}
+		}
+
+		/**
+		 * Append one flagged column as a {@code Name: value} line, or nothing when the value carries no
+		 * text. The label lets the embedding tell the same word apart as, say, a species or a title. A
+		 * list contributes its non-blank elements comma-joined rather than its JSON rendering.
+		 */
+		private static void appendSemanticLine(List<String> lines, String name, Object value) {
+			String text = value instanceof List<?> list
+					? list.stream()
+							.map(element -> Objects.toString(element, ""))
+							.filter(element -> !element.isBlank())
+							.collect(Collectors.joining(", "))
+					: value.toString();
+			if (!text.isBlank()) {
+				lines.add(name + ": " + text);
 			}
 		}
 

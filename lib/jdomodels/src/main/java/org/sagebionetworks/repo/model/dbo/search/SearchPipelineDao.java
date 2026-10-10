@@ -18,5 +18,13 @@ public interface SearchPipelineDao {
 	List<NamedSearchPipeline> listAll(long limit, long offset);
 	Optional<NamedSearchPipeline> getByOrganizationAndName(String organizationName, String name);
 
+	/**
+	 * @param qualifiedName a well-formed {@code {organizationName}-{name}} qualified name
+	 */
+	default Optional<NamedSearchPipeline> getByQualifiedName(String qualifiedName) {
+		int separator = qualifiedName.indexOf('-');
+		return getByOrganizationAndName(qualifiedName.substring(0, separator), qualifiedName.substring(separator + 1));
+	}
+
 	void truncateAll();
 }

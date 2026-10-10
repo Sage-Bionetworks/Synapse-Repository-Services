@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.sagebionetworks.repo.model.search.dsl.MatchAllQuery;
 import org.sagebionetworks.repo.model.search.dsl.Query;
@@ -33,7 +35,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sagebionetworks.AsynchronousJobWorkerHelper;
 import org.sagebionetworks.repo.manager.EntityAclManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.schema.SynapseSchemaBootstrap;
 import org.sagebionetworks.repo.manager.search.OpenSearchManager;
+import org.sagebionetworks.repo.manager.search.SearchConfigurationManager;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper;
 import org.sagebionetworks.repo.manager.search.SearchIndexQueryManager;
 import org.sagebionetworks.repo.manager.search.SearchOpaqueJsonUtil;
 import org.sagebionetworks.repo.manager.search.TextAnalyzerBootstrap;
@@ -59,6 +64,7 @@ import org.sagebionetworks.repo.model.search.SearchHit;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
@@ -125,6 +131,12 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     private ConnectionFactory tableConnectionFactory;
     @Autowired
     private OpenSearchManager openSearchManager;
+    @Autowired
+    private SearchConfigurationManager searchConfigurationManager;
+    @Autowired
+    private SynapseSchemaBootstrap synapseSchemaBootstrap;
+    @Autowired
+    private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
     @Autowired
     private SearchIndexQueryManager searchIndexQueryManager;
 
@@ -655,6 +667,56 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
+     * A hybrid query on a SearchIndex with a semantic column is filtered by the querying user's ACLs
+     * through both a neural clause and a non-neural clause. The SearchIndex sits directly over an
+     * entity view whose folder names are flagged semantic; userA can read every folder, userB only the
+     * folders inheriting the project benefactor.
+     */
+    @Test
+    public void testSearchIndexHybridSemanticBenefactorFilteringDiffersByUser() throws Exception {
+        semanticEmbeddingBootstrapper.bootstrapSemanticEmbedding();
+        Hierarchy hierarchy = createProjectHierachy(4);
+        grantRead(hierarchy.project.getId(), userA, userB);
+        for (String id : hierarchy.ownAclFolderIds()) {
+            grantRead(id, userA);
+        }
+        IdAndVersion viewId = createFolderView(hierarchy);
+
+        SearchConfiguration config = searchConfigurationManager.create(adminUser, new SearchConfiguration()
+                .setName("SEMANTIC_NAME_CONFIG_" + UUID.randomUUID().toString().replace("-", ""))
+                .setOrganizationName(synapseSchemaBootstrap.createOrganizationIfDoesNotExist(adminUser).getName())
+                .setColumnAnalyzerOverrides(List.of(new JSONObject().put("overrides", new JSONArray()
+                        .put(new JSONObject().put("columnName", "name").put("semantic", true))))));
+
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setName("HybridSemanticBenefactorSearchIndex_" + UUID.randomUUID());
+        searchIndex.setParentId(hierarchy.project.getId());
+        searchIndex.setDefiningSQL("select id, name, groupKey from " + viewId);
+        searchIndex.setSearchConfigurationId(config.getId());
+        searchIndex = entityService.createEntity(adminUser.getId(), searchIndex, null);
+
+        Set<String> idsVisibleToA = new HashSet<>(hierarchy.folderIds());
+        Set<String> idsVisibleToB = new HashSet<>(hierarchy.folderIds());
+        idsVisibleToB.removeAll(hierarchy.ownAclFolderIds());
+        String neural = "{\"neural\":{\"semantic_search\":{\"query_text\":\"folder\",\"k\":10}}}";
+        for (String queries : List.of(neural, "{\"match_all\":{}}," + neural)) {
+            SearchIndexQuery query = new SearchIndexQuery();
+            query.setSearchIndexId(searchIndex.getId());
+            query.setSearchQuery(EntityFactory.createEntityFromJSONString(
+                    "{\"hybrid\":{\"queries\":[" + queries + "]},\"size\":100}", SearchQuery.class));
+            query.setResponseParts(EnumSet.of(SearchQueryPart.HITS));
+
+            // call under test
+            assertQueryWithBuildRetry(userA, searchIndex.getId(), query, (SearchQueryResults results) -> {
+                assertEquals(idsVisibleToA, hitIds(results), queries);
+            });
+            assertQueryWithBuildRetry(userB, searchIndex.getId(), query, (SearchQueryResults results) -> {
+                assertEquals(idsVisibleToB, hitIds(results), queries);
+            });
+        }
+    }
+
+    /**
      * OpenSearch double fields accept only finite values, so a non-finite double must be left out of
      * its document rather than failing the build: every row is indexed and only the finite value is
      * returned.
@@ -1038,7 +1100,7 @@ public class SearchIndexLifecycleWorkerAutowireTest {
     }
 
     /**
-     * Create a Folder-scoped entity view over the hierarchy's project, schema = id + groupKey.
+     * Create a Folder-scoped entity view over the hierarchy's project, schema = id + name + groupKey.
      * Annotates each folder with its index as groupKey so the two views join row-for-row, and waits
      * for replication.
      */

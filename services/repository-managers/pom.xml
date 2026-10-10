@@ -254,6 +254,12 @@
 			<artifactId>spring-ai-client-chat</artifactId>
 		</dependency>
 
+		<!-- cl100k tokenizer for the semantic-search input budget -->
+		<dependency>
+			<groupId>com.knuddels</groupId>
+			<artifactId>jtokkit</artifactId>
+		</dependency>
+
 		<!-- AgentCore Memory + Code Interpreter -->
 		<dependency>
 			<groupId>org.springaicommunity</groupId>

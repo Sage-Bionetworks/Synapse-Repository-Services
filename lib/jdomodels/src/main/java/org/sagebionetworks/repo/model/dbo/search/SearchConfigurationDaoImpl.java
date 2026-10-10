@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_C
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_ANALYZER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_DESCRIPTION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEARCH_CONFIG_ID;
@@ -26,6 +27,8 @@ import java.util.Optional;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfigBinding;
 import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.transactions.WriteTransaction;
@@ -54,6 +57,8 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 				rs.getString(COL_SEARCH_CONFIG_DEFAULT_ANALYZER), DEFAULT_ANALYZER_FIELD));
 		config.setColumnAnalyzerOverrides(OpaqueJsonColumnCodecUtil.deserializeList(
 				rs.getString(COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES), OVERRIDES_FIELD));
+		config.setDefaultSearchPipeline(JDOSecondaryPropertyUtils.createObjectFromJSON(
+				SearchPipelineBinding.class, rs.getString(COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE)));
 		config.setCreatedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_CREATED_BY)));
 		config.setCreatedOn(new Date(rs.getTimestamp(COL_SEARCH_CONFIG_CREATED_ON).getTime()));
 		config.setModifiedBy(String.valueOf(rs.getLong(COL_SEARCH_CONFIG_MODIFIED_BY)));
@@ -93,15 +98,16 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 		try {
 			jdbcTemplate.update(
 					"INSERT INTO SEARCH_CONFIGURATION (ID, ETAG, ORGANIZATION_NAME, NAME, DESCRIPTION,"
-					+ " DEFAULT_ANALYZER, COLUMN_ANALYZER_OVERRIDES,"
+					+ " DEFAULT_ANALYZER, COLUMN_ANALYZER_OVERRIDES, DEFAULT_SEARCH_PIPELINE,"
 					+ " CREATED_BY, CREATED_ON, MODIFIED_BY, MODIFIED_ON)"
-					+ " VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, NOW(3), ?, NOW(3))",
+					+ " VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, NOW(3), ?, NOW(3))",
 					id,
 					config.getOrganizationName(),
 					config.getName(),
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
+					JDOSecondaryPropertyUtils.createJSONFromObject(config.getDefaultSearchPipeline()),
 					createdBy,
 					createdBy
 			);
@@ -145,11 +151,13 @@ public class SearchConfigurationDaoImpl implements SearchConfigurationDao {
 					"UPDATE SEARCH_CONFIGURATION SET ETAG = UUID(), NAME = ?, DESCRIPTION = ?,"
 					+ " DEFAULT_ANALYZER = ?,"
 					+ " COLUMN_ANALYZER_OVERRIDES = ?,"
+					+ " DEFAULT_SEARCH_PIPELINE = ?,"
 					+ " MODIFIED_BY = ?, MODIFIED_ON = NOW(3) WHERE ID = ?",
 					config.getName(),
 					config.getDescription(),
 					OpaqueJsonColumnCodecUtil.serialize(config.getDefaultAnalyzer(), DEFAULT_ANALYZER_FIELD),
 					OpaqueJsonColumnCodecUtil.serialize(config.getColumnAnalyzerOverrides(), OVERRIDES_FIELD),
+					JDOSecondaryPropertyUtils.createJSONFromObject(config.getDefaultSearchPipeline()),
 					modifiedBy,
 					id
 			);

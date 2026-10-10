@@ -8,6 +8,7 @@ import java.util.Set;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.bulk.BulkOperation;
 import org.opensearch.client.opensearch.indices.IndexSettingsAnalysis;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.search.table.ColumnAnalyzerOverride;
@@ -15,6 +16,7 @@ import org.sagebionetworks.repo.model.search.SearchAutocompleteBody;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 
 /**
@@ -60,6 +62,14 @@ public interface OpenSearchManager {
 	 *                                 together with the ids of {@code columns} in order, so
 	 *                                 {@link #getLiveIndex(String)} can read both back alongside the
 	 *                                 physical index they describe. Required.
+	 * @param semanticModel            The embedding model that fills the index's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_FIELD} vector, or {@code null}
+	 *                                 when no column is flagged semantic. When set, the index gets a
+	 *                                 {@code knn_vector} field of the model's dimension, an ingestion
+	 *                                 pipeline that embeds each document's
+	 *                                 {@link OpenSearchManagerImpl#SEMANTIC_TEXT_FIELD} with the model, and
+	 *                                 the model's {@link SemanticEmbeddingModel#spec()} in its mapping
+	 *                                 {@code _meta}.
 	 * @return The JSON representation of the CreateIndexRequest, or empty if the index already existed
 	 */
 	Optional<String> createIndex(String indexName, List<ColumnModel> columns,
@@ -67,10 +77,11 @@ public interface OpenSearchManager {
 			List<ColumnAnalyzerOverride> columnAnalyzerOverrides,
 			Map<String, IndexSettingsAnalysis> resolvedAnalyzers,
 			List<String> benefactorColumnNames, int numberOfShards, int numberOfReplicas,
-			IndexAuthorizationSnapshot snapshot);
+			IndexAuthorizationSnapshot snapshot, SemanticEmbeddingModel semanticModel);
 
 	/**
-	 * Delete an OpenSearch index. No-op if the index does not exist.
+	 * Delete an OpenSearch index and the ingestion pipeline {@link #createIndex} attached to it. No-op
+	 * for whichever of the two does not exist.
 	 * If AOSS rejects the delete because another delete is already in progress
 	 * for the same index, the underlying {@link org.opensearch.client.opensearch._types.OpenSearchException}
 	 * is re-thrown unwrapped so the caller can recognize the concurrent-delete case
@@ -102,8 +113,11 @@ public interface OpenSearchManager {
 	 * @param physicalIndex The concrete index name behind the alias.
 	 * @param snapshot      The source's as-built authorization snapshot stored in that index's mapping metadata.
 	 * @param columnIds     The ids of the index's output columns, in select-list order.
+	 * @param semanticSpec  The {@link SemanticEmbeddingModel#spec()} the index's vectors were built with,
+	 *                      or {@code null} when the index has no semantic field.
 	 */
-	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds) {
+	record LiveIndex(String physicalIndex, IndexAuthorizationSnapshot snapshot, List<String> columnIds,
+			String semanticSpec) {
 	}
 
 	/**
@@ -176,6 +190,10 @@ public interface OpenSearchManager {
 	 * enforces row-level benefactor access control; a benefactor-less source passes an empty
 	 * list, applying no row filter.</p>
 	 *
+	 * <p>A {@code hybrid} body is sent with its resolved search pipeline: an inline
+	 * {@code body.search_pipeline}, else {@code savedPipeline}, else min_max normalization with an
+	 * arithmetic mean of equal weights.</p>
+	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchQuery} envelope; each slot's contents are the
 	 *                   opaque OpenSearch DSL.
@@ -183,17 +201,22 @@ public interface OpenSearchManager {
 	 * @param options    The response options requested; must be non-null and non-empty.
 	 * @param accessFilters Pre-built OpenSearch filter queries (e.g. one benefactor
 	 *                      {@code terms} clause per source dependency). Must not be null.
+	 * @param semanticModelId The deployed embedding model id stamped on each neural clause, or null
+	 *                        when the index has no semantic field (neural clauses are then dropped).
+	 * @param savedPipeline The saved pipeline settings resolved for a hybrid body, or null.
 	 * @return The search results — only fields corresponding to requested options are populated.
+	 * @throws IllegalArgumentException if the body is invalid or OpenSearch rejects it.
 	 */
 	SearchQueryResults search(String indexName, SearchQuery body, List<ColumnModel> columns,
-			Set<SearchQueryPart> options, List<Query> accessFilters);
+			Set<SearchQueryPart> options, List<Query> accessFilters, String semanticModelId,
+			SearchPipeline savedPipeline);
 
 	/**
 	 * Execute an autocomplete query against the OpenSearch index. The body's allowlist is
 	 * narrowed to the autocomplete subset (prefix-flavored {@code query} plus optional
 	 * {@code _source}); page size is capped at the autocomplete server-side limit. The
 	 * {@code accessFilters} are AND-ed with the caller's query exactly as in
-	 * {@link #search(String, SearchQuery, List, Set, List)}.
+	 * {@link #search(String, SearchQuery, List, Set, List, String, SearchPipeline)}.
 	 *
 	 * @param indexName  The OpenSearch index name.
 	 * @param body       The typed {@link SearchAutocompleteBody} envelope.

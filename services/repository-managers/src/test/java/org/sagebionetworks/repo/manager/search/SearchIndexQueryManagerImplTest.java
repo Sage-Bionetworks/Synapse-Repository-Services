@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -46,6 +47,8 @@ import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthorizationStatus;
@@ -63,6 +66,15 @@ import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
+import org.sagebionetworks.repo.model.search.dsl.NeuralFieldOptions;
+import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
+import org.sagebionetworks.repo.model.search.dsl.HybridClause;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
 import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
@@ -102,6 +114,12 @@ public class SearchIndexQueryManagerImplTest {
 	private OpenSearchManager openSearchManager;
 	@Mock
 	private TableQueryManager tableQueryManager;
+	@Mock
+	private SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+	@Mock
+	private SearchConfigurationResolver searchConfigurationResolver;
+	@Mock
+	private SearchPipelineDao searchPipelineDao;
 	@Mock
 	private SearchIndexStatusDao searchIndexStatusDao;
 	@Mock
@@ -203,7 +221,7 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(physicalIndex, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				new OpenSearchManager.LiveIndex(physicalIndex, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
@@ -303,7 +321,7 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		return schema;
@@ -342,7 +360,7 @@ public class SearchIndexQueryManagerImplTest {
 				bodyCaptor.capture(),
 				columnsCaptor.capture(),
 				eq(expectedParts),
-				eq(Collections.emptyList()));
+				eq(Collections.emptyList()), isNull(), isNull());
 		assertEquals(expectedColumnNames, columnsCaptor.getValue().stream()
 				.map(ColumnModel::getName).collect(Collectors.toList()));
 		return bodyCaptor.getValue();
@@ -382,8 +400,9 @@ public class SearchIndexQueryManagerImplTest {
 				argThat(cols -> cols != null && expectedColumnNames.equals(
 						cols.stream().map(ColumnModel::getName).collect(Collectors.toList()))),
 				eq(expectedOptions),
-				eq(Collections.emptyList())
-		)).thenReturn(returnValue);
+				eq(Collections.emptyList()),
+				isNull(),
+				isNull())).thenReturn(returnValue);
 	}
 
 	/** Autocomplete analog of {@link #stubOpenSearchSearchReturns}. */
@@ -412,7 +431,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithNoReadOnSnapshotSource() {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.accessDenied("no access to source"));
 
@@ -428,7 +447,7 @@ public class SearchIndexQueryManagerImplTest {
 	public void testSearchWithLiveIndexAndFailedStatus() {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, materializedViewSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, MATERIALIZED_VIEW_DESCRIPTION))
 				.thenReturn(AuthorizationStatus.authorized());
 		when(connectionFactory.getSearchIndexStatusDao()).thenReturn(searchIndexStatusDao);
@@ -466,7 +485,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithMaterializedViewSnapshot() {
+	public void testSearchWithMaterializedViewSnapshot() throws Exception {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		List<ColumnModel> schema = setupMaterializedViewMocks(PHYSICAL_INDEX);
 		SearchQueryResults raw = buildRawResults();
@@ -475,7 +494,7 @@ public class SearchIndexQueryManagerImplTest {
 		ArgumentCaptor<List<org.opensearch.client.opensearch._types.query_dsl.Query>> filtersCaptor =
 				(ArgumentCaptor) ArgumentCaptor.forClass(List.class);
 		when(openSearchManager.search(eq(PHYSICAL_INDEX), eq(body), eq(schema),
-				eq(EnumSet.of(SearchQueryPart.HITS)), filtersCaptor.capture())).thenReturn(raw);
+				eq(EnumSet.of(SearchQueryPart.HITS)), filtersCaptor.capture(), isNull(), isNull())).thenReturn(raw);
 
 		// call under test
 		SearchQueryResults results = manager.search(user, buildRequest(body));
@@ -504,23 +523,23 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithPhysicalIndexDeletedAfterResolve() {
+	public void testSearchWithPhysicalIndexDeletedAfterResolve() throws Exception {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
-				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))),
-				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID))));
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID))).thenReturn(schema.subList(0, 1));
 		SearchQuery body = buildBody();
 		Set<SearchQueryPart> parts = EnumSet.of(SearchQueryPart.HITS);
-		when(openSearchManager.search(PHYSICAL_INDEX, body, schema, parts, Collections.emptyList()))
+		when(openSearchManager.search(PHYSICAL_INDEX, body, schema, parts, Collections.emptyList(), null, null))
 				.thenThrow(new IllegalStateException("Search index is still building. Please try again later.",
 						indexNotFound()));
 		SearchQueryResults raw = buildRawResults();
-		when(openSearchManager.search(NEXT_PHYSICAL_INDEX, body, schema.subList(0, 1), parts, Collections.emptyList()))
+		when(openSearchManager.search(NEXT_PHYSICAL_INDEX, body, schema.subList(0, 1), parts, Collections.emptyList(), null, null))
 				.thenReturn(raw);
 
 		// call under test
@@ -539,7 +558,7 @@ public class SearchIndexQueryManagerImplTest {
 		IllegalStateException notFound = new IllegalStateException(
 				"Search index is still building. Please try again later.", indexNotFound());
 		when(openSearchManager.search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
-				Collections.emptyList())).thenThrow(notFound);
+				Collections.emptyList(), null, null)).thenThrow(notFound);
 
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
@@ -548,7 +567,7 @@ public class SearchIndexQueryManagerImplTest {
 		assertEquals(notFound, ex);
 		verify(openSearchManager, times(2)).getLiveIndex(ALIAS);
 		verify(openSearchManager, times(2)).search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
-				Collections.emptyList());
+				Collections.emptyList(), null, null);
 	}
 
 	@Test
@@ -558,7 +577,7 @@ public class SearchIndexQueryManagerImplTest {
 		SearchQuery body = buildBody();
 		IllegalStateException other = new IllegalStateException("something else");
 		when(openSearchManager.search(PHYSICAL_INDEX, body, schema(), EnumSet.of(SearchQueryPart.HITS),
-				Collections.emptyList())).thenThrow(other);
+				Collections.emptyList(), null, null)).thenThrow(other);
 
 		// call under test
 		IllegalStateException ex = assertThrows(IllegalStateException.class,
@@ -574,8 +593,8 @@ public class SearchIndexQueryManagerImplTest {
 		List<ColumnModel> schema = schema();
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(
-				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))),
-				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))));
+				Optional.of(new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)),
+				Optional.of(new OpenSearchManager.LiveIndex(NEXT_PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, DESC_COLUMN_ID), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		when(columnModelManager.getAndValidateColumnModels(List.of(NAME_COLUMN_ID, DESC_COLUMN_ID))).thenReturn(schema);
 		SearchAutocompleteRequest request = buildAutocompleteRequest();
@@ -672,7 +691,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithActiveStatus() {
+	public void testSearchWithActiveStatus() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -977,7 +996,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithDefaultPartsReturnsHitsOnly() {
+	public void testSearchWithDefaultPartsReturnsHitsOnly() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -1000,7 +1019,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithAllPartsRequested() {
+	public void testSearchWithAllPartsRequested() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -1025,7 +1044,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchAggregationResultsForwardedWhenBodySuppliedAggregations() {
+	public void testSearchAggregationResultsForwardedWhenBodySuppliedAggregations() throws Exception {
 		// Aggregations are presence-driven by the body, not by a SearchQueryPart bit.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
@@ -1042,7 +1061,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchAggregationResultsNullWhenBodyHadNoAggregations() {
+	public void testSearchAggregationResultsNullWhenBodyHadNoAggregations() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -1059,7 +1078,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithSelectColumnsOnly() {
+	public void testSearchWithSelectColumnsOnly() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -1082,7 +1101,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithSelectColumnsAndSourceIncludes() {
+	public void testSearchWithSelectColumnsAndSourceIncludes() throws Exception {
 		// _source.includes narrows the SELECT_COLUMNS response to the named subset.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
@@ -1104,7 +1123,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithSelectColumnsAndSourceExcludes() {
+	public void testSearchWithSelectColumnsAndSourceExcludes() throws Exception {
 		// _source.excludes drops the named columns from the SELECT_COLUMNS response. The
 		// previous implementation ignored excludes entirely and surfaced the column even
 		// though AOSS already omitted its value from the hit.
@@ -1128,7 +1147,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithSelectColumnsAndSourceIncludesAndExcludes() {
+	public void testSearchWithSelectColumnsAndSourceIncludesAndExcludes() throws Exception {
 		// Both clauses combine: a column survives only if it matches includes AND is not
 		// in excludes.
 		SearchIndex si = setupSearchIndex();
@@ -1152,7 +1171,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchWithSelectColumnsAndNoSourceFilter() {
+	public void testSearchWithSelectColumnsAndNoSourceFilter() throws Exception {
 		// No _source key means no narrowing; full SELECT-clause survives.
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
@@ -1171,7 +1190,7 @@ public class SearchIndexQueryManagerImplTest {
 	}
 
 	@Test
-	public void testSearchPassesResolvedPartsToOpenSearchManager() {
+	public void testSearchPassesResolvedPartsToOpenSearchManager() throws Exception {
 		SearchIndex si = setupSearchIndex();
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(si);
 		setupHappyPathMocks();
@@ -1258,11 +1277,11 @@ public class SearchIndexQueryManagerImplTest {
 	// A literal output column with a synthetic id round-trips through the query path
 	// without tripping `Collectors.toMap`'s no-null-values rule when nameToId is built.
 	@Test
-	public void testSearchWithLiteralColumnInSnapshotLineage() {
+	public void testSearchWithLiteralColumnInSnapshotLineage() throws Exception {
 		when(entityManager.getEntity(user, "1", SearchIndex.class)).thenReturn(setupSearchIndex());
 		setupActiveStatus();
 		when(openSearchManager.getLiveIndex(ALIAS)).thenReturn(Optional.of(
-				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, "999"))));
+				new OpenSearchManager.LiveIndex(PHYSICAL_INDEX, tableSnapshot(), List.of(NAME_COLUMN_ID, "999"), null)));
 		when(tableManagerSupport.validateTableReadAccess(user, TABLE_DESCRIPTION)).thenReturn(AuthorizationStatus.authorized());
 		ColumnModel nameCol = TableModelTestUtils.createColumn(
 				Long.parseLong(NAME_COLUMN_ID), NAME_COLUMN, ColumnType.STRING);
@@ -1272,7 +1291,7 @@ public class SearchIndexQueryManagerImplTest {
 				.thenReturn(Arrays.asList(nameCol, tagAliasCol));
 		SearchQuery body = buildBody();
 		when(openSearchManager.search(PHYSICAL_INDEX, body, Arrays.asList(nameCol, tagAliasCol),
-				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList()))
+				EnumSet.of(SearchQueryPart.HITS), Collections.emptyList(), null, null))
 				.thenReturn(new SearchQueryResults().setHits(Collections.emptyList()));
 
 		// call under test
@@ -1333,7 +1352,7 @@ public class SearchIndexQueryManagerImplTest {
 	 * separately covered in OpenSearchManagerImplTest).</p>
 	 */
 	@Test
-	public void testSearchWithEverySearchQueryPartCombination() {
+	public void testSearchWithEverySearchQueryPartCombination() throws Exception {
 		EnumSet<SearchQueryPart> guard = EnumSet.noneOf(SearchQueryPart.class);
 		SearchQueryPart[] all = SearchQueryPart.values();
 		for (int mask = 0; mask < (1 << all.length); mask++) {
@@ -1434,5 +1453,198 @@ public class SearchIndexQueryManagerImplTest {
 
 		assertEquals(List.of(Map.entry("_benefactor_ROW_BENEFACTOR_A0", Set.of(-1L)), Map.entry("_benefactor_ROW_BENEFACTOR_A1", Set.of(-1L))),
 				describeFilters(filters));
+	}
+
+	// ===================== hybrid =====================
+
+	private static final String SEMANTIC_SPEC = "amazon.titan-embed-text-v2:0/1024";
+	private static final String SAVED_PIPELINE_JSON = "{\"phase_results_processors\":[{\"normalization-processor\":{"
+			+ "\"normalization\":{\"technique\":\"min_max\"},\"combination\":{\"technique\":\"arithmetic_mean\","
+			+ "\"parameters\":{\"weights\":[0.5,0.5,0.0,0.0,0.0]}}}}]}";
+
+	private static HybridQuery hybridWithNeuralClause() {
+		return new HybridQuery().setQueries(List.of(new HybridClause(), new HybridClause()
+				.setNeural(Map.of(OpenSearchManagerImpl.SEMANTIC_FIELD, new NeuralFieldOptions().setQuery_text("tumor")))));
+	}
+
+	private static SearchPipeline savedPipeline() {
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipeline.class, SAVED_PIPELINE_JSON);
+	}
+
+	private static SearchPipelineBinding inlineBinding() {
+		return JDOSecondaryPropertyUtils.createObjectFromJSON(SearchPipelineBinding.class, SAVED_PIPELINE_JSON);
+	}
+
+	private static SearchIndex searchIndexInConfig() {
+		return new SearchIndex().setSearchConfigurationId("123").setParentId("syn1");
+	}
+
+	@Test
+	public void testResolveSemanticModelIdWithDeployedMatchingModel() throws Exception {
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.of(
+				new SemanticEmbeddingModel("model-1", "amazon.titan-embed-text-v2:0", 1024)));
+
+		// call under test
+		assertEquals("model-1", manager.resolveSemanticModelId(hybridWithNeuralClause(), SEMANTIC_SPEC));
+	}
+
+	@Test
+	public void testResolveSemanticModelIdWithNonSemanticIndex() throws Exception {
+		// call under test
+		assertNull(manager.resolveSemanticModelId(hybridWithNeuralClause(), null));
+
+		verifyNoInteractions(semanticEmbeddingBootstrapper);
+	}
+
+	@Test
+	public void testResolveSemanticModelIdWithNoNeuralClause() throws Exception {
+		HybridQuery hybrid = new HybridQuery().setQueries(List.of(new HybridClause()));
+
+		// call under test
+		assertNull(manager.resolveSemanticModelId(hybrid, SEMANTIC_SPEC));
+
+		verifyNoInteractions(semanticEmbeddingBootstrapper);
+	}
+
+	@Test
+	public void testResolveSemanticModelIdWithNoDeployedModel() {
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.empty());
+
+		// call under test
+		ServiceUnavailableException ex = assertThrows(ServiceUnavailableException.class,
+				() -> manager.resolveSemanticModelId(hybridWithNeuralClause(), SEMANTIC_SPEC));
+
+		assertEquals("Semantic search is temporarily unavailable. Please try again later.", ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSemanticModelIdWithDifferentDeployedModel() {
+		when(semanticEmbeddingBootstrapper.getModel()).thenReturn(Optional.of(
+				new SemanticEmbeddingModel("model-2", "amazon.titan-embed-text-v2:0", 512)));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSemanticModelId(hybridWithNeuralClause(), SEMANTIC_SPEC));
+
+		assertEquals("This search index was built with embedding model " + SEMANTIC_SPEC
+				+ " but amazon.titan-embed-text-v2:0/512 is deployed. Update the SearchIndex to rebuild it.",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithInlineRequestPipeline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(inlineBinding());
+
+		// call under test
+		assertNull(manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		verifyNoInteractions(searchConfigurationResolver, searchPipelineDao);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithRequestRefAndInline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(inlineBinding().set$ref("org-pipeline"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("body.search_pipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoInteractions(searchConfigurationResolver, searchPipelineDao);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithRequestNeitherRefNorInline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(new SearchPipelineBinding());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("body.search_pipeline requires exactly one of '$ref' and 'phase_results_processors'",
+				ex.getMessage());
+		verifyNoInteractions(searchConfigurationResolver, searchPipelineDao);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithRequestRef() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("org-pipeline"));
+		when(searchPipelineDao.getByQualifiedName("org-pipeline"))
+				.thenReturn(Optional.of(new NamedSearchPipeline().setSettings(savedPipeline())));
+
+		// call under test
+		assertEquals(savedPipeline(), manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		verifyNoInteractions(searchConfigurationResolver);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithMissingRequestRef() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("org-missing"));
+		when(searchPipelineDao.getByQualifiedName("org-missing")).thenReturn(Optional.empty());
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("body.search_pipeline names a search pipeline that does not exist: org-missing", ex.getMessage());
+		verifyNoInteractions(searchConfigurationResolver);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithMalformedRequestRef() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause())
+				.setSearch_pipeline(new SearchPipelineBinding().set$ref("no_separator"));
+
+		// call under test
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		assertEquals("Invalid qualified name format for 'body.search_pipeline': 'no_separator'."
+				+ " Expected format: '{organizationName}-{resourceName}' (e.g., 'org.sagebionetworks-SCIENTIFIC').",
+				ex.getMessage());
+		verifyNoInteractions(searchPipelineDao, searchConfigurationResolver);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithConfigDefaultRef() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
+		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.of(
+				new SearchConfiguration().setDefaultSearchPipeline(new SearchPipelineBinding().set$ref("org-pipeline"))));
+		when(searchPipelineDao.getByQualifiedName("org-pipeline"))
+				.thenReturn(Optional.of(new NamedSearchPipeline().setSettings(savedPipeline())));
+
+		// call under test
+		assertEquals(savedPipeline(), manager.resolveSavedPipeline(body, searchIndexInConfig()));
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithConfigDefaultInline() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
+		SearchPipelineBinding binding = inlineBinding();
+		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.of(
+				new SearchConfiguration().setDefaultSearchPipeline(binding)));
+
+		// call under test
+		assertEquals(binding, manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		verifyNoInteractions(searchPipelineDao);
+	}
+
+	@Test
+	public void testResolveSavedPipelineWithNoConfigDefault() {
+		SearchQuery body = new SearchQuery().setHybrid(hybridWithNeuralClause());
+		when(searchConfigurationResolver.resolve("123", "syn1")).thenReturn(Optional.empty());
+
+		// call under test
+		assertNull(manager.resolveSavedPipeline(body, searchIndexInConfig()));
+
+		verifyNoInteractions(searchPipelineDao);
 	}
 }

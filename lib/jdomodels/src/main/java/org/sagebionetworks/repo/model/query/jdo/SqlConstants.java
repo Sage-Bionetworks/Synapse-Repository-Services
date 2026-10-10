@@ -1599,6 +1599,7 @@ public class SqlConstants {
 	public static final String COL_SEARCH_CONFIG_DESCRIPTION		= "DESCRIPTION";
 	public static final String COL_SEARCH_CONFIG_DEFAULT_ANALYZER	= "DEFAULT_ANALYZER";
 	public static final String COL_SEARCH_CONFIG_COL_ANALYZER_OVERRIDES	= "COLUMN_ANALYZER_OVERRIDES";
+	public static final String COL_SEARCH_CONFIG_DEFAULT_SEARCH_PIPELINE	= "DEFAULT_SEARCH_PIPELINE";
 	public static final String COL_SEARCH_CONFIG_CREATED_BY			= "CREATED_BY";
 	public static final String COL_SEARCH_CONFIG_CREATED_ON			= "CREATED_ON";
 	public static final String COL_SEARCH_CONFIG_MODIFIED_BY		= "MODIFIED_BY";

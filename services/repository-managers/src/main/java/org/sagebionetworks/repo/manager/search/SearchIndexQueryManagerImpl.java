@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.opensearch.client.opensearch._types.FieldValue;
@@ -16,17 +15,24 @@ import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch.core.search.SourceConfig;
 import org.opensearch.client.opensearch.core.search.SourceFilter;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.search.SemanticEmbeddingBootstrapper.SemanticEmbeddingModel;
 import org.sagebionetworks.repo.manager.table.BenefactorAccessFilter;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableManagerSupport;
 import org.sagebionetworks.repo.manager.table.TableQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.search.SearchPipelineDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.search.SearchQuery;
 import org.sagebionetworks.repo.model.search.SearchQueryPart;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
+import org.sagebionetworks.repo.model.search.dsl.HybridQuery;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
+import org.sagebionetworks.repo.model.search.table.NamedSearchPipeline;
 import org.sagebionetworks.repo.model.search.table.SearchAutocompleteRequest;
+import org.sagebionetworks.repo.model.search.table.SearchConfiguration;
 import org.sagebionetworks.repo.model.search.table.SearchIndex;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
 import org.sagebionetworks.repo.model.search.table.SearchIndexState;
@@ -34,6 +40,7 @@ import org.sagebionetworks.repo.model.search.table.SearchIndexStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.SelectColumn;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -57,23 +64,32 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	private final ConnectionFactory connectionFactory;
 	private final OpenSearchManager openSearchManager;
 	private final TableQueryManager tableQueryManager;
+	private final SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper;
+	private final SearchConfigurationResolver searchConfigurationResolver;
+	private final SearchPipelineDao searchPipelineDao;
 
 	public SearchIndexQueryManagerImpl(EntityManager entityManager,
 			TableManagerSupport tableManagerSupport,
 			ColumnModelManager columnModelManager,
 			ConnectionFactory connectionFactory,
 			OpenSearchManager openSearchManager,
-			TableQueryManager tableQueryManager) {
+			TableQueryManager tableQueryManager,
+			SemanticEmbeddingBootstrapper semanticEmbeddingBootstrapper,
+			SearchConfigurationResolver searchConfigurationResolver,
+			SearchPipelineDao searchPipelineDao) {
 		this.entityManager = entityManager;
 		this.tableManagerSupport = tableManagerSupport;
 		this.columnModelManager = columnModelManager;
 		this.connectionFactory = connectionFactory;
 		this.openSearchManager = openSearchManager;
 		this.tableQueryManager = tableQueryManager;
+		this.semanticEmbeddingBootstrapper = semanticEmbeddingBootstrapper;
+		this.searchConfigurationResolver = searchConfigurationResolver;
+		this.searchPipelineDao = searchPipelineDao;
 	}
 
 	@Override
-	public SearchQueryResults search(UserInfo user, SearchIndexQuery request) {
+	public SearchQueryResults search(UserInfo user, SearchIndexQuery request) throws ServiceUnavailableException {
 		ValidateArgument.required(user, "user");
 		ValidateArgument.required(request, "request");
 		ValidateArgument.required(request.getSearchIndexId(), "request.searchIndexId");
@@ -83,7 +99,8 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		SearchQuery body = request.getSearchQuery();
 		Set<SearchQueryPart> parts = resolveRequestedParts(request.getResponseParts());
 
-		entityManager.getEntity(user, searchIndexId, SearchIndex.class);
+		SearchIndex searchIndex = entityManager.getEntity(user, searchIndexId, SearchIndex.class);
+		SearchPipeline savedPipeline = body.getHybrid() == null ? null : resolveSavedPipeline(body, searchIndex);
 
 		SourceFilter sourceFilter = parts.contains(SearchQueryPart.SELECT_COLUMNS)
 				? extractSourceFilter(body)
@@ -91,7 +108,8 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 
 		return queryLiveIndex(user, searchIndexId, target -> shapeResults(
 				openSearchManager.search(target.physicalIndex(), body, target.metadata().getColumns(), parts,
-						target.accessFilters()),
+						target.accessFilters(), resolveSemanticModelId(body.getHybrid(), target.semanticSpec()),
+						savedPipeline),
 				parts, target.metadata(), sourceFilter));
 	}
 
@@ -119,8 +137,8 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	 * Run {@code query} against the physical index currently behind the SearchIndex's alias,
 	 * authorized and filtered by the snapshot that physical index was built with.
 	 */
-	private SearchQueryResults queryLiveIndex(UserInfo user, String searchIndexId,
-			Function<LiveQueryTarget, SearchQueryResults> query) {
+	private <E extends Exception> SearchQueryResults queryLiveIndex(UserInfo user, String searchIndexId,
+			LiveQuery<E> query) throws E {
 		try {
 			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
 		} catch (IllegalStateException e) {
@@ -131,6 +149,59 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 			// points at a newer physical index with its own snapshot, so resolve and authorize again.
 			return query.apply(resolveLiveQueryTarget(user, searchIndexId));
 		}
+	}
+
+	/**
+	 * The saved pipeline settings a hybrid body runs through when it carries no inline
+	 * {@code search_pipeline}: the target of its {@code $ref}, else the index configuration's
+	 * {@code defaultSearchPipeline}. Null when an inline pipeline or the system default applies.
+	 */
+	SearchPipeline resolveSavedPipeline(SearchQuery body, SearchIndex searchIndex) {
+		SearchPipelineBinding requested = body.getSearch_pipeline();
+		if (requested != null) {
+			SearchDslValidator.validateSearchPipelineBinding(requested, "body.search_pipeline");
+			return requested.get$ref() == null ? null
+					: getNamedPipelineSettings(requested.get$ref(), "body.search_pipeline");
+		}
+		SearchPipelineBinding binding = searchConfigurationResolver
+				.resolve(searchIndex.getSearchConfigurationId(), searchIndex.getParentId())
+				.map(SearchConfiguration::getDefaultSearchPipeline)
+				.orElse(null);
+		if (binding == null) {
+			return null;
+		}
+		return binding.get$ref() == null ? binding : getNamedPipelineSettings(binding.get$ref(), "defaultSearchPipeline");
+	}
+
+	private SearchPipeline getNamedPipelineSettings(String qualifiedName, String fieldName) {
+		SearchResourceConstants.validateQualifiedNameFormat(qualifiedName, fieldName);
+		return searchPipelineDao.getByQualifiedName(qualifiedName)
+				.map(NamedSearchPipeline::getSettings)
+				.orElseThrow(() -> new IllegalArgumentException(
+						fieldName + " names a search pipeline that does not exist: " + qualifiedName));
+	}
+
+	/**
+	 * The deployed embedding model id that a hybrid body's neural clauses run against. Null when
+	 * there is no neural clause, or the index has no semantic field (its neural clauses are dropped).
+	 *
+	 * @throws ServiceUnavailableException if no embedding model is currently deployed.
+	 * @throws IllegalArgumentException if the index was built with a different embedding model
+	 *         than the one deployed, so its vectors are not comparable with the query's.
+	 */
+	String resolveSemanticModelId(HybridQuery hybrid, String semanticSpec) throws ServiceUnavailableException {
+		if (semanticSpec == null || hybrid == null || hybrid.getQueries() == null
+				|| hybrid.getQueries().stream().noneMatch(clause -> clause != null && clause.getNeural() != null)) {
+			return null;
+		}
+		SemanticEmbeddingModel model = semanticEmbeddingBootstrapper.getModel()
+				.orElseThrow(() -> new ServiceUnavailableException(
+						"Semantic search is temporarily unavailable. Please try again later."));
+		if (!model.spec().equals(semanticSpec)) {
+			throw new IllegalArgumentException("This search index was built with embedding model " + semanticSpec
+					+ " but " + model.spec() + " is deployed. Update the SearchIndex to rebuild it.");
+		}
+		return model.modelId();
 	}
 
 	private LiveQueryTarget resolveLiveQueryTarget(UserInfo user, String searchIndexId) {
@@ -152,7 +223,7 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 		tableManagerSupport.validateTableReadAccess(user, source).checkAuthorizationOrElseThrow();
 		checkIndexStatus(searchIndexId);
 		return new LiveQueryTarget(liveIndex.physicalIndex(), buildQueryMetadata(liveIndex.columnIds()),
-				buildBenefactorAccessFilters(user, source));
+				buildBenefactorAccessFilters(user, source), liveIndex.semanticSpec());
 	}
 
 	private static boolean isIndexNotFound(IllegalStateException e) {
@@ -304,7 +375,13 @@ public class SearchIndexQueryManagerImpl implements SearchIndexQueryManager {
 	 * A physical index resolved from the SearchIndex's alias, with the columns and row-level
 	 * access filters derived from the snapshot that physical index was built with.
 	 */
-	private record LiveQueryTarget(String physicalIndex, QueryMetadata metadata, List<Query> accessFilters) {
+	private record LiveQueryTarget(String physicalIndex, QueryMetadata metadata, List<Query> accessFilters,
+			String semanticSpec) {
+	}
+
+	@FunctionalInterface
+	private interface LiveQuery<E extends Exception> {
+		SearchQueryResults apply(LiveQueryTarget target) throws E;
 	}
 
 	/**

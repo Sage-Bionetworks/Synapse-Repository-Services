@@ -37,6 +37,7 @@ import org.opensearch.client.opensearch._types.query_dsl.BoostingQuery;
 import org.opensearch.client.opensearch._types.query_dsl.ConstantScoreQuery;
 import org.opensearch.client.opensearch._types.query_dsl.DisMaxQuery;
 import org.opensearch.client.opensearch._types.query_dsl.FuzzyQuery;
+import org.opensearch.client.opensearch._types.query_dsl.HybridQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
 import org.opensearch.client.opensearch._types.query_dsl.TermsQueryField;
@@ -51,6 +52,7 @@ import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.ObjectSchemaImpl;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class SearchDslValidatorTest {
@@ -1879,5 +1881,257 @@ public class SearchDslValidatorTest {
 				() -> SearchDslValidator.requireScalarOrScalarArray(
 						MAPPER.readTree("{\"bad\":1}"), "label"));
 		assertTrue(ex.getMessage().contains("label must be a number, string, or boolean, or an array"));
+	}
+
+	@Test
+	public void testValidateHybridPageDepthWithPageEndingAtDepthAccepted() {
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridPageDepth(900, 100));
+	}
+
+	@Test
+	public void testValidateHybridPageDepthWithPageEndingPastDepthRejected() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridPageDepth(901, 100));
+		assertEquals("from + size must not exceed 1000 for a hybrid query", ex.getMessage());
+	}
+
+	private static JsonNode json(String json) throws Exception {
+		return MAPPER.readTree(json);
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithNoSort() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isRelevanceRanked(json("{}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithNullSort() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isRelevanceRanked(json("{\"sort\":null}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithEmptySortArray() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isRelevanceRanked(json("{\"sort\":[]}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithScoreString() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isRelevanceRanked(json("{\"sort\":\"_score\"}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithScoreObject() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isRelevanceRanked(json("{\"sort\":[{\"_score\":{\"order\":\"desc\"}}]}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithColumnString() throws Exception {
+		// call under test
+		assertFalse(SearchDslValidator.isRelevanceRanked(json("{\"sort\":[\"name\"]}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithColumnObject() throws Exception {
+		// call under test
+		assertFalse(SearchDslValidator.isRelevanceRanked(json("{\"sort\":[{\"name\":{\"order\":\"asc\"}}]}")));
+	}
+
+	@Test
+	public void testIsRelevanceRankedWithScoreAndColumn() throws Exception {
+		// call under test
+		assertFalse(SearchDslValidator.isRelevanceRanked(json("{\"sort\":[\"_score\",\"name\"]}")));
+	}
+
+	@Test
+	public void testValidateHybridSearchAfterWithCursor() {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridSearchAfter(true));
+		assertEquals("search_after is not supported on a relevance-ranked hybrid query;"
+				+ " sort by a column to page with search_after.", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateHybridSearchAfterWithoutCursor() {
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridSearchAfter(false));
+	}
+
+	@Test
+	public void testValidateTopLevelQueryChoiceWithQueryAndHybrid() throws Exception {
+		JsonNode body = json("{\"query\":{\"match_all\":{}},\"hybrid\":{\"queries\":[]}}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateTopLevelQueryChoice(body));
+		assertEquals("exactly one of body.query and body.hybrid is required"
+				+ " (use {\"match_all\":{}} to match all documents)", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateTopLevelQueryChoiceWithNeitherQueryNorHybrid() throws Exception {
+		JsonNode body = json("{\"query\":null}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateTopLevelQueryChoice(body));
+		assertEquals("exactly one of body.query and body.hybrid is required"
+				+ " (use {\"match_all\":{}} to match all documents)", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateTopLevelQueryChoiceWithSearchPipelineWithoutHybrid() throws Exception {
+		JsonNode body = json("{\"query\":{\"match_all\":{}},\"search_pipeline\":{\"$ref\":\"org-p\"}}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateTopLevelQueryChoice(body));
+		assertEquals("body.search_pipeline is only accepted with body.hybrid", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateTopLevelQueryChoiceWithQuery() throws Exception {
+		JsonNode body = json("{\"query\":{\"match_all\":{}},\"search_pipeline\":null}");
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateTopLevelQueryChoice(body));
+	}
+
+	@Test
+	public void testValidateTopLevelQueryChoiceWithHybridAndSearchPipeline() throws Exception {
+		JsonNode body = json("{\"hybrid\":{\"queries\":[]},\"search_pipeline\":{\"$ref\":\"org-p\"}}");
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateTopLevelQueryChoice(body));
+	}
+
+	@Test
+	public void testValidateHybridClauseCountWithNoClauses() throws Exception {
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridClauseCount(json("[]")));
+		assertEquals("body.hybrid.queries must hold 1 to 5 clauses; found 0", ex.getMessage());
+	}
+
+	@Test
+	public void testValidateHybridClauseCountWithOneClause() throws Exception {
+		JsonNode queries = json("[{}]");
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridClauseCount(queries));
+	}
+
+	@Test
+	public void testValidateHybridClauseCountWithMaxClauses() throws Exception {
+		JsonNode queries = json("[{},{},{},{},{}]");
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridClauseCount(queries));
+	}
+
+	@Test
+	public void testValidateHybridClauseCountWithTooManyClauses() throws Exception {
+		JsonNode queries = json("[{},{},{},{},{},{}]");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridClauseCount(queries));
+		assertEquals("body.hybrid.queries must hold 1 to 5 clauses; found 6", ex.getMessage());
+	}
+
+	@Test
+	public void testIsNeuralClauseWithNoNeural() throws Exception {
+		// call under test
+		assertFalse(SearchDslValidator.isNeuralClause(json("{\"match\":{\"title\":\"x\"}}")));
+	}
+
+	@Test
+	public void testIsNeuralClauseWithNullNeural() throws Exception {
+		// call under test
+		assertFalse(SearchDslValidator.isNeuralClause(json("{\"neural\":null}")));
+	}
+
+	@Test
+	public void testIsNeuralClauseWithSemanticField() throws Exception {
+		// call under test
+		assertTrue(SearchDslValidator.isNeuralClause(json("{\"neural\":{\"semantic_search\":{\"query_text\":\"x\"}}}")));
+	}
+
+	@Test
+	public void testIsNeuralClauseWithOtherField() throws Exception {
+		JsonNode clause = json("{\"neural\":{\"title\":{\"query_text\":\"x\"}}}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.isNeuralClause(clause));
+		assertEquals("'semantic_search' is the only vector field a neural clause may name; found 'title'",
+				ex.getMessage());
+	}
+
+	@Test
+	public void testValidateHybridLeafShapesWithValidHybrid() throws Exception {
+		JsonNode hybrid = json("{\"queries\":[{\"match\":{\"title\":{\"query\":\"x\"}}},"
+				+ "{\"neural\":{\"semantic_search\":{\"query_text\":\"x\","
+				+ "\"filter\":{\"term\":{\"status\":{\"value\":\"a\"}}}}}}],"
+				+ "\"filter\":{\"range\":{\"age\":{\"gte\":18}}}}");
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybridLeafShapes(hybrid));
+	}
+
+	@Test
+	public void testValidateHybridLeafShapesWithBadLeafInClause() throws Exception {
+		JsonNode hybrid = json("{\"queries\":[{\"match\":{\"title\":{\"query\":{\"nested\":\"obj\"}}}}]}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridLeafShapes(hybrid));
+		assertTrue(ex.getMessage().contains("MatchFieldOptions#query"), ex.getMessage());
+	}
+
+	@Test
+	public void testValidateHybridLeafShapesWithBadLeafInNeuralFilter() throws Exception {
+		JsonNode hybrid = json("{\"queries\":[{\"neural\":{\"semantic_search\":{\"query_text\":\"x\","
+				+ "\"filter\":{\"term\":{\"status\":{\"value\":{\"bad\":1}}}}}}}]}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridLeafShapes(hybrid));
+		assertTrue(ex.getMessage().contains("TermFieldOptions#value"), ex.getMessage());
+	}
+
+	@Test
+	public void testValidateHybridLeafShapesWithBadLeafInHybridFilter() throws Exception {
+		JsonNode hybrid = json("{\"queries\":[{\"match_all\":{}}],"
+				+ "\"filter\":{\"range\":{\"age\":{\"gte\":[1,2]}}}}");
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybridLeafShapes(hybrid));
+		assertTrue(ex.getMessage().contains("RangeFieldOptions#gte"), ex.getMessage());
+	}
+
+	private static Query boolOfMatchAll(int clauses) {
+		List<Query> many = new ArrayList<>();
+		for (int i = 0; i < clauses; i++) {
+			many.add(Query.of(b -> b.matchAll(m -> m)));
+		}
+		return Query.of(b -> b.bool(bb -> bb.must(many)));
+	}
+
+	@Test
+	public void testValidateHybridWithClausesWithinMax() {
+		HybridQuery hybrid = HybridQuery.of(h -> h
+				.queries(List.of(boolOfMatchAll(10), boolOfMatchAll(10)))
+				.filter(boolOfMatchAll(10)));
+		// call under test
+		assertDoesNotThrow(() -> SearchDslValidator.validateHybrid(hybrid));
+	}
+
+	@Test
+	public void testValidateHybridWithClausesExceedingMaxAcrossLegsAndFilter() {
+		// No single leg or the filter exceeds the cap; only their shared count does.
+		int perPart = SearchDslValidator.QUERY_MAX_CLAUSES / 3;
+		HybridQuery hybrid = HybridQuery.of(h -> h
+				.queries(List.of(boolOfMatchAll(perPart), boolOfMatchAll(perPart)))
+				.filter(boolOfMatchAll(perPart)));
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				// call under test
+				() -> SearchDslValidator.validateHybrid(hybrid));
+		assertTrue(ex.getMessage().contains("too many clauses"), ex.getMessage());
 	}
 }

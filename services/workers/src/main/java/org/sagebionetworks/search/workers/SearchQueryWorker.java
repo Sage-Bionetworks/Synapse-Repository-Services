@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.asynch.AsyncJobProgressCallback;
 import org.sagebionetworks.repo.model.search.SearchQueryResults;
 import org.sagebionetworks.repo.model.search.table.SearchIndexQuery;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.worker.AsyncJobRunner;
 import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Service;
 /**
  * Async job worker that executes search queries against a SearchIndex's OpenSearch index.
  * Delegates to SearchIndexQueryManager for authorization, configuration resolution, and query execution.
- * If the index is still building (CREATING), throws RecoverableMessageException for auto-retry.
+ * If the index is still building (CREATING) or the semantic embedding model is not yet deployed,
+ * throws RecoverableMessageException for auto-retry.
  */
 @Service
 public class SearchQueryWorker implements AsyncJobRunner<SearchIndexQuery, SearchQueryResults> {
@@ -43,6 +45,10 @@ public class SearchQueryWorker implements AsyncJobRunner<SearchIndexQuery, Searc
 			throws RecoverableMessageException, Exception {
 		try {
 			return searchIndexQueryManager.search(user, request);
+		} catch (ServiceUnavailableException e) {
+			LOG.info("Semantic embedding model unavailable for job {} on searchIndex {} — will retry", jobId,
+					request.getSearchIndexId());
+			throw new RecoverableMessageException(e.getMessage());
 		} catch (IllegalStateException e) {
 			if (e.getMessage() != null && e.getMessage().contains("still building")) {
 				LOG.info("SearchIndex {} still building for job {} — will retry", request.getSearchIndexId(), jobId);

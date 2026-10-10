@@ -29,6 +29,7 @@ import org.opensearch.client.opensearch._types.query_dsl.BoostingQuery;
 import org.opensearch.client.opensearch._types.query_dsl.ConstantScoreQuery;
 import org.opensearch.client.opensearch._types.query_dsl.DisMaxQuery;
 import org.opensearch.client.opensearch._types.query_dsl.FuzzyQuery;
+import org.opensearch.client.opensearch._types.query_dsl.HybridQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchBoolPrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MatchPhrasePrefixQuery;
 import org.opensearch.client.opensearch._types.query_dsl.MultiMatchQuery;
@@ -52,6 +53,7 @@ import org.sagebionetworks.repo.model.search.dsl.NormalizationProcessor;
 import org.sagebionetworks.repo.model.search.dsl.NormalizationTechnique;
 import org.sagebionetworks.repo.model.search.dsl.PhaseResultsProcessor;
 import org.sagebionetworks.repo.model.search.dsl.SearchPipeline;
+import org.sagebionetworks.repo.model.search.dsl.SearchPipelineBinding;
 import org.sagebionetworks.repo.model.search.dsl.UpperBound;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -152,6 +154,17 @@ final class SearchDslValidator {
 
 	/** Maximum number of clauses in a {@code hybrid.queries} array. */
 	static final int MAX_HYBRID_QUERIES = 5;
+
+	/**
+	 * The {@code pagination_depth} injected on every {@code hybrid} query, and therefore the ceiling
+	 * on {@code from + size} for one.
+	 *
+	 * <p>The depth must be identical on every page of a result set: OpenSearch derives each clause's
+	 * candidate pool from it, so varying it per page duplicates some rows across pages and drops
+	 * others entirely. It is server-controlled rather than caller-supplied for that reason, which
+	 * also means a caller cannot raise it to page deeper.</p>
+	 */
+	static final int HYBRID_PAGINATION_DEPTH = 1000;
 
 	/**
 	 * Minimum number of entries in a saved search pipeline's {@code combination.parameters.weights}
@@ -278,6 +291,132 @@ final class SearchDslValidator {
 	}
 
 	// --------------------------------------------------------------
+	// Hybrid request rules the SearchQuery schema cannot express.
+	// --------------------------------------------------------------
+
+	/**
+	 * Require exactly one of {@code query} / {@code hybrid}, and {@code search_pipeline} only
+	 * alongside {@code hybrid}.
+	 */
+	static void validateTopLevelQueryChoice(JsonNode body) {
+		boolean hasQuery = isPresent(body, "query");
+		boolean hasHybrid = isPresent(body, "hybrid");
+		if (hasQuery == hasHybrid) {
+			throw new IllegalArgumentException("exactly one of body.query and body.hybrid is required"
+					+ " (use {\"match_all\":{}} to match all documents)");
+		}
+		if (!hasHybrid && isPresent(body, "search_pipeline")) {
+			throw new IllegalArgumentException("body.search_pipeline is only accepted with body.hybrid");
+		}
+	}
+
+	private static boolean isPresent(JsonNode body, String key) {
+		JsonNode node = body.get(key);
+		return node != null && !node.isNull();
+	}
+
+	/**
+	 * True when the body leaves ranking to relevance rather than to a column value &mdash;
+	 * {@code sort} is absent, empty, or names only the {@code _score} pseudo-column.
+	 *
+	 * <p>Only relevance ranking is depth-capped. Naming a column gives OpenSearch a total order to
+	 * page through with a cursor, which has no depth ceiling; relevance ranking has no such order
+	 * and pages by offset out of a fixed candidate pool.</p>
+	 */
+	static boolean isRelevanceRanked(JsonNode body) {
+		JsonNode sort = body.get("sort");
+		if (sort == null || sort.isNull()) {
+			return true;
+		}
+		if (sort.isArray()) {
+			for (JsonNode element : sort) {
+				if (!isScoreSortElement(element)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return isScoreSortElement(sort);
+	}
+
+	/**
+	 * One element of a {@code sort} array, in either native shape: a bare column-name string, or an
+	 * object keyed by column name. Only {@code _score} keeps the sort relevance-ranked.
+	 */
+	private static boolean isScoreSortElement(JsonNode element) {
+		if (element.isTextual()) {
+			return "_score".equals(element.asText());
+		}
+		if (!element.isObject()) {
+			return false;
+		}
+		Iterator<String> keys = element.fieldNames();
+		while (keys.hasNext()) {
+			if (!"_score".equals(keys.next())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Cap the requested page of a {@code hybrid} query at
+	 * {@link #HYBRID_PAGINATION_DEPTH}. Rejected here rather than at OpenSearch because OpenSearch's
+	 * own error tells the caller to raise {@code pagination_depth}, a knob only the server sets.
+	 */
+	static void validateHybridPageDepth(int from, int size) {
+		if ((long) from + size > HYBRID_PAGINATION_DEPTH) {
+			throw new IllegalArgumentException("from + size must not exceed "
+					+ HYBRID_PAGINATION_DEPTH + " for a hybrid query");
+		}
+	}
+
+	/**
+	 * Reject {@code search_after} on a relevance-ranked {@code hybrid} query. With no sort key but
+	 * {@code _score}, a cursor means "after every document" &mdash; an empty page every time.
+	 */
+	static void validateHybridSearchAfter(boolean usingCursor) {
+		if (usingCursor) {
+			throw new IllegalArgumentException("search_after is not supported on a relevance-ranked"
+					+ " hybrid query; sort by a column to page with search_after.");
+		}
+	}
+
+	/** Require {@code hybrid.queries} to hold 1 to {@link #MAX_HYBRID_QUERIES} clauses. */
+	static void validateHybridClauseCount(JsonNode queries) {
+		int count = queries != null && queries.isArray() ? queries.size() : 0;
+		if (count < 1 || count > MAX_HYBRID_QUERIES) {
+			throw new IllegalArgumentException("body.hybrid.queries must hold 1 to "
+					+ MAX_HYBRID_QUERIES + " clauses; found " + count);
+		}
+	}
+
+	/**
+	 * True when a {@code hybrid.queries} entry is a {@code neural} clause, after checking that it
+	 * names the one vector field an index exposes.
+	 *
+	 * <p>An unknown vector field is one of the few caller errors OpenSearch does not turn into a
+	 * 400: a clause against a field the mapping does not have contributes no candidates, so the
+	 * hybrid query still returns whatever its keyword clauses matched. Rejecting the name here is
+	 * the only way the caller learns about the typo.</p>
+	 */
+	static boolean isNeuralClause(JsonNode clause) {
+		JsonNode neural = clause.get("neural");
+		if (neural == null || neural.isNull()) {
+			return false;
+		}
+		Iterator<String> fields = neural.fieldNames();
+		while (fields.hasNext()) {
+			String field = fields.next();
+			if (!OpenSearchManagerImpl.SEMANTIC_FIELD.equals(field)) {
+				throw new IllegalArgumentException("'" + OpenSearchManagerImpl.SEMANTIC_FIELD + "' is the only"
+						+ " vector field a neural clause may name; found '" + field + "'");
+			}
+		}
+		return true;
+	}
+
+	// --------------------------------------------------------------
 	// Opaque leaf-value shape checks (raw JsonNode, schema-guided).
 	//
 	// A number of DSL leaf slots are schema-typed as an opaque "object" because their
@@ -334,6 +473,22 @@ final class SearchDslValidator {
 	 */
 	static void validateQueryLeafShapes(JsonNode clause) {
 		walkOpaqueLeaves(QUERY_SCHEMA, clause, null, null);
+	}
+
+	/**
+	 * Validate the opaque leaf-value shapes of a {@code hybrid} clause: each of its
+	 * {@code queries}, each {@code neural} clause's {@code filter}, and its own {@code filter}. Each
+	 * is walked against the {@code dsl.Query} schema, the one carrying the {@code $recursiveAnchor}
+	 * that nested clauses resolve against.
+	 */
+	static void validateHybridLeafShapes(JsonNode hybrid) {
+		for (JsonNode clause : hybrid.path("queries")) {
+			validateQueryLeafShapes(clause);
+			for (JsonNode options : clause.path("neural")) {
+				validateQueryLeafShapes(options.get("filter"));
+			}
+		}
+		validateQueryLeafShapes(hybrid.get("filter"));
 	}
 
 	/**
@@ -598,6 +753,21 @@ final class SearchDslValidator {
 		walkQuery(query, 1, count);
 	}
 
+	/**
+	 * Validate a {@code hybrid} clause: every one of its queries plus its {@code filter} against the
+	 * same walk as the top-level query, sharing one clause counter so a hybrid query cannot smuggle
+	 * more clauses through than a plain one. The combinations OpenSearch rejects with its own
+	 * specific 400 &mdash; more than one of {@code k} / {@code min_score} / {@code max_distance}, a
+	 * mismatched inline {@code weights} length or sum &mdash; are not duplicated here.
+	 */
+	static void validateHybrid(HybridQuery hybrid) {
+		int[] count = new int[] { 0 };
+		walkQueryList(hybrid.queries(), 1, count);
+		if (hybrid.filter() != null) {
+			walkQuery(hybrid.filter(), 1, count);
+		}
+	}
+
 	/** Validate an aggregations map &mdash; aggregation name to {@link Aggregation}. */
 	static void validateAggregations(Map<String, Aggregation> aggregations) {
 		if (aggregations == null) {
@@ -717,6 +887,19 @@ final class SearchDslValidator {
 				throw new IllegalArgumentException("sort kind is not allowed: '" + option._kind()
 						+ "'. Allowed kinds: " + ALLOWED_SORT_KINDS);
 			}
+		}
+	}
+
+	/**
+	 * Require a search-pipeline binding to be either a reference or an inline pipeline.
+	 *
+	 * @throws IllegalArgumentException unless exactly one of {@code $ref} and
+	 *         {@code phase_results_processors} is set
+	 */
+	static void validateSearchPipelineBinding(SearchPipelineBinding binding, String fieldName) {
+		if ((binding.get$ref() == null) == (binding.getPhase_results_processors() == null)) {
+			throw new IllegalArgumentException(
+					fieldName + " requires exactly one of '$ref' and 'phase_results_processors'");
 		}
 	}
 
@@ -890,6 +1073,12 @@ final class SearchDslValidator {
 			break;
 		case MatchBoolPrefix:
 			validateMatchBoolPrefix(query.matchBoolPrefix());
+			break;
+		case Neural:
+			// Reachable only as a hybrid query; its filter is a caller-supplied query subtree.
+			if (query.neural().filter() != null) {
+				walkQuery(query.neural().filter(), depth + 1, count);
+			}
 			break;
 		default:
 			// Allowlisted leaves with no additional caps to enforce (Match, MatchPhrase, Term, Range,
