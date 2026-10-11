@@ -3,7 +3,10 @@ package org.sagebionetworks.javadoc.velocity.schema;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.junit.Test;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -60,6 +63,48 @@ public class SchemaUtilsTest {
 		parent.set$recursiveAnchor(Boolean.TRUE);
 		parent.setProperties(props);
 		return parent;
+	}
+
+	/** A type that inherits the parent's inline child (as a schema that extends the anchor does) but
+	 *  not the parent's {@code $recursiveAnchor}. */
+	private static ObjectSchema subtypeWithoutAnchorSchema() {
+		LinkedHashMap<String, ObjectSchema> props = new LinkedHashMap<>();
+		props.put("child", childSchema());
+
+		ObjectSchema subtype = new ObjectSchemaImpl();
+		subtype.setType(TYPE.OBJECT);
+		subtype.setName("Subtype");
+		subtype.setId("org.example.Subtype");
+		subtype.setProperties(props);
+		return subtype;
+	}
+
+	@Test
+	public void testRecursiveAddTypesWithInlineTypeReachedWithoutAnchorFirst() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		ObjectSchema parent = parentAnchorSchema();
+		SchemaUtils.recursiveAddTypes(schemaMap, "org.example.Subtype", subtypeWithoutAnchorSchema(), anchorMap, null);
+
+		// call under test
+		SchemaUtils.recursiveAddTypes(schemaMap, PARENT_ID, parent, anchorMap, null);
+
+		assertEquals(parent, anchorMap.get(CHILD_ID));
+		assertEquals(Set.of(PARENT_ID, CHILD_ID, "org.example.Subtype"), schemaMap.keySet());
+	}
+
+	@Test
+	public void testRecursiveAddTypesWithInlineTypeReachedWithAnchorFirst() {
+		Map<String, ObjectSchema> schemaMap = new HashMap<>();
+		Map<String, ObjectSchema> anchorMap = new HashMap<>();
+		ObjectSchema parent = parentAnchorSchema();
+		SchemaUtils.recursiveAddTypes(schemaMap, PARENT_ID, parent, anchorMap, null);
+
+		// call under test
+		SchemaUtils.recursiveAddTypes(schemaMap, "org.example.Subtype", subtypeWithoutAnchorSchema(), anchorMap, null);
+
+		assertEquals(parent, anchorMap.get(CHILD_ID));
+		assertEquals(Set.of(CHILD_ID), anchorMap.keySet());
 	}
 
 	@Test
