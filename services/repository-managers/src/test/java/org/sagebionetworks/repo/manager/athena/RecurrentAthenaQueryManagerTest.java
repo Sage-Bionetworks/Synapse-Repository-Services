@@ -33,10 +33,9 @@ import org.sagebionetworks.workers.util.aws.message.RecoverableMessageException;
 import software.amazon.awssdk.services.athena.model.QueryExecution;
 import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.QueryExecutionStatus;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -48,7 +47,7 @@ public class RecurrentAthenaQueryManagerTest {
 	@Mock
 	private AthenaSupport mockAthenaSupport;
 	@Mock
-	private AmazonSQS mockSqsClient;
+	private SqsClient mockSqsClient;
 	@Mock
 	private StackConfiguration mockConfig;
 	
@@ -60,9 +59,6 @@ public class RecurrentAthenaQueryManagerTest {
 	
 	@Mock
 	private RowMapper<Long> mockRowMapper;
-	
-	@Mock
-	private Message mockMessage;
 	
 	private QueryExecution mockQueryExecution;
 	private RecurrentAthenaQueryResult mockRequest;
@@ -232,7 +228,7 @@ public class RecurrentAthenaQueryManagerTest {
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockProcessor).processQueryResultsPage(page.getResults());
-		verify(mockSqsClient, never()).sendMessage(any());
+		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
 	}
 	
 	@Test
@@ -253,7 +249,7 @@ public class RecurrentAthenaQueryManagerTest {
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verifyNoMoreInteractions(mockProcessor);
-		verify(mockSqsClient, never()).sendMessage(any());
+		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
 	}
 	
 	@Test
@@ -274,7 +270,7 @@ public class RecurrentAthenaQueryManagerTest {
 		verify(mockAthenaSupport).getQueryExecutionStatus(mockQueryExecution.queryExecutionId());
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, null, RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verifyNoMoreInteractions(mockProcessor);
-		verify(mockSqsClient, never()).sendMessage(any());
+		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
 	}
 	
 	@Test
@@ -302,7 +298,7 @@ public class RecurrentAthenaQueryManagerTest {
 		verify(mockAthenaSupport).getQueryResultsPage(mockQueryExecution.queryExecutionId(), mockRowMapper, page1.getNextPageToken(), RecurrentAthenaQueryManagerImpl.MAX_QUERY_RESULTS);
 		verify(mockProcessor).processQueryResultsPage(page1.getResults());
 		verify(mockProcessor).processQueryResultsPage(page2.getResults());
-		verify(mockSqsClient, never()).sendMessage(any());
+		verify(mockSqsClient, never()).sendMessage(any(SendMessageRequest.class));
 	}
 	
 	@Test
@@ -340,9 +336,10 @@ public class RecurrentAthenaQueryManagerTest {
 		
 		verify(mockProcessor, times(RecurrentAthenaQueryManagerImpl.MAX_PAGE_REQUESTS)).processQueryResultsPage(anyList());
 		
-		verify(mockSqsClient).sendMessage(new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody("sqsMessage")
+		verify(mockSqsClient).sendMessage(SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody("sqsMessage")
+				.build()
 		);
 
 		RecurrentAthenaQueryResult expectedRequest = new RecurrentAthenaQueryResult()

@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -119,7 +120,11 @@ public class WebhookMessageDispatcherUnitTest {
 	}
 	
 	private Map<String, MessageAttributeValue> expectedMessageAttributes() {
-		return WebhookManagerImpl.mapMessageAttributes(messageType.getMessageClass(), webhook, "messageId");
+		// The producer publishes SDK v2 attributes while the dispatcher still receives SDK v1 messages, until PLFM-9749 moves the workers to the v2 Message
+		return WebhookManagerImpl.mapMessageAttributes(messageType.getMessageClass(), webhook, "messageId").entrySet().stream()
+			.collect(Collectors.toMap(Map.Entry::getKey, entry -> new MessageAttributeValue()
+				.withDataType(entry.getValue().dataType())
+				.withStringValue(entry.getValue().stringValue())));
 	}
 	
 	private WebhookMessageAttributes expectedAttributes() {

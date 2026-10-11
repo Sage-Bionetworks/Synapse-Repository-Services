@@ -43,9 +43,12 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.RestoreObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.sqs.AmazonSQS;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @Service
 public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager {
@@ -59,7 +62,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	static final int KEYS_PER_MESSAGE = 100;
 	static final String PROCESS_QUEUE_NAME = "FILE_KEY_ARCHIVE";
 	
-	private AmazonSQS sqsClient;
+	private SqsClient sqsClient;
 	private SynapseS3Client s3Client;
 	private ObjectMapper objectMapper;
 	private FileHandleDao fileHandleDao;
@@ -70,7 +73,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	private String synapseBucketName;
 	
 	@Autowired
-	public FileHandleArchivalManagerImpl(AmazonSQS sqsClient, SynapseS3Client s3Client, ObjectMapper objectMapper, FileHandleDao fileHandleDao, DBOBasicDao basicDao, FileHandleManager fileHandleManager) {
+	public FileHandleArchivalManagerImpl(SqsClient sqsClient, SynapseS3Client s3Client, ObjectMapper objectMapper, FileHandleDao fileHandleDao, DBOBasicDao basicDao, FileHandleManager fileHandleManager) {
 		this.sqsClient = sqsClient;
 		this.s3Client = s3Client;
 		this.objectMapper = objectMapper;
@@ -81,7 +84,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 	
 	@Autowired
 	public void configure(StackConfiguration config) {
-		this.processQueueUrl = sqsClient.getQueueUrl(config.getQueueName(PROCESS_QUEUE_NAME)).getQueueUrl();
+		this.processQueueUrl = sqsClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(config.getQueueName(PROCESS_QUEUE_NAME)).build()).queueUrl();
 		this.synapseBucketName = config.getS3Bucket();
 	}
 
@@ -312,7 +315,7 @@ public class FileHandleArchivalManagerImpl implements FileHandleArchivalManager 
 			throw new IllegalStateException("Could not serialize FileHandleKeysArchiveRequest message: " + e.getMessage(), e);
 		}
 		
-		sqsClient.sendMessage(processQueueUrl, messageBody);
+		sqsClient.sendMessage(SendMessageRequest.builder().queueUrl(processQueueUrl).messageBody(messageBody).build());
 		
 		keysBatch.clear();
 	}

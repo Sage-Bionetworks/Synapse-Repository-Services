@@ -66,12 +66,14 @@ import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.RestoreObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.Message;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHandleArchivalManagerTest {
@@ -83,7 +85,7 @@ public class FileHandleArchivalManagerTest {
 	private ObjectMapper mockMapper;
 	
 	@Mock
-	private AmazonSQS mockSqs;
+	private SqsClient mockSqs;
 	
 	@Mock
 	private SynapseS3Client mockS3Client;
@@ -110,9 +112,6 @@ public class FileHandleArchivalManagerTest {
 	private FileHandleKeysArchiveRequest mockKeysArchiveRequest;
 	
 	@Mock
-	private Message mockMessage;
-
-	@Mock
 	private FileHandle mockFileHandle;
 	
 	@Mock
@@ -133,13 +132,13 @@ public class FileHandleArchivalManagerTest {
 	public void setup() {
 		when(mockConfig.getS3Bucket()).thenReturn(bucket);
 		when(mockConfig.getQueueName(anyString())).thenReturn("queueName");
-		when(mockSqs.getQueueUrl(anyString())).thenReturn(new GetQueueUrlResult().withQueueUrl(queueUrl));
+		when(mockSqs.getQueueUrl(any(GetQueueUrlRequest.class))).thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
 		
 		// This is invoked automatically by spring
 		manager.configure(mockConfig);
 		
 		verify(mockConfig).getQueueName(PROCESS_QUEUE_NAME);
-		verify(mockSqs).getQueueUrl("queueName");
+		verify(mockSqs).getQueueUrl(GetQueueUrlRequest.builder().queueName("queueName").build());
 	}
 	
 	@Test
@@ -170,7 +169,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, limit);
 		verify(mockMapper).writeValueAsString(expectedMessage);
-		verify(mockSqs).sendMessage(queueUrl, "messageBody");
+		verify(mockSqs).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody("messageBody").build());
 		
 	}
 	
@@ -201,7 +200,7 @@ public class FileHandleArchivalManagerTest {
 		
 		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, DEFAULT_ARCHIVE_LIMIT);
 		verify(mockMapper).writeValueAsString(expectedMessage);
-		verify(mockSqs).sendMessage(queueUrl, "messageBody");
+		verify(mockSqs).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody("messageBody").build());
 		
 	}
 	
@@ -234,7 +233,7 @@ public class FileHandleArchivalManagerTest {
 		verify(mockFileDao).getUnlinkedKeysForBucket(bucket, expectedModifiedBefore, limit);
 		verify(mockMapper, times(keys.size()/KEYS_PER_MESSAGE)).writeValueAsString(requestCaptor.capture());
 		assertEquals(expectedRequests, requestCaptor.getAllValues());
-		verify(mockSqs, times(keys.size()/KEYS_PER_MESSAGE)).sendMessage(queueUrl, "messageBody");
+		verify(mockSqs, times(keys.size()/KEYS_PER_MESSAGE)).sendMessage(SendMessageRequest.builder().queueUrl(queueUrl).messageBody("messageBody").build());
 		
 	}
 		

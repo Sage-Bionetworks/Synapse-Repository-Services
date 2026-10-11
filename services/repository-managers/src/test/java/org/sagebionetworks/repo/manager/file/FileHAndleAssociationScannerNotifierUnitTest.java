@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,13 +18,14 @@ import org.sagebionetworks.repo.model.IdRange;
 import org.sagebionetworks.repo.model.file.FileHandleAssociateType;
 import org.sagebionetworks.repo.model.file.FileHandleAssociationScanRangeRequest;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.GetQueueUrlResult;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class FileHAndleAssociationScannerNotifierUnitTest {
@@ -37,16 +37,10 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 	private ObjectMapper mockObjectMapper;
 	
 	@Mock
-	private AmazonSQS mockSqsClient;
-	
-	@Mock
-	private GetQueueUrlResult mockQueueUrlResult;
+	private SqsClient mockSqsClient;
 	
 	@InjectMocks
 	private FileHandleAssociationScannerNotifierImpl notifier;
-	
-	@Mock
-	private Message mockMessage;
 	
 	private String queueUrl;
 	private String messageBody;
@@ -62,13 +56,12 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 				.withIdRange(new IdRange(1, 10000));
 		
 		when(mockConfig.getQueueName(any())).thenReturn("QueueName");
-		when(mockSqsClient.getQueueUrl(anyString())).thenReturn(mockQueueUrlResult);
-		when(mockQueueUrlResult.getQueueUrl()).thenReturn(queueUrl);
+		when(mockSqsClient.getQueueUrl(any(GetQueueUrlRequest.class))).thenReturn(GetQueueUrlResponse.builder().queueUrl(queueUrl).build());
 		
 		notifier.configureQueue(mockConfig);
 		
 		verify(mockConfig).getQueueName("FILE_HANDLE_SCAN_REQUEST");
-		verify(mockSqsClient).getQueueUrl("QueueName");
+		verify(mockSqsClient).getQueueUrl(GetQueueUrlRequest.builder().queueName("QueueName").build());
 	}
 		
 	@Test
@@ -81,10 +74,11 @@ public class FileHAndleAssociationScannerNotifierUnitTest {
 		// Call under test
 		notifier.sendScanRequest(request, delay);
 
-		SendMessageRequest expectedRequest = new SendMessageRequest()
-				.withQueueUrl(queueUrl)
-				.withMessageBody(messageBody)
-				.withDelaySeconds(delay);
+		SendMessageRequest expectedRequest = SendMessageRequest.builder()
+				.queueUrl(queueUrl)
+				.messageBody(messageBody)
+				.delaySeconds(delay)
+				.build();
 		
 		verify(mockObjectMapper).writeValueAsString(request);
 		verify(mockSqsClient).sendMessage(expectedRequest);

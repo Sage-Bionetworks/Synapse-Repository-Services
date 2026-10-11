@@ -8,12 +8,13 @@ import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.dbo.asynch.FifoQueueParameters;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.DeleteMessageRequest;
-import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-import com.amazonaws.services.sqs.model.SendMessageRequest;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.DeleteMessageRequest;
+import software.amazon.awssdk.services.sqs.model.GetQueueUrlRequest;
+import software.amazon.awssdk.services.sqs.model.Message;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageRequest;
+import software.amazon.awssdk.services.sqs.model.ReceiveMessageResponse;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 /**
  * Basic implementation of AsynchJobQueuePublisher
@@ -24,7 +25,7 @@ import com.amazonaws.services.sqs.model.SendMessageRequest;
 public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	
 	@Autowired
-	AmazonSQS awsSQSClient;
+	SqsClient awsSQSClient;
 	
 	/**
 	 * Mapping from a job type to a queue URL
@@ -40,11 +41,11 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		// Get the URL for this type's queue
 		String url = getQueueURLForType(type);
-		SendMessageRequest request = new SendMessageRequest(url, status.getJobId());
+		SendMessageRequest.Builder request = SendMessageRequest.builder().queueUrl(url).messageBody(status.getJobId());
 		if(type.isFifoQueue()) {
 			FifoQueueParameters params = type.getFifoParameters(status);
-			request.setMessageDeduplicationId(params.getMessageDeduplicationId());
-			request.setMessageGroupId(params.getMessageGroupId());
+			request.messageDeduplicationId(params.getMessageDeduplicationId());
+			request.messageGroupId(params.getMessageGroupId());
 		}
 		
 		/*
@@ -52,7 +53,7 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		 * publish the jobId and expect the workers to lookup the request from the database.
 		 */
 		// publish the message
-		awsSQSClient.sendMessage(request);
+		awsSQSClient.sendMessage(request.build());
 	}
 	
 	/**
@@ -62,7 +63,7 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		// Map each type to its queue;
 		toTypeToQueueURLMap = new HashMap<AsynchJobType, String>(AsynchJobType.values().length);
 		for(AsynchJobType type: AsynchJobType.values()){
-			String qUrl = this.awsSQSClient.getQueueUrl(type.getQueueName()).getQueueUrl();
+			String qUrl = this.awsSQSClient.getQueueUrl(GetQueueUrlRequest.builder().queueName(type.getQueueName()).build()).queueUrl();
 			toTypeToQueueURLMap.put(type, qUrl);
 		}
 	}
@@ -84,9 +85,9 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	@Override
 	public Message recieveOneMessage(AsynchJobType type) {
 		String url = getQueueURLForType(type);
-		ReceiveMessageResult results =awsSQSClient.receiveMessage(new ReceiveMessageRequest(url).withMaxNumberOfMessages(1));
-		if(results.getMessages() != null && results.getMessages().size() == 1){
-			return results.getMessages().get(0);
+		ReceiveMessageResponse results = awsSQSClient.receiveMessage(ReceiveMessageRequest.builder().queueUrl(url).maxNumberOfMessages(1).build());
+		if(results.hasMessages() && results.messages().size() == 1){
+			return results.messages().get(0);
 		}
 		return null;
 	}
@@ -94,7 +95,7 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	@Override
 	public void deleteMessage(AsynchJobType type, Message message) {
 		String url = getQueueURLForType(type);
-		awsSQSClient.deleteMessage(new DeleteMessageRequest(url, message.getReceiptHandle()));
+		awsSQSClient.deleteMessage(DeleteMessageRequest.builder().queueUrl(url).receiptHandle(message.receiptHandle()).build());
 	}
 
 	@Override
