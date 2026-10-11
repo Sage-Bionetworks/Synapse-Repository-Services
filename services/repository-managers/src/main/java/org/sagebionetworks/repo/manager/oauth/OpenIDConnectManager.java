@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.oauth;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.oauth.OAuthAuthorizationResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenIntrospectionResponse;
 import org.sagebionetworks.repo.model.oauth.OAuthTokenRevocationRequest;
@@ -28,7 +29,7 @@ public interface OpenIDConnectManager {
 	 * @param authorizationRequest
 	 * @return
 	 */
-	OAuthAuthorizationResponse authorizeClient(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest);
+	OAuthAuthorizationResponse authorizeClient(UserInfo userInfo, OIDCAuthorizationRequest authorizationRequest, IdentityProviderName identityProviderName);
 	
 	/**
 	 * Obtain an access token, and conditionally an ID token and/or refresh token using an authorization code
@@ -56,7 +57,7 @@ public interface OpenIDConnectManager {
 	 * @return the user ID of the Synapse user referred to by the access token
 	 * @throws UnauthorizedException if an associated refresh token is expired
 	 */
-	String validateAccessToken(String accessToken) throws UnauthorizedException;
+	ValidatedAccessToken validateAccessToken(String accessToken) throws UnauthorizedException;
 
 	/**
 	 * Return true iff the specified user has already granted consent for the given client, socpe and claims

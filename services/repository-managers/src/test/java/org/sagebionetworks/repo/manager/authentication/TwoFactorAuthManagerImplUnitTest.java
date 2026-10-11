@@ -610,7 +610,7 @@ public class TwoFactorAuthManagerImplUnitTest {
 			.setExpiresOn(new Date(12345 + TwoFactorAuthManagerImpl.TWO_FA_TOKEN_DURATION_MINS * 60 * 1000));
 				
 		// Call under test
-		String result = manager.generate2FaToken(user, context);
+		String result = manager.generate2FaToken(user, context, null);
 		
 		assertEquals(expected, decodeLoginToken(result));
 		

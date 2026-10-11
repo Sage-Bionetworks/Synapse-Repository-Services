@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.token.TokenGenerator;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.AuthenticationDAO;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.TotpSecret;
 import org.sagebionetworks.repo.model.auth.TotpSecretActivationRequest;
 import org.sagebionetworks.repo.model.auth.TwoFactorAuthRecoveryCodes;
@@ -184,7 +185,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 		
 	@Override
-	public String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context) {
+	public String generate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, IdentityProviderName identityProviderName) {
 		assertValidUser(user);
 		ValidateArgument.required(context, "The context");
 		
@@ -194,6 +195,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		TwoFactorAuthToken token = new TwoFactorAuthToken()
 			.setUserId(user.getId())
 			.setContext(context)
+			.setIdentityProviderName(identityProviderName)
 			.setCreatedOn(now)
 			.setExpiresOn(tokenExpiration);
 		
@@ -208,6 +210,23 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 	}
 	
 	@Override
+	public IdentityProviderName getIdentityProviderFrom2FaToken(String encodedToken) {
+		// The token is signed, and the caller has already validated it, so its content can be trusted.
+		return decode2FaToken(encodedToken).getIdentityProviderName();
+	}
+
+	private static TwoFactorAuthToken decode2FaToken(String encodedToken) {
+		ValidateArgument.requiredNotBlank(encodedToken, "The token");
+		String decodedToken = new String(Base64.getDecoder().decode(encodedToken.getBytes(StandardCharsets.UTF_8)),
+				StandardCharsets.UTF_8);
+		try {
+			return EntityFactory.createEntityFromJSONString(decodedToken, TwoFactorAuthToken.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new IllegalArgumentException("The token is malformed", e);
+		}
+	}
+
+	@Override
 	public boolean validate2FaToken(UserInfo user, TwoFactorAuthTokenContext context, String encodedToken) {
 		assertValidUser(user);
 		
@@ -215,8 +234,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 		ValidateArgument.requiredNotBlank(encodedToken, "The token");
 		
 		try {
-			String decodedToken = new String(Base64.getDecoder().decode(encodedToken.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
-			TwoFactorAuthToken token = EntityFactory.createEntityFromJSONString(decodedToken, TwoFactorAuthToken.class);
+			TwoFactorAuthToken token = decode2FaToken(encodedToken);
 			
 			if(!user.getId().equals(token.getUserId())) {
 				return false;
@@ -227,7 +245,7 @@ public class TwoFactorAuthManagerImpl implements TwoFactorAuthManager {
 			}
 			
 			tokenGenerator.validateToken(token);
-		} catch (JSONObjectAdapterException | UnauthorizedException | IllegalArgumentException e) {
+		} catch (UnauthorizedException | IllegalArgumentException e) {
 			return false;
 		}
 		return true;

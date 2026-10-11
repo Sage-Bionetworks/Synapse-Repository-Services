@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.auth.AccessTokenResponse;
 import org.sagebionetworks.repo.model.auth.AuthenticatedOn;
 import org.sagebionetworks.repo.model.auth.ChangePasswordInterface;
 import org.sagebionetworks.repo.model.auth.IdentityProvider;
+import org.sagebionetworks.repo.model.auth.IdentityProviderName;
 import org.sagebionetworks.repo.model.auth.LoginRequest;
 import org.sagebionetworks.repo.model.auth.LoginResponse;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -106,7 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		ValidateArgument.required(signRequest, "The request");
 		ValidateArgument.required(signRequest.getAccessToken(), "Access token contents");
 		
-		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()));
+		Long principalId = Long.parseLong(oidcManager.validateAccessToken(signRequest.getAccessToken()).userId());
 		
 		// Save the state of acceptance
 		tosManager.signTermsOfService(principalId, signRequest.getTermsOfServiceVersion());
@@ -226,7 +227,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// Return the user's access token
-		return authManager.loginWithNoPasswordCheck(loggedInUserId, tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(loggedInUserId, tokenIssuer, 
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 	}
 	
 	private Optional<PrincipalAlias> findPrincipalAlias(OAuthProvider provider, ProvidedUserInfo providedInfo) {
@@ -283,7 +285,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		long newPrincipalId = userManager.createUser(newUser);
 
-		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer);
+		return authManager.loginWithNoPasswordCheck(newPrincipalId, tokenIssuer,
+				IdentityProviderName.valueOf(request.getProvider().toString()));
 
 	}
 	
@@ -382,9 +385,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint) {
+	public AccessTokenGenerationResponse createPersonalAccessToken(Long userId, String accessToken, AccessTokenGenerationRequest request, String oauthEndpoint,
+			IdentityProviderName identityProviderName) {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint);
+		return personalAccessTokenManager.issueToken(userInfo, accessToken, request, oauthEndpoint, identityProviderName);
 	}
 
 	@Override
