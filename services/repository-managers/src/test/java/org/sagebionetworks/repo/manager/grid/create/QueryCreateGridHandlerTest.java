@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +63,7 @@ import org.sagebionetworks.repo.model.schema.JsonSchemaObjectBinding;
 import org.sagebionetworks.repo.model.schema.JsonSchemaVersionInfo;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
@@ -182,6 +184,18 @@ public class QueryCreateGridHandlerTest {
 		assertFalse(handler.canCreate(new CreateGridRequest()));
 		assertFalse(handler.canCreate(new CreateGridRequest().setRecordSetId("syn123")));
 		assertTrue(handler.canCreate(new CreateGridRequest().setInitialQuery(new Query())));
+	}
+
+	@Test
+	public void testCreateGridWithCohorts() throws Exception {
+		query.setSql("select * from syn123 where a in cohort(c1)").setCohorts(
+				List.of(new CohortDefinition().setName("c1").setQuery(new Query().setSql("select a from syn456"))));
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			handler.createGrid(mockCallback, mockUser, new CreateGridRequest().setInitialQuery(query), mockSnapshotStore);
+		}).getMessage();
+		assertEquals("CreateGridRequest.initialQuery may not define cohorts", message);
+		verifyNoInteractions(mockQueryManager);
 	}
 
 	@Test

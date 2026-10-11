@@ -55,10 +55,13 @@ import org.mockito.Spy;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.entity.EntityAuthorizationManager;
+import org.sagebionetworks.repo.manager.table.TableQueryManagerImpl.QueryMode;
 import org.sagebionetworks.repo.manager.table.query.AggregateQidColumnResolver;
 import org.sagebionetworks.repo.manager.table.query.CountQuery;
 import org.sagebionetworks.repo.manager.table.query.FacetQueries;
+import org.sagebionetworks.repo.manager.table.query.MainQuery;
 import org.sagebionetworks.repo.manager.table.query.QueryContext;
 import org.sagebionetworks.repo.manager.table.query.QueryExecutor;
 import org.sagebionetworks.repo.manager.table.query.QueryTranslations;
@@ -81,6 +84,9 @@ import org.sagebionetworks.repo.model.dbo.file.download.v2.EntityActionRequiredC
 import org.sagebionetworks.repo.model.dbo.file.download.v2.FilesBatchProvider;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
 import org.sagebionetworks.repo.model.table.BenefactorColumn;
+import org.sagebionetworks.repo.model.table.BooleanOperator;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
+import org.sagebionetworks.repo.model.table.ColumnCohortFilter;
 import org.sagebionetworks.repo.model.table.ColumnLineageEntry;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnMultiValueFunction;
@@ -97,10 +103,12 @@ import org.sagebionetworks.repo.model.table.FacetColumnResultBinnedValues;
 import org.sagebionetworks.repo.model.table.FacetColumnResultRange;
 import org.sagebionetworks.repo.model.table.FacetColumnResultValues;
 import org.sagebionetworks.repo.model.table.FacetType;
+import org.sagebionetworks.repo.model.table.FilterGroup;
 import org.sagebionetworks.repo.model.table.IndexAuthorizationSnapshot;
 import org.sagebionetworks.repo.model.table.IndexDescriptionSnapshot;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryOptions;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -125,6 +133,7 @@ import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.CachedQueryRequest;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.QueryTranslator;
+import org.sagebionetworks.table.cluster.ResolvedCohort;
 import org.sagebionetworks.table.cluster.SchemaProvider;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.description.BenefactorDescription;
@@ -185,6 +194,8 @@ public class TableQueryManagerImplTest {
 	private IndexAuthorizationSnapshotManager mockIndexAuthorizationSnapshotManager;
 	@Mock
 	private AggregateQidColumnResolver mockAggregateQidColumnResolver;
+	@Mock
+	private StackConfiguration mockStackConfiguration;
 
 	@Spy
 	@InjectMocks
@@ -443,7 +454,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		assertThrows(UnauthorizedException.class, ()->{
-			manager.queryPreflight(user, query, null, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		});
 	}
 	
@@ -455,7 +466,7 @@ public class TableQueryManagerImplTest {
 
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
-		manager.queryPreflight(user, query, null, queryOptions);
+		manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		verify(mockTableManagerSupport).validateTableReadAccess(user, expected);
 	}
@@ -477,7 +488,7 @@ public class TableQueryManagerImplTest {
 		QueryOptions options = new QueryOptions().withRunCount(true);
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, null, options);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertTrue(result.isAggregateOnly());
 		assertEquals(500L, result.getSuppressionThreshold());
@@ -500,7 +511,7 @@ public class TableQueryManagerImplTest {
 
 		// call under test: a row request against a source with no quasi-identifiers is rejected
 		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
-			manager.queryPreflight(user, query, null, options);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		});
 		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, thrown.getReasonCode());
 	}
@@ -523,7 +534,7 @@ public class TableQueryManagerImplTest {
 		QueryOptions options = new QueryOptions().withRunQuery(true);
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, null, options);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		assertTrue(result.isRowReturningAggregate());
 		assertEquals(List.of(1), result.getProtectedCountColumnIndexes());
 	}
@@ -545,9 +556,191 @@ public class TableQueryManagerImplTest {
 
 		// call under test
 		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
-			manager.queryPreflight(user, query, null, options);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.STANDARD);
 		});
 		assertEquals(RowSuppressionReasonCode.QID_PROJECTED, thrown.getReasonCode());
+	}
+
+	/**
+	 * Stub the caller as aggregate-only on the queried table, whose bound configuration defines the given
+	 * quasi-identifier column ids.
+	 */
+	void setupAggregateOnly(Set<String> qidColumnIds) {
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+		when(mockAggregateQidColumnResolver.resolve(any())).thenReturn(qidColumnIds);
+	}
+
+	ResolvedCohort cohortOn(String name, int columnIndex, boolean aggregateOnly, String... values) {
+		return new ResolvedCohort(name, models.get(columnIndex).getColumnType(), List.of(values), aggregateOnly);
+	}
+
+	@Test
+	public void testQueryPreflightWithQidProjectedAndCohortCapture() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L)
+				.setQuasiIdentifierColumnNames(List.of("i1"));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query().setSql("select distinct i1 from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test: a cohort's QID values are captured server-side, so its projection is allowed
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), null, options,
+				QueryMode.COHORT_CAPTURE);
+		assertTrue(result.isAggregateOnly());
+		assertEquals(Collections.emptyList(), result.getProtectedCountColumnIndexes());
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateNoQuasiIdentifiersAndCohortCapture() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		AggregateDataConfiguration configuration = new AggregateDataConfiguration().setSuppressionThreshold(500L);
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId)).thenReturn(Optional.of(configuration));
+
+		Query query = new Query().setSql("select distinct i1 from " + tableId);
+		QueryOptions options = new QueryOptions().withRunQuery(true);
+
+		// call under test: a source with no quasi-identifiers can never hand off a cohort
+		RowSuppressionException thrown = assertThrows(RowSuppressionException.class, () -> {
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, options, QueryMode.COHORT_CAPTURE);
+		});
+		assertEquals(RowSuppressionReasonCode.NO_QUASI_IDENTIFIERS, thrown.getReasonCode());
+	}
+
+	@Test
+	public void testQueryPreflightWithCohorts() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		Query query = new Query().setSql("select i0 from " + tableId + " where i0 in cohort(c1)")
+				.setAdditionalFilters(List.of(new ColumnCohortFilter().setColumnName("i0").setCohortName("c2")));
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 0, false, "a", "b"), "c2",
+				cohortOn("c2", 0, false, "c"));
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, cohorts, null, queryOptions, QueryMode.STANDARD);
+		// The cohort values only reach the translated query as bind variables.
+		QueryTranslator translator = result.getMainQuery().getTranslator();
+		assertEquals("SELECT _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( _C0_ IN ( :b0 ) ) ) AND ( _C0_ IN ( :b1, :b2 ) )",
+				translator.getOutputSQL());
+		assertEquals(Map.of("b0", "c", "b1", "a", "b2", "b"), translator.getParameters());
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCohortOnQuasiIdentifier() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		setupAggregateOnly(Set.of("1"));
+
+		Query query = new Query().setSql("select count(*) from " + tableId + " where i1 in cohort(c1)")
+				.setAdditionalFilters(List.of(new ColumnCohortFilter().setColumnName("i1").setCohortName("c1")));
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 1, true, "1", "2"));
+
+		// call under test
+		QueryTranslations result = manager.queryPreflight(user, query, cohorts, null, new QueryOptions().withRunCount(true),
+				QueryMode.STANDARD);
+		assertTrue(result.isAggregateOnly());
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCohortOnNonQuasiIdentifier() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		setupAggregateOnly(Set.of("1"));
+
+		Query query = new Query().setSql("select count(*) from " + tableId + " where i0 in cohort(c1)");
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 0, true, "a"));
+
+		String message = assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, cohorts, null, new QueryOptions().withRunCount(true), QueryMode.STANDARD);
+		}).getMessage();
+		assertEquals("You have aggregate-only access to the source of cohort 'c1', so it may only filter a quasi-identifier"
+				+ " column of a table to which you also have aggregate-only access", message);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCohortFilterOnNonQuasiIdentifier() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		setupAggregateOnly(Set.of("1"));
+
+		Query query = new Query().setSql("select count(*) from " + tableId + " where i1 in cohort(c1)")
+				.setAdditionalFilters(List.of(new FilterGroup().setOperator(BooleanOperator.OR).setChildren(
+						List.of(new ColumnCohortFilter().setColumnName("i0").setCohortName("c1")))));
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 1, true, "1"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, cohorts, null, new QueryOptions().withRunCount(true), QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCohortAndFullAccessMain() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		Query query = new Query().setSql("select i1 from " + tableId + " where i1 in cohort(c1)");
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 1, true, "1"));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, cohorts, null, queryOptions, QueryMode.STANDARD);
+		});
+		// A fully readable main query has no quasi-identifier protection to rely on.
+		verifyNoInteractions(mockAggregateQidColumnResolver);
+	}
+
+	@Test
+	public void testQueryPreflightWithAggregateOnlyCohortAndPreviewMain() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any())).thenReturn(AuthorizationStatus.authorized());
+
+		Query query = new Query().setSql("select count(*) from " + tableId + " where i1 in cohort(c1)");
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 1, true, "1"));
+		// A preview applies the aggregate rules, but the caller keeps full access to the main table.
+		QueryOptions options = new QueryOptions().withRunCount(true).withAggregateDataPreview(
+				new AggregateDataConfiguration().setSuppressionThreshold(5L).setQuasiIdentifierColumnNames(List.of("i1")));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			manager.queryPreflight(user, query, cohorts, null, options, QueryMode.STANDARD);
+		});
+	}
+
+	@Test
+	public void testQueryPreflightWithFullAccessCohortAndAggregateMain() throws Exception {
+		setupSnapshot(idAndVersion, TableType.table, models);
+		setupColumnModelAnswer(models);
+		when(mockTableManagerSupport.validateTableReadAccess(any(), any()))
+				.thenReturn(AuthorizationStatus.accessDeniedButAggregateAllowed("unmet access requirements", tableId));
+		when(mockTableManagerSupport.getAggregateDataConfiguration(tableId))
+				.thenReturn(Optional.of(new AggregateDataConfiguration().setSuppressionThreshold(500L)));
+
+		Query query = new Query().setSql("select count(*) from " + tableId + " where i0 in cohort(c1)");
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 0, false, "a"));
+
+		// call under test: a cohort the caller could read in full may filter any column
+		QueryTranslations result = manager.queryPreflight(user, query, cohorts, null,
+				new QueryOptions().withRunCount(true), QueryMode.STANDARD);
+		assertTrue(result.isAggregateOnly());
+		verifyNoInteractions(mockAggregateQidColumnResolver);
 	}
 
 	@Test
@@ -566,7 +759,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 
 		assertThrows(UnauthorizedException.class, () -> {
-			manager.queryPreflight(user, query, null, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		});
 	}
 
@@ -598,7 +791,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 
 		// call under test
-		manager.queryPreflight(user, query, null, queryOptions);
+		manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 
 		// Authorization runs against the reconstituted snapshot description, not the live index description.
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
@@ -621,7 +814,7 @@ public class TableQueryManagerImplTest {
 
 		assertThrows(UnauthorizedException.class, () -> {
 			// call under test
-			manager.queryPreflight(user, query, null, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		});
 		verify(mockTableManagerSupport, never()).getIndexDescription(any());
 	}
@@ -639,7 +832,7 @@ public class TableQueryManagerImplTest {
 
 		// call under test
 		assertThrows(IllegalStateException.class, () -> {
-			manager.queryPreflight(user, query, null, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), null, queryOptions, QueryMode.STANDARD);
 		});
 	}
 
@@ -764,12 +957,12 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 		// Only the SQL is parsed before the lock; authorization and translation are deferred into the
 		// locked callback. Stub preflight so this test focuses on the lock/availability orchestration.
-		doReturn(mockQueryTranslations).when(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		doReturn(mockQueryTranslations).when(manager).queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		QueryResultBundle expected = new QueryResultBundle();
 
 		// call under test.
 		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, maxBytesPerPage,
-				queryOptions, (translatedQuery, tableStatus) -> {
+				queryOptions, QueryMode.STANDARD, (translatedQuery, tableStatus) -> {
 					// the consumer receives the query translated under the lock and the status from the availability check.
 					assertEquals(mockQueryTranslations, translatedQuery);
 					assertEquals(status, tableStatus);
@@ -780,7 +973,108 @@ public class TableQueryManagerImplTest {
 		verify(mockTableManagerSupport).tryRunWithTableNonExclusiveLock(any(ProgressCallback.class), any(), any(ProgressingCallable.class), any(IdAndVersion.class));
 		// availability is confirmed once, under the lock, before translation.
 		verify(mockTableManagerSupport).getTableStatusOrCreateIfNotExists(idAndVersion);
-		verify(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		verify(manager).queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
+	}
+
+	@Test
+	public void testQueryAfterAuthorizationWithCohorts() throws Exception {
+		when(mockTableManagerSupport.getTableStatusOrCreateIfNotExists(idAndVersion)).thenReturn(status);
+		setupNonExclusiveLock();
+
+		Query query = new Query().setSql("select * from " + tableId + " where i0 in cohort(c1)");
+		Map<String, ResolvedCohort> cohorts = Map.of("c1", cohortOn("c1", 0, false, "a"));
+		doReturn(cohorts).when(manager).resolveCohorts(mockProgressCallbackVoid, user, query);
+		doReturn(mockQueryTranslations).when(manager).queryPreflight(user, query, cohorts, null, queryOptions, QueryMode.STANDARD);
+
+		// call under test
+		manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD,
+				(translatedQuery, tableStatus) -> null);
+		// The cohorts are resolved before this table's lock is taken.
+		verify(manager).resolveCohorts(mockProgressCallbackVoid, user, query);
+		verify(manager).queryPreflight(user, query, cohorts, null, queryOptions, QueryMode.STANDARD);
+	}
+
+	@Test
+	public void testResolveCohorts() throws Exception {
+		when(mockStackConfiguration.getTableQueryMaxCohorts()).thenReturn(5);
+		CohortDefinition one = new CohortDefinition().setName("c1").setQuery(new Query().setSql("select a from syn1"));
+		CohortDefinition two = new CohortDefinition().setName("c2").setQuery(new Query().setSql("select b from syn2"));
+		Query query = new Query().setSql("select * from " + tableId + " where i0 in cohort(c1) and i1 in cohort(c2)")
+				.setCohorts(List.of(one, two));
+		ResolvedCohort resolvedOne = cohortOn("c1", 0, false, "a");
+		ResolvedCohort resolvedTwo = cohortOn("c2", 1, true, "1");
+		doReturn(resolvedOne).when(manager).resolveCohort(mockProgressCallbackVoid, user, one);
+		doReturn(resolvedTwo).when(manager).resolveCohort(mockProgressCallbackVoid, user, two);
+
+		// call under test
+		Map<String, ResolvedCohort> result = manager.resolveCohorts(mockProgressCallbackVoid, user, query);
+		assertEquals(List.of("c1", "c2"), List.copyOf(result.keySet()));
+		assertEquals(Map.of("c1", resolvedOne, "c2", resolvedTwo), result);
+	}
+
+	@Test
+	public void testResolveCohortsWithNoCohorts() throws Exception {
+		Query query = new Query().setSql("select * from " + tableId);
+		// call under test
+		Map<String, ResolvedCohort> result = manager.resolveCohorts(mockProgressCallbackVoid, user, query);
+		assertEquals(Collections.emptyMap(), result);
+		verify(manager, never()).resolveCohort(any(), any(), any());
+	}
+
+	@Test
+	public void testResolveCohortsWithUnknownReference() throws Exception {
+		Query query = new Query().setSql("select * from " + tableId + " where i0 in cohort(c1)");
+		String message = assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.resolveCohorts(mockProgressCallbackVoid, user, query);
+		}).getMessage();
+		assertEquals("Unknown cohort: c1", message);
+		verify(manager, never()).resolveCohort(any(), any(), any());
+	}
+
+	@Test
+	public void testResolveCohort() throws Exception {
+		when(mockStackConfiguration.getTableQueryMaxCohortValues()).thenReturn(3);
+		List<QueryFilter> filters = List.of(new ColumnSingleValueQueryFilter().setColumnName("i0")
+				.setOperator(ColumnSingleValueFilterOperator.EQUAL).setValues(List.of("x")));
+		List<FacetColumnRequest> facets = List.of(new FacetColumnRangeRequest().setColumnName("i2").setMin("1"));
+		CohortDefinition cohort = new CohortDefinition().setName("c1").setQuery(
+				new Query().setSql("select i1 from " + tableId).setAdditionalFilters(filters).setSelectedFacets(facets));
+		// The cohort runs DISTINCT, keeps its filters and facets, and asks for one value past the maximum.
+		Query expectedQuery = new Query().setSql("SELECT DISTINCT i1 FROM syn123").setAdditionalFilters(filters)
+				.setSelectedFacets(facets).setLimit(4L);
+
+		MainQuery mockMainQuery = Mockito.mock(MainQuery.class);
+		QueryTranslator mockTranslator = Mockito.mock(QueryTranslator.class);
+		when(mockQueryTranslations.getMainQuery()).thenReturn(mockMainQuery);
+		when(mockMainQuery.getTranslator()).thenReturn(mockTranslator);
+		when(mockTranslator.getSelectColumns())
+				.thenReturn(List.of(new SelectColumn().setName("i1").setColumnType(models.get(1).getColumnType())));
+		when(mockQueryTranslations.isAggregateOnly()).thenReturn(false);
+		doAnswer(invocation -> {
+			RowHandlerProvider provider = invocation.getArgument(4);
+			RowHandler handler = provider.getHandler(mockQueryTranslations);
+			handler.nextRow(new Row().setValues(List.of("2")));
+			handler.nextRow(new Row().setValues(List.of("1")));
+			handler.nextRow(new Row().setValues(List.of("2")));
+			return new QueryResultBundle();
+		}).when(manager).runQueryAsStream(eq(mockProgressCallbackVoid), eq(user), eq(expectedQuery),
+				eq(QueryMode.COHORT_CAPTURE), any(RowHandlerProvider.class));
+
+		// call under test
+		ResolvedCohort result = manager.resolveCohort(mockProgressCallbackVoid, user, cohort);
+		assertEquals(cohortOn("c1", 1, false, "2", "1"), result);
+	}
+
+	@Test
+	public void testResolveCohortWithInvalidQuery() throws Exception {
+		CohortDefinition cohort = new CohortDefinition().setName("c1")
+				.setQuery(new Query().setSql("select i0, i1 from " + tableId));
+		assertThrows(IllegalArgumentException.class, () -> {
+			// call under test
+			manager.resolveCohort(mockProgressCallbackVoid, user, cohort);
+		});
+		verifyNoInteractions(mockTableManagerSupport);
 	}
 
 	@Test
@@ -794,7 +1088,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		assertThrows(NotFoundException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD, (q, s) -> null);
 		});
 	}
 
@@ -809,7 +1103,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		assertThrows(TableUnavailableException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD, (q, s) -> null);
 		});
 	}
 
@@ -824,7 +1118,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		assertThrows(TableFailedException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD, (q, s) -> null);
 		});
 	}
 
@@ -839,7 +1133,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		assertThrows(LockUnavilableException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD, (q, s) -> null);
 		});
 
 	}
@@ -855,7 +1149,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select * from " + tableId);
 		assertThrows(EmptyResultException.class, ()->{
 			// call under test.
-			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, (q, s) -> null);
+			manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, null, queryOptions, QueryMode.STANDARD, (q, s) -> null);
 		});
 	}
 	
@@ -868,7 +1162,7 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select i0 from "+tableId);
 		Long maxBytesPerPage = null;
-		manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.table);
 		// auth check should occur
@@ -894,7 +1188,7 @@ public class TableQueryManagerImplTest {
 		query.setSql("select count(*) from "+tableId);
 		Long maxBytesPerPage = null;
 		// call under test
-		QueryTranslations results = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations results = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(results);
 		QueryIndexDescription expected = snapshotDescription(idAndVersion, TableType.entityview,
 				List.of(new BenefactorColumn().setBenefactorColumnName(TableConstants.ROW_BENEFACTOR)
@@ -1225,11 +1519,11 @@ public class TableQueryManagerImplTest {
 		Query query = new Query();
 		query.setSql("select * from " + tableId);
 		Long maxBytesPerPage = null;
-		doReturn(translated).when(manager).queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		doReturn(translated).when(manager).queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 
 		// call under test
 		QueryResultBundle result = manager.queryAfterAuthorization(mockProgressCallbackVoid, user, query, maxBytesPerPage,
-				queryOptions, (translatedQuery, tableStatus) -> {
+				queryOptions, QueryMode.STANDARD, (translatedQuery, tableStatus) -> {
 					QueryResultBundle bundle = manager.executeQuery(user, translatedQuery, queryOptions, mockQueryExecutor);
 					// rows are suppressed for an aggregate-only query, so the etag block must be null-guarded and not NPE.
 					manager.setConsistentQueryEtag(bundle, queryOptions, tableStatus);
@@ -1804,7 +2098,7 @@ public class TableQueryManagerImplTest {
 		query.setSort(sortList);
 		Long maxBytesPerPage = null;
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertEquals(
 				"SELECT _C0_, CASE WHEN _DBL_C1_ IS NULL THEN _C1_ ELSE _DBL_C1_ END, "
@@ -1828,7 +2122,7 @@ public class TableQueryManagerImplTest {
 		query.setSort(sortList);
 		Long maxBytesPerPage = null;
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 ORDER BY _C0_ DESC", result.getMainQuery().getTranslator().getOutputSQL());
 	}
@@ -1851,7 +2145,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( _C0_ LIKE :b0 )", result.getMainQuery().getTranslator().getOutputSQL());		
 		assertEquals("foo%", result.getMainQuery().getTranslator().getParameters().get("b0"));
@@ -1875,7 +2169,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_SEARCH(_C13_,'one',:b0 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL OR JSON_SEARCH(_C13_,'one',:b1 COLLATE 'utf8mb4_0900_ai_ci',NULL,'$[*]') IS NOT NULL ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
@@ -1902,7 +2196,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 
 		// call under test
-		QueryTranslations result = manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+		QueryTranslations result = manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		assertNotNull(result);
 		assertEquals("SELECT _C2_, _C0_, ROW_ID, ROW_VERSION FROM T123 WHERE ( ( JSON_OVERLAPS(LOWER(_C13_),LOWER(JSON_ARRAY(:b0,:b1))) IS TRUE ) )",
 				result.getMainQuery().getTranslator().getOutputSQL());
@@ -1921,7 +2215,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = null;
 		EmptyResultException e = assertThrows(EmptyResultException.class, ()->{
 			// call under test
-			manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		});
 		assertEquals(tableId, e.getTableId());
 	}
@@ -1933,7 +2227,7 @@ public class TableQueryManagerImplTest {
 		Long maxBytesPerPage = Long.MAX_VALUE;
 		String message = assertThrows(IllegalArgumentException.class, ()->{
 			// call under test
-			manager.queryPreflight(user, query, maxBytesPerPage, queryOptions);
+			manager.queryPreflight(user, query, Collections.emptyMap(), maxBytesPerPage, queryOptions, QueryMode.STANDARD);
 		}).getMessage();
 		assertEquals(TableConstants.JOIN_NOT_SUPPORTED_IN_THIS_CONTEX_MESSAGE, message);
 	}
@@ -3195,10 +3489,10 @@ public class TableQueryManagerImplTest {
 		// queryAfterAuthorization runs its consumer under the read lock; invoke it here with the query the
 		// preflight would have translated so the streaming consumer executes.
 		doAnswer(invocation -> {
-			TableQueryManagerImpl.TranslatedQueryConsumer consumer = invocation.getArgument(5);
+			TableQueryManagerImpl.TranslatedQueryConsumer consumer = invocation.getArgument(6);
 			return consumer.apply(mockQueryTranslations, status);
 		}).when(manager).queryAfterAuthorization(eq(mockProgressCallbackVoid), eq(user), eq(request), isNull(),
-				eq(queryOptions), any(TableQueryManagerImpl.TranslatedQueryConsumer.class));
+				eq(queryOptions), eq(QueryMode.STANDARD), any(TableQueryManagerImpl.TranslatedQueryConsumer.class));
 
 		// call under test
 		QueryResultBundle results = manager.runQueryAsStream(mockProgressCallbackVoid, user, request,
@@ -3216,7 +3510,7 @@ public class TableQueryManagerImplTest {
 		// The empty-schema check runs inside queryPreflight, under the lock, so it surfaces out of
 		// queryAfterAuthorization; runQueryAsStream maps it to an IllegalArgumentException.
 		doThrow(new EmptyResultException("message", "syn123")).when(manager).queryAfterAuthorization(
-				eq(mockProgressCallbackVoid), eq(user), eq(request), isNull(), eq(queryOptions),
+				eq(mockProgressCallbackVoid), eq(user), eq(request), isNull(), eq(queryOptions), eq(QueryMode.STANDARD),
 				any(TableQueryManagerImpl.TranslatedQueryConsumer.class));
 
 		String message = assertThrows(IllegalArgumentException.class, () -> {
