@@ -21,7 +21,7 @@ public class MainQuery {
 		CombinedQuery combined = CombinedQuery.builder().setQuery(expansion.getStartingSql())
 				.setSchemaProvider(expansion.getSchemaProvider()).setOverrideOffset(expansion.getOffset())
 				.setOverrideLimit(expansion.getLimit()).setSelectedFacets(expansion.getSelectedFacets())
-				.setSortList(expansion.getSort()).setAdditionalFilters(expansion.getAdditionalFilters()).build();
+				.setSortList(expansion.getSort()).setAdditionalFilters(expansion.getAdditionalFilters()).setCohorts(expansion.getCohorts()).build();
 
 		sqlQuery = QueryTranslator.builder(combined.getCombinedSql(), expansion.getUserId())
 				.schemaProvider(expansion.getSchemaProvider()).indexDescription(expansion.getIndexDescription())

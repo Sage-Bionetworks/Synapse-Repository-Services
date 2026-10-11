@@ -5,11 +5,13 @@ import org.sagebionetworks.repo.model.UnmodifiableXStream;
 import org.sagebionetworks.repo.model.asynch.CacheableRequestBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableExceptionTranslator;
 import org.sagebionetworks.repo.model.entity.IdAndVersion;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadPFBRequest;
 import org.sagebionetworks.repo.model.table.FacetColumnRequest;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryFilter;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -51,15 +53,20 @@ public class TableQueryUtils {
 	 * @param sql
 	 * @param nextOffset
 	 * @param limit
+	 * @param additionalFilters
+	 * @param cohorts the cohort definitions, never their resolved values.
 	 * @return
 	 */
-	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit, List<FacetColumnRequest> selectedFacets) {
+	public static QueryNextPageToken createNextPageToken(String sql, List<SortItem> sortList, Long nextOffset, Long limit,
+			List<FacetColumnRequest> selectedFacets, List<QueryFilter> additionalFilters, List<CohortDefinition> cohorts) {
 		Query query = new Query();
 		query.setSql(sql);
 		query.setSort(sortList);
 		query.setOffset(nextOffset);
 		query.setLimit(limit);
 		query.setSelectedFacets(selectedFacets);
+		query.setAdditionalFilters(additionalFilters);
+		query.setCohorts(cohorts);
 
 		StringWriter writer = new StringWriter(sql.length() + 50);
 		X_STREAM.toXML(query, writer);
@@ -89,6 +96,25 @@ public class TableQueryUtils {
 		}
 	}
 	
+	/**
+	 * @param body
+	 * @return true when the query carried by the CacheableRequestBody defines request-scoped cohorts.
+	 */
+	public static boolean hasCohorts(CacheableRequestBody body) {
+		ValidateArgument.required(body, "body");
+		Query query;
+		if (body instanceof DownloadFromTableRequest || body instanceof DownloadPFBRequest) {
+			query = (Query) body;
+		} else if (body instanceof QueryBundleRequest) {
+			query = ((QueryBundleRequest) body).getQuery();
+		} else if (body instanceof QueryNextPageToken) {
+			query = createQueryFromNextPageToken((QueryNextPageToken) body);
+		} else {
+			throw new IllegalArgumentException("Unknown request body type: " + body.getClass());
+		}
+		return query != null && query.getCohorts() != null && !query.getCohorts().isEmpty();
+	}
+
 	public static IdAndVersion getTableIdFromRequestBodyAsIdAndVersion(CacheableRequestBody body) {
 		return IdAndVersion.parse(getTableIdFromRequestBody(body));
 	}

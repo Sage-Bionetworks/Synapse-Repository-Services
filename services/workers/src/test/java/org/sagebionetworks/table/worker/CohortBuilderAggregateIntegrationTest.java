@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.v2.Annotations;
 import org.sagebionetworks.repo.model.annotation.v2.AnnotationsV2TestUtils;
@@ -55,6 +56,7 @@ import org.sagebionetworks.repo.model.annotation.v2.AnnotationsValueType;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.file.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.CohortDefinition;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.FacetType;
@@ -66,6 +68,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.RowSuppressionReasonCode;
 import org.sagebionetworks.repo.model.table.ViewEntityType;
 import org.sagebionetworks.repo.model.table.ViewTypeMask;
+import org.sagebionetworks.repo.web.BelowThresholdException;
 import org.sagebionetworks.repo.web.RowSuppressionException;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -365,6 +368,124 @@ public class CohortBuilderAggregateIntegrationTest {
 					options, (bundle) -> fail("Should have rejected MAX(PART_IZ) as a non-count aggregate of a QID"));
 		});
 		assertEquals(RowSuppressionReasonCode.QID_IN_NON_COUNT_AGGREGATE, thrown.getReasonCode());
+	}
+
+	/**
+	 * PLFM-10028: a cohort defined against the participant perspective, carried to the file perspective by
+	 * {@code PART_ID IN COHORT(name)}. Participants 1-6 have both a txt and a csv file, participant 7 has
+	 * only a txt file and participant 8 only a csv file, so the intersection of the "txt" and "csv"
+	 * cohorts is participants 1-6.
+	 */
+	private record CohortHandOffModel(String filesId, String participantVtId) {
+	}
+
+	private CohortHandOffModel setupCohortHandOff() throws Exception {
+		ColumnModel fileId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("FILE_ID").setColumnType(ColumnType.INTEGER));
+		ColumnModel partId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("PART_ID").setColumnType(ColumnType.INTEGER));
+		ColumnModel fileType = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("FILE_TYPE").setColumnType(ColumnType.STRING).setMaximumSize(10L));
+		List<Row> rows = new ArrayList<>();
+		for (int participant = 1; participant <= 8; participant++) {
+			if (participant != 8) {
+				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(100 + participant),
+						Integer.toString(participant), "txt")));
+			}
+			if (participant != 7) {
+				rows.add(new Row().setValues(Lists.newArrayList(Integer.toString(200 + participant),
+						Integer.toString(participant), "csv")));
+			}
+		}
+		String filesId = createSourceTable(Lists.newArrayList(fileId, partId, fileType), rows);
+		// The VirtualTable's lineage requires the source's as-built snapshot, captured with its index.
+		waitForRowCount("select * from " + filesId, 14);
+		bindAsAggregateData(filesId, AggregateCountSuppressionStrategy.MASK_BELOW_THRESHOLD);
+
+		String participantVtId = asyncHelper
+				.createVirtualTable(adminUserInfo, projectId, "select PART_ID, FILE_TYPE from " + filesId).getId();
+		return new CohortHandOffModel(filesId, participantVtId);
+	}
+
+	private static List<CohortDefinition> txtAndCsvCohorts(CohortHandOffModel model) {
+		// Mutable lists, as when parsed from a request, so a next-page token can serialize them.
+		return Lists.newArrayList(
+				new CohortDefinition().setName("txt").setQuery(new Query()
+						.setSql("select PART_ID from " + model.participantVtId() + " where FILE_TYPE = 'txt'")),
+				new CohortDefinition().setName("csv").setQuery(new Query()
+						.setSql("select PART_ID from " + model.participantVtId() + " where FILE_TYPE = 'csv'")));
+	}
+
+	@Test
+	public void testCohortHandOffWithFullAccess() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		Query query = new Query().setSql("select FILE_ID from " + model.filesId()
+				+ " where PART_ID in cohort(txt) and PART_ID in cohort(csv) order by FILE_ID")
+				.setCohorts(txtAndCsvCohorts(model));
+
+		// call under test
+		waitForConsistentQueryBundle(adminUserInfo, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			List<String> fileIds = bundle.getQueryResult().getQueryResults().getRows().stream()
+					.map(row -> row.getValues().get(0)).collect(Collectors.toList());
+			assertEquals(List.of("101", "102", "103", "104", "105", "106", "201", "202", "203", "204", "205", "206"),
+					fileIds);
+		});
+	}
+
+	@Test
+	public void testCohortHandOffWithAggregateOnlyAccess() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
+		// The aggregate-only user may only count the hand-off column, a quasi-identifier.
+		Query query = new Query().setSql("select FILE_TYPE, count(PART_ID) from " + model.filesId()
+				+ " where PART_ID in cohort(txt) and PART_ID in cohort(csv) group by FILE_TYPE order by FILE_TYPE")
+				.setCohorts(txtAndCsvCohorts(model));
+
+		// call under test
+		waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true), (bundle) -> {
+			List<List<String>> values = bundle.getQueryResult().getQueryResults().getRows().stream()
+					.map(Row::getValues).collect(Collectors.toList());
+			assertEquals(List.of(List.of("csv", "6"), List.of("txt", "6")), values);
+		});
+	}
+
+	@Test
+	public void testCohortHandOffWithAggregateOnlyAccessBelowThreshold() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
+		// Participant 7 alone is the only participant with a txt file but no csv file.
+		Query query = new Query().setSql("select count(PART_ID) from " + model.filesId() + " where PART_ID in cohort(c1)")
+				.setCohorts(Lists.newArrayList(new CohortDefinition().setName("c1").setQuery(new Query()
+						.setSql("select PART_ID from " + model.participantVtId() + " where PART_ID = 7"))));
+
+		BelowThresholdException thrown = assertThrows(BelowThresholdException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
+					(bundle) -> fail("A single-participant cohort is below the threshold"));
+		});
+		assertEquals(5L, thrown.getSuppressionThreshold());
+	}
+
+	@Test
+	public void testCohortHandOffWithAggregateOnlyCohortAndFullAccessTable() throws Exception {
+		CohortHandOffModel model = setupCohortHandOff();
+		UserInfo notOwner = createAggregateOnlyUser(model.filesId());
+		// The caller has full access to this table, so expanding the restricted cohort here would list
+		// exactly which participants have a txt file.
+		ColumnModel partId = columnManager.createColumnModel(adminUserInfo,
+				new ColumnModel().setName("PART_ID").setColumnType(ColumnType.INTEGER));
+		String openId = createSourceTable(Lists.newArrayList(partId), Lists.newArrayList(
+				new Row().setValues(Lists.newArrayList("1")), new Row().setValues(Lists.newArrayList("7")),
+				new Row().setValues(Lists.newArrayList("8"))));
+		waitForRowCount("select * from " + openId, 3);
+		Query query = new Query().setSql("select PART_ID from " + openId + " where PART_ID in cohort(txt)")
+				.setCohorts(Lists.newArrayList(txtAndCsvCohorts(model).get(0)));
+
+		assertThrows(UnauthorizedException.class, () -> {
+			// call under test
+			waitForConsistentQueryBundle(notOwner, query, new QueryOptions().withRunQuery(true),
+					(bundle) -> fail("An aggregate-only cohort must not filter a fully readable table"));
+		});
 	}
 
 	/**

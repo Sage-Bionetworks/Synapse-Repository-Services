@@ -47,7 +47,13 @@ public class JobHashProviderImpl implements JobHashProvider {
 			if (!ObjectType.TABLE.equals(type)) {
 				return null;
 			}
-			
+
+			// A cohort's values come from its own source, whose changes this table's etag does not
+			// capture, so a result that depends on a cohort cannot be cached.
+			if (TableQueryUtils.hasCohorts(body)) {
+				return null;
+			}
+
 			StringBuilder builder = new StringBuilder();
 			builder.append(EntityFactory.createJSONStringForEntity(body));
 			String objectEtag = getTableEtag(tableId);
